@@ -11,10 +11,10 @@ code that establishes it.
 
 ## What a proof here looks like
 
-One directory per candidate, named `poc-<library>`, self contained and buildable on its own:
+One directory per candidate, named `spikes/<library>`, self contained and buildable on its own:
 
 ```text
-poc-<library>/
+spikes/<library>/
   KeePassGate.<Name>.csproj    one program, net48, nothing referenced from outside the directory
   README.md                    what this one was asked, and what it answered
   src/                         the harness: a certificate authority, a TLS host, one request
@@ -26,7 +26,7 @@ and mutual TLS, and prints what it saw. Nothing here touches a certificate store
 network, so a proof can be run without arranging anything first.
 
 ```powershell
-cd poc-<library>
+cd spikes/<library>
 dotnet build
 .\bin\Debug\net48\KeePassGate.<Name>.exe
 ```

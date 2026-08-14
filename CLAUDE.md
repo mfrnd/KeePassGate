@@ -14,7 +14,7 @@ project can be read without the proofs in it.
 
 ## The rule that matters
 
-**Do not improve this account.** Every number recorded on the mainline was produced by running exactly
+**Do not improve this code.** Every number recorded on the mainline was produced by running exactly
 what is here, so an edit that makes a proof nicer makes the numbers a claim about something that no
 longer exists. Fixing a typo in a comment is the sort of change that costs nothing and buys nothing.
 
@@ -28,7 +28,7 @@ deletion in the history of everything downstream, which is what this arrangement
 
 ## Working here
 
-- One directory per candidate, `poc-<library>`, self contained, buildable with `dotnet build`.
+- One directory per candidate, `spikes/<library>`, self contained, buildable with `dotnet build`.
 - The vendored library goes under `vendor/` **as it arrives**, and every line changed is recorded
   beside it, because divergence is the measurement.
 - The harness goes under `src/` and is ours.

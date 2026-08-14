@@ -7,3 +7,8 @@
 
 # Per machine, and not everybody's business: the checked-in `.claude/settings.json` is.
 /.claude/settings.local.json
+
+# What the retired proofs build, which is theirs and not the repository's. Anchored like everything
+# above it, so a rule meant for a proof cannot quietly match somewhere else.
+/spikes/*/bin/
+/spikes/*/obj/
