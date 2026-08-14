@@ -9,8 +9,11 @@ dotnet build
 $env:KPG_PLAIN=1; .\bin\Debug\net48\KeePassGate.WsSharp.exe   # no TLS, to attribute failures
 ```
 
-**0 changed lines to compile**, and TLS 1.3 is pinned through `ServerSslConfiguration` rather than
-by patching anything. The problem is elsewhere: `HttpListenerRequest.GetClientCertificate()` throws
-`NotSupportedException`, so the certificate is demanded and validated during the handshake and then
-never shown to the handler. The proof works around it by recording the certificate in the validation
-callback, which is racy under concurrency and is the reason this option is not recommended.
+**10 changed lines, in one file.** It compiles untouched and pins TLS 1.3 through
+`ServerSslConfiguration` rather than by patching anything, because `EnabledSslProtocols` reaches
+`AuthenticateAsServer` directly.
+
+The one patch is `HttpListenerRequest.GetClientCertificate()`, which upstream leaves throwing
+`NotSupportedException`. The certificate is not missing, only unexposed: `HttpConnection` publishes
+the authenticated stream, so the peer certificate is one cast away. Five lines of code and five of
+comment.

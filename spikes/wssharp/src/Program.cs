@@ -143,11 +143,9 @@ namespace KeePassGate.WsSharp
                     path = e.Request.Url.AbsolutePath;
                     query = e.Request.Url.Query;
                     probe = e.Request.Headers["X-Kpg-Probe"];
-                    // websocket-sharp's GetClientCertificate throws NotSupportedException: the
-                    // certificate is validated during the handshake and never surfaced. The
-                    // validation callback records it instead, which is the workaround this
-                    // measurement is meant to expose rather than hide.
-                    certSubject = seenDuringHandshake;
+                    // Now genuinely from the request, via the patched GetClientCertificate.
+                    X509Certificate2 cc = e.Request.GetClientCertificate();
+                    certSubject = cc == null ? null : cc.Subject;
                     Respond(e);
                     parsed.Set();
                 };

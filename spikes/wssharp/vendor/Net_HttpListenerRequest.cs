@@ -914,7 +914,15 @@ namespace WebSocketSharp.Net
     /// </exception>
     public X509Certificate2 GetClientCertificate ()
     {
-      throw new NotSupportedException ();
+      // PATCH: upstream leaves this unimplemented, though everything it needs is already to
+      // hand: the connection keeps the authenticated stream, so the peer certificate is one
+      // cast away. Without this the listener will demand a client certificate, validate it
+      // during the handshake, and then refuse to say who presented it.
+      var ssl = _context.Connection.Stream as System.Net.Security.SslStream;
+      if (ssl == null || ssl.RemoteCertificate == null)
+        return null;
+
+      return new X509Certificate2 (ssl.RemoteCertificate);
     }
 
     /// <summary>
