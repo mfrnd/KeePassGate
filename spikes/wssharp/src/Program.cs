@@ -46,6 +46,7 @@ namespace KeePassGate.WsSharp
             Console.WriteLine("runtime: " + System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription);
             Console.WriteLine();
 
+            if (Environment.GetEnvironmentVariable("KPG_SPEC") == "1") { return SpecFirst.Run(); }
             return Environment.GetEnvironmentVariable("KPG_PLAIN") == "1" ? Plain() : Secure();
         }
 

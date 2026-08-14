@@ -39,7 +39,12 @@ a project artifact rather than source.
 than a patch. The ten lines implement one method upstream left empty, and five of them are the
 comment.
 
-## The correction
+## The corrections
+
+**uHttpSharp was called the decisive winner on spec-first binding, and it is not.** That judged
+websocket-sharp by `HttpServer`, its event-based facade, without looking for another way in. There
+is one: `WebSocketSharp.Net.HttpListener` exposes `Prefixes`, `SslConfiguration` and `GetContext`,
+so the accept loop and the pipeline can be ours, and the same router passes the same checks on it.
 
 **websocket-sharp was called disqualified, and it is not.** That verdict is above in the history of
 this file, and it is worth more than the claim it replaced.
@@ -54,6 +59,9 @@ It also reorders the comparison. The managed `HttpListener`, ported here first, 
 most expensive of the three, because it is runtime-internal code and the other two are libraries
 written to be used from outside.
 
+Both corrections came from looking for a second way in rather than from taking the first one at its
+word, which is the habit worth keeping.
+
 ## Two things the exercise turned up that arguing would not have
 
 **Size predicted nothing.** The largest candidate needed ten lines and the smallest needed 116,
@@ -67,19 +75,19 @@ difference, not a quality difference, and it only shows up when something drives
 ## Spec-first routing
 
 Which of the two supports OpenAPI spec-first binding of the sort Connexion does in Python, built
-rather than argued. The answer is uHttpSharp, decisively.
+rather than argued. **Both do**, and the question does not decide the choice.
 
-`spikes/uhttpsharp` now carries a working spec-first router in about 200 lines over the vendored
-library: the document is the routing table, handlers bind to `operationId` rather than to paths, a
-mismatch between declared operations and bound handlers is a startup error instead of a 404 found
-later, path templates capture parameters, and the body is validated against the declared schema
-before any handler runs. All of it verified over TLS 1.3 with a client certificate.
+The router is about 200 lines and is the same on both: the document is the routing table, handlers
+bind to `operationId` rather than to paths, a mismatch between declared operations and bound
+handlers is a startup error instead of a 404 found later, path templates capture parameters, and
+the body is validated against the declared schema before any handler runs. All of it verified over
+TLS 1.3 with a client certificate.
 
-The reason is architectural. Spec-first binding is layered work, and uHttpSharp's
-`Handle(context, next)` makes each layer one handler in a list, with a per-request `State` bag as
-the natural carrier for the `kpg://` ceiling on its way from the handshake to the handler.
-websocket-sharp offers `OnGet` and `OnPost` events and no context, which is what forced the earlier
-certificate workaround into a field on the listener.
+The difference is 40 lines, measured rather than estimated: a per-request context to carry the
+ceiling, a one-line delegate for a pipeline stage, and the accept loop. uHttpSharp provides all
+three through `Handle(context, next)` and a per-request `State` bag, so the glue there is nothing.
+Forty lines of our own code, written once and understood completely, is not a reason to choose a
+library.
 
 **Nothing in .NET does this off the shelf.** Swashbuckle and NSwag are code-first or build-time
 generators; runtime spec-driven routing has no mainstream .NET equivalent, so it is custom work on
@@ -87,3 +95,15 @@ any foundation. That argues for the foundation that makes it smallest.
 
 The tooling exists on .NET Framework, which was not obvious: `Microsoft.OpenApi` and its readers
 target netstandard2.0, and `NJsonSchema` targets net462 directly.
+
+## So what does decide it
+
+Not the transport, and not spec-first binding, since all three do the first and both survivors do
+the second. What is left is a judgment rather than a measurement:
+
+- **uHttpSharp**: zero divergence, 207 KB, and the seams it needs already exist. Against it, 112
+  stars and nothing since 2021.
+- **websocket-sharp**: ten lines of divergence, 40 lines of glue, and 922 KB including a WebSocket
+  implementation the design does not want. For it, 6000 stars and commits that month.
+
+The smallest thing to own, or the one most likely to be fixed by somebody else.

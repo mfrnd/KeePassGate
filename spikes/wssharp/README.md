@@ -17,3 +17,14 @@ The one patch is `HttpListenerRequest.GetClientCertificate()`, which upstream le
 `NotSupportedException`. The certificate is not missing, only unexposed: `HttpConnection` publishes
 the authenticated stream, so the peer certificate is one cast away. Five lines of code and five of
 comment.
+
+## Spec-first binding
+
+```powershell
+$env:KPG_SPEC=1; .\bin\Debug\net48\KeePassGate.WsSharp.exe
+```
+
+The same spec-first router as the uHttpSharp proof, built on `WebSocketSharp.Net.HttpListener`
+rather than on the `HttpServer` facade, because that hook gives `Prefixes`, `SslConfiguration` and
+`GetContext`. It passes the same five checks. The difference against uHttpSharp is 40 lines: a
+per-request context, a pipeline stage delegate, and the accept loop.
