@@ -93,6 +93,6 @@ dotnet_diagnostic.CA2201.severity = none
 dotnet_diagnostic.CA1822.severity = none
 
 # CA1838: no `StringBuilder` parameter on a P/Invoke. It is the documented marshaling for
-# `GetWindowText`, which is what the end to end tier is to read window titles with.
+# `GetWindowText`, which is what the end to end tier reads window titles with.
 # See https://learn.microsoft.com/windows/win32/api/winuser/nf-winuser-getwindowtextw
 dotnet_diagnostic.CA1838.severity = none

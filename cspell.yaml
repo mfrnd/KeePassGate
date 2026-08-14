@@ -112,6 +112,7 @@ words:
   - nameof
   - netsh
   - OCSP
+  - oids
   - SPIFFE
   - sslcert
   - syscall

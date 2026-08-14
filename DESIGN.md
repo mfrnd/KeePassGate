@@ -353,7 +353,7 @@ What the platform actually requires, measured rather than assumed:
 
 | Operation | Thread | Why |
 | --- | --- | --- |
-| Read databases, entries, strings, binaries | **connection thread** | `DocumentManager.GetOpenDatabases()` answers from a background thread, which the end to end tests are to exercise from another process |
+| Read databases, entries, strings, binaries | **connection thread** | `DocumentManager.GetOpenDatabases()` answers from a background thread, which the end to end tests exercise from another process |
 | Mutate in memory | **connection thread** | the same objects, and nothing about them is thread-affine |
 | **Persist** | UI thread | `MainForm.SaveDatabase` blocks interaction, shows warnings and touches the window; disassembling it is what settled that |
 | Ask the operator a question | UI thread | it puts a window on the screen |
