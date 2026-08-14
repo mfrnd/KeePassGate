@@ -54,3 +54,45 @@ dotnet_naming_symbols.private_fields.applicable_kinds = field
 dotnet_naming_symbols.private_fields.applicable_accessibilities = private
 dotnet_naming_style.underscore_camel.required_prefix = _
 dotnet_naming_style.underscore_camel.capitalization = camel_case
+
+# A test project is not a library, and seven of the rules assume it is. Everything else the analyzers
+# ask for applies here too, because a test that is wrong is worse than no test.
+[tests/**.cs]
+
+# CA1707: no underscores in a member name. A test name here is a sentence, and it is the sentence a
+# failure prints. `A_record_lost_to_a_stale_snapshot_makes_the_certificate_inert` says what broke
+# without opening the file; `ARecordLostToAStaleSnapshot` does not.
+dotnet_diagnostic.CA1707.severity = none
+
+# CA1861: hoist a constant array argument to a `static readonly` field. In a test the array is the
+# case being tested, and moving it away from the assertion that reads it makes both harder to
+# follow for an allocation nobody measures.
+dotnet_diagnostic.CA1861.severity = none
+
+# CA1001: a type with disposable fields should be disposable. A fixture's fields are released in
+# `TearDown`, which is the contract NUnit offers and calls, and adding `IDisposable` beside it would
+# give a fixture two teardown paths where the framework only ever uses one.
+dotnet_diagnostic.CA1001.severity = none
+
+# CA5359: do not accept every server certificate. These callbacks are the point rather than an
+# oversight: `FINDINGS.md` records that a correct deployment always reports chain errors, because
+# the authority is in no machine store, and a name mismatch, because the SNI rotates. The tests
+# accept the handshake and then compare the certificate themselves, which is what the plugin does.
+dotnet_diagnostic.CA5359.severity = none
+
+# CA2201: do not raise a reserved exception type. `GateIncidentsTests` constructs exactly
+# these, and does not raise them: they are handed to the `Expected` filters to prove that
+# the catch-alls report what nobody predicted rather than swallowing it. The rule
+# fires on the construction as much as on a throw, which is why it is off here rather than
+# left to the call site.
+dotnet_diagnostic.CA2201.severity = none
+
+# CA1822: a member that touches no instance data can be static. Where the object is what the
+# sentence is about, making its members static to save passing `this` would break the sentence the
+# caller reads.
+dotnet_diagnostic.CA1822.severity = none
+
+# CA1838: no `StringBuilder` parameter on a P/Invoke. It is the documented marshaling for
+# `GetWindowText`, which is what the end to end tier is to read window titles with.
+# See https://learn.microsoft.com/windows/win32/api/winuser/nf-winuser-getwindowtextw
+dotnet_diagnostic.CA1838.severity = none
