@@ -1,0 +1,56 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <AssemblyName>KeePassGate.Host.Tests</AssemblyName>
+    <RootNamespace>KeePassGate.Host.Tests</RootNamespace>
+    <!-- These tests need a real KeePass. They assert that the names the plugin reaches for still
+         exist, and they drive the real dialogs and the real window notifications, which is the
+         only way to find out that a KeePass upgrade has moved something. -->
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="UIAutomationClient" />
+    <Reference Include="UIAutomationTypes" />
+    <Reference Include="WindowsBase" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Copied into the test output, unlike in the plugin, because here KeePass is the thing
+         under test rather than the host process. -->
+    <Reference Include="KeePass">
+      <HintPath>$(KeePassExePath)</HintPath>
+      <Private>true</Private>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="NUnit" Version="4.2.2" />
+    <PackageReference Include="NUnit3TestAdapter" Version="4.6.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\KeePassGate\KeePassGate.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The live test needs the whole KeePass directory, not just the assembly it compiles
+         against, so the path is baked in rather than guessed at run time. -->
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>KeePassDevDir</_Parameter1>
+      <_Parameter2>$(KeePassDevDir)</_Parameter2>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+  <Target Name="RequireKeePassDevDir" BeforeTargets="ResolveAssemblyReferences">
+    <Error Condition="!Exists('$(KeePassExePath)')"
+           Text="KeePass.exe was not found at $(KeePassExePath). Populate that directory by copying an installed KeePass, or build with -p:KeePassDevDir=&lt;path&gt;." />
+  </Target>
+
+</Project>
