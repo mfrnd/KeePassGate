@@ -50,7 +50,7 @@
 
   <Target Name="RequireKeePassDevDir" BeforeTargets="ResolveAssemblyReferences">
     <Error Condition="!Exists('$(KeePassExePath)')"
-           Text="KeePass.exe was not found at $(KeePassExePath). Populate that directory by copying an installed KeePass, or build with -p:KeePassDevDir=&lt;path&gt;." />
+           Text="KeePass.exe was not found at $(KeePassExePath). Run `.\build.ps1 -Task KeePass` to provide the version this repository pins, or build with -p:KeePassDevDir=&lt;path&gt;." />
   </Target>
 
 </Project>

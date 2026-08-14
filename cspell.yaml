@@ -62,6 +62,8 @@ words:
 
 
 
+  # keep the gate working on a machine that also has PowerShell 7
+  - PSHOME
 
 
   # This project
@@ -91,6 +93,7 @@ words:
   # Tooling
   - autonumber
   - LASTEXITCODE
+  - nologo
   - noresult
   - Parallelizable
   - pathspec

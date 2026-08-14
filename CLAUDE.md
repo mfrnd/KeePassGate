@@ -11,7 +11,8 @@ a database.
 **Status: the design is settled, steps 1 to 3 of the build order are done, and step 4, the plugin
 skeleton, is under way.** The plugin loads into KeePass, puts a KPG tab on the database settings
 dialog and stops cleanly. It has no certificate authority, serves no API and opens no socket.
-`build.ps1` and the workflow that runs it check the prose and do not build the code yet.
+`build.ps1` and the workflow that runs it build the code and run its tests as well as checking
+the prose.
 
 ## Read these before proposing anything
 
@@ -173,8 +174,8 @@ wait is safe.
 
 **`build.ps1` is the entry point, and it is the gate.** Run it before every commit; CI runs the
 same script on every pull request and on every push to `master`, because there is one definition
-of clean and it is in that file. Today it has one task, `Lint`, and the list grows with the
-repository.
+of clean and it is in that file. Its default task builds the plugin and runs every test that does
+not need a running KeePass, and `-Task All` runs the end to end tests after them.
 
 **`build.ps1 -ListGates` is what CI asks for.** The workflow builds one job per name it returns, so
 a task added to the script is checked without anybody editing `.github/workflows/gate.yml`. The
@@ -192,7 +193,9 @@ $msbuild = & $vswhere -latest -requires Microsoft.Component.MSBuild -find "MSBui
 
 **KeePass is provided, not found.** `keepass.version` at the root pins the release, `keepass.sha256`
 pins the archive it must arrive as, and `tools/KeePass.ps1` fetches it into `.keepass\<version>\`,
-which is gitignored. Dot-source it and call `Install-KeePass`.
+which is gitignored. `Directory.Build.props` reads the same file, so an editor build compiles
+against the same one. Override with `-KeePassDir` or `-p:KeePassDevDir=` for a machine that keeps
+its own somewhere else.
 
 Three things about it that are decisions rather than details. The directory is **named after the
 version**, so changing the pin cannot silently reuse the old one. The archive is verified twice,

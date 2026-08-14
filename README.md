@@ -51,7 +51,8 @@ KeePassGate is sound under the strict reading of the linking question as well as
 **The KeePass to build against is provided rather than found.** `keepass.version` says which one,
 and `tools/KeePass.ps1` fetches that exact release as a portable install into `.keepass\<version>\`,
 which is gitignored. Changing the pin provides the new version rather than reusing whatever was
-there, because the directory is named after it.
+there, because the directory is named after it. Pass `-KeePassDir` to point at a KeePass kept
+somewhere else; otherwise a fresh clone provides what it needs before anything is built.
 
 Nothing is trusted on the way. The archive is checked against a SHA-256 pinned in
 `keepass.sha256`, and the `KeePass.exe` inside it has to say it is KeePass, be the version asked
