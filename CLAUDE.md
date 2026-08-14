@@ -8,11 +8,9 @@ Guidance for anyone, human or AI assistant, working in this repository.
 mutual TLS, so that automation and AI agents can each be given a narrow, revocable, audited slice of
 a database.
 
-**Status: the design is settled, steps 1 to 3 of the build order are done, and step 4, the plugin
-skeleton, is under way.** The plugin loads into KeePass, puts a KPG tab on the database settings
-dialog and stops cleanly. It has no certificate authority, serves no API and opens no socket.
-`build.ps1` and the workflow that runs it build the code and run its tests as well as checking
-the prose.
+**Status: the design is settled and steps 1 to 4 of the build order are done.** The plugin loads into
+KeePass, puts a KPG tab on the database settings dialog and stops cleanly. It has no certificate
+authority, serves no API and opens no socket. Step 5, the authority, is next.
 
 ## Read these before proposing anything
 
@@ -261,9 +259,15 @@ here can hang or crash the password manager.
 
 ## Where to start
 
-[`DESIGN.md`](DESIGN.md) §132 ends with a multi-step build order. Step 4 is a plugin skeleton that loads,
-shows a KPG tab and stops cleanly.
+[`DESIGN.md`](DESIGN.md) §132 ends with a multi-step build order. **Step 4 is done**: the skeleton loads,
+shows a KPG tab and stops cleanly, with the tab's contents behind `IGatePanelFactory` so that the
+next step replaces them rather than editing around them.
 
-**Step 5 is the authority, deliberately early**, because the `GroupForm` snapshot hazard is the thing
-most likely to invalidate the storage decision, and discovering that under five layers of transport
-would be expensive.
+**Step 5 is the authority, and it is next, deliberately early**, because the `GroupForm` snapshot
+hazard is the thing most likely to invalidate the storage decision, and discovering that under five
+layers of transport would be expensive.
+
+What step 4 already gives it: a place on the dialog, a real dialog to test against without starting
+KeePass, and an end to end test that presses keys on the real thing. Note that the end to end test
+closes the settings dialog with **Escape rather than OK**, which is the safe half of the snapshot
+hazard; step 5 has to exercise the other half deliberately.

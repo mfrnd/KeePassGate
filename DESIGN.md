@@ -568,7 +568,10 @@ Each step is refusable, and each ends with something that runs.
    one, and the executable inside is checked for a valid signature from KeePass's author, which is the
    check that does not depend on where the bytes came from.
 4. **Plugin skeleton**: loads into KeePass, a KPG tab on the database settings dialog, starts and
-   stops cleanly.
+   stops cleanly. **Done.** The tab's contents sit behind `IGatePanelFactory` so that step 5 replaces
+   them rather than editing around them, and everything above the KeePass boundary is written against
+   interfaces small enough to test without KeePass loaded at all: `IWindowEventSource`,
+   `IFormMatcher`, `IFormDecorator`, `IGateLog`. Two classes touch KeePass, and both are adapters.
 5. **Authority**: create, recreate and delete from that tab, with the certificates in `CustomData`
    and the `GroupForm` snapshot hazard exercised deliberately. Make a grant, press OK, reopen, and
    only then believe it.
