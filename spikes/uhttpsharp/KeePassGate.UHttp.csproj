@@ -14,6 +14,10 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <!-- Spec-first: parse the OpenAPI document, validate bodies against its schemas. -->
+    <PackageReference Include="Microsoft.OpenApi" Version="1.6.22" />
+    <PackageReference Include="Microsoft.OpenApi.Readers" Version="1.6.22" />
+    <PackageReference Include="NJsonSchema" Version="11.6.1" />
     <Reference Include="System.Web" />
     <!-- LibLog uses dynamic. -->
     <Reference Include="Microsoft.CSharp" />

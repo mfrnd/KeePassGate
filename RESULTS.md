@@ -64,7 +64,26 @@ there was.
 of them and rejected by the third until a conforming client was used. Strictness is a behavior
 difference, not a quality difference, and it only shows up when something drives the thing.
 
-## What is not settled
+## Spec-first routing
 
-Whether either survivor supports spec-first routing, which is how this API is meant to be
-described. Nothing here has tried it.
+Which of the two supports OpenAPI spec-first binding of the sort Connexion does in Python, built
+rather than argued. The answer is uHttpSharp, decisively.
+
+`spikes/uhttpsharp` now carries a working spec-first router in about 200 lines over the vendored
+library: the document is the routing table, handlers bind to `operationId` rather than to paths, a
+mismatch between declared operations and bound handlers is a startup error instead of a 404 found
+later, path templates capture parameters, and the body is validated against the declared schema
+before any handler runs. All of it verified over TLS 1.3 with a client certificate.
+
+The reason is architectural. Spec-first binding is layered work, and uHttpSharp's
+`Handle(context, next)` makes each layer one handler in a list, with a per-request `State` bag as
+the natural carrier for the `kpg://` ceiling on its way from the handshake to the handler.
+websocket-sharp offers `OnGet` and `OnPost` events and no context, which is what forced the earlier
+certificate workaround into a field on the listener.
+
+**Nothing in .NET does this off the shelf.** Swashbuckle and NSwag are code-first or build-time
+generators; runtime spec-driven routing has no mainstream .NET equivalent, so it is custom work on
+any foundation. That argues for the foundation that makes it smallest.
+
+The tooling exists on .NET Framework, which was not obvious: `Microsoft.OpenApi` and its readers
+target netstandard2.0, and `NJsonSchema` targets net462 directly.

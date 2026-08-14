@@ -59,12 +59,15 @@ words:
   - noresult
 
   # What this branch's own sources and prose need, over what the mainline already knows.
+  - Connexion
   - httplistener
+  - netstandard
   - Newtonsoft
   - NTLM
   - obsoletion
   - Obsoletions
   - resx
+  - Swashbuckle
   - SYSLIB
   - uhttpsharp
   - wssharp

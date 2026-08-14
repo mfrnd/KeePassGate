@@ -122,6 +122,7 @@ namespace KeePassGate.UHttp
         private static int Main()
         {
             Console.WriteLine("KeePassGate transport proof: uHttpSharp");
+            if (Environment.GetEnvironmentVariable("KPG_SPEC") == "1") { return SpecFirst.Run(); }
             Console.WriteLine("runtime: " + System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription);
             Console.WriteLine();
 
