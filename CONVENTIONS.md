@@ -71,10 +71,9 @@ plausible and wrong, which is worse than sending it nowhere.
 **A number is defined by sitting at the end of a heading and nowhere else**, so that what it names
 is always a section and never a sentence about one.
 
-**Nothing else is anchored.** `CONVENTIONS.md` is read rather than cited, and so are `CLAUDE.md`,
-`TESTING.md`, `FINDINGS.md` and the pages a reader goes through start to finish, each from the step
-that writes it. Numbering them would put a handle on every paragraph in the repository for the sake
-of the few that are ever pointed at.
+**Nothing else is anchored.** `CONVENTIONS.md`, `CLAUDE.md`, `TESTING.md`, `FINDINGS.md` and the
+pages a reader goes through start to finish are read rather than cited, and numbering them would
+put a handle on every paragraph in the repository for the sake of the few that are ever pointed at.
 A document that is historical and frozen is not anchored either.
 
 ## Terminology

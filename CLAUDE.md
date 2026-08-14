@@ -22,6 +22,7 @@ the prose.
 | [`CA.md`](CA.md) | the certificate authority: issuance, claims, validation, revocation |
 | [`PAIRING.md`](PAIRING.md) | how a stranger becomes a client, with the flow diagrams |
 | [`FINDINGS.md`](FINDINGS.md) | what was measured rather than assumed, and what turned out wrong |
+| [`TESTING.md`](TESTING.md) | the three test tiers, what each one buys, and how to run them |
 
 **One document is historical and says so at the top.** [`ANALYSIS.md`](ANALYSIS.md) is the argument
 that was made, and several of its conclusions were later reversed; it opens with a banner naming
@@ -172,19 +173,24 @@ wait is safe.
 
 ## Build and toolchain
 
-**`build.ps1` is the entry point, and it is the gate.** Run it before every commit; CI runs the
-same script on every pull request and on every push to `master`, because there is one definition
-of clean and it is in that file. Its default task builds the plugin and runs every test that does
-not need a running KeePass, and `-Task All` runs the end to end tests after them.
+**`build.ps1` is the entry point.** It is also the gate, and CI runs the same script on every pull
+request and on every push to `master`, because there is one definition of clean and it is in that
+file.
+
+```powershell
+.\build.ps1                # build, then every test that does not need a running KeePass
+.\build.ps1 -Task All      # the above, then the end to end tests
+.\build.ps1 -Task Deploy   # copy the plugin into the provided KeePass's plugins directory
+```
 
 **`build.ps1 -ListGates` is what CI asks for.** The workflow builds one job per name it returns, so
 a task added to the script is checked without anybody editing `.github/workflows/gate.yml`. The
 jobs are never written there, so what changes in that file is the commit each action is pinned
 to, which its header says as well.
 
-Every project here is SDK-style, targets `net48` and builds with the **.NET SDK's `dotnet` CLI**,
-which is what makes `dotnet test` available; the solution opens in Visual Studio 2019 as well.
-`msbuild` is not on `PATH`, so if it is ever needed directly, locate it:
+The projects are SDK-style, target `net48` and build with the **.NET SDK's `dotnet` CLI**, which is
+what makes `dotnet test` available; they open in Visual Studio 2019 as well. `msbuild` is not on
+`PATH`, so if it is ever needed directly, locate it:
 
 ```powershell
 $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
@@ -207,19 +213,29 @@ printed so it can be pinned deliberately.
 A KeePass launched from there writes its own `KeePass.config.xml` next to the exe, which is why
 testing there cannot damage the real configuration.
 
+**The plugin's `ProductName` must be exactly `KeePass Plugin`**, which `src/KeePassGate/KeePassGate.csproj`
+sets with `<Product>`. KeePass reads it from the file before it opens the assembly and **silently
+skips** anything else: no error, no message, no entry in its plugin list. `PluginNamingTests` pins it
+against the constant read out of KeePass itself. The entry point must likewise be named for the file,
+`KeePassGate.KeePassGateExt` in `KeePassGate.dll`, namespace included.
+
 **There is CI, and there is no branch protection.** The workflow runs every gate on every pull
 request and on every push to `master`, and no check is required before a merge. A red check
 therefore reports and does not block: read it before merging, because nothing else will. Requiring
 the gate is one setting on a public repository, and GitHub offers it on a private one only under a
 paid plan.
 
-## Testing against a live plugin
+## Testing
 
-Never against the author's real database. Build a throwaway KDBX4 with `pykeepass` (ephemerally, via
-`uv run --no-project --with pykeepass`), open it with `KeePass.exe <db> -pw:<password>`, and test
-against that. Keep the database and any driver scripts in the session scratchpad; a
-`.kdbx` must never be committed, and `-pw:` puts the password in the process list, so it is only ever
-acceptable for a dummy.
+[`TESTING.md`](TESTING.md) is the full account. In short: unit tests that never load KeePass, host
+tests that drive the real KeePass types in process, and an end to end tier under the `Live` category
+that starts a throwaway KeePass and types into it.
+
+**Never test against the author's real database.** The end to end tier builds its own KeePass and its
+own KDBX4 under `%ProgramData%\KeePassGateLive`, creating the database with KeePassLib, which is already
+referenced. For ad hoc work `pykeepass` (ephemerally, via `uv run --no-project --with pykeepass`) is
+equally fine. Keep any driver scripts in the session scratchpad; a `.kdbx` must never be committed,
+and `-pw:` puts the password in the process list, so it is only ever acceptable for a dummy.
 
 ## Conventions
 

@@ -20,6 +20,7 @@ KeePassGate is sound under the strict reading of the linking question as well as
 | [`CA.md`](CA.md) | the certificate authority in full: issuance, claims, validation, revocation |
 | [`PAIRING.md`](PAIRING.md) | how a stranger becomes a client, with the flow diagrams |
 | [`FINDINGS.md`](FINDINGS.md) | what was measured rather than assumed, and what turned out wrong |
+| [`TESTING.md`](TESTING.md) | the three test tiers, what each one buys, and how to run them |
 | [`CONVENTIONS.md`](CONVENTIONS.md) | the rules that hold on every branch |
 | [`ANALYSIS.md`](ANALYSIS.md) | the argument, and the alternatives that were rejected |
 
@@ -58,6 +59,15 @@ Nothing is trusted on the way. The archive is checked against a SHA-256 pinned i
 `keepass.sha256`, and the `KeePass.exe` inside it has to say it is KeePass, be the version asked
 for, and carry a valid Authenticode signature from KeePass's author. That last check is the one
 that does not depend on where the bytes came from.
+
+```powershell
+.\build.ps1                # build, then every test that does not need a running KeePass
+.\build.ps1 -Task All      # the above, then the end to end tests
+.\build.ps1 -Task Deploy   # copy the plugin into the provided KeePass's plugins directory
+```
+
+A plain DLL on .NET Framework 4.8, built with the `dotnet` CLI, opening in Visual Studio 2019 as
+well. [`TESTING.md`](TESTING.md) says what the three test tiers are for.
 
 ## The measurements
 
