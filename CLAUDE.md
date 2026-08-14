@@ -8,10 +8,10 @@ Guidance for anyone, human or AI assistant, working in this repository.
 mutual TLS, so that automation and AI agents can each be given a narrow, revocable, audited slice of
 a database.
 
-**Status: the design is settled, nothing is built, and the gate that will judge it exists.** There
-is no project file and no source at all, but `build.ps1` and the workflow that runs it are
-here, checking the only thing there is to check so far, which is the prose. The first commit of real
-code is still ahead.
+**Status: the design is settled, steps 1 to 3 of the build order are done, and step 4, the plugin
+skeleton, is under way.** There is no project file and no source at all yet, but `build.ps1` and
+the workflow that runs it are here, checking the only thing there is to check so far, which is the
+prose.
 
 ## Read these before proposing anything
 
