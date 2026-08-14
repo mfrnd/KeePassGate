@@ -1,0 +1,56 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = crlf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+[*.{md,yml,yaml,json}]
+indent_size = 2
+
+[*.{csproj,props,targets,config,xml}]
+indent_size = 2
+
+[*.cs]
+# Namespaces, usings, ordering
+dotnet_sort_system_directives_first = true
+csharp_using_directive_placement = outside_namespace:warning
+
+# Language style
+csharp_style_var_when_type_is_apparent = true:suggestion
+csharp_style_var_elsewhere = false:suggestion
+csharp_prefer_braces = true:warning
+dotnet_style_qualification_for_field = false:suggestion
+dotnet_style_readonly_field = true:warning
+
+# The three analyzer rules this project answers rather than obeys. Everything else the recommended
+# set asks for is done, and the build fails on it, so these three are the whole of the argument.
+
+# CA1710: an exception type should be named `...Exception`. `GateFailure` is named for what it is,
+# it is never caught by name from outside this assembly, and `Diagnostics/Expected` is where a
+# handler decides what to catch. The guideline exists so a reader can tell an exception from a
+# value type, and nothing here derives from `Exception` without being one.
+dotnet_diagnostic.CA1710.severity = none
+
+# CA1716: a parameter named `error` collides with a reserved word in Visual Basic. Nothing consumes
+# this assembly, and a plugin loaded by name into KeePass never will be consumed from another
+# language. `error` is the right word for the thing.
+dotnet_diagnostic.CA1716.severity = none
+
+# CA1859: return the concrete type from a private member rather than an interface. It trades what a
+# signature says for an allocation this code does not make in a loop: the sites are a settings tab
+# and a request head with a handful of entries. Where a return type is an interface here it is
+# because the caller has no business knowing more.
+dotnet_diagnostic.CA1859.severity = none
+
+# Naming: private fields carry an underscore prefix
+dotnet_naming_rule.private_fields_underscore.symbols = private_fields
+dotnet_naming_rule.private_fields_underscore.style = underscore_camel
+dotnet_naming_rule.private_fields_underscore.severity = warning
+dotnet_naming_symbols.private_fields.applicable_kinds = field
+dotnet_naming_symbols.private_fields.applicable_accessibilities = private
+dotnet_naming_style.underscore_camel.required_prefix = _
+dotnet_naming_style.underscore_camel.capitalization = camel_case

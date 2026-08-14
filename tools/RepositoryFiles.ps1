@@ -7,8 +7,8 @@
     because three copies of how a question is asked are three answers to it.
 
     **Git says which files are ours.** A list of extensions is a list that has to be added to, and
-    the file it forgets is always one with prose in it: `.gitignore` and `.gitattributes` carry
-    comments like any other file here.
+    the file it forgets is always one with prose in it:
+    `.editorconfig`, `.gitignore` and `.gitattributes` carry comments like any other file here.
 
     **Tracked, and nothing else in the tree.** A file nobody has added is not yet the repository's,
     and the tree holds more of those than anybody put there on purpose: what a build or a tool

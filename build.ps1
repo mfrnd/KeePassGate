@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Checks everything this repository can be checked for.
+    Checks this repository's prose, which is all it checks so far.
 
 .DESCRIPTION
     This script is the gate. Run it before every commit, and let CI run it on every pull request
@@ -10,9 +10,10 @@
     Tasks:
       Lint     check the prose: markdown rules, spelling, markers and anchors (the default)
 
-    There is one task today because there is one thing to check. The list grows with the
-    repository, and a task added to it is checked by CI without anybody editing a workflow: see
-    `-ListGates` below.
+    There is one task today, and the plugin's code is not built or tested by it yet.
+    TODO(step 4): the build and test half of the gate arrives with this step. The list grows with
+    the repository, and a task added to it is checked by CI without anybody editing a workflow:
+    see `-ListGates` below.
 
 .PARAMETER Task
     What to do. Defaults to Lint.
@@ -178,6 +179,14 @@ function Invoke-Lint {
 
     Invoke-Step 'section anchors' {
         & (Join-Path $root 'tools/Anchors.ps1') -Root $root
+    }
+
+    # A doc comment that describes two members describes neither. It happens when a member moves and
+    # its documentation does not, and the compiler is no help: it takes the last `<summary>` it sees
+    # and never mentions the rest, so the wrong description sits on the wrong member until somebody
+    # reads both.
+    Invoke-Step 'doc comments' {
+        & (Join-Path $root 'tools/DocComments.ps1')
     }
 }
 

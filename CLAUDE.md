@@ -9,9 +9,9 @@ mutual TLS, so that automation and AI agents can each be given a narrow, revocab
 a database.
 
 **Status: the design is settled, steps 1 to 3 of the build order are done, and step 4, the plugin
-skeleton, is under way.** There is no project file and no source at all yet, but `build.ps1` and
-the workflow that runs it are here, checking the only thing there is to check so far, which is the
-prose.
+skeleton, is under way.** The plugin loads into KeePass, puts a KPG tab on the database settings
+dialog and stops cleanly. It has no certificate authority, serves no API and opens no socket.
+`build.ps1` and the workflow that runs it check the prose and do not build the code yet.
 
 ## Read these before proposing anything
 
@@ -181,9 +181,9 @@ a task added to the script is checked without anybody editing `.github/workflows
 jobs are never written there, so what changes in that file is the commit each action is pinned
 to, which its header says as well.
 
-**Nothing compiles yet.** When a project file lands it targets `net48`, because that is what
-KeePass runs on. Visual Studio 2019 Community is installed; `msbuild` is not on `PATH`, so locate
-it:
+Every project here is SDK-style, targets `net48` and builds with the **.NET SDK's `dotnet` CLI**,
+which is what makes `dotnet test` available; the solution opens in Visual Studio 2019 as well.
+`msbuild` is not on `PATH`, so if it is ever needed directly, locate it:
 
 ```powershell
 $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"

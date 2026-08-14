@@ -3,7 +3,9 @@
 A KeePass 2.x plugin that serves a small, specification-defined HTTP API over mutual TLS, so that
 automation and AI agents can each be given a narrow, revocable, audited slice of a database.
 
-**Design settled, and step 4, the skeleton, is under way.** Nothing is built yet.
+**Design settled, and step 4, the skeleton, is under way**: the plugin loads into KeePass, shows a
+KPG tab on the database settings dialog and stops cleanly. It has no certificate authority, serves
+no API and opens no socket yet.
 
 **License: MIT.** GPLv2 is not required. KeePass is GPL-2.0-or-later and grants no plugin exception,
 but the FSF's own requirement is a GPL-compatible license, and MIT is one, so a permissive

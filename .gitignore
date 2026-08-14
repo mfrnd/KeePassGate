@@ -2,6 +2,8 @@
 # somewhere else. What a project writes is ignored beside that project rather than from here.
 
 /.tmp/
+/.vs/
+
 # The KeePass this repository pins, fetched by `tools/KeePass.ps1` and named after its
 # version. Provided rather than committed: it is somebody else's program.
 /.keepass/
