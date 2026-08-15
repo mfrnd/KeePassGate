@@ -35,6 +35,42 @@ namespace KeePassGate
         /// </summary>
         public const string GroupFormGroupField = "m_pwGroup";
 
+        /// <summary>The dialog behind Edit Entry, where an entry's own grants are edited.</summary>
+        public const string EntryFormTypeName = "KeePass.Forms.PwEntryForm";
+
+        /// <summary>The entry that dialog is editing.</summary>
+        public const string EntryFormEntryField = "m_pwEntry";
+
+        /// <summary>
+        /// The tab strip on the group and entry dialogs, which both call it what the database
+        /// settings dialog does.
+        /// </summary>
+        public const string NodeFormTabControlName = "m_tabMain";
+
+        /// <summary>
+        /// **The dialog's own copy of a node's custom data**, on the group dialog and the entry
+        /// dialog alike, and the only correct place for the grant editor to write. TODO(step 13):
+        /// the editor arrives with the grant table.
+        /// </summary>
+        /// <remarks>
+        /// Both dialogs take a copy when they open and write that copy back over the node when
+        /// they are accepted. A grant written straight to the live group or entry therefore
+        /// survives Cancel and is destroyed by OK, silently and completely, which is the worst way
+        /// for an access control editor to fail: the rule is on screen as the dialog closes and
+        /// gone from the database afterwards.
+        ///
+        /// A KeePass that renames this leaves the editor with nowhere safe to write, so it shows
+        /// the grants and refuses to edit them rather than writing somewhere that will be thrown
+        /// away.
+        /// </remarks>
+        public const string NodeFormCustomDataField = "m_sdCustomData";
+
+        /// <summary>
+        /// The database behind a group or entry dialog, which is what says which profiles are worth
+        /// offering. Absent, the editor offers none and still lets a rule be written.
+        /// </summary>
+        public const string NodeFormDatabaseField = "m_pwDatabase";
+
         /// <summary>
         /// The dialog behind Tools then Database Maintenance, which holds a copy of the database's
         /// own custom data and puts it back on Close whenever the live one has grown or shrunk.
