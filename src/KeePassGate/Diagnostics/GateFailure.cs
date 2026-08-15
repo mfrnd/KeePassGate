@@ -14,7 +14,7 @@ namespace KeePassGate.Diagnostics
     /// failures worth seeing, and a log line saying "a connection failed" is where they go to die.
     ///
     /// So the rule through the whole plugin is: **catch the type that names the failure**, and let
-    /// everything else travel. Only a few places catch everything, because in each of them a
+    /// everything else travel. Only a handful of places catch everything, because in each of them a
     /// surviving exception ends the password manager, and every one of them reports what it caught
     /// as an incident rather than as a routine error. See <see cref="GateIncidents"/>.
     ///

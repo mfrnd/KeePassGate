@@ -162,6 +162,25 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_panel_the_page_would_not_take_is_let_go_of_with_the_page()
+        {
+            // Built, then docked and added, and a failure in either of the last two disposed the
+            // page alone. The panel had never reached the page, so nothing disposed it, and
+            // whatever it had subscribed to as it was built went on holding it.
+            var panels = new RefusedPanelFactory();
+            var injector = new TabPageInjector(panels, _log);
+
+            using (var form = Dialogs.WithNestedTabControl("General"))
+            {
+                Assert.That(injector.Attach(form), Is.False);
+                Assert.That(Dialogs.TabsOf(form).TabPages.Count, Is.EqualTo(1));
+
+                Assert.That(panels.Last, Is.Not.Null, "no panel was built, so nothing was measured");
+                Assert.That(panels.Last.IsDisposed, Is.True, "the refused panel was left to live on");
+            }
+        }
+
+        [Test]
         public void Detaching_removes_the_page_and_leaves_the_hosts_own_tabs_in_order()
         {
             using (var form = Dialogs.WithNestedTabControl("General", "Security", "Advanced"))
@@ -350,6 +369,27 @@ namespace KeePassGate.Tests
         private static TabPage PageOf(Form form)
         {
             return ControlTree.FindByName<TabPage>(form, GateTab.PageControlName);
+        }
+
+        /// <summary>A factory whose panel cannot be docked, which is one way a page refuses it.</summary>
+        private sealed class RefusedPanelFactory : IGatePanelFactory
+        {
+            public Control Last { get; private set; }
+
+            public Control CreatePanel(Form dialog)
+            {
+                Last = new PanelThatWillNotDock();
+                return Last;
+            }
+        }
+
+        private sealed class PanelThatWillNotDock : Panel
+        {
+            public override DockStyle Dock
+            {
+                get { return base.Dock; }
+                set { throw new System.InvalidOperationException("this panel cannot be docked"); }
+            }
         }
     }
 }

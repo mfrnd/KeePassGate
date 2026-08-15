@@ -1,5 +1,6 @@
 using System;
 using KeePass.Plugins;
+using KeePassGate.Bridge;
 using KeePassGate.Diagnostics;
 using KeePassGate.Ui;
 
@@ -65,6 +66,34 @@ namespace KeePassGate
             }
         }
 
+        /// <summary>
+        /// Tell KeePass that the database it is showing has changed.
+        /// </summary>
+        /// <remarks>
+        /// The last argument is the one that matters: it sets the modified flag and repaints, so
+        /// the title bar stops claiming there is nothing to save. Nothing else is asked for, since
+        /// this plugin changes no group, no entry and no selection.
+        ///
+        /// Wrapped because it runs from a button on a dialog, and an exception escaping there ends
+        /// KeePass. A window that failed to repaint is worth a log line, not a crash.
+        /// </remarks>
+        private void Changed(IPluginHost host)
+        {
+            try
+            {
+                // Setting `PwDatabase.Modified` records the fact and nothing else: the title bar
+                // keeps its old text and the toolbar keeps its old state, so the operator is
+                // looking at a window that says everything is saved while it is not. This is the
+                // call that makes the change visible, and the last argument is the one that sets
+                // the flag.
+                host.MainWindow.UpdateUI(false, null, false, null, false, null, true);
+            }
+            catch (Exception error) when (Expected.OfUserInterface(error))
+            {
+                _log.Warn("KeePass was not told the database changed: " + error.Message);
+            }
+        }
+
         public override bool Initialize(IPluginHost host)
         {
             if (host == null)
@@ -88,7 +117,7 @@ namespace KeePassGate
                     _windows,
                     new TypeNameFormMatcher(KeePassContract.DatabaseSettingsFormTypeName),
                     new TabPageInjector(
-                        new GateStatusPanelFactory(),
+                        new AuthorityPanelFactory(new DialogDatabases(_log, () => Changed(host)), _log),
                         _log,
                         KeePassContract.DatabaseSettingsTabControlName,
                         Icon),

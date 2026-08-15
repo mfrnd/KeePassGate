@@ -18,9 +18,12 @@ fails in a way that names its own cause.
 ## Why the unit tier does not reference KeePass
 
 Everything above the KeePass boundary is written against small interfaces: `IWindowEventSource`
-announces dialogs, `IFormMatcher` recognizes them, `IFormDecorator` decorates them, `IGatePanelFactory`
-fills them, `IGateLog` records it. Only two classes touch KeePass at all, `KeePassGateExt` and
-`GlobalWindowManagerWindows`, and both are thin enough to read in one screen.
+announces dialogs, `IFormMatcher` recognizes them, `IFormDecorator` decorates them,
+`IGatePanelFactory` fills them, `IKeyValueStore` stores things, and `IGateLog` records all of it.
+Two things touch KeePass: `KeePassGateExt`, which KeePass itself instantiates, and everything under
+`src/KeePassGate/Bridge`. `grep -rlE '^using (KeePass|KeePassLib)[.;]' src` is the check, and it is
+a check rather than a claim. Anchored, because the plugin's own namespaces begin `KeePassGate` and a
+bare `using KeePass` matches every file that imports one of them.
 
 The consequence worth having: the unit project **cannot** compile against KeePass, so a dependency
 that creeps up into the pipeline shows up as a build error rather than as a design argument.

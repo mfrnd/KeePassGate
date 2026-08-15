@@ -1,7 +1,9 @@
 using System;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Threading;
 using System.Windows.Automation;
+using NUnit.Framework;
 
 namespace KeePassGate.Host.Tests.Live
 {
@@ -52,10 +54,14 @@ namespace KeePassGate.Host.Tests.Live
         [DllImport("user32.dll")]
         private static extern void keybd_event(byte key, byte scanCode, uint flags, UIntPtr extraInfo);
 
+        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+        private static extern int GetWindowText(IntPtr window, StringBuilder text, int count);
+
         private const int RestoreWindow = 9;
         private const uint KeyUp = 0x0002;
         private const byte AltKey = 0x12;
         private const byte EscapeKey = 0x1B;
+        private const byte ControlKey = 0x11;
 
         /// <summary>One keystroke, as the accessibility tree describes it.</summary>
         public struct Stroke
@@ -137,6 +143,55 @@ namespace KeePassGate.Host.Tests.Live
             return GetForegroundWindow() == handle;
         }
 
+        /// <summary>
+        /// Brings the window to the front, and fails the test when it will not come.
+        /// </summary>
+        /// <remarks>
+        /// **For whatever types next.** A synthesized keystroke goes to whichever window holds the
+        /// foreground, so one sent after <see cref="BringToFront"/> came back false lands in
+        /// whatever took it: Ctrl+S saves somebody else's document and Enter answers somebody
+        /// else's question, and the test then fails far from the cause, on a symptom that points
+        /// at the plugin. The tier asks for a desktop left alone, and this is where one that was
+        /// not is said rather than typed into.
+        ///
+        /// Asked three times before failing, because a window that has only just opened is
+        /// sometimes refused the foreground once. That narrows the race and does not close it:
+        /// something can still take the foreground between this and the keystroke.
+        /// </remarks>
+        public static void Front(AutomationElement window)
+        {
+            for (var attempt = 0; attempt < 3; attempt++)
+            {
+                if (BringToFront(window))
+                {
+                    return;
+                }
+            }
+
+            Assert.Fail("'" + NameOf(window) + "' could not be brought to the front, so nothing was typed. " +
+                        "In front instead: '" + TitleOf(GetForegroundWindow()) + "'.");
+        }
+
+        private static string NameOf(AutomationElement window)
+        {
+            try
+            {
+                return window.Current.Name;
+            }
+            catch (ElementNotAvailableException)
+            {
+                return "a window that has gone";
+            }
+        }
+
+        private static string TitleOf(IntPtr window)
+        {
+            var text = new StringBuilder(512);
+            return window == IntPtr.Zero || GetWindowText(window, text, text.Capacity) <= 0
+                ? string.Empty
+                : text.ToString();
+        }
+
         public static void Send(Stroke stroke)
         {
             var key = (byte)char.ToUpperInvariant(stroke.Key);
@@ -154,6 +209,18 @@ namespace KeePassGate.Host.Tests.Live
                 keybd_event(AltKey, 0, KeyUp, UIntPtr.Zero);
             }
 
+            Thread.Sleep(400);
+        }
+
+        /// <summary>A keystroke with control held, such as the save shortcut.</summary>
+        public static void SendControl(char key)
+        {
+            var code = (byte)char.ToUpperInvariant(key);
+
+            keybd_event(ControlKey, 0, 0, UIntPtr.Zero);
+            keybd_event(code, 0, 0, UIntPtr.Zero);
+            keybd_event(code, 0, KeyUp, UIntPtr.Zero);
+            keybd_event(ControlKey, 0, KeyUp, UIntPtr.Zero);
             Thread.Sleep(400);
         }
 

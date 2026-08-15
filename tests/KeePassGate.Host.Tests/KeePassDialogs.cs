@@ -1,6 +1,7 @@
 using System;
 using System.Windows.Forms;
 using KeePass.Plugins;
+using KeePassLib;
 
 namespace KeePassGate.Host.Tests
 {
@@ -21,6 +22,64 @@ namespace KeePassGate.Host.Tests
             }
 
             return (Form)Activator.CreateInstance(type);
+        }
+
+        /// <summary>
+        /// Tells the dialog which database it is editing, the way KeePass does before showing it.
+        /// </summary>
+        public static void InitializeFor(Form dialog, PwDatabase database)
+        {
+            var initialize = dialog.GetType().GetMethod("InitEx", new[] { typeof(bool), typeof(PwDatabase) });
+            if (initialize == null)
+            {
+                throw new InvalidOperationException(
+                    "The settings dialog no longer takes a database through InitEx(bool, PwDatabase).");
+            }
+
+            initialize.Invoke(dialog, new object[] { false, database });
+        }
+
+        /// <summary>Closes the dialog as its OK does, which is what commits the tab.</summary>
+        public static void Accept(Form dialog)
+        {
+            Close(dialog, DialogResult.OK);
+        }
+
+        /// <summary>Closes the dialog as its Cancel does, which is what throws the tab away.</summary>
+        public static void Cancel(Form dialog)
+        {
+            Close(dialog, DialogResult.Cancel);
+        }
+
+        /// <summary>
+        /// Sets the result and raises the closing event, without showing anything.
+        /// </summary>
+        /// <remarks>
+        /// **`Form.Close` is not usable here.** A form that was never displayed is disposed by it
+        /// without `FormClosed` ever being raised, and `FormClosed` is what the tab watches for.
+        /// These dialogs are deliberately never shown: `Show` throws inside a message pump outside
+        /// a running KeePass, and WinForms answers with a dialog that blocks the run until
+        /// something kills it. So the event is raised directly, which is the one thing about this
+        /// that is simulated. The tier below, which starts a real KeePass and presses the real
+        /// button, is where nothing is.
+        /// </remarks>
+        private static void Close(Form dialog, DialogResult result)
+        {
+            dialog.DialogResult = result;
+
+            var raise = typeof(Form).GetMethod(
+                "OnFormClosed",
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance,
+                null,
+                new[] { typeof(FormClosedEventArgs) },
+                null);
+
+            if (raise == null)
+            {
+                throw new InvalidOperationException("Form.OnFormClosed is gone from this framework.");
+            }
+
+            raise.Invoke(dialog, new object[] { new FormClosedEventArgs(CloseReason.UserClosing) });
         }
     }
 }
