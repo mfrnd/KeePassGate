@@ -16,8 +16,7 @@ keywords = ["keepass", "keepassgate", "mtls", "password-manager"]
 # The floor is a crash rather than a feature: the wheel's own OpenSSL is what parses the bundle,
 # and in 42.0.0 and 42.0.1 a malformed PKCS#12 segfaults the interpreter where `credentials.py`
 # promises a `ProtocolError`. 48.0.1 is the newest release to fix its bundled OpenSSL, and this
-# client reads a PKCS#12 from a peer on every pairing, so it takes that one. TODO(step 10):
-# `credentials.py` arrives with pairing in the client.
+# client reads a PKCS#12 from a peer on every pairing, so it takes that one.
 dependencies = ["cryptography>=48.0.1"]
 
 [project.urls]

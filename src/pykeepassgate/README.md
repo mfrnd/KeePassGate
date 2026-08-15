@@ -88,7 +88,8 @@ has to decide.
 | `PairingUnanswered` | Nobody answered the dialog. The invitation is **not** spent, so this can be tried again. |
 | `RouteRefused` | Everything else the gate refuses, carrying the status and the reason it gave, usually one word: a `413` says in a sentence what was too large. A `404` is deliberately both "no such node" and "not yours", so a client cannot map a database by asking: if the node should be there, the rule is too narrow and the operator has to widen it (TODO(step 15): the routes about nodes arrive with this step). |
 | `MalformedToken` | The text handed over is not an invitation, so nothing was sent. Check what was pasted. |
-| `ProtocolError` | The gate answered with something this client cannot read. Do not retry: the two halves disagree about the wire, which `tests/pykeepassgate/test_protocol.py` exists to stop. |
+| `ProtocolError` | Something on the wire is not what the protocol allows: an answer this client cannot read, or a request it will not send. Do not retry an answer it cannot read: the two halves disagree about the wire, which `tests/pykeepassgate/test_protocol.py` exists to stop. |
+| `StorageError` | From `pair`, before anything is sent: the directory cannot hold credentials, and the message says why. Nothing is spent, so fix that and pair again. Afterwards: what is stored for this client will not read, or could not be written, and the message names the file or the directory to look at. |
 | `TransportError` | No whole answer arrived: nothing is listening, the handshake failed, or the connection broke or timed out once the request was on its way. |
 
 ## What it does not do

@@ -37,6 +37,17 @@ class ProtocolError(GateError):
     """
 
 
+class StorageError(GateError):
+    """What is stored for a paired client could not be written, read or protected.
+
+    Separate from `ProtocolError`, which is about the wire. This is about the four files: one that
+    will not parse, a port that is not a number, a key the platform would not narrow. All of them
+    are ordinary states, reached by a partial write, a full disk or an edit by hand. Every one of
+    them would otherwise leave the standard library's own exception where a caller is promised
+    this hierarchy.
+    """
+
+
 class PairingError(GateError):
     """The pairing exchange did not reach a certificate."""
 

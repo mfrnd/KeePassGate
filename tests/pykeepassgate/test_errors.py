@@ -52,3 +52,24 @@ def test_nothing_is_told_apart_only_by_its_message() -> None:
     # not spend the invitation and a refused one does, so catching both together loses the answer.
     assert not issubclass(errors.PairingUnanswered, errors.PairingRefused)
     assert not issubclass(errors.PairingRefused, errors.PairingUnanswered)
+
+
+def test_what_a_caller_does_next_is_one_class_each_under_the_one_root() -> None:
+    # Each of these is its own row in the tables a caller acts on, and each says something
+    # different to do next. One moved under another is caught by the wrong handler: a revoked
+    # client under `TransportError` would be retried by code that retries a connection that
+    # failed, and a lock under `GateBusy` would spend the budget for a busy KeePass.
+    separate = (
+        errors.DatabaseLocked,
+        errors.GateBusy,
+        errors.NotAdmitted,
+        errors.RouteRefused,
+        errors.PairingError,
+        errors.MalformedToken,
+        errors.ProtocolError,
+        errors.StorageError,
+        errors.TransportError,
+    )
+
+    for kind in separate:
+        assert kind.__bases__ == (errors.GateError,), f"{kind.__name__} is under something else"

@@ -104,6 +104,10 @@ words:
 
   # The platform
   - CREAT
+  - WRONLY
+  - geteuid
+  - ftruncate
+  - lseek
   - msbuild
   - netstandard
   - SChannel
@@ -120,6 +124,7 @@ words:
   - Parallelizable
   - pathspec
   - USERPROFILE
+  - LOCALAPPDATA
 
   # Names of other people's projects, spelled the way they spell them
   - Connexion

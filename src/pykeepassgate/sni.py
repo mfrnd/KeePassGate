@@ -29,6 +29,11 @@ SUFFIX = "kpg"
 #: Sixteen bytes, so the label is 32 hex characters and fits what a DNS label allows.
 NONCE_LENGTH = 16
 
+#: Thirty-two, which is what `CA.md` 204 specifies and what `AuthorityMaterial.SniKeyLength`
+#: refuses anything else against. The invitation token is the same length, which is what lets one
+#: construction cover both.
+KEY_LENGTH = 32
+
 #: The first sixteen bytes of the HMAC, for the same reason. Truncating an HMAC is what RFC 2104
 #: section 5 describes, and 128 bits is far more than a value an attacker gets one guess at needs.
 #: https://www.rfc-editor.org/rfc/rfc2104#section-5

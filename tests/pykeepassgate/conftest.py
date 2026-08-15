@@ -137,20 +137,8 @@ class FakeGate:
         self.linger = 0.0
         self.handler: Handler = lambda path, body, client: (404, '{"error":"no such route"}')
 
-        context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-        context.load_cert_chain(certfile=str(host_certificate.pem))
-
-        # Optional rather than required, so that both halves of the protocol can be served by one
-        # gate: pairing arrives without a certificate, and everything after it arrives with one.
-        context.verify_mode = ssl.CERT_OPTIONAL
-        context.load_verify_locations(cafile=str(authority))
-        context.minimum_version = ssl.TLSVersion.TLSv1_3
-        context.maximum_version = ssl.TLSVersion.TLSv1_3
-
-        # The name the client chose reaches a server through the SNI callback and nowhere else:
-        # `SSLSocket.server_hostname` is the client's own copy and is `None` on this side.
-        context.sni_callback = self._remember
-        self._context = context
+        self._authority = authority
+        self._context = self._serving(host_certificate)
         self._listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self._listener.bind(("127.0.0.1", 0))
@@ -191,10 +179,48 @@ class FakeGate:
             raw.settimeout(10)
             threading.Thread(target=self._answer, args=(raw,), daemon=True).start()
 
+    def serve_with(self, host_certificate: Issued) -> None:
+        """Answer every connection from now on with a different certificate.
+
+        What a client meets when the KeePass it was pairing with exits between two connections
+        and something else takes the port.
+        """
+        self.host_certificate = host_certificate
+        self._context = self._serving(host_certificate)
+
+    def _serving(self, host_certificate: Issued) -> ssl.SSLContext:
+        context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        context.load_cert_chain(certfile=str(host_certificate.pem))
+
+        # Optional rather than required, so that both halves of the protocol can be served by one
+        # gate: pairing arrives without a certificate, and everything after it arrives with one.
+        context.verify_mode = ssl.CERT_OPTIONAL
+        context.load_verify_locations(cafile=str(self._authority))
+        context.minimum_version = ssl.TLSVersion.TLSv1_3
+        context.maximum_version = ssl.TLSVersion.TLSv1_3
+
+        # The name the client chose reaches a server through the SNI callback and nowhere else:
+        # `SSLSocket.server_hostname` is the client's own copy and is `None` on this side.
+        context.sni_callback = self._remember
+        return context
+
     def _remember(
         self, wrapped: ssl.SSLObject, name: str | None, context: ssl.SSLContext
     ) -> None:
         self.names.append(name)
+
+    def named(self) -> str:
+        """The name the connection being served arrived on.
+
+        Asked of the gate rather than read out of a list a handler holds its own alias
+        of. The two disagreed about whether an entry can be `None`, which is what the
+        `type: ignore` on each assignment was saying.
+        """
+        name = self.names[-1] if self.names else None
+        if name is None:
+            raise AssertionError("the connection carried no name")
+
+        return name
 
     def _answer(self, raw: socket.socket) -> None:
         try:
