@@ -1,3 +1,4 @@
+using KeePassGate.Spec;
 using KeePassGate.Transport;
 using NUnit.Framework;
 
@@ -7,13 +8,58 @@ namespace KeePassGate.Tests
     /// What a percent escape means, and where it is allowed to mean it.
     /// </summary>
     /// <remarks>
-    /// The reader refuses what a path may not carry: a plus that is not a space, a control
-    /// character however it was escaped, an escape that is not one, and a segment that climbs.
-    /// What an escaped separator means is settled where paths are compared, which is not here.
+    /// The whole subject is one rule: a path is split into segments and then each segment is
+    /// decoded, never the other way round. Decoding first makes an escaped separator into a real
+    /// one, which silently turns one name into two and leaves any name holding a slash impossible
+    /// to address at all.
     /// </remarks>
     [TestFixture]
     public sealed class PathEncodingTests
     {
+        /// <summary>A separator, spelled the way a client has to spell one inside a name.</summary>
+        private const string Escaped = "%2F";
+
+        [Test]
+        public void An_escaped_separator_stays_inside_the_segment_it_was_escaped_in()
+        {
+            // The case the rule exists for. An attachment called `a/b` is a name a database can
+            // hold, so it has to be a name this API can address.
+            var template = PathTemplate.Parse("/entries/{uuid}/attachments/{name}");
+
+            System.Collections.Generic.IReadOnlyDictionary<string, string> captured;
+
+            Assert.That(template.TryMatch("/entries/7b1c/attachments/a" + Escaped + "b", out captured), Is.True);
+            Assert.That(captured["name"], Is.EqualTo("a/b"));
+        }
+
+        [Test]
+        public void A_literal_is_what_a_caller_meant_rather_than_how_it_spelled_it()
+        {
+            var template = PathTemplate.Parse("/gate/status");
+
+            System.Collections.Generic.IReadOnlyDictionary<string, string> captured;
+
+            Assert.That(template.TryMatch("/g%61te/status", out captured), Is.True);
+            Assert.That(template.TryMatch("/gate" + Escaped + "status", out captured), Is.False,
+                "one escaped segment is one segment, whatever it decodes to");
+        }
+
+        [Test]
+        public void A_plus_is_a_plus_in_a_path()
+        {
+            // It means a space in a query string and nowhere else. While it meant one in both,
+            // `a+b` and `a b` were the same request.
+            var template = PathTemplate.Parse("/entries/{uuid}/fields/{name}");
+
+            System.Collections.Generic.IReadOnlyDictionary<string, string> captured;
+
+            template.TryMatch("/entries/7b1c/fields/a+b", out captured);
+            Assert.That(captured["name"], Is.EqualTo("a+b"));
+
+            template.TryMatch("/entries/7b1c/fields/a%20b", out captured);
+            Assert.That(captured["name"], Is.EqualTo("a b"));
+        }
+
         [Test]
         public void A_plus_is_still_a_space_in_a_query()
         {
