@@ -67,8 +67,7 @@ namespace KeePassGate.Ui
     /// The editor is a table on somebody else's dialog, and a table is the easy half. What is
     /// worth testing is what it refuses, what it shows about rules it does not own, and exactly
     /// when it writes. So all of that lives here, where a test can drive it without a message pump,
-    /// and `GrantPanel` is the part that draws it. TODO(step 13): `GrantPanel` arrives with the
-    /// grant table.
+    /// and `GrantPanel` is the part that draws it.
     ///
     /// **It writes only a change in meaning.** A group's or an entry's custom data keeps no
     /// modification times, so a value written back as it was changes nothing there; what matters
@@ -491,6 +490,19 @@ namespace KeePassGate.Ui
                 _stored = Document;
                 _canonical = _stored;
             }
+        }
+
+        /// <summary>Back to what is stored, throwing away everything since.</summary>
+        /// <remarks>
+        /// For a write the store refused. The rule has been reported as not in force, so it
+        /// must not be sitting on the sheet afterwards: it would still be there to be carried
+        /// by the next write of anything else, landing without a second word about it.
+        /// </remarks>
+        public void Revert()
+        {
+            _rules.Clear();
+            Unreadable = false;
+            Load();
         }
 
         private void Load()

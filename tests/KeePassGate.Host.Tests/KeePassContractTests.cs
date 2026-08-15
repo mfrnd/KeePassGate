@@ -181,8 +181,7 @@ namespace KeePassGate.Host.Tests
         [TestCase(KeePassContract.EntryFormTypeName)]
         public void Both_node_dialogs_still_keep_their_own_copy_of_custom_data(string typeName)
         {
-            // The field the grant editor writes into, and the reason it can. TODO(step 13): the
-            // editor arrives with the grant table. Both dialogs copy a
+            // The field the grant editor writes into, and the reason it can. Both dialogs copy a
             // node's custom data when they open and write the copy back on OK, so a grant written
             // to the live node survives Cancel and is destroyed by OK. A KeePass that renames this
             // leaves the editor showing grants it will not let anybody change, which is the safe

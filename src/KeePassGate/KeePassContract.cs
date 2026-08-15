@@ -49,8 +49,7 @@ namespace KeePassGate
 
         /// <summary>
         /// **The dialog's own copy of a node's custom data**, on the group dialog and the entry
-        /// dialog alike, and the only correct place for the grant editor to write. TODO(step 13):
-        /// the editor arrives with the grant table.
+        /// dialog alike, and the only correct place for the grant editor to write.
         /// </summary>
         /// <remarks>
         /// Both dialogs take a copy when they open and write that copy back over the node when

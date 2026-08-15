@@ -68,8 +68,7 @@ namespace KeePassGate.Ui
         /// **The room comes from the parent, not from this control.** Its own width is whatever it
         /// was last given, which during the first layout is whatever it was constructed with, and
         /// measuring against that locks a paragraph into the width of a stale guess: the scope line
-        /// on the grant tab wrapped into a column four words wide (TODO(step 13): that tab is what
-        /// this was found on, and it arrives later). The parent's display area is
+        /// on the grant tab wrapped into a column four words wide. The parent's display area is
         /// already known, does not depend on this answer, and is what the dock is about to hand
         /// over anyway.
         ///
