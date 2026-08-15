@@ -62,6 +62,7 @@ namespace KeePassGate.Host.Tests.Live
         private const byte AltKey = 0x12;
         private const byte EscapeKey = 0x1B;
         private const byte ControlKey = 0x11;
+        private const byte EnterKey = 0x0D;
 
         /// <summary>One keystroke, as the accessibility tree describes it.</summary>
         public struct Stroke
@@ -228,6 +229,21 @@ namespace KeePassGate.Host.Tests.Live
         {
             keybd_event(EscapeKey, 0, 0, UIntPtr.Zero);
             keybd_event(EscapeKey, 0, KeyUp, UIntPtr.Zero);
+            Thread.Sleep(400);
+        }
+
+        /// <summary>
+        /// Enter, which is how a dropdown is accepted.
+        /// </summary>
+        /// <remarks>
+        /// Only ever with one of the plugin's own pickers open. On a dialog with nothing open it is
+        /// that dialog's OK, which is the whole reason the picker takes the key away while it is
+        /// showing.
+        /// </remarks>
+        public static void SendEnter()
+        {
+            keybd_event(EnterKey, 0, 0, UIntPtr.Zero);
+            keybd_event(EnterKey, 0, KeyUp, UIntPtr.Zero);
             Thread.Sleep(400);
         }
     }
