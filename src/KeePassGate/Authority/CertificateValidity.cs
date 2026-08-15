@@ -32,7 +32,6 @@ namespace KeePassGate.Authority
             // The backdate is the half worth keeping: it is written into the certificate, so the
             // reference client validating a host certificate through OpenSSL gets the same five
             // minutes this does, where slack on this side would have been ours alone.
-            // TODO(step 10): the reference client arrives with step 10.
             if (now < notBefore)
             {
                 return false;

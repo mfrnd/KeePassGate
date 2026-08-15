@@ -1,6 +1,6 @@
 # Testing
 
-Three tiers, and the split is deliberate: each one buys something the others cannot, and each one
+Four tiers, and the split is deliberate: each one buys something the others cannot, and each one
 fails in a way that names its own cause.
 
 | | Project | Needs | Runs in | What it proves |
@@ -8,6 +8,7 @@ fails in a way that names its own cause.
 | **Unit** | `tests/KeePassGate.Tests` | nothing but a compiler, and a loopback socket | under a minute | the logic, and the whole transport, against stand-ins shaped like KeePass |
 | **Host** | `tests/KeePassGate.Host.Tests` | a KeePass to reference | about a second | the same code against real KeePass types, dialogs and events |
 | **End to end** | the same project, category `Live` | a desktop, and the machine to itself | under a minute | the plugin loading into a KeePass a user could have started |
+| **Client** | `tests/pykeepassgate` | Python, and `uv` to arrange it | a few seconds | PyKeePassGate against stand-ins, and its protocol code against vectors the plugin produced |
 
 ```powershell
 .\build.ps1                # build, then the unit and host tiers
@@ -135,6 +136,32 @@ machine, or a failure means nothing until somebody asks what was installed.
 `KeePassDev.MatchesTheAssemblyUnderTest` is the other half of that, and it stays: the directory the
 tests drive has to hold the same KeePass the tests compiled against, or the live tier is measuring
 something the rest of the suite is not.
+
+## What the client tier is for
+
+PyKeePassGate has two tiers of its own, and they draw the same line the C# ones do.
+
+**Against a gate that is not KeePass.** `tests/pykeepassgate/conftest.py` builds an authority, a
+host certificate under it, and a TLS 1.3 server that answers one request per connection, which is
+what the plugin's transport does. That covers everything a client has to get right about the
+protocol, including the parts `ssl` decides: that the rotating name arrives as SNI, that the
+server's certificate is readable before a body is written, and that loading one authority really is
+a pin. TODO(step 10): that file arrives with the client transport.
+
+**Against the plugin's own output.** `tests/pykeepassgate/test_protocol.py` pins the token
+encoding, the name construction and all three proofs against vectors produced by `PairingToken`,
+`SniName` and `PairingProof`. Without those, the two halves could agree on something neither
+document describes, because both halves would be code somebody wrote here. TODO(step 10): that
+file arrives with the protocol code.
+
+```shell
+uv run pytest --cov        # the client, with its coverage floor
+```
+
+```powershell
+.\build.ps1 -Task Client         # the same thing, and its style and types
+# TODO(step 10): that task arrives with the client's checks.
+```
 
 ## Conventions
 

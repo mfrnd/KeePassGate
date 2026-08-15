@@ -1,5 +1,8 @@
 # Anchored with a leading slash, so that a rule meant for one place cannot quietly match another
 # somewhere else. What a project writes is ignored beside that project rather than from here.
+#
+# `__pycache__/` is the one exception and is deliberately recursive, because Python writes it
+# wherever a package happens to live.
 
 /.tmp/
 /.vs/
@@ -13,6 +16,14 @@
 
 /node_modules/
 /scratchpad/
+
+# `uv` builds this from `uv.lock`, which is committed.
+/.venv/
+/.pytest_cache/
+/.mypy_cache/
+/.ruff_cache/
+/.coverage
+__pycache__/
 
 # Per machine, and not everybody's business: the checked-in `.claude/settings.json` is.
 /.claude/settings.local.json

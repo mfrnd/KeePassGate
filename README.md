@@ -26,7 +26,7 @@ KeePassGate is sound under the strict reading of the linking question as well as
 | [`CA.md`](CA.md) | the certificate authority in full: issuance, claims, validation, revocation |
 | [`PAIRING.md`](PAIRING.md) | how a stranger becomes a client, with the flow diagrams |
 | [`FINDINGS.md`](FINDINGS.md) | what was measured rather than assumed, and what turned out wrong |
-| [`TESTING.md`](TESTING.md) | the three test tiers, what each one buys, and how to run them |
+| [`TESTING.md`](TESTING.md) | the four test tiers, what each one buys, and how to run them |
 | [`CONVENTIONS.md`](CONVENTIONS.md) | the rules that hold on every branch |
 | [`ANALYSIS.md`](ANALYSIS.md) | the argument, and the alternatives that were rejected |
 

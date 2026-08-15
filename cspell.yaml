@@ -64,6 +64,18 @@ words:
 
 
 
+  # start the reference client, with the checks it is held to
+  - addopts
+  - conftest
+  - docstrings
+  - isort
+  - pathlib
+  - pycodestyle
+  - pydocstyle
+  - pyflakes
+  - pytest
+  - pyupgrade
+  - testpaths
 
   # keep the gate working on a machine that also has PowerShell 7
   - PSHOME
@@ -95,6 +107,9 @@ words:
   - vswhere
 
   # Tooling
+  - mypy
+  - pyproject
+  - sdist
   - autonumber
   - LASTEXITCODE
   - nologo

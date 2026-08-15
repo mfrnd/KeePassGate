@@ -1,0 +1,104 @@
+# PyKeePassGate
+
+The reference client for [KeePassGate](https://github.com/mfrnd/KeePassGate), a KeePass 2.x plugin
+that serves a small specification-defined API over mutual TLS so that automation and AI agents can
+each be given a narrow, revocable, audited slice of a database.
+
+**Reference implementation** means the code here is the second copy of the specification. Where the
+plugin and this disagree, one of them is wrong and a test should already have said so. It also means
+what is missing is to be a statement: a route with no method here is to be a route the gate does
+not serve. TODO(step 10): the methods for the routes the gate serves arrive with this step.
+
+## Install
+
+**Not on PyPI yet.** The name is held there by
+[a placeholder](https://pypi.org/project/pykeepassgate/), 0.0.1, which is not this client, so
+`uv add pykeepassgate` and `pip install pykeepassgate` install something else until the first
+release is published. Until then it is installed from a checkout of
+[the repository](https://github.com/mfrnd/KeePassGate), whose `pyproject.toml` is the client's:
+
+```shell
+git clone https://github.com/mfrnd/KeePassGate
+uv add ./KeePassGate              # as a dependency of the project this is run in
+uv tool install ./KeePassGate     # or the command line on its own
+```
+
+`pip install ./KeePassGate` takes the same path. One dependency, `cryptography`, because the gate
+hands over a PKCS#12 and Python's `ssl` reads PEM. Everything else, the command line included, is
+the standard library.
+
+## Pair
+
+The operator presses **Invite** on the **KPG** tab of the database's settings dialog and sends
+the invitation over a second channel. It is spent by the first client to use it and it does not
+survive KeePass closing.
+
+```shell
+# TODO(step 10): the command line arrives with this step.
+pykeepassgate pair --port 45678 --name agent-invented --profile-name reader
+```
+
+Leave `--invitation` off and the token is read from standard input, so it stays out of the shell
+history and out of the process list. TODO(step 10): the command line arrives with this step.
+
+The same thing from a program:
+
+```python
+# TODO(step 10): `api` arrives with this step.
+from pykeepassgate import api
+
+credentials = api.pair(
+    port=45678,
+    invitation="...",
+    name="agent-invented",
+    profiles=["reader"],
+)
+
+print(credentials.profiles)  # what the operator approved, not what was asked for
+```
+
+## Use
+
+```python
+# TODO(step 10): `GateClient` arrives with this step.
+from pykeepassgate import GateClient
+
+client = GateClient.open()
+print(client.status())
+```
+
+```shell
+# TODO(step 10): the command line arrives with this step.
+pykeepassgate status
+pykeepassgate whoami
+```
+
+## What to catch
+
+Every exception says what to do next rather than what went wrong, because that is the part a caller
+has to decide.
+
+| Exception | What it means, and what to do |
+| --- | --- |
+| `DatabaseLocked` | The database is locked. Wait, and try again. |
+| `GateBusy` | The gate cannot write right now, usually because a group dialog is open. Retry. |
+| `NotAdmitted` | This database holds no record for this certificate. It was never admitted, or it was revoked. Pair again. |
+| `ProofRefused` | During pairing: the token is wrong, or whatever answered is not the KeePass whose operator holds it. Stop. |
+| `PairingRefused` | The operator said no. The invitation is spent, so ask for another. |
+| `PairingUnanswered` | Nobody answered the dialog. The invitation is **not** spent, so this can be tried again. |
+| `RouteRefused` | Everything else the gate refuses, carrying the status and the reason it gave, usually one word: a `413` says in a sentence what was too large. A `404` is deliberately both "no such node" and "not yours", so a client cannot map a database by asking: if the node should be there, the rule is too narrow and the operator has to widen it (TODO(step 15): the routes about nodes arrive with this step). |
+| `MalformedToken` | The text handed over is not an invitation, so nothing was sent. Check what was pasted. |
+| `ProtocolError` | The gate answered with something this client cannot read. Do not retry: the two halves disagree about the wire, which `tests/pykeepassgate/test_protocol.py` exists to stop (TODO(step 10): it arrives with the protocol code). |
+| `TransportError` | Nothing is listening, or the handshake failed. |
+
+## What it does not do
+
+**It does not open a `.kdbx`.** There is no file and no master password on this side of the API, by
+design. What that means for anybody expecting a `pykeepass` object is measured on the
+`spikes/pykeepass-compatibility` branch: 23 of its 56 public members are servable over the routes the
+API is to have, and the object itself is not one of them. TODO(step 15): those routes arrive with
+this step.
+
+**It defends nothing against local code execution as the user.** The client's key is on the disk,
+because a client has to still be the same client tomorrow. The whole design concedes this
+throughout, and so does this.

@@ -25,7 +25,7 @@ reference client, is next.
 | [`CA.md`](CA.md) | the certificate authority: issuance, claims, validation, revocation |
 | [`PAIRING.md`](PAIRING.md) | how a stranger becomes a client, with the flow diagrams |
 | [`FINDINGS.md`](FINDINGS.md) | what was measured rather than assumed, and what turned out wrong |
-| [`TESTING.md`](TESTING.md) | the three test tiers, what each one buys, and how to run them |
+| [`TESTING.md`](TESTING.md) | the four test tiers, what each one buys, and how to run them |
 
 **One document is historical and says so at the top.** [`ANALYSIS.md`](ANALYSIS.md) is the argument
 that was made, and several of its conclusions were later reversed; it opens with a banner naming
