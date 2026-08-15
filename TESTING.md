@@ -70,8 +70,7 @@ plugin writes what it means to write; only this proves KeePass keeps it.
 over mutual TLS 1.3 and is answered, and a second certificate from the same authority is refused
 because the database holds no record for it. It issues itself both certificates from the authority
 inside the database file, because it holds the file and its password, which is exactly what the
-design says possession of the file means. Nothing about this one uses the desktop, so it is the
-fastest of the three.
+design says possession of the file means. Nothing about this one uses the desktop.
 
 Note what it does **not** do: write a record while KeePass is running. A running KeePass serves the
 database it holds in memory, so a record written to the file underneath it is invisible and would be
@@ -148,7 +147,8 @@ is shared by the whole process or the whole account:
 - a static the plugin lends out for a while and takes back;
 - the account's key directories: a certificate loaded without `EphemeralKeySet` writes its key
   there, which every fixture issuing a client does, so a test asserting that none appeared is
-  marked and the writers are not;
+  marked and the writers are not. Another test process writes there too, and no mark reaches it,
+  so `PrivateKeyFiles.Lock` is held by a test while it watches and by a helper while it loads;
 - a timing written tight enough that a loaded machine misses it, which is better widened than
   marked.
 

@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Security.Cryptography.X509Certificates;
 using KeePassGate.Authority;
+using KeePassGate.Testing;
 using KeePassGate.Tests.Fakes;
 using NUnit.Framework;
 
@@ -283,6 +284,16 @@ namespace KeePassGate.Tests
         [Test]
         [NonParallelizable]
         public void Refusing_a_record_that_carries_a_private_key_writes_no_key_to_the_disk()
+        {
+            // Locked against every other test process this account runs, so that a key one of
+            // them writes never lands inside this window: `PrivateKeyFiles.Lock` says why.
+            using (PrivateKeyFiles.Lock())
+            {
+                Refusing_a_record_that_carries_a_private_key_writes_no_key_to_the_disk_while_locked();
+            }
+        }
+
+        private void Refusing_a_record_that_carries_a_private_key_writes_no_key_to_the_disk_while_locked()
         {
             // The PKCS#12 a `.kdbx` could carry here has a key in it, and parsing one without
             // `EphemeralKeySet` writes that key into the operator's profile, from bytes the file

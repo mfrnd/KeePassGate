@@ -13,6 +13,8 @@ using Org.BouncyCastle.Security;
 using Org.BouncyCastle.Tls;
 using Org.BouncyCastle.Tls.Crypto.Impl.BC;
 
+using KeePassGate.Testing;
+
 namespace KeePassGate.Tests
 {
     /// <summary>
@@ -53,6 +55,16 @@ namespace KeePassGate.Tests
         [Test]
         [NonParallelizable]
         public void Serving_writes_no_key_anywhere()
+        {
+            // Locked against every other test process this account runs, so that a key one of
+            // them writes never lands inside this window: `PrivateKeyFiles.Lock` says why.
+            using (PrivateKeyFiles.Lock())
+            {
+                Serving_writes_no_key_anywhere_while_locked();
+            }
+        }
+
+        private void Serving_writes_no_key_anywhere_while_locked()
         {
             // The point of the whole exercise. SChannel refuses a key that is not in the user's
             // profile, so serving with it meant writing the host key to the disk for as long as a

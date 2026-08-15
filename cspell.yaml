@@ -132,6 +132,7 @@ words:
   - desync
   - interoperating
   - middleboxes
+  - readback
   - recompiler
   - refusable
   - reimplementations

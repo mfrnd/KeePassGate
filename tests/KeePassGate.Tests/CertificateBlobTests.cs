@@ -4,6 +4,8 @@ using System.Security.Cryptography.X509Certificates;
 using KeePassGate.Authority;
 using NUnit.Framework;
 
+using KeePassGate.Testing;
+
 namespace KeePassGate.Tests
 {
     [TestFixture]
@@ -53,6 +55,16 @@ namespace KeePassGate.Tests
         [Test]
         [NonParallelizable]
         public void No_key_reaches_the_disk_from_minting_one_to_loading_it_back()
+        {
+            // Locked against every other test process this account runs, so that a key one of
+            // them writes never lands inside this window: `PrivateKeyFiles.Lock` says why.
+            using (PrivateKeyFiles.Lock())
+            {
+                No_key_reaches_the_disk_from_minting_one_to_loading_it_back_while_locked();
+            }
+        }
+
+        private void No_key_reaches_the_disk_from_minting_one_to_loading_it_back_while_locked()
         {
             // Measured: importing a PKCS#12 without EphemeralKeySet writes a key file into the
             // user's profile, which would put a key outside the database that is meant to be the

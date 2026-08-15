@@ -40,6 +40,14 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- The same client and answer reader the loopback tests use, so the end to end test cannot
+         pass against a protocol only it knows. -->
+    <Compile Include="..\Shared\HttpAnswer.cs" Link="Shared\HttpAnswer.cs" />
+    <Compile Include="..\Shared\PairingClient.cs" Link="Shared\PairingClient.cs" />
+    <Compile Include="..\Shared\PrivateKeyFiles.cs" Link="Shared\PrivateKeyFiles.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- The live test needs the whole KeePass directory, not just the assembly it compiles
          against, so the path is baked in rather than guessed at run time. -->
     <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">

@@ -188,10 +188,13 @@ namespace KeePassGate.Testing
             // would leave one behind for good, in a repository whose whole point is that no key
             // this plugin handles reaches the disk. Nothing here needs it, because the certificate
             // is used for one client handshake and then dropped.
-            Identity = new X509Certificate2(
-                Convert.FromBase64String(identity),
-                (string)null,
-                X509KeyStorageFlags.Exportable);
+            using (PrivateKeyFiles.Lock())
+            {
+                Identity = new X509Certificate2(
+                    Convert.FromBase64String(identity),
+                    (string)null,
+                    X509KeyStorageFlags.Exportable);
+            }
 
             Authority = new X509Certificate2(authority);
             GateKey = gateKey;
@@ -262,7 +265,7 @@ namespace KeePassGate.Testing
                         tls.Write(payload, 0, payload.Length);
                         tls.Flush();
 
-                        var raw = ReadToEnd(tls);
+                        var raw = HttpAnswer.ReadToEnd(tls);
                         if (raw.Length == 0)
                         {
                             reply.Failure = "the connection was closed without an answer";
@@ -333,34 +336,6 @@ namespace KeePassGate.Testing
             {
                 return null;
             }
-        }
-
-        private static string ReadToEnd(Stream stream)
-        {
-            var buffer = new byte[4096];
-            var text = new StringBuilder();
-
-            while (true)
-            {
-                int read;
-                try
-                {
-                    read = stream.Read(buffer, 0, buffer.Length);
-                }
-                catch (IOException)
-                {
-                    break;
-                }
-
-                if (read <= 0)
-                {
-                    break;
-                }
-
-                text.Append(Encoding.UTF8.GetString(buffer, 0, read));
-            }
-
-            return text.ToString();
         }
     }
 }

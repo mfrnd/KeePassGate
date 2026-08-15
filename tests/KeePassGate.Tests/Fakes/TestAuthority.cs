@@ -177,6 +177,7 @@ namespace KeePassGate.Tests.Fakes
             // any more: only the client side of these tests still goes through SChannel.
             X509Certificate2 certificate;
             using (var issued = new AuthorityIssuer().IssueClient(_authority, subject, profiles))
+            using (KeePassGate.Testing.PrivateKeyFiles.Lock())
             {
                 certificate = CertificateBlob.Load(CertificateBlob.Save(issued), X509KeyStorageFlags.Exportable);
             }
@@ -192,7 +193,12 @@ namespace KeePassGate.Tests.Fakes
         /// </summary>
         public X509Certificate2 HostCertificateAsClient()
         {
-            var certificate = CertificateBlob.Load(_hostBlob, X509KeyStorageFlags.Exportable);
+            X509Certificate2 certificate;
+            using (KeePassGate.Testing.PrivateKeyFiles.Lock())
+            {
+                certificate = CertificateBlob.Load(_hostBlob, X509KeyStorageFlags.Exportable);
+            }
+
             _issued.Add(certificate);
             return certificate;
         }

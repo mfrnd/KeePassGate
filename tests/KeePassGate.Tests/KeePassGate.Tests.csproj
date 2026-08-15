@@ -28,10 +28,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- The client half of pairing, compiled into both test assemblies. One copy, because the
-         loopback tests and the end to end tests have to be talking to the same protocol for
-         either of them to mean anything. -->
+    <!-- The client half of pairing and the reader it takes an answer with, compiled into both
+         test assemblies. One copy, because the loopback tests and the end to end tests have to be
+         talking to the same protocol for either of them to mean anything. -->
+    <Compile Include="..\Shared\HttpAnswer.cs" Link="Shared\HttpAnswer.cs" />
     <Compile Include="..\Shared\PairingClient.cs" Link="Shared\PairingClient.cs" />
+    <Compile Include="..\Shared\PrivateKeyFiles.cs" Link="Shared\PrivateKeyFiles.cs" />
   </ItemGroup>
 
 </Project>
