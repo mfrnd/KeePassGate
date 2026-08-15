@@ -136,6 +136,26 @@ namespace KeePassGate.Host.Tests.Live
         }
 
         /// <summary>
+        /// What the tab shows beside a name, for the facts it lays out as a table.
+        /// </summary>
+        /// <remarks>
+        /// Found by matching the value rather than by walking from the name, because the
+        /// accessibility tree gives no relation between two labels that happen to share a row. The
+        /// shape is what identifies it, which is enough here: nothing else on this tab looks like a
+        /// fingerprint or like a date.
+        /// </remarks>
+        public string TextMatching(AutomationElement dialog, string pattern)
+        {
+            var expression = new System.Text.RegularExpressions.Regex(pattern);
+
+            var element = Uia.WaitForOrNull(
+                () => Uia.Descendant(dialog, ControlType.Text, name => expression.IsMatch(name)),
+                TimeSpan.FromSeconds(5));
+
+            return element == null ? null : Uia.Name(element);
+        }
+
+        /// <summary>
         /// Presses a button by its caption. Safe through the accessibility tree because these
         /// buttons open no modal dialog of their own.
         /// </summary>
