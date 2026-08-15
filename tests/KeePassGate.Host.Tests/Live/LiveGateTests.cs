@@ -58,7 +58,7 @@ namespace KeePassGate.Host.Tests.Live
             // Both certificates are issued and one is admitted before KeePass starts, because a
             // running KeePass serves the database it holds in memory: a record written to the file
             // underneath it would be invisible and then overwritten. Pairing writes through the
-            // plugin for exactly that reason. TODO(step 8): it is step 8.
+            // plugin for exactly that reason, and it is step 8.
             using (var admitted = keePass.IssueClientCertificate("agent-fictitious"))
             using (var never = keePass.IssueClientCertificate("agent-unadmitted"))
             {

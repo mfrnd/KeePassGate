@@ -522,7 +522,7 @@ namespace KeePassGate.Host.Tests.Live
 
         /// <summary>
         /// A client certificate issued by the database's own authority, loaded so that TLS can
-        /// present it. TODO(step 8): this is what pairing will do for real in step 8.
+        /// present it. Pairing issues one the same way, from inside the plugin.
         /// </summary>
         public X509Certificate2 IssueClientCertificate(string subject)
         {
@@ -539,7 +539,7 @@ namespace KeePassGate.Host.Tests.Live
 
         /// <summary>
         /// Writes an admission record into the file, which is what pairing does from inside the
-        /// plugin, through `AdmissionWriter.Write`. TODO(step 8): that step is still ahead.
+        /// plugin, through `AdmissionWriter.Write`.
         /// </summary>
         /// <remarks>
         /// **Only before KeePass starts.** A running KeePass holds the database in memory and

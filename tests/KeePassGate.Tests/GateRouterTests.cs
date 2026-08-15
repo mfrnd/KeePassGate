@@ -11,8 +11,9 @@ using NUnit.Framework;
 namespace KeePassGate.Tests
 {
     /// <summary>
-    /// The whole API for now: one route, one refusal before dispatch, and a terminal 404. The
-    /// shape is what matters. TODO(step 11): step 11 replaces the contents and keeps it.
+    /// The whole API for now: one route, the pairing paths handed over, one refusal before
+    /// dispatch, and a terminal 404. The shape is what matters. TODO(step 11): step 11 replaces the
+    /// contents and keeps it.
     /// </summary>
     [TestFixture]
     public sealed class GateRouterTests
@@ -62,7 +63,7 @@ namespace KeePassGate.Tests
         [Test]
         public void An_unpaired_client_is_refused_on_every_path_including_ones_that_do_not_exist()
         {
-            foreach (var path in new[] { "/", "/gate/status", "/pair/request", "/anything" })
+            foreach (var path in new[] { "/", "/gate/status", "/anything", "/pairing", "/gate/pair/hello" })
             {
                 var context = Request("GET", path, ClientIdentity.Stranger("db"));
 
@@ -70,6 +71,41 @@ namespace KeePassGate.Tests
 
                 Assert.That(context.Status, Is.EqualTo(401), "on " + path);
             }
+        }
+
+        [Test]
+        public void A_router_with_no_pairing_says_no_more_about_those_paths_than_any_other()
+        {
+            // The refusal cannot come first for a router that has pairing, because pairing exists
+            // to serve somebody who has nothing. A router without it does not special-case these
+            // paths at all, and that is the point: answering 404 here while every other path
+            // answered 401 made this one prefix the only one in the API that replied differently,
+            // which is all an unadmitted caller needs to find it.
+            foreach (var path in new[] { "/pair/hello", "/pair/request", "/pair/anything" })
+            {
+                var context = Request("POST", path, ClientIdentity.Stranger("db"));
+
+                _router.Handle(context);
+
+                Assert.That(context.Status, Is.EqualTo(401), "on " + path);
+            }
+        }
+
+        [Test]
+        public void A_router_with_pairing_hands_those_paths_over_and_keeps_the_rest()
+        {
+            var pairing = new RecordingHandler();
+            var router = new GateRouter("9.9.9", pairing);
+
+            router.Handle(Request("POST", "/pair/hello", ClientIdentity.Stranger("db")));
+
+            Assert.That(pairing.Paths, Is.EqualTo(new[] { "/pair/hello" }));
+
+            var status = Request("GET", GateRouter.StatusPath, ClientIdentity.Stranger("db"));
+            router.Handle(status);
+
+            Assert.That(status.Status, Is.EqualTo(401));
+            Assert.That(pairing.Paths.Count, Is.EqualTo(1), "only the pairing paths reach it");
         }
 
         [Test]
@@ -114,6 +150,23 @@ namespace KeePassGate.Tests
         public void A_missing_context_is_refused()
         {
             Assert.Throws<ArgumentNullException>(() => _router.Handle(null));
+        }
+
+        /// <summary>A pairing handler that only says what it was given.</summary>
+        private sealed class RecordingHandler : IGateHandler
+        {
+            private readonly List<string> _paths = new List<string>();
+
+            public IReadOnlyList<string> Paths
+            {
+                get { return _paths; }
+            }
+
+            public void Handle(IGateContext context)
+            {
+                _paths.Add(context.Path);
+                context.Respond(200, "{}");
+            }
         }
 
         private static ClientIdentity Paired(string databaseId)

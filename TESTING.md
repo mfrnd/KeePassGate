@@ -75,7 +75,7 @@ fastest of the three.
 
 Note what it does **not** do: write a record while KeePass is running. A running KeePass serves the
 database it holds in memory, so a record written to the file underneath it is invisible and would be
-overwritten. Pairing writes through the plugin for that reason. TODO(step 8): step 8 is where that is
+overwritten. Pairing writes through the plugin for that reason, and step 8 is where that is
 tested.
 
 It builds a **throwaway KeePass** under `%ProgramData%\KeePassGateLive` rather than the temporary

@@ -27,4 +27,11 @@
     <ProjectReference Include="..\..\src\KeePassGate\KeePassGate.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- The client half of pairing, compiled into both test assemblies. One copy, because the
+         loopback tests and the end to end tests have to be talking to the same protocol for
+         either of them to mean anything. -->
+    <Compile Include="..\Shared\PairingClient.cs" Link="Shared\PairingClient.cs" />
+  </ItemGroup>
+
 </Project>

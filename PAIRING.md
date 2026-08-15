@@ -121,7 +121,7 @@ seconds from accept to answer, which is what stops a peer holding a thread by fe
 time. Phase 4 blows through that on purpose: the operator is given two minutes to read the dialog,
 the prompt waits a little longer than the dialog does, and the write and save that follow have
 timeouts of their own. So the moment the name resolves to an invitation, the connection's deadline
-is set again to the pairing budget.
+is set again to `GateOptions.PairingBudget`.
 
 Closing the socket underneath phase 4 does not stop the pairing, which is what makes this worth
 saying. Everything after the dialog still happens: the certificate is issued, the invitation is

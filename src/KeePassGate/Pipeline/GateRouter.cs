@@ -1,6 +1,7 @@
 using System;
 using System.Net;
 using KeePassGate.Authority;
+using KeePassGate.Pairing;
 using KeePassGate.Transport;
 using Newtonsoft.Json;
 
@@ -13,8 +14,8 @@ namespace KeePassGate.Pipeline
     }
 
     /// <summary>
-    /// The whole API, for now: one route that says the transport works, and a terminal refusal for
-    /// everything else.
+    /// The whole API, for now: one route that says the transport works, the pairing routes, which
+    /// go to a handler of their own, and a terminal refusal for everything else.
     /// </summary>
     /// <remarks>
     /// TODO(step 11): replaced wholesale in step 11 by the spec router, where the OpenAPI document is the routing
@@ -25,16 +26,27 @@ namespace KeePassGate.Pipeline
     /// The status route deliberately reads nothing from the database. There is no authorization
     /// layer yet, so no route may reach a secret, and this one is here to prove a connection rather
     /// than to be useful.
+    ///
+    /// Pairing is the one exception to the refusal, and it is taken in this one place rather than
+    /// inside the handlers: `/pair/*` is dispatched before identity is considered, and everything
+    /// else needs a certificate and a record. A route added later is still denied by default.
     /// </remarks>
     public sealed class GateRouter : IGateHandler
     {
         public const string StatusPath = "/gate/status";
 
         private readonly string _version;
+        private readonly IGateHandler _pairing;
 
         public GateRouter(string version)
+            : this(version, null)
+        {
+        }
+
+        public GateRouter(string version, IGateHandler pairing)
         {
             _version = version ?? string.Empty;
+            _pairing = pairing;
         }
 
         public void Handle(IGateContext context)
@@ -44,10 +56,19 @@ namespace KeePassGate.Pipeline
                 throw new ArgumentNullException(nameof(context));
             }
 
+            if (_pairing != null && PairingHandler.Owns(context.Path))
+            {
+                // The handler decides whether this connection may be here at all, because only it
+                // knows what a pairing connection is, and it answers a connection that may not
+                // exactly as the lines below would have. A plugin assembled without pairing does
+                // not special-case these paths at all, so they fall through to the same answer as
+                // any other name nobody declared: asking for one tells nobody that it exists.
+                _pairing.Handle(context);
+                return;
+            }
+
             if (!context.Client.IsPaired)
             {
-                // One place, before dispatch. The pairing routes are the only ones that will ever
-                // take a different answer here, and they do not exist yet.
                 context.Respond(401, HttpResponse.ErrorBody("unpaired"));
                 return;
             }
@@ -57,7 +78,7 @@ namespace KeePassGate.Pipeline
                 if (!string.Equals(context.Method, "GET", StringComparison.Ordinal))
                 {
                     // RFC 9110 section 15.5.6: a 405 says which methods the target does
-                    // serve. One route and one method today, so the list is written here;
+                    // serve. One method on this route today, so the list is written here;
                     // once the routing table is a document, it is read off that instead.
                     var allowed = new WebHeaderCollection();
                     allowed.Add("Allow", "GET");

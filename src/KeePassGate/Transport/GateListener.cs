@@ -11,6 +11,7 @@ using Org.BouncyCastle.Tls.Crypto.Impl.BC;
 using KeePassGate.Authority;
 using KeePassGate.Diagnostics;
 using KeePassGate.Gate;
+using KeePassGate.Pairing;
 using KeePassGate.Pipeline;
 
 namespace KeePassGate.Transport
@@ -383,7 +384,17 @@ namespace KeePassGate.Transport
                             return;
                         }
 
-                        Serve(raw, peek, resolution.Target);
+                        if (resolution.IsPairing)
+                        {
+                            // The caller named an invitation, so this connection is about to wait
+                            // on the operator rather than on the wire. The ordinary budget would
+                            // close the socket while the dialog is still up, and everything after
+                            // that point still happens: the invitation is spent and the record is
+                            // written and saved, with nothing left to hand the certificate back on.
+                            deadline.Extend(_options.PairingBudget);
+                        }
+
+                        Serve(raw, peek, resolution, Peer(client));
                     }
                 }
             }
@@ -464,8 +475,49 @@ namespace KeePassGate.Transport
             }
         }
 
-        private void Serve(System.IO.Stream raw, ClientHelloPeek peek, IGateTarget target)
+        /// <summary>
+        /// What the pairing routes need and nothing above the transport can work out: the
+        /// invitation, the certificate this connection was actually served with, and the nonce out
+        /// of the name it arrived on. Null on every connection that named a database.
+        /// </summary>
+        private static PairingConnection Pairing(
+            GateResolution resolution, ClientHelloPeek peek, IGateTarget target, string peer)
         {
+            if (!resolution.IsPairing)
+            {
+                return null;
+            }
+
+            byte[] nonce;
+            byte[] tag;
+            if (!SniName.TryParse(peek.ServerName, out nonce, out tag))
+            {
+                // Unreachable: the name resolved, so it parsed. Refusing rather than assuming is
+                // still the cheaper half of being wrong about that.
+                return null;
+            }
+
+            return new PairingConnection(
+                resolution.Invitation, target, PairingProof.Binding(target.Host.CertificateDer), nonce, peer);
+        }
+
+        private static string Peer(TcpClient client)
+        {
+            try
+            {
+                var endpoint = client.Client.RemoteEndPoint;
+                return endpoint == null ? string.Empty : endpoint.ToString();
+            }
+            catch (Exception error) when (Expected.OfConnection(error))
+            {
+                // A socket that has already gone has no address to report.
+                return string.Empty;
+            }
+        }
+
+        private void Serve(System.IO.Stream raw, ClientHelloPeek peek, GateResolution resolution, string peer)
+        {
+            var target = resolution.Target;
             var replayed = new PrependingStream(peek.Bytes, raw);
             var server = new GateTlsServer(new BcTlsCrypto(new SecureRandom()), target.Host);
             var protocol = new TlsServerProtocol(replayed);
@@ -495,9 +547,13 @@ namespace KeePassGate.Transport
                 _log.Info("connection to " + CertificateDigest.Shorten(target.DatabaseId) +
                           (client.IsPaired
                               ? " from " + CertificateDigest.Shorten(client.AdmissionKey)
-                              : " from an unpaired client"));
+                              : resolution.IsPairing
+                                  ? " on invitation " + resolution.Invitation.Id
+                                  : " from an unpaired client"));
 
-                GateConversation.Serve(protocol.Stream, client, _handler, _options, _log, _incidents);
+                GateConversation.Serve(
+                    protocol.Stream, client, _handler, _options, _log,
+                    Pairing(resolution, peek, target, peer), _incidents);
             }
             finally
             {

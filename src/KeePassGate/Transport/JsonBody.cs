@@ -18,11 +18,6 @@ namespace KeePassGate.Transport
     /// on the wire an unauthenticated caller reaches first. `DESIGN.md` §118 records why
     /// Json.NET rather than one of the alternatives, which is one assembly against nine.
     ///
-    /// TODO(step 8): nothing reads a body yet. `GateConversation` hands it to `IGateContext` as
-    /// a string and the router never looks at it, so this policy and the Newtonsoft assembly it
-    /// needs both ship before anything can reach them. The router that reads bodies arrives with
-    /// the pairing handler, which posts one.
-    ///
     /// What the policy refuses: nesting, numbers, booleans, null, duplicate names, anything after
     /// the closing brace, more members, items or characters than the limits below, and any
     /// character or string a `.kdbx` could not hold, which <see cref="IsUsable"/> says more

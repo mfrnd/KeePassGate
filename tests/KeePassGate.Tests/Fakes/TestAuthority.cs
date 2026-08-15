@@ -38,7 +38,20 @@ namespace KeePassGate.Tests.Fakes
 
         public static TestAuthority New()
         {
-            var issuer = new AuthorityIssuer();
+            return New(null);
+        }
+
+        /// <summary>
+        /// The same database, minted by a clock the caller chooses, which is the only way to get
+        /// the one state a test cannot wait for: an authority whose ten years have run out.
+        /// </summary>
+        /// <remarks>
+        /// Such a database is served like any other, because `AuthorityStore.Read` ignores expiry
+        /// on purpose, and only issuing finds out. `CA.md` §219.
+        /// </remarks>
+        public static TestAuthority New(Func<DateTimeOffset> clock)
+        {
+            var issuer = new AuthorityIssuer(clock);
             var authority = issuer.CreateAuthority();
 
             // Kept in both forms: the key material the managed TLS server serves with, and a

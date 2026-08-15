@@ -10,7 +10,7 @@ a database.
 
 **Status: the design is settled and steps 1 to 7 of the build order are done.** The plugin loads
 into KeePass, the KPG tab creates, recreates and deletes the database's own certificate authority,
-the gate listens on loopback and answers one route over mutual TLS 1.3, and a client is served only
+the gate listens on loopback and answers over mutual TLS 1.3, and a client is served only
 if the database holds an admission record for its certificate. Step 8, pairing, is next: it is what
 writes those records, and it is the one path that has to write while a dialog may be holding a
 snapshot.
@@ -328,7 +328,7 @@ serves one route over mutual TLS to a client the database holds an admission rec
 **The storage decision survived the thing most likely to invalidate it.** The `GroupForm` snapshot
 hazard is real and now measured rather than remembered: `SnapshotHazardTests` reads the mechanism off
 the real KeePass and reproduces the behavior with KeePass's own types. What it established, and what
-step 8 has to build on: the settings dialog the KPG tab lives on carries **no** snapshot, so those
+step 8 built on: the settings dialog the KPG tab lives on carries **no** snapshot, so those
 buttons are safe from their own dialog, and anything written while a **group** dialog is open is
 destroyed by its OK.
 

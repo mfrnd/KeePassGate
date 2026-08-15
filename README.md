@@ -8,8 +8,8 @@ creates, recreates and deletes the database's own certificate authority, and the
 mutual TLS 1.3 with the host certificate chosen from the rotating name in the ClientHello. A client
 is served only if the database holds an admission record for its certificate, so revoking one
 empties that record and writes a revocation beside it, and takes effect on the next connection.
-One route exists so far, and it reads
-nothing out of the database.
+Beyond pairing's own routes one route
+exists so far, and it reads nothing out of the database.
 
 **License: MIT.** GPLv2 is not required. KeePass is GPL-2.0-or-later and grants no plugin exception,
 but the FSF's own requirement is a GPL-compatible license, and MIT is one, so a permissive
