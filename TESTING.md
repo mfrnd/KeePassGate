@@ -40,6 +40,14 @@ and loudly here.
 **It uses the real thing.** `DatabaseSettingsForm` can be constructed outside a running KeePass, and
 `GlobalWindowManager.AddWindow` is public, so the plugin is driven exactly as KeePass drives it:
 initialize, open the real dialog, close it, terminate, and check that nothing of ours is left behind.
+The authority is exercised against a real `PwDatabase` as well, written to a real KDBX4 file and
+opened again, because a dictionary cannot prove that KeePass keeps what it is given.
+
+**What it cannot do is show those dialogs.** `Show` throws inside the message pump outside a running
+KeePass, and WinForms answers with its unhandled-exception dialog, which blocks the run until
+something kills it. So `SnapshotHazardTests` measures the group dialog's custom data snapshot in two
+halves: the mechanism by reflection over the real types, and the behavior by reproducing it with
+KeePass's own `CloneDeep` and a real group. Pressing buttons for real belongs to the tier below.
 
 ## What the end to end tier is for
 

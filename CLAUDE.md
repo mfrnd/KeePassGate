@@ -96,9 +96,9 @@ designing around them.
   minted at unlock and held in memory so a locked KeePass can answer `503 locked` rather than failing at
   the transport. The normal host key is actively dropped at lock. TODO(step 9): the responder,
   the locked answer and dropping the key at lock arrive with step 9.
-- **We own the transport.** Accept loop, ClientHello peek, `SslStream`, request parser, body read,
-  response write. Selecting a host certificate by SNI makes this unavoidable, because .NET Framework
-  exposes no server-side SNI hook.
+- **We own the transport.** Accept loop, ClientHello peek, TLS termination, request parser, body
+  read, response write. Selecting a host certificate by SNI makes this unavoidable, because
+  .NET Framework exposes no server-side SNI hook.
 - **No third-party HTTP dependency.** `uHttpSharp` fits the seam natively with zero changes and is
   ruled out on **license** (LGPL-2.1) and liveness (no commits since 2021), not on fit. Wanting
   WebSocket, HTTP/2 or chunked bodies flips this; nothing else does.
@@ -266,6 +266,13 @@ next step replaces them rather than editing around them.
 **Step 5 is the authority, and it is next, deliberately early**, because the `GroupForm` snapshot
 hazard is the thing most likely to invalidate the storage decision, and discovering that under five
 layers of transport would be expensive.
+
+**The storage decision survived the thing most likely to invalidate it.** The `GroupForm` snapshot
+hazard is real and now measured rather than remembered: `SnapshotHazardTests` reads the mechanism off
+the real KeePass and reproduces the behavior with KeePass's own types. What it established, and what
+step 8 has to build on: the settings dialog the KPG tab lives on carries **no** snapshot, so those
+buttons are safe from their own dialog, and anything written while a **group** dialog is open is
+destroyed by its OK.
 
 What step 4 already gives it: a place on the dialog, a real dialog to test against without starting
 KeePass, and an end to end test that presses keys on the real thing. Note that the end to end test

@@ -36,9 +36,9 @@ KeePassGate is sound under the strict reading of the linking question as well as
 - **A rotating SNI names the database**, resolved before any TLS work. An unresolvable name is
   dropped with no response, so an attacker never reaches TLS, certificate selection, or the
   pairing dialog.
-- **No third-party HTTP dependency.** Selecting a certificate by SNI means owning the accept and the
-  TLS, so all that was left to buy was a header parser. The one that fits the seam natively is
-  LGPL-2.1 and unmaintained; `DESIGN.md` §107 records the trade and what would reopen it.
+- **No third-party HTTP dependency.** Selecting a certificate by SNI means owning the accept loop,
+  so all that was left to buy was a header parser. The one that fits the seam natively is LGPL-2.1
+  and unmaintained; `DESIGN.md` §107 records the trade and what would reopen it.
 - **`IGateContext`** is the seam. The router, authorization and audit never see the transport, which
   is how it stays replaceable. TODO(step 6): `IGateContext` arrives with the transport.
 - **Spec-first routing.** The OpenAPI document is the routing table and handlers bind to
