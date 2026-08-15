@@ -10,7 +10,6 @@ namespace KeePassGate.Tests.Fakes
     /// of those needs a password manager to exist, so the interesting cases are built in three lines
     /// instead of being reached through a `.kdbx`. `AclInRealDatabaseTests` is where the same rules are put
     /// in front of the real thing, and it is small because this is where the thinking happens.
-    /// TODO(step 12): `AclInRealDatabaseTests` arrives with this step.
     /// </remarks>
     public sealed class TestNode : IAclNode
     {
