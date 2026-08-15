@@ -8,9 +8,10 @@ Guidance for anyone, human or AI assistant, working in this repository.
 mutual TLS, so that automation and AI agents can each be given a narrow, revocable, audited slice of
 a database.
 
-**Status: the design is settled, steps 1 to 4 of the build order are done, and step 5, the
-authority, is under way.** The plugin loads into KeePass, puts a KPG tab on the database settings
-dialog and stops cleanly. It serves no API and opens no socket.
+**Status: the design is settled and steps 1 to 5 of the build order are done.** The plugin loads
+into KeePass, puts a KPG tab on the database settings dialog, and that tab creates, recreates and
+deletes the database's own certificate authority. It serves no API and opens no socket. Step 6, the
+gate and the transport, is next.
 
 ## Read these before proposing anything
 
@@ -259,13 +260,9 @@ here can hang or crash the password manager.
 
 ## Where to start
 
-[`DESIGN.md`](DESIGN.md) §132 ends with a multi-step build order. **Step 4 is done**: the skeleton loads,
-shows a KPG tab and stops cleanly, with the tab's contents behind `IGatePanelFactory` so that the
-next step replaces them rather than editing around them.
-
-**Step 5 is the authority, and it is next, deliberately early**, because the `GroupForm` snapshot
-hazard is the thing most likely to invalidate the storage decision, and discovering that under five
-layers of transport would be expensive.
+[`DESIGN.md`](DESIGN.md) §132 ends with a multi-step build order. **Steps 4 and 5 are done.** The skeleton
+loads and shows a KPG tab, and that tab creates, recreates and deletes the authority, with the
+certificates and the gate key in the database's own `CustomData`.
 
 **The storage decision survived the thing most likely to invalidate it.** The `GroupForm` snapshot
 hazard is real and now measured rather than remembered: `SnapshotHazardTests` reads the mechanism off
@@ -274,7 +271,6 @@ step 8 has to build on: the settings dialog the KPG tab lives on carries **no** 
 buttons are safe from their own dialog, and anything written while a **group** dialog is open is
 destroyed by its OK.
 
-What step 4 already gives it: a place on the dialog, a real dialog to test against without starting
-KeePass, and an end to end test that presses keys on the real thing. Note that the end to end test
-closes the settings dialog with **Escape rather than OK**, which is the safe half of the snapshot
-hazard; step 5 exercises the other half deliberately, in `SnapshotHazardTests`.
+**Step 6 is the gate and the transport**: accept loop, ClientHello peek, SNI resolution, TLS 1.3,
+our request parser, one route, and `IGateContext` landing. The gate key is already stored, and
+`AnchorPin` is already written and tested, so step 7 inherits both.

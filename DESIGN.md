@@ -575,7 +575,13 @@ Each step is refusable, and each ends with something that runs.
    `IFormMatcher`, `IFormDecorator`, `IGateLog`. Two classes touch KeePass, and both are adapters.
 5. **Authority**: create, recreate and delete from that tab, with the certificates in `CustomData`
    and the `GroupForm` snapshot hazard exercised deliberately. Make a grant, press OK, reopen, and
-   only then believe it.
+   only then believe it. **Done.** The storage survived: an authority created from the tab is still
+   there after a save, a restart of KeePass, and a reopening of the file, proved end to end rather
+   than argued. The hazard is now measured rather than remembered, and it cut both ways: the dialog
+   the KPG tab lives on carries no snapshot, so those buttons are safe from their own dialog, while
+   anything written during a **group** dialog is destroyed by its OK, which is what step 8 has to
+   answer for. Two things step 7 inherits early: `AnchorPin`, because telling a stored pair apart by
+   issuer name turned out to accept a foreign authority, and the gate key.
 6. **Gate and transport**: accept loop, ClientHello peek, SNI resolution, TLS 1.3, our request
    parser, one route. `IGateContext` lands here.
 7. **Validation**: anchor pin, EKU check, admission record lookup, and a test that a foreign
