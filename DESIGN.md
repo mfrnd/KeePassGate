@@ -711,7 +711,14 @@ Each step is refusable, and each ends with something that runs.
    connection. Dates are checked here rather than by the chain build, so the allowance for a wrong
    clock is exactly five minutes and only on `notBefore`.
 8. **Pairing**: invitation in memory, the proof exchange, the approval dialog, issuance with the
-   record written and saved before the certificate is handed over.
+   record written and saved before the certificate is handed over. **Done.** The gate resolves an
+   invitation exactly as it resolves a database, so a token reaches `/pair/*` and nothing else, and
+   an invitation that has run out is dropped without a word. The proofs need no transport interface
+   at all: `tls-server-end-point` is a hash of the certificate in use, which both sides already
+   hold. And the ordering is the whole of it, so it is worth naming: a dialog holding a copy of what
+   would be written refuses before anybody is disturbed, the certificate is issued, the invitation is spent, the
+   record is written and saved on the user interface thread and read back, and only then is anything
+   handed over.
 9. **Lock and unlock**: the responder certificate, dropping the privileged key, closing connections
    on both transitions.
 10. **The reference client**: `PyKeePassGate`, pairing and every route the gate serves, with the

@@ -74,8 +74,20 @@ design says possession of the file means. Nothing about this one uses the deskto
 
 Note what it does **not** do: write a record while KeePass is running. A running KeePass serves the
 database it holds in memory, so a record written to the file underneath it is invisible and would be
-overwritten. Pairing writes through the plugin for that reason, and step 8 is where that is
-tested.
+overwritten. Pairing writes through the plugin for that reason, which is what `LivePairingTests`
+covers.
+
+**Step 8**, in `LivePairingTests`, and it is the longest chain in the suite. The operator presses
+the invite button on the real tab; the token is read off the real screen; a client holding nothing
+but that token and a port number derives its own connection names, proves itself and is proved to;
+the approval dialog is a real window, approved by a real button press on a thread that is not the
+one waiting for the answer; the certificate that comes back is then used on the very next
+connection; and the record is looked for in the `.kdbx` after KeePass has exited. A refusal is
+driven the same way, and leaves nothing behind.
+
+The client half of pairing lives in `tests/Shared/PairingClient.cs` and is compiled into **both**
+test assemblies. That is deliberate: if the loopback tests and the end to end test each had their
+own client, either could pass against a protocol only it knew.
 
 It builds a **throwaway KeePass** under `%ProgramData%\KeePassGateLive` rather than the temporary
 directory, whose path names the account that ran it: a copy of the program, a local

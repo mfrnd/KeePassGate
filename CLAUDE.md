@@ -8,12 +8,13 @@ Guidance for anyone, human or AI assistant, working in this repository.
 mutual TLS, so that automation and AI agents can each be given a narrow, revocable, audited slice of
 a database.
 
-**Status: the design is settled and steps 1 to 7 of the build order are done.** The plugin loads
+**Status: the design is settled and steps 1 to 8 of the build order are done.** The plugin loads
 into KeePass, the KPG tab creates, recreates and deletes the database's own certificate authority,
-the gate listens on loopback and answers over mutual TLS 1.3, and a client is served only
-if the database holds an admission record for its certificate. Step 8, pairing, is next: it is what
-writes those records, and it is the one path that has to write while a dialog may be holding a
-snapshot.
+the gate listens on loopback and answers over mutual TLS 1.3, a client is served only if
+the database holds an admission record for its certificate, and **a stranger can now become one**:
+the tab hands out an invitation, both sides prove they hold it, the operator approves what it may
+reach, and the record is written and saved before the certificate is handed over. Step 9, lock and
+unlock, is next.
 
 ## Read these before proposing anything
 
@@ -338,7 +339,7 @@ here can hang or crash the password manager.
 
 ## Where to start
 
-[`DESIGN.md`](DESIGN.md) §132 ends with a multi-step build order. **Steps 1 to 7 are done.** The skeleton
+[`DESIGN.md`](DESIGN.md) §132 ends with a multi-step build order. **Steps 1 to 8 are done.** The skeleton
 loads and shows a KPG tab, that tab creates, recreates and deletes the authority, and the gate
 serves one route over mutual TLS to a client the database holds an admission record for.
 
@@ -349,11 +350,11 @@ step 8 built on: the settings dialog the KPG tab lives on carries **no** snapsho
 buttons are safe from their own dialog, and anything written while a **group** dialog is open is
 destroyed by its OK.
 
-**Step 8 is pairing**, and everything it writes already exists: `AdmissionRecord` is the thing it
-creates, `AuthorityIssuer.IssueClient` is what it hands over, and `AdmissionStore` is where it goes.
-What pairing adds is the invitation in memory, the proof exchange, the operator's approval, and the
-ordering that matters: the record is written and saved **before** the certificate is handed over,
-because a certificate whose record never landed is one nobody can revoke.
+**Step 9 is lock and unlock**, and `PAIRING.md` §308 is the specification: a second host
+certificate minted at unlock and held only in memory, the authority key and the records dropped at
+lock, the `KPG.SniKey` deliberately kept because the gate resolves names before any TLS work, and
+every connection closed on **both** transitions, because one that shook hands with the
+responder certificate was authenticated against nothing.
 
 What step 8 leaves it. `AdmissionWriter` is the single writer, and the only place a request writes
 to a database. `GroupDialogs` watches for the dialog that would take a write back, and it tracks
