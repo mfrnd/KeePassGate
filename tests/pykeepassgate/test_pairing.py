@@ -12,6 +12,7 @@ against output the plugin produced.
 from __future__ import annotations
 
 import base64
+import inspect
 import json
 import secrets
 from pathlib import Path
@@ -21,7 +22,7 @@ import pytest
 from cryptography.x509.oid import ExtendedKeyUsageOID
 
 from conftest import Authority, FakeGate, Issued
-from pykeepassgate import proofs, sni, transport
+from pykeepassgate import api, proofs, sni, transport
 from pykeepassgate import token as token_module
 from pykeepassgate.errors import (
     DatabaseLocked,
@@ -378,3 +379,23 @@ def test_the_names_the_gate_does_allow_are_sent(gate: FakeGate, pairing_gate: Ga
     exchange = pairing.hello()
 
     assert pairing.request(exchange, "Agent One_1.2-3", ["read-only", "write_2"])
+
+
+def test_pairing_through_the_library_waits_as_long_as_pairing_needs(
+    gate: FakeGate, host: Issued, tmp_path: Path, bundle: dict[str, Any]
+) -> None:
+    # `api.pair` is the path the command line takes, so a default of `DEFAULT_TIMEOUT` here would
+    # defeat `Pairing`'s own longer one everywhere it actually matters. A real bundle, so this
+    # goes all the way through storing what came back.
+    gate.handler = Gate(gate, host, bundle=bundle)
+
+    stored = api.pair(
+        port=gate.port,
+        invitation=INVITATION,
+        name="agent-invented",
+        profiles=["reader"],
+        directory=tmp_path / "kept",
+    )
+
+    assert stored.subject
+    assert inspect.signature(api.pair).parameters["timeout"].default == transport.PAIRING_TIMEOUT

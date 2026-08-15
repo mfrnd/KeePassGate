@@ -6,8 +6,7 @@ each be given a narrow, revocable, audited slice of a database.
 
 **Reference implementation** means the code here is the second copy of the specification. Where the
 plugin and this disagree, one of them is wrong and a test should already have said so. It also means
-what is missing is to be a statement: a route with no method here is to be a route the gate does
-not serve. TODO(step 10): the methods for the routes the gate serves arrive with this step.
+what is missing is a statement: a route with no method here is a route the gate does not serve.
 
 ## Install
 
@@ -44,7 +43,6 @@ history and out of the process list. TODO(step 10): the command line arrives wit
 The same thing from a program:
 
 ```python
-# TODO(step 10): `api` arrives with this step.
 from pykeepassgate import api
 
 credentials = api.pair(
@@ -60,7 +58,6 @@ print(credentials.profiles)  # what the operator approved, not what was asked fo
 ## Use
 
 ```python
-# TODO(step 10): `GateClient` arrives with this step.
 from pykeepassgate import GateClient
 
 client = GateClient.open()

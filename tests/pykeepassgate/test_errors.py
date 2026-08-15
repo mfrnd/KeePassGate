@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import inspect
 
-from pykeepassgate import errors
+import pykeepassgate
+from pykeepassgate import api, errors
 
 
 def test_everything_this_library_raises_has_one_root() -> None:
@@ -19,6 +20,36 @@ def test_everything_this_library_raises_has_one_root() -> None:
     assert len(raised) > 1
     for kind in raised:
         assert issubclass(kind, errors.GateError)
+
+
+def test_everything_this_library_raises_is_exported_from_api() -> None:
+    # `api` is the one name a program imports, and catching a failure should not mean reaching into
+    # `errors` for it. Every class, rather than a list written here, so the next one added is
+    # checked without anybody remembering to add it.
+    raised = [
+        name
+        for name, value in inspect.getmembers(errors, inspect.isclass)
+        if issubclass(value, Exception) and value.__module__ == errors.__name__
+    ]
+
+    assert "StorageError" in raised
+    for name in raised:
+        assert name in api.__all__
+        assert getattr(api, name) is getattr(errors, name)
+
+
+def test_everything_this_library_raises_is_exported_from_the_package_as_well() -> None:
+    # The package root hands out `pair` and `GateClient`, so a program importing nothing else
+    # has to be able to catch whatever those two raise without going looking for it.
+    raised = [
+        name
+        for name, value in inspect.getmembers(errors, inspect.isclass)
+        if issubclass(value, Exception) and value.__module__ == errors.__name__
+    ]
+
+    for name in raised:
+        assert name in pykeepassgate.__all__
+        assert getattr(pykeepassgate, name) is getattr(errors, name)
 
 
 def test_the_pairing_failures_are_one_family() -> None:

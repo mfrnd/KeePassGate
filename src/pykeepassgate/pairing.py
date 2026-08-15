@@ -201,7 +201,7 @@ def _refuse(reply: transport.Response) -> None:
         # The invitation survives, because the gate takes the challenge before it reaches
         # the check that answers this and burns the invitation nowhere on this path. The
         # challenge does not survive, so retrying this half alone earns `409 no exchange`.
-        # What can be tried again is the whole pairing.
+        # What can be tried again is the whole pairing, which is what `api.pair` is.
         raise GateBusy(
             "the gate cannot write a record right now, most likely because a group "
             "dialog is open. The invitation is still good, but this exchange is not: "
