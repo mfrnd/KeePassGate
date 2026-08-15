@@ -689,7 +689,13 @@ Each step is refusable, and each ends with something that runs.
    already checked with the anchor pin and an explicit extended key usage check, which leaves step 7
    the admission record and the validity window rather than the whole of validation.
 7. **Validation**: anchor pin, EKU check, admission record lookup, and a test that a foreign
-   authority's certificate is refused.
+   authority's certificate is refused. **Done.** The pin and the usage check landed with step 6,
+   because a transport with no identity is not testable; what this step added is the half that
+   grants. A certificate that chains, carries `clientAuth` and is inside its dates now opens nothing
+   without a record in the database, the profiles come from that record rather than from the
+   certificate's claims, and deleting a record refuses the same certificate on the very next
+   connection. Dates are checked here rather than by the chain build, so the allowance for a wrong
+   clock is exactly five minutes and only on `notBefore`.
 8. **Pairing**: invitation in memory, the proof exchange, the approval dialog, issuance with the
    record written and saved before the certificate is handed over.
 9. **Lock and unlock**: the responder certificate, dropping the privileged key, closing connections

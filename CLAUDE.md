@@ -8,11 +8,12 @@ Guidance for anyone, human or AI assistant, working in this repository.
 mutual TLS, so that automation and AI agents can each be given a narrow, revocable, audited slice of
 a database.
 
-**Status: the design is settled, steps 1 to 6 of the build order are done, and step 7, validation,
-is under way.** The plugin loads into KeePass, puts a KPG tab on the database settings dialog, that
-tab creates, recreates and deletes the database's own certificate authority, and the gate listens on
-loopback and answers one route over mutual TLS 1.3. The anchor pin and the extended key usage check
-were already in; what step 7 adds is the admission record and the validity window.
+**Status: the design is settled and steps 1 to 7 of the build order are done.** The plugin loads
+into KeePass, the KPG tab creates, recreates and deletes the database's own certificate authority,
+the gate listens on loopback and answers one route over mutual TLS 1.3, and a client is served only
+if the database holds an admission record for its certificate. Step 8, pairing, is next: it is what
+writes those records, and it is the one path that has to write while a dialog may be holding a
+snapshot.
 
 ## Read these before proposing anything
 
@@ -310,7 +311,7 @@ here can hang or crash the password manager.
 
 ## Where to start
 
-[`DESIGN.md`](DESIGN.md) §132 ends with a multi-step build order. **Steps 1 to 6 are done.** The skeleton
+[`DESIGN.md`](DESIGN.md) §132 ends with a multi-step build order. **Steps 1 to 7 are done.** The skeleton
 loads and shows a KPG tab, that tab creates, recreates and deletes the authority, and the gate
 serves one route over mutual TLS to a client the database holds an admission record for.
 
@@ -321,10 +322,11 @@ step 8 has to build on: the settings dialog the KPG tab lives on carries **no** 
 buttons are safe from their own dialog, and anything written while a **group** dialog is open is
 destroyed by its OK.
 
-**Step 7 is validation**, and it was smaller than the build order implied. The anchor pin and the
-extended key usage check were already in `ClientCredentials`, because a transport with no identity
-is not testable, and the admission record lookup, the profiles that come from it, and the validity
-window with its five minutes of skew on `notBefore` only have joined them.
+**Step 8 is pairing**, and everything it writes already exists: `AdmissionRecord` is the thing it
+creates, `AuthorityIssuer.IssueClient` is what it hands over, and `AdmissionStore` is where it goes.
+What pairing adds is the invitation in memory, the proof exchange, the operator's approval, and the
+ordering that matters: the record is written and saved **before** the certificate is handed over,
+because a certificate whose record never landed is one nobody can revoke.
 
 **Two things about records that cost time to learn.** They are read from the live database on every
 connection and never cached, which is what makes revocation immediate. And a record written into the
