@@ -399,9 +399,9 @@ can always be taken away by editing the database rather than by reissuing a cert
 An earlier draft of this list also named `AclProfiles`, `AclVerbView` and `KdbxFormat`. Two of those
 turned out not to be types. The format is `AclDocument.Read` and `AclDocument.Write`, which is what
 `KdbxFormat` would have held and nothing else, and a set of profiles is an `IEnumerable<string>`
-argument rather than a class. `AclVerbView` was real work that had not happened when this was written, and has not
-happened yet. TODO(step 13): the editor does that job, because how a person is shown a verb
-is a different question from how one is decided.
+argument rather than a class. `AclVerbView` was real work that had not happened when this was
+written, and has only begun: `VerbMask` does part of that job and the editor will do the rest,
+because how a person is shown a verb is a different question from how one is decided.
 
 Grants live in group and entry `CustomData` under **`KPG`**, a single key holding a JSON document,
 which is this plugin's own namespace. Sharing a key with another plugin would couple two schemas
