@@ -6,9 +6,12 @@ full, as the component publishes it. Nothing packages a release yet, so this fil
 kept, and whatever packages one has to carry it beside the assemblies. This obligation is
 independent of KeePassGate's own license and would exist whatever that license were.
 
-**The transport is not among them.** There is no third-party HTTP or TLS dependency: the accept
-loop, the ClientHello peek, the `SslStream` and the request parser are all this project's own code,
-on the platform's own cryptography.
+**The HTTP half of the transport is not among them.** The accept loop, the ClientHello peek and the
+request parser are this project's own code. **The TLS half is to be Bouncy Castle**, and the reason
+is measured rather than assumed: the platform's own TLS refuses to serve with a key that has not
+been written to the user's profile, and `CA.md` §202 says an authority lives in the database and
+nowhere else. See `ManagedTlsProbe.cs` on `spikes/tls-and-certificates`. TODO(step 6): the TLS
+arrives with this step, and Bouncy Castle's notice below with the reference that brings it in.
 
 **KeePass itself is not redistributed.** The plugin is built against a local copy of `KeePass.exe`
 and ships neither it nor KeePassLib. What a user runs is assembled on their machine, by KeePass's

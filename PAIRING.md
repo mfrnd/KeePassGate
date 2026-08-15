@@ -41,16 +41,28 @@ flowchart TD
     E -- "no match" --> X
     E -- "SniKey" --> F["Paired path. Requires BOTH a valid<br/>client certificate AND a matching<br/>admission record, which is where<br/>the profiles are read from."]
     E -- "pairing token" --> G["Pairing path.<br/>Only /pair/* is reachable."]
-    F --> H["Select THAT database's host certificate.<br/>TLS 1.3, ClientCertificateRequired = true"]
+    F --> H["Select THAT database's host certificate.<br/>TLS 1.3, and a client certificate<br/>is always asked for."]
     G --> H
 ```
 
 Expired tokens leave the resolution set first, so expiry is indistinguishable from never having
 existed.
 
-**Measured:** `ClientCertificateRequired = false` makes the server skip the certificate request
-entirely under TLS 1.3, so clients never offer one. The setting is always `true`, and it is the
-callback and the route table, not the flag, that enforce anything.
+**Asked for on every connection, and asked for here rather than by a setting.**
+`GateTlsServer.GetCertificateRequest` sends a certificate request whatever the connection turns out
+to be, so a client with something to show offers it and one with nothing completes the handshake
+anyway and is served as a stranger, which is what the pairing path needs. Nothing about the
+handshake decides what a client may do: that is `ClientCredentials` on the anchor pin and the
+record, and the route table.
+
+**Measured on the stack this no longer uses**, and one of the reasons it no longer uses it.
+SChannel's `ClientCertificateRequired = false` makes the server skip the certificate request
+entirely under TLS 1.3, so a client holding a good certificate never offers one, while `= true`
+requires nothing, because a certificate-less client completes the handshake regardless. The plain
+reading of that flag is the opposite of what it does in both directions, and under TLS 1.2 it
+behaves as its name suggests, so testing there and shipping on 1.3 was a silent authentication
+bypass. It is one reason the TLS became managed code, which is what took the flag out of this
+picture altogether.
 
 ---
 

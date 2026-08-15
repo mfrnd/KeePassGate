@@ -29,7 +29,7 @@ what a tunnel provides.
   |  Gate                 ClientHello peeked, SNI resolved to a    |
   |                       database, BEFORE any TLS work            |
   +---------------------------------------------------------------+
-  |  Transport            our accept loop, our SslStream, TLS 1.3  |
+  |  Transport            our accept loop, Bouncy Castle TLS 1.3   |
   |                       request parsing, bounded                 |
   +---------------------------------------------------------------+
         |  IGateContext  <-- the seam: everything above is replaceable
@@ -134,14 +134,15 @@ says what that leaves open, and why it is conceded.
 | Accept | `TcpListener` | |
 | Peek the ClientHello, extract `server_name` | ~90 lines, bounds checked, total | `SniProbe` |
 | Resolve the name to an open database | fixed time, no match drops pre-TLS | `HmacSniProbe` |
-| `AuthenticateAsServer` through a prepending stream | replays the buffered hello | `SniProbe` |
+| Terminate TLS 1.3 through a prepending stream | `Org.BouncyCastle.Tls`, replaying the buffered hello | `ManagedTlsProbe` |
 | Parse the request line and headers | see below | |
 | Read the body | `Content-Length`, capped at 1 MB | |
 | Write the response | status line, headers, body, close | |
 
-Owning the `SslStream` has a consequence worth naming: **the client-certificate reflection bridge
-disappears**. `RemoteCertificate` is simply there. The hack that the old transport needed existed
-only because something else owned the stream.
+Owning the stream has a consequence worth naming: **the client-certificate reflection bridge
+disappears**. The hack the old transport needed existed only because something else owned the
+stream, and it died the moment we took it, one step before the TLS itself stopped being the
+platform's.
 
 ### Why no HTTP dependency is taken §107
 
@@ -498,11 +499,11 @@ either.
 
 ### C5. "Terminating TLS ourselves is riskier than letting a library do it" §127
 
-The opposite, here. We call `SslStream.AuthenticateAsServer` directly with an explicit
-`SslProtocols.Tls13`, which is the same call a library would make with one less layer between the
-setting and the syscall. What we add is the ClientHello peek in front of it, and that is
-unavoidable: no library on .NET Framework can select a certificate by SNI, because the platform
-exposes no hook for it.
+The opposite, here. The server offers TLS 1.3 and nothing else, decided in `GateTlsServer` rather
+than by the operating system's version, which is the same offer a library would make with one less
+layer between the setting and the wire. What we add is the ClientHello peek in front of it, and
+that is unavoidable: no library on .NET Framework can select a certificate by SNI, because the
+platform exposes no hook for it.
 
 The genuine new risk is the peek itself, which parses unauthenticated bytes. It is bounded, total,
 and returns no name rather than throwing; `SniProbe.cs` is the evidence it works and
