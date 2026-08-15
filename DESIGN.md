@@ -728,7 +728,8 @@ Each step is refusable, and each ends with something that runs.
    marker is a `kpg://host/responder` URI rather than a private extension because a custom OID needs
    an arc nobody has allocated us.
 10. **The reference client**: `PyKeePassGate`, pairing and every route the gate serves, with the
-   protocol pieces pinned against the plugin's own output. It arrives here rather than at the end
+   protocol pieces pinned against the plugin's own output. **Done.** It arrives here rather than at
+   the end
    because a second implementation is what turns a specification into a contract: where the two
    disagree one of them is wrong, and a disagreement should fail a test rather than a pairing.
 11. **Spec router**: the document, `operationId` binding, schema validation, startup assertion.

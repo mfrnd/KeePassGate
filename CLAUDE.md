@@ -8,14 +8,14 @@ Guidance for anyone, human or AI assistant, working in this repository.
 mutual TLS, so that automation and AI agents can each be given a narrow, revocable, audited slice of
 a database.
 
-**Status: the design is settled and steps 1 to 9 of the build order are done.** The plugin loads
+**Status: the design is settled and steps 1 to 10 of the build order are done.** The plugin loads
 into KeePass, the KPG tab creates, recreates and deletes the database's own certificate authority,
 the gate listens on loopback and answers over mutual TLS 1.3, a client is served only if
 the database holds an admission record for its certificate, and **a stranger can now become one**:
 the tab hands out an invitation, both sides prove they hold it, the operator approves what it may
 reach, and the record is written and saved before the certificate is handed over, and **a locked
-KeePass now answers `503 locked`** with a second host certificate held only in memory. Step 10, the
-reference client, is next.
+KeePass now answers `503 locked`** with a second host certificate held only in memory. Step 11, the
+specification router, is next.
 
 ## Read these before proposing anything
 
@@ -412,7 +412,7 @@ here can hang or crash the password manager.
 
 ## Where to start
 
-[`DESIGN.md`](DESIGN.md) §132 ends with a multi-step build order. **Steps 1 to 9 are done.** The skeleton
+[`DESIGN.md`](DESIGN.md) §132 ends with a multi-step build order. **Steps 1 to 10 are done.** The skeleton
 loads and shows a KPG tab, that tab creates, recreates and deletes the authority, and the gate
 serves one route over mutual TLS to a client the database holds an admission record for.
 
