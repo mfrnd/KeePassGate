@@ -143,8 +143,8 @@ page as a client again.
 that took them separately could take the certificate from one replica and the private key from
 another, and the host certificate would no longer chain to the authority beside it: the store reads
 that as damaged, the gate serves nothing, and the only remedy revokes every client. Inside one key
-there is nothing to take apart, so whichever replica wins contributes all three. Its shape is one
-flat object of strings, the shape request bodies take as well, so one reader is to read both.
+there is nothing to take apart, so whichever replica wins contributes all three. `AuthorityDocument`
+is the shape, one flat object of strings, which is what `JsonBody` already reads.
 
 **Pairing tokens are not here.** They live in plugin memory and expire on TTL or on KeePass exiting,
 whichever comes first. [`PAIRING.md`](PAIRING.md) says why that is more than a simplification.
@@ -429,7 +429,7 @@ Storing the certificate rather than only its digest is what makes any of this po
   log's.
 - **A compromised second channel.** Whoever holds a pairing token may ask to pair. The operator's
   approval is what stands there.
-- **Two copies of one database open at once.** They share an authority and an SNI key and are
+- **Two copies of one database open at once.** They share an authority and a `SniKey` and are
   genuinely indistinguishable, so the plugin refuses to serve and logs how many answered.
 
 ---

@@ -280,7 +280,7 @@ client in the database's own `CustomData` precisely so a merge is per client rat
 last-writer-wins, and a revocation is written empty rather than removed so that the merge carries it
 too; see CA.md §204. The safe arrangement is still one writer and any number of readers.
 
-**Two copies of one database open at once** share an authority and an SNI key and are genuinely
+**Two copies of one database open at once** share an authority and a `SniKey` and are genuinely
 indistinguishable. The plugin refuses to serve while that is true, rather than guessing, and logs
 how many copies answered. It does not name their paths.
 

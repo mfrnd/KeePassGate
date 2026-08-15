@@ -543,9 +543,10 @@ function Invoke-Live {
 function Invoke-Deploy {
     $keePass = Resolve-KeePass
 
-    # Asked before anything is compiled, because it is the cheapest question here and nothing below
-    # can change the answer. Asked last, a refusal arrived after a full build that was then thrown
-    # away, on the one path whose point is a short edit-and-run loop.
+    # Asked before anything is compiled or deleted, because it is the cheapest question here and
+    # nothing below can change the answer. Asked last, a refusal arrived after the output directory
+    # had already been removed and the whole thing rebuilt, on the one path whose point is a short
+    # edit-and-run loop.
     #
     # **Scoped to the KeePass being deployed into.** `-Name 'KeePass'` matches every process of that
     # name on the machine: the one somebody keeps their real database in, and a throwaway copy an
@@ -567,6 +568,20 @@ function Invoke-Deploy {
         throw "KeePass is running from $keePass. Close it first, or the plugin file cannot be replaced."
     }
 
+    # Emptied before the build, not after it. `dotnet build` leaves an assembly behind when a
+    # package reference is dropped or downgraded, and what is copied below is a directory rather
+    # than a list, so an assembly nothing references any more would be deployed forever.
+    $output = Split-Path $pluginDll
+    if (Test-Path $output) {
+        Remove-Item $output -Recurse -Force
+
+        # The memo goes with it. `Invoke-Build` answers once per project, and a deletion it does not
+        # know about would have it say "already built" about a directory this line just removed.
+        # The product check below then fails naming the assembly rather than the deletion. The two
+        # mechanisms sit a hundred lines apart and neither comment would mention the other.
+        $script:compiled.Remove($pluginProject)
+    }
+
     # The plugin's own project rather than the solution. What is copied below comes out of one
     # output directory, and building the solution here compiles both test assemblies that no deploy
     # ever reads.
@@ -577,16 +592,70 @@ function Invoke-Deploy {
         throw "$pluginDll reports the product name '$product'. KeePass silently ignores any plugin that does not say 'KeePass Plugin'."
     }
 
-    $target = Join-Path $keePass 'plugins'
+    # **A directory of its own under `plugins`, never `plugins` itself.** KeePass scans `plugins`
+    # recursively, and loads a plugin with `Assembly.LoadFrom`, which probes the plugin's own
+    # directory for what it references, so what sits beside the plugin is what it binds to. In
+    # `plugins` itself that is shared with every plugin installed there: one `Newtonsoft.Json.dll`
+    # for all of them, where a strong-named reference binds only to the version it was built
+    # against, since KeePass's own configuration redirects nothing but KeePass. Whichever plugin was
+    # there first then breaks, and a copy made here with `-Force` would be what broke it. Measured
+    # with KeePass 2.61.1's own file scan and a walk of every method: a foreign 10.0.2 in `plugins`
+    # fails 21 of this plugin's methods installed flat and none installed here.
+    $plugins = Join-Path $keePass 'plugins'
+    $target = Join-Path $plugins 'KeePassGate'
     if (-not (Test-Path $target)) {
-        New-Item -ItemType Directory -Path $target | Out-Null
+        New-Item -ItemType Directory -Path $target -Force | Out-Null
     }
 
-    Copy-Item $pluginDll $target -Force
+    # What the last deploy wrote, taken away before this one writes. The copy below is a directory
+    # rather than a list, so a dependency that stops being referenced would otherwise sit here for
+    # ever. `Assembly.LoadFrom` probes exactly this directory, so the developer would be debugging
+    # against an assembly no build produces. `Invoke-Clean` never reaches here either.
+    #
+    # **Only what this script recorded writing**, never the directory's contents, although the
+    # directory is named after this plugin. `-KeePassDir` can name a real installation, and deleting
+    # something in it this script did not put there is a far worse failure than the stale assembly
+    # this is here to prevent.
+    $manifest = Join-Path $target 'KeePassGate.deployed.txt'
+    if (Test-Path $manifest) {
+        foreach ($name in @(Get-Content $manifest)) {
+            if (-not $name) {
+                continue
+            }
+
+            $stale = Join-Path $target $name
+            if (Test-Path $stale) {
+                Remove-Item $stale -Force
+            }
+        }
+    }
+
+    # Everything the plugin needs, not only the plugin. KeePass loads a plugin with
+    # Assembly.LoadFrom, which probes the plugin's own directory for what it references, so a
+    # dependency belongs beside it rather than beside KeePass.exe, and in a directory no other
+    # plugin shares.
+    $deployed = @()
+    Get-ChildItem $output -Filter '*.dll' | ForEach-Object {
+        Copy-Item $_.FullName $target -Force -ErrorAction Stop
+        $deployed += $_.Name
+        Write-Host "  $($_.Name)"
+    }
+
     $symbols = [System.IO.Path]::ChangeExtension($pluginDll, '.pdb')
     if (Test-Path $symbols) {
         Copy-Item $symbols $target -Force
+        $deployed += Split-Path $symbols -Leaf
     }
+
+    # And the notices of the assemblies copied above, which each of their licenses asks to go with
+    # every copy. From the repository, since the build makes no such file, and recorded like
+    # everything else here, so the next deploy takes it away before writing it again.
+    $notices = Join-Path $root 'THIRD-PARTY-NOTICES.md'
+    Copy-Item $notices $target -Force -ErrorAction Stop
+    $deployed += Split-Path $notices -Leaf
+    Write-Host "  $(Split-Path $notices -Leaf)"
+
+    Set-Content -Path $manifest -Value $deployed
 
     Write-Host "Deployed to $target" -ForegroundColor Green
 }

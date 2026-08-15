@@ -14,9 +14,6 @@ on the platform's own cryptography.
 and ships neither it nor KeePassLib. What a user runs is assembled on their machine, by KeePass's
 own loader, from two separately distributed halves.
 
-**Nothing third-party is redistributed yet.** Each component's notice is added here by the commit
-that first makes the plugin depend on it, so what follows is only what is not taken, and why.
-
 ## websocket-sharp, no longer taken
 
 Kept here as a note rather than a notice, because a reader who saw earlier drafts will look for it.
@@ -27,6 +24,29 @@ the `SslStream`, which left it parsing only a request line and a header block.
 Nothing of it is redistributed, so no notice is owed. If it is ever reinstated, it is MIT, parts of
 that tree derive from Mono and carry headers naming **Novell, Inc.** alongside sta.blockhead, and a
 submodule rather than an assembled copy is what keeps those headers intact.
+
+## Newtonsoft.Json
+
+> The MIT License (MIT)
+>
+> Copyright (c) 2007 James Newton-King
+>
+> Permission is hereby granted, free of charge, to any person obtaining a copy of
+> this software and associated documentation files (the "Software"), to deal in
+> the Software without restriction, including without limitation the rights to
+> use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+> the Software, and to permit persons to whom the Software is furnished to do so,
+> subject to the following conditions:
+>
+> The above copyright notice and this permission notice shall be included in all
+> copies or substantial portions of the Software.
+>
+> THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+> IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+> FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+> COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+> IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+> CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 ## The proofs are not here, and neither are their licenses
 

@@ -78,6 +78,10 @@ namespace KeePassGate
                 _log = new TraceGateLog();
                 _incidents = new GateIncidents(_log);
                 _log.Info("initializing version " + GateVersion.Current);
+                // Before anything reaches for one, so that a dependency missing from beside the
+                // plugin, or replaced by another version, refuses the start here, named in the
+                // log, rather than failing wherever the plugin first uses it.
+                Dependencies.Load();
 
                 _windows = new GlobalWindowManagerWindows();
                 _host = new GateHost(

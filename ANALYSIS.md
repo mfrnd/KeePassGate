@@ -886,7 +886,7 @@ Nothing here justifies committing to the build yet. Three spikes would settle it
    authenticated stream is the shape the transport actually took, and the reason no candidate was
    kept is license rather than feasibility.
 2. ~~**Certificate issuance as a KeePass dialog**, producing a client certificate and adding its
-   fingerprint to a local registry.~~ TODO(step 5): replaced by build order step 5, which creates the authority
+   fingerprint to a local registry.~~ Replaced by build order step 5, which creates the authority
    inside the database and deliberately exercises the `GroupForm` snapshot hazard, because that is
    the thing most likely to invalidate the storage decision.
 3. **Port `Acl/` unchanged** and resolve one call against it through the new transport. This tests

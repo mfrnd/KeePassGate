@@ -266,7 +266,7 @@ locked KeePass answer `503 locked` instead of failing at the transport.
 | Host key, locked responder | yes | **kept** |
 | The gate key | yes | **kept** |
 
-**The SNI key has to stay resident too, or none of this is ever reached.** The gate resolves the
+**The `SniKey` has to stay resident too, or none of this is ever reached.** The gate resolves the
 SNI before any TLS work, using a key that lives in the database. Drop it at lock and every
 connection is refused at the gate with the responder certificate sitting unused. Of the three
 secrets it is the right one to keep: it authenticates nothing, and every paired client already holds
