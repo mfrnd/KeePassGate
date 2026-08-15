@@ -912,7 +912,14 @@ Each step is refusable, and each ends with something that runs.
    is decided: every `GET` declares one, and both reach the same handler. **Done.** Bodies are
    checked against the declared schema by a checker over the subset this wire carries, which is
    what §118 settles and why no schema library is taken.
-12. **The ACL**: the model in section 7, resolving against a real database.
+12. **The ACL**: the model in §114, resolving against a real database. **Done.** The rules are
+    decided against `IAclNode`, a seam of a document and a parent, so what a grant means is settled
+    without a password manager in the room and `KdbxNodes` is the only part that needs one. What the
+    host tier adds is the two things only KeePass can answer: an entry carries custom data at all,
+    which is a KDBX4 feature, and the parent chain really does reach the root from an entry. The
+    verb an operation needs is now read out of the routing table as an `AclVerb` rather than a
+    string, and an operation that declares none stops the plugin loading. Nothing is enforced yet:
+    this step is what a grant means, not where it is asked.
 13. **The editor**: the grant UI, the largest single piece and the last thing needed.
 14. **Intersection and audit**: the two answers combined, every decision recorded.
 15. **The database API**: the routes that read and change groups, entries, fields and attachments.
