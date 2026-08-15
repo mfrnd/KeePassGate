@@ -639,8 +639,9 @@ So the rules here:
 - **Persistence marshals with `BeginInvoke` and then waits on the handle**, never `Control.Invoke`,
   which has no timeout. One writer owns every write, so a request thread does wait on the UI thread.
   What that buys is a wait that ends: a marshal that does not complete fails the request rather than
-  deadlocking it. `AdmissionWriter` is that writer while pairing is the only thing writing; the
-  database API brings `DatabaseWriter` and the same rule.
+  deadlocking it. `DatabaseWriter` is that writer, and there is one of it rather than one per
+  subject: it was pairing's alone while pairing was the only thing writing, and the database API
+  took the same writer and the same rule rather than a second one.
 
   **The bound has two halves, and only one of them is a timeout.** Work still sitting in the queue
   when the timeout expires is withdrawn, so the caller's "no" is true of the database as well: the

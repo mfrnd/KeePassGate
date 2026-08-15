@@ -44,7 +44,7 @@ DEFAULT_TIMEOUT = 120.0
 
 #: What a pairing gets instead, which is the one exchange that waits on a person. It has to outlast
 #: the plugin's own sum of `PairingOptions.ApprovalTimeout` two minutes, plus
-#: `PairingApprovalPrompt.Grace` fifteen seconds, plus `AdmissionWriter.LockTimeout` twenty and
+#: `PairingApprovalPrompt.Grace` fifteen seconds, plus `DatabaseWriter.LockTimeout` twenty and
 #: `WriteTimeout` thirty. That sum is 185 seconds, and is why `GateOptions.PairingBudget` is five
 #: minutes. Hanging up early cancels nothing: the invitation is spent and the record is written and
 #: saved regardless, and only the answer is lost, leaving a record for a certificate nobody holds.

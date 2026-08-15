@@ -27,7 +27,7 @@ namespace KeePassGate.Bridge
     public sealed class OpenDatabaseTargets : IGateTargets, ILockableTargets, IDisposable
     {
         private readonly Func<IEnumerable<PwDatabase>> _openDatabases;
-        private readonly AdmissionWriter _writer;
+        private readonly DatabaseWriter _writer;
         private readonly IGateLog _log;
         private readonly object _cacheLock = new object();
         private readonly Dictionary<PwDatabase, CachedTarget> _cache =
@@ -80,7 +80,7 @@ namespace KeePassGate.Bridge
         /// interface amounts to.
         /// </summary>
         public OpenDatabaseTargets(
-            Func<IEnumerable<PwDatabase>> openDatabases, AdmissionWriter writer, IGateLog log)
+            Func<IEnumerable<PwDatabase>> openDatabases, DatabaseWriter writer, IGateLog log)
         {
             if (openDatabases == null)
             {
@@ -800,7 +800,7 @@ namespace KeePassGate.Bridge
             private readonly HostKeyMaterial _host;
             private readonly string _databaseId;
             private PwDatabase _database;
-            private readonly AdmissionWriter _writer;
+            private readonly DatabaseWriter _writer;
             private readonly IGateLog _log;
 
             // The cache holds the first of these; `Current` takes one more per caller.
@@ -810,7 +810,7 @@ namespace KeePassGate.Bridge
                 PwDatabase database,
                 AuthorityReading reading,
                 HostKeyMaterial host,
-                AdmissionWriter writer,
+                DatabaseWriter writer,
                 IGateLog log)
             {
                 _database = database;
@@ -906,7 +906,7 @@ namespace KeePassGate.Bridge
                     return AdmissionWrite.Failed("this database is served without a way to write to it");
                 }
 
-                return _writer.Write(_database, record);
+                return _writer.WriteAdmission(_database, record);
             }
 
             /// <summary>Never: a locked database is served by <see cref="LockedTarget"/> instead.</summary>

@@ -8,9 +8,11 @@ namespace KeePassGate.Ui
     /// Running something on the thread that owns the windows, and giving up if it does not happen.
     /// </summary>
     /// <remarks>
-    /// Pairing is the only path in this plugin that marshals synchronously, and `DESIGN.md` §119
-    ///  says why the exception is confined to it: a certificate must not be handed over until the
-    /// record behind it is on disk, and that needs the answer rather than a promise.
+    /// Every write this plugin makes marshals synchronously, through this, and `DESIGN.md` §119
+    /// says why: a change and the save that keeps it are one call on the thread that owns the
+    /// windows, and the caller needs the answer rather than a promise. For pairing that answer is
+    /// what decides whether a certificate is handed over, which it must not be until the record
+    /// behind it is on disk.
     ///
     /// **The wait is bounded, and that is what keeps the deadlock case closed.** A connection thread
     /// that cannot get the user interface's attention fails its pairing rather than holding a socket

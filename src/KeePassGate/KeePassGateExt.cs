@@ -404,7 +404,7 @@ namespace KeePassGate
             // saves whichever document is active, and pairing names the database it wrote to.
             _targets = new OpenDatabaseTargets(
                 delegate { return mainWindow.DocumentManager.GetOpenDatabases(); },
-                new AdmissionWriter(
+                new DatabaseWriter(
                     ui,
                     database => mainWindow.SaveDatabase(database, null),
                     _admissions.Raise,

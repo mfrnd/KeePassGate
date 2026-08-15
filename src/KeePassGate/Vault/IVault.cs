@@ -86,8 +86,7 @@ namespace KeePassGate.Vault
         /// Not the dialog question. A dialog open on a node holds a copy of what it is showing and
         /// writes that copy back when it is accepted, so a change made underneath one is a change
         /// the operator's OK destroys; `DatabaseWriter.Blocking` is what asks that, per node, on
-        /// the thread that can see the dialogs. TODO(step 15): `DatabaseWriter` arrives with this
-        /// step.
+        /// the thread that can see the dialogs.
         /// </remarks>
         string WriteBlocked { get; }
 

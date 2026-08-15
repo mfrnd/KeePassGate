@@ -72,10 +72,11 @@ namespace KeePassGate.Gate
         /// Writes an admission record and makes it durable, on whichever thread owns the database.
         /// </summary>
         /// <remarks>
-        /// The one write the transport ever asks for, and the only place in the plugin that
-        /// marshals synchronously. It is checked again inside the write, because the answer to
-        /// <see cref="AdmissionBlocked"/> can change between asking and writing, and a pairing that
-        /// cannot land its record has to fail rather than hand over a certificate nobody can see.
+        /// The one write the transport ever asks for, and it marshals synchronously like every
+        /// write this plugin makes, so what it answers is whether the record is on disk. It is
+        /// checked again inside the write, because the answer to <see cref="AdmissionBlocked"/>
+        /// can change between asking and writing, and a pairing that cannot land its record has
+        /// to fail rather than hand over a certificate nobody can see.
         /// </remarks>
         AdmissionWrite Admit(AdmissionRecord record);
 

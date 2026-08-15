@@ -170,6 +170,18 @@ namespace KeePassGate.Vault
         /// <summary>The change asks for something the database already says otherwise about.</summary>
         public bool IsConflict { get; private set; }
 
+        /// <summary>
+        /// The change was made and did not reach the disk.
+        /// </summary>
+        /// <remarks>
+        /// Its own state because it is none of the others. It is not a refusal, not a conflict and
+        /// not an absence, and answering it as any of those tells a caller something untrue about
+        /// its own request: `Failed` and `Missing` are the same triple, so a save that never
+        /// reached the disk came back as "no such route" and a client retrying that made a second
+        /// entry beside the first.
+        /// </remarks>
+        public bool IsUnsaved { get; private set; }
+
         /// <summary>What was created, when something was.</summary>
         public string Uuid { get; private set; }
 
@@ -201,6 +213,12 @@ namespace KeePassGate.Vault
         public static VaultWrite Failed(string reason)
         {
             return new VaultWrite(false, false, false, null, reason);
+        }
+
+        /// <summary>Made, and not on the disk. The database is holding an unsaved change.</summary>
+        public static VaultWrite Unsaved(string reason)
+        {
+            return new VaultWrite(false, false, false, null, reason) { IsUnsaved = true };
         }
 
         /// <summary>Nothing of that name is there, which every route answers the same way.</summary>

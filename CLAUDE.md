@@ -344,7 +344,7 @@ those are two different failures.
 the group dialog. Its write-back is conditional on the key count differing rather than on anything
 the operator did, so a pairing landing while it is open is destroyed with the Plugin Data tab never
 opened. And its one button is both the accept and the cancel button, with `DialogResult.Cancel`, so
-there is no way to decline it. `GroupDialogs` watches for it and `AdmissionWriter` refuses while it
+there is no way to decline it. `GroupDialogs` watches for it and `DatabaseWriter` refuses while it
 is open.
 
 Equally load bearing: **KeePass's save reports nothing to its caller.** `MainForm.SaveDatabase` is
@@ -551,7 +551,7 @@ arrived on an invitation, and a guard runs **before** the body is checked so tha
 reported about a body on a route the caller may not reach. And `PairingHandler` is two operations
 now rather than one dispatcher: which path is which is the document's answer.
 
-What steps 8 and 9 leave it. `AdmissionWriter` is the single writer, and the only place a request
+What steps 8 and 9 leave it. `DatabaseWriter` is the single writer, and the only place a request
 writes to a database. `GroupDialogs` watches for the dialog that would take a write back, tracking
 specific `GroupForm` instances rather than counting windows, because the question is per node and a
 count cannot answer it, and because a count would also depend on what this plugin's own dialogs

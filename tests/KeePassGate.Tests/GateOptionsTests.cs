@@ -24,8 +24,8 @@ namespace KeePassGate.Tests
             // writer, and the marshaled write and save themselves.
             var waits = pairing.ApprovalTimeout
                         + PairingApprovalPrompt.Grace
-                        + AdmissionWriter.LockTimeout
-                        + AdmissionWriter.WriteTimeout;
+                        + DatabaseWriter.LockTimeout
+                        + DatabaseWriter.WriteTimeout;
 
             Assert.That(options.PairingBudget, Is.GreaterThan(waits),
                 "the connection budget closes the socket while the operator is still reading, and " +

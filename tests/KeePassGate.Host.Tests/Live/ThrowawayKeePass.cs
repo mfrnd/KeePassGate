@@ -576,7 +576,7 @@ namespace KeePassGate.Host.Tests.Live
 
         /// <summary>
         /// Writes an admission record into the file, which is what pairing does from inside the
-        /// plugin, through `AdmissionWriter.Write`.
+        /// plugin, through `DatabaseWriter.WriteAdmission`.
         /// </summary>
         /// <remarks>
         /// **Only before KeePass starts.** A running KeePass holds the database in memory and

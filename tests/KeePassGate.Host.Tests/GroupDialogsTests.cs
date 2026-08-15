@@ -1,4 +1,5 @@
 using System;
+using System.Reflection;
 using System.Threading;
 using System.Windows.Forms;
 using KeePass.Forms;
@@ -173,9 +174,95 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void An_entry_dialog_on_an_entry_blocks_writing_to_it()
+        {
+            // The entry half of what the group tests above pin. It had no test at all, which is
+            // how the bulk case below went unnoticed.
+            var entry = EntryUnderRoot();
+
+            using (var form = EntryDialogFor(entry))
+            {
+                GlobalWindowManager.AddWindow(form);
+
+                try
+                {
+                    Assert.That(_dialogs.Blocking(entry), Is.Not.Null);
+                    Assert.That(_dialogs.Blocking(entry), Does.Contain("entry dialog is open"));
+                }
+                finally
+                {
+                    GlobalWindowManager.RemoveWindow(form);
+                }
+            }
+        }
+
+        [Test]
+        public void A_bulk_entry_dialog_blocks_every_entry_it_might_be_editing()
+        {
+            // KeePass's `Edit Entries` over a selection. The entry the dialog holds is a synthetic
+            // one it merged, so it is reference-equal to neither of these, and matching on it
+            // answered "nothing is open" for both. OK meanwhile applies the merged copy to the
+            // whole selection and deletes any key the copy no longer carries. A write landing
+            // underneath was therefore destroyed across every selected entry at once.
+            var first = EntryUnderRoot();
+            var second = EntryUnderRoot();
+
+            using (var form = BulkEntryDialogFor(first, second))
+            {
+                GlobalWindowManager.AddWindow(form);
+
+                try
+                {
+                    Assert.That(_dialogs.Blocking(first), Is.Not.Null,
+                        "the first selected entry is one this dialog will write over");
+                    Assert.That(_dialogs.Blocking(second), Is.Not.Null,
+                        "and so is the second");
+                }
+                finally
+                {
+                    GlobalWindowManager.RemoveWindow(form);
+                }
+            }
+        }
+
+        [Test]
+        public void A_bulk_entry_dialog_blocks_nothing_in_another_database()
+        {
+            // The selection behind `Edit Entries` is always one database's, and the gate serves
+            // every database that is open. Refusing every entry everywhere turned one operator's
+            // bulk edit into a `503 busy` for clients of databases nobody was looking at.
+            var first = EntryUnderRoot();
+            var second = EntryUnderRoot();
+
+            using (var elsewhere = TemporaryDatabase.New())
+            {
+                var unrelated = new PwEntry(true, true);
+                elsewhere.RootGroup.AddEntry(unrelated, true);
+
+                using (var form = BulkEntryDialogFor(first, second))
+                {
+                    GlobalWindowManager.AddWindow(form);
+
+                    try
+                    {
+                        Assume.That(_dialogs.Blocking(first), Is.Not.Null);
+
+                        Assert.That(_dialogs.Blocking(unrelated), Is.Null,
+                            "an entry of another database is none this dialog can write over");
+                    }
+                    finally
+                    {
+                        GlobalWindowManager.RemoveWindow(form);
+                    }
+                }
+            }
+        }
+
+        [Test]
         public void Asking_about_nothing_blocks_nothing()
         {
-            Assert.That(_dialogs.Blocking(null), Is.Null);
+            Assert.That(_dialogs.Blocking((KeePassLib.PwGroup)null), Is.Null);
+            Assert.That(_dialogs.Blocking((KeePassLib.PwEntry)null), Is.Null);
         }
 
         [Test]
@@ -229,12 +316,55 @@ namespace KeePassGate.Host.Tests
                     // back over it, which is the one failure this class exists to prevent.
                     Assert.That(_dialogs.Blocking(_database.RootGroup), Is.Not.Null,
                         "a watch that has stopped must refuse, not allow");
+
+                    // Both halves, because only the group half had this and the entry half read an
+                    // empty table as "nothing is open" and allowed the write.
+                    Assert.That(_dialogs.Blocking(EntryUnderRoot()), Is.Not.Null,
+                        "and it must refuse entries on the same reasoning");
                 }
                 finally
                 {
                     GlobalWindowManager.RemoveWindow(form);
                 }
             }
+        }
+
+        private PwEntry EntryUnderRoot()
+        {
+            var entry = new PwEntry(true, true);
+            _database.RootGroup.AddEntry(entry, true);
+            return entry;
+        }
+
+        private PwEntryForm EntryDialogFor(PwEntry entry)
+        {
+            var form = new PwEntryForm();
+            form.InitEx(entry, PwEditMode.EditExistingEntry, _database.Database, new ImageList(), false, false);
+            return form;
+        }
+
+        /// <summary>
+        /// KeePass's `Edit Entries` over a selection of this fixture's database, never shown.
+        /// </summary>
+        /// <remarks>
+        /// Built by reflection because the constructor is internal to KeePass. That is the point
+        /// rather than an obstacle: this is a shape only KeePass can make, so only KeePass can say
+        /// whether the guard still recognizes it.
+        /// </remarks>
+        private PwEntryForm BulkEntryDialogFor(params PwEntry[] selection)
+        {
+            var merged = new object[] { selection, _database.Database, null };
+            var context = typeof(PwEntryForm).Assembly
+                .GetType("KeePass.Util.MultipleValues.MultipleValuesEntryContext")
+                .GetConstructors(BindingFlags.NonPublic | BindingFlags.Instance)[0]
+                .Invoke(merged);
+
+            var form = new PwEntryForm();
+            form.InitEx((PwEntry)merged[2], PwEditMode.EditExistingEntry, _database.Database, new ImageList(), false, false);
+            typeof(PwEntryForm)
+                .GetProperty("MultipleValuesEntryContext")
+                .SetValue(form, context, null);
+            return form;
         }
 
         [Test]
