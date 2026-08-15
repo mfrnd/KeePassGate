@@ -89,8 +89,46 @@ namespace KeePassGate.Tests.Fakes
         }
 
         /// <summary>
-        /// Admits a client. Without this a certificate this authority issued opens nothing, which
-        /// is the point of step 7. TODO(step 8): pairing is what does this for real.
+        /// What the approval dialog calls this database. Empty by default, which is what a database
+        /// KeePass has never been told a name for answers. TODO(step 8): the approval dialog
+        /// arrives with operator approval.
+        /// </summary>
+        public string DatabaseName { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Set to refuse the write, which is how a test stands in for a group dialog being open.
+        /// </summary>
+        public string AdmissionBlocked { get; set; }
+
+        /// <summary>Set to fail the write after it was allowed to start.</summary>
+        public AdmissionWrite AdmitAnswers { get; set; }
+
+        /// <summary>Set to have the write throw rather than answer, which must not reach the client.</summary>
+        public Exception AdmitThrows { get; set; }
+
+        /// <summary>What the last pairing wrote, so a test can look at it.</summary>
+        public AdmissionRecord Admitted { get; private set; }
+
+        public AdmissionWrite Admit(AdmissionRecord record)
+        {
+            if (AdmitThrows != null)
+            {
+                throw AdmitThrows;
+            }
+
+            if (AdmitAnswers != null)
+            {
+                return AdmitAnswers;
+            }
+
+            _admissions.Write(record);
+            Admitted = record;
+            return AdmissionWrite.Done();
+        }
+
+        /// <summary>
+        /// Admits a client, which is what pairing will do for real. Without this a certificate this
+        /// authority issued opens nothing, which is the point of step 7.
         /// </summary>
         public void Admit(X509Certificate2 certificate, params string[] profiles)
         {

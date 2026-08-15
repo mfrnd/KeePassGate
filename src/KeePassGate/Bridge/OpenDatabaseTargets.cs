@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using KeePassLib;
+using KeePassLib.Utility;
 using KeePassGate.Authority;
 using KeePassGate.Diagnostics;
 using KeePassGate.Gate;
@@ -26,12 +27,24 @@ namespace KeePassGate.Bridge
     public sealed class OpenDatabaseTargets : IGateTargets, IDisposable
     {
         private readonly Func<IEnumerable<PwDatabase>> _openDatabases;
+        private readonly AdmissionWriter _writer;
         private readonly IGateLog _log;
         private readonly object _cacheLock = new object();
         private readonly Dictionary<PwDatabase, CachedTarget> _cache =
             new Dictionary<PwDatabase, CachedTarget>();
 
         public OpenDatabaseTargets(Func<IEnumerable<PwDatabase>> openDatabases, IGateLog log)
+            : this(openDatabases, null, log)
+        {
+        }
+
+        /// <summary>
+        /// The same, with the one writer pairing goes through. Without it a database can be served
+        /// and read, and nothing can be admitted to it, which is what a plugin with no user
+        /// interface amounts to.
+        /// </summary>
+        public OpenDatabaseTargets(
+            Func<IEnumerable<PwDatabase>> openDatabases, AdmissionWriter writer, IGateLog log)
         {
             if (openDatabases == null)
             {
@@ -39,6 +52,7 @@ namespace KeePassGate.Bridge
             }
 
             _openDatabases = openDatabases;
+            _writer = writer;
             _log = log ?? NullGateLog.Instance;
         }
 
@@ -225,7 +239,8 @@ namespace KeePassGate.Bridge
                 return null;
             }
 
-            var target = new MaterialTarget(reading, host, database, _log);
+            var target = new MaterialTarget(
+                database, reading, host, _writer, _log);
             _cache[database] = new CachedTarget(stored, target);
             _log.Info("serving a database with authority " + CertificateDigest.Shorten(target.DatabaseId));
             return target;
@@ -265,23 +280,29 @@ namespace KeePassGate.Bridge
             private readonly HostKeyMaterial _host;
             private readonly string _databaseId;
             private PwDatabase _database;
+            private readonly AdmissionWriter _writer;
             private readonly IGateLog _log;
 
             // The cache holds the first of these; `Current` takes one more per caller.
             private int _holders = 1;
 
             public MaterialTarget(
-                AuthorityReading reading, HostKeyMaterial host, PwDatabase database, IGateLog log)
+                PwDatabase database,
+                AuthorityReading reading,
+                HostKeyMaterial host,
+                AdmissionWriter writer,
+                IGateLog log)
             {
+                _database = database;
                 _reading = reading;
                 _host = host;
-                _database = database;
                 _log = log ?? NullGateLog.Instance;
 
                 // Taken once. It is a digest over bytes that cannot change while this target lives,
                 // and the connection path reads it twice, so recomputing it per read is a hash and
                 // a certificate export for an answer that was already known.
                 _databaseId = reading.Material.AuthorityDigest;
+                _writer = writer;
             }
 
             public string DatabaseId
@@ -308,6 +329,58 @@ namespace KeePassGate.Bridge
             public void Retain()
             {
                 Interlocked.Increment(ref _holders);
+            }
+
+            /// <summary>
+            /// What KeePass calls this database, read now because it can be renamed while it is
+            /// open, and empty when it has no name and no file to be named after.
+            /// </summary>
+            public string DatabaseName
+            {
+                get
+                {
+                    var database = _database;
+                    if (database == null)
+                    {
+                        return string.Empty;
+                    }
+
+                    // The name the operator gave it in the database settings, which is the one they
+                    // recognize. Most databases have never been given one, so the file it was
+                    // opened from is the fallback: the file name alone, never the path, because
+                    // this is read out onto a dialog and a path says where somebody keeps their
+                    // passwords.
+                    var named = database.Name;
+                    if (!string.IsNullOrEmpty(named))
+                    {
+                        return named;
+                    }
+
+                    var connection = database.IOConnectionInfo;
+                    return connection == null || string.IsNullOrEmpty(connection.Path)
+                        ? string.Empty
+                        : UrlUtil.GetFileName(connection.Path);
+                }
+            }
+
+            public string AdmissionBlocked
+            {
+                get
+                {
+                    return _writer == null
+                        ? "this database is served without a way to write to it"
+                        : _writer.Blocked(_database);
+                }
+            }
+
+            public AdmissionWrite Admit(AdmissionRecord record)
+            {
+                if (_writer == null)
+                {
+                    return AdmissionWrite.Failed("this database is served without a way to write to it");
+                }
+
+                return _writer.Write(_database, record);
             }
 
             /// <summary>

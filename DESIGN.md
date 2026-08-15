@@ -447,19 +447,23 @@ What the platform actually requires, measured rather than assumed:
 | Operation | Thread | Why |
 | --- | --- | --- |
 | Read databases, entries, strings, binaries | **connection thread** | `DocumentManager.GetOpenDatabases()` answers from a background thread, which the end to end tests exercise from another process |
-| Mutate in memory | **connection thread** | the same objects, and nothing about them is thread-affine |
+| Mutate in memory | **UI thread**, with the save | nothing about the objects is thread-affine, and this row said connection thread until the writer was built: a change and the save that keeps it are one marshaled call, so that nothing can open a dialog on the node between them |
 | **Persist** | UI thread | `MainForm.SaveDatabase` blocks interaction, shows warnings and touches the window; disassembling it is what settled that |
 | Ask the operator a question | UI thread | it puts a window on the screen |
 
 So the rules here:
 
-- **Reads and in-memory mutations happen on the request thread.** This is what is proven, and
-  marshaling them would buy a theoretical safety that KeePass's own object model does not document
-  anyway, at the cost of making liveness depend on the UI thread.
+- **Reads happen on the request thread.** This is what is proven, and marshaling them would buy a
+  theoretical safety that KeePass's own object model does not document anyway, at the cost of
+  making liveness depend on the UI thread. **An in-memory mutation travels with its save**, which
+  is a correction to an earlier draft of this list rather than a refinement of it: the objects are
+  as thread-agnostic as the reads are, but a change made on the request thread and saved on the UI
+  thread has an instant between them for a dialog to open on the node, and the whole of the
+  writer's argument is that there must not be one.
 - **Persistence marshals with `BeginInvoke` and then waits on the handle**, never `Control.Invoke`,
   which has no timeout. One writer owns every write, so a request thread does wait on the UI thread.
   What that buys is a wait that ends: a marshal that does not complete fails the request rather than
-  deadlocking it. Pairing's writer is that writer while pairing is the only thing writing; the
+  deadlocking it. `AdmissionWriter` is that writer while pairing is the only thing writing; the
   database API brings `DatabaseWriter` and the same rule.
 
   **The bound has two halves, and only one of them is a timeout.** Work still sitting in the queue
@@ -467,8 +471,12 @@ So the rules here:
   alternative is a write that lands minutes after the client was refused and its certificate
   destroyed. Work that has already begun cannot be withdrawn, and there the wait runs to completion
   rather than to the clock, because releasing the writer's lock while its own write is still going
-  on is the race the single writer exists to prevent. That half is bounded by the work instead: a
-  file save, and a dialog that closes itself.
+  on is the race the single writer exists to prevent. That half is bounded by the work instead,
+  which for almost every write is a file save and a dialog that closes itself. **Two saves that
+  have already gone wrong are the exception**: both put a message box on the screen and both wait
+  on a person, so a request that provokes one holds its thread and the writer's lock until
+  somebody presses OK. Nothing here bounds that, and pretending otherwise is what this paragraph
+  used to do.
 - **A plugin-wide write lock.** It closes the one race this design can close cheaply: two requests
   mutating the same entry at once. It does nothing about a user editing in the UI at the same
   moment, which stays exactly as unprotected as it is today.

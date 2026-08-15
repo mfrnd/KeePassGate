@@ -22,5 +22,39 @@ namespace KeePassGate
         /// failing to load.
         /// </summary>
         public const string DatabaseSettingsFormDatabaseProperty = "DatabaseEx";
+
+        /// <summary>
+        /// The dialog behind Edit Group. Pairing refuses to write while one of these is open,
+        /// because it holds a copy of the group's custom data and puts it back on OK.
+        /// </summary>
+        public const string GroupFormTypeName = "KeePass.Forms.GroupForm";
+
+        /// <summary>
+        /// The group that dialog is editing. Read by reflection, and a KeePass that renames it
+        /// leaves pairing refused while any group dialog is open, which is the safe direction.
+        /// </summary>
+        public const string GroupFormGroupField = "m_pwGroup";
+
+        /// <summary>
+        /// The dialog behind Tools then Database Maintenance, which holds a copy of the database's
+        /// own custom data and puts it back on Close whenever the live one has grown or shrunk.
+        /// </summary>
+        /// <remarks>
+        /// The same hazard as the group dialog and easier to miss, because the write-back is
+        /// conditional: it compares the count it copied against the count it finds, so a pairing
+        /// landing while this is open is destroyed even though the operator touched nothing. That
+        /// its one button is both the accept and the cancel button, with `DialogResult.Cancel`,
+        /// means there is no way for an operator to decline it either.
+        /// </remarks>
+        public const string MaintenanceFormTypeName = "KeePass.Forms.DatabaseOperationsForm";
+
+        /// <summary>The database that dialog is working on.</summary>
+        public const string MaintenanceFormDatabaseField = "m_pwDatabase";
+
+        /// <summary>
+        /// How a named database is saved. Not `UIFileSave`, which saves whichever document is
+        /// active: pairing names the database it is writing to and must not save a different one.
+        /// </summary>
+        public const string MainFormSaveDatabaseMethod = "SaveDatabase";
     }
 }

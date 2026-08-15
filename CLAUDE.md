@@ -203,6 +203,8 @@ a database's custom data. Each gathers what it settled in its own `RESULTS.md`. 
 
 ### The trap that shaped the design
 
+**Two dialogs take a copy of custom data and write it back, and the second is easier to miss.**
+
 **`GroupForm` takes a copy of a group's `CustomData` when it opens and writes that copy back on OK.**
 A value written to the live group therefore **survives Cancel and is destroyed by OK**, silently and
 completely.
@@ -212,6 +214,14 @@ one to a stale snapshot makes the certificate inert rather than invisible and ir
 **testing any `CustomData` work means pressing OK, not just looking**: make the change, press OK,
 reopen the dialog, and only then believe it. Do the same after saving and reloading the file, because
 those are two different failures.
+
+**`DatabaseOperationsForm`, under Tools then Database Maintenance, does the same to
+`PwDatabase.CustomData`**, which is where this plugin's own keys now live. Worse in two ways than
+the group dialog. Its write-back is conditional on the key count differing rather than on anything
+the operator did, so a pairing landing while it is open is destroyed with the Plugin Data tab never
+opened. And its one button is both the accept and the cancel button, with `DialogResult.Cancel`, so
+there is no way to decline it. `GroupDialogs` watches for it and `AdmissionWriter` refuses while it
+is open.
 
 Equally load bearing: **KeePass's save reports nothing to its caller.** `MainForm.SaveDatabase` is
 `void`, shows its own warnings, and leaves the caller no way to ask whether anything reached the

@@ -45,6 +45,37 @@ namespace KeePassGate.Gate
         /// rather than on the next time something else changed.
         /// </remarks>
         AdmissionRecord Admission(string admissionKey);
+
+        /// <summary>
+        /// What KeePass calls this database, or empty when it has nothing to be called.
+        /// </summary>
+        /// <remarks>
+        /// For the approval dialog and nothing else (TODO(step 8): it arrives with operator
+        /// approval). A dialog that identifies the database only by
+        /// <see cref="DatabaseId"/> asks the operator to recognize sixteen hexadecimal characters
+        /// before letting a stranger in, which is exactly the check nobody performs. The digest
+        /// stays beside it, because it is what actually identifies the database and two of them can
+        /// carry the same name.
+        /// </remarks>
+        string DatabaseName { get; }
+
+        /// <summary>
+        /// Why a record cannot be written right now, or null when one can. Checked before an
+        /// invitation is spent and before the operator is asked, so that Database Maintenance
+        /// left open on this database costs a pairing attempt rather than the invitation behind it.
+        /// </summary>
+        string AdmissionBlocked { get; }
+
+        /// <summary>
+        /// Writes an admission record and makes it durable, on whichever thread owns the database.
+        /// </summary>
+        /// <remarks>
+        /// The one write the transport ever asks for, and the only place in the plugin that
+        /// marshals synchronously. It is checked again inside the write, because the answer to
+        /// <see cref="AdmissionBlocked"/> can change between asking and writing, and a pairing that
+        /// cannot land its record has to fail rather than hand over a certificate nobody can see.
+        /// </remarks>
+        AdmissionWrite Admit(AdmissionRecord record);
     }
 
     /// <summary>
