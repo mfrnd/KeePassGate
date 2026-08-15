@@ -103,7 +103,9 @@ designing around them.
   wrapped it in Argon2 over AES-CBC with an encrypt-then-MAC construction and DPAPI; all deleted, and
   its backup story was broken anyway because a DPAPI blob restores nowhere.
 - **Pairing tokens live in plugin memory only**, expiring on TTL or KeePass exit, whichever first.
-  They are never written to the database.
+  They are never written to the database, and the settings dialog a token was made on withdraws it
+  unless that dialog is accepted, so Cancel means Cancel for the one thing on the tab the database
+  does not hold.
 - **Two host certificates per database**: a normal one in the kdbx, and a short-lived responder
   minted at unlock and held in memory so a locked KeePass can answer `503 locked` rather than failing at
   the transport. The normal host key is actively dropped at lock. TODO(step 9): the responder,

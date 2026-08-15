@@ -431,7 +431,6 @@ namespace KeePassGate.Tests
         {
             // The records a lost authority issued chain to nothing that is served, which is what
             // makes them inert; the clients page says so, and taking them away is the operator's.
-            // TODO(step 8): the clients page arrives with the invitation control.
             var kept = Write();
             Write();
             _values.Plant(AuthorityKeys.ClientPrefix + "aaa", "record");

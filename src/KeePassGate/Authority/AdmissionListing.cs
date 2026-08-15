@@ -56,7 +56,6 @@ namespace KeePassGate.Authority
         /// write this plugin makes takes them away, `AdmissionStore.PruneCameBack` says which. It
         /// is kept at all because the clients page is where an operator learns that a copy of the
         /// file older than a revocation was merged in, and says so under the list until then.
-        /// TODO(step 8): the clients page arrives with the invitation control.
         /// </remarks>
         public int CameBack
         {

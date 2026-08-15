@@ -349,7 +349,7 @@ namespace KeePassGate.Pairing
             // has run out is the ordinary state of an old database, and this client is one step
             // away from being handed that authority to pin, so its dates are nothing it is being
             // told for the first time. `CA.md` §219: there is no reissue, so what fixes it is
-            // "Recreate authority" on the KPG tab, which revokes every client
+            // "Recreate authority" on the Certificate Authority page, which revokes every client
             // already admitted.
             //
             // **A `500` even though nothing is spent.** `PAIRING.md` §303 makes `503` the answer a
@@ -360,7 +360,7 @@ namespace KeePassGate.Pairing
             {
                 _log.Warn("pairing refused on invitation " + invitation.Id +
                           ": this database's authority has expired, so it can issue nothing that is" +
-                          " valid until \"Recreate authority\" on the KPG tab" +
+                          " valid until \"Recreate authority\" on the Certificate Authority page" +
                           " replaces it");
                 context.Respond(500, HttpResponse.ErrorBody("expired authority"));
                 return;

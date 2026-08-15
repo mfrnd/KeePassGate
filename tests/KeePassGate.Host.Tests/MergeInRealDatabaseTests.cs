@@ -92,7 +92,7 @@ namespace KeePassGate.Host.Tests
             Assert.That(Records(_here).Find(CertificateDigest.Of(_first)), Is.Null,
                 "a revoked client that comes back is a credential the operator believes is gone");
             Assert.That(Records(_here).All().Records, Is.Empty,
-                "and the list of records must not show it either");
+                "and the clients page must not show it either");
         }
 
         [Test]
@@ -159,7 +159,7 @@ namespace KeePassGate.Host.Tests
                             Assert.That(Records(target).Find(admissionKey), Is.Null,
                                 named + ": a revoked client was admitted again");
                             Assert.That(Records(target).All().Records, Is.Empty,
-                                named + ": and the list of records held it as a client");
+                                named + ": and the clients page listed it as a client");
                         }
                     }
                 }

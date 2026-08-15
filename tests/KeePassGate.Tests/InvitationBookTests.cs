@@ -208,6 +208,33 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void Withdrawing_one_takes_it_back_and_says_so_differently_from_spending_it()
+        {
+            var invitation = _book.Invite(Database);
+            var name = invitation.NewName();
+
+            Assert.That(_book.Withdraw(invitation.Id), Is.True);
+
+            Assert.That(_book.Outstanding(), Is.Empty);
+            Assert.That(_book.Matching(name), Is.Empty, "a withdrawn code answers to nothing");
+            Assert.That(invitation.Token, Is.Null, "and its token went the way every removal goes");
+            Assert.That(_log.Entries.Any(e => e.Message.EndsWith(invitation.Id + " withdrawn", StringComparison.Ordinal)),
+                Is.True);
+            Assert.That(_log.Entries.Any(e => e.Message.Contains(" spent")), Is.False,
+                "nobody used it, and the log must not say anybody did");
+        }
+
+        [Test]
+        public void A_spent_invitation_cannot_be_withdrawn_afterwards()
+        {
+            var invitation = _book.Invite(Database);
+            _book.Burn(invitation.Id);
+
+            Assert.That(_book.Withdraw(invitation.Id), Is.False);
+            Assert.That(_book.Withdraw(null), Is.False);
+        }
+
+        [Test]
         public void Only_the_invitation_for_one_database_is_its_own()
         {
             _book.Invite(Database);

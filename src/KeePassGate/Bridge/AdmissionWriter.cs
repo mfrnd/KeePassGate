@@ -212,7 +212,7 @@ namespace KeePassGate.Bridge
         /// <remarks>
         /// The caller is about to be told the record did not land, and the certificate it was for
         /// is about to be destroyed unsent. Leaving the record in the database anyway would make
-        /// that a lie the operator finds later: a client in the database that never existed,
+        /// that a lie the operator finds later: a client on the clients page that never existed,
         /// admitted by a certificate nobody holds, written to disk by whatever they save next.
         ///
         /// The modified flag goes back only if this write is what set it. Clearing one that was

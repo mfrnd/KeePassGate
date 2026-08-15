@@ -27,6 +27,12 @@ namespace KeePassGate.Pairing
         bool Burn(string invitationId);
 
         /// <summary>
+        /// Takes an invitation back before anybody has used it. False when it was already gone,
+        /// spent or run out, which leaves whatever spending it did standing.
+        /// </summary>
+        bool Withdraw(string invitationId);
+
+        /// <summary>
         /// Every live invitation this name was built from. A list rather than one, because
         /// resolution counts what matched instead of stopping at the first.
         /// </summary>
@@ -178,12 +184,35 @@ namespace KeePassGate.Pairing
 
         public bool Burn(string invitationId)
         {
+            return Take(invitationId, "spent");
+        }
+
+        /// <summary>
+        /// Takes an invitation back, which is what the settings dialog it was made on does when it
+        /// closes without OK.
+        /// </summary>
+        /// <remarks>
+        /// The same removal as a burn and a different line in the log, because the two mean
+        /// different things to somebody reading it afterwards: a burn is a client having used the
+        /// code, and this is nobody having used it.
+        /// </remarks>
+        public bool Withdraw(string invitationId)
+        {
+            return Take(invitationId, "withdrawn");
+        }
+
+        /// <summary>
+        /// Removes one invitation, saying in the log what became of it. False when it was not
+        /// there to remove.
+        /// </summary>
+        private bool Take(string invitationId, string outcome)
+        {
             if (string.IsNullOrEmpty(invitationId))
             {
                 return false;
             }
 
-            Invitation burned = null;
+            Invitation taken = null;
             var said = new List<string>();
 
             lock (_lock)
@@ -200,7 +229,7 @@ namespace KeePassGate.Pairing
                         continue;
                     }
 
-                    burned = _invitations[i];
+                    taken = _invitations[i];
                     _invitations.RemoveAt(i);
                     break;
                 }
@@ -208,13 +237,13 @@ namespace KeePassGate.Pairing
 
             Say(said);
 
-            if (burned == null)
+            if (taken == null)
             {
                 return false;
             }
 
-            burned.Dispose();
-            _log.Info("invitation " + invitationId + " spent");
+            taken.Dispose();
+            _log.Info("invitation " + invitationId + " " + outcome);
             return true;
         }
 

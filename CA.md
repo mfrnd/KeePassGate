@@ -146,8 +146,8 @@ emptied record is still written, and is still that losing kind of mark: a stale 
 back, and the revocation beside it is what refuses it when it does.
 
 **A record that comes back is taken away by the plugin's next write.** It admits nobody meanwhile,
-since admission reads the revocation rather than waiting for this, and the clients page is to count
-it under the list rather than listing it as a client. The write it rides on is one this plugin makes
+since admission reads the revocation rather than waiting for this, and the clients page counts it
+under the list rather than listing it as a client. The write it rides on is one this plugin makes
 anyway: a revocation, a pairing, keeping one authority, recreating or deleting it. Opening or
 reading a database changes nothing in it.
 
@@ -192,7 +192,7 @@ copy would carry.
 the database, and saving or merging in one can quietly bring back a revoked client, a retired
 authority or a removed profile, because their merges replace or drop keys: KeePassXC 2.7.12, the
 one read from source, replaces the whole dictionary. Nothing here detects that. After any change
-made outside KeePass, the authority, and the clients page once pairing brings it, are where to look.
+made outside KeePass, the clients page and the authority are where to look.
 
 ### How each value is written §222
 

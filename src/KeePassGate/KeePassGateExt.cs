@@ -125,7 +125,8 @@ namespace KeePassGate
                     new TypeNameFormMatcher(KeePassContract.DatabaseSettingsFormTypeName),
                     new TabPageInjector(
                         new AuthorityPanelFactory(
-                            new DialogDatabases(_log, () => Changed(host)), _log, _listener, _incidents),
+                            new DialogDatabases(_log, () => Changed(host)),
+                            _log, _listener, null, _incidents),
                         _log,
                         KeePassContract.DatabaseSettingsTabControlName,
                         Icon),

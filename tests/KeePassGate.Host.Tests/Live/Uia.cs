@@ -101,6 +101,42 @@ namespace KeePassGate.Host.Tests.Live
             }
         }
 
+        /// <summary>
+        /// The captions on a dialog's own tab strip, in order, and nothing from a tab strip inside
+        /// one of its pages.
+        /// </summary>
+        /// <remarks>
+        /// Descendants would answer with both, since the KPG tab has pages of its own, and a test
+        /// asking where KeePass's tabs end would be told about pages that are not on that strip at
+        /// all. The outer strip is the first one found, because it contains the other.
+        /// </remarks>
+        public static string DescribeTabs(AutomationElement dialog)
+        {
+            if (dialog == null)
+            {
+                return "(no window)";
+            }
+
+            var strip = dialog.FindFirst(
+                TreeScope.Descendants,
+                new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Tab));
+
+            if (strip == null)
+            {
+                return "(no tabs)";
+            }
+
+            var names = strip
+                .FindAll(
+                    TreeScope.Children,
+                    new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.TabItem))
+                .Cast<AutomationElement>()
+                .Select(Name)
+                .Where(n => !string.IsNullOrEmpty(n));
+
+            return string.Join(", ", names);
+        }
+
         /// <summary>Everything visible, for a failure message that says what was actually there.</summary>
         public static string Describe(AutomationElement root, ControlType type)
         {

@@ -24,6 +24,9 @@ namespace KeePassGate.Ui
     ///   operator agreeing to it.
     /// - **It closes itself.** Nobody being at the keyboard need not end in a refusal that costs the
     ///   invitee its invitation, so an unanswered dialog is a timeout, which spends nothing.
+    /// - **Dismissing it is refusing it.** The close box, Alt and F4, the window menu and the
+    ///   taskbar all end the dialog without a button being pressed, and somebody was at the screen
+    ///   for every one of them. Only the countdown answers for an operator who is not.
     /// - **Every string on it is what the request said**, and the request came from outside. Names
     ///   and profiles have already been checked to be plain names by the time they reach here.
     /// </remarks>
@@ -69,9 +72,13 @@ namespace KeePassGate.Ui
         /// for ordinary reasons: a time correction, or a laptop coming back from sleep.
         /// </remarks>
         private readonly TimeSpan _allowed;
+        private readonly int _wrap;
         private readonly Stopwatch _elapsed = Stopwatch.StartNew();
 
         private PairingDecision _decision = PairingDecision.TimedOut;
+
+        /// <summary>Whether the answer above is one that was given, or the one it started at.</summary>
+        private bool _decided;
 
         public PairingApprovalForm(PairingRequest request, TimeSpan timeout)
         {
@@ -83,7 +90,6 @@ namespace KeePassGate.Ui
             _allowed = timeout;
 
             Name = GateTab.ApprovalFormName;
-            AccessibleName = GateTab.ApprovalFormName;
             Text = "KeePassGate: a client is asking to pair";
             FormBorderStyle = FormBorderStyle.FixedDialog;
             StartPosition = FormStartPosition.CenterScreen;
@@ -91,10 +97,24 @@ namespace KeePassGate.Ui
             MaximizeBox = false;
             ShowInTaskbar = true;
             TopMost = true;
-            ClientSize = new Size(460, 340);
 
-            _titleFont = new Font(SystemFonts.DefaultFont, FontStyle.Bold);
-            _valueFont = new Font(SystemFonts.DefaultFont, FontStyle.Bold);
+            // Sized by what is in it rather than by a number written here. A fixed client area is
+            // right at one display scaling and wrong at every other, and here it failed in the
+            // granting direction: at 125% the profile list showed one row of what was asked for and
+            // at 150% it showed none, while every profile stayed checked and Approve granted all of
+            // them.
+            AutoScaleMode = AutoScaleMode.Font;
+            AutoSize = true;
+            AutoSizeMode = AutoSizeMode.GrowAndShrink;
+
+            // The prototype is disposed, because `SystemFonts.DefaultFont` hands back a new font
+            // every time it is read and `new Font(prototype, style)` copies rather than adopts.
+            using (var prototype = SystemFonts.DefaultFont)
+            {
+                _titleFont = new Font(prototype, FontStyle.Bold);
+                _valueFont = new Font(prototype, FontStyle.Bold);
+                _wrap = Wrap(prototype);
+            }
 
             Padding = new Padding(Spacing.Window);
 
@@ -105,7 +125,7 @@ namespace KeePassGate.Ui
             // for them and where they cannot be pushed off by a long list.
             var layout = new FlowLayoutPanel
             {
-                Dock = DockStyle.Top,
+                Name = "KpgApprovalLayout",
                 FlowDirection = FlowDirection.TopDown,
                 WrapContents = false,
                 AutoSize = true,
@@ -114,10 +134,11 @@ namespace KeePassGate.Ui
 
             layout.Controls.Add(new TextLabel
             {
+                Name = "KpgApprovalTitle",
                 Text = "A client is asking to pair with this database.",
                 Font = _titleFont,
                 AutoSize = true,
-                MaximumSize = new Size(420, 0),
+                MaximumSize = new Size(_wrap, 0),
                 Margin = new Padding(0, 0, 0, Spacing.Gap)
             });
 
@@ -143,39 +164,45 @@ namespace KeePassGate.Ui
 
             for (var at = 0; at < facts.Count; at++)
             {
-                details.Controls.Add(Cell(facts[at].Name, false), 0, at);
-                details.Controls.Add(Cell(facts[at].Value, true), 1, at);
+                details.Controls.Add(Cell(facts[at].ControlName(false), facts[at].Name, false), 0, at);
+                details.Controls.Add(Cell(facts[at].ControlName(true), facts[at].Value, true), 1, at);
             }
 
             layout.Controls.Add(details);
 
             layout.Controls.Add(new TextLabel
             {
+                Name = "KpgApprovalConsequence",
                 Text = Consequence,
                 AutoSize = true,
-                MaximumSize = new Size(420, 0),
+                MaximumSize = new Size(_wrap, 0),
                 Margin = new Padding(0, 0, 0, Spacing.Gap)
             });
 
+            // A gap under it, like everything else on this dialog and like the gap the footer keeps
+            // above itself. The list is the one thing here an operator acts on, and less room
+            // between it and the line introducing it than between it and the row after it would
+            // make it look attached to the wrong one of the two.
             layout.Controls.Add(new TextLabel
             {
                 Text = request.Profiles.Count == 0 ? NoProfilesAsked : ProfilesAsked,
                 AutoSize = true,
-                MaximumSize = new Size(420, 0),
+                MaximumSize = new Size(_wrap, 0),
                 Margin = new Padding(0, 0, 0, Spacing.Gap)
             });
 
             _profiles = new CheckedListBox
             {
                 Name = GateTab.ApprovalProfilesListName,
-                AccessibleName = GateTab.ApprovalProfilesListName,
-                Dock = DockStyle.Fill,
+                AccessibleName = GateTab.ApprovalProfilesListLabel,
+                Width = _wrap,
                 CheckOnClick = true,
 
-                // Off, so the list is the height it is given rather than a whole number of rows.
-                // With it on, a docked list rounds itself down and leaves a strip of the dialog's
-                // background under the last row.
-                IntegralHeight = false
+                // Off, so the height set below is the height it keeps rather than a whole number
+                // of rows. With it on, the list rounds itself down and leaves a strip of the
+                // dialog's background under the last row.
+                IntegralHeight = false,
+                Margin = new Padding(0)
             };
 
             foreach (var profile in request.Profiles)
@@ -183,32 +210,69 @@ namespace KeePassGate.Ui
                 _profiles.Items.Add(profile, true);
             }
 
-            var footer = new FlowLayoutPanel
+            // Tall enough for what is being asked, up to a point, and never zero. This is the one
+            // control the operator has to act on, so it is sized from the list it holds rather
+            // than from whatever two docked bands leave over.
+            _profiles.Height = ListHeight(_profiles, request.Profiles.Count);
+
+            // A table rather than a flow, because the buttons go against the right edge and a flow
+            // panel lays every child out at its own left one. A cell is what `Anchor` answers to.
+            // The width is the width of everything else on the dialog, since a column that sized
+            // itself to its widest child would put the right edge wherever the buttons happen to
+            // end and right align them against themselves.
+            // One row of two. What is left is a sentence and what is right is the pair of
+            // buttons, and putting them on separate rows spent a line of the dialog on saying
+            // nothing: the countdown is short, the buttons are narrow, and between them they do
+            // not fill one width. The left column takes the slack so the right one ends where the
+            // content does, which is what puts the buttons against the edge.
+            var footer = new TableLayoutPanel
             {
-                Dock = DockStyle.Bottom,
-                FlowDirection = FlowDirection.TopDown,
-                WrapContents = false,
+                Name = "KpgApprovalFooter",
+                ColumnCount = 2,
+                RowCount = 1,
                 AutoSize = true,
-                AutoSizeMode = AutoSizeMode.GrowAndShrink
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                GrowStyle = TableLayoutPanelGrowStyle.FixedSize,
+                MinimumSize = new Size(_wrap, 0),
+
+                // A gap above, which is what separates this row from the list it answers
+                // about. Nothing below: the form's own padding closes the dialog.
+                Margin = new Padding(0, Spacing.Gap, 0, 0)
             };
+
+            footer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f));
+            footer.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+            footer.RowStyles.Add(new RowStyle(SizeType.AutoSize));
 
             _countdown = new TextLabel
             {
+                Name = "KpgApprovalCountdown",
                 Text = Remaining(timeout),
                 AutoSize = true,
-                MaximumSize = new Size(420, 0),
-                Margin = new Padding(0, Spacing.Gap, 0, Spacing.Gap)
+                MaximumSize = new Size(_wrap, 0),
+                Margin = new Padding(0),
+
+                // Left, and nothing else: a control anchored to one side of a cell is centered on
+                // the other axis, which is what levels this line with the buttons beside it rather
+                // than with their top edge.
+                Anchor = AnchorStyles.Left
             };
 
-            footer.Controls.Add(_countdown);
+            footer.Controls.Add(_countdown, 0, 0);
 
             var buttons = new FlowLayoutPanel
             {
+                Name = "KpgApprovalButtonRow",
                 FlowDirection = FlowDirection.LeftToRight,
                 AutoSize = true,
                 AutoSizeMode = AutoSizeMode.GrowAndShrink,
                 WrapContents = false,
-                Margin = new Padding(0)
+                Margin = new Padding(0),
+
+                // Right, and nothing else, for the same two reasons the countdown is anchored
+                // left: it decides which end of the cell they sit at, and it levels them with the
+                // line beside them.
+                Anchor = AnchorStyles.Right
             };
 
             // Both margins are written down, and the vertical halves have to match. A flow panel
@@ -238,23 +302,69 @@ namespace KeePassGate.Ui
 
             buttons.Controls.Add(refuse);
             buttons.Controls.Add(approve);
-            footer.Controls.Add(buttons);
+            footer.Controls.Add(buttons, 1, 0);
 
-            // The filling control goes in first. Docking is applied from the end of the collection
-            // backwards, so whatever is added last takes its band first and index zero is left
-            // with what remains.
-            Controls.Add(_profiles);
+            // One column, in reading order. It used to be three docked bands with the list
+            // filling what the other two left, which is how the list came to be the part that
+            // disappeared: the bands grow with the font and the client area did not.
+            layout.Controls.Add(_profiles);
+            layout.Controls.Add(footer);
+
+            // Filled rather than dropped in at the origin. A form lays a child out against its
+            // display rectangle only when the child is docked, so one that is not sits at the
+            // client area's own corner and the twelve pixels above are spent on nothing: the
+            // title and the list touched the window's left edge.
+            layout.Dock = DockStyle.Fill;
             Controls.Add(layout);
-            Controls.Add(footer);
 
-            // Both of the ways a dialog gets dismissed without being read lead to a refusal, and
-            // neither of them leads to a certificate.
+            // Every way a dialog gets dismissed without being read leads to a refusal, and none of
+            // them leads to a certificate. These two are the keys; the close box and everything
+            // else that reaches `Close` without a button are `OnFormClosing` below.
             CancelButton = refuse;
             AcceptButton = refuse;
 
             _clock = new Timer { Interval = 1000 };
             _clock.Tick += OnTick;
             _clock.Start();
+        }
+
+        /// <summary>
+        /// How wide a line of this dialog's text is allowed to be, measured in this font.
+        /// </summary>
+        /// <remarks>
+        /// Fifty-six characters is the measurement, because that is a decision about reading
+        /// rather than about pixels: it holds at any font size and any display scaling, where a
+        /// number of pixels holds at one. The widest character the font has is what it is measured
+        /// in, so this is generous rather than tight, which is the safe direction for a dialog
+        /// that must not clip.
+        ///
+        /// **Reading alone would ask for seventy, and the countdown is what rules it out.**
+        /// That line and the two buttons share the last row, and at seventy they sit a hundred
+        /// and fifty pixels apart with nothing between them: a dialog wide enough that the two
+        /// things on its final row read as belonging to different windows. Fifty-six leaves
+        /// about thirty, which is a gap rather than a gulf. The labels above wrap a line or so
+        /// more for it, which is the trade and is the cheaper half: they are read once and the
+        /// row is what gets acted on.
+        /// </remarks>
+        private static int Wrap(Font font)
+        {
+            return TextRenderer.MeasureText(new string('M', 56), font).Width;
+        }
+
+        /// <summary>
+        /// How tall the profile list should be for this many profiles.
+        /// </summary>
+        /// <remarks>
+        /// Between two rows and ten. Never fewer than two, because a list showing one row of two
+        /// profiles reads as a list of one and the operator is then approving what they cannot
+        /// see; never more than ten, because past that the dialog is taller than the answer is
+        /// worth and the list scrolls, which it can. The border is added because a list box's
+        /// height includes it and its rows do not.
+        /// </remarks>
+        private static int ListHeight(CheckedListBox list, int profiles)
+        {
+            var rows = Math.Max(2, Math.Min(10, profiles));
+            return (list.ItemHeight * rows) + (SystemInformation.BorderSize.Height * 4);
         }
 
         /// <summary>
@@ -272,7 +382,10 @@ namespace KeePassGate.Ui
             Finish(PairingDecision.Refused);
         }
 
-        /// <summary>What the operator decided. A dialog closed any other way has timed out.</summary>
+        /// <summary>
+        /// What the operator decided. A dialog dismissed rather than answered has refused, and one
+        /// nobody touches at all has timed out.
+        /// </summary>
         public PairingApproval Answer()
         {
             switch (_decision)
@@ -316,8 +429,7 @@ namespace KeePassGate.Ui
             // Captioned as an identifier rather than as the invitation, because the clients page
             // shows the same identifier beside the code and this is what it is checked against. A
             // row saying "Invitation" reads as though it were the code, which is the one thing this
-            // dialog does not show. TODO(step 8): the clients page arrives with the invitation
-            // control.
+            // dialog does not show.
             facts.Add(new Fact("Invitation id", request.InvitationId));
 
             if (!string.IsNullOrEmpty(request.Peer))
@@ -328,14 +440,15 @@ namespace KeePassGate.Ui
             return facts;
         }
 
-        private Label Cell(string text, bool value)
+        private Label Cell(string name, string text, bool value)
         {
             return new TextLabel
             {
+                Name = name,
                 Text = text,
                 AutoSize = true,
                 Font = value ? _valueFont : Font,
-                MaximumSize = new Size(280, 0),
+                MaximumSize = new Size(_wrap * 2 / 3, 0),
                 Margin = value ? new Padding(0) : new Padding(0, 0, Spacing.Gap, 0)
             };
         }
@@ -403,11 +516,69 @@ namespace KeePassGate.Ui
             _countdown.Text = Remaining(left);
         }
 
-        private void Finish(PairingDecision decision)
+        /// <summary>
+        /// A dialog dismissed without an answer has refused, whichever way it was dismissed.
+        /// </summary>
+        /// <remarks>
+        /// The close box, Alt and F4, the window menu and the taskbar all reach `Close` without
+        /// pressing either button, so none of them runs `Refuse`, and what a dialog that was never
+        /// answered holds is a timeout. That answer is wrong in both directions at once: the
+        /// operator who dismissed the request believes it was turned down, while the invitee is
+        /// told nobody was at the screen and keeps an invitation it can present again, raising this
+        /// dialog as often as it likes until the token runs out. Somebody was at the screen, and
+        /// the default here is denial, so a dismissal is a refusal and spends the invitation.
+        ///
+        /// **`CloseReason` cannot tell those apart**, which is the trap in doing this the obvious
+        /// way: `Form.Close` reports `UserClosing` whoever called it, so the countdown's own close
+        /// arrives looking exactly like a press on the title bar and would spend the invitation of
+        /// an operator who was never there. What separates them is whether an answer has already
+        /// been given, which is what `Decide` records.
+        /// </remarks>
+        protected override void OnFormClosing(FormClosingEventArgs e)
         {
+            base.OnFormClosing(e);
+
+            if (e.Cancel)
+            {
+                // The dialog is staying open, so nothing has been decided and the operator can
+                // still answer it.
+                return;
+            }
+
+            Decide(PairingDecision.Refused);
+        }
+
+        /// <summary>
+        /// Records an answer, unless one has already been recorded.
+        /// </summary>
+        /// <remarks>
+        /// The first answer wins, because the ways this dialog can end overlap. Every press ends in
+        /// a close, which arrives at `OnFormClosing` immediately afterwards, and the countdown can
+        /// expire while a button is going down. A later answer overwriting an earlier one would let
+        /// a close take back the press that caused it.
+        ///
+        /// Stopping the clock belongs here for the same reason: `KillTimer` does not withdraw a
+        /// tick already sitting in the queue, so a decision has to survive one arriving after it.
+        /// </remarks>
+        private void Decide(PairingDecision decision)
+        {
+            if (_decided)
+            {
+                return;
+            }
+
+            _decided = true;
             _decision = decision;
             _clock.Stop();
-            DialogResult = decision == PairingDecision.Approved ? DialogResult.OK : DialogResult.Cancel;
+        }
+
+        private void Finish(PairingDecision decision)
+        {
+            Decide(decision);
+
+            // Read back rather than taken from the argument, so that a press arriving after the
+            // clock has answered closes on the answer that was kept rather than on its own.
+            DialogResult = _decision == PairingDecision.Approved ? DialogResult.OK : DialogResult.Cancel;
             Close();
         }
     }

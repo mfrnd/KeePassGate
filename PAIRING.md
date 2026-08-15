@@ -198,8 +198,9 @@ stateDiagram-v2
     Outstanding --> Outstanding: proof fails, no dialog raised
     Outstanding --> Outstanding: operator absent, request times out
     Outstanding --> Burned: approved
-    Outstanding --> Burned: refused
+    Outstanding --> Burned: refused, including by closing the dialog
     Outstanding --> Gone: TTL passes
+    Outstanding --> Gone: settings dialog canceled
     Outstanding --> Gone: KeePass exits
     Burned --> [*]
     Gone --> [*]: whichever comes first
@@ -208,6 +209,18 @@ stateDiagram-v2
 The whole lifetime is in memory, under the plugin's own lock, so a burn cannot be reverted and a
 race cannot double spend. A timeout does not burn the token, so an absent operator does not cost the
 invitee their invitation. A refusal does.
+
+**Closing the dialog is a refusal, not a timeout**, whether by the close box, by Alt with F4, from
+the window menu or from the taskbar. An operator who dismisses the question has answered it, and the
+answer a dismissal means is no: the invitation is spent and the program has to be invited again. Only
+the countdown running out is a timeout, and that is the one case where the dialog closes itself
+rather than being closed.
+
+**The settings dialog an invitation was made on takes it back unless that dialog is accepted.**
+The code is good the moment it is shown, so a program can pair before OK, but Cancel, or closing the
+dialog any other way, withdraws it if nobody has used it yet. That is the dialog's OK and Cancel
+meaning what they say for the one thing on the tab that the database does not hold. A code already
+spent stays spent, since the record it led to is the database's and a revocation takes that back.
 
 ---
 
@@ -309,8 +322,8 @@ proved anything to.
 
 ## 9. What this deliberately does not defend §310
 
-- **Local code execution as the user.** It reads the host key, the client key and the token as
-  typed. Conceded everywhere in this design.
+- **Local code execution as the user.** It reads the host key, the client key, the token as typed,
+  and the clipboard the tab's copy button puts it on. Conceded everywhere in this design.
 - **A compromised second channel.** Whoever holds the token may ask. That is what the operator's
   approval is for, and it is the only thing standing there.
 - **A KeePass that has never been unlocked since starting.** No responder certificate has been

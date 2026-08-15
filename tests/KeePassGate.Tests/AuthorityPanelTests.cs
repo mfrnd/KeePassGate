@@ -11,8 +11,15 @@ namespace KeePassGate.Tests
 {
     /// <summary>
     /// The tab as an operator uses it: three buttons, one of which is destructive and two of which
-    /// revoke everything. Driven by pressing the buttons, because that is how the defects arrive.
+    /// revoke everything.
     /// </summary>
+    /// <remarks>
+    /// Driven through the methods the buttons call rather than through the buttons. `PerformClick`
+    /// does nothing on a control that cannot be selected, silently, and a button on a tab page that
+    /// no window has ever drawn cannot be. A test that pressed one would pass while proving
+    /// nothing, which is why what a button does is public on this panel. The end to end tier
+    /// presses the real buttons on a real KeePass, which is where the wiring is worth checking.
+    /// </remarks>
     [TestFixture]
     [Apartment(ApartmentState.STA)]
     public sealed class AuthorityPanelTests
@@ -40,6 +47,20 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void The_tab_has_a_page_for_the_authority_and_a_page_for_the_clients()
+        {
+            using (var panel = NewPanel(true))
+            {
+                var tabs = ControlTree.FindByName<TabControl>(panel, GateTab.SubTabsName);
+
+                Assert.That(tabs, Is.Not.Null);
+                Assert.That(tabs.TabPages.Count, Is.EqualTo(2));
+                Assert.That(tabs.TabPages[0].Text, Is.EqualTo(GateTab.AuthorityPageText));
+                Assert.That(tabs.TabPages[1].Text, Is.EqualTo(GateTab.ClientsPageText));
+            }
+        }
+
+        [Test]
         public void It_says_which_button_makes_any_of_this_real()
         {
             using (var panel = NewPanel(true))
@@ -63,7 +84,7 @@ namespace KeePassGate.Tests
         {
             using (var panel = NewPanel(true))
             {
-                Button(panel, GateTab.CreateButtonName).PerformClick();
+                panel.CreateAuthority();
 
                 using (var reading = new AuthorityService(_database.Store, null).Read())
                 {
@@ -81,7 +102,7 @@ namespace KeePassGate.Tests
         {
             using (var panel = NewPanel(true))
             {
-                Button(panel, GateTab.CreateButtonName).PerformClick();
+                panel.CreateAuthority();
 
                 Assert.That(_database.MarkedModifiedCount, Is.EqualTo(1));
                 Assert.That(Label(panel, GateTab.ResultLabelName).Text, Is.Empty,
@@ -98,7 +119,7 @@ namespace KeePassGate.Tests
         {
             using (var panel = NewPanel(true))
             {
-                Button(panel, GateTab.CreateButtonName).PerformClick();
+                panel.CreateAuthority();
 
                 Assert.That(Button(panel, GateTab.CreateButtonName).Enabled, Is.False);
                 Assert.That(Button(panel, GateTab.RecreateButtonName).Enabled, Is.True);
@@ -112,10 +133,10 @@ namespace KeePassGate.Tests
             var prompt = new FakePrompt(false);
             using (var panel = NewPanel(prompt))
             {
-                Button(panel, GateTab.CreateButtonName).PerformClick();
+                panel.CreateAuthority();
                 var digest = Digest();
 
-                Button(panel, GateTab.RecreateButtonName).PerformClick();
+                panel.RecreateAuthority();
 
                 Assert.That(prompt.Asked, Is.EqualTo(1));
                 Assert.That(Digest(), Is.EqualTo(digest), "A refused confirmation must change nothing.");
@@ -127,10 +148,10 @@ namespace KeePassGate.Tests
         {
             using (var panel = NewPanel(true))
             {
-                Button(panel, GateTab.CreateButtonName).PerformClick();
+                panel.CreateAuthority();
                 var digest = Digest();
 
-                Button(panel, GateTab.RecreateButtonName).PerformClick();
+                panel.RecreateAuthority();
 
                 Assert.That(Digest(), Is.Not.EqualTo(digest));
                 Assert.That(Label(panel, GateTab.ResultLabelName).Text, Is.Empty,
@@ -144,11 +165,11 @@ namespace KeePassGate.Tests
             var prompt = new FakePrompt(false);
             using (var panel = NewPanel(prompt))
             {
-                Button(panel, GateTab.CreateButtonName).PerformClick();
+                panel.CreateAuthority();
                 _database.Store.Plant(AuthorityKeys.ClientPrefix + "aaa", "record");
                 _database.Store.Plant(AuthorityKeys.ClientPrefix + "bbb", "record");
 
-                Button(panel, GateTab.RecreateButtonName).PerformClick();
+                panel.RecreateAuthority();
 
                 Assert.That(prompt.LastQuestion, Does.Contain("revokes every client"));
                 Assert.That(prompt.LastQuestion, Does.Contain("2 clients are admitted"));
@@ -161,9 +182,9 @@ namespace KeePassGate.Tests
             var prompt = new FakePrompt(true);
             using (var panel = NewPanel(prompt))
             {
-                Button(panel, GateTab.CreateButtonName).PerformClick();
+                panel.CreateAuthority();
 
-                Button(panel, GateTab.DeleteButtonName).PerformClick();
+                panel.DeleteAuthority();
 
                 Assert.That(prompt.Asked, Is.EqualTo(1));
                 Assert.That(_database.Store.Keys.All(k => AuthorityKeys.FingerprintInRetirement(k) != null), Is.True,
@@ -178,9 +199,9 @@ namespace KeePassGate.Tests
             var prompt = new FakePrompt(false);
             using (var panel = NewPanel(prompt))
             {
-                Button(panel, GateTab.CreateButtonName).PerformClick();
+                panel.CreateAuthority();
 
-                Button(panel, GateTab.DeleteButtonName).PerformClick();
+                panel.DeleteAuthority();
 
                 Assert.That(_database.Store.Keys.Count(), Is.EqualTo(1),
                     "the authority is one key, and refusing the question leaves it there");
@@ -217,7 +238,7 @@ namespace KeePassGate.Tests
 
             using (var panel = NewPanel(true))
             {
-                Assert.DoesNotThrow(() => Button(panel, GateTab.CreateButtonName).PerformClick());
+                Assert.DoesNotThrow(() => panel.CreateAuthority());
 
                 Assert.That(Label(panel, GateTab.ResultLabelName).Text, Does.Contain("the database said no"));
                 Assert.That(_database.MarkedModifiedCount, Is.Zero);
@@ -231,7 +252,7 @@ namespace KeePassGate.Tests
 
             using (var panel = NewPanel(true))
             {
-                Button(panel, GateTab.CreateButtonName).PerformClick();
+                panel.CreateAuthority();
 
                 Assert.That(Label(panel, GateTab.ResultLabelName).Text, Does.Contain("could not be read back"));
                 Assert.That(Label(panel, GateTab.StatusLabelName).Text, Is.EqualTo(AuthorityDescription.AbsentHeadline));

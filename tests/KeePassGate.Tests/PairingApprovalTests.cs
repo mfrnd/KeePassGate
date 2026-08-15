@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Drawing;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows.Forms;
 using KeePassGate.Pairing;
@@ -25,6 +27,9 @@ namespace KeePassGate.Tests
     [Apartment(ApartmentState.STA)]
     public sealed class PairingApprovalFormTests
     {
+        /// <summary>How wide the smallest screen the dialog is held to is, at 100%.</summary>
+        private const int SmallestScreenWidth = 1024;
+
         private static readonly TimeSpan Timeout = TimeSpan.FromMinutes(2);
 
         [Test]
@@ -46,6 +51,101 @@ namespace KeePassGate.Tests
                 Assert.That(approve.Top, Is.EqualTo(refuse.Top));
                 Assert.That(approve.Height, Is.EqualTo(refuse.Height));
             }
+        }
+
+        [Test]
+        [TestCase(1.00f)]
+        [TestCase(1.25f)]
+        [TestCase(1.50f)]
+        [TestCase(2.00f)]
+        public void Every_profile_asked_for_can_be_seen_and_unchecked_at_any_scaling(float scaling)
+        {
+            // The dialog used to be a fixed 460 by 340 with the list filling whatever the two
+            // docked bands left. Those bands grow with the font and the client area did not, so at
+            // 125% the list showed one row of what was being asked for and at 150% it showed none,
+            // while every profile stayed checked and Approve granted all of them. A dialog that
+            // hides what it is granting is worse than one that is ugly.
+            using (var dialog = New("ops", "reader", "deploy"))
+            using (var larger = Scaled(dialog.Font, scaling))
+            {
+                dialog.Font = larger;
+                dialog.CreateControl();
+                dialog.PerformLayout();
+
+                var list = ControlTree.FindByName<CheckedListBox>(dialog, GateTab.ApprovalProfilesListName);
+
+                Assert.That(list, Is.Not.Null);
+                Assert.That(list.Items.Count, Is.EqualTo(3), "all three are being asked for");
+                Assert.That(list.Height, Is.GreaterThanOrEqualTo(list.ItemHeight * 2),
+                    "a list showing one row of three profiles is a list the operator cannot read");
+
+                foreach (var name in new[] { GateTab.ApproveButtonName, GateTab.RefuseButtonName })
+                {
+                    var button = ControlTree.FindByName<Button>(dialog, name);
+                    Assert.That(button, Is.Not.Null, name + " is gone at " + scaling);
+                    Assert.That(InDialog(button, dialog).Bottom, Is.LessThanOrEqualTo(Asked(dialog).Height),
+                        name + " is off the bottom of the dialog at " + scaling);
+                    Assert.That(InDialog(button, dialog).Right, Is.LessThanOrEqualTo(Asked(dialog).Width),
+                        name + " is off the side of the dialog at " + scaling);
+                }
+
+                Assert.That(dialog.PreferredSize.Width, Is.LessThanOrEqualTo(SmallestScreenWidth * scaling),
+                    "the dialog is wider than the smallest screen at " + scaling);
+                Assert.That(InDialog(list, dialog).Bottom, Is.LessThanOrEqualTo(Asked(dialog).Height),
+                    "the list is off the bottom of the dialog at " + scaling);
+            }
+        }
+
+        [Test]
+        public void The_dialog_grows_with_the_font_rather_than_clipping()
+        {
+            // The other half of the same claim: the window is sized by what is in it, so a larger
+            // font makes a larger dialog rather than the same dialog with less showing.
+            using (var ordinary = New("ops", "reader", "deploy"))
+            using (var enlarged = New("ops", "reader", "deploy"))
+            using (var larger = Scaled(enlarged.Font, 1.5f))
+            {
+                ordinary.CreateControl();
+                ordinary.PerformLayout();
+
+                enlarged.Font = larger;
+                enlarged.CreateControl();
+                enlarged.PerformLayout();
+
+                Assert.That(enlarged.ClientSize.Height, Is.GreaterThan(ordinary.ClientSize.Height));
+                Assert.That(enlarged.ClientSize.Width, Is.GreaterThan(ordinary.ClientSize.Width));
+            }
+        }
+
+        /// <summary>The same font at a larger size, which is what a scaled display amounts to here.</summary>
+        private static Font Scaled(Font font, float scaling)
+        {
+            return new Font(font.FontFamily, font.Size * scaling, font.Style);
+        }
+
+        /// <summary>
+        /// Where a control sits in the dialog's client area, added up through its parents. A
+        /// control's own bounds are in its parent's coordinates, and a button measured against the
+        /// dialog inside the row that holds it can never be found off the side.
+        /// </summary>
+        private static Rectangle InDialog(Control control, Form dialog)
+        {
+            var where = control.Bounds;
+            for (var parent = control.Parent; parent != null && parent != dialog; parent = parent.Parent)
+            {
+                where.Offset(parent.Location);
+            }
+
+            return where;
+        }
+
+        /// <summary>
+        /// The client area the dialog asks for, which is the one it has until the screen it is on
+        /// is too small for it: its preferred size is not held to the screen, its size is.
+        /// </summary>
+        private static Size Asked(Form dialog)
+        {
+            return dialog.PreferredSize - (dialog.Size - dialog.ClientSize);
         }
 
         [Test]
@@ -120,6 +220,128 @@ namespace KeePassGate.Tests
                 Assert.That(dialog.AcceptButton, Is.SameAs(refuse), "nor must a stray Enter");
             }
         }
+
+        /// <summary>What the close box sends, and what Alt with F4 sends.</summary>
+        private const int WmSysCommand = 0x0112;
+
+        private const int ScClose = 0xF060;
+
+        /// <summary>What the window menu and the taskbar send straight to the window.</summary>
+        private const int WmClose = 0x0010;
+
+        [TestCase(WmSysCommand, ScClose, "the close box, and Alt with F4")]
+        [TestCase(WmClose, 0, "the window menu and the taskbar")]
+        public void Dismissing_the_dialog_rather_than_answering_it_refuses(int message, int command, string how)
+        {
+            // A dialog dismissed unread used to answer that nobody had been at the screen, because
+            // only Escape and Enter reach the refusal and none of these reaches a button at all.
+            // That answer throws away the decision somebody just made: the invitation is not spent,
+            // so the client that was turned away presents it again, and goes on presenting it until
+            // the token runs out, raising this dialog every time.
+            //
+            // Driven at the window, because a button is precisely what is not being pressed here.
+            using (var dialog = New("ops"))
+            {
+                var window = Windowed(dialog);
+
+                SendMessage(window, message, (IntPtr)command, IntPtr.Zero);
+
+                Assert.That(dialog.Answer().Decision, Is.EqualTo(PairingDecision.Refused),
+                    "somebody was at the screen, and what they did with " + how + " was say no");
+            }
+        }
+
+        [Test]
+        public void Approving_on_a_dialog_that_really_closes_is_still_an_approval()
+        {
+            // Approving closes the dialog, and that close arrives where a dismissal arrives. A
+            // refusal recorded there without asking whether an answer had already been given would
+            // turn every press of Approve on a real screen into a refusal, and no test on a dialog
+            // that has no window can see it: such a form is disposed rather than closed.
+            using (var dialog = New("ops"))
+            {
+                Windowed(dialog);
+                dialog.Approve();
+
+                var answer = dialog.Answer();
+
+                Assert.That(answer.Decision, Is.EqualTo(PairingDecision.Approved));
+                Assert.That(answer.Profiles, Is.EqualTo(new[] { "ops" }));
+            }
+        }
+
+        [Test]
+        public void Refusing_on_a_dialog_that_really_closes_is_still_a_refusal()
+        {
+            using (var dialog = New("ops"))
+            {
+                Windowed(dialog);
+                dialog.Refuse();
+
+                Assert.That(dialog.Answer().Decision, Is.EqualTo(PairingDecision.Refused));
+            }
+        }
+
+        [Test]
+        public void A_dialog_the_countdown_closes_has_timed_out_rather_than_refused()
+        {
+            // The trap in reading `CloseReason` instead of what was answered: `Form.Close` reports
+            // `UserClosing` whoever called it, so the clock's own close is indistinguishable from a
+            // press on the close box. Reading that as a refusal would spend the invitation of an
+            // operator who was never at the screen, which is the one thing a timeout exists not to
+            // do.
+            using (var dialog = new PairingApprovalForm(
+                Request("agent-fictitious", new[] { "ops" }), TimeSpan.Zero))
+            {
+                var closed = false;
+                dialog.FormClosed += delegate { closed = true; };
+                Windowed(dialog);
+
+                Assert.That(PumpUntil(() => closed, TimeSpan.FromSeconds(10)), Is.True,
+                    "the countdown closes the dialog it is counting down");
+                Assert.That(dialog.Answer().Decision, Is.EqualTo(PairingDecision.TimedOut));
+            }
+        }
+
+        /// <summary>
+        /// The dialog's window, forced into existence without the dialog being shown.
+        /// </summary>
+        /// <remarks>
+        /// A form with no window of its own is disposed by `Close` rather than closed by it, so
+        /// nothing about closing one can be seen without this.
+        /// </remarks>
+        private static IntPtr Windowed(Form dialog)
+        {
+            dialog.CreateControl();
+
+            var window = dialog.Handle;
+
+            Assert.That(window, Is.Not.EqualTo(IntPtr.Zero));
+            Assert.That(dialog.IsHandleCreated, Is.True);
+
+            return window;
+        }
+
+        /// <summary>Runs the message loop until it has happened, or long enough to say it did not.</summary>
+        private static bool PumpUntil(Func<bool> happened, TimeSpan patience)
+        {
+            var until = DateTime.UtcNow + patience;
+            while (DateTime.UtcNow < until)
+            {
+                if (happened())
+                {
+                    return true;
+                }
+
+                Application.DoEvents();
+                Thread.Sleep(10);
+            }
+
+            return happened();
+        }
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr SendMessage(IntPtr window, int message, IntPtr first, IntPtr second);
 
         [Test]
         public void What_is_asked_for_arrives_checked_so_that_agreeing_is_still_a_decision()

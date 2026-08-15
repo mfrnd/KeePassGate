@@ -114,6 +114,7 @@ words:
   - libwasmtime
 
   # More of the platform, and of the wire
+  - Consolas
   - Ecas
   - HMACSHA
   - keybd

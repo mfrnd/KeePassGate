@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security;
 using System.Security.Cryptography;
+using System.Threading;
 
 namespace KeePassGate.Diagnostics
 {
@@ -130,6 +131,30 @@ namespace KeePassGate.Diagnostics
                    // filter narrow enough to cover the drawing calls alone.
                    || error is ExternalException
                    || error is GateFailure;
+        }
+
+        /// <summary>
+        /// Putting something on the clipboard.
+        /// </summary>
+        /// <remarks>
+        /// `ExternalException` is the one that happens: the clipboard is a single system-wide lock
+        /// and another program can be holding it, which is why `SetDataObject` takes a retry count
+        /// and still gives up eventually. `ThreadStateException` would mean this ran off a
+        /// single-threaded apartment, which is a defect here rather than bad luck, but it is a
+        /// defect that must not take KeePass down with it. Note that `Win32Exception` derives from
+        /// `ExternalException` and is therefore already covered.
+        ///
+        /// **`ArgumentException` is deliberately not here.** The only way `SetDataObject` raises one
+        /// is being handed nothing to put on the clipboard, which is this plugin's own defect rather
+        /// than the desktop being busy. Catching it would report a bug of ours to the operator as
+        /// "another program is holding the clipboard" and tell them to do something that cannot
+        /// work.
+        /// See https://learn.microsoft.com/dotnet/api/system.windows.forms.clipboard.setdataobject
+        /// </remarks>
+        public static bool OfClipboard(Exception error)
+        {
+            return error is ExternalException
+                   || error is ThreadStateException;
         }
 
         /// <summary>

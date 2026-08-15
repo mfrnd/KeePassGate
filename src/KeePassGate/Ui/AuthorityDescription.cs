@@ -42,6 +42,7 @@ namespace KeePassGate.Ui
         private readonly bool _canRecreate;
         private readonly bool _canDelete;
         private readonly bool _isServed;
+        private readonly bool _hasExpired;
 
         private AuthorityDescription(
             string headline,
@@ -50,7 +51,7 @@ namespace KeePassGate.Ui
             bool canCreate,
             bool canRecreate,
             bool canDelete)
-            : this(headline, facts, details, canCreate, canRecreate, canDelete, false)
+            : this(headline, facts, details, canCreate, canRecreate, canDelete, false, false)
         {
         }
 
@@ -61,7 +62,8 @@ namespace KeePassGate.Ui
             bool canCreate,
             bool canRecreate,
             bool canDelete,
-            bool isServed)
+            bool isServed,
+            bool hasExpired)
         {
             _headline = headline;
             _facts = facts == null ? new List<Fact>() : new List<Fact>(facts);
@@ -70,6 +72,7 @@ namespace KeePassGate.Ui
             _canRecreate = canRecreate;
             _canDelete = canDelete;
             _isServed = isServed;
+            _hasExpired = hasExpired;
         }
 
         public string Headline
@@ -124,6 +127,36 @@ namespace KeePassGate.Ui
             get { return _isServed; }
         }
 
+        /// <summary>
+        /// Whether the authority's own dates have passed, which is a state an operator can only
+        /// leave by replacing it.
+        /// </summary>
+        /// <remarks>
+        /// False where there is nothing to ask about, so this is never the reason an absent or a
+        /// damaged authority cannot be invited to. Those two have reasons of their own and the
+        /// page already gives them.
+        /// </remarks>
+        public bool HasExpired
+        {
+            get { return _hasExpired; }
+        }
+
+        /// <summary>
+        /// Whether a code minted now could ever be redeemed, which is a narrower question than
+        /// any of the three buttons on the first page answer.
+        /// </summary>
+        /// <remarks>
+        /// Narrower in both directions that matter. A damaged authority and one past its own
+        /// dates are both authorities recreating is the answer to, and neither can sign anything,
+        /// so the button that offers to recreate has to be alive in exactly the two states where
+        /// the button that hands out a code must not be. `PairingHandler` refuses a pairing
+        /// request on an expired authority before the operator is disturbed.
+        /// </remarks>
+        public bool CanInvite
+        {
+            get { return _isServed && !_hasExpired; }
+        }
+
         public static AuthorityDescription NoDatabase()
         {
             return new AuthorityDescription(NoDatabaseHeadline, null, null, false, false, false);
@@ -172,7 +205,8 @@ namespace KeePassGate.Ui
                 default:
                     return new AuthorityDescription(
                         PresentHeadline, FactsOf(reading), Warnings(reading, clients, now),
-                        false, true, true, true);
+                        false, true, true, true,
+                        CertificateValidity.HasExpired(reading.Material.Authority, now));
             }
         }
 
