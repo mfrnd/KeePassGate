@@ -358,9 +358,9 @@ namespace KeePassGate.Tests
         {
             var document = SpecDocument.Parse(
                 "{\"openapi\":\"3.0.3\",\"info\":{\"title\":\"t\",\"version\":\"1\"},\"paths\":{" +
-                "\"/entries/{uuid}\":{\"get\":{\"operationId\":\"readEntry\",\"x-kpg-verb\":\"read\",\"parameters\":[{\"name\":\"uuid\",\"in\":\"path\",\"required\":true,\"schema\":{\"type\":\"string\"}}]," +
+                "\"/entries/{uuid}\":{\"get\":{\"operationId\":\"readEntry\",\"x-kpg-verb\":\"none\",\"parameters\":[{\"name\":\"uuid\",\"in\":\"path\",\"required\":true,\"schema\":{\"type\":\"string\"}}]," +
                 "\"x-kpg-unauthenticated\":true,\"responses\":{\"200\":{\"description\":\"o\"}}}," +
-                "\"head\":{\"operationId\":\"headEntry\",\"x-kpg-verb\":\"read\",\"parameters\":[{\"name\":\"uuid\",\"in\":\"path\",\"required\":true,\"schema\":{\"type\":\"string\"}}]," +
+                "\"head\":{\"operationId\":\"headEntry\",\"x-kpg-verb\":\"none\",\"parameters\":[{\"name\":\"uuid\",\"in\":\"path\",\"required\":true,\"schema\":{\"type\":\"string\"}}]," +
                 "\"x-kpg-unauthenticated\":true,\"responses\":{\"200\":{\"description\":\"o\"}}}}}}");
 
             IReadOnlyDictionary<string, string> captured = null;
@@ -455,6 +455,9 @@ namespace KeePassGate.Tests
 
                 Assert.That(identity.IsPaired, Is.False);
                 Assert.That(_log.Warnings.Any(w => w.Message.Contains("no admission record")), Is.True);
+                Assert.That(identity.AdmissionKey, Is.EqualTo(CertificateDigest.Of(certificate)),
+                    "a certificate this authority issued is still one the audit can name");
+                Assert.That(identity.Refusal, Is.EqualTo("this certificate has no admission record"));
             }
         }
 
@@ -469,6 +472,26 @@ namespace KeePassGate.Tests
                 _ours.Revoke(certificate);
 
                 Assert.That(ClientCredentials.For(certificate, _ours, _log).IsPaired, Is.False);
+            }
+        }
+
+        [Test]
+        public void A_revoked_certificate_stays_refused_when_its_record_comes_back()
+        {
+            // What a stale copy of the file merged in does: the record is back, profiles and all.
+            // The revocation beside it is what the gate reads, and it never moves.
+            using (var certificate = _ours.IssueClient("agent-fictitious", "ops"))
+            {
+                _ours.Admit(certificate, "ops");
+                Assume.That(_ours.Revoke(certificate), Is.True);
+
+                _ours.Admit(certificate, "ops");
+
+                var identity = ClientCredentials.For(certificate, _ours, _log);
+
+                Assert.That(identity.IsPaired, Is.False);
+                Assert.That(identity.AdmissionKey, Is.EqualTo(CertificateDigest.Of(certificate)),
+                    "refused as one this authority issued, so the audit can name it");
             }
         }
 
@@ -514,6 +537,7 @@ namespace KeePassGate.Tests
 
                 Assert.That(identity.IsPaired, Is.False);
                 Assert.That(_log.Warnings.Any(w => w.Message.Contains("outside its dates")), Is.True);
+                Assert.That(identity.Refusal, Is.EqualTo("this certificate is outside its dates"));
             }
         }
 
@@ -574,6 +598,8 @@ namespace KeePassGate.Tests
 
                 Assert.That(identity.IsPaired, Is.False);
                 Assert.That(_log.Warnings, Is.Not.Empty);
+                Assert.That(identity.AdmissionKey, Is.Null, "a foreign certificate names nobody issued here");
+                Assert.That(identity.Refusal, Is.Null);
             }
         }
 

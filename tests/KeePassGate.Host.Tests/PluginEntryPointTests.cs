@@ -7,6 +7,7 @@ using System.Threading;
 using System.Windows.Forms;
 using KeePass.Plugins;
 using KeePass.UI;
+using KeePassGate.Audit;
 using KeePassGate.Diagnostics;
 using KeePassGate.Ui;
 using NUnit.Framework;
@@ -134,24 +135,30 @@ namespace KeePassGate.Host.Tests
         private KeePassGateExt _plugin;
         private string _logDirectory;
         private string _logWas;
+        private string _auditWas;
 
         /// <summary>
-        /// Points the plugin's log at a file of this fixture's own: every `Initialize` here writes
-        /// to it, and with nothing named that is the log of whoever runs the tests.
+        /// Points the plugin's log and audit at files of this fixture's own: every `Initialize`
+        /// here writes to the log, and with nothing named that is the log of whoever runs the
+        /// tests. Nothing here records a decision, so the audit is named before one ever does.
         /// </summary>
         [OneTimeSetUp]
         public void KeepTheLogOutOfTheAccountsOwn()
         {
             _logWas = Environment.GetEnvironmentVariable(TraceGateLog.LogFileVariable);
+            _auditWas = Environment.GetEnvironmentVariable(JsonLinesAudit.AuditFileVariable);
             _logDirectory = Path.Combine(Path.GetTempPath(), "KeePassGateTests", Guid.NewGuid().ToString("N"));
             Environment.SetEnvironmentVariable(
                 TraceGateLog.LogFileVariable, Path.Combine(_logDirectory, TraceGateLog.DefaultFileName));
+            Environment.SetEnvironmentVariable(
+                JsonLinesAudit.AuditFileVariable, Path.Combine(_logDirectory, JsonLinesAudit.DefaultFileName));
         }
 
         [OneTimeTearDown]
         public void PutTheLogBack()
         {
             Environment.SetEnvironmentVariable(TraceGateLog.LogFileVariable, _logWas);
+            Environment.SetEnvironmentVariable(JsonLinesAudit.AuditFileVariable, _auditWas);
 
             try
             {

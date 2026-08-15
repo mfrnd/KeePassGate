@@ -12,7 +12,9 @@ namespace KeePassGate.Pipeline
     /// </summary>
     /// <remarks>
     /// Four checks, in the order `CA.md` §213 gives them, and every failure is the same
-    /// answer: a stranger, which the route table refuses everywhere but the pairing path.
+    /// answer: a stranger, which the route table refuses everywhere but the pairing path. One
+    /// that fails after the anchor is pinned is a stranger this authority issued, and carries its
+    /// admission key and the reason, so that the refusal can be written down against it.
     ///
     /// **The anchor is pinned** against the resolved database's authority, because the natural
     /// chain validation accepts a certificate from a completely foreign authority: measured, and it
@@ -82,7 +84,8 @@ namespace KeePassGate.Pipeline
                 if (!IsForClientAuthentication(presented))
                 {
                     logger.Warn("refused a certificate that is not for client authentication");
-                    return ClientIdentity.Stranger(databaseId);
+                    return ClientIdentity.Refused(
+                        databaseId, presented, "this certificate is not for client authentication");
                 }
 
                 // A leaf's notAfter is clamped to the authority's at issuance, so a certificate
@@ -90,7 +93,7 @@ namespace KeePassGate.Pipeline
                 if (!CertificateValidity.IsCurrent(presented, now))
                 {
                     logger.Warn("refused a certificate that is outside its dates");
-                    return ClientIdentity.Stranger(databaseId);
+                    return ClientIdentity.Refused(databaseId, presented, "this certificate is outside its dates");
                 }
 
                 var admissionKey = CertificateDigest.Of(presented);
@@ -100,7 +103,7 @@ namespace KeePassGate.Pipeline
                 {
                     logger.Warn("refused a certificate with no admission record: " +
                                 CertificateDigest.Shorten(admissionKey));
-                    return ClientIdentity.Stranger(databaseId);
+                    return ClientIdentity.Refused(databaseId, presented, "this certificate has no admission record");
                 }
 
                 return ClientIdentity.Paired(databaseId, presented, record.Profiles);

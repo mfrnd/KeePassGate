@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Net;
+using KeePassGate.Acl;
 using KeePassGate.Pipeline;
 using KeePassGate.Transport;
 
@@ -24,6 +25,24 @@ namespace KeePassGate.Spec
     public delegate bool OperationGuard(IGateContext context);
 
     /// <summary>
+    /// Which group or entry a request is about, or null when it is about nothing that exists.
+    /// </summary>
+    /// <remarks>
+    /// **The router authorizes, not the handler.** An operation that touches the database declares
+    /// a verb, and the only thing it can be asked about is a node, so the piece a handler has to
+    /// supply is which node. Everything after that is the same for every route: intersect the
+    /// admission record with the rules, write the decision down, and refuse if it went against.
+    ///
+    /// A handler that asked the question itself would be a handler that could forget to, and a
+    /// route added later would then be a route with no rules on it and nothing to say so. This way
+    /// an operation with a verb and no selector stops the plugin loading.
+    ///
+    /// It runs on the connection's thread, reading the database directly, like everything else that
+    /// only reads.
+    /// </remarks>
+    public delegate IAclNode NodeSelector(IGateContext context);
+
+    /// <summary>
     /// The document, dispatching. Handlers bind to `operationId` and never to a path.
     /// </summary>
     /// <remarks>
@@ -40,11 +59,10 @@ namespace KeePassGate.Spec
     /// bytes by then, within `GateOptions.MaxBodyBytes`, because it reads a request whole before
     /// routing it. Then identity, in one place, so a route added later is denied by default rather
     /// than by somebody remembering to guard it.
-    /// Then the operation's own guard, for a precondition the document cannot state. Then the
-    /// body, against the declared schema, so nothing is reported about a body on a route the
-    /// caller may not reach.
-    /// TODO(step 14): authorization, the admission record intersected with the rules, goes between
-    /// the guard and the body. `x-kpg-verb` is declared for it, and decides no request yet.
+    /// Then the operation's own guard, for a precondition the document cannot state. Then
+    /// authorization, the admission record intersected with the rules. Then the body, against
+    /// the declared schema, so nothing is reported about a body on a route the caller may not
+    /// reach.
     ///
     /// **HEAD follows GET.** It is declared beside every `get` and bound to the same handler, and
     /// served by running that handler and discarding what it wrote. RFC 9110 section 9.3.2 asks for the same header
@@ -55,12 +73,25 @@ namespace KeePassGate.Spec
     /// </remarks>
     public sealed class SpecRouter : IGateHandler
     {
+        /// <summary>
+        /// What a caller is told about a node it may not reach, and about one that is not there.
+        /// </summary>
+        /// <remarks>
+        /// **The same thing, deliberately.** Telling them apart would let a client that may reach
+        /// nothing map the database by asking, one identifier at a time, which is exactly what
+        /// `list` exists to be able to withhold. The operator is told the difference, in the audit,
+        /// where a decision says which it was and why.
+        /// </remarks>
+        public const string UnreachableError = "no such route";
+
         /// <summary>Where the router leaves what a path template captured.</summary>
         public const string ParametersItem = "kpg.parameters";
 
         private readonly SpecDocument _document;
         private readonly Dictionary<string, OperationHandler> _handlers;
         private readonly Dictionary<string, OperationGuard> _guards;
+        private readonly Dictionary<string, NodeSelector> _nodes;
+        private readonly AccessCheck _access;
 
         public SpecRouter(SpecDocument document, IReadOnlyDictionary<string, OperationHandler> handlers)
             : this(document, handlers, null)
@@ -71,6 +102,26 @@ namespace KeePassGate.Spec
             SpecDocument document,
             IReadOnlyDictionary<string, OperationHandler> handlers,
             IReadOnlyDictionary<string, OperationGuard> guards)
+            : this(document, handlers, guards, null, null)
+        {
+        }
+
+        /// <param name="nodes">
+        /// Which node each operation is about, for the operations that touch the database. One is
+        /// required for every operation declaring a grantable verb, and refused for one declaring
+        /// `none`, both asserted here as the plugin loads.
+        /// </param>
+        /// <param name="access">
+        /// The record and the rules, combined and recorded. Absent, no operation may declare a
+        /// verb: a router that could not authorize would otherwise serve as though everything were
+        /// permitted.
+        /// </param>
+        public SpecRouter(
+            SpecDocument document,
+            IReadOnlyDictionary<string, OperationHandler> handlers,
+            IReadOnlyDictionary<string, OperationGuard> guards,
+            IReadOnlyDictionary<string, NodeSelector> nodes,
+            AccessCheck access)
         {
             if (document == null)
             {
@@ -91,6 +142,9 @@ namespace KeePassGate.Spec
                 _handlers[pair.Key] = pair.Value;
             }
 
+            _nodes = new Dictionary<string, NodeSelector>(StringComparer.Ordinal);
+            _access = access;
+
             if (guards != null)
             {
                 foreach (var pair in guards)
@@ -99,7 +153,16 @@ namespace KeePassGate.Spec
                 }
             }
 
+            if (nodes != null)
+            {
+                foreach (var pair in nodes)
+                {
+                    _nodes[pair.Key] = pair.Value;
+                }
+            }
+
             Assert();
+            AssertAuthorized();
         }
 
         /// <summary>
@@ -185,6 +248,87 @@ namespace KeePassGate.Spec
             }
         }
 
+        /// <summary>
+        /// Every operation that touches the database can be authorized, and nothing else pretends
+        /// to be.
+        /// </summary>
+        /// <remarks>
+        /// The same argument as the verb itself, one level along. A verb that nothing consults
+        /// would be an operation nobody had thought about the authorization of, and it would serve
+        /// exactly as though everything were permitted. So it does not load.
+        /// </remarks>
+        private void AssertAuthorized()
+        {
+            foreach (var operation in _document.Operations)
+            {
+                var governed = AclVerbs.IsGrantable(operation.Verb);
+
+                if (governed && _access == null)
+                {
+                    throw new InvalidOperationException(
+                        operation.OperationId + " declares " + AclVerbs.Write(operation.Verb) +
+                        " and this router has nothing to authorize with.");
+                }
+
+                if (governed && !_nodes.ContainsKey(operation.OperationId))
+                {
+                    throw new InvalidOperationException(
+                        operation.OperationId + " declares " + AclVerbs.Write(operation.Verb) +
+                        " and nothing says which node it is about, so no rule could be applied to it.");
+                }
+
+                if (!governed && _nodes.ContainsKey(operation.OperationId))
+                {
+                    // A selector nothing consults reads as authorization that is happening and is
+                    // not, which is worse than none.
+                    throw new InvalidOperationException(
+                        operation.OperationId + " declares " + AclVerbs.Write(operation.Verb) +
+                        " and names a node, which nothing would ever ask about.");
+                }
+            }
+
+            foreach (var name in _nodes.Keys)
+            {
+                if (!_handlers.ContainsKey(name))
+                {
+                    throw new InvalidOperationException(
+                        name + " names a node and the routing table does not declare it.");
+                }
+            }
+
+            // Last, so a build that named a node for nothing is told about that before it is
+            // told about the half of a pair it left behind.
+            foreach (var operation in _document.Operations)
+            {
+                if (!string.Equals(operation.Method, "HEAD", StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                var get = _document.Twin(operation);
+                if (get == null)
+                {
+                    continue;
+                }
+
+                NodeSelector mine, its;
+                _nodes.TryGetValue(operation.OperationId, out mine);
+                _nodes.TryGetValue(get.OperationId, out its);
+
+                if (mine != its)
+                {
+                    // A decision is made of three things. The document holds the verb and the
+                    // switch of a pair together and `Assert` holds its handler; what is left is
+                    // the node. A head asking about another one would put this one's rule to
+                    // that one's existence.
+                    throw new InvalidOperationException(
+                        operation.OperationId + " asks about a different node from " +
+                        get.OperationId + ", so the head would be authorized against something" +
+                        " its own get is not.");
+                }
+            }
+        }
+
         public void Handle(IGateContext context)
         {
             if (context == null)
@@ -262,6 +406,15 @@ namespace KeePassGate.Spec
 
             if (operation.NeedsIdentity && !context.Client.IsPaired)
             {
+                // Written down when the certificate is one this database's authority issued, which
+                // is a revoked or expired client still trying and exactly what an operator opens the
+                // audit to see. Here and not at the two refusals above: those name no operation,
+                // and an admitted client asking for one is not written down either.
+                if (_access != null)
+                {
+                    _access.Refuse(context.Client, operation.OperationId);
+                }
+
                 Undeclared.Refuse(context);
                 return;
             }
@@ -276,6 +429,11 @@ namespace KeePassGate.Spec
 
             OperationGuard guard;
             if (_guards.TryGetValue(operation.OperationId, out guard) && !guard(context))
+            {
+                return;
+            }
+
+            if (!Authorized(context, operation))
             {
                 return;
             }
@@ -325,6 +483,36 @@ namespace KeePassGate.Spec
             }
 
             context.Respond(415, HttpResponse.ErrorBody("media type"));
+            return false;
+        }
+
+        /// <summary>
+        /// The rules, before the body.
+        /// </summary>
+        /// <remarks>
+        /// **Before**, and for the same reason the guard is: checking a body first would let a
+        /// caller that may not reach a node learn whether its body would have been accepted, which
+        /// is a difference the refusal exists to deny.
+        /// </remarks>
+        private bool Authorized(IGateContext context, SpecOperation operation)
+        {
+            if (!AclVerbs.IsGrantable(operation.Verb))
+            {
+                // An operation that touches no data. The status route reads nothing and pairing is
+                // authorized by a person reading a dialog, so there is no question to ask and
+                // nothing to write down about one.
+                return true;
+            }
+
+            var node = _nodes[operation.OperationId](context);
+
+            if (_access.Permits(
+                    context.Client, operation.OperationId, operation.Verb, operation.Reach, node))
+            {
+                return true;
+            }
+
+            context.Respond(404, HttpResponse.ErrorBody(UnreachableError));
             return false;
         }
 

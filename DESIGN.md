@@ -686,7 +686,9 @@ So the rules here:
   it against the four timeouts it has to outlast.
 - **Nothing throws to the transport.** A handler failure becomes `500 internal error` and an
   incident, counted on the KPG tab and logged at `UNEXPECTED`, because an unhandled exception in
-  this process takes KeePass with it.
+  this process takes KeePass with it. It is not audited, which this bullet used to claim: the
+  request's audit line is the permitted one written before the handler ran, since the audit
+  records the authorization and not what the request then did.
 - Distribution is a **plain DLL** targeting .NET Framework 4.8, not a `.plgx`, which is what allows
   modern C# and what the packaging measurement showed.
 

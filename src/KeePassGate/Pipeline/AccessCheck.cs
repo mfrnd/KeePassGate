@@ -62,6 +62,38 @@ namespace KeePassGate.Pipeline
         {
             var decision = Answer(client, verb, reach, node);
 
+            Write(client, operationId, node == null ? null : node.Name, decision.DecidedAt,
+                decision.Permitted, decision.Reason);
+
+            return decision;
+        }
+
+        /// <summary>
+        /// Writes down a certificate this database's authority issued and the gate refused, as it
+        /// asked for an operation it therefore cannot have.
+        /// </summary>
+        /// <remarks>
+        /// **Not a decision about the rules, and written down beside them anyway.** No rule was
+        /// asked, because a certificate with no admission record has no profiles to ask with. But
+        /// the operator who revokes a client opens this file to see whether it keeps trying, and a
+        /// revoked client hammering the gate otherwise looked exactly like one that stopped. What
+        /// is written is the key the Clients page revoked and the reason the credential check
+        /// gave. A caller that proved nothing, or proved it to another authority, names nobody the
+        /// operator issued and is not written down: see <see cref="ClientIdentity.Refusal"/>.
+        /// </remarks>
+        public void Refuse(ClientIdentity client, string operationId)
+        {
+            if (client == null || client.Refusal == null)
+            {
+                return;
+            }
+
+            Write(client, operationId, null, null, false, client.Refusal);
+        }
+
+        private void Write(
+            ClientIdentity client, string operationId, string node, string decidedAt, bool permitted, string reason)
+        {
             // Before the line, so the wait is paid by the request that would have written it.
             _pace.Take(client == null ? null : client.AdmissionKey);
 
@@ -70,21 +102,20 @@ namespace KeePassGate.Pipeline
                 client == null ? null : client.DatabaseId,
                 client == null ? null : client.AdmissionKey,
                 operationId,
-                node == null ? null : node.Name,
-                decision.DecidedAt,
-                decision.Permitted,
-                decision.Reason));
-
-            return decision;
+                node,
+                decidedAt,
+                permitted,
+                reason));
         }
 
         private static AclDecision Answer(ClientIdentity client, AclVerb verb, AclReach reach, IAclNode node)
         {
             if (client == null || !client.IsPaired)
             {
-                // The router refuses a stranger long before this, so reaching here would be a
-                // defect rather than an attack. It still answers no, because a check that trusted
-                // its caller to have checked is a check that stops being one.
+                // The router refuses a stranger long before this, writing a refused certificate
+                // down through `Refuse`, so reaching here would be a defect rather than an attack.
+                // It still answers no, because a check that trusted its caller to have checked is
+                // a check that stops being one.
                 return AclDecisions.Refused("this client is not admitted");
             }
 

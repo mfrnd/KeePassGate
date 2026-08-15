@@ -20,8 +20,10 @@ nowhere to go, and a document that disagrees with the handlers stops the plugin 
 grant means is now settled**: rules live in group and entry `CustomData`, nearest wins per profile,
 and every operation declares the verb it needs or the plugin does not load. **An operator can now
 write one**: the KPG tab on the group and entry dialogs edits the rules as a `CRUSDLAP` mask,
-writing into the copy the dialog puts back on OK. Step 14, the intersection with the admission record
-and the audit log, is what is left; nothing enforces the rules until it lands.
+writing into the copy the dialog puts back on OK. **And the two halves are combined**: the router
+intersects the admission record with the rules before any handler runs, and writes every decision
+the rules make, and every certificate the database issued that an operation turns away, to a JSON Lines file
+outside the database.
 
 ## Read these before proposing anything
 
@@ -496,10 +498,10 @@ hands back with the one it was given, so a rule respelled by a byte is a changed
 revision in its history and the database marked modified, for having been looked at.
 
 **Step 14 is the intersection and the audit**: the profiles from the admission record and the answer
-from the ACL, combined, and every decision recorded. `AccessCheck` now combines them and writes
-every decision to the audit, and nothing asks it yet. `AclDecision` carries why as well as whether,
-and it names the node that decided by its UUID rather than by its title, because that is what a
-log can safely hold.
+from the ACL, combined, and every decision recorded. `AccessCheck` combines them and writes every
+decision to the audit, and the router asks it before any handler runs. `AclDecision` carries why as
+well as whether, and it names the node that decided by its UUID rather than by its title, because
+that is what a log can safely hold.
 
 **What step 12 settled about verbs.** A rule holds **six verbs and two switches**, which is
 `CRUSDLAP` and is the order they are declared, written and shown in. The verbs are create, read,

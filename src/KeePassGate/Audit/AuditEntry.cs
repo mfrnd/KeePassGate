@@ -32,9 +32,11 @@ namespace KeePassGate.Audit
     ///
     /// **That null is why `JsonBody` cannot read a line back**, since that reader takes strings and
     /// arrays of strings and nothing else. It is a real cost and it is paid deliberately: the lines
-    /// it refuses are exactly the interesting ones, a question that never reached a node and a
-    /// caller that had no identity, and nothing in the plugin reads the audit back anyway. The
-    /// reader this file is written for is whatever the operator already greps with.
+    /// it refuses are exactly the interesting ones, a question that never reached a node, which is
+    /// every certificate this authority issued and the gate refused, and nothing in the plugin
+    /// reads the audit back anyway. A line with no client is written only by a defect: a caller
+    /// that proved nothing to this authority is not written down at all. The reader this file is
+    /// written for is whatever the operator already greps with.
     /// </remarks>
     public sealed class AuditEntry
     {

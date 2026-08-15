@@ -1,5 +1,6 @@
 using System;
 using KeePass.Plugins;
+using KeePassGate.Audit;
 using KeePassGate.Bridge;
 using KeePassGate.Diagnostics;
 using KeePassGate.Gate;
@@ -48,6 +49,7 @@ namespace KeePassGate
         /// dialog closes.
         /// </remarks>
         private readonly AdmissionNotice _admissions = new AdmissionNotice();
+        private JsonLinesAudit _audit;
         private OpenDatabaseTargets _targets;
         private GateListener _listener;
 
@@ -162,6 +164,11 @@ namespace KeePassGate
                 }
 
                 _invitations = new InvitationBook(_log);
+
+                // The audit is opened before anything can be decided, and it is the plugin's own
+                // file rather than the database's: a record of what an agent reached, kept inside
+                // the thing it reached, is a record whoever compromised the database can edit.
+                _audit = new JsonLinesAudit(_log);
 
                 StartListening(host);
 
@@ -410,7 +417,8 @@ namespace KeePassGate
                 new GateResolver(_targets, _invitations, _log),
                 GateOperations.Router(
                     GateVersion.Current,
-                    new PairingHandler(_invitations, new PairingApprovalPrompt(ui, _log), _log)),
+                    new PairingHandler(_invitations, new PairingApprovalPrompt(ui, _log), _log),
+                    new AccessCheck(_audit)),
                 _incidents,
                 _log);
 

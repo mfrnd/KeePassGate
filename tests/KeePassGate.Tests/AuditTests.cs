@@ -63,9 +63,10 @@ namespace KeePassGate.Tests
             Assert.That(line, Does.Contain("\"decidedAt\":null"));
 
             // And the cost of saying it that way, asserted rather than left to be discovered: this
-            // plugin's own reader refuses null, so a question that never reached a node and a
-            // caller that had no identity are exactly the lines it cannot read back. Nothing reads
-            // the audit back, so the trade is worth making; it is not worth making by accident.
+            // plugin's own reader refuses null, so a question that never reached a node, which is
+            // every certificate the gate refused, is exactly the line it cannot read back. Nothing
+            // reads the audit back, so the trade is worth making; it is not worth making by
+            // accident.
             Assert.That(JsonBody.Read(line), Is.Null,
                 "a null member is what `JsonBody` will not take, and this is where that shows");
         }
