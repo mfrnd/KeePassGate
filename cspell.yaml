@@ -87,6 +87,7 @@ words:
 
 
   # This project
+  - CRUSDLAP
   - KeePassGate
   - PyKeePassGate
   - pykeepass
