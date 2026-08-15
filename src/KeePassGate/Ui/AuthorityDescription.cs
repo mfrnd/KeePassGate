@@ -28,6 +28,9 @@ namespace KeePassGate.Ui
         public const string DamagedHeadline =
             "This database holds an authority that cannot be used.";
 
+        public const string UndecidedHeadline =
+            "This database holds more than one authority, so nothing is served.";
+
         private readonly string _headline;
         private readonly List<Fact> _facts;
         private readonly List<string> _details;
@@ -144,10 +147,36 @@ namespace KeePassGate.Ui
                     return new AuthorityDescription(
                         DamagedHeadline, null, Damage(reading), false, true, true);
 
+                case AuthorityPresence.Undecided:
+                    // Recreating and deleting both still mean what they say: every one of the
+                    // candidates is retired either way, so both are offered. Creating is not,
+                    // because there is no absence to fill.
+                    return new AuthorityDescription(
+                        UndecidedHeadline, null, Undecided(reading), false, true, true);
+
                 default:
                     return new AuthorityDescription(
                         PresentHeadline, FactsOf(reading), Warnings(reading, now), false, true, true, true);
             }
+        }
+
+        /// <summary>
+        /// What is true of a database holding several authorities, and what to do about it.
+        /// </summary>
+        /// <remarks>
+        /// Why before what, because the state is surprising and nothing the operator did on this
+        /// machine explains it: two copies of the file each made an authority of their own, and a
+        /// merge brought both back. What it costs is that nothing is served, which is the part a
+        /// client somewhere is already finding out.
+        /// </remarks>
+        private static IEnumerable<string> Undecided(AuthorityReading reading)
+        {
+            return new List<string>
+            {
+                reading.Candidates.Count.ToString(CultureInfo.InvariantCulture) +
+                " authorities were made separately in copies of this database that were later " +
+                "merged. Nothing is served until one of them is kept."
+            };
         }
 
         private static IEnumerable<string> RecordsOnly(AuthorityReading reading)
@@ -217,7 +246,7 @@ namespace KeePassGate.Ui
         private static void Expiry(ICollection<string> lines, string what, DateTime notAfter, DateTimeOffset now)
         {
             var expires = new DateTimeOffset(notAfter.ToUniversalTime(), TimeSpan.Zero);
-            if (expires <= now)
+            if (CertificateValidity.HasExpired(expires, now))
             {
                 lines.Add(what + " expired on " + Stamp(notAfter) + ".");
                 return;

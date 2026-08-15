@@ -16,7 +16,9 @@ namespace KeePassGate.Authority
     /// certificate from one replica and the private key of a different authority from another, and
     /// the pair would no longer chain: the store would read that as damaged, the gate would serve
     /// nothing, and the only remedy is a recreation that revokes every client. Inside one key
-    /// there is nothing to take apart, so whichever replica wins contributes all three.
+    /// there is nothing to take apart. And since that key is named by the authority's own digest
+    /// and written once, two replicas holding it hold the same three parts, so a merge has nothing
+    /// to choose between either.
     ///
     /// The shape is what `JsonBody` already reads, one flat object of strings, so no parser
     /// arrives with this and nothing about escaping is decided twice.

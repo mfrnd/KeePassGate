@@ -73,19 +73,28 @@ designing around them.
   and merges those key by key; a group's dictionary carries no stamps at all, so
   `PwGroup.AssignProperties` replaces the whole of it from whichever replica's group was touched
   last. Records shaped one-per-client to survive a merge did not. Two consequences worth keeping
-  straight. The authority's three parts are **one key**, `AuthorityDocument`, because there the
+  straight. Each authority's three parts are **one key**, `AuthorityDocument`, because there the
   argument runs the other way: merged apart, a certificate from one replica and a private key from
-  another read as damage. And **a revocation is written empty rather than removed**, since a merge
-  carries a newer value and carries nothing for a key that went. See CA.md §204.
+  another read as damage. And **what has to survive a merge is a key that is only ever added**,
+  because a KeePass merge never removes a key and never reads a value. A revocation is
+  `KPG.Revoked.<key>` beside the emptied record, never changed and pruned once the certificate has
+  expired; an authority is one key per authority, `KPG.Authority.<fp>`, written once, and one
+  recreated or deleted gets `KPG.RetiredAuthority.<fp>` beside it, so which one is served is decided
+  by the retirements and never by counting documents. **This reverses two rules**: a revocation used
+  to be written empty rather than removed and the only authority lived under one key, both resting
+  on a merge carrying the newer value, which a dropped time, a slow clock or an import defeats. A
+  record that comes back beside its revocation is deleted by the plugin's next write, and recreating
+  or deleting the authority removes every record and every revocation with it. See CA.md §204.
 - **The authority takes the file to KDBX 4.1**, because a per-key modification time is a 4.1
   field. A database saved with an authority in it is a 4.1 file before anything has paired with
   it, and a record keeps it there. That is a format and not a gate: KeePass 2.47
-  opens it and saves it back as 4.0 without the per-key times a revocation needs to travel, and so
-  does KeePassXC. See CA.md §204.
+  opens it and saves it back as 4.0 without the per-key times, and so does KeePassXC. A revocation
+  no longer needs them, being a key of its own, but merging in another program can still undo one,
+  which is why a paired database belongs in KeePass 2.48 or later with the plugin. See CA.md §204.
 - **The admission record is load bearing.** A certificate that chains, passes its EKU check and has
-  no record in the database is refused, and the permitted profiles are read from the **record**, not
-  from the certificate's SAN. This is not belt and braces: it is what makes a lost record fail
-  closed. See the `GroupForm` trap below.
+  no record in the database is refused, and so is one whose record has a revocation beside it. The
+  permitted profiles are read from the **record**, not from the certificate's SAN. This is not belt
+  and braces: it is what makes a lost record fail closed. See the `GroupForm` trap below.
 - **Claims carry profile names only**: `kpg://profile/<name>`. No database identifier, because the
   issuing authority already identifies it. **There is no `kpg://any` wildcard**, and re-proposing one
   reopens a measured escalation.

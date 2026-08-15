@@ -52,9 +52,9 @@ namespace KeePassGate.Host.Tests
         {
             _service.Create();
 
-            Assert.That(_database.Database.CustomData.Exists(AuthorityKeys.Authority), Is.True,
+            Assert.That(_database.Database.CustomData.Exists(AuthorityKey()), Is.True,
                 "one key, so a merge cannot take the three parts from different replicas");
-            Assert.That(_database.RootGroup.CustomData.Exists(AuthorityKeys.Authority), Is.False,
+            Assert.That(_database.RootGroup.CustomData.Exists(AuthorityKey()), Is.False,
                 "and nothing of this plugin's is left where the group dialog's snapshot reaches");
         }
 
@@ -121,6 +121,32 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void Deleting_takes_the_revocations_out_of_the_file()
+        {
+            _service.Create();
+
+            string admissionKey;
+            using (var reading = _service.Read())
+            using (var client = new AuthorityIssuer().IssueClient(reading.Material.Authority, "agent-fictitious", new[] { "ops" }))
+            {
+                var admissions = new AdmissionStore(new CustomDataStore(_database.Database), NullGateLog.Instance);
+                var record = AdmissionRecord.For(client, DateTimeOffset.UtcNow, new[] { "ops" });
+                admissions.Write(record);
+                Assume.That(admissions.Remove(record.AdmissionKey), Is.True);
+                admissionKey = record.AdmissionKey;
+            }
+
+            _database.Save();
+            Assume.That(_database.Database.CustomData.Exists(AuthorityKeys.RevocationKey(admissionKey)), Is.True);
+
+            Assume.That(_service.Delete().Succeeded, Is.True);
+            _database.SaveCloseAndReopen();
+
+            Assert.That(_database.Database.CustomData.Exists(AuthorityKeys.RevocationKey(admissionKey)), Is.False);
+            Assert.That(_database.Database.CustomData.Exists(AuthorityKeys.ClientRecordKey(admissionKey)), Is.False);
+        }
+
+        [Test]
         public void Writing_stamps_the_key_so_a_replica_can_merge_it()
         {
             // The dictionary does this itself, which is the property the authority was moved here
@@ -135,13 +161,13 @@ namespace KeePassGate.Host.Tests
                 "KeePass no longer stamps a key of a database's own custom data, which is what a merge orders by");
 
             var stamped = (DateTime?)accessor.Invoke(
-                _database.Database.CustomData, new object[] { AuthorityKeys.Authority });
+                _database.Database.CustomData, new object[] { AuthorityKey() });
 
             Assert.That(stamped, Is.Not.Null, "the authority was written without a modification time");
             Assert.That(stamped.Value, Is.GreaterThan(DateTime.UtcNow.AddMinutes(-5)));
 
             var onTheGroup = (DateTime?)accessor.Invoke(
-                _database.RootGroup.CustomData, new object[] { AuthorityKeys.Authority });
+                _database.RootGroup.CustomData, new object[] { AuthorityKey() });
             Assert.That(onTheGroup, Is.Null,
                 "a group's dictionary keeps no per-key time, which is why nothing of ours is on it");
         }
@@ -160,7 +186,7 @@ namespace KeePassGate.Host.Tests
         {
             _service.Create();
 
-            var stored = _database.Database.CustomData.Get(AuthorityKeys.Authority);
+            var stored = _database.Database.CustomData.Get(AuthorityKey());
             Assert.That(stored, Is.Not.Null.And.Not.Empty);
 
             var body = JsonBody.Read(stored);
@@ -176,6 +202,16 @@ namespace KeePassGate.Host.Tests
                 var value = body.Text(part);
                 Assert.That(value, Is.Not.Null.And.Not.Empty, part + " is missing");
                 Assert.DoesNotThrow(() => Convert.FromBase64String(value), part + " is not base64");
+            }
+        }
+
+        /// <summary>The key the authority the database holds now is stored under.</summary>
+        private string AuthorityKey()
+        {
+            using (var reading = _service.Read())
+            {
+                Assume.That(reading.IsPresent, "there has to be an authority to name its key");
+                return AuthorityKeys.AuthorityKey(reading.Material.AuthorityDigest);
             }
         }
     }

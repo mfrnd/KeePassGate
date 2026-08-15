@@ -88,12 +88,15 @@ KeePass stamps key by key and merges the same way. A node's access rule is the e
 on that node, where it belongs and travels. Everything requires KDBX 4, and this requires KDBX 4.1,
 because a per-key modification time is a 4.1 field: a database that has been paired with is a 4.1
 file. That is a format and not a gate, since an older KeePass opens the file and saves it back
-without the times, which is what the revocation paragraph below turns on.
+without the times. Nothing that has to survive a merge turns on them any more, which is what the
+revocation paragraph below is about.
 
 | Key | Contents | Written |
 | --- | --- | --- |
-| `KPG.Authority` | the authority, the host certificate and the gate key, all three in one document | at creation, and on recreation |
-| `KPG.Client.<sha256>` | one admission record per paired client | at every pairing |
+| `KPG.Authority.<sha256>` | one authority, filed under the digest of its certificate: the authority, the host certificate and the gate key, all three in one document | once, at creation and on recreation, and never rewritten |
+| `KPG.RetiredAuthority.<sha256>` | the constant `retired`, for an authority recreated, deleted or not kept | once, and never changed or removed |
+| `KPG.Client.<sha256>` | one admission record per paired client | at every pairing, and written empty when the client is revoked |
+| `KPG.Revoked.<sha256>` | the revoked certificate's `notAfter` | once, when the client is revoked, and never changed; removed once that moment has passed |
 
 **Not the root group, and the group dialog is why.** `GroupForm` copies a group's `CustomData` when
 it opens and writes the copy back on OK, so anything written to the root group while an Edit Group
@@ -118,35 +121,78 @@ replaces the whole of it from whichever replica's group was touched last. Two ho
 different clients keep both only in the first. A single blob would be last-writer-wins in either,
 and would lose pairings silently.
 
-**A revocation is written as an empty value rather than as a removal.** A merge carries a newer
-value; it carries nothing at all for a key that went, so a record removed on one copy and still
-present in another comes back on the next synchronize, admitting a client the operator believes is
-gone. The empty value is the removal in a form the merge can carry. It is read as no record
-everywhere, and the mark stays in the file: one string per client ever paired.
+**A revocation is a key of its own, only ever added and never changed.** Revoking adds
+`KPG.Revoked.<sha256>` beside the record, holding the certificate's `notAfter`, and writes the
+record empty, and a client is admitted only by a record that is not empty and has no revocation
+beside it. What makes that hold was measured on KeePass 2.61.1, and the host tests pin it against
+the KeePass this builds with: `PwDatabase.MergeInDbProperties` visits the source's keys and no
+others, so **a KeePass merge never removes a key the target holds**, and it decides a key both
+sides hold by modification time, the merge method and `SettingsChanged`, so **it never reads a
+value**. A key that is added once and never changed survives every KeePass merge and import,
+whatever the clocks say and whether or not a program in between dropped the times.
 
-**It carries only while the file keeps the time the mark was written at, and other programs decide
-that.** The time is the 4.1 field, and a program that saves the file without it leaves a mark with
-nothing to be newer with. Measured: KeePassXC 2.7.12 saves a paired file as 4.0 with every time
-gone, and so does KeePass 2.47, which opens a 4.1 file rather than refusing it; pykeepass 4.2.0
-keeps them. KeePass 2.61.1 then keeps whichever side is stamped, or whichever side already holds
-the key, so a synchronize against a copy that still holds the record admits the client again with
-everything it had, whichever copy the synchronize runs from. A later save in KeePass puts the 4.1
-header back and not the times, so the version says nothing about whether the marks can still
-travel. The time is also the revoking host's clock, compared with the pairing host's record, so a
-revocation made sooner after the pairing than the two clocks disagree by loses the same way. And
-**File > Import** with *Overwrite existing* is not a merge at all: it puts back every record the
-imported copy held, revoked ones included, and the authority it held. The plugin sees none of this,
-since KeePass keeps the times behind an internal accessor and has no hook for an import, and cannot
-stamp a mark again, since writing the value already there is not a change. What it can do is revoke
-a record that came back, which writes a new mark: a record that returns is listed on the clients
-page as a client again.
+**This reverses the empty record as the revocation**, and the argument for it is kept because it was
+right about the merge and wrong about what the merge would be given. A merge carries a newer value
+and carries nothing at all for a key that went, so the empty value was the removal in a form the
+merge could carry. It carried only while the file kept the time the mark was written at, and other
+programs decide that: KeePassXC 2.7.12 saves a paired file as 4.0 with every time gone, and so does
+KeePass 2.47, which opens a 4.1 file rather than refusing it, after which KeePass 2.61.1 keeps
+whichever side is stamped or already holds the key. The time was also the revoking host's clock,
+compared with the pairing host's record, so a revocation made sooner after the pairing than the two
+clocks disagree by lost the same way. And **File > Import** with *Overwrite existing* put back every
+record the imported copy held. In each of those the client was admitted again with everything it
+had, and the plugin, which cannot see the times or an import, could only revoke it again. The
+emptied record is still written, and is still that losing kind of mark: a stale copy can bring it
+back, and the revocation beside it is what refuses it when it does.
 
-**The authority's three parts are one key, and that is the same argument the other way.** A merge
-that took them separately could take the certificate from one replica and the private key from
-another, and the host certificate would no longer chain to the authority beside it: the store reads
-that as damaged, the gate serves nothing, and the only remedy revokes every client. Inside one key
-there is nothing to take apart, so whichever replica wins contributes all three. `AuthorityDocument`
-is the shape, one flat object of strings, which is what `JsonBody` already reads.
+**A record that comes back is taken away by the plugin's next write.** It admits nobody meanwhile,
+since admission reads the revocation rather than waiting for this, and the clients page is to count
+it under the list rather than listing it as a client. The write it rides on is one this plugin makes
+anyway: a revocation, a pairing, keeping one authority, recreating or deleting it. Opening or
+reading a database changes nothing in it.
+
+**A revocation goes once its certificate has expired**, during the next revocation, because past
+`notAfter` the gate refuses that certificate on its dates and the key has nothing left to refuse. A
+stale copy that brings a pruned one back does no harm, and it is pruned again. A record that cannot
+be read gives no date, and its revocation is written empty and kept.
+
+**Each authority is one key, and that is the same argument the other way.** A merge that took its
+parts separately could take the certificate from one replica and the private key from another, and
+the host certificate would no longer chain to the authority beside it: the store reads that as
+damaged, the gate serves nothing, and the only remedy revokes every client. Inside one key there is
+nothing to take apart. `AuthorityDocument` is the shape, one flat object of strings, which is what
+`JsonBody` already reads.
+
+**One key per authority, filed under its digest, rather than one key for the only authority**, and
+that reverses the single `KPG.Authority` key for the reason the revocations moved: a recreation
+written over the old key lost to any copy whose time for that key was later, so a stale copy merged
+in could put back the authority the operator had replaced. A document is now written once and never
+rewritten in place. What replaces it is a retirement, `KPG.RetiredAuthority.<sha256>`, added beside
+it and never changed or removed: recreating retires the old authority, deletes its document and
+writes the new one, and deleting retires it and deletes its document. Anything that later wants to
+renew a part, the host certificate say, needs a key of its own that is also written once. The single
+key is not read or migrated: a database that holds one reads as having no authority, and is given a
+new one and paired again.
+
+**Which authority a database has is decided by the retirements, never by counting documents.** The
+authorities are the documents with no retirement beside them, so a retired document that a merge
+brings back serves nothing, and the plugin's next write takes it away again. **More than one
+authority with no retirement serves nothing**: that is two copies that each created or recreated
+one, meeting in a synchronize, and choosing between them is the operator's decision rather than
+this plugin's.
+
+**Recreating and deleting both remove every admission record, and every revocation with the records
+it emptied.** Each certificate they name chains to the authority just retired, and the retirement
+refuses it whatever a stale copy brings back, so a revocation beside it would refuse nothing more.
+This reverses recreation emptying the records rather than removing them, which it did while the
+replacement went under the same key and an emptied record was the only mark a merge with an older
+copy would carry.
+
+**All of this is a claim about KeePass 2.48 or later with the plugin in it.** Other programs can open
+the database, and saving or merging in one can quietly bring back a revoked client, a retired
+authority or a removed profile, because their merges replace or drop keys: KeePassXC 2.7.12, the
+one read from source, replaces the whole dictionary. Nothing here detects that. After any change
+made outside KeePass, the authority, and the clients page once pairing brings it, are where to look.
 
 ### How each value is written §222
 
@@ -464,7 +510,8 @@ which one.
 CRL adds a refresh window in which a revoked client still works.
 
 The admission record does both jobs. A certificate that chains, passes its EKU check and has no
-record is refused. Revoking is deleting the record, which takes effect on the next connection,
+record is refused, and so is one with a revocation beside it. Revoking adds that revocation and
+empties the record, §204, which takes effect on the next connection,
 offline and immediately.
 
 **The key is SHA-256 over the certificate's `RawData`**, compared in fixed time, stored lowercase
@@ -533,3 +580,6 @@ Recorded because a reader seeing only this version will not know which parts wer
 | Everything loaded with `EphemeralKeySet`, on SChannel | still everything, on a managed TLS stack | measured: SChannel cannot use an ephemeral key, so keeping the platform's TLS would have meant writing the host key to the disk |
 | A stored pair was to be checked by issuer name | checked with the anchor pin | every authority shares one subject, so names match where bytes do not |
 | SAN read loosely | ASN.1 tags, reject rather than repair | measured three ways to smuggle a claim past a renderer |
+| A revocation written as an empty record | a revocation key of its own beside the emptied record, only ever added | measured: a KeePass merge never removes a key and never reads a value, while the empty record lost to a dropped time, a slow clock and an import |
+| One `KPG.Authority` key for the only authority | one key per authority, filed under its digest, with a retirement beside every one replaced | a recreation written over the old key lost to a later time, so a stale copy could put a replaced authority back |
+| Recreating emptied the records | recreating and deleting remove them, and the revocations | the retirement refuses every old certificate, so the emptied records refused nothing more |

@@ -194,7 +194,7 @@ namespace KeePassGate.Host.Tests
         public void A_damaged_authority_is_not_served_and_does_not_stop_the_others()
         {
             CreateAuthorityIn(_first);
-            _second.Database.CustomData.Set(AuthorityKeys.Authority, "rubbish");
+            _second.Database.CustomData.Set(AuthorityKeys.AuthorityKey(new string('d', 64)), "rubbish");
 
             var targets = _targets.Current();
 

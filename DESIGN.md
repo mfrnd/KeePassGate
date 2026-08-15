@@ -368,8 +368,10 @@ against the host that issued its invitation.
 **One hazard that is KeePass's, not ours.** Two KeePass instances writing one replicated kdbx is the
 ordinary multi-writer problem, and this design does not solve it. Admission records are one key per
 client in the database's own `CustomData` precisely so a merge is per client rather than
-last-writer-wins, and a revocation is written empty rather than removed so that the merge carries it
-too; see CA.md §204. The safe arrangement is still one writer and any number of readers.
+last-writer-wins, and a revocation or a retired authority is a key of its own that is only ever
+added, because a KeePass merge never removes a key and never reads a value; see CA.md §204. That
+replaced a revocation written as an empty record, which a merge carried only while the file kept its
+times. The safe arrangement is still one writer and any number of readers.
 
 **Two copies of one database open at once** share an authority and a `SniKey` and are genuinely
 indistinguishable. The plugin refuses to serve while that is true, rather than guessing, and logs

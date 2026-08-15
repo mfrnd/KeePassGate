@@ -139,7 +139,7 @@ namespace KeePassGate.Tests
 
     /// <summary>
     /// Turning a presented certificate into an identity, which is the whole of authentication
-    /// until the admission record lands. TODO(step 7): that is step 7.
+    /// until the admission record is required. TODO(step 7): that is step 7.
     /// </summary>
     [TestFixture]
     public sealed class ClientCredentialsTests
@@ -180,8 +180,8 @@ namespace KeePassGate.Tests
         [Test]
         public void It_carries_no_profiles_yet_whatever_the_certificate_claims()
         {
-            // Profiles come from the admission record, never from the certificate, and there are
-            // no records yet. TODO(step 7): they land in step 7.
+            // Profiles come from the admission record, never from the certificate, and nothing
+            // here reads one yet. TODO(step 7): that lands in step 7.
             using (var certificate = _ours.IssueClient("agent-fictitious", "ops", "readonly"))
             {
                 var identity = ClientCredentials.For(certificate, _ours, _log);

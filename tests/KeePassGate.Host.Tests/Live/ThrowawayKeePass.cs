@@ -445,7 +445,7 @@ namespace KeePassGate.Host.Tests.Live
             try
             {
                 database.Open(IOConnectionInfo.FromPath(DatabasePath), NewKey(), null);
-                return new AuthorityStore(new CustomDataStore(database)).Read();
+                return new AuthorityStore(new CustomDataStore(database), NullGateLog.Instance).Read();
             }
             finally
             {

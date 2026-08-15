@@ -166,7 +166,8 @@ namespace KeePassGate.Tests
                 Button(panel, GateTab.DeleteButtonName).PerformClick();
 
                 Assert.That(prompt.Asked, Is.EqualTo(1));
-                Assert.That(_database.Store.Keys, Is.Empty);
+                Assert.That(_database.Store.Keys.All(k => AuthorityKeys.FingerprintInRetirement(k) != null), Is.True,
+                    "nothing is left but the retirement that keeps it deleted");
                 Assert.That(Label(panel, GateTab.StatusLabelName).Text, Is.EqualTo(AuthorityDescription.AbsentHeadline));
             }
         }
@@ -241,7 +242,7 @@ namespace KeePassGate.Tests
         [Test]
         public void Damage_is_shown_and_only_the_two_buttons_that_can_help_are_offered()
         {
-            _database.Store.Plant(AuthorityKeys.Authority, "rubbish");
+            _database.Store.Plant(AuthorityKeys.AuthorityKey(new string('d', 64)), "rubbish");
 
             using (var panel = NewPanel(true))
             {

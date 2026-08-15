@@ -158,8 +158,9 @@ namespace KeePassGate.Bridge
             try
             {
                 // The database's own custom data, not the root group's: that is where everything
-                // of this plugin's that belongs to the database lives.
-                stored = database.CustomData.Get(AuthorityKeys.Authority);
+                // of this plugin's that belongs to the database lives. Every authority and every
+                // retirement, because which authority is served is decided by all of them.
+                stored = new AuthorityStore(new CustomDataStore(database), _log).Stored();
             }
             catch (Exception error) when (Expected.OfCustomData(error))
             {
@@ -179,7 +180,7 @@ namespace KeePassGate.Bridge
                 _cache.Remove(database);
             }
 
-            var reading = new AuthorityStore(new CustomDataStore(database)).Read();
+            var reading = new AuthorityStore(new CustomDataStore(database), _log).Read();
             if (!reading.IsPresent)
             {
                 // No authority, or one that cannot be read. Either way there is nothing to serve

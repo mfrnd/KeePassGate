@@ -21,9 +21,9 @@ namespace KeePassGate.Pipeline
     /// and hostname verification is deliberately abandoned here. Without this, a host certificate
     /// could be presented as a client.
     ///
-    /// What is not here yet is the admission record. TODO(step 7): that is step 7. Until it lands, a client that
-    /// chains and carries the right usage is paired and carries no profiles, so no route can grant
-    /// anything on the strength of it.
+    /// What is not asked here yet is the admission record, which is defined and not yet required.
+    /// TODO(step 7): that is step 7. Until it is, a client that chains and carries the right usage
+    /// is paired and carries no profiles, so no route can grant anything on the strength of it.
     /// </remarks>
     public static class ClientCredentials
     {

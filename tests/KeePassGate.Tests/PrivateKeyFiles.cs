@@ -24,17 +24,10 @@ namespace KeePassGate.Tests
     {
         public static HashSet<string> Names()
         {
-            var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
             var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-            foreach (var directory in new[] { @"Microsoft\Crypto\Keys", @"Microsoft\Crypto\RSA" })
+            foreach (var path in Directories())
             {
-                var path = Path.Combine(appData, directory);
-                if (!Directory.Exists(path))
-                {
-                    continue;
-                }
-
                 foreach (var file in Directory.GetFiles(path, "*", SearchOption.AllDirectories))
                 {
                     names.Add(file);
@@ -50,6 +43,76 @@ namespace KeePassGate.Tests
             var after = Names();
             after.ExceptWith(before);
             return after.ToArray();
+        }
+
+        /// <summary>
+        /// Every key file created while something ran, one it deleted again before returning
+        /// included, which comparing <see cref="Names"/> before and after cannot see.
+        /// </summary>
+        /// <remarks>
+        /// A certificate loaded without `EphemeralKeySet` writes its key into one of these
+        /// directories and deletes it when the certificate is disposed, so a load inside a
+        /// `using` leaves no name behind to find. A watcher sees the file arrive. Measured, its
+        /// report comes before the load has returned; the wait afterwards is for a loaded machine,
+        /// not a guess at how late the report is.
+        /// </remarks>
+        public static string[] CreatedDuring(Action action)
+        {
+            var created = new List<string>();
+            var watchers = new List<FileSystemWatcher>();
+
+            try
+            {
+                foreach (var path in Directories())
+                {
+                    var watcher = new FileSystemWatcher(path)
+                    {
+                        IncludeSubdirectories = true,
+                        NotifyFilter = NotifyFilters.FileName,
+                    };
+
+                    watcher.Created += (sender, e) =>
+                    {
+                        lock (created)
+                        {
+                            created.Add(e.FullPath);
+                        }
+                    };
+
+                    watcher.EnableRaisingEvents = true;
+                    watchers.Add(watcher);
+                }
+
+                action();
+                System.Threading.Thread.Sleep(TimeSpan.FromMilliseconds(250));
+            }
+            finally
+            {
+                foreach (var watcher in watchers)
+                {
+                    watcher.Dispose();
+                }
+            }
+
+            lock (created)
+            {
+                return created.ToArray();
+            }
+        }
+
+        /// <summary>Where this account's private keys are written, those of the two that exist.</summary>
+        private static IEnumerable<string> Directories()
+        {
+            var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+
+            foreach (var directory in new[] { @"Microsoft\Crypto\Keys", @"Microsoft\Crypto\RSA" })
+            {
+                var path = Path.Combine(appData, directory);
+                if (Directory.Exists(path))
+                {
+                    yield return path;
+                }
+            }
         }
     }
 }

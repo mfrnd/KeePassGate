@@ -207,7 +207,7 @@ namespace KeePassGate.Tests
         [Test]
         public void Damage_is_shown_with_what_is_wrong_and_what_it_costs()
         {
-            _values.Plant(AuthorityKeys.Authority, "rubbish");
+            _values.Plant(AuthorityKeys.AuthorityKey(new string('d', 64)), "rubbish");
             _values.Plant(AuthorityKeys.ClientPrefix + "aaa", "record");
 
             using (var reading = _service.Read())
