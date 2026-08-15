@@ -295,6 +295,11 @@ Windows, and the client's on Linux as well, under PowerShell 7. The jobs are nev
 and neither is where they run, so what changes in that file is the commit each action is pinned
 to, which its header says as well.
 
+**The fast half can also run at a commit.** `.pre-commit-config.yaml` holds the client's style and
+types, the spelling and the markdown rules, run on what is being committed, and nothing installs
+it: `uv run pre-commit install` does, once per clone. It is not the gate, and `TESTING.md` says
+what it leaves to `build.ps1`.
+
 The projects are SDK-style, target `net48` and build with the **.NET SDK's `dotnet` CLI**, which is
 what makes `dotnet test` available; they open in Visual Studio 2019 as well. `msbuild` is not on
 `PATH`, so if it is ever needed directly, locate it:

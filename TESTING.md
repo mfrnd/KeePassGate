@@ -233,3 +233,16 @@ figure did.
 
 There is CI, and there is no branch protection, because none is configured.
 `.\build.ps1 -Task All` is the gate, and nothing stops a push that skipped it.
+
+**The fast half can run at the commit itself, once it is installed.** `.pre-commit-config.yaml`
+holds the checks cheap enough to run on what is being committed: the client's style and types, the
+spelling and the markdown rules, each run by the tool and the configuration the gate uses, and a
+refusal of a `.kdbx`, a private key or a merge left half done. Nothing installs it, so a clone has
+none of it until somebody runs this once:
+
+```powershell
+uv run pre-commit install
+```
+
+It is not the gate, and does not try to be: the C# build and every test tier are left to
+`build.ps1`, which is what a branch is judged by.
