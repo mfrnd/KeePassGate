@@ -161,9 +161,9 @@ designing around them.
   differently. The answer omits `Content-Length` rather than sending a wrong one, which
   RFC 9110 section 9.3.2 permits.
 - **A plain DLL on .NET Framework 4.8**, not a `.plgx`.
-- **The access control model is one document per node**: `AclDocument`, `AclGrant`, `AclVerb` and
-  `AclDefault`, which a resolver is to walk the tree with. Grants live under a `KPG` key, which is
-  this plugin's own namespace and touches nothing another plugin owns.
+- **The access control model is one document per node**: `AclDocument`, `AclResolver`, `AclGrant`,
+  `AclVerb` and `AclDefault`. Grants live under a `KPG` key, which is this plugin's own namespace
+  and touches nothing another plugin owns.
 
   **There is no per-subject opt-in, and adding one would be a defect.** The ACL guards every route
   there is, because there is one API generation and no legacy to exempt. A setting that let a
