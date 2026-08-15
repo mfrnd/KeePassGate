@@ -672,8 +672,7 @@ namespace KeePassGate.Tests
         /// `GrantTabFitsTests`'s question, it is a different number on every display, and this only
         /// has to be small enough that some row is off the bottom. Each test that uses it says so
         /// before it does anything else, so a window that stopped being cramped fails here rather
-        /// than quietly testing the ordinary case twice. TODO(step 13): `GrantTabFitsTests`
-        /// arrives with the tab.
+        /// than quietly testing the ordinary case twice.
         /// </remarks>
         private static readonly Size TooShortForEveryRow = new Size(356, 172);
 

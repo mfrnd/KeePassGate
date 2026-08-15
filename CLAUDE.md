@@ -288,6 +288,15 @@ a database's custom data. Each gathers what it settled in its own `RESULTS.md`. 
   from `Name` and is ours: with the lookup keyed on the identifier, `AccessibleName` is free to
   be the phrase a screen reader should say, and is set only where a control has no text of its
   own to say it. Keying the lookup on the name instead is what made the two collide.
+- **KeePass's dialogs scale, and by more than the text does.** They are `AutoScaleMode.Font` against
+  `AutoScaleDimensions` of 6 by 13, so a larger system font makes a larger dialog: the settings
+  dialog's own first page goes from 449 by 314 at font height 13 to 599 by 410 at 16, 674 by 482 at
+  19 and 974 by 628 at 26. A page that fits at one scaling therefore fits at all of them, and a test
+  that grows the text while holding the room is measuring something that cannot happen. What does
+  happen is a window of ours that does not scale while its contents do, which is what a fixed
+  `ClientSize` with no `AutoScaleMode` buys, and a page put on a dialog after the dialog has
+  scaled, which nothing scales unless told to: `TabPageInjector` scales each one by its dialog's
+  own factor as it attaches it. `GateTabFitsTests.Everything_still_fits_when_the_display_is_scaled`.
 - **`Button.PerformClick()` does nothing on a form that was never shown**, silently. What a button
   does is public on the form, as it is on the tab, so tests reach the decision rather than the
   control.

@@ -85,6 +85,24 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_copy_changed_underneath_is_taken_over_what_the_sheet_held()
+        {
+            // KeePass's Plugin Data tab on the same dialog deletes `KPG` out of the copy this sheet
+            // writes into. Held against what it read when the dialog opened, the sheet went on
+            // showing the rule, judged the same rule chosen again as no change, and wrote the old
+            // document back over the delete on any other edit.
+            var sheet = new GrantSheet("{\"reader\":[\"read\"]}", null, null, null);
+
+            Assert.That(sheet.Reload("{\"reader\":[\"read\"]}"), Is.False, "nothing moved, so nothing is redrawn");
+            Assert.That(sheet.Reload(null), Is.True);
+            Assert.That(sheet.Rows, Is.Empty);
+            Assert.That(sheet.Changed, Is.False, "what the copy holds is what the sheet holds now");
+
+            Assert.That(sheet.Set("reader", ".R......"), Is.Null);
+            Assert.That(sheet.Changed, Is.True, "so choosing the same rule again is a change, and is written");
+        }
+
+        [Test]
         public void Removing_the_last_rule_takes_the_key_away_rather_than_leaving_an_empty_one()
         {
             var sheet = new GrantSheet("{\"default\":\"inherit\",\"reader\":[\"read\"]}", null, null, null);

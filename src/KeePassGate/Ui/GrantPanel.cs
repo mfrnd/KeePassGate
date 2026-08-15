@@ -148,6 +148,16 @@ namespace KeePassGate.Ui
             _sealed.CheckedChanged += (sender, e) => OnSealChanged();
             _discard.Click += (sender, e) => Discard();
 
+            // Every time the tab is brought forward, which is the only way back to it from the
+            // Plugin Data tab that shares its copy.
+            VisibleChanged += (sender, e) =>
+            {
+                if (Visible)
+                {
+                    Resync();
+                }
+            };
+
             Populate();
         }
 
@@ -272,6 +282,40 @@ namespace KeePassGate.Ui
 
             _sheet.DiscardUnreadable();
             Apply();
+        }
+
+        /// <summary>
+        /// Reads the store again, and redraws the table when something other than this tab has
+        /// changed what it holds.
+        /// </summary>
+        /// <remarks>
+        /// Asked whenever the tab is brought forward, because what can change the dialog's copy
+        /// behind this tab's back is on the same dialog: KeePass's Plugin Data tab, whose Delete
+        /// takes the `KPG` key out. `GrantSheet.Reload` says what a stale table cost. Public for the
+        /// reason `SetGrant` is.
+        /// </remarks>
+        public void Resync()
+        {
+            if (_store == null || Picking)
+            {
+                return;
+            }
+
+            string stored;
+            try
+            {
+                stored = _store.Read();
+            }
+            catch (Exception error) when (Expected.OfUserInterface(error) || Expected.OfReflection(error))
+            {
+                _log.Warn("the rules on this dialog could not be read again: " + error.Message);
+                return;
+            }
+
+            if (_sheet.Reload(stored))
+            {
+                Populate();
+            }
         }
 
         /// <summary>
@@ -1376,8 +1420,7 @@ namespace KeePassGate.Ui
                         // there is nowhere else left to say what it replaced. On the mask rather
                         // than in a column of its own, because nothing on this tab scrolls and the
                         // group dialog gives it the least room of the three it is put on.
-                        // `GrantTabFitsTests` measures that rather than assuming it. TODO(step 13):
-                        // that test arrives with the tab.
+                        // `GrantTabFitsTests` measures that rather than assuming it.
                         if (row.InheritedMask != null)
                         {
                             added.Cells[MaskColumn].ToolTipText = Tooltips.Wrapped(

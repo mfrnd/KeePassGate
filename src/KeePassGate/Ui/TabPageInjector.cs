@@ -23,6 +23,9 @@ namespace KeePassGate.Ui
         private readonly string _tabControlName;
         private readonly object _stateLock = new object();
         private readonly List<Attachment> _attachments = new List<Attachment>();
+
+        private readonly string _pageText;
+        private readonly string _pageName;
         private readonly Func<Image> _icon;
 
         public TabPageInjector(IGatePanelFactory panels, IGateLog log)
@@ -31,7 +34,19 @@ namespace KeePassGate.Ui
         }
 
         public TabPageInjector(IGatePanelFactory panels, IGateLog log, string tabControlName)
-            : this(panels, log, tabControlName, null)
+            : this(panels, log, tabControlName, GateTab.Text, GateTab.PageControlName)
+        {
+        }
+
+        /// <param name="pageText">
+        /// The caption on the tab strip, which is `GateName.OnATab` for both of the pages this
+        /// plugin builds. A parameter rather than a constant so that the two pages are built by one
+        /// class without it deciding what either is called; what tells them apart is
+        /// <paramref name="pageName"/>, which is what everything here finds them by.
+        /// </param>
+        public TabPageInjector(
+            IGatePanelFactory panels, IGateLog log, string tabControlName, string pageText, string pageName)
+            : this(panels, log, tabControlName, pageText, pageName, null)
         {
         }
 
@@ -41,7 +56,12 @@ namespace KeePassGate.Ui
         /// running KeePass, and every test of this runs without one.
         /// </param>
         public TabPageInjector(
-            IGatePanelFactory panels, IGateLog log, string tabControlName, Func<Image> icon)
+            IGatePanelFactory panels,
+            IGateLog log,
+            string tabControlName,
+            string pageText,
+            string pageName,
+            Func<Image> icon)
         {
             if (panels == null)
             {
@@ -51,6 +71,8 @@ namespace KeePassGate.Ui
             _panels = panels;
             _log = log ?? NullGateLog.Instance;
             _tabControlName = tabControlName;
+            _pageText = pageText;
+            _pageName = pageName;
             _icon = icon;
         }
 
@@ -130,7 +152,7 @@ namespace KeePassGate.Ui
                 // take it off again, and the next announcement of the same form added a second.
                 Decorate(attachment);
                 attachment.Subscribe(OnFormClosed);
-                _log.Info("attached the " + GateTab.Text + " tab to " + Describe(form));
+                _log.Info("attached the " + _pageText + " tab to " + Describe(form));
                 return true;
             }
             catch (Exception error) when (Expected.OfUserInterface(error) || Expected.OfReflection(error))
@@ -249,9 +271,9 @@ namespace KeePassGate.Ui
             // or '_', to the other end of a name: `2-ops` and `ops-2` draw alike, `-ops` and
             // `ops-` trade places, and whatever is chosen by what it reads is another name. The
             // tab strip is the dialog's and stays mirrored.
-            var page = new TabPage(GateTab.Text)
+            var page = new TabPage(_pageText)
             {
-                Name = GateTab.PageControlName,
+                Name = _pageName,
                 RightToLeft = RightToLeft.No,
                 UseVisualStyleBackColor = true
             };
@@ -313,11 +335,12 @@ namespace KeePassGate.Ui
         /// Puts the plugin's icon on the page it just added.
         /// </summary>
         /// <remarks>
-        /// **A tab strip shows icons only if the whole control has an image list**, and the KeePass
-        /// dialogs this lands on bring none. So one is made here and given to the control, which
-        /// makes every tab on that dialog a little taller: there is no way in WinForms to put a
-        /// picture on one tab and leave the others as they were. KeePass's own pages keep an image
-        /// index of -1 and so stay wordless, which is the intended look rather than an accident.
+        /// **A tab strip shows icons only if the whole control has an image list**, and none of the
+        /// three KeePass dialogs this lands on brings one. So one is made here and given to the
+        /// control, which makes every tab on that dialog a little taller: there is no way in
+        /// WinForms to put a picture on one tab and leave the others as they were. KeePass's own
+        /// pages keep an image index of -1 and so stay wordless, which is the intended look rather
+        /// than an accident of ours.
         ///
         /// Taken away again on detach, along with the list, so a dialog this plugin decorated is
         /// left exactly as it was found. A control that already has a list keeps it and is given
@@ -371,7 +394,7 @@ namespace KeePassGate.Ui
             {
                 // A tab without a picture on it is a tab. Said and not raised, because this runs
                 // while a KeePass dialog is being built.
-                _log.Warn("the " + GateTab.Text + " tab could not be given an icon: " + error.Message);
+                _log.Warn("the " + _pageText + " tab could not be given an icon: " + error.Message);
             }
         }
 
@@ -408,7 +431,7 @@ namespace KeePassGate.Ui
             {
                 attachment.Unsubscribe(OnFormClosed);
                 RemovePage(attachment.TabControl, attachment.Page);
-                _log.Info("detached the " + GateTab.Text + " tab from " + Describe(attachment.Form));
+                _log.Info("detached the " + _pageText + " tab from " + Describe(attachment.Form));
             }
             catch (Exception error) when (Expected.OfUserInterface(error))
             {

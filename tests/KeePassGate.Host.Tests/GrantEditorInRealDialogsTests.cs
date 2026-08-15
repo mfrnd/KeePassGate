@@ -322,6 +322,39 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void A_rule_deleted_on_the_Plugin_Data_tab_is_gone_from_this_one_too()
+        {
+            // KeePass's Plugin Data tab on the same dialog edits the same copy, and its Delete takes
+            // `KPG` out of it. This tab went on showing the rule the dialog's OK was about to drop,
+            // and choosing the same rule again wrote nothing. Brought forward, it reads the copy
+            // again, and the copy wins.
+            var group = GroupUnderRoot("Fictitious");
+            group.CustomData.Set(AclDocument.CustomDataKey, "{\"reader\":[\"read\"]}");
+
+            using (var dialog = new GroupForm())
+            {
+                dialog.InitEx(group, false, null, _database.Database);
+                var node = NodeDialog.Of(dialog, null);
+
+                using (var panel = new GrantPanel(new NodeDialogs(null).SheetFor(dialog), node.Store(), node.Scope, null))
+                {
+                    Load(dialog, group.CustomData);
+                    Assume.That(panel.Lines, Has.Some.StartsWith("reader"));
+
+                    // What `UIUtil.StrDictListDeleteSel` does to the copy.
+                    WorkingCopyOf(dialog).Remove(AclDocument.CustomDataKey);
+                    panel.Resync();
+
+                    Assert.That(panel.Lines, Has.None.StartsWith("reader"), "the table shows what OK will keep");
+
+                    Assert.That(panel.SetGrant("reader", ".R......"), Is.Null);
+                    Assert.That(panel.Writes, Is.EqualTo(1), "and the same rule chosen again is written");
+                    Assert.That(WorkingCopyOf(dialog).Get(AclDocument.CustomDataKey), Does.Contain("reader"));
+                }
+            }
+        }
+
+        [Test]
         public void An_entry_dialog_is_read_as_the_entry_it_is_about()
         {
             var entry = EntryIn(GroupUnderRoot("Fictitious"));
@@ -336,6 +369,54 @@ namespace KeePassGate.Host.Tests
                 Assert.That(node.Entry, Is.SameAs(entry));
                 Assert.That(node.Group, Is.Null);
                 Assert.That(node.Scope, Is.EqualTo(GrantTab.EntryScope));
+            }
+        }
+
+        [Test]
+        public void The_tab_lands_on_a_real_group_dialog()
+        {
+            var group = GroupUnderRoot("Fictitious");
+
+            using (var dialog = new GroupForm())
+            {
+                dialog.InitEx(group, false, null, _database.Database);
+
+                var injector = new TabPageInjector(
+                    new GrantPanelFactory(new NodeDialogs(null), null),
+                    null,
+                    KeePassContract.NodeFormTabControlName,
+                    GrantTab.Text,
+                    GrantTab.PageControlName);
+
+                Assert.That(injector.Attach(dialog), Is.True, "the dialog has the tab strip we look for");
+                Assert.That(PageOn(dialog), Is.Not.Null);
+                Assert.That(PanelOn(dialog), Is.Not.Null);
+
+                injector.DetachAll();
+                Assert.That(PageOn(dialog), Is.Null, "and nothing of ours is left behind");
+            }
+        }
+
+        [Test]
+        public void The_tab_lands_on_a_real_entry_dialog_too()
+        {
+            var entry = EntryIn(GroupUnderRoot("Fictitious"));
+
+            using (var dialog = new PwEntryForm())
+            {
+                dialog.InitEx(entry, PwEditMode.EditExistingEntry, _database.Database, _icons, false, false);
+
+                var injector = new TabPageInjector(
+                    new GrantPanelFactory(new NodeDialogs(null), null),
+                    null,
+                    KeePassContract.NodeFormTabControlName,
+                    GrantTab.Text,
+                    GrantTab.PageControlName);
+
+                Assert.That(injector.Attach(dialog), Is.True);
+                Assert.That(PanelOn(dialog), Is.Not.Null);
+
+                injector.DetachAll();
             }
         }
 
@@ -637,6 +718,16 @@ namespace KeePassGate.Host.Tests
             node.GetProperty("CustomData")
                 .GetSetMethod(true)
                 .Invoke(target, new object[] { copy });
+        }
+
+        private static TabPage PageOn(Form dialog)
+        {
+            return ControlTree.FindByName<TabPage>(dialog, GrantTab.PageControlName);
+        }
+
+        private static Control PanelOn(Form dialog)
+        {
+            return ControlTree.FindByName<GrantPanel>(dialog, GrantTab.PanelControlName);
         }
 
         private static StringDictionaryEx WorkingCopyOf(Form dialog)

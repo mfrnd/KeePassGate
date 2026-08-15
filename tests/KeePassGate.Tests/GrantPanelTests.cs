@@ -217,7 +217,6 @@ namespace KeePassGate.Tests
             // mask rather than in a column of its own: nothing on this tab scrolls and the group
             // dialog gives it less room than any other page this plugin is on, so a fourth column
             // would come out of the two that are already sharing. `GrantTabFitsTests` measures it.
-            // TODO(step 13): that test arrives with the tab.
             var above = TestNode.Root("root").Granting("reader", AclVerb.Read, AclVerb.Update);
 
             using (var panel = Panel(new FakeGrantStore("{\"reader\":[\"read\"]}"), above))

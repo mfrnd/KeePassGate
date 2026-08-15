@@ -492,6 +492,36 @@ namespace KeePassGate.Ui
             }
         }
 
+        /// <summary>
+        /// Takes what the store holds now, when something other than this sheet has changed it.
+        /// </summary>
+        /// <returns>True when it had changed, and the rules on the sheet are now what it holds.</returns>
+        /// <remarks>
+        /// **The dialog's copy has a second editor**, on the same dialog: KeePass's own Plugin Data
+        /// tab, whose Delete takes the `KPG` key out of it. A sheet that went on holding what it
+        /// read when the dialog opened showed rules the dialog's OK was about to drop, judged the
+        /// same rule chosen again as unchanged and wrote nothing, and on any other edit wrote the
+        /// whole old document back over the delete without a word. So the copy wins over whatever
+        /// is on the sheet, which is nothing unwritten, since every edit is written as it is made.
+        /// </remarks>
+        public bool Reload(string stored)
+        {
+            if (string.Equals(stored, _stored, StringComparison.Ordinal))
+            {
+                return false;
+            }
+
+            _stored = stored;
+
+            var already = stored == null ? null : AclDocument.Read(stored);
+            _canonical = already == null ? null : already.Write();
+
+            _rules.Clear();
+            Unreadable = false;
+            Load();
+            return true;
+        }
+
         /// <summary>Back to what is stored, throwing away everything since.</summary>
         /// <remarks>
         /// For a write the store refused. The rule has been reported as not in force, so it
