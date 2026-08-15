@@ -10,7 +10,7 @@ namespace KeePassGate.Vault
     /// **The seam that keeps the handlers testable.** Everything above the KeePass boundary in this
     /// plugin is written against an interface small enough to fake, and this is the one the API
     /// needs. `KdbxVault` is the only implementation that knows what a `PwEntry` is; the handlers
-    /// never find out. TODO(step 15): `KdbxVault` arrives with this step.
+    /// never find out.
     ///
     /// **Reads happen on the connection's thread**, like every other read here, because KeePass's
     /// object model answers from one and `DESIGN.md` §119 measured that rather than assuming

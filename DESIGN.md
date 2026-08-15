@@ -836,6 +836,13 @@ bottleneck and a deadlock class that would then have to be defended against.
 **What is added** is the one race that can be closed cheaply: a plugin-wide write lock, so two
 requests cannot interleave mutations of the same entry.
 
+**And a write that a dialog would take back is refused rather than raced.** A dialog open on a node
+puts its copy back on OK, so a write to that node answers `503 busy` while it is open. A dialog that
+is adding something is about a group it does not hold, and is answered for there: a group that Add
+Entry or the TAN wizard will fill on OK is not removed while either is open, and nothing is created
+in a group whose Add Group dialog is still open, since its Cancel takes the group back out with
+whatever was put in it.
+
 ### C4. The plugin as its own CA puts the CA key beside the database §125
 
 **The objection was right, and the answer is now structural rather than defensive.** Its point was
@@ -888,6 +895,31 @@ with the ACL: the record says whether this client exists at all and which profil
 the ACL says what those profiles reach. Two independent answers that fail independently, and the
 record additionally fails **closed** when it goes missing, which is what makes the `GroupForm`
 snapshot hazard survivable.
+
+### C8. "A removal is a removal, so the rules have decided everything" §138
+
+Not quite, and this is independent of which letters a rule holds. `KdbxVault.Discard` removes an
+entry the way KeePass does: to the recycle bin when the database keeps one, and permanently only
+when it does not or when the entry is already in there. So a removal is usually a **move**, and a
+move crosses an ACL boundary. The bin is an ordinary group under the root, governed by whatever rule
+reaches it there, so a client granted removal on one group and no `read` could relocate an entry it
+may not read into a group where a rule at the root may well let it read what it just could not.
+
+**The recycle bin is therefore off limits to this API.** It is not listed, not readable, not
+writable and not addressable: a request naming it is answered the way any other node the rules
+refuse is answered, with the 404 that tells a client nothing about what is there. That closes the
+relocation path, because what a removal moves an entry into is somewhere no client can reach.
+
+It is the right answer for a second reason, which would hold even without the escalation. The bin is
+where the operator's own deletions land, and it is the one place in the database whose contents are
+there precisely because somebody decided they were finished with them. Nothing about it belongs in an
+agent's view.
+
+Two consequences to keep in mind rather than to fix. A removal through the API is not destruction
+while the database keeps a bin, so an operator who wants agent removals to be final turns the bin off
+in KeePass's own settings, which is a KeePass decision rather than one this plugin should make for
+them. And an entry that goes into the bin leaves the reach of every rule, so its rule is no longer
+consulted for anything: recovering it is the operator's job, in KeePass, where they can see it.
 
 ## What would falsify the design §131
 

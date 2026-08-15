@@ -23,6 +23,11 @@ namespace KeePassGate.Bridge
     /// screen would be destroyed by that dialog's OK exactly as a record would, so the same refusal
     /// covers both, per node rather than wholesale.
     ///
+    /// **Three dialogs are about a group whose place in the tree is still being decided**, and a
+    /// node the dialog holds cannot say so. Add Entry and the TAN wizard fill a group on OK that
+    /// they hold nothing of, which `BlockingRemoval` answers, and Add Group has put a group into
+    /// the tree that its Cancel takes back out, which `BlockingAdditions` answers.
+    ///
     /// **Specific dialogs are tracked, never a count**, and `PAIRING.md` §307 is explicit about
     /// it. A count answers a different question from the one asked here, which is per node: a group
     /// dialog open on some other group must not refuse a write to this one, and
@@ -43,6 +48,8 @@ namespace KeePassGate.Bridge
         private readonly IGateLog _log;
         private readonly object _lock = new object();
         private readonly Dictionary<Form, PwGroup> _open = new Dictionary<Form, PwGroup>();
+        private readonly HashSet<Form> _creating = new HashSet<Form>();
+        private readonly Dictionary<Form, PwGroup> _filling = new Dictionary<Form, PwGroup>();
         private readonly Dictionary<Form, PwDatabase> _openMaintenance = new Dictionary<Form, PwDatabase>();
         private readonly Dictionary<Form, PwEntry> _openEntries = new Dictionary<Form, PwEntry>();
         private readonly Dictionary<Form, PwDatabase> _openBulk = new Dictionary<Form, PwDatabase>();
@@ -124,6 +131,102 @@ namespace KeePassGate.Bridge
                     if (ReferenceEquals(pair.Value, group))
                     {
                         return "a group dialog is open on the group this would be written to";
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Why this group cannot be taken out of the tree right now, or null when it can.
+        /// </summary>
+        /// <remarks>
+        /// **A dialog that adds an entry is about a group it does not hold.** KeePass's Add Entry
+        /// names the group as the new entry's parent and puts the entry into it only on OK, so
+        /// while the dialog is open the group is empty and no group dialog is open on it. Removed
+        /// underneath, the operator's OK puts what they typed into a group in the recycle bin, or,
+        /// with no bin, into a group that is no longer in the tree and never reaches the file.
+        ///
+        /// An entry dialog on an entry that is already there names its group the same way, and
+        /// that costs nothing: a group holding an entry is not empty, and nothing removes one that
+        /// is not.
+        ///
+        /// **The TAN wizard is the same case**: it is handed the selected group and adds one entry
+        /// per TAN to it on OK, and a group made for TANs is empty until then.
+        /// </remarks>
+        public string BlockingRemoval(PwGroup group)
+        {
+            if (group == null)
+            {
+                return null;
+            }
+
+            lock (_lock)
+            {
+                if (!_started)
+                {
+                    return "the dialogs are not being watched";
+                }
+
+                foreach (var pair in _filling)
+                {
+                    if (pair.Value == null)
+                    {
+                        return "a dialog that adds to a group is open, and which group it adds to could not be read";
+                    }
+
+                    if (ReferenceEquals(pair.Value, group))
+                    {
+                        return "a dialog is open that adds to this group when it is accepted";
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Why nothing may be put into this group right now, or null when something may.
+        /// </summary>
+        /// <remarks>
+        /// **Asked only of a group that is about to receive something**, and answered only by Add
+        /// Group. Edit Group holds no list of what is inside a group, so adding to one is safe and
+        /// stays allowed. Add Group is the other case: KeePass puts the new group into the tree
+        /// before the dialog opens and takes it back out on Cancel, with no deleted object and no
+        /// recycle bin, so an entry created in it in between is answered as created and then
+        /// dropped from the file by the next save.
+        /// </remarks>
+        public string BlockingAdditions(PwGroup group)
+        {
+            if (group == null)
+            {
+                return null;
+            }
+
+            lock (_lock)
+            {
+                if (!_started)
+                {
+                    return "the dialogs are not being watched";
+                }
+
+                foreach (var pair in _open)
+                {
+                    if (!_creating.Contains(pair.Key))
+                    {
+                        continue;
+                    }
+
+                    if (pair.Value == null)
+                    {
+                        return "an Add Group dialog is open, and which group it is adding could not be read";
+                    }
+
+                    if (ReferenceEquals(pair.Value, group))
+                    {
+                        return "an Add Group dialog is open on this group, and its Cancel takes the group "
+                               + "away with whatever was put in it";
                     }
                 }
             }
@@ -289,6 +392,8 @@ namespace KeePassGate.Bridge
                 // reporting the entry dialogs it saw is a watch that refuses a profile deletion
                 // for ever, since the count it gives includes them.
                 _open.Clear();
+                _creating.Clear();
+                _filling.Clear();
                 _openMaintenance.Clear();
                 _openEntries.Clear();
                 _openBulk.Clear();
@@ -302,8 +407,21 @@ namespace KeePassGate.Bridge
             {
                 var form = e == null ? null : e.Form;
                 if (form == null || (!IsGroupDialog(form) && !IsEntryDialog(form)
-                                     && !IsMaintenanceDialog(form)))
+                                     && !IsMaintenanceDialog(form)
+                                     && !IsTanWizard(form)))
                 {
+                    return;
+                }
+
+                if (IsTanWizard(form))
+                {
+                    var filled = TanStorageBehind(form);
+
+                    lock (_lock)
+                    {
+                        _filling[form] = filled;
+                    }
+
                     return;
                 }
 
@@ -326,22 +444,36 @@ namespace KeePassGate.Bridge
                 if (IsGroupDialog(form))
                 {
                     var group = GroupBehind(form);
+                    var creating = Creating(form);
 
                     lock (_lock)
                     {
                         _open[form] = group;
+
+                        if (creating)
+                        {
+                            _creating.Add(form);
+                        }
                     }
 
                     return;
                 }
 
-                if (IsBulk(form))
+                var bulk = IsBulk(form);
+                if (bulk != false)
                 {
                     var selected = SelectionDatabaseBehind(form);
 
                     lock (_lock)
                     {
                         _openBulk[form] = selected;
+
+                        // Which kind of entry dialog it is could not be told, so it is taken to
+                        // be both: Add Entry fills a group on OK, and which one cannot be said.
+                        if (bulk == null)
+                        {
+                            _filling[form] = null;
+                        }
                     }
 
                     return;
@@ -352,6 +484,18 @@ namespace KeePassGate.Bridge
                 lock (_lock)
                 {
                     _openEntries[form] = entry;
+
+                    // Add Entry puts its entry into its parent on OK and not before. An entry that
+                    // could not be read might be one of those, so it is filling any group; one
+                    // with no parent is filling none.
+                    if (entry == null)
+                    {
+                        _filling[form] = null;
+                    }
+                    else if (entry.ParentGroup != null)
+                    {
+                        _filling[form] = entry.ParentGroup;
+                    }
                 }
             }
             catch (Exception error)
@@ -376,6 +520,8 @@ namespace KeePassGate.Bridge
                 lock (_lock)
                 {
                     _open.Remove(form);
+                    _creating.Remove(form);
+                    _filling.Remove(form);
                     _openMaintenance.Remove(form);
                     _openEntries.Remove(form);
                     _openBulk.Remove(form);
@@ -401,6 +547,12 @@ namespace KeePassGate.Bridge
                 form.GetType().FullName, KeePassContract.MaintenanceFormTypeName, StringComparison.Ordinal);
         }
 
+        private static bool IsTanWizard(Form form)
+        {
+            return string.Equals(
+                form.GetType().FullName, KeePassContract.TanWizardFormTypeName, StringComparison.Ordinal);
+        }
+
         private static bool IsEntryDialog(Form form)
         {
             return string.Equals(
@@ -408,7 +560,8 @@ namespace KeePassGate.Bridge
         }
 
         /// <summary>
-        /// Whether an entry dialog is KeePass's bulk `Edit Entries` rather than one entry's.
+        /// Whether an entry dialog is KeePass's bulk `Edit Entries` rather than one entry's, or
+        /// null when that cannot be told.
         /// </summary>
         /// <remarks>
         /// The entry behind such a dialog is a synthetic one it built by merging the selection, so
@@ -418,9 +571,12 @@ namespace KeePassGate.Bridge
         /// underneath is destroyed across every selected entry at once.
         ///
         /// A dialog whose merged context cannot be looked for is taken to be one, which refuses
-        /// every entry of its database rather than none of them.
+        /// every entry of its database rather than none of them. **That includes a KeePass that has
+        /// renamed the field**, which is not the same answer as the field holding nothing: read as
+        /// nothing, every Edit Entries dialog would have been taken for one entry's, and the synthetic
+        /// entry behind it refuses writes to no entry at all.
         /// </remarks>
-        private bool IsBulk(Form form)
+        private bool? IsBulk(Form form)
         {
             try
             {
@@ -429,7 +585,10 @@ namespace KeePassGate.Bridge
 
                 if (merged == null)
                 {
-                    return false;
+                    _log.Warn("an entry dialog no longer says whether it is about several entries in " +
+                              KeePassContract.EntryFormMultipleField +
+                              ", so every entry of its database is refused while one is open");
+                    return null;
                 }
 
                 return merged.GetValue(form) != null;
@@ -437,7 +596,7 @@ namespace KeePassGate.Bridge
             catch (Exception error) when (Expected.OfReflection(error))
             {
                 _log.Error("whether an entry dialog is editing several entries could not be read", error);
-                return true;
+                return null;
             }
         }
 
@@ -493,6 +652,63 @@ namespace KeePassGate.Bridge
             catch (Exception error) when (Expected.OfReflection(error))
             {
                 _log.Error("the entry behind a dialog could not be read", error);
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Whether a group dialog is Add Group, and true when that cannot be read.
+        /// </summary>
+        /// <remarks>
+        /// True refuses additions to the group an Edit Group is open on, which costs a retry. False
+        /// would allow them into a group that Cancel may take away, which costs what was added.
+        /// </remarks>
+        private bool Creating(Form form)
+        {
+            try
+            {
+                var field = form.GetType().GetField(
+                    KeePassContract.GroupFormCreatingField, BindingFlags.NonPublic | BindingFlags.Instance);
+
+                if (field == null)
+                {
+                    _log.Warn("a group dialog no longer says whether it is adding a group in " +
+                              KeePassContract.GroupFormCreatingField +
+                              ", so nothing is added to a group while one is open on it");
+                    return true;
+                }
+
+                var creating = field.GetValue(form);
+                return !(creating is bool) || (bool)creating;
+            }
+            catch (Exception error) when (Expected.OfReflection(error))
+            {
+                _log.Error("whether a group dialog is adding a group could not be read", error);
+                return true;
+            }
+        }
+
+        /// <summary>Null when it cannot be read, which is taken to mean any group at all.</summary>
+        private PwGroup TanStorageBehind(Form form)
+        {
+            try
+            {
+                var field = form.GetType().GetField(
+                    KeePassContract.TanWizardFormGroupField, BindingFlags.NonPublic | BindingFlags.Instance);
+
+                if (field == null)
+                {
+                    _log.Warn("the TAN wizard no longer names its group in " +
+                              KeePassContract.TanWizardFormGroupField +
+                              ", so no group is removed while one is open");
+                    return null;
+                }
+
+                return field.GetValue(form) as PwGroup;
+            }
+            catch (Exception error) when (Expected.OfReflection(error))
+            {
+                _log.Error("the group behind the TAN wizard could not be read", error);
                 return null;
             }
         }

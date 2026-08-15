@@ -347,6 +347,15 @@ opened. And its one button is both the accept and the cancel button, with `Dialo
 there is no way to decline it. `GroupDialogs` watches for it and `DatabaseWriter` refuses while it
 is open.
 
+**A dialog that is adding something is about a group it does not hold**, which a watch keyed on the
+node a dialog holds cannot see. Add Entry and the TAN wizard put what they made into their group
+only on OK, so that group is empty while they are open and an API removal would pass; Add Group puts
+its group into the tree before it opens and takes it back out on Cancel, with whatever was created
+in it. So `GroupDialogs` also notes the group each of them will fill or may take away, and the vault
+answers `503 busy` to a removal of a group Add Entry or the wizard will fill, and to anything created
+in a group whose Add Group dialog is still open. Edit Group holds nothing about what is inside, so
+creating under it stays allowed.
+
 Equally load bearing: **KeePass's save reports nothing to its caller.** `MainForm.SaveDatabase` is
 `void`, shows its own warnings, and leaves the caller no way to ask whether anything reached the
 disk. What it does say is `PwDatabase.Modified`, which a successful save clears, so that is what a

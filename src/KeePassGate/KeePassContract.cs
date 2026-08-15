@@ -35,6 +35,16 @@ namespace KeePassGate
         /// </summary>
         public const string GroupFormGroupField = "m_pwGroup";
 
+        /// <summary>Whether that dialog is Add Group rather than Edit Group.</summary>
+        /// <remarks>
+        /// KeePass puts a new group into the tree before it shows the dialog and takes it back out
+        /// on Cancel, with no deleted object and no recycle bin, so whatever was put into it in
+        /// between goes with it. A KeePass that renames this leaves every group dialog taken for
+        /// an Add Group, which refuses additions to a group being edited rather than allowing them
+        /// into one that may vanish.
+        /// </remarks>
+        public const string GroupFormCreatingField = "m_bCreatingNew";
+
         /// <summary>The dialog behind Edit Entry, where an entry's own grants are edited.</summary>
         public const string EntryFormTypeName = "KeePass.Forms.PwEntryForm";
 
@@ -63,6 +73,18 @@ namespace KeePassGate
 
         /// <summary>The `PwEditMode` value that means a history revision opened for reading.</summary>
         public const string EntryFormReadOnlyMode = "ViewReadOnlyEntry";
+
+        /// <summary>The dialog behind Tools then TAN Wizard.</summary>
+        /// <remarks>
+        /// It is given the selected group when it opens and adds one entry per TAN to that group on
+        /// OK, so while it is open the group is usually empty and holds nothing of what it is about
+        /// to receive. Removed underneath, the TANs go into the recycle bin, or with no bin into a
+        /// group that is no longer in the tree and never reaches the file.
+        /// </remarks>
+        public const string TanWizardFormTypeName = "KeePass.Forms.TanWizardForm";
+
+        /// <summary>The group that wizard fills on OK.</summary>
+        public const string TanWizardFormGroupField = "m_pgStorage";
 
         /// <summary>
         /// The tab strip on the group and entry dialogs, which both call it what the database

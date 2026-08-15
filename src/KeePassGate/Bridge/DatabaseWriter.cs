@@ -117,6 +117,33 @@ namespace KeePassGate.Bridge
             return _dialogs.Blocking(root) ?? _dialogs.BlockingRecords(database);
         }
 
+        /// <summary>Why this group cannot be changed right now, or null when it can.</summary>
+        public string Blocking(PwGroup group)
+        {
+            return _dialogs == null ? null : _dialogs.Blocking(group);
+        }
+
+        /// <summary>
+        /// Why this group cannot be taken out of the tree right now, beyond what
+        /// <see cref="Blocking(PwGroup)"/> says, or null when it can.
+        /// </summary>
+        public string BlockingRemoval(PwGroup group)
+        {
+            return _dialogs == null ? null : _dialogs.BlockingRemoval(group);
+        }
+
+        /// <summary>Why nothing may be put into this group right now, or null when something may.</summary>
+        public string BlockingAdditions(PwGroup group)
+        {
+            return _dialogs == null ? null : _dialogs.BlockingAdditions(group);
+        }
+
+        /// <summary>Why this entry cannot be changed right now, or null when it can.</summary>
+        public string Blocking(PwEntry entry)
+        {
+            return _dialogs == null ? null : _dialogs.Blocking(entry);
+        }
+
         public AdmissionWrite WriteAdmission(PwDatabase database, AdmissionRecord record)
         {
             if (record == null)

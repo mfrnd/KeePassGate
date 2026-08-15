@@ -15,14 +15,17 @@ namespace KeePassGate.Bridge
     /// **Read on the connection's own thread, without marshaling**, like everything else that only
     /// reads. `CustomData` is a string dictionary and nothing here mutates one.
     ///
-    /// **And read as the resolver walks, with no lock and no copy, which costs nothing.** Both
-    /// properties below are evaluated by `AclResolver` rather than when the node is made, so they
-    /// are read while another thread may be changing the tree and the rules. What a tree in motion
-    /// breaks is an enumerator or a copy, and a walk is neither. Per level it reads `ParentGroup`
-    /// and `CustomData`, which compile to plain field reads, and calls `StringDictionaryEx.Get`,
-    /// which on KeePass 2.61.1 is one `TryGetValue` against a `SortedDictionary`: a descent with no
-    /// version check and no array indexing. `AclInRealDatabaseTests` measures it against a tree and
-    /// a set of rules that are being rewritten by another thread throughout.
+    /// **And read as the resolver walks, outside `KdbxVault.Reading`, which costs nothing.** Both
+    /// properties below are evaluated by `AclResolver` rather than when the node is made, so the
+    /// walk runs after the retry that found the node has already returned. That reads like a gap
+    /// and is not one, because the walk raises nothing a retry could take again.
+    /// `Expected.OfMovingTree` names two failures: the `InvalidOperationException` an invalidated
+    /// enumerator throws, and the `ArgumentException` out of copying a tree that is still growing.
+    /// A walk does neither. Per level it reads `ParentGroup` and `CustomData`, which compile to
+    /// plain field reads, and calls `StringDictionaryEx.Get`, which on KeePass 2.61.1 is one
+    /// `TryGetValue` against a `SortedDictionary`: a descent with no version check and no array
+    /// indexing. `AclInRealDatabaseTests` measures it against a tree and a set of rules that are
+    /// being rewritten by another thread throughout.
     ///
     /// **What a tree in motion costs a walk is a stale answer, and no retry addresses that.** A
     /// lookup racing a rebalance misses a key rather than throwing, and a retry only ever runs

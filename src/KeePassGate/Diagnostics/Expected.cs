@@ -68,7 +68,27 @@ namespace KeePassGate.Diagnostics
         }
 
         /// <summary>
-        /// Reading or writing custom data, the database's own.
+        /// Reading a KeePass collection while something else is changing it.
+        /// </summary>
+        /// <remarks>
+        /// Two types, and they are not interchangeable. A list whose version moved under an
+        /// enumerator throws `InvalidOperationException`. A copy whose source grew while it was
+        /// being made throws `ArgumentException` out of `Array.Copy`. That copy is `GetEntries`,
+        /// building a new list out of a tree that is still changing. A filter naming only the
+        /// first misses every flat sweep, which is the busiest route there is.
+        ///
+        /// **`GateFailure` is deliberately not here.** This filter guards a retry, and the thing a
+        /// spent retry throws is a `GateFailure`; catching it would turn giving up into an infinite
+        /// loop. `OfCustomData` includes it because nothing it guards retries.
+        /// </remarks>
+        public static bool OfMovingTree(Exception error)
+        {
+            return error is InvalidOperationException
+                   || error is ArgumentException;
+        }
+
+        /// <summary>
+        /// Reading or writing custom data: the database's own, a group's or an entry's.
         /// </summary>
         /// <remarks>
         /// `InvalidOperationException` is the one that matters and it is not hypothetical: the gate

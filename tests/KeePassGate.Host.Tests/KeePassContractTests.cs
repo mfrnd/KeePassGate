@@ -156,6 +156,37 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void The_tan_wizard_still_names_the_group_it_fills()
+        {
+            var type = KeePassAssembly.GetType(KeePassContract.TanWizardFormTypeName, false);
+
+            Assert.That(type, Is.Not.Null,
+                KeePassContract.TanWizardFormTypeName + " is gone, so the group it fills is never "
+                + "recognized and can be removed underneath it.");
+            Assert.That(typeof(Form).IsAssignableFrom(type), Is.True);
+
+            var field = type.GetField(
+                KeePassContract.TanWizardFormGroupField, BindingFlags.NonPublic | BindingFlags.Instance);
+
+            Assert.That(field, Is.Not.Null,
+                "Without this, no group may be removed while the wizard is open, which is safe and useless.");
+            Assert.That(field.FieldType, Is.EqualTo(typeof(KeePassLib.PwGroup)));
+        }
+
+        [Test]
+        public void The_group_dialog_still_says_when_it_is_adding_a_group()
+        {
+            var type = KeePassAssembly.GetType(KeePassContract.GroupFormTypeName, false);
+            var field = type.GetField(
+                KeePassContract.GroupFormCreatingField, BindingFlags.NonPublic | BindingFlags.Instance);
+
+            Assert.That(field, Is.Not.Null,
+                KeePassContract.GroupFormCreatingField + " is gone, so every group dialog is taken for "
+                + "Add Group and nothing may be added to a group while one is open on it.");
+            Assert.That(field.FieldType, Is.EqualTo(typeof(bool)));
+        }
+
+        [Test]
         public void The_entry_dialog_still_says_when_it_is_about_several_entries()
         {
             // Without this the tab reads a merged selection's cue string as a document, calls the
