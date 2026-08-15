@@ -434,6 +434,36 @@ Each operation declares the verb it needs, and the authorization layer reads tha
 rather than from an attribute in code, so the specification stays the single account of what the API
 permits.
 
+**HEAD is decided, and the decision is that every GET declares one.** The two are declared
+separately and bound to one handler, which is what makes RFC 9110 section 9.3.2's "identical to
+GET, except no content" true by construction rather than by two implementations agreeing.
+Deriving it instead would have left this document an incomplete account of what the API answers,
+which is the one thing it is for; refusing it would have left an HTTP requirement unmet for no
+gain. **A pair carries one verb between them.** The plugin refuses to load a `get` with no `head`,
+or a pair whose `x-kpg-verb` differs, because a `head` governed differently would answer whether
+a node exists to a caller its own `get` would have refused, which is an oracle rather than a
+route. The answer carries no length, which section 9.3.2 permits: it asks for the same header
+fields as GET and allows omitting the ones determined while generating the content.
+
+**And a refusal to a HEAD carries none either, which is the part that was left implicit and was
+therefore wrong.** RFC 9112 section 6.3 forbids content on a response to HEAD, and a refusal is a
+response: the rule is about the method the client asked with, not about whether a handler ever ran.
+So the transport carries the method from the moment the request line yields it, and every refusal
+decided below the router answers a HEAD with headers alone, including the ones that judge the target
+or the version before the head is believed. A refusal that made it out with a body would have been a
+correct route breaking the rule its own answer keeps.
+
+**One refusal is ordered by what it must not reveal.** A caller with no certificate is told the same
+thing on a path that does not exist as on one that does, because answering 404 for the first and 401
+for the second would let anybody who reaches the port map the API by asking. The exception is a path
+whose operations need no certificate: those are declared in a document that ships inside the plugin,
+so a 405 there reveals nothing that reading the document would not.
+
+**An operation may have a precondition the document cannot state.** Pairing has one: its routes are
+open to a connection that arrived on an invitation and to nothing else, which is neither identity
+nor a body. The router asks the operation's own subsystem, before it looks at a body, so a caller
+that may not reach a route never learns whether what it sent would have been accepted.
+
 ## 8. KeePass integration §119
 
 The part with the most ways to go wrong, because a plugin shares the password manager's process.

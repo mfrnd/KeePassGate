@@ -139,13 +139,25 @@ designing around them.
   so the platform's own TLS meant a host key on the disk. `Org.BouncyCastle.Tls` is MIT, alive, and
   parses the stored PKCS#12 itself. Do not re-propose `SslStream` for the server without measuring
   `EphemeralKeyProbe.cs` on `spikes/tls-and-certificates` again first.
-- **Spec-first routing.** The OpenAPI document is the routing table and handlers bind to
-  `operationId`, so an undeclared path has nowhere to go.
+- **Spec-first routing.** The OpenAPI document at `src/KeePassGate/Spec/openapi.yaml` is the
+  routing table, embedded in the assembly, and handlers bind to `operationId`, so an undeclared path
+  has nowhere to go. Every declared operation must have a handler and every handler a declared
+  operation, asserted when the router is built, which is as the plugin loads.
+- **No schema library checks request bodies**, and that is a count rather than a preference:
+  fourteen assemblies against three for reading the document. `BodyCheck` covers the subset this
+  wire carries and **refuses at startup any schema it does not implement**, which is what stops a
+  subset becoming a gap. Re-proposing one means arguing with the counts on `spikes/json-reading`.
 - **The JSON grammar is `Newtonsoft.Json`'s and the policy is ours**, which is the split worth
   keeping. `JsonBody` decides what this wire may carry, which is one flat object of strings and
   arrays of strings, and parses none of it. Three alternatives were measured and refused, on
   assembly count and on license. The counts are on `spikes/json-reading`, and re-proposing one means
   arguing with them.
+- **Every GET declares the HEAD that answers for it**, bound to the same handler and carrying
+  the same `x-kpg-verb`. Declared rather than derived, so the document stays the whole account
+  of what the API answers; one handler, so the two cannot come to disagree about whether
+  something is there. The plugin refuses to load a `get` with no `head`, or a pair governed
+  differently. The answer omits `Content-Length` rather than sending a wrong one, which
+  RFC 9110 section 9.3.2 permits.
 - **A plain DLL on .NET Framework 4.8**, not a `.plgx`.
 - **The access control model is one document per node**, and its types arrive with step 12.
   Grants live under a `KPG` key, which is this plugin's own namespace and touches nothing another
@@ -428,6 +440,17 @@ destroyed by its OK.
 `GateRouter` is what it replaces, and the shape to keep is the one already there: identity is
 refused in one place before dispatch, and a locked database is refused before even that.
 
+**Three things about the router that are decisions rather than details.** A caller with no
+certificate is refused the same way everywhere, so an undeclared path and one it may not use answer
+alike and only an admitted client is told which it was. That is about the *refusal*, not about
+whether a route exists: the routes are declared in a document that ships inside the plugin, so a
+`405` for a declared path asked for with the wrong method says no more than reading that document
+says, and `GET /pair/hello` answers exactly that. An operation may carry a guard for a
+precondition the document cannot state, which is how pairing keeps its routes to connections that
+arrived on an invitation, and a guard runs **before** the body is checked so that nothing is
+reported about a body on a route the caller may not reach. And `PairingHandler` is two operations
+now rather than one dispatcher: which path is which is the document's answer.
+
 What steps 8 and 9 leave it. `AdmissionWriter` is the single writer, and the only place a request
 writes to a database. `GroupDialogs` watches for the dialog that would take a write back, tracking
 specific `GroupForm` instances rather than counting windows, because the question is per node and a
@@ -462,6 +485,14 @@ terminates the transport, and why every key the plugin loads can stay off the di
 `HostCertificateHandshakeTests` pins both halves, including the SChannel refusal, so a tidy-up that
 goes back to `SslStream` fails loudly rather than quietly writing keys to somebody's profile.
 
-**A dependency ships beside the plugin.** `build.ps1 -Task Deploy` copies every DLL from the build
-output into the plugins directory, because KeePass loads plugins with `Assembly.LoadFrom`, which
-probes the plugin's own directory rather than KeePass's.
+**A dependency ships beside the plugin, and so does everything it drags in.** `build.ps1 -Task
+Deploy` copies every DLL from the build output into `plugins\KeePassGate`, because KeePass loads
+plugins with `Assembly.LoadFrom`, which probes the plugin's own directory rather than KeePass's.
+**A directory of its own, not `plugins` itself**: KeePass finds a plugin anywhere under `plugins`,
+and a flat install shares every dependency by file name with every other plugin installed flat.
+Only KeePass has a binding redirect, so one `Newtonsoft.Json.dll` cannot serve two plugins built
+against different major versions, and whichever was there first stops binding.
+**The whole closure, not the direct references**: copying what the plugin names was enough while its
+one dependency had none of its own, and stopped being enough the moment one did. A plugin missing a
+transitive dependency fails to load with nothing in the log to say why, which is what 34 of the 35
+end to end tests said the first time.

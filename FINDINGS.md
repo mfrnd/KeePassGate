@@ -103,7 +103,20 @@ Recorded because a reader who only sees conclusions will re-make the same mistak
 | uHttpSharp supported spec-first binding "decisively" | Both do. It judged websocket-sharp by one facade |
 | **The channel binding needs `TransportContext.GetChannelBinding`** | It needs no transport interface at all. `tls-server-end-point` is defined as a hash of the server's certificate, so each side computes it from bytes it already holds: the server from the certificate it chose, the client from the one it was just sent. `BindingProbe` answered a question that mattered while `SslStream` terminated the TLS, and the question went away with `SslStream`. The offset warning it left behind is now unreachable |
 
-## 6. Providing the KeePass everything is built against
+## 6. The document as the routing table
+
+Established while building step 11. The first two are the reason the design's named library is not
+the one that shipped.
+
+| Fact | How it was established |
+| --- | --- |
+| **`Microsoft.OpenApi` costs three assemblies** on net48: itself, its readers, and `SharpYaml`, which the readers depend on whether or not any YAML is read. The document is YAML because of that: JSON would have shipped a YAML reader unused | referenced it in an empty net48 project and listed the output |
+| `Microsoft.OpenApi` reads a document on .NET Framework 4.8 and exposes operations, `operationId`, `x-` extensions, parameters and request body schemas with `Required`, `Properties`, `AdditionalPropertiesAllowed` and the length facets | parsed a document with all of them and printed what came back |
+| **The reader reports some problems and throws others.** Malformed JSON arrives as an entry in `diagnostic.Errors`, and there `Paths` can be null; a document with no recognizable version throws instead | fed it `not a document`, `{`, `{}`, `[1,2]` and three NUL bytes |
+| **`OpenApiUnsupportedSpecVersionException` derives straight from `Exception`**, not from the library's own `OpenApiException`, so there is no one base to catch and both have to be named | walked the base types |
+| **The transitive closure has to travel, not the direct references.** A plugin copied with only what it references loads until one of its dependencies has one of its own, and then fails with nothing in the log to say why | the end to end tier: 34 of 35 failed with "the plugin never reported a listening gate" until `SharpYaml` was copied too |
+
+## 7. Providing the KeePass everything is built against
 
 Established while replacing a KeePass copied there by hand with a pinned download.
 
@@ -116,7 +129,7 @@ Established while replacing a KeePass copied there by hand with a pinned downloa
 | **Scoop's manifest would not have helped.** `extras/keepass` fetches the **installer** from the same SourceForge host, verifies a **SHA-1**, and carries only the current version, so pinning an old one means the versions bucket or manifest history | read the manifest |
 | KeePass publishes a version feed at `keepass.info/update/version2x.txt`, on its own domain, signed, and it names the current release as `KeePass:<version>` | fetched it |
 
-## 7. Loading a plugin, and testing one
+## 8. Loading a plugin, and testing one
 
 Established while building step 4 of the build order. The first entry is the one that costs an
 evening, because it fails without a message.
@@ -148,7 +161,7 @@ So the shape that works: discover the keys through the accessibility tree with t
 closed through it, then drive the menu purely from synthesized keystrokes, then read the result back
 through the tree once nothing is modal.
 
-## 8. Storing an authority inside a database
+## 9. Storing an authority inside a database
 
 Established while building step 5. The first two decide where the private key lives; the rest cost
 time to find.
@@ -169,7 +182,7 @@ worth doing; showing them does not. So the snapshot hazard is measured in two ha
 by reflection over the real types, and the behavior by reproducing it with KeePass's own
 `CloneDeep` and a real `PwGroup`.
 
-## 9. The gate and the transport
+## 10. The gate and the transport
 
 Established while building step 6.
 
@@ -186,7 +199,7 @@ Established while building step 6.
 | **And in a directory of its own under `plugins`**, not in `plugins` itself: KeePass finds a plugin in any directory under it, while a flat install shares each dependency by file name with every other plugin installed flat, and with no binding redirect but KeePass's own, one `Newtonsoft.Json.dll` of another major version breaks whichever plugin was there first | a scratch probe replaying KeePass 2.61.1's plugin loading in a fresh process per layout and preparing all 1613 methods: flat beside a foreign Newtonsoft.Json 10.0.2, 21 failed for want of 13.0.0.0; in `plugins\KeePassGate` with the foreign copy in `plugins` or in a sibling plugin's directory, none |
 | KeePass's `MainForm.DocumentManager.GetOpenDatabases()` is reachable from a background thread and is what the gate resolves names against | the live gate test answers a request from a separate process |
 
-## 10. Pairing
+## 11. Pairing
 
 Established while building step 8. The first two cost an hour each, and both fail by producing
 something plausible rather than by failing.
@@ -205,7 +218,7 @@ something plausible rather than by failing.
 | **An exception thrown by work posted with `BeginInvoke` and left unobserved reaches `Application.ThreadException`**, whose default handler is a modal dialog. In a test host that pumps messages, that is a hang rather than a failure | a test that asserted `EndInvoke` rethrows never finished; it was deleted, because it was pinning behavior that predates the fix it was written beside |
 | **The desktop tests find a box by its `AccessibleName`, so that string has two jobs and only one right value.** The rule above says to leave `AccessibleName` off anything the desktop reads, and a `TextBox` is the case it does not cover: it has no caption, so with nothing set there is no name to search by at all. What goes there has to be the phrase a screen reader should say, and the driver has to look the box up by that | setting it to the lookup name instead announced `KpgInvitationBox` to a screen reader; setting it to the words broke `LivePairingTests` until the driver was pointed at the same constant. `Name` stays the lookup key for the in-process tests, which match on it and not on the accessible name |
 
-## 11. Reconstruction
+## 12. Reconstruction
 
 The proofs were deleted once they had answered their questions. To rebuild any of them:
 
@@ -225,7 +238,7 @@ The proofs were deleted once they had answered their questions. To rebuild any o
 `TlsProbe.cs` on `spikes/tls-and-certificates` is kept because it answers the TLS question in
 isolation and is the cheapest way to re-check it on a new machine.
 
-## 12. What KeePass does with a change, measured
+## 13. What KeePass does with a change, measured
 
 **A `.kdbx` silently drops 2,079 of the 65,536 code points in the basic multilingual plane.** KeePass
 writes every unprotected string through `StrUtil.SafeXmlString`, which removes what XML 1.0 cannot
@@ -243,7 +256,7 @@ surrogate written raw in the text is passed through untouched, which is why the 
 worth having: `JsonBody` also reads documents out of a `.kdbx` this plugin did not write. Measured
 against the Json.NET this builds against, by printing the code points that came back.
 
-## 13. The gate, and where it can run
+## 14. The gate, and where it can run
 
 **A warning is not a failure, and under `Stop` it becomes one.** A native command writing to stderr
 raises a terminating error as soon as anything upstream merges the streams, which is what capturing
