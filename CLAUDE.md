@@ -439,9 +439,10 @@ destroyed by its OK.
 
 **Step 12 is the ACL**: the model in `DESIGN.md` §114, resolving against a real database. What
 step 11 leaves it is `x-kpg-verb`, declared on every operation, all of them `none` so far, and
-carried through to `SpecOperation.Verb`, which nothing reads yet but the check holding a `head` to
-its `get`. That is where the authorization layer reads what an operation may do, so it never becomes
-an attribute in code that the document could disagree with.
+carried through to `SpecOperation.Verb`, which the plugin now refuses to load without and which
+nothing reads yet but the check holding a `head` to its `get`. That is where the authorization
+layer reads what an operation may do, so it never becomes an attribute in code that the document
+could disagree with.
 
 **Three things about the router that are decisions rather than details.** A caller with no
 certificate is refused the same way everywhere, so an undeclared path and one it may not use answer

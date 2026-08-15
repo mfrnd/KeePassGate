@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Reflection;
+using KeePassGate.Acl;
 using KeePassGate.Diagnostics;
 using Microsoft.OpenApi;
 using Microsoft.OpenApi.Models;
@@ -18,7 +19,8 @@ namespace KeePassGate.Spec
             string method,
             PathTemplate path,
             bool needsIdentity,
-            string verb,
+            AclVerb verb,
+            AclReach reach,
             OpenApiSchema body)
         {
             OperationId = operationId;
@@ -26,6 +28,7 @@ namespace KeePassGate.Spec
             Path = path;
             NeedsIdentity = needsIdentity;
             Verb = verb;
+            Reach = reach;
             Body = body;
         }
 
@@ -44,13 +47,19 @@ namespace KeePassGate.Spec
         public bool NeedsIdentity { get; private set; }
 
         /// <summary>
-        /// What the access control layer will read to decide what this operation may do. Declared
-        /// in the document so that the document stays the single account of what this API permits,
-        /// and read so far only to hold a `head` to its `get`. TODO(step 12): that layer arrives
-        /// with the access control model, which is also when a route declaring no verb stops the
-        /// plugin loading.
+        /// What this operation does to the database, which is what the access control layer asks a
+        /// grant about. Declared in the document so that the document stays the single account of
+        /// what this API permits, and never absent, because an operation that declares no verb
+        /// stops the plugin loading.
         /// </summary>
-        public string Verb { get; private set; }
+        public AclVerb Verb { get; private set; }
+
+        /// <summary>
+        /// How far into an entry this reaches. `Fields` unless the operation says otherwise, which
+        /// is the same default deny as everything else in here: an operation that opens an
+        /// attachment has to say so, and one that forgot to reaches no further than the fields.
+        /// </summary>
+        public AclReach Reach { get; private set; }
 
         /// <summary>The schema a body is checked against, or null when the operation takes none.</summary>
         public OpenApiSchema Body { get; private set; }
@@ -80,12 +89,11 @@ namespace KeePassGate.Spec
         /// <summary>Marks the routes an invitee reaches before it has a certificate.</summary>
         public const string UnauthenticatedExtension = "x-kpg-unauthenticated";
 
-        /// <summary>
-        /// What the access control layer will read. Declared now, and until then compared only
-        /// between a `get` and its `head`.
-        /// TODO(step 12): the access control model is what reads it.
-        /// </summary>
+        /// <summary>What an operation does to the database, which every one of them declares.</summary>
         public const string VerbExtension = "x-kpg-verb";
+
+        /// <summary>Marks an operation that reaches the attachments inside an entry.</summary>
+        public const string AttachmentsExtension = "x-kpg-attachments";
 
         /// <summary>The only body this API speaks.</summary>
         public const string MediaType = "application/json";
@@ -223,6 +231,52 @@ namespace KeePassGate.Spec
 
                     var method = pair.Key.ToString().ToUpperInvariant();
 
+                    var written = Extension(operation.Extensions, VerbExtension);
+                    if (written == null)
+                    {
+                        // The whole of what makes authorization something a route cannot be added
+                        // without: not declaring a verb is not a permissive default, it is a plugin
+                        // that does not load.
+                        throw new InvalidOperationException(
+                            operation.OperationId + " declares no " + VerbExtension +
+                            ", so nothing knows what it does to the database.");
+                    }
+
+                    var verb = AclVerbs.Read(written);
+                    if (verb == null)
+                    {
+                        throw new InvalidOperationException(
+                            operation.OperationId + " declares a " + VerbExtension +
+                            " nobody recognizes: " + written);
+                    }
+
+                    if (AclVerbs.IsScope(verb.Value))
+                    {
+                        // No operation does attachments. One reads or replaces or removes, and
+                        // whether the thing it reaches is an attachment is the other extension.
+                        // Only one of the two scopes has an extension, so only one of them can
+                        // be pointed at: `protected` is asked about by the handler on the way
+                        // out, and there is nothing to declare here in its place.
+                        throw new InvalidOperationException(
+                            operation.OperationId + " declares " + written + " as its " +
+                            VerbExtension + ", which says how far a rule reaches rather than what " +
+                            "an operation does." +
+                            (verb.Value == AclVerb.Attachments ? " Use " + AttachmentsExtension + "." : string.Empty));
+                    }
+
+                    var reach = IsTrue(operation.Extensions, AttachmentsExtension, operation.OperationId)
+                        ? AclReach.Attachments
+                        : AclReach.Fields;
+
+                    if (reach == AclReach.Attachments && !AclVerbs.IsGrantable(verb.Value))
+                    {
+                        // An operation that touches no data cannot reach into an entry, and one
+                        // saying both is one whose author meant something this cannot express.
+                        throw new InvalidOperationException(
+                            operation.OperationId + " declares " + AttachmentsExtension +
+                            " with a verb of " + written + ", which touches no data at all.");
+                    }
+
                     OpenApiSchema body = null;
 
                     if (operation.RequestBody != null)
@@ -300,8 +354,9 @@ namespace KeePassGate.Spec
                         operation.OperationId,
                         method,
                         template,
-                        !IsTrue(operation.Extensions, UnauthenticatedExtension),
-                        Extension(operation.Extensions, VerbExtension),
+                        !IsTrue(operation.Extensions, UnauthenticatedExtension, operation.OperationId),
+                        verb.Value,
+                        reach,
                         body));
                 }
             }
@@ -390,11 +445,11 @@ namespace KeePassGate.Spec
                         " declares a get and no head, so a HEAD there would be refused.");
                 }
 
-                if (!string.Equals(head.Verb, operation.Verb, StringComparison.Ordinal))
+                if (head.Verb != operation.Verb)
                 {
                     throw new InvalidOperationException(
-                        head.OperationId + " declares " + Describe(head.Verb) + " and " +
-                        operation.OperationId + " declares " + Describe(operation.Verb) +
+                        head.OperationId + " declares " + head.Verb + " and " +
+                        operation.OperationId + " declares " + operation.Verb +
                         ", so the head would be governed differently from its own get.");
                 }
 
@@ -425,12 +480,18 @@ namespace KeePassGate.Spec
                         " disagree about carrying a body, so they are not one request with" +
                         " the content left off.");
                 }
-            }
-        }
 
-        private static string Describe(string verb)
-        {
-            return verb == null ? "no verb" : "`" + verb + "`";
+                // The switch is not a verb, so it is asked about separately here as it is
+                // everywhere else. A head reaching an attachment its own get does not would
+                // answer whether that attachment is there to a caller holding no `A`.
+                if (head.Reach != operation.Reach)
+                {
+                    throw new InvalidOperationException(
+                        head.OperationId + " reaches " + head.Reach + " and " +
+                        operation.OperationId + " reaches " + operation.Reach +
+                        ", so the head would be scoped differently from its own get.");
+                }
+            }
         }
 
         /// <summary>Whether either list declares this name as a path parameter.</summary>
@@ -477,8 +538,16 @@ namespace KeePassGate.Spec
                    || string.Equals(method, "PATCH", StringComparison.Ordinal);
         }
 
+        /// <summary>Whether this operation declares the switch, refusing anything that is not one.</summary>
+        /// <remarks>
+        /// **Absent is false and unreadable is a plugin that does not load**, which are two
+        /// different answers and were one. A value the reader hands back as anything but a
+        /// boolean is a line somebody wrote and meant something by: `x-kpg-attachments: "true"`
+        /// is a string, reads as false, and lowers what a rule has to grant to reach an
+        /// attachment. Silence is the only thing that may be taken as no.
+        /// </remarks>
         private static bool IsTrue(IDictionary<string, Microsoft.OpenApi.Interfaces.IOpenApiExtension> extensions,
-            string name)
+            string name, string operationId)
         {
             Microsoft.OpenApi.Interfaces.IOpenApiExtension value;
             if (extensions == null || !extensions.TryGetValue(name, out value))
@@ -487,7 +556,15 @@ namespace KeePassGate.Spec
             }
 
             var boolean = value as Microsoft.OpenApi.Any.OpenApiBoolean;
-            return boolean != null && boolean.Value;
+            if (boolean == null)
+            {
+                throw new InvalidOperationException(
+                    operationId + " declares " + name +
+                    " as something that is not true or false, and a switch that will not read is" +
+                    " a switch this would have to guess at. Only leaving it out means no.");
+            }
+
+            return boolean.Value;
         }
 
         private static string Extension(IDictionary<string, Microsoft.OpenApi.Interfaces.IOpenApiExtension> extensions,

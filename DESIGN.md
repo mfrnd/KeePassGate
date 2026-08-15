@@ -439,8 +439,9 @@ separately and bound to one handler, which is what makes RFC 9110 section 9.3.2'
 GET, except no content" true by construction rather than by two implementations agreeing.
 Deriving it instead would have left this document an incomplete account of what the API answers,
 which is the one thing it is for; refusing it would have left an HTTP requirement unmet for no
-gain. **A pair carries one verb between them.** The plugin refuses to load a `get` with no `head`,
-or a pair whose `x-kpg-verb` differs, because a `head` governed differently would answer whether
+gain. **A pair carries one verb between them**, one reach, one answer about needing a certificate
+and one about carrying a body. The plugin refuses to load a `get` with no `head`, or a pair that
+disagrees about any of them, because a `head` governed differently would answer whether
 a node exists to a caller its own `get` would have refused, which is an oracle rather than a
 route. The answer carries no length, which section 9.3.2 permits: it asks for the same header
 fields as GET and allows omitting the ones determined while generating the content.

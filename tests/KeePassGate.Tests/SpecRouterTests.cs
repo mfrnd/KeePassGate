@@ -358,9 +358,9 @@ namespace KeePassGate.Tests
         {
             var document = SpecDocument.Parse(
                 "{\"openapi\":\"3.0.3\",\"info\":{\"title\":\"t\",\"version\":\"1\"},\"paths\":{" +
-                "\"/entries/{uuid}\":{\"get\":{\"operationId\":\"readEntry\",\"parameters\":[{\"name\":\"uuid\",\"in\":\"path\",\"required\":true,\"schema\":{\"type\":\"string\"}}]," +
+                "\"/entries/{uuid}\":{\"get\":{\"operationId\":\"readEntry\",\"x-kpg-verb\":\"read\",\"parameters\":[{\"name\":\"uuid\",\"in\":\"path\",\"required\":true,\"schema\":{\"type\":\"string\"}}]," +
                 "\"x-kpg-unauthenticated\":true,\"responses\":{\"200\":{\"description\":\"o\"}}}," +
-                "\"head\":{\"operationId\":\"headEntry\",\"parameters\":[{\"name\":\"uuid\",\"in\":\"path\",\"required\":true,\"schema\":{\"type\":\"string\"}}]," +
+                "\"head\":{\"operationId\":\"headEntry\",\"x-kpg-verb\":\"read\",\"parameters\":[{\"name\":\"uuid\",\"in\":\"path\",\"required\":true,\"schema\":{\"type\":\"string\"}}]," +
                 "\"x-kpg-unauthenticated\":true,\"responses\":{\"200\":{\"description\":\"o\"}}}}}}");
 
             IReadOnlyDictionary<string, string> captured = null;

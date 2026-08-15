@@ -13,7 +13,7 @@ info:
     9.3.2 says a `head` is identical to its `get` except that no content is sent, so one handler is
     what makes that true by construction rather than by two implementations agreeing. The plugin
     refuses to load a `get` with no `head`, and a pair that disagrees about its `x-kpg-verb`,
-    about needing a certificate, or about carrying a body. The answer omits
+    its `x-kpg-attachments`, needing a certificate, or carrying a body. The answer omits
     `Content-Length` rather than sending a wrong one, which section 9.3.2 permits for a value
     determined only while generating content, and section 8.6 requires of anything else.
 
@@ -27,11 +27,33 @@ info:
     `x-kpg-unauthenticated` marks the two routes an invitee may reach before it has a certificate.
     Everything else needs one, by default rather than by remembering to say so.
 
-    `x-kpg-verb` is what the access control layer will read to decide what an operation may do. It is
-    declared now so that the document stays the single account of what this API permits, and nothing
-    reads it yet but the check holding a `head` to its `get`. TODO(step 12): that layer arrives
-    with the access control model, which is also when a route that declares no verb stops the
-    plugin loading.
+    `x-kpg-verb` says what an operation does to the database: `create`, `read`, `update`, `strip`,
+    `delete`, `list`, or `none` for an operation no grant governs. **Every operation declares one**,
+    and one that does not stops the plugin loading, so authorization is not something a new route
+    can be added without. `none` is the status route, which reads nothing, and the two pairing
+    routes, which a person authorizes by reading a dialog rather than a grant. `list` is below
+    `read`, because knowing that an entry exists is not knowing what is in it.
+
+    `strip` and `delete` are two sizes of removal. `strip` takes the parts off a node, which are an
+    entry's fields and its attachments. `delete` says removals are allowed here. TODO(step 14):
+    an operation declaring `delete` is to be asked twice, of the group the node is leaving and of
+    the node itself, because a removal is a move. Nothing above the root allows its removal, so
+    the root cannot be removed. The resolver answers about one node, so that second question is
+    asked by whatever calls it, and nothing calls it yet.
+
+    `x-kpg-attachments: true` marks an operation that reaches the attachments inside an entry rather
+    than only its fields. Such an operation needs both the verb and the attachment switch from the
+    same rule, except where that verb is a removal: removing shows nobody anything, and a rule that
+    may remove an entry already takes everything inside it. It is a second declaration rather than a
+    seventh verb because no operation does attachments: one reads or replaces or removes, and what
+    it reaches is a separate question. Absent means fields only, which is the same default deny as
+    everything else here.
+
+    **Protected values are a scope too, and no operation declares it.** A password does not have a
+    route of its own: it arrives inside the answer to a read that is already allowed, so the switch
+    is answered while that answer is written rather than before dispatch. A caller whose rule does
+    not carry `protected` is told everything else about the entry and gets `null` where a protected
+    value would be, and `protected` says which those were.
 
 servers:
   - url: https://127.0.0.1:{port}
