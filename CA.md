@@ -410,7 +410,7 @@ Storing the certificate rather than only its digest is what makes any of this po
 - **A host certificate expiring is a total outage**, and it happens while nobody is looking.
   Reissuing would be cheap and clients would never notice, because they trust the authority rather
   than the leaf. **Not built:** there is no reissue dialog, and recreating the authority is what
-  replaces a host certificate, at the cost of revoking every client.
+  replaces a host certificate today, at the cost of revoking every client.
 - **Recreating the authority revokes every client at once.** It asks first, and it states the count.
 - **Renewal would be re-issuance**: same profiles, new key, new certificate, new record, old record
   removed. **Not built:** a client that is about to expire pairs again.

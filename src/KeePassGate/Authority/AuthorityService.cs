@@ -251,7 +251,10 @@ namespace KeePassGate.Authority
                 Reset(host);
             }
 
-            // Believe it only after reading it back out of the store.
+            // Read back out of the store that was written to. On the tab that store is the tab's
+            // own buffer, so this proves the material round-trips through the format and not that
+            // it reached the database: the write that does that happens when the dialog is
+            // accepted, and is reported there.
             using (var check = Read())
             {
                 // Present is not enough, and recreation is what makes that matter. A write the
@@ -267,9 +270,11 @@ namespace KeePassGate.Authority
                 }
 
                 _log.Info("authority " + verb + ", digest " + check.Material.AuthorityDigest);
-                return AuthorityChange.Done(
-                    "The authority was " + verb + ". Fingerprint " +
-                    CertificateDigest.Shorten(check.Material.AuthorityDigest) + ".");
+
+                // Without the fingerprint, which the tab already shows above this line and shows
+                // with a name beside it. Saying it twice makes the answer to "what just happened"
+                // longer without making it more complete.
+                return AuthorityChange.Done("The authority was " + verb + ".");
             }
         }
 

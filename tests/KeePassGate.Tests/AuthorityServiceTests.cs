@@ -41,14 +41,18 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void The_message_names_the_authority_by_its_fingerprint()
+        public void The_message_says_what_happened_and_leaves_the_details_to_the_tab()
         {
+            // The fingerprint is on the tab already, in a table, with a name beside it. Repeating
+            // it here made the answer to "what just happened" longer without making it complete,
+            // and the two would have to be kept saying the same thing.
             var result = _service.Create();
 
             using (var reading = _service.Read())
             {
+                Assert.That(result.Message, Is.EqualTo("The authority was created."));
                 Assert.That(result.Message,
-                    Does.Contain(CertificateDigest.Shorten(reading.Material.AuthorityDigest)));
+                    Does.Not.Contain(CertificateDigest.Shorten(reading.Material.AuthorityDigest)));
             }
         }
 

@@ -1,7 +1,8 @@
 using System;
 using KeePass.UI;
+using KeePassGate.Ui;
 
-namespace KeePassGate.Ui
+namespace KeePassGate.Bridge
 {
     /// <summary>
     /// The one adapter that knows how KeePass announces its dialogs. It is deliberately the

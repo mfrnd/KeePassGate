@@ -1,5 +1,4 @@
 using System;
-using System.Globalization;
 
 namespace KeePassGate.Diagnostics
 {
@@ -24,7 +23,7 @@ namespace KeePassGate.Diagnostics
         public static string Line(DateTime timestampUtc, string level, string message, Exception error)
         {
             var line = string.Concat(
-                timestampUtc.ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss'.'fff'Z'", CultureInfo.InvariantCulture),
+                Moments.Log(timestampUtc),
                 " ", Prefix,
                 " ", level ?? string.Empty,
                 " ", Flatten(message));
