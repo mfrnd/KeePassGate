@@ -270,4 +270,4 @@ layers of transport would be expensive.
 What step 4 already gives it: a place on the dialog, a real dialog to test against without starting
 KeePass, and an end to end test that presses keys on the real thing. Note that the end to end test
 closes the settings dialog with **Escape rather than OK**, which is the safe half of the snapshot
-hazard; step 5 has to exercise the other half deliberately.
+hazard; step 5 exercises the other half deliberately, in `SnapshotHazardTests`.
