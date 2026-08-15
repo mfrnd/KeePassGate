@@ -57,5 +57,20 @@ namespace KeePassGate.Ui
         public const string RecreateButtonText = "Recreate authority";
 
         public const string DeleteButtonText = "Delete authority";
+
+        /// <summary>The dialog raised when somebody asks to pair.</summary>
+        public const string ApprovalFormName = "KpgApprovalForm";
+
+        public const string ApprovalDetailLabelName = "KpgApprovalDetailLabel";
+
+        public const string ApprovalProfilesListName = "KpgApprovalProfilesList";
+
+        public const string ApproveButtonName = "KpgApproveButton";
+
+        public const string RefuseButtonName = "KpgRefuseButton";
+
+        public const string ApproveButtonText = "Approve";
+
+        public const string RefuseButtonText = "Refuse";
     }
 }

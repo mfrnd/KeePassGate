@@ -142,7 +142,9 @@ is shared by the whole process or the whole account:
 - `Trace.Listeners`, and anything counting the lines that reach them;
 - the time zone, which every chain build and every `NotAfter` reads;
 - a shown window, the focus, a posted key or a menu left open, since a window another fixture shows
-  takes the activation and closes the menu;
+  takes the activation and closes the menu. Another test process shows its windows on the same
+  screen, and no mark reaches it, so such a fixture carries `[Desktop]` as well, which holds the
+  screen against every other test process for each of its tests;
 - a static the plugin lends out for a while and takes back;
 - the account's key directories: a certificate loaded without `EphemeralKeySet` writes its key
   there, which every fixture issuing a client does, so a test asserting that none appeared is

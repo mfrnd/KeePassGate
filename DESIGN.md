@@ -500,8 +500,8 @@ So the rules here:
   transport closes a connection that takes more than `GateOptions.Budget`, and phase 4 exceeds that
   by design because it is waiting on a person rather than on the wire. Closing the socket there does
   not cancel anything: the invitation is still spent and the record still saved, and only the answer
-  is lost. `GateOptions.PairingBudget` covers the whole of what a pairing waits for, and a test is
-  to pin it against the four timeouts it has to outlast.
+  is lost. `GateOptions.PairingBudget` covers the whole of what a pairing waits for, and a test pins
+  it against the four timeouts it has to outlast.
 - **Nothing throws to the transport.** A handler failure becomes a 500 with an audited reason,
   because an unhandled exception in this process takes KeePass with it.
 - Distribution is a **plain DLL** targeting .NET Framework 4.8, not a `.plgx`, which is what allows

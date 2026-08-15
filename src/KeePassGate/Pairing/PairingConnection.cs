@@ -85,10 +85,7 @@ namespace KeePassGate.Pairing
             get { return (byte[])_nonce.Clone(); }
         }
 
-        /// <summary>
-        /// Where it came from, for the approval dialog and the log. Never trusted for anything.
-        /// TODO(step 8): the approval dialog arrives with operator approval.
-        /// </summary>
+        /// <summary>Where it came from, for the approval dialog and the log. Never trusted for anything.</summary>
         public string Peer
         {
             get { return _peer; }

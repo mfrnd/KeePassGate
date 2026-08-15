@@ -103,8 +103,7 @@ namespace KeePassGate.Tests.Fakes
 
         /// <summary>
         /// What the approval dialog calls this database. Empty by default, which is what a database
-        /// KeePass has never been told a name for answers. TODO(step 8): the approval dialog
-        /// arrives with operator approval.
+        /// KeePass has never been told a name for answers.
         /// </summary>
         public string DatabaseName { get; set; } = string.Empty;
 

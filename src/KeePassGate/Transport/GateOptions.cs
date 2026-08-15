@@ -79,8 +79,9 @@ namespace KeePassGate.Transport
         /// a certificate nobody ever received.
         ///
         /// So it has to exceed `ApprovalTimeout + PairingApprovalPrompt.Grace +
-        /// AdmissionWriter.LockTimeout + AdmissionWriter.WriteTimeout`, and a test is to keep the
-        /// five numbers from drifting apart.
+        /// AdmissionWriter.LockTimeout + AdmissionWriter.WriteTimeout`, and
+        /// `GateOptionsTests.The_pairing_budget_outlasts_everything_a_pairing_waits_for` is what
+        /// keeps the five numbers from drifting apart.
         /// </remarks>
         public TimeSpan PairingBudget { get; set; }
 

@@ -69,7 +69,6 @@ namespace KeePassGate.Pairing
         /// **This is what an approval dialog shows, and the tab shows it beside the code**, so the
         /// two can be checked against each other. The code itself is shown once: it is a single use
         /// credential, and a second place to read it off is a second place to lose it from.
-        /// TODO(step 8): the approval dialog and the invitation control arrive with this step.
         /// </remarks>
         public string Id
         {

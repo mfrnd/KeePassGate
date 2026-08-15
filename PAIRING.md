@@ -103,7 +103,7 @@ sequenceDiagram
 
     Note over OP,CL: Phase 4. Approval, on the KeePass screen
     CL->>KPG: POST /pair/request + wanted profiles
-    KPG->>OP: dialog: database, label, name, profiles, peer, remote
+    KPG->>OP: dialog: database, fingerprint, name, invitation id, profiles, peer
     OP-->>KPG: approve, confirming the profiles
 
     Note over KPG,CL: Phase 5. Issuance. Single writer, on the UI thread, under one lock

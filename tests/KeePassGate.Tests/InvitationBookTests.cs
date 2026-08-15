@@ -54,8 +54,7 @@ namespace KeePassGate.Tests
 
             // Named, and named independently of the code: the identifier is shown twice, on the
             // tab and on the approval dialog, and anything the code could be recovered from is not
-            // a thing to be showing twice. TODO(step 8): the tab's invitation control and the
-            // approval dialog arrive with this step.
+            // a thing to be showing twice.
             Assert.That(invitation.Id, Is.Not.Empty);
             Assert.That(invitation.Text, Does.Not.Contain(invitation.Id));
             Assert.That(invitation.Expires, Is.EqualTo(_now.AddMinutes(10)));
@@ -153,7 +152,6 @@ namespace KeePassGate.Tests
             // The case an approval dialog open across the expiry reaches. Nothing reads the book
             // between the two lines below, so if spending did not sweep, whether the approval
             // landed would depend on whether another connection or a redraw of the tab had.
-            // TODO(step 8): the approval dialog arrives with operator approval.
             var invitation = _book.Invite(Database);
 
             _now = _now.AddMinutes(11);

@@ -137,7 +137,6 @@ namespace KeePassGate.Host.Tests
         {
             // The plugin's own approval dialog is one of these, and it is open at exactly the
             // moment a pairing write happens. Counting windows would deadlock every pairing.
-            // TODO(step 8): the approval dialog arrives with operator approval.
             using (var form = new Form())
             {
                 GlobalWindowManager.AddWindow(form);

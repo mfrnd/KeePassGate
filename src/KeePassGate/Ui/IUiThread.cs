@@ -30,8 +30,7 @@ namespace KeePassGate.Ui
         /// to run later, because a caller told "no" has already given its answer: for pairing that
         /// answer is a refusal, and a write arriving after it would save an admission record for a
         /// certificate that was destroyed, or raise an approval dialog for a client that has
-        /// already been turned away. TODO(step 8): pairing and its approval dialog arrive with
-        /// this step.
+        /// already been turned away.
         ///
         /// The one thing an implementation cannot withdraw is work that has already begun. There it
         /// waits, because the caller's lock and the caller's belief about what the database now

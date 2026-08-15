@@ -20,10 +20,10 @@ namespace KeePassGate.Ui
     /// value would only be two things to keep equal.
     ///
     /// **A window of this plugin's own is held to it everywhere but its edge.** That is a dialog
-    /// rather than a page inside somebody else's tab and is not short of room, so its inset keeps
-    /// the twelve a dialog conventionally has. Between one thing on it and the next the amount is
-    /// this one, so that a dialog and a tab do not disagree about how far apart two lines are.
-    /// TODO(step 8): the first such window, the approval dialog, arrives with pairing.
+    /// rather than a page inside somebody else's tab and is not short of room, so its inset is
+    /// `Window`, the twelve a dialog conventionally has. Between one thing on it and the next the
+    /// amount is this one, so that a dialog and a tab do not disagree about how far apart two
+    /// lines are.
     ///
     /// Named `Spacing` rather than `Layout`, which is what it was called for about a minute:
     /// `Control` has a `Layout` event, so inside any control on this tab the name resolves to the
@@ -84,5 +84,11 @@ namespace KeePassGate.Ui
         /// tab has two amounts of space rather than however many were typed.
         /// </summary>
         public const int Tight = 2;
+
+        /// <summary>
+        /// The inset of a window of this plugin's own, between its frame and what is on it.
+        /// Nothing inside the window is spaced by it: that is still `Gap`.
+        /// </summary>
+        public const int Window = 12;
     }
 }

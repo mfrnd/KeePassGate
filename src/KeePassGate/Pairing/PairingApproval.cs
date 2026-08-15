@@ -9,6 +9,7 @@ namespace KeePassGate.Pairing
         private static readonly string[] Nothing = Array.Empty<string>();
 
         private readonly string _databaseId;
+        private readonly string _databaseName;
         private readonly string _invitationId;
         private readonly string _name;
         private readonly IReadOnlyList<string> _profiles;
@@ -20,8 +21,24 @@ namespace KeePassGate.Pairing
             string name,
             IReadOnlyList<string> profiles,
             string peer)
+            : this(databaseId, null, invitationId, name, profiles, peer)
+        {
+        }
+
+        /// <param name="databaseName">
+        /// What KeePass calls this database. A dialog naming it only by its fingerprint asks the
+        /// operator to recognize sixteen hexadecimal characters.
+        /// </param>
+        public PairingRequest(
+            string databaseId,
+            string databaseName,
+            string invitationId,
+            string name,
+            IReadOnlyList<string> profiles,
+            string peer)
         {
             _databaseId = databaseId ?? string.Empty;
+            _databaseName = databaseName ?? string.Empty;
             _invitationId = invitationId ?? string.Empty;
             _name = name ?? string.Empty;
             _profiles = profiles ?? Nothing;
@@ -32,6 +49,12 @@ namespace KeePassGate.Pairing
         public string DatabaseId
         {
             get { return _databaseId; }
+        }
+
+        /// <summary>What KeePass calls it, or empty when it has nothing to be called.</summary>
+        public string DatabaseName
+        {
+            get { return _databaseName; }
         }
 
         public string InvitationId
@@ -55,6 +78,7 @@ namespace KeePassGate.Pairing
         {
             get { return _peer; }
         }
+
     }
 
     public enum PairingDecision

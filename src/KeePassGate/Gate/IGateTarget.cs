@@ -50,8 +50,7 @@ namespace KeePassGate.Gate
         /// What KeePass calls this database, or empty when it has nothing to be called.
         /// </summary>
         /// <remarks>
-        /// For the approval dialog and nothing else (TODO(step 8): it arrives with operator
-        /// approval). A dialog that identifies the database only by
+        /// For the approval dialog and nothing else. A dialog that identifies the database only by
         /// <see cref="DatabaseId"/> asks the operator to recognize sixteen hexadecimal characters
         /// before letting a stranger in, which is exactly the check nobody performs. The digest
         /// stays beside it, because it is what actually identifies the database and two of them can

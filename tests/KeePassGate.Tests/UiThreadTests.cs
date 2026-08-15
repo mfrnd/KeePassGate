@@ -17,8 +17,7 @@ namespace KeePassGate.Tests
     /// given its own answer by the time the timeout expires: pairing has refused the client and
     /// destroyed the certificate, so a write arriving afterwards saves an admission record for a
     /// certificate nobody holds, and an approval dialog arriving afterwards asks the operator about
-    /// a client that was turned away minutes ago. TODO(step 8): pairing and its approval dialog
-    /// arrive with this step.
+    /// a client that was turned away minutes ago.
     ///
     /// **And a failure belongs to the caller, not to the user interface thread.** Work posted with
     /// `BeginInvoke` that throws is handed to `Application.OnThreadException` there as well as

@@ -391,7 +391,7 @@ namespace KeePassGate.Pairing
             // profile the operator refused is granted anyway. The proof was computed over the list
             // exactly as it arrived, which is why this happens here and not before it was checked.
             var request = new PairingRequest(
-                target.DatabaseId, invitation.Id, name, Once(asked), connection.Peer);
+                target.DatabaseId, Named(target), invitation.Id, name, Once(asked), connection.Peer);
 
             PairingApproval decision;
             try
@@ -582,6 +582,27 @@ namespace KeePassGate.Pairing
                 {
                     Array.Clear(gateKey, 0, gateKey.Length);
                 }
+            }
+        }
+
+        /// <summary>
+        /// What the operator's dialog calls this database, or empty when reading it fails.
+        /// </summary>
+        /// <remarks>
+        /// A name is worth having and is worth nothing at all compared to the pairing itself, so a
+        /// database that will not say what it is called is shown by its fingerprint alone rather
+        /// than taking the pairing down with it.
+        /// </remarks>
+        private string Named(IGateTarget target)
+        {
+            try
+            {
+                return target.DatabaseName ?? string.Empty;
+            }
+            catch (Exception error) when (Expected.OfCustomData(error))
+            {
+                _log.Warn("a database would not say what it is called: " + error.Message);
+                return string.Empty;
             }
         }
 

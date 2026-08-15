@@ -336,6 +336,35 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_pairing_that_loses_the_race_to_spend_the_invitation_is_handed_nothing()
+        {
+            // Two pairings can be in flight on one invitation, and the operator can be reading one
+            // dialog while the other is spending it. Only one of them can win, and the winner is
+            // whoever burns it: the loser is turned away with nothing issued and no record written.
+            //
+            // What this pins is the ordering rather than the race. The burn comes before the
+            // record, so a rearrangement that wrote first would admit both of them, and every other
+            // test here would still pass: they check that the invitation ends up gone, which it
+            // does either way.
+            Hello(ClientProof());
+
+            var approval = new FakePairingApproval(request =>
+            {
+                // The other pairing got there while this dialog was up.
+                _book.Burn(_invitation.Id);
+                return PairingApproval.Approved(Array.Empty<string>());
+            });
+
+            var context = Request("agent-fictitious", Array.Empty<string>(), approval);
+
+            Assert.That(context.Status, Is.EqualTo(409));
+            Assert.That(context.Json, Does.Contain("no invitation"));
+            Assert.That(context.Json, Does.Not.Contain("identity"));
+            Assert.That(_target.Admitted, Is.Null, "the loser must leave no record of its own behind");
+            Assert.That(_log.Warnings.Any(w => w.Message.Contains("lost the race")), Is.True);
+        }
+
+        [Test]
         public void A_refusal_spends_the_invitation_and_issues_nothing()
         {
             Hello(ClientProof());
@@ -595,6 +624,23 @@ namespace KeePassGate.Tests
             Assert.That(context.Status, Is.EqualTo(200));
             Assert.That(_target.Admitted.Profiles, Is.EqualTo(new[] { "ops" }),
                 "a repeated profile would reach the certificate as a repeated claim");
+        }
+
+        [Test]
+        public void The_operator_is_told_which_database_by_name_and_not_only_by_digest()
+        {
+            // Approving lets a stranger into one of possibly several open databases, and sixteen
+            // hexadecimal characters is not something anybody recognizes under time pressure. The
+            // dialog had a row for this and nothing ever filled it in.
+            _target.DatabaseName = "Household";
+            var approval = FakePairingApproval.Approving();
+            Hello(ClientProof());
+
+            Request("agent-fictitious", Array.Empty<string>(), approval);
+
+            Assert.That(approval.LastRequest.DatabaseName, Is.EqualTo("Household"));
+            Assert.That(approval.LastRequest.DatabaseId, Is.EqualTo(_target.DatabaseId),
+                "the digest stays beside it, because two databases can carry one name");
         }
 
         [Test]

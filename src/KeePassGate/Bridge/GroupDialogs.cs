@@ -24,8 +24,7 @@ namespace KeePassGate.Bridge
     /// `GlobalWindowManager.WindowCount` includes every window KeePass registers, nearly none of
     /// which copies anything. It would also leave this guard at the mercy of what the plugin's own
     /// dialogs register: the pairing approval dialog does not add itself to that manager, and it is
-    /// the one window certain to be open while a pairing is being written. TODO(step 8): the
-    /// approval dialog arrives with operator approval.
+    /// the one window certain to be open while a pairing is being written.
     ///
     /// The group behind a dialog is read by reflection, so a KeePass that renames the field leaves
     /// this refusing every write while any group dialog is open rather than allowing one it should
