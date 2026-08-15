@@ -124,6 +124,80 @@ namespace KeePassGate.Acl
         /// </remarks>
         public const int MaxDepth = 64;
 
+        /// <summary>
+        /// What a node under this one inherits: the rule in force for every profile named at or
+        /// above the node given.
+        /// </summary>
+        /// <remarks>
+        /// The same walk `Decide` makes, stopped one question earlier. It exists for the editor,
+        /// which has to show what is already granted beside what is being granted: a table listing
+        /// only a group's own rules reports nothing for a group whose parent already opens it wide,
+        /// and an operator reading that is being invited to grant more.
+        ///
+        /// For display, so unlike `Decide` it answers about every profile at once and says when it
+        /// could not read something rather than refusing. Nothing authorizes anything on the
+        /// strength of what comes back.
+        /// </remarks>
+        /// <param name="node">The parent of the node being edited, which is where its walk goes next.</param>
+        public static AclInheritance Above(IAclNode node)
+        {
+            var grants = new Dictionary<string, AclGrant>(StringComparer.Ordinal);
+            var readable = true;
+
+            // One level already walked: the node being edited, whose own rules the editor holds.
+            // Counted from there, `MaxDepth` gives up at the same group `Decide` does rather than
+            // one further up, where a grant it would show is one the resolver never reaches.
+            var walked = 1;
+
+            for (var current = node; current != null; current = current.Parent)
+            {
+                if (++walked > MaxDepth)
+                {
+                    // Where `Decide` gives up, and what it answers there: no for every profile
+                    // still unanswered. What was collected below this point is still in force.
+                    readable = false;
+                    break;
+                }
+
+                var text = current.Document;
+                if (string.IsNullOrEmpty(text))
+                {
+                    continue;
+                }
+
+                var document = AclDocument.Read(text);
+                if (document == null)
+                {
+                    // Refused where it is found, exactly as `Decide` refuses it, which is only for
+                    // a profile no nearer rule has already answered. So what was collected on the
+                    // way up stays: those rules are nearer, `Decide` stops at them and never reads
+                    // this one. Everything else is refused here, which is a seal as far as the
+                    // editor can tell, and nothing further up is inherited.
+                    readable = false;
+                    break;
+                }
+
+                foreach (var profile in document.Profiles)
+                {
+                    if (!grants.ContainsKey(profile))
+                    {
+                        // Nearest wins, so the first rule found for a profile is its answer and
+                        // anything further up about that profile is already overruled.
+                        grants[profile] = document.Grant(profile);
+                    }
+                }
+
+                if (document.Default == AclDefault.Deny)
+                {
+                    // A seal: nothing above it reaches anything under it, so nothing above it is
+                    // listed as inherited.
+                    break;
+                }
+            }
+
+            return new AclInheritance(grants, readable);
+        }
+
         /// <summary>Whether these profiles may do this to this entry's fields.</summary>
         public static bool Permits(IAclNode node, IEnumerable<string> profiles, AclVerb verb)
         {
