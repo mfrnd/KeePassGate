@@ -90,6 +90,22 @@ class GateClient:
             version=str(body.get("version", "")),
         )
 
+    def head(self, path: str) -> None:
+        """Whether a route answers, and whether this client may reach it, without the answer.
+
+        One method for every `head` the document declares, because a `head` is generic in a way
+        a `get` is not: it carries no content, so there is nothing to shape per route. What it
+        reports is the status, which is the whole of what was asked.
+
+        It hands back nothing: a refusal is an exception here as it is everywhere else in this
+        client, so reaching the next line is the answer. What a refusal cannot carry is the
+        gate's word, since that is written in a body and this answer has none: a `RouteRefused`
+        from here holds the status and an empty `error`. The gate omits `Content-Length` on
+        these, which RFC 9110 section 9.3.2 permits for a value determined only while
+        generating content, so this one reads to the close the gate sends anyway.
+        """
+        self.send("HEAD", path)
+
     def get(self, path: str) -> dict[str, Any]:
         """One GET, on its own connection, under a name built for it."""
         return self.send("GET", path)

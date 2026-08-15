@@ -118,6 +118,7 @@ words:
   # Tooling
   - mypy
   - pyproject
+  - pyyaml
   - sdist
   - autonumber
   - LASTEXITCODE

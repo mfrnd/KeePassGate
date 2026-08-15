@@ -49,6 +49,10 @@ only-include = ["src/pykeepassgate", "LICENSE"]
 dev = [
     "mypy>=1.11",
     "pre-commit>=4",
+    # Only the test that holds this client to the plugin's routing table reads it, and the plugin
+    # writes that table in YAML because its OpenAPI reader ships a YAML parser either way.
+    "pyyaml>=6",
+    "types-pyyaml>=6",
     "pytest>=8",
     "pytest-cov>=5",
     "ruff>=0.6",

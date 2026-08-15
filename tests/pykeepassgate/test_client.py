@@ -184,3 +184,37 @@ def test_opening_a_client_can_say_how_long_to_wait(
     credentials_module.save(tmp_path / "kept", gate.port, bundle)
 
     assert GateClient.open(tmp_path / "kept", timeout=3.5)._timeout == 3.5
+
+
+def test_a_head_asks_whether_a_route_answers_without_taking_the_answer(
+    paired: GateClient, gate: FakeGate
+) -> None:
+    # The gate omits `Content-Length` on a HEAD rather than sending a wrong one, so this is also
+    # the one request this client reads to the close. Reaching the next line is the answer.
+    gate.handler = lambda path, body, certificate: (200, json.dumps({"ok": True}))
+
+    paired.head("/gate/status")
+
+    assert gate.requests == [("HEAD", "/gate/status")]
+
+
+def test_a_refused_head_carries_its_status_and_no_word(paired: GateClient, gate: FakeGate) -> None:
+    # The gate writes its word into a body and an answer to a HEAD has none, so what arrives is
+    # the status alone. The handler names a word to show that it goes nowhere.
+    gate.handler = lambda path, body, certificate: (404, '{"error":"no such route"}')
+
+    with pytest.raises(RouteRefused) as refused:
+        paired.head("/gate/status")
+
+    assert refused.value.status == 404
+    assert refused.value.error == ""
+    assert str(refused.value) == "the gate answered 404"
+
+
+def test_a_head_this_client_may_not_reach_is_refused_like_any_other(
+    paired: GateClient, gate: FakeGate
+) -> None:
+    gate.handler = lambda path, body, certificate: (401, '{"error":"unpaired"}')
+
+    with pytest.raises(NotAdmitted):
+        paired.head("/gate/status")

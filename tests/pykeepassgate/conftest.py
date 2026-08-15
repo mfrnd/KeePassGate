@@ -233,7 +233,15 @@ class FakeGate:
                 self.requests.append((method, path))
                 client = wrapped.getpeercert(binary_form=True)
                 status, answer = self.handler(path, body, client)
-                written = _response(status, answer, self.declare)
+
+                # What the gate does for a HEAD: no content, and no length rather than a wrong
+                # one. RFC 9112 section 6.3 and RFC 9110 section 8.6. Modeled here because a
+                # client that only ever met a gate which answered HEAD like GET would not be
+                # tested against the gate it has.
+                if method == "HEAD":
+                    written = _response(status, "", "")
+                else:
+                    written = _response(status, answer, self.declare)
                 if self.truncate:
                     written = written[: len(written) - self.truncate]
 
