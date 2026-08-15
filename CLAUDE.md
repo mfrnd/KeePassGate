@@ -136,6 +136,23 @@ designing around them.
   KeePass: the plugin entry point, the KeePass window event handlers, and the connection thread.
   Those report through `GateIncidents`, which counts on the KPG tab and
   logs at `UNEXPECTED`.
+- **Nothing on a tab scrolls.** The content is held to 449 by 314 and has to fit it; horizontal
+  scrolling is never acceptable. That is KeePass's own first page on the settings dialog, inside a
+  padding of 3. The page this plugin adds has no padding and is laid out to the tab control's whole
+  display area, a few pixels more even after the icon's share of the strip, and `TabRoom` holds a
+  fit test to the smaller of the two, so the tests are strict by that padding on purpose.
+  `GateTabFitsTests` measures it against the real dialog, including the longest text every label
+  can hold at once. **The KPG tab has two pages of its own**, "Certificate Authority" and
+  "Clients", because two subjects competing for one page is what makes a tab that has to be
+  shortened rather than read. Each page is measured in the room that page is given, not both in
+  the sum, which is the whole point of there being two. A
+  `TabControl` with no window handle never sizes its pages, so the measurement creates one and
+  brings each page to the front before believing what it is told.
+- **The grant editor writes into the dialog's own copy**, `m_sdCustomData`, on the group dialog and
+  the entry dialog alike, which is what makes those dialogs' OK keep a rule and their Cancel discard
+  it. The copy does not exist yet when the tab is built, so the field is resolved on every access
+  and reading falls back to the node itself. A KeePass that renames it leaves the editor showing the
+  rules and refusing to change them.
 - **No third-party HTTP dependency.** `uHttpSharp` fits the seam natively with zero changes and is
   ruled out on **license** (LGPL-2.1) and liveness (no commits since 2021), not on fit. Wanting
   WebSocket, HTTP/2 or chunked bodies flips this; nothing else does.
@@ -457,6 +474,25 @@ the real KeePass and reproduces the behavior with KeePass's own types. What it e
 step 8 built on: the settings dialog the KPG tab lives on carries **no** snapshot, so those
 buttons are safe from their own dialog, and anything written while a **group** dialog is open is
 destroyed by its OK.
+
+**What step 13 settled about the editor.** The tab is captioned `KPG` with the plugin's icon, and
+not "Access control", because another plugin may well put an access control page on the same dialogs
+and two pages with one name governing different clients is a trap. Neither column on the table is
+typed into: a mask spelled by hand is a rule nobody meant, and a profile spelled by hand is a rule
+for a name that may not exist, which grants nobody anything and reads exactly like one that works.
+Both are chosen from a list, and choosing a profile opens the rule picker straight after it, because
+a profile with no rule grants nothing and nobody opened the list to say that. `F2` and `Alt+Down` are
+the keyboard's way into either picker, and while one is open `Enter` and `Escape` belong to it, which
+is what `DialogKeys.Suspend` takes away from the dialog's own OK and Cancel: without that, choosing a
+verb presses OK on the group dialog and closes it with the rule half made.
+
+A rule is a `CRUSDLAP` mask in a monospaced column rather than a row of check boxes, so two rules
+differ in the place the eye is already looking. Inherited rules are shown among the local ones in
+gray, because a table listing only what this node grants reports nothing for
+an entry that a group above already opens wide. And the editor never writes the same rules in other
+words. A node's custom data keeps no modification time, but the entry dialog compares the entry it
+hands back with the one it was given, so a rule respelled by a byte is a changed entry, with a
+revision in its history and the database marked modified, for having been looked at.
 
 **Step 14 is the intersection and the audit**: the profiles from the admission record and the answer
 from the ACL, combined, and every decision recorded. Both halves are built and neither is wired to

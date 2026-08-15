@@ -120,12 +120,13 @@ dialog with OK, saves with the keyboard, closes KeePass, and checks the exit cod
 the plugin's own log, which `KEEPASSGATE_LOG_FILE` puts in the session's own directory: that log is
 how a test sees from outside what the plugin did inside a process it does not otherwise hold.
 
-**The settings dialog is accepted with OK where the test is about what OK does, and dismissed with
-Escape otherwise.** A test that closes a dialog with Cancel can never be the reason something was
-lost, which is why Escape is the default. The KPG tab holds everything until the dialog is
-accepted, so `LiveAuthorityTests` has to press OK or it would measure nothing. What the snapshot
-hazard still requires is measured directly, in the host tier, against the group dialog that does
-carry one.
+**Dialogs are accepted with OK where the test is about what OK does, and dismissed with Escape
+otherwise.** A test that closes a dialog with Cancel can never be the reason something was lost,
+which is why Escape is the default. The KPG tab holds everything until the dialog is accepted, so
+`LiveAuthorityTests` has to press OK or it would measure nothing; and `LiveGrantEditorTests` presses
+OK because the snapshot KeePass writes back is exactly what it is asserting about. What the
+snapshot hazard still requires is measured directly in the host tier, against the group dialog
+that does carry one.
 
 **It types on the real desktop**, so leave the machine alone while it runs. It is excluded from the
 default run for that reason, not because it is optional. [`FINDINGS.md`](FINDINGS.md), under

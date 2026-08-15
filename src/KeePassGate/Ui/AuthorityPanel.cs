@@ -46,12 +46,6 @@ namespace KeePassGate.Ui
             "Changes apply on OK; the database must then be saved.";
 
         /// <summary>
-        /// How much of somebody else's exception text this page will show. Two lines at the width
-        /// the tab allows; the rest is in the log.
-        /// </summary>
-        private const int MessageLimit = 160;
-
-        /// <summary>
         /// What the invitation box, and the copy button as tall as it, drop by to sit centered on
         /// the Invite button beside them.
         /// </summary>
@@ -465,7 +459,7 @@ namespace KeePassGate.Ui
             var pending = _database as IPendingChanges;
             if (pending != null && AuthorityWaiting(pending))
             {
-                _result.Text = InvitationText.AuthorityWaiting;
+                Said(InvitationText.AuthorityWaiting);
                 return;
             }
 
@@ -476,7 +470,7 @@ namespace KeePassGate.Ui
                 {
                     if (!reading.IsPresent)
                     {
-                        _result.Text = InvitationText.NoAuthority;
+                        Said(InvitationText.NoAuthority);
                         return;
                     }
 
@@ -488,7 +482,7 @@ namespace KeePassGate.Ui
                     // crossed the expiry after the page was last drawn.
                     if (CertificateValidity.HasExpired(reading.Material.Authority, DateTimeOffset.UtcNow))
                     {
-                        _result.Text = InvitationText.AuthorityExpired;
+                        Said(InvitationText.AuthorityExpired);
                         return;
                     }
 
@@ -503,12 +497,12 @@ namespace KeePassGate.Ui
                     // outstanding, which cannot happen: a new one replaces whatever that database
                     // had, so the count never reaches a ceiling and the sentence named a state
                     // nobody could ever be in or do anything about.
-                    _result.Text = "The plugin is shutting down, so no code was made.";
+                    Said("The plugin is shutting down, so no code was made.");
                     return;
                 }
 
                 _token.Text = invitation.Text;
-                _result.Text = string.Empty;
+                Said(string.Empty);
             }
             catch (Exception error) when (Expected.OfCustomData(error)
                                           || Expected.OfCryptography(error)
@@ -516,9 +510,9 @@ namespace KeePassGate.Ui
             {
                 _log.Error("an invitation could not be created", error);
 
-                // Clipped, like every other message from somebody else's exception on this page.
-                // Nothing here scrolls, so an untrimmed one pushes the buttons off the tab.
-                _result.Text = "That did not work: " + Clip(error.Message);
+                // Cut by the band itself, like everything else it is given. Nothing here scrolls,
+                // so an untrimmed message pushes the buttons off the tab.
+                Said("That did not work: " + error.Message);
             }
 
             Describe();
@@ -567,12 +561,12 @@ namespace KeePassGate.Ui
             try
             {
                 Clipboard.Set(_token.Text);
-                _result.Text = InvitationText.Copied;
+                Said(InvitationText.Copied);
             }
             catch (Exception error) when (Expected.OfClipboard(error))
             {
                 _log.Warn("the invitation could not be put on the clipboard: " + error.Message);
-                _result.Text = InvitationText.ClipboardBusy;
+                Said(InvitationText.ClipboardBusy);
             }
         }
 
@@ -642,7 +636,7 @@ namespace KeePassGate.Ui
                 _log.Error("the authority could not be described", error);
                 _status.Text = "The authority could not be read.";
                 Draw(null);
-                _detail.Text = Clip(error.Message);
+                _detail.Text = Clipped.Message(error.Message);
                 _create.Enabled = false;
                 _recreate.Enabled = false;
                 _delete.Enabled = false;
@@ -1412,7 +1406,7 @@ namespace KeePassGate.Ui
                                           || Expected.OfUserInterface(error))
             {
                 _log.Error("an authority action failed", error);
-                _result.Text = "That did not work: " + Clip(error.Message);
+                Said("That did not work: " + error.Message);
                 Describe();
                 return;
             }
@@ -1439,36 +1433,31 @@ namespace KeePassGate.Ui
                 // above fills in, empties, or shows a different fingerprint, and the buttons swap
                 // over between create and delete. A failure still says so, because nothing else on
                 // the page would.
-                _result.Text = string.Empty;
+                Said(string.Empty);
             }
             else
             {
-                _result.Text = change.Message;
+                Said(change.Message);
             }
 
             Describe();
         }
 
         /// <summary>
-        /// An exception message, cut to something this page can hold.
+        /// Puts one line in the band under the pages, cut to something the band can hold.
         /// </summary>
         /// <remarks>
-        /// The text comes from whatever threw, so its length is not this plugin's to choose,
-        /// and the page it lands on has `AutoScroll` off: a long one wraps, grows the page
-        /// past the tab, and pushes the buttons out of reach with no way to scroll to them.
-        /// The whole message still reaches the log, which is where a long one belongs.
+        /// **Every path goes through here, including the ones whose words are this plugin's own.**
+        /// Two of them were not this plugin's: `AuthorityChange.Message` carries whatever the
+        /// store threw, and so does the sentence this page composes after a failure. Cutting at
+        /// each site meant the two that were missed were exactly the two that could not be
+        /// bounded, and it meant the band's own limit was whatever the last author remembered.
+        /// One setter, one bound, and `Clipped.Message` is where the bound is written down.
         /// </remarks>
-        private static string Clip(string message)
+        private void Said(string line)
         {
-            if (string.IsNullOrEmpty(message))
-            {
-                return string.Empty;
-            }
-
-            var flattened = message.Replace('\r', ' ').Replace('\n', ' ').Trim();
-            return flattened.Length <= MessageLimit
-                ? flattened
-                : flattened.Substring(0, MessageLimit) + "...";
+            _result.Text = Clipped.Message(line);
         }
+
     }
 }

@@ -970,7 +970,7 @@ namespace KeePassGate.Ui
                     // on the message loop of a password manager and what escapes here closes the
                     // dialog the operator is working in.
                     _log.Error("a grant picker could not be closed cleanly", error);
-                    Warn("That choice could not be applied. The plugin log says why.");
+                    Warn("That choice could not be applied: " + Clipped.Message(error.Message));
                 }
                 finally
                 {
@@ -1037,18 +1037,37 @@ namespace KeePassGate.Ui
         /// One dropdown opens the next, and opening it from inside the first one's closing handler
         /// would be showing a window while another is being torn down. Straight through when there
         /// is no window at all, which is how a test reaches the same path.
+        ///
+        /// **Guarded where it runs, and not only where it is posted.** Posted work runs later on
+        /// KeePass's message loop, after the try around the post has long returned, and what
+        /// escapes there is WinForms' own error dialog with a Quit button in it rather than a
+        /// sentence on this tab. Nothing has been seen to throw there; the point is that the
+        /// promise this class makes should not depend on that.
         /// </remarks>
         private void Later(Action work)
         {
+            Action guarded = () =>
+            {
+                try
+                {
+                    work();
+                }
+                catch (Exception error) when (Expected.OfUserInterface(error))
+                {
+                    _log.Error("a grant picker could not be opened", error);
+                    Warn("That picker could not be opened: " + Clipped.Message(error.Message));
+                }
+            };
+
             try
             {
                 if (!IsHandleCreated)
                 {
-                    work();
+                    guarded();
                     return;
                 }
 
-                BeginInvoke(work);
+                BeginInvoke(guarded);
             }
             catch (Exception error) when (Expected.OfUserInterface(error))
             {
@@ -1593,7 +1612,13 @@ namespace KeePassGate.Ui
                 // After the redraw. That redraw ends by saying whatever the sheet has to say,
                 // which is nothing once the refused rule is off it. Said first, this sentence
                 // would be wiped by the very redraw that makes it true.
-                Warn("That could not be stored, so it is not in force. The plugin log says why.");
+                //
+                // With the reason, from the innermost exception: the store reaches the dialog's copy
+                // through reflection, whose own exception says only that something it called threw.
+                // The reason is said here rather than left to the log, which is a file only when
+                // somebody has asked for one.
+                Warn("That could not be stored, so it is not in force: "
+                    + Clipped.Message(error.GetBaseException().Message));
             }
         }
     }

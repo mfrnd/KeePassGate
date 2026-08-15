@@ -241,9 +241,28 @@ namespace KeePassGate.Ui
             return lines;
         }
 
+        /// <summary>
+        /// What is wrong with an authority that will not read, and what that costs.
+        /// </summary>
+        /// <remarks>
+        /// **The problems are cut, because two of them carry somebody else's exception message.**
+        /// `AuthorityStore.Read` and `AuthorityService.Read` both compose one as
+        /// `The authority could not be read: ` followed by whatever threw, and the length of that
+        /// is not this plugin's to choose. The detail label has `AutoScroll` off like everything
+        /// else on the tab, so an untrimmed one grew the page past it and pushed the three buttons
+        /// out of reach with no way to scroll to them. The whole message is in the log.
+        ///
+        /// The two lines added under them are this plugin's own words at a length it chose, so
+        /// they are not cut. <see cref="LongestDetail"/> does not include them.
+        /// </remarks>
         private static IEnumerable<string> Damage(AuthorityReading reading)
         {
-            var lines = new List<string>(reading.Problems);
+            var lines = new List<string>();
+            foreach (var problem in reading.Problems)
+            {
+                lines.Add(Clipped.Message(problem));
+            }
+
             lines.Add("Nothing is served while this is true. Recreating replaces it, and every client pairs again.");
             if (reading.ClientRecordCount > 0)
             {
@@ -325,6 +344,11 @@ namespace KeePassGate.Ui
         ///
         /// Kept in step by hand, because the problems are composed where they are found. If a
         /// longer one is added there, it belongs here too, and no test notices when it is not.
+        ///
+        /// **The first line is a cut one**, which is what bounds this at all. Two of the problems
+        /// a reading can carry end in whatever an exception said, so before `Damage` cut them
+        /// there was no longest detail to measure: the line was as long as somebody else's message
+        /// and the tab was measured against a state strictly shorter than one it has to survive.
         /// </remarks>
         public static string LongestDetail()
         {

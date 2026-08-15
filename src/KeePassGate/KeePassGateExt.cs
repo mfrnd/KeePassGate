@@ -193,7 +193,8 @@ namespace KeePassGate
                         _log,
                         KeePassContract.NodeFormTabControlName,
                         GrantTab.Text,
-                        GrantTab.PageControlName),
+                        GrantTab.PageControlName,
+                        Icon),
                     _incidents,
                     _log);
 

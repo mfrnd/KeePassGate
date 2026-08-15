@@ -719,6 +719,15 @@ edits access control sees two clearly separate things rather than two pages comp
 same thing. What cannot be defended against is another plugin choosing to write into the same key,
 and nothing in `CustomData` could prevent that.
 
+Step 13 settled the label: the tab is captioned **"KPG"** with the plugin's icon beside it, and not
+"Access control". The caption names the plugin rather than the subject, so two pages that both edit
+access control are told apart by the one thing that distinguishes them, and whoever is looking for
+these rules can see what installed them. It is short because the strip is shared: every plugin that
+adds a page takes room from the next, and a caption spelling the product out would crowd them all to
+repeat what the icon beside it already says. `KPG` is also the key these rules are stored under, so
+the caption and the namespace are one word rather than two things to learn. The name in full belongs
+where there is room for it, which a tab strip is not.
+
 ### C2. Carrying 922 KB to use perhaps a fifth of it §123
 
 **Dissolved, by removing the dependency.** The objection was that taking websocket-sharp meant
