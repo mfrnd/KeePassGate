@@ -4,6 +4,7 @@ using KeePassGate.Authority;
 using KeePassGate.Gate;
 using KeePassGate.Pairing;
 using KeePassGate.Pipeline;
+using KeePassGate.Spec;
 using KeePassGate.Testing;
 using KeePassGate.Tests.Fakes;
 using KeePassGate.Transport;
@@ -46,7 +47,7 @@ namespace KeePassGate.Tests
             _listener = new GateListener(
                 new GateOptions { Port = 0 },
                 new GateResolver(_targets, _log),
-                new GateRouter("9.9.9", new PairingHandler(
+                GateOperations.Router("9.9.9", new PairingHandler(
                     new InvitationBook(_log), FakePairingApproval.Approving(), _log)),
                 _log);
 
@@ -64,7 +65,7 @@ namespace KeePassGate.Tests
         [Test]
         public void A_locked_database_still_answers_the_name_it_answered_before()
         {
-            var reply = GateClient.Get(_listener.Port, SniName.For(_gateKey), null, GateRouter.StatusPath);
+            var reply = GateClient.Get(_listener.Port, SniName.For(_gateKey), null, GateOperations.StatusPath);
 
             Assert.That(reply.Answered, Is.True,
                 "a locked KeePass that cannot be reached at all is indistinguishable from an attack");
@@ -77,13 +78,13 @@ namespace KeePassGate.Tests
             // to do that zeroed the gate key, and every later client was dropped at the name.
             for (var client = 0; client < 2; client++)
             {
-                var reply = GateClient.Get(_listener.Port, SniName.For(_gateKey), null, GateRouter.StatusPath);
+                var reply = GateClient.Get(_listener.Port, SniName.For(_gateKey), null, GateOperations.StatusPath);
 
                 Assert.That(reply.Status, Is.EqualTo(503), "client " + client + ": " + reply.Failure);
             }
         }
 
-        [TestCase(GateRouter.StatusPath)]
+        [TestCase("/gate/status")]
         [TestCase("/pair/hello")]
         [TestCase("/pair/request")]
         [TestCase("/anything")]
@@ -128,9 +129,31 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_body_over_the_cap_is_still_told_only_that_it_is_locked()
+        {
+            // The reader refuses a length over the cap before the lock is ever mentioned, and the
+            // body it announced arrives regardless. Closing the socket over those unread bytes is
+            // answered with a reset that discards the 503, which leaves the client with no answer
+            // at all: the outcome the responder certificate exists to prevent.
+            using (var listener = Listening(new GateOptions { Port = 0, MaxBodyBytes = 64 }))
+            {
+                var body = new string('x', 512 * 1024);
+                var reply = GateClient.Send(
+                    listener.Port,
+                    SniName.For(_gateKey),
+                    null,
+                    "POST /pair/hello HTTP/1.1\r\nHost: gate\r\nContent-Length: " +
+                    body.Length + "\r\n\r\n" + body);
+
+                Assert.That(reply.Status, Is.EqualTo(503), reply.Failure ?? reply.Raw);
+                Assert.That(reply.Body, Does.Contain(GateConversation.LockedError));
+            }
+        }
+
+        [Test]
         public void It_names_the_lock_and_nothing_about_the_database()
         {
-            var reply = GateClient.Get(_listener.Port, SniName.For(_gateKey), null, GateRouter.StatusPath);
+            var reply = GateClient.Get(_listener.Port, SniName.For(_gateKey), null, GateOperations.StatusPath);
 
             Assert.That(reply.Body, Does.Not.Contain(_authority.DatabaseId),
                 "a locked gate identifies nothing");
@@ -143,7 +166,7 @@ namespace KeePassGate.Tests
             // A client has to be able to tell, because an impostor holding this key reads nothing
             // but could answer with a fabricated secret, and an agent acting on a forged answer is
             // worse than an agent that fails.
-            var reply = GateClient.Get(_listener.Port, SniName.For(_gateKey), null, GateRouter.StatusPath);
+            var reply = GateClient.Get(_listener.Port, SniName.For(_gateKey), null, GateOperations.StatusPath);
 
             Assert.That(reply.ServerCertificate, Is.Not.Null, reply.Failure);
             Assert.That(CertificateUris.Of(reply.ServerCertificate), Is.EqualTo(new[] { AuthorityIssuer.ResponderClaim }));
@@ -153,9 +176,10 @@ namespace KeePassGate.Tests
         [Test]
         public void It_is_not_the_normal_host_certificate()
         {
-            // The normal host key is actively dropped at lock. Two certificates buy nothing if the
-            // privileged one is still in memory to be found.
-            var reply = GateClient.Get(_listener.Port, SniName.For(_gateKey), null, GateRouter.StatusPath);
+            // The normal host key is let go at lock, `CA.md` §208, which is exact about how much
+            // of that is erasure. Two certificates buy nothing if the privileged one is still
+            // being served while locked, which is what this asks.
+            var reply = GateClient.Get(_listener.Port, SniName.For(_gateKey), null, GateOperations.StatusPath);
 
             Assert.That(reply.ServerCertificate.RawData, Is.Not.EqualTo(_authority.HostCertificate.RawData));
         }
@@ -166,7 +190,7 @@ namespace KeePassGate.Tests
             using (var certificate = _authority.IssueAdmittedClient("ops"))
             {
                 var reply = GateClient.Get(
-                _listener.Port, SniName.For(_gateKey), certificate, GateRouter.StatusPath);
+                _listener.Port, SniName.For(_gateKey), certificate, GateOperations.StatusPath);
 
                 Assert.That(reply.Status, Is.EqualTo(503), reply.Failure);
                 Assert.That(reply.Body, Does.Contain(GateConversation.LockedError));
@@ -201,12 +225,22 @@ namespace KeePassGate.Tests
             Assert.That(_listener.CloseAll("a database was locked"), Is.Zero);
         }
 
+        /// <summary>The same locked database, served with limits of a test's own choosing.</summary>
+        private GateListener Listening(GateOptions options)
+        {
+            var listener = new GateListener(
+                options, new GateResolver(_targets, _log), GateOperations.Router("9.9.9"), _log);
+
+            Assert.That(listener.Start(), Is.True);
+            return listener;
+        }
+
         private GateListener Listening(IInvitations book)
         {
             var listener = new GateListener(
                 new GateOptions { Port = 0 },
                 new GateResolver(_targets, book, _log),
-                new GateRouter("9.9.9", new PairingHandler(book, FakePairingApproval.Approving(), _log)),
+                GateOperations.Router("9.9.9", new PairingHandler(book, FakePairingApproval.Approving(), _log)),
                 _log);
 
             Assert.That(listener.Start(), Is.True);

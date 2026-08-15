@@ -46,8 +46,9 @@ namespace KeePassGate.Spec
         /// <summary>
         /// What the access control layer will read to decide what this operation may do. Declared
         /// in the document so that the document stays the single account of what this API permits,
-        /// and read by nothing yet. TODO(step 12): that layer arrives with the access control model,
-        /// which is also when a route declaring no verb stops the plugin loading.
+        /// and read so far only to hold a `head` to its `get`. TODO(step 12): that layer arrives
+        /// with the access control model, which is also when a route declaring no verb stops the
+        /// plugin loading.
         /// </summary>
         public string Verb { get; private set; }
 
@@ -80,13 +81,17 @@ namespace KeePassGate.Spec
         public const string UnauthenticatedExtension = "x-kpg-unauthenticated";
 
         /// <summary>
-        /// What the access control layer will read. Declared now, used later.
+        /// What the access control layer will read. Declared now, and until then compared only
+        /// between a `get` and its `head`.
         /// TODO(step 12): the access control model is what reads it.
         /// </summary>
         public const string VerbExtension = "x-kpg-verb";
 
         /// <summary>The only body this API speaks.</summary>
         public const string MediaType = "application/json";
+
+        /// <summary>What the router answers a body sent under any other media type with.</summary>
+        public const string UnsupportedMediaTypeStatus = "415";
 
         private const string ResourceName = "KeePassGate.Spec.openapi.yaml";
 
@@ -217,13 +222,6 @@ namespace KeePassGate.Spec
                     }
 
                     var method = pair.Key.ToString().ToUpperInvariant();
-                    if (string.Equals(method, "HEAD", StringComparison.Ordinal))
-                    {
-                        // Served everywhere GET is, by running the GET operation, so declaring one
-                        // would be a second operationId for one behavior.
-                        throw new InvalidOperationException(
-                            "HEAD is not declared: it follows GET. See the document's own description.");
-                    }
 
                     OpenApiSchema body = null;
 
@@ -253,6 +251,20 @@ namespace KeePassGate.Spec
                             throw new InvalidOperationException(
                                 operation.OperationId +
                                 " declares a body and does not require it.");
+                        }
+
+                        if (!Answers(operation, UnsupportedMediaTypeStatus))
+                        {
+                            // The router refuses a body sent under any other media type, and it
+                            // decides that from `MediaType` rather than from anything an
+                            // operation says. An operation declaring a body and not declaring
+                            // that refusal is therefore a document that has stopped being the
+                            // whole account of what this API answers, which is the one thing the
+                            // document is for.
+                            throw new InvalidOperationException(
+                                operation.OperationId + " declares a body and no " +
+                                UnsupportedMediaTypeStatus + ", so the document does not say what" +
+                                " a body sent under another media type is answered with.");
                         }
 
                         body = content.Schema;
@@ -299,9 +311,126 @@ namespace KeePassGate.Spec
                 throw new InvalidOperationException("The routing table declares no operations.");
             }
 
-            return new SpecDocument(
+            // Built before it is checked, because what makes two declarations a pair is a
+            // question about the whole document and is answered in one place.
+            var parsed = new SpecDocument(
                 operations,
                 document.Info == null ? string.Empty : document.Info.Title);
+
+            parsed.AssertPaired();
+            return parsed;
+        }
+
+        /// <summary>The other half of a `get` and `head` pair, or null if there is none.</summary>
+        /// <remarks>
+        /// The one place that decides which two declarations are a pair, so everything holding the
+        /// two to each other is asking the same question, this document's own refusals and the
+        /// router's alike. Anything else answers null, and so does a `head` on a path with no `get`:
+        /// what this document requires is that a `get` has a `head`, not the reverse.
+        /// </remarks>
+        public SpecOperation Twin(SpecOperation operation)
+        {
+            if (operation == null)
+            {
+                return null;
+            }
+
+            string wanted;
+            if (string.Equals(operation.Method, "GET", StringComparison.Ordinal))
+            {
+                wanted = "HEAD";
+            }
+            else if (string.Equals(operation.Method, "HEAD", StringComparison.Ordinal))
+            {
+                wanted = "GET";
+            }
+            else
+            {
+                return null;
+            }
+
+            foreach (var candidate in Operations)
+            {
+                if (string.Equals(candidate.Method, wanted, StringComparison.Ordinal) &&
+                    string.Equals(candidate.Path.Text, operation.Path.Text, StringComparison.Ordinal))
+                {
+                    return candidate;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>Holds every `get` to the `head` that answers for it.</summary>
+        /// <remarks>
+        /// RFC 9110 section 9.3.2: a `head` is identical to its `get` except that no content is
+        /// sent. They share a handler, so they cannot disagree about whether something is there.
+        /// They are still two declarations, and authorization is keyed on what each one declares.
+        /// A `head` carrying a different verb would answer whether a node exists to a caller its
+        /// `get` would have refused, which is an oracle rather than a route.
+        ///
+        /// Missing is refused too. A `get` with no `head` is a route this server answers `405` on
+        /// for a method RFC 9110 section 9.1 expects of it, and leaving that to whoever remembers
+        /// is the permissive default this design does not have anywhere else.
+        /// </remarks>
+        private void AssertPaired()
+        {
+            foreach (var operation in Operations)
+            {
+                if (!string.Equals(operation.Method, "GET", StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                var head = Twin(operation);
+                if (head == null)
+                {
+                    throw new InvalidOperationException(
+                        operation.Path.Text +
+                        " declares a get and no head, so a HEAD there would be refused.");
+                }
+
+                if (!string.Equals(head.Verb, operation.Verb, StringComparison.Ordinal))
+                {
+                    throw new InvalidOperationException(
+                        head.OperationId + " declares " + Describe(head.Verb) + " and " +
+                        operation.OperationId + " declares " + Describe(operation.Verb) +
+                        ", so the head would be governed differently from its own get.");
+                }
+
+                // The verb decides what a rule must grant; this decides whether anything is
+                // asked for at all, and it is the more dangerous of the two to get wrong. A
+                // head needing no certificate beside a get that needs one is not a laxer
+                // route, it is the get's own handler reachable by a stranger. They share
+                // one, and `SpecRouter` reads this off whichever of the pair was matched.
+                // It also makes the whole path public, since a path is public if any
+                // operation on it is, so every unpaired caller stops getting the uniform
+                // refusal there.
+                if (head.NeedsIdentity != operation.NeedsIdentity)
+                {
+                    throw new InvalidOperationException(
+                        head.OperationId + " and " + operation.OperationId +
+                        " disagree about needing a certificate, so the head would be reachable" +
+                        " by a caller its own get would refuse.");
+                }
+
+                // Not a way in, because a body a caller cannot send is a body the check
+                // refuses. It is here because the pair is meant to be one request with the
+                // content left off. A head demanding a body is a route that answers nothing
+                // to anybody, which is worth failing to load rather than serving.
+                if ((head.Body == null) != (operation.Body == null))
+                {
+                    throw new InvalidOperationException(
+                        head.OperationId + " and " + operation.OperationId +
+                        " disagree about carrying a body, so they are not one request with" +
+                        " the content left off.");
+                }
+            }
+        }
+
+        private static string Describe(string verb)
+        {
+            return verb == null ? "no verb" : "`" + verb + "`";
         }
 
         /// <summary>Whether either list declares this name as a path parameter.</summary>
@@ -332,6 +461,12 @@ namespace KeePassGate.Spec
             }
 
             return false;
+        }
+
+        /// <summary>Whether the operation declares an answer under this status.</summary>
+        private static bool Answers(OpenApiOperation operation, string status)
+        {
+            return operation.Responses != null && operation.Responses.ContainsKey(status);
         }
 
         /// <summary>The methods that carry a body, which is what the reader means by one too.</summary>

@@ -415,7 +415,7 @@ namespace KeePassGate.Host.Tests
                 "{\"proof\":\"" + Convert.ToBase64String(PairingProof.Client(token, binding, nonce)) + "\"}",
                 connection);
 
-            handler.Handle(hello);
+            handler.Hello(hello);
 
             if (hello.Status != 200)
             {
@@ -441,7 +441,7 @@ namespace KeePassGate.Host.Tests
             body.Append("],\"proof\":\"").Append(Convert.ToBase64String(proof)).Append("\"}");
 
             var request = Post(PairingHandler.RequestPath, body.ToString(), connection);
-            handler.Handle(request);
+            handler.Request(request);
             return request;
         }
 

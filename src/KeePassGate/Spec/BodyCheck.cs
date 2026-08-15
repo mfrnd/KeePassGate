@@ -79,7 +79,7 @@ namespace KeePassGate.Spec
                 }
             }
 
-            return Unimplemented(schema);
+            return Unimplemented(schema, "properties", "required", "additionalProperties");
         }
 
         /// <summary>
@@ -118,62 +118,86 @@ namespace KeePassGate.Spec
             return null;
         }
 
-        /// <summary>A constraint this cannot enforce, or null when the schema uses none.</summary>
+        /// <summary>
+        /// The first keyword this schema writes that its type may not, or null when there is none.
+        /// </summary>
         /// <remarks>
-        /// **The whitelist is on keywords, not on `type`.** Asking only what a member's type is
-        /// let every other JSON Schema keyword through the startup refusal and left it enforced
-        /// by nothing: `pattern` on a uuid, `minItems` on a list of profiles, a whole `allOf`.
-        /// The plugin loaded clean and the constraint was checked nowhere, which is the gap this
-        /// class exists to make impossible rather than the subset it claims to be.
+        /// **An allow list, per type, on keywords.** A string may say how long it is, an array how
+        /// many strings it holds, and the body itself which members it has, which of them it
+        /// requires and that it has no others. Every other keyword the reader models that says
+        /// anything about a value is refused wherever it is written, so a constraint nothing
+        /// enforces is a plugin that does not load: `pattern` on a uuid, `minItems` on a list of
+        /// profiles, a whole `allOf`, and a keyword on a type it does not apply to, such as
+        /// `maxLength` on an array, which reads as a bound on the array and bounds nothing.
         ///
-        /// Annotations are deliberately not named here: `description`, `title` and `example` say
-        /// nothing about what a body may contain, so nothing has to enforce them.
+        /// **It was a list of refusals, and it was called a whitelist.** What it did not name went
+        /// through, and a plugin that loads with a constraint checked nowhere is the gap this class
+        /// exists to make impossible rather than the subset it claims to be.
+        ///
+        /// Annotations are deliberately not in <see cref="Keywords"/>: `title`, `description`,
+        /// `example`, `deprecated`, `externalDocs`, `xml` and extensions say nothing about what a
+        /// body may contain, so nothing has to enforce them. `BodyCheckTests` holds the reader's
+        /// schema object to that account, so a reader that learns a new keyword stops the build
+        /// rather than bringing one nothing refuses.
+        ///
+        /// **Four keywords that look like annotations and are not.** `readOnly` on a member of a
+        /// request body says that member must not be sent, and letting it through accepted one
+        /// the document forbids, which is the fail-open direction. `default` says what an absent
+        /// member means, and nothing here applies one, so a handler saw absent where the document
+        /// promised a value. `nullable` says a member may be null, which `JsonBody` cannot carry
+        /// at all, so the document would be permitting a body the reader refuses. `writeOnly` is
+        /// the mirror of `readOnly` and says nothing about a request on its own, and it is refused
+        /// anyway: a document using it was written by somebody expecting the distinction to be
+        /// enforced, and this is not the place to decide it does not matter.
         /// </remarks>
-        private static string Unimplemented(OpenApiSchema schema)
+        private static string Unimplemented(OpenApiSchema schema, params string[] allowed)
         {
-            if (schema.Pattern != null)
+            foreach (var keyword in Keywords)
             {
-                return "pattern";
-            }
-
-            if (schema.Enum != null && schema.Enum.Count > 0)
-            {
-                return "enum";
-            }
-
-            if (schema.Format != null)
-            {
-                return "format";
-            }
-
-            if (schema.MinItems.HasValue)
-            {
-                return "minItems";
-            }
-
-            if (schema.UniqueItems.HasValue && schema.UniqueItems.Value)
-            {
-                return "uniqueItems";
-            }
-
-            if (schema.MinProperties.HasValue || schema.MaxProperties.HasValue)
-            {
-                return "a property count";
-            }
-
-            if (schema.AllOf.Count > 0 || schema.AnyOf.Count > 0
-                || schema.OneOf.Count > 0 || schema.Not != null)
-            {
-                return "a composition";
-            }
-
-            if (schema.MultipleOf.HasValue || schema.Minimum != null || schema.Maximum != null)
-            {
-                return "a numeric bound";
+                if (keyword.Written(schema) && Array.IndexOf(allowed, keyword.Name) < 0)
+                {
+                    return keyword.Name;
+                }
             }
 
             return null;
         }
+
+        /// <summary>
+        /// Every keyword of the schema object the reader models that says something about a value,
+        /// and how to tell it was written.
+        /// </summary>
+        private static readonly Keyword[] Keywords =
+        {
+            new Keyword("pattern", s => s.Pattern != null),
+            new Keyword("format", s => s.Format != null),
+            new Keyword("enum", s => s.Enum != null && s.Enum.Count > 0),
+            new Keyword("default", s => s.Default != null),
+            new Keyword("nullable", s => s.Nullable),
+            new Keyword("readOnly", s => s.ReadOnly),
+            new Keyword("writeOnly", s => s.WriteOnly),
+            new Keyword("minLength", s => s.MinLength.HasValue),
+            new Keyword("maxLength", s => s.MaxLength.HasValue),
+            new Keyword("items", s => s.Items != null),
+            new Keyword("minItems", s => s.MinItems.HasValue),
+            new Keyword("maxItems", s => s.MaxItems.HasValue),
+            new Keyword("uniqueItems", s => s.UniqueItems.HasValue && s.UniqueItems.Value),
+            new Keyword("properties", s => s.Properties != null && s.Properties.Count > 0),
+            new Keyword("required", s => s.Required != null && s.Required.Count > 0),
+            new Keyword("additionalProperties", s => !s.AdditionalPropertiesAllowed || s.AdditionalProperties != null),
+            new Keyword("minProperties", s => s.MinProperties.HasValue),
+            new Keyword("maxProperties", s => s.MaxProperties.HasValue),
+            new Keyword("allOf", s => s.AllOf != null && s.AllOf.Count > 0),
+            new Keyword("anyOf", s => s.AnyOf != null && s.AnyOf.Count > 0),
+            new Keyword("oneOf", s => s.OneOf != null && s.OneOf.Count > 0),
+            new Keyword("not", s => s.Not != null),
+            new Keyword("discriminator", s => s.Discriminator != null),
+            new Keyword("multipleOf", s => s.MultipleOf.HasValue),
+            new Keyword("minimum", s => s.Minimum.HasValue),
+            new Keyword("exclusiveMinimum", s => s.ExclusiveMinimum.HasValue),
+            new Keyword("maximum", s => s.Maximum.HasValue),
+            new Keyword("exclusiveMaximum", s => s.ExclusiveMaximum.HasValue),
+        };
 
         private static string SupportsMember(OpenApiSchema member)
         {
@@ -184,7 +208,7 @@ namespace KeePassGate.Spec
 
             if (string.Equals(member.Type, "string", StringComparison.Ordinal))
             {
-                return Unimplemented(member);
+                return Unimplemented(member, "minLength", "maxLength");
             }
 
             if (string.Equals(member.Type, "array", StringComparison.Ordinal))
@@ -194,10 +218,25 @@ namespace KeePassGate.Spec
                     return "an array on this wire holds strings";
                 }
 
-                return Unimplemented(member) ?? Unimplemented(member.Items);
+                return Unimplemented(member, "items", "maxItems")
+                       ?? Unimplemented(member.Items, "minLength", "maxLength");
             }
 
             return "this wire carries strings and arrays of strings, and this declares " + Describe(member.Type);
+        }
+
+        /// <summary>One keyword, by the name the document writes it under.</summary>
+        private sealed class Keyword
+        {
+            public Keyword(string name, Func<OpenApiSchema, bool> written)
+            {
+                Name = name;
+                Written = written;
+            }
+
+            public string Name { get; private set; }
+
+            public Func<OpenApiSchema, bool> Written { get; private set; }
         }
 
         private static bool Present(JsonBody body, string name)

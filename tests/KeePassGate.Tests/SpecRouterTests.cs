@@ -4,6 +4,7 @@ using System.Linq;
 using System.Security.Cryptography.X509Certificates;
 using KeePassGate.Authority;
 using KeePassGate.Pipeline;
+using KeePassGate.Spec;
 using KeePassGate.Tests.Fakes;
 using KeePassGate.Transport;
 using NUnit.Framework;
@@ -11,25 +12,25 @@ using NUnit.Framework;
 namespace KeePassGate.Tests
 {
     /// <summary>
-    /// The whole API for now: one route, the pairing paths handed over, one refusal before
-    /// dispatch, and a terminal 404. The shape is what matters. TODO(step 11): step 11 replaces the
-    /// contents and keeps it.
+    /// The router's shape rather than its contents: a route that dispatches, a refusal that
+    /// happens before dispatch, and a terminal 404 for anything the document does not declare. The
+    /// table it is exercised against is the real one, so what is asserted here is the mechanism.
     /// </summary>
     [TestFixture]
-    public sealed class GateRouterTests
+    public sealed class SpecRouterTests
     {
-        private GateRouter _router;
+        private SpecRouter _router;
 
         [SetUp]
         public void SetUp()
         {
-            _router = new GateRouter("9.9.9");
+            _router = GateOperations.Router("9.9.9");
         }
 
         [Test]
         public void A_paired_client_asking_for_the_status_gets_it()
         {
-            var context = Request("GET", GateRouter.StatusPath, Paired("db-digest"));
+            var context = Request("GET", GateOperations.StatusPath, Paired("db-digest"));
 
             _router.Handle(context);
 
@@ -42,7 +43,7 @@ namespace KeePassGate.Tests
         public void The_status_names_the_database_the_connection_reached()
         {
             var databaseId = new string('a', 64);
-            var context = Request("GET", GateRouter.StatusPath, Paired(databaseId));
+            var context = Request("GET", GateOperations.StatusPath, Paired(databaseId));
 
             _router.Handle(context);
 
@@ -52,7 +53,7 @@ namespace KeePassGate.Tests
         [Test]
         public void An_unpaired_client_is_refused_before_anything_is_dispatched()
         {
-            var context = Request("GET", GateRouter.StatusPath, ClientIdentity.Stranger("db"));
+            var context = Request("GET", GateOperations.StatusPath, ClientIdentity.Stranger("db"));
 
             _router.Handle(context);
 
@@ -76,12 +77,13 @@ namespace KeePassGate.Tests
         [Test]
         public void A_router_with_no_pairing_says_no_more_about_those_paths_than_any_other()
         {
-            // The refusal cannot come first for a router that has pairing, because pairing exists
-            // to serve somebody who has nothing. A router without it does not special-case these
-            // paths at all, and that is the point: answering 404 here while every other path
-            // answered 401 made this one prefix the only one in the API that replied differently,
-            // which is all an unadmitted caller needs to find it.
-            foreach (var path in new[] { "/pair/hello", "/pair/request", "/pair/anything" })
+            // The identity refusal cannot come first, because pairing exists to serve somebody who
+            // has nothing. What replaces it is that the document says which operations need no
+            // certificate, and a build with no pairing behind them answers what every other path
+            // answers this caller, before anything has looked at what was sent. Saying `404` here
+            // while every other path said `401` made this one prefix the only one in the API that
+            // replied differently, which is all an unadmitted caller needs to find it.
+            foreach (var path in new[] { "/pair/hello", "/pair/request" })
             {
                 var context = Request("POST", path, ClientIdentity.Stranger("db"));
 
@@ -92,20 +94,153 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void A_router_with_pairing_hands_those_paths_over_and_keeps_the_rest()
+        public void A_path_under_pair_that_the_document_does_not_declare_is_not_a_pairing_path()
         {
-            var pairing = new RecordingHandler();
-            var router = new GateRouter("9.9.9", pairing);
+            // `/pair/` is not a prefix that means anything any more. An undeclared path is
+            // undeclared, and a stranger gets what a stranger gets everywhere.
+            var context = Request("POST", "/pair/anything", ClientIdentity.Stranger("db"));
 
-            router.Handle(Request("POST", "/pair/hello", ClientIdentity.Stranger("db")));
+            _router.Handle(context);
 
-            Assert.That(pairing.Paths, Is.EqualTo(new[] { "/pair/hello" }));
+            Assert.That(context.Status, Is.EqualTo(401));
+        }
 
-            var status = Request("GET", GateRouter.StatusPath, ClientIdentity.Stranger("db"));
+        [Test]
+        public void A_declared_path_asked_for_with_the_wrong_method_is_a_405()
+        {
+            foreach (var method in new[] { "GET", "PUT", "DELETE" })
+            {
+                var context = Request(method, "/pair/hello", ClientIdentity.Stranger("db"));
+
+                _router.Handle(context);
+
+                // 405 rather than the refusal a stranger gets elsewhere, because these two routes
+                // are declared in a document that ships inside the plugin. Nothing is revealed by
+                // saying so that reading the document would not.
+                Assert.That(context.Status, Is.EqualTo(405), "on " + method);
+
+                // RFC 9110 section 15.5.6 requires it, and the value is the document's own
+                // answer about that path rather than anything a handler assembled.
+                Assert.That(context.Headers, Is.Not.Null, "on " + method);
+                Assert.That(context.Headers["Allow"], Is.EqualTo("POST"), "on " + method);
+            }
+        }
+
+        [Test]
+        public void A_paired_client_asking_for_the_wrong_method_on_a_route_it_may_reach_gets_405()
+        {
+            var context = Request("DELETE", GateOperations.StatusPath, Paired("db-digest"));
+
+            _router.Handle(context);
+
+            Assert.That(context.Status, Is.EqualTo(405));
+        }
+
+        [Test]
+        public void An_operation_reaches_the_handler_bound_to_its_name_and_nothing_else_does()
+        {
+            var reached = new RecordingHandler();
+            var router = new SpecRouter(GateOperations.Document, new Dictionary<string, OperationHandler>
+            {
+                { GateOperations.Status, reached.Handle },
+                { GateOperations.HeadStatus, reached.Handle },
+                { GateOperations.PairHello, reached.Handle },
+                { GateOperations.PairRequest, Nothing },
+            });
+
+            router.Handle(Request("POST", "/pair/hello", ClientIdentity.Stranger("db"), Hello));
+
+            Assert.That(reached.Paths, Is.EqualTo(new[] { "/pair/hello" }));
+
+            // A stranger reaches the unauthenticated operations and nothing else, which is the
+            // identity refusal happening in one place before dispatch rather than in each handler.
+            var status = Request("GET", GateOperations.StatusPath, ClientIdentity.Stranger("db"));
             router.Handle(status);
 
             Assert.That(status.Status, Is.EqualTo(401));
-            Assert.That(pairing.Paths.Count, Is.EqualTo(1), "only the pairing paths reach it");
+            Assert.That(reached.Paths.Count, Is.EqualTo(1), "the status operation was never run");
+        }
+
+        [Test]
+        public void Every_operation_it_declares_has_something_behind_it()
+        {
+            // The startup assertion, asked as a test so that a route added to the document without
+            // a handler fails here rather than the first time somebody loads the plugin.
+            Assert.DoesNotThrow(() => GateOperations.Router("0.0.0", null));
+        }
+
+        [Test]
+        public void A_head_bound_apart_from_its_own_get_stops_the_plugin_loading()
+        {
+            // The document holds the two to declaring the same thing. This holds them to being
+            // the same thing: one handler is what makes "identical to its get, without the
+            // content" true by construction, and it is worth nothing if the two can be bound
+            // apart.
+            var raised = Assert.Throws<InvalidOperationException>(
+                () => new SpecRouter(GateOperations.Document, new Dictionary<string, OperationHandler>(
+                    GateOperations.Handlers("9.9.9", null).ToDictionary(p => p.Key, p => p.Value),
+                    StringComparer.Ordinal)
+                {
+                    [GateOperations.HeadStatus] = Nothing,
+                }));
+
+            Assert.That(raised.Message, Does.Contain("reach different handlers"));
+        }
+
+        [Test]
+        public void A_head_guarded_apart_from_its_own_get_stops_the_plugin_loading()
+        {
+            // A guard is looked up under the operation that matched, so one on the `get` alone
+            // left the `head` running the shared handler for a connection the `get` refuses.
+            OperationGuard refuses = context => false;
+
+            var raised = Assert.Throws<InvalidOperationException>(
+                () => new SpecRouter(
+                    GateOperations.Document,
+                    GateOperations.Handlers("9.9.9", null),
+                    new Dictionary<string, OperationGuard> { { GateOperations.Status, refuses } }));
+
+            Assert.That(raised.Message, Does.Contain("guarded differently"));
+        }
+
+        [Test]
+        public void A_declared_operation_with_nothing_behind_it_stops_the_plugin_loading()
+        {
+            // The whole point of binding to names rather than to paths: the document and the
+            // handlers are held to each other once, at startup, instead of disagreeing later on
+            // somebody's connection.
+            var missing = new Dictionary<string, OperationHandler>
+            {
+                { GateOperations.Status, Nothing },
+                { GateOperations.HeadStatus, Nothing },
+            };
+
+            var raised = Assert.Throws<InvalidOperationException>(
+                () => new SpecRouter(GateOperations.Document, missing));
+
+            Assert.That(raised.Message, Does.Contain(GateOperations.PairHello));
+            Assert.That(raised.Message, Does.Contain("nothing handles it"));
+        }
+
+        [Test]
+        public void A_handler_the_document_does_not_declare_stops_it_too()
+        {
+            var extra = new Dictionary<string, OperationHandler>(
+                GateOperations.Handlers("9.9.9", null).ToDictionary(p => p.Key, p => p.Value))
+            {
+                { "readEverything", Nothing },
+            };
+
+            var raised = Assert.Throws<InvalidOperationException>(
+                () => new SpecRouter(GateOperations.Document, extra));
+
+            Assert.That(raised.Message, Does.Contain("readEverything"));
+            Assert.That(raised.Message, Does.Contain("nothing can reach it"));
+        }
+
+        private static void Nothing(IGateContext context)
+        {
+            context.Respond(200, "{}");
         }
 
         [Test]
@@ -121,24 +256,26 @@ namespace KeePassGate.Tests
         [TestCase("POST")]
         [TestCase("PUT")]
         [TestCase("DELETE")]
-        public void The_status_route_answers_to_GET_and_nothing_else(string method)
+        public void The_status_route_answers_to_GET_and_HEAD_and_nothing_else(string method)
         {
-            var context = Request(method, GateRouter.StatusPath, Paired("db"));
+            var context = Request(method, GateOperations.StatusPath, Paired("db"));
 
             _router.Handle(context);
 
             Assert.That(context.Status, Is.EqualTo(405));
 
             // RFC 9110 section 15.5.6 requires it, and a client that cannot see what the path
-            // does serve has to find out by asking, one method at a time.
+            // does serve has to find out by asking, one method at a time. Both halves of the
+            // pair, in the order the document declares them: a `head` is a method this path
+            // serves, so a client told what it may ask for is told about it.
             Assert.That(context.Headers, Is.Not.Null, "a 405 has to say what is allowed");
-            Assert.That(context.Headers["Allow"], Is.EqualTo("GET"));
+            Assert.That(context.Headers["Allow"], Is.EqualTo("GET, HEAD"));
         }
 
         [Test]
         public void Nothing_it_answers_says_anything_about_the_database_contents()
         {
-            var context = Request("GET", GateRouter.StatusPath, Paired("db"));
+            var context = Request("GET", GateOperations.StatusPath, Paired("db"));
 
             _router.Handle(context);
 
@@ -153,7 +290,7 @@ namespace KeePassGate.Tests
         }
 
         /// <summary>A pairing handler that only says what it was given.</summary>
-        private sealed class RecordingHandler : IGateHandler
+        private sealed class RecordingHandler
         {
             private readonly List<string> _paths = new List<string>();
 
@@ -178,16 +315,90 @@ namespace KeePassGate.Tests
             }
         }
 
+        [Test]
+        public void A_HEAD_runs_the_GET_and_answers_without_its_content()
+        {
+            // Declared nowhere and served everywhere GET is. The operation runs rather than being
+            // skipped, so a HEAD reports what a GET would report: anything else would be a second
+            // implementation that could disagree about whether something exists.
+            //
+            // The answer it produced is left intact here. Dropping it at this layer is what made
+            // the length disagree with the content; `HttpResponse.Write` is where a HEAD stops
+            // carrying either, and `HttpResponseTests` is where that is asserted.
+            var context = Request("HEAD", GateOperations.StatusPath, Paired("db-digest"));
+
+            _router.Handle(context);
+
+            Assert.That(context.Status, Is.EqualTo(200));
+            Assert.That(context.Json, Is.Not.Empty, "the operation ran, exactly as the GET does");
+        }
+
+        [Test]
+        public void A_HEAD_is_refused_wherever_a_GET_would_be()
+        {
+            var context = Request("HEAD", GateOperations.StatusPath, ClientIdentity.Stranger("db"));
+
+            _router.Handle(context);
+
+            Assert.That(context.Status, Is.EqualTo(401), "it is a GET in every respect but the content");
+        }
+
+        [Test]
+        public void A_HEAD_on_a_route_that_only_takes_POST_is_a_405()
+        {
+            var context = Request("HEAD", "/pair/hello", ClientIdentity.Stranger("db"));
+
+            _router.Handle(context);
+
+            Assert.That(context.Status, Is.EqualTo(405));
+        }
+
+        [Test]
+        public void The_parameters_a_path_captured_are_left_where_a_handler_can_read_them()
+        {
+            var document = SpecDocument.Parse(
+                "{\"openapi\":\"3.0.3\",\"info\":{\"title\":\"t\",\"version\":\"1\"},\"paths\":{" +
+                "\"/entries/{uuid}\":{\"get\":{\"operationId\":\"readEntry\",\"parameters\":[{\"name\":\"uuid\",\"in\":\"path\",\"required\":true,\"schema\":{\"type\":\"string\"}}]," +
+                "\"x-kpg-unauthenticated\":true,\"responses\":{\"200\":{\"description\":\"o\"}}}," +
+                "\"head\":{\"operationId\":\"headEntry\",\"parameters\":[{\"name\":\"uuid\",\"in\":\"path\",\"required\":true,\"schema\":{\"type\":\"string\"}}]," +
+                "\"x-kpg-unauthenticated\":true,\"responses\":{\"200\":{\"description\":\"o\"}}}}}}");
+
+            IReadOnlyDictionary<string, string> captured = null;
+            OperationHandler capture = answering =>
+            {
+                captured = (IReadOnlyDictionary<string, string>)answering.Items[SpecRouter.ParametersItem];
+                answering.Respond(200, "{}");
+            };
+
+            var router = new SpecRouter(document, new Dictionary<string, OperationHandler>
+            {
+                { "readEntry", capture },
+                { "headEntry", capture },
+            });
+
+            router.Handle(Request("GET", "/entries/abcdef01", ClientIdentity.Stranger("db")));
+
+            Assert.That(captured["uuid"], Is.EqualTo("abcdef01"));
+        }
+
+        /// <summary>A body the document accepts, so that a routing test measures routing.</summary>
+        private const string Hello = "{\"proof\":\"AAAA\"}";
+
         private static GateContext Request(string method, string path, ClientIdentity client)
+        {
+            return Request(method, path, client, string.Empty);
+        }
+
+        private static GateContext Request(string method, string path, ClientIdentity client, string body)
         {
             var head = new HttpRequestHead(
                 method,
                 path,
                 new Dictionary<string, string>(),
                 new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase),
-                0);
+                body == null ? 0 : body.Length);
 
-            return new GateContext(head, string.Empty, client);
+            return new GateContext(head, body ?? string.Empty, client);
         }
     }
 
@@ -390,16 +601,19 @@ namespace KeePassGate.Tests
         public void A_certificate_from_a_foreign_authority_is_refused()
         {
             // A real client certificate, carrying `clientAuth`, issued by an authority that is not
-            // this database's. The usage check would pass it, so the only thing that can refuse it
-            // is the anchor pin, and this fails if the pin is removed or reordered behind a check
-            // this certificate satisfies. Asserted with a certificate the usage check accepts on
-            // purpose: shown one with no usage at all, this passes whichever check runs first.
+            // this database's, and admitted into this one. The usage check would pass it and the
+            // record would admit it, so the only thing that can refuse it is the anchor pin, and
+            // this fails if the pin is removed. Without the record it passed with the pin deleted,
+            // since a certificate nobody admitted is refused either way. Asserted with a
+            // certificate the usage check accepts on purpose: shown one with no usage at all, this
+            // passes whichever check runs first.
             using (var foreign = TestAuthority.New())
             using (var certificate = foreign.IssueClient("agent-elsewhere"))
             {
                 Assert.That(ClientCredentials.IsForClientAuthentication(certificate), Is.True,
                     "the usage check has to accept it, or the pin is not what refused it");
 
+                _ours.Admit(certificate, "ops");
                 var identity = ClientCredentials.For(certificate, _ours, _log);
 
                 Assert.That(identity.IsPaired, Is.False);

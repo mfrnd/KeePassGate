@@ -204,8 +204,12 @@ namespace KeePassGate.Bridge
         /// A database was locked. What is privileged goes; what answers a connection stays.
         /// </summary>
         /// <remarks>
-        /// The authority key and the normal host key are inside the `AuthorityReading` this
-        /// disposes, so dropping them is one call rather than a list to keep up to date. The
+        /// The authority key and the host certificate are inside the `AuthorityReading` this
+        /// disposes, which overwrites the stored PKCS#12 and releases both handles. The key the TLS
+        /// server signs with is not in there: it is the `HostKeyMaterial` on the target, and it
+        /// goes when the target does, which is the last reference going rather than anything being
+        /// overwritten, because a BouncyCastle key is an immutable `BigInteger`. `CA.md` §208 says
+        /// what that is and is not worth. The
         /// admission records were never here to drop: they are read from the live database on every
         /// connection, and locking cuts them off by closing the database rather than by clearing
         /// anything. The gate key is copied out before the material goes, because disposing it

@@ -1,9 +1,9 @@
 """A paired client, and every route the gate serves it.
 
 **This is the reference implementation, so what is here is what exists.** The gate serves one route
-today besides pairing, and this covers it. When the specification router lands and the document
-becomes the routing table, the routes it declares belong here, one method each, and the absence of
-a method here should read as the absence of a route rather than as something nobody got round to.
+today besides pairing, and this covers it. The document is the routing table, so the routes it
+declares belong here, one method each, and the absence of a method here should read as the absence
+of a route rather than as something nobody got round to.
 
 Every request is its own connection, named freshly from the gate key. That is not a cost worth
 optimizing away: it is what makes a passive observer see a different name each time.

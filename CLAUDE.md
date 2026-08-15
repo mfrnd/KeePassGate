@@ -437,7 +437,7 @@ seeing nothing open and is the fail-closed direction on the one guard this desig
 `LockWatch` drives both lock transitions against seams rather than KeePass, and
 `OpenDatabaseTargets` is where a database becomes a `LockedTarget` and back. `JsonBody` reads
 request bodies strictly and says in its own comments where it stops being enough, which is exactly
-where step 11 begins.
+where step 11 began.
 
 **A pairing connection is measured against `GateOptions.PairingBudget` rather than `Budget`.** The
 ordinary thirty seconds is what stops a peer holding a thread by feeding it slowly, and phase 4

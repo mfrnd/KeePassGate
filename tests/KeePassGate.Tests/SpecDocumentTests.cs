@@ -40,11 +40,17 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void Nothing_is_declared_at_HEAD_because_HEAD_follows_GET()
+        public void Every_get_it_declares_has_a_head_beside_it()
         {
-            Assert.That(
-                SpecDocument.Embedded().Operations.Select(o => o.Method),
-                Has.None.EqualTo("HEAD"));
+            // RFC 9110 section 9.1 expects a server to answer HEAD, and section 9.3.2 says
+            // it answers what its GET answers without the content. Declared rather than
+            // derived so that this document is the whole account of what the API answers.
+            var declared = SpecDocument.Embedded().Operations;
+
+            var gets = declared.Where(o => o.Method == "GET").Select(o => o.Path.Text);
+            var heads = declared.Where(o => o.Method == "HEAD").Select(o => o.Path.Text);
+
+            Assert.That(heads, Is.EquivalentTo(gets));
         }
 
         [Test]
@@ -66,9 +72,10 @@ namespace KeePassGate.Tests
         public void An_operation_carries_its_name_its_method_and_its_path()
         {
             var document = SpecDocument.Parse(Document(
-                "\"/a/{id}\":{\"get\":{\"operationId\":\"readA\",\"parameters\":[{\"name\":\"id\",\"in\":\"path\",\"required\":true,\"schema\":{\"type\":\"string\"}}],\"responses\":{\"200\":{\"description\":\"o\"}}}}"));
+                "\"/a/{id}\":{\"get\":{\"operationId\":\"readA\",\"parameters\":[{\"name\":\"id\",\"in\":\"path\",\"required\":true,\"schema\":{\"type\":\"string\"}}],\"responses\":{\"200\":{\"description\":\"o\"}}},\"head\":{\"operationId\":\"headReadA\",\"parameters\":[{\"name\":\"id\",\"in\":\"path\",\"required\":true,\"schema\":{\"type\":\"string\"}}],\"responses\":{\"200\":{\"description\":\"o\"}}}}"));
 
-            var operation = document.Operations.Single();
+            // Two operations on this path now, since every get declares a head.
+            var operation = document.Operations.Single(o => o.Method == "GET");
 
             Assert.That(operation.OperationId, Is.EqualTo("readA"));
             Assert.That(operation.Method, Is.EqualTo("GET"));
@@ -82,9 +89,9 @@ namespace KeePassGate.Tests
             // Default deny, in the document as well as in the router: saying nothing means needing
             // one, so a route added later is guarded by not having been thought about.
             var document = SpecDocument.Parse(Document(
-                "\"/a\":{\"get\":{\"operationId\":\"readA\",\"responses\":{\"200\":{\"description\":\"o\"}}}}"));
+                "\"/a\":{\"get\":{\"operationId\":\"readA\",\"responses\":{\"200\":{\"description\":\"o\"}}},\"head\":{\"operationId\":\"headReadA\",\"responses\":{\"200\":{\"description\":\"o\"}}}}"));
 
-            Assert.That(document.Operations.Single().NeedsIdentity, Is.True);
+            Assert.That(document.Operations.Single(o => o.Method == "GET").NeedsIdentity, Is.True);
         }
 
         [Test]
@@ -92,9 +99,11 @@ namespace KeePassGate.Tests
         {
             var document = SpecDocument.Parse(Document(
                 "\"/a\":{\"get\":{\"operationId\":\"readA\",\"x-kpg-verb\":\"read\"," +
+                "\"responses\":{\"200\":{\"description\":\"o\"}}}," +
+                "\"head\":{\"operationId\":\"headA\",\"x-kpg-verb\":\"read\"," +
                 "\"responses\":{\"200\":{\"description\":\"o\"}}}}"));
 
-            Assert.That(document.Operations.Single().Verb, Is.EqualTo("read"));
+            Assert.That(document.Operations.Single(o => o.Method == "GET").Verb, Is.EqualTo("read"));
         }
 
         [Test]
@@ -112,19 +121,61 @@ namespace KeePassGate.Tests
             // One of them would be unreachable, and which one would depend on the order the
             // document happened to be written in.
             var raised = Assert.Throws<InvalidOperationException>(() => SpecDocument.Parse(Document(
-                "\"/a\":{\"get\":{\"operationId\":\"same\",\"responses\":{\"200\":{\"description\":\"o\"}}}}," +
-                "\"/b\":{\"get\":{\"operationId\":\"same\",\"responses\":{\"200\":{\"description\":\"o\"}}}}")));
+                "\"/a\":{\"get\":{\"operationId\":\"same\",\"responses\":{\"200\":{\"description\":\"o\"}}},\"head\":{\"operationId\":\"headSame\",\"responses\":{\"200\":{\"description\":\"o\"}}}}," +
+                "\"/b\":{\"get\":{\"operationId\":\"same\",\"responses\":{\"200\":{\"description\":\"o\"}}},\"head\":{\"operationId\":\"headSame\",\"responses\":{\"200\":{\"description\":\"o\"}}}}")));
 
             Assert.That(raised.Message, Does.Contain("twice"));
         }
 
         [Test]
-        public void Declaring_HEAD_is_refused_because_it_follows_GET()
+        public void A_get_with_no_head_stops_the_plugin_loading()
         {
+            // Not left to whoever remembers. A get with no head is a route this server
+            // answers 405 on for a method RFC 9110 section 9.1 expects of it.
             var raised = Assert.Throws<InvalidOperationException>(() => SpecDocument.Parse(Document(
-                "\"/a\":{\"head\":{\"operationId\":\"headA\",\"responses\":{\"200\":{\"description\":\"o\"}}}}")));
+                "\"/a\":{\"get\":{\"operationId\":\"readA\",\"responses\":{\"200\":{\"description\":\"o\"}}}}")));
 
-            Assert.That(raised.Message, Does.Contain("HEAD"));
+            Assert.That(raised.Message, Does.Contain("no head"));
+        }
+
+        [Test]
+        public void A_head_governed_differently_from_its_own_get_stops_it_too()
+        {
+            // The two share a handler, so they cannot disagree about whether something is
+            // there. They are two declarations even so, and authorization reads what each one
+            // declares. A head carrying a different verb would answer that question to a
+            // caller its own get would have refused.
+            var raised = Assert.Throws<InvalidOperationException>(() => SpecDocument.Parse(Document(
+                "\"/a\":{\"get\":{\"operationId\":\"readA\",\"x-kpg-verb\":\"read\",\"responses\":{\"200\":{\"description\":\"o\"}}}," +
+                "\"head\":{\"operationId\":\"headA\",\"x-kpg-verb\":\"none\",\"responses\":{\"200\":{\"description\":\"o\"}}}}")));
+
+            Assert.That(raised.Message, Does.Contain("governed differently"));
+        }
+
+        [Test]
+        public void A_head_needing_no_certificate_beside_a_get_that_does_stops_it_as_well()
+        {
+            // The worst of the family, because it does not merely answer differently: the
+            // pair shares one handler, so a head nobody has to be admitted for is the get's
+            // own handler run for a stranger. It makes the path public as well, since a path
+            // is public if any operation on it is.
+            var raised = Assert.Throws<InvalidOperationException>(() => SpecDocument.Parse(Document(
+                "\"/a\":{\"get\":{\"operationId\":\"readA\",\"x-kpg-verb\":\"read\",\"responses\":{\"200\":{\"description\":\"o\"}}}," +
+                "\"head\":{\"operationId\":\"headA\",\"x-kpg-verb\":\"read\",\"x-kpg-unauthenticated\":true,\"responses\":{\"200\":{\"description\":\"o\"}}}}")));
+
+            Assert.That(raised.Message, Does.Contain("needing a certificate"));
+        }
+
+        [Test]
+        public void A_head_carrying_a_body_its_own_get_does_not_stops_it_too()
+        {
+            // Not a way in, because a body a caller cannot send is a body the check refuses.
+            // A head that answers nothing to anybody is still worth failing to load over.
+            var raised = Assert.Throws<InvalidOperationException>(() => SpecDocument.Parse(Document(
+                "\"/a\":{\"get\":{\"operationId\":\"readA\",\"x-kpg-verb\":\"read\",\"responses\":{\"200\":{\"description\":\"o\"}}}," +
+                "\"head\":{\"operationId\":\"headA\",\"x-kpg-verb\":\"read\",\"requestBody\":{\"required\":true,\"content\":{\"application/json\":{\"schema\":{\"type\":\"object\",\"additionalProperties\":false,\"properties\":{\"a\":{\"type\":\"string\"}}}}}},\"responses\":{\"200\":{\"description\":\"o\"},\"415\":{\"description\":\"m\"}}}}")));
+
+            Assert.That(raised.Message, Does.Contain("carrying a body"));
         }
 
         [Test]
@@ -222,6 +273,24 @@ namespace KeePassGate.Tests
                 "\"responses\":{\"200\":{\"description\":\"o\"}}}}")));
 
             Assert.That(refused.Message, Does.Contain("does not require it"));
+        }
+
+        [Test]
+        public void A_body_declared_without_the_refusal_a_wrong_media_type_gets_is_refused()
+        {
+            // The router answers 415 from the one media type this API declares, so an operation
+            // taking a body and saying nothing about that answer is a document that has stopped
+            // being the whole account of what the API answers. It went undeclared everywhere
+            // until this ran, which is how the status came to have no reason phrase either.
+            var refused = Assert.Throws<InvalidOperationException>(() => SpecDocument.Parse(Document(
+                "\"/a\":{\"post\":{\"operationId\":\"writeA\",\"x-kpg-verb\":\"create\"," +
+                "\"requestBody\":{\"required\":true,\"content\":{\"application/json\":{" +
+                "\"schema\":{\"type\":\"object\",\"additionalProperties\":false," +
+                "\"properties\":{\"a\":{\"type\":\"string\"}}}}}}," +
+                "\"responses\":{\"201\":{\"description\":\"o\"}}}}")));
+
+            Assert.That(refused.Message, Does.Contain("415"));
+            Assert.That(refused.Message, Does.Contain("writeA"));
         }
 
         [Test]

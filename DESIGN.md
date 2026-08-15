@@ -279,6 +279,7 @@ is the one to answer first, because the fit was never in doubt.
 | Bodies over 1 MB | by `Content-Length`, before reading |
 | An `Expect` that is not `100-continue` | before the body, 417 |
 | A header block over 8 KB | during the parse |
+| What the grammar does not allow: a control character in a header value, a header folded onto the next line, a character RFC 3986 says to escape arriving bare, a query name sent twice | during the parse, 400 |
 | WebSocket upgrade | never implemented |
 | Keep-alive | responses always close |
 | Anything the OpenAPI document does not declare | terminal stage, 404 |
@@ -733,10 +734,9 @@ Each step is refusable, and each ends with something that runs.
    because a second implementation is what turns a specification into a contract: where the two
    disagree one of them is wrong, and a disagreement should fail a test rather than a pairing.
 11. **Spec router**: the document, `operationId` binding, schema validation, startup assertion.
-   Decide `HEAD` here: today a `HEAD` on a declared route gets 405, because the router requires the
-   declared method exactly. That is honest and fail closed rather than a defect, but HTTP says a
-   `HEAD` should be served wherever a `GET` is, so the document is the place to say which methods
-   exist.
+   `HEAD` is decided here: every `GET` declares one, and both reach the same handler, because HTTP
+   says a `HEAD` should be served wherever a `GET` is and the document is the place to say which
+   methods exist.
 12. **The ACL**: the model in section 7, resolving against a real database.
 13. **The editor**: the grant UI, the largest single piece and the last thing needed.
 14. **Intersection and audit**: the two answers combined, every decision recorded.

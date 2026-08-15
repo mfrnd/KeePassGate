@@ -5,6 +5,7 @@ using KeePassGate.Diagnostics;
 using KeePassGate.Gate;
 using KeePassGate.Pairing;
 using KeePassGate.Pipeline;
+using KeePassGate.Spec;
 using KeePassGate.Testing;
 using KeePassGate.Tests.Fakes;
 using KeePassGate.Transport;
@@ -49,7 +50,7 @@ namespace KeePassGate.Tests
             _listener = new GateListener(
                 new GateOptions { Port = 0 },
                 new GateResolver(_targets, _book, _log),
-                new GateRouter("9.9.9", new PairingHandler(_book, _operator, _log)),
+                GateOperations.Router("9.9.9", new PairingHandler(_book, _operator, _log)),
                 _log);
 
             Assert.That(_listener.Start(), Is.True, "the listener did not start");
@@ -103,7 +104,7 @@ namespace KeePassGate.Tests
             // The name is built from the gate key it was just handed, and the certificate is the
             // one it was just issued. Nothing else was arranged in between.
             var reply = GateClient.Get(
-                _listener.Port, SniName.For(client.GateKey), client.Identity, GateRouter.StatusPath);
+                _listener.Port, SniName.For(client.GateKey), client.Identity, GateOperations.StatusPath);
 
             Assert.That(reply.Answered, Is.True, reply.Failure);
             Assert.That(reply.Status, Is.EqualTo(200), reply.Body);
@@ -127,7 +128,7 @@ namespace KeePassGate.Tests
             byte[] nonce;
             var name = NewClient().NewName(out nonce);
 
-            var reply = GateClient.Get(_listener.Port, name, null, GateRouter.StatusPath);
+            var reply = GateClient.Get(_listener.Port, name, null, GateOperations.StatusPath);
 
             Assert.That(reply.Status, Is.EqualTo(401),
                 "an invitation is not an identity, so it opens no route that needs one");
@@ -353,7 +354,7 @@ namespace KeePassGate.Tests
             var listener = new GateListener(
                 options,
                 new GateResolver(_targets, _book, _log),
-                new GateRouter("9.9.9", new PairingHandler(_book, approval, _log)),
+                GateOperations.Router("9.9.9", new PairingHandler(_book, approval, _log)),
                 _log);
 
             Assert.That(listener.Start(), Is.True);
@@ -369,7 +370,7 @@ namespace KeePassGate.Tests
             var listener = new GateListener(
                 new GateOptions { Port = 0 },
                 new GateResolver(targets, _book, _log),
-                new GateRouter("9.9.9", new PairingHandler(_book, _operator, _log)),
+                GateOperations.Router("9.9.9", new PairingHandler(_book, _operator, _log)),
                 incidents,
                 _log);
 

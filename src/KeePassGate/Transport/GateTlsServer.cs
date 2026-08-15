@@ -61,6 +61,20 @@ namespace KeePassGate.Transport
         /// </summary>
         public X509Certificate2 PresentedCertificate { get; private set; }
 
+        /// <summary>
+        /// What one of this server's own callbacks threw, or null when none did.
+        /// </summary>
+        /// <remarks>
+        /// **Kept here because Bouncy Castle does not keep it.** Whatever a server callback throws
+        /// is caught inside the handshake and raised again as an alert, which is what Bouncy Castle
+        /// 2.7.0's `SafeReadRecord` and its siblings do with every exception, read off its IL. So a
+        /// defect in this class reached the listener as a failed handshake, logged at `Info` by
+        /// the alert's message with the cause dropped, and counted nowhere. None of these
+        /// callbacks reads what the peer sent without a guard of its own, so anything recorded
+        /// here is a failure on this side and never the peer's.
+        /// </remarks>
+        public Exception Failure { get; private set; }
+
         protected override ProtocolVersion[] GetSupportedVersions()
         {
             return ProtocolVersion.TLSv13.Only();
@@ -68,18 +82,27 @@ namespace KeePassGate.Transport
 
         public override TlsCredentials GetCredentials()
         {
-            if (_serverCertificate == null)
+            try
             {
-                var entry = new CertificateEntry(new BcTlsCertificate(_crypto, _host.CertificateDer), null);
-                _serverCertificate = new BcCertificate(TlsUtilities.EmptyBytes, new[] { entry });
-            }
+                if (_serverCertificate == null)
+                {
+                    var entry = new CertificateEntry(new BcTlsCertificate(_crypto, _host.CertificateDer), null);
+                    _serverCertificate = new BcCertificate(TlsUtilities.EmptyBytes, new[] { entry });
+                }
 
-            return new BcDefaultTlsCredentialedSigner(
-                new TlsCryptoParameters(m_context),
-                _crypto,
-                _host.PrivateKey,
-                _serverCertificate,
-                SignatureAndHashAlgorithm.GetInstance(BcHashAlgorithm.sha256, SignatureAlgorithm.ecdsa));
+                return new BcDefaultTlsCredentialedSigner(
+                    new TlsCryptoParameters(m_context),
+                    _crypto,
+                    _host.PrivateKey,
+                    _serverCertificate,
+                    SignatureAndHashAlgorithm.GetInstance(BcHashAlgorithm.sha256, SignatureAlgorithm.ecdsa));
+            }
+            catch (Exception error)
+            {
+                // Noted and thrown on, so nothing is caught here: see `Failure`.
+                Note(error);
+                throw;
+            }
         }
 
         /// <summary>
@@ -89,31 +112,59 @@ namespace KeePassGate.Transport
         /// </summary>
         public override BcCertificateRequest GetCertificateRequest()
         {
-            var signatureAlgorithms = new List<SignatureAndHashAlgorithm>
+            try
             {
-                SignatureAndHashAlgorithm.GetInstance(BcHashAlgorithm.sha256, SignatureAlgorithm.ecdsa)
-            };
+                var signatureAlgorithms = new List<SignatureAndHashAlgorithm>
+                {
+                    SignatureAndHashAlgorithm.GetInstance(BcHashAlgorithm.sha256, SignatureAlgorithm.ecdsa)
+                };
 
-            // No certificate authorities are named. Naming ours would tell an unauthenticated
-            // client which database it had reached, and the gate exists to avoid exactly that.
-            return new BcCertificateRequest(TlsUtilities.EmptyBytes, signatureAlgorithms, null, null);
+                // No certificate authorities are named. Naming ours would tell an unauthenticated
+                // client which database it had reached, and the gate exists to avoid exactly that.
+                return new BcCertificateRequest(TlsUtilities.EmptyBytes, signatureAlgorithms, null, null);
+            }
+            catch (Exception error)
+            {
+                // Noted and thrown on, as above.
+                Note(error);
+                throw;
+            }
         }
 
         public override void NotifyClientCertificate(BcCertificate clientCertificate)
         {
-            if (clientCertificate == null || clientCertificate.IsEmpty)
-            {
-                return;
-            }
-
             try
             {
-                PresentedCertificate = new X509Certificate2(clientCertificate.GetCertificateAt(0).GetEncoded());
+                if (clientCertificate == null || clientCertificate.IsEmpty)
+                {
+                    return;
+                }
+
+                try
+                {
+                    PresentedCertificate = new X509Certificate2(clientCertificate.GetCertificateAt(0).GetEncoded());
+                }
+                catch (Exception error) when (Expected.OfCryptography(error))
+                {
+                    // Unreadable is the same as absent: a stranger, refused by the route table.
+                    PresentedCertificate = null;
+                }
             }
-            catch (Exception error) when (Expected.OfCryptography(error))
+            catch (Exception error)
             {
-                // Unreadable is the same as absent: a stranger, refused by the route table.
-                PresentedCertificate = null;
+                // Noted and thrown on, as above. What a peer can make fail here is the reading
+                // just above, and that is answered rather than thrown.
+                Note(error);
+                throw;
+            }
+        }
+
+        /// <summary>Keeps the first failure, which is the one the handshake died of.</summary>
+        private void Note(Exception error)
+        {
+            if (Failure == null)
+            {
+                Failure = error;
             }
         }
     }

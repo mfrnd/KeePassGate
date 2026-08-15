@@ -7,6 +7,7 @@ using KeePassGate.Authority;
 using KeePassGate.Gate;
 using KeePassGate.Pairing;
 using KeePassGate.Pipeline;
+using KeePassGate.Spec;
 using KeePassGate.Testing;
 using KeePassGate.Ui;
 using NUnit.Framework;
@@ -275,7 +276,7 @@ namespace KeePassGate.Host.Tests.Live
         private void UseWhatItWasGiven(ThrowawayKeePass keePass, PairingClient client)
         {
             var reply = LiveGateClient.Get(
-                keePass.Port, SniName.For(client.GateKey), client.Identity, GateRouter.StatusPath);
+                keePass.Port, SniName.For(client.GateKey), client.Identity, GateOperations.StatusPath);
 
             _statusAfterPairing = reply.Status;
             _statusBody = reply.Body ?? reply.Failure;

@@ -9,19 +9,29 @@ info:
     loading rather than becoming a 404 somebody finds later. A path that is not declared here has
     nowhere to go.
 
-    HEAD is declared nowhere and served everywhere GET is, by running the GET operation and
-    discarding the content. RFC 9110 section 9.3.2 permits omitting header fields determined while
-    generating that content, which is why the answer carries no length. Declaring a second operation
-    per route would have meant two operationIds for one behavior and a document that could disagree
-    with itself.
+    **Every `get` declares a `head` beside it, and the two share one handler.** RFC 9110 section
+    9.3.2 says a `head` is identical to its `get` except that no content is sent, so one handler is
+    what makes that true by construction rather than by two implementations agreeing. The plugin
+    refuses to load a `get` with no `head`, and a pair that disagrees about its `x-kpg-verb`,
+    about needing a certificate, or about carrying a body. The answer omits
+    `Content-Length` rather than sending a wrong one, which section 9.3.2 permits for a value
+    determined only while generating content, and section 8.6 requires of anything else.
+
+    **A declared path asked for with a method it does not declare answers `405`, carrying the
+    methods it does.** RFC 9110 section 15.5.6 requires that list, and it is read off this
+    document rather than written anywhere, so it cannot fall out of step with what the server
+    routes. It is not declared per operation, because no operation answers it: a `405` is what
+    is said when none of the operations on a path matched, which is a property of the path
+    rather than of anything listed under it.
 
     `x-kpg-unauthenticated` marks the two routes an invitee may reach before it has a certificate.
     Everything else needs one, by default rather than by remembering to say so.
 
     `x-kpg-verb` is what the access control layer will read to decide what an operation may do. It is
     declared now so that the document stays the single account of what this API permits, and nothing
-    reads it yet. TODO(step 12): that layer arrives with the access control model, which is also
-    when a route that declares no verb stops the plugin loading.
+    reads it yet but the check holding a `head` to its `get`. TODO(step 12): that layer arrives
+    with the access control model, which is also when a route that declares no verb stops the
+    plugin loading.
 
 servers:
   - url: https://127.0.0.1:{port}
@@ -67,6 +77,25 @@ paths:
                       without naming it.
                   version:
                     type: string
+        "401":
+          $ref: "#/components/responses/Unpaired"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+
+    head:
+      operationId: headStatus
+      summary: The same, without the content.
+      description: |
+        Runs the operation `get` runs, on the same handler, and answers without its content.
+        Declared rather than derived so that this document is the whole account of what the API
+        answers, and bound to the same handler so that the two cannot come to disagree about
+        whether something is there. It declares the same `x-kpg-verb` as the `get` for the same
+        reason: a `head` that were governed differently would answer whether a node exists to a
+        caller the `get` would have refused.
+      x-kpg-verb: none
+      responses:
+        "200":
+          description: The gate is serving this database, and it is unlocked.
         "401":
           $ref: "#/components/responses/Unpaired"
         "503":
@@ -121,6 +150,8 @@ paths:
           $ref: "#/components/responses/NotPairing"
         "409":
           $ref: "#/components/responses/NoInvitation"
+        "415":
+          $ref: "#/components/responses/UnsupportedMediaType"
         "503":
           $ref: "#/components/responses/Unavailable"
 
@@ -149,7 +180,8 @@ paths:
                   maxLength: 64
                   description: |
                     What this client should be called. Letters, digits, space, dot, dash and
-                    underscore.
+                    underscore, neither beginning nor ending with a space, which the certificate's
+                    subject name would lose.
                 profiles:
                   type: array
                   maxItems: 32
@@ -191,7 +223,15 @@ paths:
                     items:
                       type: string
         "400":
-          $ref: "#/components/responses/Malformed"
+          description: |
+            A request that could never have been issued as asked, answered before anything is
+            spent, and the body names which of three it was. `malformed` is a body that is not what
+            this declares. `name` is a name its description does not allow, and `profile` a
+            profile name that could not travel as a claim.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
         "401":
           $ref: "#/components/responses/PairingRefused"
         "403":
@@ -204,8 +244,18 @@ paths:
           $ref: "#/components/responses/NotPairing"
         "409":
           $ref: "#/components/responses/NoInvitation"
+        "415":
+          $ref: "#/components/responses/UnsupportedMediaType"
         "500":
-          description: The record did not land, so nothing was handed over.
+          description: |
+            One of four, and the body names which. `not recorded`: the record did not land, so
+            nothing was handed over and the invitation is spent. `expired authority`: this
+            database's authority has expired, which is refused before anybody is asked and spends
+            nothing. `expired host`: the host certificate this database answers with has expired,
+            so no client paired now could connect, refused the same way. `internal error`: the
+            operator approved and no certificate could be issued, because the authority ran out
+            while the dialog was open or its key would not sign; the invitation is not spent, and
+            the client starts again from a hello.
           content:
             application/json:
               schema:
@@ -254,6 +304,17 @@ components:
 
     Malformed:
       description: The body is not what the document declares.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+    UnsupportedMediaType:
+      description: |
+        The body was sent under a media type this API does not speak. `application/json` is the
+        only one it declares anywhere, and a request claiming no type at all is taken as claiming
+        that one, because a caller that claimed nothing has not claimed something else. Every
+        operation carrying a body declares this, and one that does not stops the plugin loading.
       content:
         application/json:
           schema:

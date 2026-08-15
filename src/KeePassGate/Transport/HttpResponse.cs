@@ -33,6 +33,10 @@ namespace KeePassGate.Transport
             { 411, "Length Required" },
             { 413, "Content Too Large" },
             { 414, "URI Too Long" },
+            // A body sent under a media type this API does not speak, RFC 9110 section 15.5.16.
+            // The router answers it, so it is named here: a status with no phrase went out as
+            // `Status 415`, which is not a reason phrase any registry knows.
+            { 415, "Unsupported Media Type" },
             // An `Expect` this server does not meet, RFC 9110 section 15.5.18. Refused rather
             // than ignored: ignoring one lets a client proceed believing something untrue.
             { 417, "Expectation Failed" },
@@ -55,8 +59,32 @@ namespace KeePassGate.Transport
                 "Cache-Control",
                 "X-Content-Type-Options",
                 "Connection",
+                "Retry-After",
             },
             StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>
+        /// How long a client is told to wait before asking again, on every `503` this gate sends.
+        /// </summary>
+        /// <remarks>
+        /// Seconds, which is one of the two forms RFC 9110 section 10.2.3 allows and the only one
+        /// worth sending here: the other is a date, and a date carries a clock the two sides have
+        /// to agree about.
+        ///
+        /// **One number for every reason**, and that is the decision rather than an economy.
+        /// A locked database and a dialog open on what a write would change answer `503`, and a
+        /// save that would stop and ask and KeePass part way through an import are to answer it
+        /// too. How long each of them lasts is a person's business rather than this gate's.
+        /// Which refusal it was is in the body, where a client that wants to treat them
+        /// differently reads it; putting two different delays on the wire would invite reading a
+        /// meaning into the difference that nothing here measured.
+        ///
+        /// Two seconds because the shortest of these is a save, which is hundreds of milliseconds,
+        /// and the longest is somebody closing a dialog, which no number would cover. It is long
+        /// enough that a retry is not a second attempt at the same instant and short enough that a
+        /// client honoring it is not asleep through the window it was waiting for.
+        /// </remarks>
+        public const int RetryAfterSeconds = 2;
 
         public static string ReasonFor(int status)
         {
@@ -80,31 +108,67 @@ namespace KeePassGate.Transport
             return "{\"error\":" + JsonConvert.ToString(error ?? "refused") + "}";
         }
 
+        /// <summary>
+        /// One answer: the status line, the fields, and the content unless there is to be none.
+        /// </summary>
+        /// <remarks>
+        /// **A HEAD is answered here because this is where the length is decided.** RFC 9112
+        /// section 6.3: a response to HEAD is terminated by the blank line and cannot carry
+        /// content, whatever its header fields say. Blanking the body one layer above this is what
+        /// let the two disagree. The answer was emptied, the writer measured the empty string,
+        /// and `Content-Length: 0` went out where a GET would have said forty-five. RFC 9110
+        /// section 8.6 forbids exactly that: a length that is not what a GET would have sent.
+        ///
+        /// The field is omitted rather than corrected, which section 9.3.2 permits for a value
+        /// "determined only while generating the content". That is this one.
+        ///
+        /// The content is generated all the same. A HEAD runs the GET's own handler, because one
+        /// handler is what stops the two coming to disagree about whether something is there, and
+        /// what it wrote is dropped here. So what a HEAD saves is the bytes on the wire rather than
+        /// the work behind them, and a route whose answer is expensive to build is expensive to
+        /// ask about either way.
+        /// </remarks>
         /// <param name="headers">
-        /// Fields this answer carries beyond the ones every answer does, or null. Anything
-        /// named below is dropped rather than sent twice: a second `Content-Length` is a
-        /// second opinion about where the body ends, which is a request smuggled past
-        /// whatever reads this next.
+        /// Fields this answer carries beyond the ones every answer does, or null. Anything the
+        /// writer sends itself is dropped rather than sent twice: a second `Content-Length` is a
+        /// second opinion about where the body ends, which is a request smuggled past whatever
+        /// reads this next.
         /// </param>
-        public static void Write(Stream stream, int status, string json, WebHeaderCollection headers)
+        public static void Write(
+            Stream stream, int status, string json, bool head, WebHeaderCollection headers)
         {
             if (stream == null)
             {
                 throw new ArgumentNullException(nameof(stream));
             }
 
-            var body = Encoding.UTF8.GetBytes(json ?? string.Empty);
+            var body = head ? Array.Empty<byte>() : Encoding.UTF8.GetBytes(json ?? string.Empty);
 
-            var head = new StringBuilder();
-            head.Append("HTTP/1.1 ").Append(status.ToString(CultureInfo.InvariantCulture))
+            var lines = new StringBuilder();
+            lines.Append("HTTP/1.1 ").Append(status.ToString(CultureInfo.InvariantCulture))
                 .Append(' ').Append(ReasonFor(status)).Append("\r\n");
-            head.Append("Content-Type: application/json; charset=utf-8\r\n");
-            head.Append("Content-Length: ").Append(body.Length.ToString(CultureInfo.InvariantCulture)).Append("\r\n");
-            head.Append("Cache-Control: no-store\r\n");
-            head.Append("X-Content-Type-Options: nosniff\r\n");
+            lines.Append("Content-Type: application/json; charset=utf-8\r\n");
+            if (!head)
+            {
+                lines.Append("Content-Length: ")
+                    .Append(body.Length.ToString(CultureInfo.InvariantCulture))
+                    .Append("\r\n");
+            }
+
+            lines.Append("Cache-Control: no-store\r\n");
+            lines.Append("X-Content-Type-Options: nosniff\r\n");
             // Never keep-alive: one request per connection, so there is no second request to
             // disagree with anybody about.
-            head.Append("Connection: close\r\n");
+            lines.Append("Connection: close\r\n");
+            if (status == 503)
+            {
+                // Here rather than at the four places that answer `503`, so that a refusal added
+                // later cannot be the one that forgets it. What each of them means is the body's
+                // job; <see cref="RetryAfterSeconds"/> says why they all wait the same.
+                lines.Append("Retry-After: ")
+                    .Append(RetryAfterSeconds.ToString(CultureInfo.InvariantCulture))
+                    .Append("\r\n");
+            }
 
             if (headers != null)
             {
@@ -115,13 +179,13 @@ namespace KeePassGate.Transport
                         continue;
                     }
 
-                    head.Append(name).Append(": ").Append(headers[name]).Append("\r\n");
+                    lines.Append(name).Append(": ").Append(headers[name]).Append("\r\n");
                 }
             }
 
-            head.Append("\r\n");
+            lines.Append("\r\n");
 
-            var headBytes = Encoding.ASCII.GetBytes(head.ToString());
+            var headBytes = Encoding.ASCII.GetBytes(lines.ToString());
             stream.Write(headBytes, 0, headBytes.Length);
             if (body.Length > 0)
             {
