@@ -8,12 +8,11 @@ Guidance for anyone, human or AI assistant, working in this repository.
 mutual TLS, so that automation and AI agents can each be given a narrow, revocable, audited slice of
 a database.
 
-**Status: the design is settled and steps 1 to 6 of the build order are done.** The plugin loads
-into KeePass, puts a KPG tab on the database settings dialog, that tab creates, recreates and
-deletes the database's own certificate authority, and the gate listens on loopback and answers one
-route over mutual TLS 1.3 to a client that authority issued. Step 7, validation, is next: the
-anchor pin and the extended key usage check are already in, so what is left there is the admission
-record and the validity window.
+**Status: the design is settled, steps 1 to 6 of the build order are done, and step 7, validation,
+is under way.** The plugin loads into KeePass, puts a KPG tab on the database settings dialog, that
+tab creates, recreates and deletes the database's own certificate authority, and the gate listens on
+loopback and answers one route over mutual TLS 1.3. The anchor pin and the extended key usage check
+were already in; what step 7 adds is the admission record and the validity window.
 
 ## Read these before proposing anything
 
