@@ -33,12 +33,14 @@ the invitation over a second channel. It is spent by the first client to use it 
 survive KeePass closing.
 
 ```shell
-# TODO(step 10): the command line arrives with this step.
-pykeepassgate pair --port 45678 --name agent-invented --profile-name reader
+pykeepassgate pair --name agent-invented --profile-name reader
 ```
 
+The gate listens on 51776 unless its operator chose another port, and `pair` dials that without
+being told; `--port` names a different one.
+
 Leave `--invitation` off and the token is read from standard input, so it stays out of the shell
-history and out of the process list. TODO(step 10): the command line arrives with this step.
+history and out of the process list.
 
 The same thing from a program:
 
@@ -46,7 +48,6 @@ The same thing from a program:
 from pykeepassgate import api
 
 credentials = api.pair(
-    port=45678,
     invitation="...",
     name="agent-invented",
     profiles=["reader"],
@@ -65,7 +66,6 @@ print(client.status())
 ```
 
 ```shell
-# TODO(step 10): the command line arrives with this step.
 pykeepassgate status
 pykeepassgate whoami
 ```

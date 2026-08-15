@@ -36,6 +36,7 @@ from .pairing import Exchange, Pairing
 from .transport import DEFAULT_TIMEOUT, PAIRING_TIMEOUT
 
 __all__ = [
+    "DEFAULT_PORT",
     "DEFAULT_TIMEOUT",
     "PAIRING_TIMEOUT",
     "Credentials",
@@ -62,11 +63,16 @@ __all__ = [
     "save",
 ]
 
+#: The port the gate listens on unless its operator chose another, the plugin's own
+#: `GateOptions.DefaultPort`, so that pairing with a KeePass nobody reconfigured names none.
+DEFAULT_PORT = 51776
+
 
 def pair(
-    port: int,
     invitation: str,
     name: str,
+    *,
+    port: int = DEFAULT_PORT,
     profiles: list[str] | None = None,
     directory: Path | None = None,
     profile: str = "default",

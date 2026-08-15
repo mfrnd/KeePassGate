@@ -535,7 +535,7 @@ def _make(directory: Path) -> None:
 
     **What was already there keeps the mode it had**, and that is the whole of what this
     refuses to do. A directory the caller named is the caller's, and its parent is nobody's
-    business here: naming `~/agent` would otherwise change the mode of a home directory,
+    business here: `--directory ~/agent` would otherwise change the mode of a home directory,
     and a parent this process does not own, `/tmp` among them, would refuse the change and
     raise. `prepare` is the only caller and runs this once, before the exchange, so a refusal
     then costs nothing; what is written afterwards goes through the handles `prepare` opened, and

@@ -62,6 +62,8 @@ words:
   - Dominik
   - Reichl
 
+  # give the operator a command line that can do nothing more
+  - capsys
 
   # own the transport, because the name rotates
   - REUSEADDR

@@ -3,8 +3,7 @@
 Two halves, and the split is deliberate. `pykeepassgate.api` is the library: pairing, the paired
 client, and the pieces of the protocol on their own so that each can be read and tested without a
 KeePass in the room. `pykeepassgate.cli` is a command line built on that library and nothing else,
-so anything the command line can do, a program can do the same way. TODO(step 10): `cli`
-arrives with this step.
+so anything the command line can do, a program can do the same way.
 
 Being the reference implementation means the code is the second copy of the specification, so what
 it does not do is a statement too: a route with no method here is a route the gate does not serve.

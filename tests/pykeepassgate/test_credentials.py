@@ -77,8 +77,8 @@ def test_the_key_is_readable_by_its_owner_and_nobody_else(
 def test_only_the_directories_this_created_are_narrowed(
     tmp_path: Path, bundle: dict[str, Any], monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    # The parent of whatever was named used to be narrowed as well, so naming `~/agent`
-    # changed the mode of a home directory and naming `/tmp/kept` raised out of `chmod`
+    # The parent of whatever was named used to be narrowed as well, so `--directory ~/agent`
+    # changed the mode of a home directory and `--directory /tmp/kept` raised out of `chmod`
     # with the invitation already spent and the record already saved. Asserted on the call
     # rather than on the mode, because Windows decides a directory with an ACL, reports every
     # one of them alike, and is the only platform CI runs on.
