@@ -1013,7 +1013,14 @@ Each step is refusable, and each ends with something that runs.
     custom data, which is what makes that dialog's OK keep it and its Cancel discard it. The end to
     end test makes a rule in a real KeePass with a real pointer and real keystrokes, presses OK, and
     finds it in the `.kdbx` after the process has gone.
-14. **Intersection and audit**: the two answers combined, every decision recorded.
+14. **Intersection and audit**: the two answers combined, every decision recorded. **Done.** The
+    intersection turned out to be structural rather than a step: the profiles handed to the
+    resolver are the ones the admission record carries, so there is no place where the two halves
+    are compared and none where they could be compared wrongly. **The router asks, not the
+    handler**, because a handler could forget to and a route added later would then be a route with
+    no rules on it. An operation that declares a verb and names no node stops the plugin loading.
+    Nothing this build declares needs any of it, because nothing it declares touches the database:
+    what step 14 leaves is the place where the first route that does will be asked.
 15. **The database API**: the routes that read and change groups, entries, fields and attachments.
     They arrive with no new machinery, which is the point of everything under them: a verb in the
     document, a node selector beside the handler, and the router does the rest.
