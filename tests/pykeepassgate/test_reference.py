@@ -11,6 +11,7 @@ adds the call, and removing one fails it until somebody removes the call.
 
 from __future__ import annotations
 
+import inspect
 from pathlib import Path
 from typing import Any
 
@@ -19,6 +20,7 @@ import yaml
 
 from pykeepassgate import api
 from pykeepassgate import client as client_module
+from pykeepassgate import model as model_module
 from pykeepassgate import pairing as pairing_module
 from pykeepassgate.client import GateClient
 from pykeepassgate.pairing import Pairing
@@ -224,3 +226,53 @@ def test_the_two_pairing_routes_are_the_only_ones_reachable_without_a_certificat
 
     assert open_routes == {"pairHello", "pairRequest"}
     assert callable(api.pair)
+
+
+def followed(declared: dict[str, Any], document: dict[str, Any]) -> dict[str, Any]:
+    """A declaration with its `$ref` followed, which is how the document declares a parameter."""
+    while "$ref" in declared:
+        target: Any = document
+        for part in declared["$ref"].removeprefix("#/").split("/"):
+            target = target[part]
+        declared = target
+    return declared
+
+
+def test_every_query_parameter_the_gate_reads_is_one_this_client_sends(
+    document: dict[str, Any],
+) -> None:
+    """A query name the gate reads and this client never sends is a gap, as a route would be.
+
+    There is one, the flag that leaves expired entries out of the two entry listings, and it is
+    `entries(include_expired=False)` that sends it, under the name `client.INCLUDE_EXPIRED` spells.
+    Declared on the path item or on the operation, since OpenAPI allows either.
+    """
+    declared: dict[str, set[str]] = {}
+    for methods in document["paths"].values():
+        for method, operation in methods.items():
+            if method not in METHODS:
+                continue
+
+            for given in methods.get("parameters", []) + operation.get("parameters", []):
+                parameter = followed(given, document)
+                if parameter["in"] == "query":
+                    declared.setdefault(parameter["name"], set()).add(operation["operationId"])
+
+    assert declared == {
+        client_module.INCLUDE_EXPIRED: {
+            "listEntries", "headEntries", "listGroupEntries", "headGroupEntries",
+        },
+    }
+    assert "include_expired" in inspect.signature(GateClient.entries).parameters
+
+
+def test_the_expiry_this_client_reads_and_writes_is_the_member_the_document_declares(
+    document: dict[str, Any],
+) -> None:
+    """Read off a read, written into a create or an update, under the one name `model` spells."""
+    schemas = document["components"]["schemas"]
+
+    assert model_module.EXPIRES in schemas["EntryFields"]["properties"]
+    assert model_module.EXPIRES in schemas["Entry"]["required"]
+    assert "expires" in inspect.signature(GateClient.create_entry).parameters
+    assert "expires" in inspect.signature(GateClient.update_entry).parameters

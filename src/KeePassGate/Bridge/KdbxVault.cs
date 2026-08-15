@@ -74,6 +74,17 @@ namespace KeePassGate.Bridge
             get { return Root; }
         }
 
+        /// <summary>Whether KeePass has this database open, by both of its own answers.</summary>
+        /// <remarks>
+        /// Both, because they part company for a moment either way: a lock clears the root group
+        /// before it clears the flag saying the database is open, and an unlock sets the root
+        /// before the flag. Open is when both say so.
+        /// </remarks>
+        public bool IsOpen
+        {
+            get { return _database.IsOpen && _database.RootGroup != null; }
+        }
+
         public string WriteBlocked
         {
             get
@@ -100,7 +111,7 @@ namespace KeePassGate.Bridge
 
             if (group == null)
             {
-                return found;
+                return null;
             }
 
             var bin = Bin(root);
@@ -125,7 +136,7 @@ namespace KeePassGate.Bridge
 
             if (root == null)
             {
-                return found;
+                return null;
             }
 
             found.Add(Describe(root));
@@ -166,7 +177,7 @@ namespace KeePassGate.Bridge
                 // open database, which knows nothing about the rules this answer was allowed by.
                 fields[pair.Key] = pair.Value.ReadString();
 
-                if (pair.Value.IsProtected)
+                if (Guards(pair.Key, pair.Value))
                 {
                     guarded.Add(pair.Key);
                 }
@@ -182,7 +193,7 @@ namespace KeePassGate.Bridge
 
             if (group == null)
             {
-                return found;
+                return null;
             }
 
             foreach (var entry in group.Entries)
@@ -200,7 +211,7 @@ namespace KeePassGate.Bridge
 
             if (root == null)
             {
-                return found;
+                return null;
             }
 
             var bin = Bin(root);
@@ -225,12 +236,12 @@ namespace KeePassGate.Bridge
 
             if (entry == null)
             {
-                return found;
+                return null;
             }
 
             foreach (var pair in entry.Strings)
             {
-                found.Add(new VaultField(pair.Key, pair.Value.IsProtected));
+                found.Add(new VaultField(pair.Key, Guards(pair.Key, pair.Value)));
             }
 
             return found;
@@ -254,7 +265,7 @@ namespace KeePassGate.Bridge
 
             if (entry == null)
             {
-                return found;
+                return null;
             }
 
             foreach (var pair in entry.Binaries)
@@ -321,6 +332,11 @@ namespace KeePassGate.Bridge
 
         public VaultWrite UpdateGroup(string uuid, string name, string notes)
         {
+            if (name == null && notes == null)
+            {
+                return Untouched(() => FindGroup(uuid) != null);
+            }
+
             return Change(() =>
             {
                 var group = FindGroup(uuid);
@@ -333,6 +349,16 @@ namespace KeePassGate.Bridge
                 if (blocked != null)
                 {
                     return VaultWrite.Busy(blocked);
+                }
+
+                if ((name == null || string.Equals(group.Name, name, StringComparison.Ordinal))
+                    && (notes == null || string.Equals(group.Notes, notes, StringComparison.Ordinal)))
+                {
+                    // What `Untouched` answers for a body naming nothing, and for the same reason:
+                    // the group already holds what was asked for. Asked here rather than beside
+                    // that, because it is a question about the values, and this is where they are
+                    // read under the writer's lock rather than on a connection thread.
+                    return VaultChange.Unchanged(VaultWrite.Done());
                 }
 
                 var wasName = group.Name;
@@ -444,7 +470,8 @@ namespace KeePassGate.Bridge
             });
         }
 
-        public VaultWrite CreateEntry(string groupUuid, IReadOnlyDictionary<string, string> fields)
+        public VaultWrite CreateEntry(
+            string groupUuid, IReadOnlyDictionary<string, string> fields, VaultExpiry expiry = null)
         {
             return Change(() =>
             {
@@ -468,10 +495,11 @@ namespace KeePassGate.Bridge
                 //
                 // The five standard fields exist whether or not the caller named them, because an
                 // entry KeePass made has them: an entry with no `Password` string at all reads
-                // oddly in the user interface and would make an update of one a create. That is
-                // all this has in common with KeePass's own Add Entry, which also gives a new entry
-                // the database's default user name, a generated password, its group's icon and the
-                // expiry KeePass's options set for new entries. None of those is applied here.
+                // oddly in the user interface and would make an update of one a create. KeePass's
+                // own Add Entry also gives a new entry the database's default user name, a generated
+                // password and its group's icon, and none of those is applied here. The fourth thing
+                // it gives one, the expiry KeePass's options set for new entries, is applied when the
+                // caller asks for it, which `ExpireAsAsked` says more about.
                 foreach (var name in Standard)
                 {
                     entry.Strings.Set(name, Protect(name, string.Empty));
@@ -490,6 +518,7 @@ namespace KeePassGate.Bridge
                     }
                 }
 
+                ExpireAsAsked(entry, group, expiry);
                 group.AddEntry(entry, true);
 
                 return new VaultChange(
@@ -498,8 +527,20 @@ namespace KeePassGate.Bridge
             });
         }
 
-        public VaultWrite UpdateEntry(string uuid, IReadOnlyDictionary<string, string> fields)
+        public VaultWrite UpdateEntry(
+            string uuid, IReadOnlyDictionary<string, string> fields, VaultExpiry expiry = null)
         {
+            if ((fields == null || fields.Count == 0) && expiry == null)
+            {
+                return Untouched(() => FindEntry(uuid) != null);
+            }
+
+            if (expiry != null && expiry.IsAuto)
+            {
+                return VaultWrite.Failed(
+                    "an entry that exists already was asked to take the expiry KeePass's options give new ones");
+            }
+
             return Change(() =>
             {
                 var entry = FindEntry(uuid);
@@ -508,7 +549,7 @@ namespace KeePassGate.Bridge
                     return VaultWrite.Missing();
                 }
 
-                if (Clashes(entry, fields.Keys))
+                if (fields != null && Clashes(entry, fields.Keys))
                 {
                     return Indistinguishable();
                 }
@@ -519,9 +560,18 @@ namespace KeePassGate.Bridge
                     return VaultWrite.Busy(blocked);
                 }
 
+                if (AlreadyHolds(entry, fields) && AlreadyExpires(entry, expiry))
+                {
+                    // Before `Backing`, which is the history revision this would otherwise take of
+                    // an entry nothing is about to change.
+                    return VaultChange.Unchanged(VaultWrite.Done());
+                }
+
                 var restore = Restoring(entry);
                 var restoreHistory = Backing(entry);
                 var before = new List<KeyValuePair<string, ProtectedString>>();
+                var wasExpires = entry.Expires;
+                var wasExpiryTime = entry.ExpiryTime;
 
                 if (fields != null)
                 {
@@ -547,6 +597,18 @@ namespace KeePassGate.Bridge
                     }
                 }
 
+                // As KeePass's own entry dialog sets it: the moment only when there is one, so an
+                // expiry taken off keeps the moment it had, and putting one back is a new moment.
+                if (expiry != null)
+                {
+                    entry.Expires = expiry.When.HasValue;
+
+                    if (expiry.When.HasValue)
+                    {
+                        entry.ExpiryTime = expiry.When.Value.UtcDateTime;
+                    }
+                }
+
                 entry.Touch(true, false);
 
                 return new VaultChange(VaultWrite.Done(), () =>
@@ -563,6 +625,8 @@ namespace KeePassGate.Bridge
                         }
                     }
 
+                    entry.Expires = wasExpires;
+                    entry.ExpiryTime = wasExpiryTime;
                     restoreHistory();
                     restore();
                 });
@@ -653,10 +717,17 @@ namespace KeePassGate.Bridge
                 // value would be this API deciding something the operator decided.
                 var existing = entry.Strings.Get(name);
                 var guarded = existing != null && existing.IsProtected;
+                var replacement = new ProtectedString(guarded, value ?? string.Empty);
+
+                if (existing != null && existing.Equals(replacement, false))
+                {
+                    return VaultChange.Unchanged(VaultWrite.Done());
+                }
+
                 var restore = Restoring(entry);
                 var restoreHistory = Backing(entry);
 
-                entry.Strings.Set(name, new ProtectedString(guarded, value ?? string.Empty));
+                entry.Strings.Set(name, replacement);
                 entry.Touch(true, false);
 
                 return new VaultChange(VaultWrite.Done(), () =>
@@ -676,6 +747,15 @@ namespace KeePassGate.Bridge
                 if (!Holds(entry, name))
                 {
                     return VaultWrite.Missing();
+                }
+
+                if (IsStandard(name))
+                {
+                    // Emptied, and never taken off. Every entry KeePass makes has all five and its
+                    // editor writes all five back on OK, while an entry without one reads as empty
+                    // in a listing and as absent from a read, which a client cannot tell from a
+                    // value it was refused.
+                    return VaultWrite.Conflict("a standard field can be emptied and not taken off");
                 }
 
                 var blocked = Blocking(entry);
@@ -757,10 +837,20 @@ namespace KeePassGate.Bridge
                 }
 
                 var was = entry.Binaries.Get(name);
+                var replacement = new ProtectedBinary(true, content ?? Array.Empty<byte>());
+
+                // The bytes and not the protection flag, which is this route's own choice for
+                // what it stores rather than anything the request asked for. KeePass's comparison
+                // asks the lengths before it decrypts either side.
+                if (was != null && was.Equals(replacement, false))
+                {
+                    return VaultChange.Unchanged(VaultWrite.Done());
+                }
+
                 var restore = Restoring(entry);
                 var restoreHistory = Backing(entry);
 
-                entry.Binaries.Set(name, new ProtectedBinary(true, content ?? Array.Empty<byte>()));
+                entry.Binaries.Set(name, replacement);
                 entry.Touch(true, false);
 
                 return new VaultChange(VaultWrite.Done(), () =>
@@ -981,6 +1071,99 @@ namespace KeePassGate.Bridge
             return blocked != null ? VaultWrite.Failed(blocked) : _writer.Change(_database, change);
         }
 
+        /// <summary>
+        /// An update that named nothing to change, answered without changing anything.
+        /// </summary>
+        /// <remarks>
+        /// **A body naming no member is a body the document allows**, on both update routes: every
+        /// member of each is optional, so `{}` is valid against the declared schema and refusing it
+        /// in code would be this plugin disagreeing with its own routing table. What it asks for is
+        /// nothing, and what it now gets is nothing.
+        ///
+        /// It used to be a full write. The change ran, found nothing to set, and still called
+        /// `Touch`, which moves the modification time, the access time and the usage count; on an
+        /// entry `Backing` had already taken a history revision first, and then the whole database
+        /// was saved to hold it. So a client with `update` and no other verb could move an entry's
+        /// timestamps at will and, in `HistoryMaxItems` calls, push every real revision of it out
+        /// of the history that KeePass keeps precisely so an overwritten password can be recovered.
+        /// Every one of those calls was answered `200`, and each of them was correct in saying that
+        /// the entry now held what the request asked it to hold.
+        ///
+        /// The node is still looked up, because the answer for one that is not there is the `404`
+        /// every route gives and not an `ok`. That read runs on the connection thread like every
+        /// other read here rather than on the writer's, which is the same race every read on this
+        /// class already has and which costs nothing when the answer changes nothing.
+        ///
+        /// **A body naming only what the node already holds asks for nothing as well**, and writes
+        /// nothing as this does, but it is decided inside the change rather than here, after every
+        /// check a change makes: that one has to compare values, and a comparison made on this
+        /// thread could be overtaken by a write landing before the one it decided about.
+        /// <see cref="VaultChange.Unchanged"/> is that.
+        /// </remarks>
+        private VaultWrite Untouched(Func<bool> present)
+        {
+            var blocked = WriteBlocked;
+            if (blocked != null)
+            {
+                return VaultWrite.Failed(blocked);
+            }
+
+            return Reading(present) ? VaultWrite.Done() : VaultWrite.Missing();
+        }
+
+        /// <summary>Whether every string a body names already holds the value it asks for.</summary>
+        /// <remarks>
+        /// **A name the entry does not carry is a change**, since writing it adds a string. One it
+        /// does carry is compared the way KeePass compares two of its own, apart from the
+        /// protection flag, which an update keeps rather than sets. `Clashes` has been asked by the
+        /// time this is, so a name the store finds is the name the caller sent, byte for byte.
+        /// </remarks>
+        private static bool AlreadyHolds(PwEntry entry, IReadOnlyDictionary<string, string> fields)
+        {
+            if (fields == null)
+            {
+                return true;
+            }
+
+            foreach (var field in fields)
+            {
+                var existing = entry.Strings.Get(field.Key);
+                if (existing == null
+                    || !existing.Equals(new ProtectedString(existing.IsProtected, field.Value ?? string.Empty), false))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>Whether the entry's expiry already says what an update asks of it.</summary>
+        /// <remarks>
+        /// Null asks nothing. No expiry is held when the entry does not expire, whatever moment it
+        /// keeps, since taking one off leaves the moment where it is. A moment is held when the
+        /// entry expires at exactly that instant, which is the `expires` a read answered for any
+        /// moment a `.kdbx` kept, since the file keeps none to a fraction of a second: writing back
+        /// what was read writes nothing. One `auto` set in this session does carry a fraction,
+        /// which the wire leaves off, so it is written once more, to the second.
+        /// <see cref="VaultExpiry.Auto"/> itself never arrives here, an update having refused it
+        /// before the change.
+        /// </remarks>
+        private static bool AlreadyExpires(PwEntry entry, VaultExpiry expiry)
+        {
+            if (expiry == null)
+            {
+                return true;
+            }
+
+            if (!expiry.When.HasValue)
+            {
+                return !entry.Expires;
+            }
+
+            return entry.Expires && When(entry.ExpiryTime) == expiry.When.Value;
+        }
+
         private string Blocking(PwGroup group)
         {
             return _writer == null ? null : _writer.Blocking(group);
@@ -1132,6 +1315,16 @@ namespace KeePassGate.Bridge
         /// KeePass keeps a per database setting for each of the standard fields, and honoring it is
         /// what keeps a value written through the gate as protected as one typed in would be.
         /// A custom field is not protected unless somebody says so when they create it.
+        ///
+        /// **Which name is a standard one is the database's answer, not a byte comparison.** This
+        /// asked byte for byte, and the store does not: a file whose password string is keyed with a
+        /// spelling the collation cannot tell from `Password` is one KeePass reads the password
+        /// out of, shows in the password box and saves back under that key, while this reported a
+        /// custom field carrying no flag and handed the value to every client with `read` and no
+        /// `protected`. A file like that arrives rather than being made here, since the loader
+        /// keeps whichever key it saw first and never repairs it, and <see cref="Holds"/> is what
+        /// stops a caller making one. Asking the comparison the store itself uses is what makes
+        /// the answer to "is this the password" one answer.
         /// </remarks>
         public bool Protects(string field)
         {
@@ -1142,16 +1335,119 @@ namespace KeePassGate.Bridge
 
             var protection = _database.MemoryProtection;
 
-            return (string.Equals(field, PwDefs.TitleField, StringComparison.Ordinal) && protection.ProtectTitle)
-                || (string.Equals(field, PwDefs.UserNameField, StringComparison.Ordinal) && protection.ProtectUserName)
-                || (string.Equals(field, PwDefs.PasswordField, StringComparison.Ordinal) && protection.ProtectPassword)
-                || (string.Equals(field, PwDefs.UrlField, StringComparison.Ordinal) && protection.ProtectUrl)
-                || (string.Equals(field, PwDefs.NotesField, StringComparison.Ordinal) && protection.ProtectNotes);
+            return (Names(field, PwDefs.TitleField) && protection.ProtectTitle)
+                || (Names(field, PwDefs.UserNameField) && protection.ProtectUserName)
+                || (Names(field, PwDefs.PasswordField) && protection.ProtectPassword)
+                || (Names(field, PwDefs.UrlField) && protection.ProtectUrl)
+                || (Names(field, PwDefs.NotesField) && protection.ProtectNotes);
+        }
+
+        /// <summary>
+        /// Whether a stored key is one of the standard fields as far as the database is concerned.
+        /// </summary>
+        /// <remarks>
+        /// The comparer by name, rather than a `StringComparison`, because the comparer is the
+        /// point: it is the one KeePass's own string and binary dictionaries sort and look names
+        /// up by, so whatever this says is what `Strings.Get` would find.
+        /// </remarks>
+        private static bool Names(string field, string standard)
+        {
+            return Comparer<string>.Default.Compare(field, standard) == 0;
+        }
+
+        /// <summary>
+        /// Whether a stored key is one of the five every entry has, as the database compares names.
+        /// </summary>
+        private static bool IsStandard(string field)
+        {
+            foreach (var standard in Standard)
+            {
+                if (Names(field, standard))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private ProtectedString Protect(string name, string value)
         {
             return new ProtectedString(Protects(name), value ?? string.Empty);
+        }
+
+        /// <summary>Gives a new entry the expiry its create asked for.</summary>
+        /// <remarks>
+        /// **`auto` is what KeePass's own Add Entry does, step for step.** It reads how many days
+        /// KeePass's options give every new entry at the moment the entry is made, so a change to
+        /// the options counts from the next create; it sets nothing when that number is negative,
+        /// which is the option switched off, and that many days from now otherwise, zero included;
+        /// and it sets nothing in the entry templates group or under it, where KeePass applies
+        /// none of its new-entry defaults, because a template's expiry would be copied into every
+        /// entry made from it. **It is asked for and never assumed.** A create naming no expiry
+        /// makes an entry that does not expire, whatever the options say, so what a program gets
+        /// is what it asked for.
+        ///
+        /// A number of days past the last date a `DateTime` holds throws out of `AddDays` here as
+        /// it does out of KeePass's own Add Entry, and the writer answers that as a failure on this
+        /// side. Only a configuration edited by hand can carry one, since the options dialog stops
+        /// at 2920.
+        /// </remarks>
+        private void ExpireAsAsked(PwEntry entry, PwGroup group, VaultExpiry expiry)
+        {
+            if (expiry == null)
+            {
+                // A new `PwEntry` does not expire, which is what a create naming none asks for.
+                return;
+            }
+
+            if (expiry.When.HasValue)
+            {
+                entry.Expires = true;
+                entry.ExpiryTime = expiry.When.Value.UtcDateTime;
+                return;
+            }
+
+            if (!expiry.IsAuto || InTemplates(group))
+            {
+                return;
+            }
+
+            var days = KeePass.Program.Config.Defaults.NewEntryExpiresInDays;
+            if (days < 0)
+            {
+                return;
+            }
+
+            entry.Expires = true;
+            entry.ExpiryTime = DateTime.UtcNow.AddDays(days);
+        }
+
+        /// <summary>
+        /// Whether a group is the database's entry templates group or sits inside it.
+        /// </summary>
+        /// <remarks>
+        /// Asked up the group's own chain of parents rather than by finding the templates group,
+        /// which would be a search of the whole tree for one identifier. A setting naming no group
+        /// in the tree matches nothing, which is how KeePass reads one too.
+        /// </remarks>
+        private bool InTemplates(PwGroup group)
+        {
+            var templates = _database.EntryTemplatesGroup;
+            if (templates == null || templates.Equals(PwUuid.Zero))
+            {
+                return false;
+            }
+
+            for (var current = group; current != null; current = current.ParentGroup)
+            {
+                if (current.Uuid.Equals(templates))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         /// <summary>
@@ -1177,7 +1473,8 @@ namespace KeePassGate.Bridge
                 // moved when it was created. A replica that still holds it in its old group then
                 // has an equal timestamp, `RelocateEntries` compares with a strict `>`, and the tie
                 // leaves the local side alone. Merging from the replica then lifts the deleted
-                // secret back out of the bin, which is exactly what a delete must not allow.
+                // secret back out of the bin, which is exactly what `deleteEntry` promises cannot
+                // happen.
                 entry.PreviousParentGroup = parent.Uuid;
                 bin.AddEntry(entry, true, true);
                 entry.Touch(true, false);
@@ -1427,7 +1724,7 @@ namespace KeePassGate.Bridge
                 KdbxNodes.Of(group));
         }
 
-        private static VaultEntry Describe(PwEntry entry)
+        private VaultEntry Describe(PwEntry entry)
         {
             if (entry == null)
             {
@@ -1443,14 +1740,36 @@ namespace KeePassGate.Bridge
                 When(entry.LastModificationTime),
                 KdbxNodes.Of(entry),
                 Guards(entry, PwDefs.TitleField),
-                Guards(entry, PwDefs.UrlField));
+                Guards(entry, PwDefs.UrlField),
+                entry.Expires ? When(entry.ExpiryTime) : (DateTimeOffset?)null);
         }
 
-        /// <summary>Whether this entry protects one of its own strings.</summary>
-        private static bool Guards(PwEntry entry, string field)
+        /// <summary>Whether one of an entry's strings is protected.</summary>
+        private bool Guards(PwEntry entry, string field)
         {
-            var value = entry.Strings.Get(field);
-            return value != null && value.IsProtected;
+            return Guards(field, entry.Strings.Get(field));
+        }
+
+        /// <summary>
+        /// Whether a string of this name, carrying this flag, is one a client without the
+        /// `protected` scope may be handed.
+        /// </summary>
+        /// <remarks>
+        /// **Both halves, which is what the write side has always asked.** A string is protected
+        /// either because of what it is called, which `Protects` answers off the database's
+        /// `MemoryProtection`, or because the flag on that one string says so. Asking only the
+        /// flag read a standard string that some other producer stored unflagged as an ordinary
+        /// value: `PUT` refused to write it and `GET` handed it over in clear, reporting it as
+        /// never having been a secret. `CLAUDE.md` and `openapi.yaml` §508 both say the database's
+        /// own setting is what decides, and now both directions ask it.
+        ///
+        /// The flag term stays, because a custom field's protection is only ever the flag: the
+        /// database says nothing about a name it does not know, and `UpdateField` keeps whatever
+        /// the operator marked.
+        /// </remarks>
+        private bool Guards(string field, ProtectedString value)
+        {
+            return Protects(field) || (value != null && value.IsProtected);
         }
 
         /// <summary>

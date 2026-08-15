@@ -1,4 +1,6 @@
 using System;
+using KeePassGate.Gate;
+using KeePassGate.Transport;
 using KeePassGate.Vault;
 
 namespace KeePassGate.Pipeline
@@ -69,6 +71,35 @@ namespace KeePassGate.Pipeline
 
             var served = found as ServedDatabase;
             return served == null ? null : served.Vault;
+        }
+
+        /// <summary>
+        /// Answers `503 locked` when the database this request reached has locked or closed since,
+        /// and says whether it did.
+        /// </summary>
+        /// <remarks>
+        /// `openapi.yaml` §502 is the rule. The gate answers a database that is locked when a
+        /// request arrives before routing it, and a lock or a close can land at any later step:
+        /// while the request is still being read, before the router looks its node up, or between
+        /// the router's decision and the handler's read. Every lookup then finds nothing, and a
+        /// node in a database that has locked has not gone, so a client told `404` would conclude
+        /// something untrue. It is answered as the gate answers it, in the same word, and nothing
+        /// about it is recorded, because no rule decided it.
+        ///
+        /// Asked only once a lookup has found nothing, since that is the only moment the question
+        /// changes an answer. Where no database was reached, as on a route that reads none, there
+        /// is nothing to ask and nothing is answered.
+        /// </remarks>
+        public static bool TryAnswerLocked(IGateContext context)
+        {
+            var vault = Of(context);
+            if (vault == null || vault.IsOpen)
+            {
+                return false;
+            }
+
+            context.Respond(503, HttpResponse.ErrorBody(GateConversation.LockedError));
+            return true;
         }
     }
 }

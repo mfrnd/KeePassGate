@@ -369,13 +369,18 @@ namespace KeePassGate.Spec
 
             // What the path does serve, gathered while looking for what was asked for. The loop
             // below stops at a match, so this is only ever complete when there was none. That is
-            // the one case that has to say what the methods are.
+            // the one case that has to say what the methods are, and the query names any of them
+            // declares are gathered for the same case.
             var served = new List<string>();
+            var named = new HashSet<string>(StringComparer.Ordinal);
 
             foreach (var candidate in _document.Operations)
             {
+                // A segment its parameter's schema refuses, a uuid of the wrong length, is a path
+                // the document does not declare, and it is answered as one: before a lookup
+                // could be asked about it, and without a `405` naming what the path serves.
                 IReadOnlyDictionary<string, string> found;
-                if (!candidate.Path.TryMatch(context.Path, out found))
+                if (!candidate.Path.TryMatch(context.Path, out found) || !candidate.Admits(found))
                 {
                     continue;
                 }
@@ -383,6 +388,7 @@ namespace KeePassGate.Spec
                 pathExists = true;
                 pathIsPublic = pathIsPublic || !candidate.NeedsIdentity;
                 served.Add(candidate.Method);
+                named.UnionWith(candidate.Query);
 
                 if (string.Equals(candidate.Method, wanted, StringComparison.Ordinal))
                 {
@@ -413,6 +419,16 @@ namespace KeePassGate.Spec
                     return;
                 }
 
+                // A query name that nothing on this path declares makes the target one the
+                // document does not declare, whichever method asked, and `openapi.yaml` §507
+                // answers that exactly as an undeclared path. Asked only by `Asked` once a method
+                // had matched, `DELETE /gate/status?x=1` was a `405` naming what `/gate/status`
+                // serves where `GET /gate/status?x=1` and `DELETE /nothing?x=1` were both `404`.
+                if (!Declared(context, named))
+                {
+                    return;
+                }
+
                 // RFC 9110 section 15.5.6: a 405 lists the methods the target does serve. Read
                 // off the document rather than assembled by a handler, so it says what this
                 // server actually routes and cannot fall out of step with it. In the document's
@@ -440,6 +456,16 @@ namespace KeePassGate.Spec
                 }
 
                 Undeclared.Refuse(context);
+                return;
+            }
+
+            if (!Asked(context, operation))
+            {
+                return;
+            }
+
+            if (!Bodied(context, operation))
+            {
                 return;
             }
 
@@ -495,6 +521,91 @@ namespace KeePassGate.Spec
             }
         }
 
+        /// <summary>Whether every query parameter sent is one the operation declares.</summary>
+        /// <remarks>
+        /// **A request target is more than its path.** The transport splits the query off and
+        /// parses it, and nothing here ever read the result, so `GET /entries?group=x` was served
+        /// as `GET /entries`: the whole database came back and the caller was told nothing about
+        /// the word it sent. `API.md` 407 is where scoping by query was cut, and it says the
+        /// list routes are where filtering and paging would arrive, so this asks the document
+        /// rather than refusing every query for all time.
+        ///
+        /// Refused as an undeclared target, which is what it is, so it answers exactly what an
+        /// undeclared path answers: `404` to a client the database admitted, and to everybody
+        /// else the same `401` every path there is gives a caller with no certificate. No new
+        /// status arrives with this, and nothing has to be declared per operation to describe it.
+        /// </remarks>
+        private static bool Asked(IGateContext context, SpecOperation operation)
+        {
+            var sent = context.Query;
+            if (sent == null || sent.Count == 0)
+            {
+                return true;
+            }
+
+            foreach (var name in sent.Keys)
+            {
+                if (!operation.DeclaresQuery(name))
+                {
+                    Undeclared.Refuse(context);
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>Whether a body was sent only to an operation that declares one.</summary>
+        /// <remarks>
+        /// **The other half of the request `Asked` is about.** A `get`, a `head` or a `delete`
+        /// declares no body, and the transport reads one whole before routing whatever the method,
+        /// so a body sent with one was read and then ignored: `GET /entries` with `{"group":"x"}`
+        /// in it answered every entry, and `DELETE` of a group with `{"recursive":"true"}` was a
+        /// plain delete, with nothing to say the words went unread. That is what `Asked` refuses a
+        /// query for, and this is refused the same way, as the undeclared target the request is,
+        /// so no new status arrives with it and nothing has to be declared per operation to say
+        /// so. Asked where the query is, before the guard and the rules, because what a caller is
+        /// told here is what it is told about any path it may not have.
+        /// </remarks>
+        private static bool Bodied(IGateContext context, SpecOperation operation)
+        {
+            if (operation.Body != null || string.IsNullOrEmpty(context.Body))
+            {
+                return true;
+            }
+
+            Undeclared.Refuse(context);
+            return false;
+        }
+
+        /// <summary>
+        /// The same question for a path none of whose operations was asked for, of every name any
+        /// of them declares.
+        /// </summary>
+        /// <remarks>
+        /// A name one of them declares is a target the document does declare, at another method, so
+        /// that is still a `405`. A name none of them declares is no target at all.
+        /// </remarks>
+        private static bool Declared(IGateContext context, ISet<string> named)
+        {
+            var sent = context.Query;
+            if (sent == null || sent.Count == 0)
+            {
+                return true;
+            }
+
+            foreach (var name in sent.Keys)
+            {
+                if (!named.Contains(name))
+                {
+                    Undeclared.Refuse(context);
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
         /// <summary>Whether the body is the media type this API speaks, or claims nothing.</summary>
         /// <remarks>
         /// `SpecDocument.MediaType` is already what the *document* is held to at startup: an
@@ -545,6 +656,15 @@ namespace KeePassGate.Spec
             }
 
             var node = _nodes[operation.OperationId](context);
+
+            if (node == null && ServedDatabase.TryAnswerLocked(context))
+            {
+                // The database locked or closed after the gate reached it and before this lookup,
+                // so there was nothing to decide about rather than a node that is not there. A
+                // refusal written down here would say the rules turned away a request that a lock
+                // turned away, which the audit does not record before routing either.
+                return false;
+            }
 
             // Left for the handler, which asks the one question the router cannot: whether this
             // caller may have the protected values inside an answer it is otherwise allowed. It

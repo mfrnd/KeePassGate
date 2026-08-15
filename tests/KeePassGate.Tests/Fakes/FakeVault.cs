@@ -25,6 +25,9 @@ namespace KeePassGate.Tests.Fakes
         private readonly Node _root;
 
         private int _next;
+        private string _writeBlocked;
+        private int _lookupsBefore;
+        private Action _then;
 
         public FakeVault()
         {
@@ -33,7 +36,41 @@ namespace KeePassGate.Tests.Fakes
         }
 
         /// <summary>Set to refuse every change, the way a locked or busy database does.</summary>
-        public string WriteBlocked { get; set; }
+        /// <remarks>A database <see cref="Lock"/> has locked refuses every change whatever this says,
+        /// with the reason the real vault gives.</remarks>
+        public string WriteBlocked
+        {
+            get { return IsOpen ? _writeBlocked : "the database is not open"; }
+            set { _writeBlocked = value; }
+        }
+
+        /// <summary>Whether the database is open, which it is until <see cref="Lock"/>.</summary>
+        public bool IsOpen { get; private set; } = true;
+
+        /// <summary>
+        /// Locks the database, as KeePass's lock or File, Close does a real one: every lookup finds
+        /// nothing from then on, and every change is refused the way a closed database refuses it.
+        /// </summary>
+        public void Lock()
+        {
+            IsOpen = false;
+        }
+
+        /// <summary>
+        /// Runs something once this many lookups and changes have been answered, which is a delete,
+        /// a lock or a close landing at a chosen moment of a request.
+        /// </summary>
+        /// <remarks>
+        /// **One is the moment between the router and the handler.** The router asks the vault
+        /// once, for the node it decides about, and everything after that is the handler's, so one
+        /// lookup answered lets the router decide about a node the handler then cannot find. A
+        /// change counts as well, because a write's handler may ask for nothing before it writes.
+        /// </remarks>
+        public void After(int lookups, Action then)
+        {
+            _lookupsBefore = lookups;
+            _then = then;
+        }
 
         /// <summary>Set to make every change come back busy, as a dialog on the node does.</summary>
         public string Busy { get; set; }
@@ -170,28 +207,48 @@ namespace KeePassGate.Tests.Fakes
             _entries[entryUuid].Protected.Add(field);
         }
 
+        /// <summary>Gives an entry an expiry, or takes it away with null, as KeePass's dialog does.</summary>
+        public void Expire(string entryUuid, DateTimeOffset? when)
+        {
+            _entries[entryUuid].Expires = when;
+        }
+
+        /// <summary>
+        /// How many days KeePass's options give a new entry before it expires, negative for none,
+        /// which is what KeePass itself answers until somebody switches the option on.
+        /// </summary>
+        public int NewEntryExpiresInDays { get; set; } = -1;
+
         public VaultGroup Group(string uuid)
         {
+            Looking();
+
             var group = Find(uuid);
             return group == null ? null : group.Describe();
         }
 
         public IReadOnlyList<VaultGroup> Subgroups(string uuid)
         {
+            Looking();
+
             var group = Find(uuid);
 
             return group == null
-                ? new List<VaultGroup>()
+                ? null
                 : _groups.Values.Where(g => g.Parent == group.Uuid).Select(g => g.Describe()).ToList();
         }
 
         public IReadOnlyList<VaultGroup> Groups()
         {
-            return _groups.Values.Select(g => g.Describe()).ToList();
+            Looking();
+
+            return IsOpen ? _groups.Values.Select(g => g.Describe()).ToList() : null;
         }
 
         public VaultEntry Entry(string uuid)
         {
+            Looking();
+
             if (string.Equals(uuid, Vanishes, StringComparison.Ordinal))
             {
                 return null;
@@ -225,6 +282,7 @@ namespace KeePassGate.Tests.Fakes
 
         public VaultEntryDetail Read(string uuid)
         {
+            Looking();
             Detailed++;
 
             if (string.Equals(uuid, Vanishes, StringComparison.Ordinal))
@@ -244,29 +302,37 @@ namespace KeePassGate.Tests.Fakes
 
         public IReadOnlyList<VaultEntry> Entries(string groupUuid)
         {
+            Looking();
+
             var group = Find(groupUuid);
 
             return group == null
-                ? new List<VaultEntry>()
+                ? null
                 : _entries.Values.Where(e => e.Group == group.Uuid).Select(e => e.Describe()).ToList();
         }
 
         public IReadOnlyList<VaultEntry> Entries()
         {
-            return _entries.Values.Select(e => e.Describe()).ToList();
+            Looking();
+
+            return IsOpen ? _entries.Values.Select(e => e.Describe()).ToList() : null;
         }
 
         public IReadOnlyList<VaultField> Fields(string entryUuid)
         {
+            Looking();
+
             var entry = FindEntry(entryUuid);
 
             return entry == null
-                ? new List<VaultField>()
+                ? null
                 : entry.Fields.Keys.Select(n => new VaultField(n, Guards(entry, n))).ToList();
         }
 
         public string Field(string entryUuid, string name)
         {
+            Looking();
+
             var entry = FindEntry(entryUuid);
             string value;
 
@@ -277,10 +343,12 @@ namespace KeePassGate.Tests.Fakes
 
         public IReadOnlyList<VaultAttachment> Attachments(string entryUuid)
         {
+            Looking();
+
             var entry = FindEntry(entryUuid);
 
             return entry == null
-                ? new List<VaultAttachment>()
+                ? null
                 : entry.Attachments
                     .Select(a => new VaultAttachment(a.Key, a.Value.Length))
                     .ToList();
@@ -305,6 +373,8 @@ namespace KeePassGate.Tests.Fakes
 
         public VaultAttachment Attachment(string entryUuid, string name, int most)
         {
+            Looking();
+
             var content = Attachment(entryUuid, name);
             if (content == null)
             {
@@ -353,6 +423,11 @@ namespace KeePassGate.Tests.Fakes
 
         public VaultWrite UpdateGroup(string uuid, string name, string notes)
         {
+            if (name == null && notes == null)
+            {
+                return Untouched(() => Find(uuid) != null);
+            }
+
             return Change(() =>
             {
                 var group = Find(uuid);
@@ -393,7 +468,8 @@ namespace KeePassGate.Tests.Fakes
             });
         }
 
-        public VaultWrite CreateEntry(string groupUuid, IReadOnlyDictionary<string, string> fields)
+        public VaultWrite CreateEntry(
+            string groupUuid, IReadOnlyDictionary<string, string> fields, VaultExpiry expiry = null)
         {
             return Change(() =>
             {
@@ -427,12 +503,35 @@ namespace KeePassGate.Tests.Fakes
                     }
                 }
 
+                // The real vault's rule, templates group aside, which nothing here has.
+                if (expiry != null && expiry.IsAuto)
+                {
+                    entry.Expires = NewEntryExpiresInDays < 0
+                        ? (DateTimeOffset?)null
+                        : DateTimeOffset.UtcNow.AddDays(NewEntryExpiresInDays);
+                }
+                else if (expiry != null)
+                {
+                    entry.Expires = expiry.When;
+                }
+
                 return VaultWrite.Created(uuid);
             });
         }
 
-        public VaultWrite UpdateEntry(string uuid, IReadOnlyDictionary<string, string> fields)
+        public VaultWrite UpdateEntry(
+            string uuid, IReadOnlyDictionary<string, string> fields, VaultExpiry expiry = null)
         {
+            if ((fields == null || fields.Count == 0) && expiry == null)
+            {
+                return Untouched(() => FindEntry(uuid) != null);
+            }
+
+            if (expiry != null && expiry.IsAuto)
+            {
+                return VaultWrite.Failed("only a new entry takes the expiry the options set");
+            }
+
             return Change(() =>
             {
                 var entry = FindEntry(uuid);
@@ -452,6 +551,11 @@ namespace KeePassGate.Tests.Fakes
                     {
                         entry.Fields[field.Key] = field.Value;
                     }
+                }
+
+                if (expiry != null)
+                {
+                    entry.Expires = expiry.When;
                 }
 
                 return VaultWrite.Done();
@@ -591,8 +695,31 @@ namespace KeePassGate.Tests.Fakes
             return entry == null ? null : entry.Node;
         }
 
+        /// <summary>
+        /// An update that named nothing, which `KdbxVault` answers without writing anything.
+        /// </summary>
+        /// <remarks>
+        /// Here so that the two agree about it. A body naming no member is one the document allows
+        /// on both update routes, and the real vault stopped stamping a modification time, a usage
+        /// count and a history revision for one; a stand-in that went on writing would let a test
+        /// pass on behavior nothing has.
+        /// </remarks>
+        private VaultWrite Untouched(Func<bool> present)
+        {
+            Looking();
+
+            if (WriteBlocked != null)
+            {
+                return VaultWrite.Failed(WriteBlocked);
+            }
+
+            return present() ? VaultWrite.Done() : VaultWrite.Missing();
+        }
+
         private VaultWrite Change(Func<VaultWrite> change)
         {
+            Looking();
+
             if (WriteBlocked != null)
             {
                 return VaultWrite.Failed(WriteBlocked);
@@ -601,9 +728,32 @@ namespace KeePassGate.Tests.Fakes
             return Busy != null ? VaultWrite.Busy(Busy) : change();
         }
 
+        /// <summary>Counts one lookup or change, and runs what <see cref="After"/> left once it is due.</summary>
+        /// <remarks>
+        /// Before whatever it counts, so the event lands between the last answer that was due and
+        /// this one. Cleared before it runs, because what it runs may well be a change of its own.
+        /// </remarks>
+        private void Looking()
+        {
+            if (_then == null)
+            {
+                return;
+            }
+
+            if (_lookupsBefore > 0)
+            {
+                _lookupsBefore--;
+                return;
+            }
+
+            var then = _then;
+            _then = null;
+            then();
+        }
+
         private Node Find(string uuid)
         {
-            if (uuid == null)
+            if (uuid == null || !IsOpen)
             {
                 return null;
             }
@@ -620,7 +770,7 @@ namespace KeePassGate.Tests.Fakes
         private Held FindEntry(string uuid)
         {
             Held entry;
-            return uuid != null && _entries.TryGetValue(uuid, out entry) ? entry : null;
+            return uuid != null && IsOpen && _entries.TryGetValue(uuid, out entry) ? entry : null;
         }
 
         private string Identifier()
@@ -700,6 +850,9 @@ namespace KeePassGate.Tests.Fakes
             public SortedDictionary<string, byte[]> Attachments { get; } =
                 new SortedDictionary<string, byte[]>();
 
+            /// <summary>When it expires, or null when it does not, as the real vault describes one.</summary>
+            public DateTimeOffset? Expires { get; set; }
+
             public VaultEntry Describe()
             {
                 string title;
@@ -711,7 +864,7 @@ namespace KeePassGate.Tests.Fakes
                 return new VaultEntry(
                     Uuid, Group, title ?? string.Empty, url ?? string.Empty,
                     DateTimeOffset.MinValue, DateTimeOffset.MinValue, Node,
-                    Protected.Contains("Title"), Protected.Contains("URL"));
+                    Protected.Contains("Title"), Protected.Contains("URL"), Expires);
             }
         }
     }

@@ -52,7 +52,7 @@ namespace KeePassGate.Vault
         public VaultEntry(
             string uuid, string group, string title, string url,
             DateTimeOffset created, DateTimeOffset modified, IAclNode node,
-            bool titleProtected, bool urlProtected)
+            bool titleProtected, bool urlProtected, DateTimeOffset? expires)
         {
             Uuid = uuid;
             Group = group;
@@ -63,6 +63,7 @@ namespace KeePassGate.Vault
             Node = node;
             TitleProtected = titleProtected;
             UrlProtected = urlProtected;
+            Expires = expires;
         }
 
         public string Uuid { get; private set; }
@@ -85,12 +86,13 @@ namespace KeePassGate.Vault
 
         public string Url { get; private set; }
 
-        /// <summary>Whether the entry protects its title.</summary>
+        /// <summary>Whether the title is protected.</summary>
         /// <remarks>
-        /// Read per string rather than off the database's `MemoryProtection`, because that is the
-        /// default a database was made with and this is what the entry actually carries. Two flags
-        /// rather than a list of names, so that nothing above the vault has to know what a field
-        /// is called in KeePass.
+        /// The string's own flag or the database's `MemoryProtection`, whichever says so, which is
+        /// what the write side has always asked. A standard string stored unflagged in a database
+        /// that protects the name is still a secret, and reading only the flag handed it to a
+        /// listing that `read` without the `protected` scope refused. Two flags rather than a list
+        /// of names, so that nothing above the vault has to know what a field is called in KeePass.
         /// </remarks>
         public bool TitleProtected { get; private set; }
 
@@ -100,6 +102,16 @@ namespace KeePassGate.Vault
         public DateTimeOffset Created { get; private set; }
 
         public DateTimeOffset Modified { get; private set; }
+
+        /// <summary>When the entry expires, or null when it does not.</summary>
+        /// <remarks>
+        /// KeePass keeps two things, whether an entry expires and when, and keeps the moment while
+        /// the entry does not expire as well. One value here, null for an entry that does not
+        /// expire, so that nothing above the vault can read a moment that is not in force. `read`
+        /// answers it, and a listing asked to leave expired entries out judges it against the
+        /// gate's clock.
+        /// </remarks>
+        public DateTimeOffset? Expires { get; private set; }
 
         public IAclNode Node { get; private set; }
     }
@@ -119,7 +131,10 @@ namespace KeePassGate.Vault
 
         public string Name { get; private set; }
 
-        /// <summary>Whether the database keeps it protected in memory, as it does a password.</summary>
+        /// <summary>
+        /// Whether it is kept protected in memory, as a password is, either because the string
+        /// carries the flag or because the database protects a field of that name.
+        /// </summary>
         public bool IsProtected { get; private set; }
     }
 
@@ -211,9 +226,10 @@ namespace KeePassGate.Vault
         /// sent a caller looking at its own identifiers for a fault that was on this side.
         ///
         /// **A call breaking what `IVault` asks of its caller is answered this way as well**, which
-        /// is an empty name for a new group, field or attachment. The routing table's lengths keep
-        /// one from every client, so only a defect above the vault can send one, and a failure on
-        /// this side is exactly what that is.
+        /// is an empty name for a new group, field or attachment, or <see cref="VaultExpiry.Auto"/>
+        /// for an entry that exists already. The routing table's lengths keep the first from every
+        /// client and the handler refuses the second, so only a defect above the vault can send
+        /// either, and a failure on this side is exactly what that is.
         /// </remarks>
         public bool IsFailed { get; private set; }
 
@@ -279,7 +295,57 @@ namespace KeePassGate.Vault
         /// <summary>Every string the entry holds, by KeePass's own names, values included.</summary>
         public IReadOnlyDictionary<string, string> Fields { get; private set; }
 
-        /// <summary>Which of them the database keeps protected.</summary>
+        /// <summary>
+        /// Which of them are kept protected, by the string's own flag or by the database's setting
+        /// for a field of that name.
+        /// </summary>
         public IReadOnlyList<string> Protected { get; private set; }
+    }
+
+    /// <summary>What a create or an update asks of an entry's expiry.</summary>
+    /// <remarks>
+    /// **Null wherever one is taken means the request named none**, which a create reads as an
+    /// entry that does not expire and an update as the expiry the entry already has: an absent
+    /// member means the same on those two routes as it does for every other member of their bodies.
+    ///
+    /// The three values are the three things a request can ask for. `openapi.yaml` §506 says how
+    /// each is spelled on the wire and why `auto` is a create's alone.
+    /// </remarks>
+    public sealed class VaultExpiry
+    {
+        private VaultExpiry(DateTimeOffset? when, bool auto)
+        {
+            When = when;
+            IsAuto = auto;
+        }
+
+        /// <summary>
+        /// The entry does not expire, and one that did stops: KeePass's `Expires` is cleared and
+        /// its `ExpiryTime` left as it was, which is what KeePass's own entry dialog does.
+        /// </summary>
+        public static readonly VaultExpiry Never = new VaultExpiry(null, false);
+
+        /// <summary>
+        /// Whatever expiry KeePass's options give every new entry, applied where KeePass's own Add
+        /// Entry applies it, and none where it applies none.
+        /// </summary>
+        /// <remarks>
+        /// A create's alone. An entry that exists already has an expiry, or has none, because
+        /// somebody decided so, and an update asking for this would be asking KeePass's options to
+        /// decide it over again.
+        /// </remarks>
+        public static readonly VaultExpiry Auto = new VaultExpiry(null, true);
+
+        /// <summary>When the entry expires, or null for <see cref="Never"/> and <see cref="Auto"/>.</summary>
+        public DateTimeOffset? When { get; private set; }
+
+        /// <summary>Whether this is <see cref="Auto"/>.</summary>
+        public bool IsAuto { get; private set; }
+
+        /// <summary>An entry that expires at this moment.</summary>
+        public static VaultExpiry At(DateTimeOffset when)
+        {
+            return new VaultExpiry(when, false);
+        }
     }
 }

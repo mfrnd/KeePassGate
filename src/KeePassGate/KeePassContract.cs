@@ -74,6 +74,21 @@ namespace KeePassGate
         /// <summary>The `PwEditMode` value that means a history revision opened for reading.</summary>
         public const string EntryFormReadOnlyMode = "ViewReadOnlyEntry";
 
+        /// <summary>
+        /// How many days KeePass's options give every new entry before it expires, negative when
+        /// they give none: "By default, new entries expire in the following number of days", on the
+        /// Security page of Tools then Options. What a create asking for `auto` applies.
+        /// </summary>
+        /// <remarks>
+        /// Read directly rather than found by name, so the compiler already pins that it exists, and
+        /// `nameof` makes this constant the name the read binds to rather than a second copy of it.
+        /// Listed so that this list is the whole of what the plugin reaches for, and so that the
+        /// host tests pin what it means, which no compiler can: switched off unless somebody switched
+        /// it on, and a number of days rather than anything else.
+        /// </remarks>
+        public const string NewEntryExpiresInDaysProperty =
+            nameof(KeePass.App.Configuration.AceDefaults.NewEntryExpiresInDays);
+
         /// <summary>The dialog behind Tools then TAN Wizard.</summary>
         /// <remarks>
         /// It is given the selected group when it opens and adds one entry per TAN to that group on

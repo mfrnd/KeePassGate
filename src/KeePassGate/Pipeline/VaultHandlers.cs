@@ -23,7 +23,9 @@ namespace KeePassGate.Pipeline
     /// line per invisible entry would bury the decisions worth reading.
     ///
     /// **Absent and refused answer the same 404** for the node an operation is about, which the
-    /// router decides, and these use the same words for the things underneath it.
+    /// router decides, and these use the same words for the things underneath it. A node that has
+    /// gone by the time a handler reads it is absent too, and one whose database has locked under
+    /// the request is not: `Gone` is where the two part.
     ///
     /// Inside an answer they are told apart on purpose. A route that is allowed and a value that is
     /// not gives `null` beside a `protected` member saying which could have been withheld, because
@@ -34,6 +36,18 @@ namespace KeePassGate.Pipeline
         /// <summary>What a create answers with.</summary>
         public const int Created = 201;
 
+        /// <summary>
+        /// The member an entry's expiry travels under: answered by a read, and taken by a create
+        /// and an update beside KeePass's five strings.
+        /// </summary>
+        private const string ExpiresMember = "expires";
+
+        /// <summary>What a create's `expires` says to ask for KeePass's own expiry for new entries.</summary>
+        private const string AutoExpiry = "auto";
+
+        /// <summary>The query parameter that leaves expired entries out of a listing when it is `false`.</summary>
+        private const string IncludeExpiredParameter = "includeExpired";
+
         public static void ListGroups(IGateContext context)
         {
             var vault = Vault(context);
@@ -42,7 +56,14 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            Groups(context, vault.Groups());
+            var groups = vault.Groups();
+            if (groups == null)
+            {
+                Gone(context);
+                return;
+            }
+
+            Groups(context, groups);
         }
 
         public static void ListSubgroups(IGateContext context)
@@ -53,7 +74,14 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            Groups(context, vault.Subgroups(Captured(context, "uuid")));
+            var groups = vault.Subgroups(Captured(context, "uuid"));
+            if (groups == null)
+            {
+                Gone(context);
+                return;
+            }
+
+            Groups(context, groups);
         }
 
         public static void ReadGroup(IGateContext context)
@@ -67,7 +95,7 @@ namespace KeePassGate.Pipeline
             var group = vault.Group(Captured(context, "uuid"));
             if (group == null)
             {
-                Unreachable(context);
+                Gone(context);
                 return;
             }
 
@@ -121,7 +149,21 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            Entries(context, vault.Entries());
+            bool withExpired;
+            if (!IncludesExpired(context, out withExpired))
+            {
+                context.Respond(400, HttpResponse.ErrorBody(BodyCheck.Refusal));
+                return;
+            }
+
+            var entries = vault.Entries();
+            if (entries == null)
+            {
+                Gone(context);
+                return;
+            }
+
+            Entries(context, entries, withExpired);
         }
 
         public static void ListGroupEntries(IGateContext context)
@@ -132,7 +174,21 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            Entries(context, vault.Entries(Captured(context, "uuid")));
+            bool withExpired;
+            if (!IncludesExpired(context, out withExpired))
+            {
+                context.Respond(400, HttpResponse.ErrorBody(BodyCheck.Refusal));
+                return;
+            }
+
+            var entries = vault.Entries(Captured(context, "uuid"));
+            if (entries == null)
+            {
+                Gone(context);
+                return;
+            }
+
+            Entries(context, entries, withExpired);
         }
 
         public static void ReadEntry(IGateContext context)
@@ -146,7 +202,7 @@ namespace KeePassGate.Pipeline
             var entry = vault.Read(Captured(context, "uuid"));
             if (entry == null)
             {
-                Unreachable(context);
+                Gone(context);
                 return;
             }
 
@@ -155,6 +211,11 @@ namespace KeePassGate.Pipeline
             json.Text("group", entry.Entry.Group);
             json.Text("created", Moments.Wire(entry.Entry.Created));
             json.Text("modified", Moments.Wire(entry.Entry.Modified));
+
+            // `null` for an entry that does not expire, as `parent` is for the group with nothing
+            // above it. `read` is all it needs, since when an entry expires is not a value the
+            // database protects, and a listing leaves it out, because `list` gives names.
+            json.Text(ExpiresMember, entry.Entry.Expires.HasValue ? Moments.Wire(entry.Entry.Expires.Value) : null);
 
             var reaches = ReachesProtected(context, entry.Entry.Node, AclVerb.Read);
             var blanked = false;
@@ -198,6 +259,13 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
+            VaultExpiry expiry;
+            if (!Expiring(context, true, out expiry))
+            {
+                context.Respond(400, HttpResponse.ErrorBody(BodyCheck.Refusal));
+                return;
+            }
+
             var fields = Standard(context);
             var group = vault.Group(Captured(context, "uuid"));
 
@@ -213,7 +281,7 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            Answer(context, vault.CreateEntry(Captured(context, "uuid"), fields));
+            Answer(context, vault.CreateEntry(Captured(context, "uuid"), fields, expiry));
         }
 
         public static void UpdateEntry(IGateContext context)
@@ -221,6 +289,13 @@ namespace KeePassGate.Pipeline
             var vault = Vault(context);
             if (vault == null)
             {
+                return;
+            }
+
+            VaultExpiry expiry;
+            if (!Expiring(context, false, out expiry))
+            {
+                context.Respond(400, HttpResponse.ErrorBody(BodyCheck.Refusal));
                 return;
             }
 
@@ -242,7 +317,7 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            Answer(context, vault.UpdateEntry(uuid, fields));
+            Answer(context, vault.UpdateEntry(uuid, fields, expiry));
         }
 
         public static void DeleteEntry(IGateContext context)
@@ -264,17 +339,20 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            var uuid = Captured(context, "uuid");
-            if (vault.Entry(uuid) == null)
+            // One read, which answers for the entry as well as for its strings. Asking whether the
+            // entry was there and then listing it was two, and an entry removed between them was
+            // listed as one holding no strings at all.
+            var fields = vault.Fields(Captured(context, "uuid"));
+            if (fields == null)
             {
-                Unreachable(context);
+                Gone(context);
                 return;
             }
 
             var json = new JsonWriter();
             json.Array("fields");
 
-            foreach (var field in vault.Fields(uuid))
+            foreach (var field in fields)
             {
                 json.Item();
                 json.Text("name", field.Name);
@@ -300,7 +378,7 @@ namespace KeePassGate.Pipeline
 
             if (value == null)
             {
-                Unreachable(context);
+                Gone(context);
                 return;
             }
 
@@ -310,11 +388,15 @@ namespace KeePassGate.Pipeline
             // have it. Fail closed here and the worst case is a value withheld from somebody
             // entitled to it, which is a retry rather than a disclosure.
             var guarded = true;
-            foreach (var field in vault.Fields(uuid))
+            var fields = vault.Fields(uuid);
+            if (fields != null)
             {
-                if (string.Equals(field.Name, name, StringComparison.Ordinal))
+                foreach (var field in fields)
                 {
-                    guarded = field.IsProtected;
+                    if (string.Equals(field.Name, name, StringComparison.Ordinal))
+                    {
+                        guarded = field.IsProtected;
+                    }
                 }
             }
 
@@ -339,7 +421,7 @@ namespace KeePassGate.Pipeline
                 // Gone since the value was read. There is no node left to ask the rules about, so
                 // there is no answer to give: this lookup used to sit inside the conjunction below,
                 // where a missing entry made `withheld` false and sent the value out.
-                Unreachable(context);
+                Gone(context);
                 return;
             }
 
@@ -366,8 +448,22 @@ namespace KeePassGate.Pipeline
             var body = JsonBody.Read(context.Body);
             var uuid = Captured(context, "uuid");
             var name = body == null ? null : body.Text("name");
-            var guarded = body != null
-                && string.Equals(body.Text("protected"), "true", StringComparison.OrdinalIgnoreCase);
+
+            bool guarded;
+            if (!Marked(body == null ? null : body.Text("protected"), out guarded))
+            {
+                // A marker this cannot read is refused rather than read as `false`. Everything
+                // else in this plugin denies on a marker it does not recognize, and this one used
+                // to be the exception: anything that was not the word `true` meant not protected,
+                // so a caller that meant to store a secret stored it in clear and was told 201.
+                context.Respond(400, HttpResponse.ErrorBody(BodyCheck.Refusal));
+                return;
+            }
+
+            if (Unnameable(context, name))
+            {
+                return;
+            }
 
             var entry = vault.Entry(uuid);
             if (entry != null && (guarded || vault.Protects(name))
@@ -433,7 +529,33 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            Answer(context, vault.DeleteField(Captured(context, "uuid"), Captured(context, "name")));
+            var uuid = Captured(context, "uuid");
+            var name = Captured(context, "name");
+            var entry = vault.Entry(uuid);
+
+            // A removal asks no switch, and this is not the removal being asked about: it is the
+            // pair. Taking a protected string off an entry destroys the only mark that says the
+            // name was a secret, so a caller that may then put a name back in its place writes an
+            // unprotected value where the credential was, and every rule holding `read` without
+            // `protected` is handed it from then on. That pair is an overwrite, which is what
+            // `updateField` refuses one line up, and nothing stopped it here because each half is
+            // allowed on its own.
+            //
+            // Asked of `create` rather than of `strip`, which is what keeps `...S....` exactly as
+            // `DESIGN.md` §114 spells it out: a rule that may strip and may not create takes a
+            // protected field off as before, because it has nowhere to put anything back. What is
+            // refused is a rule that could create in its place and could not have created the
+            // protected value it is taking away.
+            if (entry != null
+                && (vault.Protects(name) || Guarded(vault, uuid, new[] { name }))
+                && AclResolver.Permits(entry.Node, context.Client.Profiles, AclVerb.Create, AclReach.Fields)
+                && !ReachesProtected(context, entry.Node, AclVerb.Create))
+            {
+                Withheld(context, entry.Node, AclVerb.Create);
+                return;
+            }
+
+            Answer(context, vault.DeleteField(uuid, name));
         }
 
         public static void ListAttachments(IGateContext context)
@@ -444,17 +566,18 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            var uuid = Captured(context, "uuid");
-            if (vault.Entry(uuid) == null)
+            // One read, for the reason `ListFields` gives.
+            var attachments = vault.Attachments(Captured(context, "uuid"));
+            if (attachments == null)
             {
-                Unreachable(context);
+                Gone(context);
                 return;
             }
 
             var json = new JsonWriter();
             json.Array("attachments");
 
-            foreach (var attachment in vault.Attachments(uuid))
+            foreach (var attachment in attachments)
             {
                 json.Item();
                 json.Text("name", attachment.Name);
@@ -507,7 +630,7 @@ namespace KeePassGate.Pipeline
             var attachment = vault.Attachment(uuid, name, MaxAttachmentBytes);
             if (attachment == null)
             {
-                Unreachable(context);
+                Gone(context);
                 return;
             }
 
@@ -550,7 +673,13 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            Answer(context, vault.CreateAttachment(Captured(context, "uuid"), body.Text("name"), content));
+            var name = body.Text("name");
+            if (Unnameable(context, name))
+            {
+                return;
+            }
+
+            Answer(context, vault.CreateAttachment(Captured(context, "uuid"), name, content));
         }
 
         public static void UpdateAttachment(IGateContext context)
@@ -648,6 +777,29 @@ namespace KeePassGate.Pipeline
             context.Respond(404, HttpResponse.ErrorBody(SpecRouter.UnreachableError));
         }
 
+        /// <summary>
+        /// What a read answers when the node the router decided about is not there by the time
+        /// the handler looks.
+        /// </summary>
+        /// <remarks>
+        /// **Gone, or locked, and `openapi.yaml` §502 tells them apart.** A delete, a lock or a
+        /// close can land between the router's decision and the read. A node that has gone while
+        /// the database stays open is the `404` every absent node gets; a database that has locked
+        /// or closed is `503 locked`, because its nodes have not gone and a client told they had
+        /// would stop looking for something that is still there.
+        ///
+        /// **A listing is the case this was written for.** One of a group or an entry that had gone
+        /// answered `200` and an empty list, which says the node is there and holds nothing: a
+        /// group the operator removed, or a database they locked, read to a client as an empty one.
+        /// </remarks>
+        private static void Gone(IGateContext context)
+        {
+            if (!ServedDatabase.TryAnswerLocked(context))
+            {
+                Unreachable(context);
+            }
+        }
+
         private static string Captured(IGateContext context, string name)
         {
             object found;
@@ -667,6 +819,10 @@ namespace KeePassGate.Pipeline
         }
 
         /// <summary>The standard fields a body named, and only those it named.</summary>
+        /// <remarks>
+        /// `expires` is the one member of those bodies that is not a string the entry holds, and
+        /// <see cref="Expiring"/> reads it instead: written here, it would be a custom field.
+        /// </remarks>
         private static IReadOnlyDictionary<string, string> Standard(IGateContext context)
         {
             var body = JsonBody.Read(context.Body);
@@ -680,13 +836,189 @@ namespace KeePassGate.Pipeline
             foreach (var name in body.Names)
             {
                 var value = body.Text(name);
-                if (value != null)
+                if (value != null && !string.Equals(name, ExpiresMember, StringComparison.Ordinal))
                 {
                     fields[name] = value;
                 }
             }
 
             return fields;
+        }
+
+        /// <summary>
+        /// What a create or an update body asks of the entry's expiry, and false when it asks in a
+        /// way this gate does not read.
+        /// </summary>
+        /// <remarks>
+        /// **One member, and four things it can say.** Absent asks nothing: a create then makes an
+        /// entry that does not expire, and an update leaves the expiry as it is. Empty asks for no
+        /// expiry, which takes one off. A moment asks for that moment, written the one way
+        /// `Moments.WireFormat` writes every moment this gate answers with, so the `expires` a read
+        /// answers goes back as it came. And `auto` asks a create for whatever KeePass's options
+        /// give a new entry, and is refused on an update, whose entry has the expiry somebody
+        /// already decided on. Anything else is refused rather than guessed at, as an unreadable
+        /// `protected` marker is.
+        ///
+        /// Checked here because the document cannot say it: the member is a string with a length,
+        /// and `BodyCheck` implements neither `format` nor `enum`, so it refuses at startup a
+        /// schema declaring either.
+        /// </remarks>
+        private static bool Expiring(IGateContext context, bool creating, out VaultExpiry expiry)
+        {
+            expiry = null;
+
+            var body = JsonBody.Read(context.Body);
+            var asked = body == null ? null : body.Text(ExpiresMember);
+
+            if (asked == null)
+            {
+                return true;
+            }
+
+            if (asked.Length == 0)
+            {
+                expiry = VaultExpiry.Never;
+                return true;
+            }
+
+            if (string.Equals(asked, AutoExpiry, StringComparison.Ordinal))
+            {
+                expiry = creating ? VaultExpiry.Auto : null;
+                return creating;
+            }
+
+            DateTimeOffset when;
+            if (!DateTimeOffset.TryParseExact(
+                    asked,
+                    Moments.WireFormat,
+                    CultureInfo.InvariantCulture,
+                    DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal,
+                    out when))
+            {
+                return false;
+            }
+
+            expiry = VaultExpiry.At(when);
+            return true;
+        }
+
+        /// <summary>
+        /// Whether a listing keeps the entries that have expired, and false when the query says so
+        /// in a way this gate does not read.
+        /// </summary>
+        /// <remarks>
+        /// **Kept unless the query says `false`**, because a listing is of what is there and KeePass
+        /// lists an expired entry too, struck through. The two words are compared exactly and
+        /// anything else is refused rather than read as either, for the reason
+        /// <see cref="Marked"/> gives: a caller that meant to leave expired entries out and spelled
+        /// it some other way would be handed them and told nothing. The document declares the name
+        /// and cannot enumerate the words, because `BodyCheck` holds a query parameter to a bare
+        /// string.
+        /// </remarks>
+        private static bool IncludesExpired(IGateContext context, out bool included)
+        {
+            included = true;
+
+            string flag;
+            if (context.Query == null || !context.Query.TryGetValue(IncludeExpiredParameter, out flag))
+            {
+                return true;
+            }
+
+            if (string.Equals(flag, "true", StringComparison.Ordinal))
+            {
+                return true;
+            }
+
+            if (string.Equals(flag, "false", StringComparison.Ordinal))
+            {
+                included = false;
+                return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Whether a `protected` marker is one this gate reads, and which of the two it is.
+        /// </summary>
+        /// <remarks>
+        /// Absent is a marker too, and means the database decides: `IVault.Protects` answers for
+        /// the names it protects by setting, and nothing else is a secret until somebody says so.
+        /// The two words are compared exactly. The document says which two and bounds their
+        /// length, and it cannot enumerate them, because `BodyCheck` implements no `enum` and
+        /// refuses at startup a schema declaring one, so the last word on the pair is here.
+        /// `openapi.yaml` §505 says why a boolean is spelled out rather than sent as one.
+        /// </remarks>
+        private static bool Marked(string marker, out bool guarded)
+        {
+            guarded = string.Equals(marker, "true", StringComparison.Ordinal);
+
+            return marker == null || guarded || string.Equals(marker, "false", StringComparison.Ordinal);
+        }
+
+        /// <summary>
+        /// Whether a name a body is about to make is one its own routes could name again, and the
+        /// refusal when it is not.
+        /// </summary>
+        /// <remarks>
+        /// **A stricter question than the body's**, which lets a line break through because a
+        /// value has to carry one. A name does not, and one holding a control character, or
+        /// decoding into a climb, is refused by every route that would address it, so it was
+        /// created with `201` and could never be read, changed or stripped by this API again.
+        ///
+        /// **A carriage return is the one that costs more than that.** KeePass writes a name into
+        /// the file as XML, and the XML reader turns a carriage return into a line feed on the
+        /// way back in, so `api\rkey` and `api\nkey` are two names in memory and one after the
+        /// next unlock, with the later element winning. Every check a create makes, whether the
+        /// name is taken and whether it is protected, runs on the spelling in memory: a client
+        /// holding only `create` could write beside an existing protected field, be answered
+        /// `201`, and find its own value there in clear once the file was reopened.
+        ///
+        /// **And a name that would be shown in another order than it is written**, which
+        /// <see cref="Reorders"/> says why.
+        /// </remarks>
+        private static bool Unnameable(IGateContext context, string name)
+        {
+            if (PathTemplate.IsCapture(name) && !Reorders(name))
+            {
+                return false;
+            }
+
+            context.Respond(400, HttpResponse.ErrorBody(BodyCheck.Refusal));
+            return true;
+        }
+
+        /// <summary>
+        /// Whether a name holds a character that changes the order the text around it is shown in.
+        /// </summary>
+        /// <remarks>
+        /// **Refused in a name, because KeePass acts on what a name says.** It lists an attachment
+        /// under its name and opens one it cannot show itself with whatever Windows starts for its
+        /// real suffix, a program included, on the operator's double click. So a name ending in the
+        /// right to left override and then `fdp.exe` is listed as ending in `.pdf` and started as a
+        /// program, and a client allowed to create attachments could offer the operator a program
+        /// dressed as a document. A field name is refused the same way, since the same dialog
+        /// shows those.
+        ///
+        /// These twelve are every character Unicode classes as a bidirectional control: the Arabic
+        /// letter mark, the two directional marks, the five embeddings and overrides, and the four
+        /// isolates. A value is not a name and keeps them, because right to left text is ordinary
+        /// in a note.
+        /// </remarks>
+        private static bool Reorders(string name)
+        {
+            foreach (var character in name)
+            {
+                if (character == '\u061C' || character == '\u200E' || character == '\u200F'
+                    || (character >= '\u202A' && character <= '\u202E')
+                    || (character >= '\u2066' && character <= '\u2069'))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private static bool Decoded(string base64, out byte[] content)
@@ -749,7 +1081,7 @@ namespace KeePassGate.Pipeline
             context.Respond(200, json.Done());
         }
 
-        private static void Entries(IGateContext context, IReadOnlyList<VaultEntry> entries)
+        private static void Entries(IGateContext context, IReadOnlyList<VaultEntry> entries, bool withExpired)
         {
             var json = new JsonWriter();
             json.Array("entries");
@@ -759,8 +1091,17 @@ namespace KeePassGate.Pipeline
             // rather than once for every entry and every question asked of it.
             var read = new AclDocuments();
 
+            // Taken once, so that one listing judges every entry against the same moment.
+            var now = DateTimeOffset.UtcNow;
+
             foreach (var entry in entries)
             {
+                // Left out as the rules leave an entry out: not a refusal, and not recorded.
+                if (!withExpired && Expired(entry, now))
+                {
+                    continue;
+                }
+
                 if (!Visible(context, entry.Node, read))
                 {
                     continue;
@@ -809,6 +1150,18 @@ namespace KeePassGate.Pipeline
             return AclResolver.Permits(node, context.Client.Profiles, AclVerb.List, AclReach.Fields, read);
         }
 
+        /// <summary>Whether an entry has expired, judged the way KeePass judges one.</summary>
+        /// <remarks>
+        /// It expires, and its moment is now or earlier. That one comparison is what strikes an
+        /// entry through in KeePass's list, leaves it out of a search asked to exclude expired
+        /// entries, and keeps auto-type from it. On the gate's clock, which is where the answer is
+        /// made.
+        /// </remarks>
+        private static bool Expired(VaultEntry entry, DateTimeOffset now)
+        {
+            return entry.Expires.HasValue && entry.Expires.Value <= now;
+        }
+
         /// <summary>Whether the database protects this one, by name.</summary>
         private static bool IsProtected(VaultEntryDetail entry, string field)
         {
@@ -844,10 +1197,20 @@ namespace KeePassGate.Pipeline
         /// Asked as well as `Protects`, because the two answer different halves. A field is
         /// protected either because of what it is called, which the database decides, or because
         /// somebody marked that one on that entry. Overwriting either is setting a secret.
+        ///
+        /// An entry that is not there marks nothing, which is the answer every caller here already
+        /// gives an entry it cannot find: it asks nothing about protection and leaves the write to
+        /// find the entry gone.
         /// </remarks>
         private static bool Guarded(IVault vault, string entryUuid, IEnumerable<string> names)
         {
-            foreach (var field in vault.Fields(entryUuid))
+            var fields = vault.Fields(entryUuid);
+            if (fields == null)
+            {
+                return false;
+            }
+
+            foreach (var field in fields)
             {
                 if (!field.IsProtected)
                 {

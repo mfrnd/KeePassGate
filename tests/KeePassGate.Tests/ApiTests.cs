@@ -345,6 +345,88 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_protected_marker_this_gate_cannot_read_refuses_the_body()
+        {
+            // Fail closed on a marker, like everything else here. Anything that was not the word
+            // `true` used to mean "not protected", so a client that meant to store a secret stored
+            // it in clear and was told 201 with nothing said. The document declares the two words
+            // and this refuses a third spelling of them.
+            _vault.Granting(_group, "{\"reader\":[\"read\",\"list\",\"create\",\"protected\"]}");
+
+            foreach (var marker in new[] { "True", "TRUE", "yes", "1", "on", "" })
+            {
+                var answer = Send("POST", "/entries/" + _entry + "/fields",
+                    "{\"name\":\"Recovery\",\"value\":\"invented\",\"protected\":\"" + marker + "\"}");
+
+                Assert.That(answer.Status, Is.EqualTo(400), marker);
+                Assert.That(answer.Json, Does.Contain("malformed"), marker);
+                Assert.That(_vault.Field(_entry, "Recovery"), Is.Null, marker);
+            }
+        }
+
+        [Test]
+        public void A_field_said_to_be_unprotected_in_so_many_words_is_created()
+        {
+            // The other half of the marker, and the reason refusing what is neither costs an
+            // honest caller nothing: a body may say either word, and saying neither leaves the
+            // answer to the database.
+            _vault.Granting(_group, "{\"reader\":[\"read\",\"list\",\"create\"]}");
+
+            var answer = Send("POST", "/entries/" + _entry + "/fields",
+                "{\"name\":\"Invented\",\"value\":\"one\",\"protected\":\"false\"}");
+
+            Assert.That(answer.Status, Is.EqualTo(201), answer.Json);
+            Assert.That(Get("/entries/" + _entry).Json, Does.Contain("\"Invented\":\"one\""));
+            Assert.That(Get("/entries/" + _entry).Json, Does.Contain("\"protected\":[]"));
+        }
+
+        [Test]
+        public void A_protected_field_cannot_be_stripped_to_make_room_for_a_chosen_one()
+        {
+            // Two calls that add up to the overwrite `PUT /entries/{uuid}/fields/{name}` refuses.
+            // The strip destroys the only mark saying the name was a secret, so the create that
+            // follows reads as an ordinary one and puts the caller's value where the credential
+            // was, in clear for every later rule holding `read` without the switch.
+            _vault.CreateField(_entry, "PIN", "not-a-real-secret", true);
+            _vault.Granting(_group, "{\"reader\":[\"read\",\"list\",\"create\",\"strip\"]}");
+
+            var stripped = Send("DELETE", "/entries/" + _entry + "/fields/PIN", null);
+
+            Assert.That(stripped.Status, Is.EqualTo(404),
+                "a refusal reads like everything else this rule cannot reach");
+            Assert.That(_vault.Field(_entry, "PIN"), Is.EqualTo("not-a-real-secret"));
+        }
+
+        [Test]
+        public void A_rule_with_nowhere_to_put_anything_back_strips_a_protected_field_as_before()
+        {
+            // `...S....` is what `DESIGN.md` §114 spells out and it is untouched. What the guard
+            // asks about is `create`, not `strip`, so a rule that may take a protected string off
+            // and may not add one takes it off without the switch.
+            _vault.CreateField(_entry, "PIN", "not-a-real-secret", true);
+            _vault.Granting(_group, "{\"reader\":[\"read\",\"list\",\"strip\"]}");
+
+            Assert.That(Send("DELETE", "/entries/" + _entry + "/fields/PIN", null).Status, Is.EqualTo(200));
+            Assert.That(_vault.Field(_entry, "PIN"), Is.Null);
+        }
+
+        [Test]
+        public void A_rule_that_reaches_protected_values_strips_one_and_puts_another_back()
+        {
+            _vault.CreateField(_entry, "PIN", "not-a-real-secret", true);
+            _vault.Granting(
+                _group, "{\"reader\":[\"read\",\"list\",\"create\",\"strip\",\"protected\"]}");
+
+            Assert.That(Send("DELETE", "/entries/" + _entry + "/fields/PIN", null).Status, Is.EqualTo(200));
+
+            var made = Send("POST", "/entries/" + _entry + "/fields",
+                "{\"name\":\"PIN\",\"value\":\"also-invented\",\"protected\":\"true\"}");
+
+            Assert.That(made.Status, Is.EqualTo(201), made.Json);
+            Assert.That(Get("/entries/" + _entry).Json, Does.Contain("\"protected\":[\"PIN\"]"));
+        }
+
+        [Test]
         public void The_entry_route_is_not_a_way_around_it()
         {
             // The same value, set through the entry rather than the field. A gate on one route
@@ -355,6 +437,24 @@ namespace KeePassGate.Tests
 
             Assert.That(answer.Status, Is.EqualTo(404));
             Assert.That(_vault.Field(_entry, "Password"), Is.Null, "nothing was written");
+        }
+
+        [Test]
+        public void A_body_sent_to_a_route_that_takes_none_is_an_undeclared_request()
+        {
+            // Read and then ignored, which is what a query was before it was refused: the sweep
+            // came back whole to a caller that had asked for one group, and the delete was a
+            // plain delete to one that had asked for more.
+            _vault.Granting(_vault.RootAlias, Everything);
+
+            var listed = Send("GET", "/entries", "{\"group\":\"" + _group + "\"}");
+            var removed = Send("DELETE", "/entries/" + _entry, "{\"recursive\":\"true\"}");
+
+            Assert.That(listed.Status, Is.EqualTo(404));
+            Assert.That(listed.Json, Does.Contain("no such route"));
+            Assert.That(listed.Json, Does.Not.Contain(_entry), "nothing of the sweep is handed out");
+            Assert.That(removed.Status, Is.EqualTo(404));
+            Assert.That(_vault.Entry(_entry), Is.Not.Null, "and nothing is removed");
         }
 
         [Test]
@@ -941,6 +1041,71 @@ namespace KeePassGate.Tests
             Assert.That(answer.Status, Is.EqualTo(VaultHandlers.Created), answer.Json);
         }
 
+        [TestCase("api\\rkey", "api\rkey", TestName = "a carriage return, which the file reads back as a line feed")]
+        [TestCase("api\\nkey", "api\nkey", TestName = "a line feed")]
+        [TestCase("api\\tkey", "api\tkey", TestName = "a tab")]
+        [TestCase("api\\u007Fkey", "api\u007Fkey", TestName = "delete")]
+        [TestCase("api\\u0085key", "api\u0085key", TestName = "a C1 control")]
+        [TestCase("a/../b", "a/../b", TestName = "a climb")]
+        public void A_name_no_route_could_address_again_is_not_made(string spelled, string name)
+        {
+            // A name is not a paragraph. One the routes refuse was made with `201` and could
+            // never be read, changed or stripped again, and a carriage return was worse: two
+            // names distinct in memory became one when the file was reopened, so a client with
+            // only `create` could write over a protected field whose name held a line feed.
+            _vault.Granting(_group, Everything);
+            var content = Convert.ToBase64String(new byte[] { 1, 2, 3 });
+
+            var field = Send("POST", "/entries/" + _entry + "/fields",
+                             "{\"name\":\"" + spelled + "\",\"value\":\"invented\"}");
+            var attachment = Send("POST", "/entries/" + _entry + "/attachments",
+                                  "{\"name\":\"" + spelled + "\",\"content\":\"" + content + "\"}");
+
+            Assert.That(field.Status, Is.EqualTo(400), field.Json);
+            Assert.That(field.Json, Does.Contain("malformed"));
+            Assert.That(attachment.Status, Is.EqualTo(400), attachment.Json);
+            Assert.That(attachment.Json, Does.Contain("malformed"));
+            Assert.That(_vault.Field(_entry, name), Is.Null);
+            Assert.That(_vault.Attachment(_entry, name), Is.Null);
+        }
+
+        [TestCase("report\\u202Efdp.exe", "report\u202Efdp.exe", TestName = "the right to left override")]
+        [TestCase("report\\u2067fdp.exe", "report\u2067fdp.exe", TestName = "a right to left isolate")]
+        [TestCase("report\\u200Ffdp.exe", "report\u200Ffdp.exe", TestName = "a right to left mark")]
+        [TestCase("report\\u061Cfdp.exe", "report\u061Cfdp.exe", TestName = "the Arabic letter mark")]
+        public void A_name_that_would_be_shown_in_another_order_is_not_made(string spelled, string name)
+        {
+            // KeePass lists an attachment under its name and opens one it cannot show itself with
+            // whatever Windows starts for the real suffix, so this one was shown as a document and
+            // started as a program on the operator's double click.
+            _vault.Granting(_group, Everything);
+            var content = Convert.ToBase64String(new byte[] { 1, 2, 3 });
+
+            var field = Send("POST", "/entries/" + _entry + "/fields",
+                             "{\"name\":\"" + spelled + "\",\"value\":\"invented\"}");
+            var attachment = Send("POST", "/entries/" + _entry + "/attachments",
+                                  "{\"name\":\"" + spelled + "\",\"content\":\"" + content + "\"}");
+
+            Assert.That(field.Status, Is.EqualTo(400), field.Json);
+            Assert.That(attachment.Status, Is.EqualTo(400), attachment.Json);
+            Assert.That(attachment.Json, Does.Contain("malformed"));
+            Assert.That(_vault.Field(_entry, name), Is.Null);
+            Assert.That(_vault.Attachment(_entry, name), Is.Null);
+        }
+
+        [Test]
+        public void Right_to_left_text_is_still_a_value_like_any_other()
+        {
+            // The refusal is about names, which KeePass acts on. A value holding right to left
+            // text, the marks included, is somebody's note.
+            _vault.Granting(_group, Everything);
+
+            var answer = Send("POST", "/entries/" + _entry + "/fields",
+                              "{\"name\":\"invented\",\"value\":\"\\u202Bnote\\u202C\"}");
+
+            Assert.That(answer.Status, Is.EqualTo(VaultHandlers.Created), answer.Json);
+        }
+
         [Test]
         public void A_write_this_gate_could_not_attempt_says_so_rather_than_naming_the_route()
         {
@@ -970,6 +1135,131 @@ namespace KeePassGate.Tests
             Assert.That(refused.Status, Is.EqualTo(404), refused.Json);
             Assert.That(absent.Status, Is.EqualTo(404), absent.Json);
             Assert.That(refused.Json, Is.EqualTo(absent.Json));
+        }
+
+        [TestCase("/groups/{0}/groups", TestName = "the groups in a group removed after the router decided")]
+        [TestCase("/groups/{0}/entries", TestName = "the entries in a group removed after the router decided")]
+        [TestCase("/groups/{0}", TestName = "a group removed after the router decided")]
+        public void A_group_gone_after_the_router_decided_is_absent_and_never_empty(string template)
+        {
+            // The router decides about the group, and the operator removes it before the handler
+            // reads it. A listing answered `200` and an empty list, which says the group is still
+            // there and holds nothing.
+            var gone = _vault.Add(_vault.RootAlias, "Removed");
+            _vault.Granting(_vault.RootAlias, Everything);
+            _vault.After(1, () => _vault.DeleteGroup(gone));
+
+            var answer = Get(string.Format(CultureInfo.InvariantCulture, template, gone));
+
+            Assert.That(_vault.Group(gone), Is.Null, "the group was removed, which is what this is about");
+            Assert.That(answer.Status, Is.EqualTo(404), answer.Json);
+            Assert.That(answer.Json, Does.Contain(SpecRouter.UnreachableError));
+        }
+
+        [TestCase("/entries/{0}/fields", TestName = "the fields of an entry removed after the router decided")]
+        [TestCase("/entries/{0}/attachments", TestName = "the attachments of an entry removed after the router decided")]
+        [TestCase("/entries/{0}", TestName = "an entry removed after the router decided")]
+        [TestCase("/entries/{0}/fields/Title", TestName = "a field of an entry removed after the router decided")]
+        [TestCase("/entries/{0}/attachments/note.txt", TestName = "an attachment of an entry removed after the router decided")]
+        public void An_entry_gone_after_the_router_decided_is_absent_and_never_empty(string template)
+        {
+            // The same race one level down. The two entry listings asked whether the entry was
+            // there and then listed it, so one removed between the two was an entry with no fields.
+            _vault.Granting(_vault.RootAlias, Everything);
+            Assume.That(_vault.CreateAttachment(_entry, "note.txt", new byte[] { 1, 2, 3 }).Ok, Is.True);
+            _vault.After(1, () => _vault.DeleteEntry(_entry));
+
+            var answer = Get(string.Format(CultureInfo.InvariantCulture, template, _entry));
+
+            Assert.That(_vault.Entry(_entry), Is.Null, "the entry was removed, which is what this is about");
+            Assert.That(answer.Status, Is.EqualTo(404), answer.Json);
+            Assert.That(answer.Json, Does.Contain(SpecRouter.UnreachableError));
+        }
+
+        [TestCase("/groups", TestName = "every group, in a database locked after the router decided")]
+        [TestCase("/groups/{0}/groups", TestName = "a group's groups, in a database locked after the router decided")]
+        [TestCase("/groups/{0}", TestName = "a group, in a database locked after the router decided")]
+        [TestCase("/entries", TestName = "every entry, in a database locked after the router decided")]
+        [TestCase("/groups/{0}/entries", TestName = "a group's entries, in a database locked after the router decided")]
+        [TestCase("/entries/{1}", TestName = "an entry, in a database locked after the router decided")]
+        [TestCase("/entries/{1}/fields", TestName = "an entry's fields, in a database locked after the router decided")]
+        [TestCase("/entries/{1}/fields/Title", TestName = "a field, in a database locked after the router decided")]
+        [TestCase("/entries/{1}/attachments", TestName = "an entry's attachments, in a database locked after the router decided")]
+        [TestCase("/entries/{1}/attachments/note.txt", TestName = "an attachment, in a database locked after the router decided")]
+        public void A_read_meeting_a_database_locked_after_the_router_decided_is_told_it_is_locked(string template)
+        {
+            // A node in a database that has locked has not gone, and a client told `404` would stop
+            // looking for something that is still there. It is told what a locked database
+            // answers before routing, in the same word.
+            _vault.Granting(_vault.RootAlias, Everything);
+            Assume.That(_vault.CreateAttachment(_entry, "note.txt", new byte[] { 1, 2, 3 }).Ok, Is.True);
+            _vault.After(1, _vault.Lock);
+
+            var answer = Get(string.Format(CultureInfo.InvariantCulture, template, _group, _entry));
+
+            Assert.That(_vault.IsOpen, Is.False, "the database locked, which is what this is about");
+            Assert.That(answer.Status, Is.EqualTo(503), answer.Json);
+            Assert.That(answer.Json, Is.EqualTo("{\"error\":\"locked\"}"));
+        }
+
+        [TestCase("PUT", "/groups/{0}", "{\"Name\":\"Renamed\"}", TestName = "a group renamed in a database locked after the router decided")]
+        [TestCase("PUT", "/entries/{1}", "{\"Title\":\"renamed\"}", TestName = "an entry changed in a database locked after the router decided")]
+        [TestCase("POST", "/groups/{0}/entries", "{\"Title\":\"invented\"}", TestName = "an entry made in a database locked after the router decided")]
+        public void A_write_meeting_a_database_locked_after_the_router_decided_still_fails_on_this_side(
+            string method, string template, string body)
+        {
+            // The one exception, which `openapi.yaml` §502 keeps: a write's handler hands the
+            // change to the writer, which finds nothing open to change and answers that this side
+            // failed. It could not be attempted, so a retry duplicates nothing.
+            _vault.Granting(_vault.RootAlias, Everything);
+            _vault.After(1, _vault.Lock);
+
+            var answer = Send(method, string.Format(CultureInfo.InvariantCulture, template, _group, _entry), body);
+
+            Assert.That(answer.Status, Is.EqualTo(500), answer.Json);
+            Assert.That(answer.Json, Does.Contain("internal error"));
+        }
+
+        [Test]
+        public void A_database_locked_before_the_router_looks_is_told_so_and_recorded_nowhere()
+        {
+            // A lock landing while the request was still being read. There was nothing to decide
+            // about, so nothing was decided: the line a missing node gets would say the rules
+            // turned away what a lock turned away, and a request meeting the lock before routing
+            // writes no line either.
+            var audit = new RecordingAudit();
+            var router = GateOperations.Router("9.9.9", null, new AccessCheck(audit));
+            _vault.Granting(_vault.RootAlias, Everything);
+            _vault.Lock();
+
+            var read = Context("GET", "/entries/" + _entry, null);
+            var write = Context("PUT", "/groups/" + _group, "{\"Name\":\"Renamed\"}");
+            router.Handle(read);
+            router.Handle(write);
+
+            Assert.That(read.Status, Is.EqualTo(503), read.Json);
+            Assert.That(read.Json, Is.EqualTo("{\"error\":\"locked\"}"));
+            Assert.That(write.Status, Is.EqualTo(503), "a write meets it here as a read does, before anything was attempted");
+            Assert.That(audit.Entries, Is.Empty);
+        }
+
+        [Test]
+        public void A_node_absent_while_the_database_is_open_is_still_a_refusal_on_record()
+        {
+            // The other branch of the same lookup, and the one that stays as it was: a node that is
+            // not there while the database is open is decided about and refused, which the audit is
+            // where the operator learns it was absent rather than forbidden.
+            var audit = new RecordingAudit();
+            var router = GateOperations.Router("9.9.9", null, new AccessCheck(audit));
+            _vault.Granting(_vault.RootAlias, Everything);
+
+            var context = Context("GET", "/entries/" + new string('a', 32), null);
+            router.Handle(context);
+
+            Assert.That(context.Status, Is.EqualTo(404), context.Json);
+            Assert.That(audit.Entries.Count, Is.EqualTo(1));
+            Assert.That(audit.Entries[0].Permitted, Is.False);
+            Assert.That(audit.Entries[0].Node, Is.Null);
         }
 
         [Test]
@@ -1050,6 +1340,318 @@ namespace KeePassGate.Tests
                 "{\"value\":\"https://invented.example/?p={REF:P@I:0123456789ABCDEF}\"}");
 
             Assert.That(answer.Status, Is.EqualTo(404));
+        }
+
+        [Test]
+        public void A_read_says_when_an_entry_expires_and_null_when_it_does_not()
+        {
+            // An entry the operator expired, by a date or with Expire Now, read exactly as a live
+            // one, so an agent went on using a credential KeePass had struck through. Written the
+            // way `created` and `modified` are, because the client reads all three one way.
+            _vault.Granting(_group, "{\"reader\":[\"read\"]}");
+
+            Assert.That(Get("/entries/" + _entry).Json, Does.Contain("\"expires\":null"));
+
+            _vault.Expire(_entry, Moment);
+
+            Assert.That(Get("/entries/" + _entry).Json, Does.Contain("\"expires\":\"2031-02-03T04:05:06Z\""));
+        }
+
+        [Test]
+        public void A_listing_does_not_say_when_an_entry_expires()
+        {
+            // `list` gives names, and a moment is not one, so the listing is exactly what it was.
+            _vault.Expire(_entry, Moment);
+            _vault.Granting(_vault.RootAlias, Everything);
+
+            foreach (var path in new[] { "/entries", "/groups/" + _group + "/entries" })
+            {
+                var answer = Get(path);
+
+                Assert.That(answer.Status, Is.EqualTo(200), path);
+                Assert.That(answer.Json, Does.Contain("an invented service"), path);
+                Assert.That(answer.Json, Does.Not.Contain("expires"), path);
+            }
+        }
+
+        [Test]
+        public void A_listing_keeps_expired_entries_unless_it_is_asked_to_leave_them_out()
+        {
+            // Listed by default, because KeePass lists them too, struck through, and a client
+            // that has not heard of expiry must go on seeing the database it saw before.
+            var past = _vault.AddEntry(_group, "an invented retired service");
+            var future = _vault.AddEntry(_group, "an invented service expiring later");
+            _vault.Expire(past, new DateTimeOffset(2001, 2, 3, 4, 5, 6, TimeSpan.Zero));
+            _vault.Expire(future, new DateTimeOffset(2999, 2, 3, 4, 5, 6, TimeSpan.Zero));
+            _vault.Granting(_vault.RootAlias, "{\"reader\":[\"list\"]}");
+
+            foreach (var path in new[] { "/entries", "/groups/" + _group + "/entries" })
+            {
+                foreach (var kept in new[] { Get(path), Asked("GET", path, "true") })
+                {
+                    Assert.That(kept.Status, Is.EqualTo(200), path);
+                    Assert.That(kept.Json, Does.Contain("an invented retired service"), path);
+                    Assert.That(kept.Json, Does.Contain("\"count\":3"), path);
+                }
+
+                var left = Asked("GET", path, "false");
+
+                Assert.That(left.Status, Is.EqualTo(200), path + " " + left.Json);
+                Assert.That(left.Json, Does.Not.Contain("an invented retired service"), path);
+                Assert.That(left.Json, Does.Contain("an invented service expiring later"), path);
+                Assert.That(left.Json, Does.Contain("an invented service\""), path + ", which never expires");
+                Assert.That(left.Json, Does.Contain("\"count\":2"), path + ": what was left out is not counted");
+            }
+        }
+
+        [Test]
+        public void An_entry_whose_moment_has_come_has_expired()
+        {
+            // KeePass's own comparison is the moment against now, inclusive, and the gate's clock
+            // is the one asked, since the gate is where the answer is made.
+            _vault.Expire(_entry, DateTimeOffset.UtcNow);
+            _vault.Granting(_vault.RootAlias, "{\"reader\":[\"list\"]}");
+
+            var left = Asked("GET", "/entries", "false");
+
+            Assert.That(left.Status, Is.EqualTo(200), left.Json);
+            Assert.That(left.Json, Does.Contain("\"count\":0"));
+        }
+
+        [Test]
+        public void A_head_takes_the_flag_its_get_takes()
+        {
+            // One request with the content left off, so the flag is declared on both and a head
+            // asking it is not answered as a target nobody declared.
+            _vault.Granting(_vault.RootAlias, "{\"reader\":[\"list\"]}");
+
+            Assert.That(Asked("HEAD", "/entries", "false").Status, Is.EqualTo(200));
+            Assert.That(Asked("HEAD", "/groups/" + _group + "/entries", "false").Status, Is.EqualTo(200));
+        }
+
+        [TestCase("no", TestName = "a word the flag does not know")]
+        [TestCase("FALSE", TestName = "false in capitals")]
+        [TestCase("0", TestName = "a number")]
+        [TestCase("", TestName = "nothing after the name")]
+        public void A_flag_this_gate_does_not_read_is_refused_rather_than_read_as_true(string flag)
+        {
+            // Read as `true`, a caller that meant to leave expired entries out would be handed
+            // every one of them and told nothing.
+            _vault.Expire(_entry, new DateTimeOffset(2001, 2, 3, 4, 5, 6, TimeSpan.Zero));
+            _vault.Granting(_vault.RootAlias, "{\"reader\":[\"list\"]}");
+
+            var answer = Asked("GET", "/entries", flag);
+
+            Assert.That(answer.Status, Is.EqualTo(400), answer.Json);
+            Assert.That(answer.Json, Does.Contain("malformed"));
+            Assert.That(answer.Json, Does.Not.Contain("an invented service"));
+        }
+
+        [Test]
+        public void The_flag_is_its_own_name_and_no_other()
+        {
+            // The one query parameter this API declares. A spelling of it the document does not
+            // declare is a target the document does not declare, answered as an undeclared path.
+            _vault.Granting(_vault.RootAlias, "{\"reader\":[\"list\"]}");
+
+            var head = new HttpRequestHead(
+                "GET",
+                "/entries",
+                new Dictionary<string, string>(StringComparer.Ordinal) { { "expired", "false" } },
+                new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase),
+                0);
+            var context = new GateContext(head, string.Empty, Paired());
+            new ServedDatabase(_vault).PutOn(context);
+
+            _router.Handle(context);
+
+            Assert.That(context.Status, Is.EqualTo(404), context.Json);
+        }
+
+        [Test]
+        public void An_update_moves_an_expiry_and_takes_one_off()
+        {
+            // What an agent rotating an expired password needs to finish the job: the fresh
+            // password stayed marked expired, and KeePass went on refusing to auto-type it.
+            _vault.Expire(_entry, new DateTimeOffset(2001, 2, 3, 4, 5, 6, TimeSpan.Zero));
+            _vault.Granting(_group, "{\"reader\":[\"update\",\"protected\"]}");
+
+            var moved = Send("PUT", "/entries/" + _entry, "{\"expires\":\"2031-02-03T04:05:06Z\"}");
+
+            Assert.That(moved.Status, Is.EqualTo(200), moved.Json);
+            Assert.That(_vault.Entry(_entry).Expires, Is.EqualTo(Moment));
+
+            var cleared = Send("PUT", "/entries/" + _entry, "{\"Password\":\"a-fresh-invented-one\",\"expires\":\"\"}");
+
+            Assert.That(cleared.Status, Is.EqualTo(200), cleared.Json);
+            Assert.That(_vault.Entry(_entry).Expires, Is.Null);
+            Assert.That(_vault.Field(_entry, "Password"), Is.EqualTo("a-fresh-invented-one"));
+        }
+
+        [Test]
+        public void An_update_naming_no_expiry_leaves_the_one_there()
+        {
+            _vault.Expire(_entry, Moment);
+            _vault.Granting(_group, "{\"reader\":[\"update\"]}");
+
+            var answer = Send("PUT", "/entries/" + _entry, "{\"UserName\":\"agent-fictitious\"}");
+
+            Assert.That(answer.Status, Is.EqualTo(200), answer.Json);
+            Assert.That(_vault.Entry(_entry).Expires, Is.EqualTo(Moment));
+        }
+
+        [Test]
+        public void An_expiry_is_not_written_as_a_field()
+        {
+            // The body's one member that is not a string the entry holds. Read as one, it would
+            // have been a custom field called `expires` beside the five.
+            _vault.Granting(_group, "{\"reader\":[\"create\",\"update\"]}");
+
+            Send("PUT", "/entries/" + _entry, "{\"expires\":\"2031-02-03T04:05:06Z\"}");
+            var made = Made(Send("POST", "/groups/" + _group + "/entries",
+                                 "{\"Title\":\"x\",\"expires\":\"2031-02-03T04:05:06Z\"}"));
+
+            foreach (var uuid in new[] { _entry, made })
+            {
+                Assert.That(_vault.Field(uuid, "expires"), Is.Null, uuid);
+                Assert.That(_vault.Entry(uuid).Expires, Is.EqualTo(Moment), uuid);
+            }
+        }
+
+        [Test]
+        public void Changing_an_expiry_needs_update_and_reading_one_needs_read()
+        {
+            // The existing verbs and nothing added to the mask: `read` sees it and `update`
+            // changes it, and neither is implied by the other or by `list`.
+            _vault.Granting(_group, "{\"reader\":[\"read\",\"list\"]}");
+
+            var refused = Send("PUT", "/entries/" + _entry, "{\"expires\":\"2031-02-03T04:05:06Z\"}");
+
+            Assert.That(refused.Status, Is.EqualTo(404), refused.Json);
+            Assert.That(_vault.Entry(_entry).Expires, Is.Null);
+
+            _vault.Granting(_group, "{\"reader\":[\"update\",\"list\"]}");
+
+            Assert.That(Get("/entries/" + _entry).Status, Is.EqualTo(404), "update does not read");
+        }
+
+        [Test]
+        public void Changing_an_expiry_asks_nothing_of_the_protected_switch()
+        {
+            // When an entry expires is not a value the database protects, so a rule that may
+            // update and may not touch the password still moves it.
+            _vault.CreateField(_entry, "Password", "not-a-real-password", true);
+            _vault.Granting(_group, "{\"reader\":[\"update\"]}");
+
+            var answer = Send("PUT", "/entries/" + _entry, "{\"expires\":\"2031-02-03T04:05:06Z\"}");
+
+            Assert.That(answer.Status, Is.EqualTo(200), answer.Json);
+            Assert.That(_vault.Entry(_entry).Expires, Is.EqualTo(Moment));
+        }
+
+        [Test]
+        public void A_create_expires_when_it_is_told_to_and_never_otherwise()
+        {
+            _vault.NewEntryExpiresInDays = 30;
+            _vault.Granting(_group, "{\"reader\":[\"create\"]}");
+
+            var silent = Made(Send("POST", "/groups/" + _group + "/entries", "{\"Title\":\"x\"}"));
+            var empty = Made(Send("POST", "/groups/" + _group + "/entries", "{\"Title\":\"x\",\"expires\":\"\"}"));
+            var given = Made(Send("POST", "/groups/" + _group + "/entries",
+                                  "{\"Title\":\"x\",\"expires\":\"2031-02-03T04:05:06Z\"}"));
+
+            Assert.That(_vault.Entry(silent).Expires, Is.Null,
+                "the options give new entries an expiry, and a create that asked for none gets none");
+            Assert.That(_vault.Entry(empty).Expires, Is.Null);
+            Assert.That(_vault.Entry(given).Expires, Is.EqualTo(Moment));
+        }
+
+        [Test]
+        public void Auto_on_a_create_is_whatever_KeePass_s_options_give_a_new_entry()
+        {
+            _vault.Granting(_group, "{\"reader\":[\"create\"]}");
+
+            var off = Made(Send("POST", "/groups/" + _group + "/entries", "{\"expires\":\"auto\"}"));
+
+            _vault.NewEntryExpiresInDays = 30;
+            var before = DateTimeOffset.UtcNow.AddDays(30);
+            var on = Made(Send("POST", "/groups/" + _group + "/entries", "{\"expires\":\"auto\"}"));
+            var after = DateTimeOffset.UtcNow.AddDays(30);
+
+            Assert.That(_vault.Entry(off).Expires, Is.Null, "the option is off until somebody switches it on");
+            Assert.That(_vault.Entry(on).Expires, Is.InRange(before, after));
+        }
+
+        [Test]
+        public void Auto_on_an_update_is_refused()
+        {
+            // An entry that exists already has the expiry somebody decided on, and asking the
+            // options to decide it again is not a change this API makes.
+            _vault.NewEntryExpiresInDays = 30;
+            _vault.Expire(_entry, Moment);
+            _vault.Granting(_group, "{\"reader\":[\"update\"]}");
+
+            var answer = Send("PUT", "/entries/" + _entry, "{\"UserName\":\"x\",\"expires\":\"auto\"}");
+
+            Assert.That(answer.Status, Is.EqualTo(400), answer.Json);
+            Assert.That(answer.Json, Does.Contain("malformed"));
+            Assert.That(_vault.Entry(_entry).Expires, Is.EqualTo(Moment));
+            Assert.That(_vault.Field(_entry, "UserName"), Is.Null.Or.Empty, "nothing in the body was written");
+        }
+
+        [TestCase("2031-02-03", TestName = "a date with no time")]
+        [TestCase("2031-02-03T04:05:06", TestName = "a time with no zone")]
+        [TestCase("2031-02-03T04:05:06+01:00", TestName = "an offset rather than UTC")]
+        [TestCase("2031-02-03T04:05:06.5Z", TestName = "a fraction of a second")]
+        [TestCase("2031-02-03t04:05:06z", TestName = "the separators in lower case")]
+        [TestCase("2031-02-30T04:05:06Z", TestName = "a day the month does not have")]
+        [TestCase("never", TestName = "a word")]
+        [TestCase("AUTO", TestName = "auto in capitals")]
+        public void An_expiry_this_gate_does_not_read_is_refused_on_both_routes(string expires)
+        {
+            // One spelling, the one every moment this API answers with is written in, so the
+            // `expires` a read answers goes back as it came and nothing is guessed at.
+            _vault.Granting(_group, "{\"reader\":[\"create\",\"update\"]}");
+            var entries = _vault.Entries().Count;
+            var body = "{\"Title\":\"x\",\"expires\":\"" + expires + "\"}";
+
+            var created = Send("POST", "/groups/" + _group + "/entries", body);
+            var updated = Send("PUT", "/entries/" + _entry, body);
+
+            Assert.That(created.Status, Is.EqualTo(400), created.Json);
+            Assert.That(updated.Status, Is.EqualTo(400), updated.Json);
+            Assert.That(_vault.Entries().Count, Is.EqualTo(entries), "nothing was made");
+            Assert.That(_vault.Field(_entry, "Title"), Is.EqualTo("an invented service"), "nothing was changed");
+        }
+
+        /// <summary>A moment with nothing below the second, which is all a `.kdbx` keeps of one.</summary>
+        private static readonly DateTimeOffset Moment = new DateTimeOffset(2031, 2, 3, 4, 5, 6, TimeSpan.Zero);
+
+        /// <summary>What a create answered with, which is what addresses it.</summary>
+        private static string Made(Answer answer)
+        {
+            Assert.That(answer.Status, Is.EqualTo(VaultHandlers.Created), answer.Json);
+
+            var found = System.Text.RegularExpressions.Regex.Match(answer.Json, "\"uuid\":\"([0-9a-fA-F]{32})\"");
+            Assert.That(found.Success, Is.True, answer.Json);
+            return found.Groups[1].Value;
+        }
+
+        /// <summary>A request carrying the listing flag, the way the transport hands a parsed query on.</summary>
+        private Answer Asked(string method, string path, string includeExpired)
+        {
+            var head = new HttpRequestHead(
+                method,
+                path,
+                new Dictionary<string, string>(StringComparer.Ordinal) { { "includeExpired", includeExpired } },
+                new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase),
+                0);
+            var context = new GateContext(head, string.Empty, Paired());
+            new ServedDatabase(_vault).PutOn(context);
+
+            _router.Handle(context);
+
+            return new Answer(context.Status, context.Json);
         }
 
         private Answer Get(string path)

@@ -31,7 +31,7 @@ KeePassGate is sound under the strict reading of the linking question as well as
 | | |
 | --- | --- |
 | [`DESIGN.md`](DESIGN.md) | what to build, and a section attacking it |
-| [`API.md`](API.md) | the routes, what each verb is worth, and what is deliberately absent (TODO(step 15): it arrives with them) |
+| [`API.md`](API.md) | the reasoning behind the routes and what is deliberately absent, with the per-route detail in [`openapi.yaml`](src/KeePassGate/Spec/openapi.yaml) |
 | [`CA.md`](CA.md) | the certificate authority in full: issuance, claims, validation, revocation |
 | [`PAIRING.md`](PAIRING.md) | how a stranger becomes a client, with the flow diagrams |
 | [`FINDINGS.md`](FINDINGS.md) | what was measured rather than assumed, and what turned out wrong |

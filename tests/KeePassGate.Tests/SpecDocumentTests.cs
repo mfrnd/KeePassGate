@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using KeePassGate.Acl;
 using KeePassGate.Pipeline;
@@ -532,6 +531,89 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void An_operation_carries_the_query_parameters_it_declares()
+        {
+            // Read off the document rather than assumed empty, which is what lets the router
+            // refuse a name nobody declared without refusing every query for all time. Declared
+            // on the path item as well as on the operation, because OpenAPI allows either and
+            // every operation under a path item inherits its parameters.
+            var document = SpecDocument.Parse(Document(
+                "\"/a\":{\"parameters\":[{\"name\":\"since\",\"in\":\"query\"," +
+                "\"schema\":{\"type\":\"string\"}}]," +
+                "\"get\":{\"operationId\":\"readA\",\"x-kpg-verb\":\"read\"," +
+                "\"parameters\":[{\"name\":\"limit\",\"in\":\"query\"," +
+                "\"schema\":{\"type\":\"string\"}}]," +
+                "\"responses\":{\"200\":{\"description\":\"o\"}}}," +
+                "\"head\":{\"operationId\":\"headA\",\"x-kpg-verb\":\"read\"," +
+                "\"parameters\":[{\"name\":\"limit\",\"in\":\"query\"," +
+                "\"schema\":{\"type\":\"string\"}}]," +
+                "\"responses\":{\"200\":{\"description\":\"o\"}}}}"));
+
+            Assert.That(
+                document.Operations.Single(o => o.Method == "GET").Query,
+                Is.EquivalentTo(new[] { "since", "limit" }));
+            Assert.That(
+                document.Operations.Single(o => o.Method == "HEAD").Query,
+                Is.EquivalentTo(new[] { "since", "limit" }),
+                "the path item's own parameter inherited, and the operation's own declared");
+        }
+
+        [Test]
+        public void A_head_taking_other_query_parameters_than_its_own_get_stops_it_too()
+        {
+            // One request with the content left off, so one query. A name the get declares and
+            // the head does not is a target the router serves at the one and refuses as
+            // undeclared at the other, and the head would say nothing is there where the get
+            // answers with the entries.
+            var raised = Assert.Throws<InvalidOperationException>(() => SpecDocument.Parse(Document(
+                "\"/a\":{\"get\":{\"operationId\":\"readA\",\"x-kpg-verb\":\"read\"," +
+                "\"parameters\":[{\"name\":\"limit\",\"in\":\"query\"," +
+                "\"schema\":{\"type\":\"string\"}}]," +
+                "\"responses\":{\"200\":{\"description\":\"o\"}}}," +
+                "\"head\":{\"operationId\":\"headA\",\"x-kpg-verb\":\"read\"," +
+                "\"responses\":{\"200\":{\"description\":\"o\"}}}}")));
+
+            Assert.That(raised.Message, Does.Contain("disagree about the query parameters"));
+        }
+
+        [TestCase("{\"type\":\"string\",\"pattern\":\"^[a-f0-9]+$\"}", "pattern")]
+        [TestCase("{\"type\":\"string\",\"enum\":[\"root\"]}", "enum")]
+        [TestCase("{\"type\":\"integer\"}", "integer")]
+        public void A_path_parameter_schema_nothing_would_keep_is_refused(string schema, string named)
+        {
+            // What a body schema nothing enforces is refused for. A path parameter may be a string
+            // and say how long it is, and the router holds a segment to that; anything else the
+            // document said about a parameter loaded clean and was kept by nobody.
+            var raised = Assert.Throws<InvalidOperationException>(() => SpecDocument.Parse(Document(
+                "\"/a/{id}\":{\"get\":{\"operationId\":\"readA\",\"x-kpg-verb\":\"none\",\"parameters\":" +
+                "[{\"name\":\"id\",\"in\":\"path\",\"required\":true,\"schema\":" + schema + "}]," +
+                "\"responses\":{\"200\":{\"description\":\"o\"}}}," +
+                "\"head\":{\"operationId\":\"headA\",\"x-kpg-verb\":\"none\",\"parameters\":" +
+                "[{\"name\":\"id\",\"in\":\"path\",\"required\":true,\"schema\":" + schema + "}]," +
+                "\"responses\":{\"200\":{\"description\":\"o\"}}}}")));
+
+            Assert.That(raised.Message, Does.Contain("path parameter id"));
+            Assert.That(raised.Message, Does.Contain(named));
+        }
+
+        [TestCase("{\"type\":\"string\",\"maxLength\":3}", "maxLength")]
+        [TestCase("{\"type\":\"integer\"}", "integer")]
+        public void A_query_parameter_schema_nothing_would_keep_is_refused(string schema, string named)
+        {
+            // The router asks only whether a query name is declared, so a bound on its value was a
+            // bound the document stated and nothing held a request to.
+            var raised = Assert.Throws<InvalidOperationException>(() => SpecDocument.Parse(Document(
+                "\"/a\":{\"parameters\":[{\"name\":\"limit\",\"in\":\"query\",\"schema\":" + schema + "}]," +
+                "\"get\":{\"operationId\":\"readA\",\"x-kpg-verb\":\"none\"," +
+                "\"responses\":{\"200\":{\"description\":\"o\"}}}," +
+                "\"head\":{\"operationId\":\"headA\",\"x-kpg-verb\":\"none\"," +
+                "\"responses\":{\"200\":{\"description\":\"o\"}}}}")));
+
+            Assert.That(raised.Message, Does.Contain("query parameter limit"));
+            Assert.That(raised.Message, Does.Contain(named));
+        }
+
+        [Test]
         public void A_captured_name_the_operation_never_declares_is_refused()
         {
             // The document is what a client is generated from, so a segment it does not say is a
@@ -635,6 +717,21 @@ namespace KeePassGate.Tests
 
             Assert.That(writable, Is.Not.Null, "it is still castable; what matters is what that buys");
             Assert.Throws<NotSupportedException>(() => writable.Clear());
+        }
+
+        [Test]
+        public void The_query_names_it_hands_back_cannot_be_added_to_either()
+        {
+            // What the router refuses a query for, read on every connection too. Handed out as a
+            // set, a name added to it by anything holding the document was a name every later
+            // request could send.
+            var operation = SpecDocument.Embedded().Operations[0];
+            var writable = operation.Query as System.Collections.Generic.ICollection<string>;
+
+            Assert.That(operation.Query, Is.Not.InstanceOf<System.Collections.Generic.ISet<string>>());
+            Assert.That(writable, Is.Not.Null, "it is still castable; what matters is what that buys");
+            Assert.Throws<NotSupportedException>(() => writable.Add("limit"));
+            Assert.That(operation.DeclaresQuery("limit"), Is.False);
         }
 
         private static string Document(string paths)

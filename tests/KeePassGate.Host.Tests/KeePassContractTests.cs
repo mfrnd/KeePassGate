@@ -239,6 +239,27 @@ namespace KeePassGate.Host.Tests
             Assert.That(field.FieldType, Is.EqualTo(typeof(KeePassLib.PwEntry)));
         }
 
+        [Test]
+        public void The_expiry_KeePass_gives_new_entries_is_still_a_number_of_days_and_off_until_switched_on()
+        {
+            // What a create asking for `auto` applies, read off the options where KeePass's own
+            // Add Entry reads it. A number of days is what the create hands `AddDays`, and a
+            // negative one is the option switched off, which is how KeePass ships: one that
+            // shipped with it on would give every entry `auto` makes an expiry nobody chose.
+            var property = typeof(KeePass.App.Configuration.AceDefaults).GetProperty(
+                KeePassContract.NewEntryExpiresInDaysProperty, BindingFlags.Public | BindingFlags.Instance);
+
+            Assert.That(property, Is.Not.Null,
+                KeePassContract.NewEntryExpiresInDaysProperty + " is gone from KeePass's options");
+            Assert.That(property.PropertyType, Is.EqualTo(typeof(int)));
+            Assert.That(new KeePass.App.Configuration.AceDefaults().NewEntryExpiresInDays, Is.LessThan(0),
+                "a KeePass that ships the option switched on");
+            Assert.That(
+                typeof(KeePass.App.Configuration.AppConfigEx).GetProperty("Defaults").PropertyType,
+                Is.EqualTo(typeof(KeePass.App.Configuration.AceDefaults)),
+                "the options are read through `Program.Config.Defaults`, so that is where they have to be");
+        }
+
         [TestCase(KeePassContract.GroupFormTypeName)]
         [TestCase(KeePassContract.EntryFormTypeName)]
         public void Both_node_dialogs_still_keep_their_own_copy_of_custom_data(string typeName)

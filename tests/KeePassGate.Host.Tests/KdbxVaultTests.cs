@@ -165,6 +165,90 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void A_standard_field_the_database_protects_is_reported_protected_whatever_the_string_says()
+        {
+            // The two halves of one rule, which used to disagree in the direction that leaks. A
+            // `.kdbx` written by something other than KeePass can hold a standard string with no
+            // protection flag while the database's `MemoryProtection` protects that name, and
+            // KeePass only normalizes the five standard names on its own next save. Until then the
+            // write side refused the field and the read side handed the value over in clear,
+            // reporting it as never having been a secret.
+            var uuid = Created(_vault.CreateEntry(_vault.RootAlias, Named("an invented service")));
+            Assume.That(_vault.Protects(PwDefs.PasswordField), Is.True, "this database protects passwords");
+
+            Unflag(uuid, PwDefs.PasswordField, "not-a-real-password");
+
+            Assert.That(_vault.Read(uuid).Protected, Does.Contain(PwDefs.PasswordField),
+                "the database protects the name, so the value is a secret however it was stored");
+            Assert.That(_vault.Fields(uuid).Single(f => f.Name == PwDefs.PasswordField).IsProtected, Is.True,
+                "and the field listing, which is what the field route reads, has to agree");
+        }
+
+        [Test]
+        public void A_title_the_database_protects_is_withheld_from_a_listing_whatever_the_string_says()
+        {
+            // The listing half. A title and a URL are the two values `list` alone hands over, so
+            // they are the two a rule without the `protected` scope must not be given, and both
+            // are answered for here rather than by the handler.
+            var uuid = Created(_vault.CreateEntry(_vault.RootAlias, Named("an invented service")));
+
+            _database.Database.MemoryProtection.ProtectTitle = true;
+            _database.Database.MemoryProtection.ProtectUrl = true;
+
+            Assert.That(_vault.Entry(uuid).TitleProtected, Is.True);
+            Assert.That(_vault.Entry(uuid).UrlProtected, Is.True);
+        }
+
+        [Test]
+        public void A_custom_field_is_protected_only_when_the_string_says_so()
+        {
+            // The other half of the same rule, and why the flag term stays. The database says
+            // nothing about a name it does not know, so a custom field's protection is whatever
+            // the operator marked when it was created and nothing else.
+            var uuid = Created(_vault.CreateEntry(_vault.RootAlias, Named("an invented service")));
+
+            Assert.That(_vault.CreateField(uuid, "Invented", "a value", false).Ok, Is.True);
+            Assert.That(_vault.CreateField(uuid, "AlsoInvented", "a value", true).Ok, Is.True);
+
+            Assert.That(_vault.Read(uuid).Protected, Has.No.Member("Invented"));
+            Assert.That(_vault.Read(uuid).Protected, Does.Contain("AlsoInvented"));
+        }
+
+        /// <summary>
+        /// Stores a standard string with no protection flag, which is a state this plugin never
+        /// writes and a `.kdbx` from other software can hold.
+        /// </summary>
+        private void Unflag(string uuid, string name, string value)
+        {
+            Entry(uuid).Strings.Set(name, new KeePassLib.Security.ProtectedString(false, value));
+            Assume.That(Entry(uuid).Strings.Get(name).IsProtected, Is.False);
+        }
+
+        [Test]
+        public void A_password_stored_under_a_name_the_database_reads_as_the_password_is_protected()
+        {
+            // The other direction of the alias class, and it arrives rather than being made here:
+            // KeePass's loader sets an entry's strings one at a time and the dictionary keeps
+            // whichever key it saw first, so a file whose look-alike element precedes the password
+            // element carries the password under the look-alike key, through saves and reopens.
+            // KeePass reads it as the password; this plugin asked byte for byte and read a custom
+            // field carrying no flag, and handed it to every client with `read` and no `protected`.
+            var uuid = Created(_vault.CreateEntry(_vault.RootAlias, Named("an invented service")));
+            var entry = Entry(uuid);
+
+            entry.Strings.Remove(PwDefs.PasswordField);
+            entry.Strings.Set(PasswordAlias, new KeePassLib.Security.ProtectedString(false, "not-a-real-password"));
+
+            Assume.That(entry.Strings.ReadSafe(PwDefs.PasswordField), Is.EqualTo("not-a-real-password"),
+                "KeePass itself reads this as the entry's password");
+
+            Assert.That(_vault.Protects(PasswordAlias), Is.True);
+            Assert.That(_vault.Read(uuid).Protected, Does.Contain(PasswordAlias));
+            Assert.That(_vault.Fields(uuid).Single(f => f.Name == PasswordAlias).IsProtected, Is.True,
+                "and the field listing, which is what the field route reads, has to agree");
+        }
+
+        [Test]
         public void A_field_can_be_taken_off_again()
         {
             var uuid = Created(_vault.CreateEntry(_vault.RootAlias, Named("an invented service")));
@@ -386,7 +470,52 @@ namespace KeePassGate.Host.Tests
             Assert.That(_vault.Subgroups(_vault.RootAlias).Select(g => g.Uuid), Has.No.Member(Hex(bin.Uuid)),
                 "nor as a child of the root, which is where KeePass puts it");
             Assert.That(_vault.Group(Hex(bin.Uuid)), Is.Null, "nor answer for it by name");
-            Assert.That(_vault.Entries(Hex(bin.Uuid)), Is.Empty, "nor say what is in it");
+            Assert.That(_vault.Entries(Hex(bin.Uuid)), Is.Null, "nor say what is in it, even that it is empty");
+        }
+
+        [Test]
+        public void A_listing_of_something_not_there_is_null_rather_than_empty()
+        {
+            // An empty list is an answer about a group or an entry, that it holds nothing. One that
+            // is not there holds nothing for a client to be told about, and answering it as empty is
+            // what made a group removed under a request read as an empty group.
+            var group = Created(_vault.CreateGroup(_vault.RootAlias, "Fictitious", null));
+            var uuid = Created(_vault.CreateEntry(_vault.RootAlias, Named("an invented service")));
+            var nowhere = new string('a', 32);
+
+            Assert.That(_vault.Subgroups(group), Is.Empty, "a group with nothing in it is empty");
+            Assert.That(_vault.Entries(group), Is.Empty);
+            Assert.That(_vault.Attachments(uuid), Is.Empty, "and so is an entry with no attachments");
+
+            Assert.That(_vault.Subgroups(nowhere), Is.Null);
+            Assert.That(_vault.Entries(nowhere), Is.Null);
+            Assert.That(_vault.Fields(nowhere), Is.Null);
+            Assert.That(_vault.Attachments(nowhere), Is.Null);
+            Assert.That(_vault.IsOpen, Is.True, "and the database is open, so these are absences");
+        }
+
+        [Test]
+        public void A_closed_database_says_so_and_lists_nothing()
+        {
+            // What a lock does underneath a request: KeePass closes the database the vault reads,
+            // every lookup finds nothing, and this is what tells that apart from a node that has
+            // gone. Closed the way a lock closes it, and opened again the way an unlock does.
+            var uuid = Created(_vault.CreateEntry(_vault.RootAlias, Named("an invented service")));
+            Assume.That(_vault.IsOpen, Is.True);
+
+            _database.Lock();
+
+            Assert.That(_vault.IsOpen, Is.False);
+            Assert.That(_vault.Groups(), Is.Null, "no tree to read is not an empty one");
+            Assert.That(_vault.Entries(), Is.Null);
+            Assert.That(_vault.Subgroups(_vault.RootAlias), Is.Null);
+            Assert.That(_vault.Entries(_vault.RootAlias), Is.Null);
+            Assert.That(_vault.Fields(uuid), Is.Null);
+
+            _database.Unlock();
+
+            Assert.That(_vault.IsOpen, Is.True, "the same object, open again, as after an unlock");
+            Assert.That(_vault.Fields(uuid), Is.Not.Empty);
         }
 
         /// <summary>A node's identifier as this API spells it, which is what the tests compare.</summary>
@@ -405,6 +534,152 @@ namespace KeePassGate.Host.Tests
             Assert.That(_vault.Entry(uuid), Is.Null);
             Assert.That(_database.Database.DeletedObjects.UCount, Is.GreaterThan(0u),
                 "and it is written down as deleted, so a merge does not bring it back");
+        }
+
+        [Test]
+        public void An_update_naming_nothing_changes_nothing_and_saves_nothing()
+        {
+            // It used to be a full write: nothing was set, and `Touch` moved the modification time,
+            // the access time and the usage count anyway, with a history revision taken before it
+            // and the whole database saved after it. So a client holding `update` and no other
+            // verb could push every real revision of an entry out of its history, ten calls at the
+            // default `HistoryMaxItems`, and be told `200` each time.
+            var group = Created(_vault.CreateGroup(_vault.RootAlias, "Fictitious", null));
+            var uuid = Created(_vault.CreateEntry(group, Named("an invented service")));
+            _vault.UpdateEntry(uuid, Named("renamed"));
+
+            var entry = _database.RootGroup.FindEntry(new PwUuid(MemUtil.HexStringToByteArray(uuid)), true);
+            var modified = entry.LastModificationTime;
+            var used = entry.UsageCount;
+            var revisions = entry.History.UCount;
+            var saves = _saves;
+
+            Assert.That(_vault.UpdateEntry(uuid, new Dictionary<string, string>()).Ok, Is.True,
+                "an update that asks for nothing is not a refusal: the entry holds what it asked");
+            Assert.That(_vault.UpdateGroup(group, null, null).Ok, Is.True);
+
+            Assert.That(entry.LastModificationTime, Is.EqualTo(modified));
+            Assert.That(entry.UsageCount, Is.EqualTo(used));
+            Assert.That(entry.History.UCount, Is.EqualTo(revisions), "and it keeps its own history");
+            Assert.That(_saves, Is.EqualTo(saves), "nothing changed, so there was nothing to save");
+        }
+
+        [Test]
+        public void An_update_naming_nothing_still_answers_for_a_node_that_is_not_there()
+        {
+            // The lookup is what keeps this from being an `ok` about nothing at all. A node that is
+            // not there gets what every other route gives it.
+            Assert.That(_vault.UpdateEntry(new string('a', 32), new Dictionary<string, string>()).Ok,
+                Is.False);
+            Assert.That(_vault.UpdateGroup(new string('a', 32), null, null).Ok, Is.False);
+        }
+
+        [Test]
+        public void An_update_naming_only_what_is_already_there_changes_nothing_and_saves_nothing()
+        {
+            // The same request as one naming nothing, made by an agent writing back what it has
+            // just read to be sure of it. It took a revision of the entry on every call, so
+            // `update` alone pushed the real ones out of the history again, one call at a time.
+            var group = Created(_vault.CreateGroup(_vault.RootAlias, "Fictitious", "invented notes"));
+            var uuid = Created(_vault.CreateEntry(group, Named("an invented service"), VaultExpiry.At(Moment)));
+            Assume.That(_vault.CreateField(uuid, "Invented", "a value", false).Ok, Is.True);
+            Assume.That(_vault.UpdateField(uuid, PwDefs.PasswordField, "not-a-real-password").Ok, Is.True);
+            Assume.That(_vault.CreateAttachment(uuid, "note.txt", new byte[] { 1, 2, 3 }).Ok, Is.True);
+
+            var entry = Entry(uuid);
+            var parent = entry.ParentGroup;
+            var modified = entry.LastModificationTime;
+            var used = entry.UsageCount;
+            var revisions = entry.History.UCount;
+            var groupModified = parent.LastModificationTime;
+            var groupUsed = parent.UsageCount;
+            var saves = _saves;
+            Assume.That(_database.Database.Modified, Is.False, "every write so far was saved");
+
+            Assert.That(_vault.UpdateEntry(uuid, Named("an invented service"), VaultExpiry.At(Moment)).Ok, Is.True,
+                "an entry");
+            Assert.That(_vault.UpdateField(uuid, "Invented", "a value").Ok, Is.True, "a field");
+            Assert.That(_vault.UpdateField(uuid, PwDefs.PasswordField, "not-a-real-password").Ok, Is.True,
+                "a protected one, compared without being handed out");
+            Assert.That(_vault.UpdateAttachment(uuid, "note.txt", new byte[] { 1, 2, 3 }).Ok, Is.True,
+                "an attachment");
+            Assert.That(_vault.UpdateGroup(group, "Fictitious", "invented notes").Ok, Is.True, "a group");
+            Assert.That(_vault.UpdateGroup(group, "Fictitious", null).Ok, Is.True, "and half of one");
+
+            Assert.That(entry.History.UCount, Is.EqualTo(revisions), "no revision is added");
+            Assert.That(entry.LastModificationTime, Is.EqualTo(modified));
+            Assert.That(entry.UsageCount, Is.EqualTo(used));
+            Assert.That(parent.LastModificationTime, Is.EqualTo(groupModified));
+            Assert.That(parent.UsageCount, Is.EqualTo(groupUsed));
+            Assert.That(_saves, Is.EqualTo(saves), "nothing changed, so there was nothing to save");
+            Assert.That(_database.Database.Modified, Is.False, "and nothing is waiting to be saved either");
+        }
+
+        [Test]
+        public void An_update_naming_one_value_that_is_not_there_writes_the_whole_of_it()
+        {
+            // The rule is about the request, not about each value in it: one value the node does not
+            // hold makes it a change, and a change writes everything it names and keeps a revision.
+            var uuid = Created(_vault.CreateEntry(_vault.RootAlias, Named("an invented service"), VaultExpiry.At(Moment)));
+            var saves = _saves;
+            var asked = new Dictionary<string, string>
+            {
+                { PwDefs.TitleField, "an invented service" },
+                { "Invented", "a value" },
+            };
+
+            Assert.That(_vault.UpdateEntry(uuid, asked, VaultExpiry.At(Moment)).Ok, Is.True,
+                "a name the entry does not carry is a string to add");
+            Assert.That(_vault.UpdateEntry(uuid, Named("an invented service"), VaultExpiry.At(Moment.AddSeconds(1))).Ok,
+                Is.True, "and a moment it does not expire at is one to move to");
+
+            Assert.That(Entry(uuid).Strings.ReadSafe("Invented"), Is.EqualTo("a value"));
+            Assert.That(Entry(uuid).ExpiryTime, Is.EqualTo(Moment.AddSeconds(1).UtcDateTime));
+            Assert.That(Entry(uuid).History.UCount, Is.EqualTo(2u), "one revision for each change");
+            Assert.That(_saves, Is.EqualTo(saves + 2));
+            Assert.That(_database.Database.Modified, Is.False);
+        }
+
+        [Test]
+        public void An_expiry_is_already_there_only_when_it_is_the_one_in_force()
+        {
+            // KeePass keeps a moment for an entry that does not expire as well, so the flag is what
+            // decides: no expiry is already there whatever moment is kept, and a moment is already
+            // there only while the entry expires at it.
+            var never = Created(_vault.CreateEntry(_vault.RootAlias, Named("never")));
+            var dated = Created(_vault.CreateEntry(_vault.RootAlias, Named("dated"), VaultExpiry.At(Moment)));
+            Entry(never).ExpiryTime = Moment.UtcDateTime;
+            var none = new Dictionary<string, string>();
+            var saves = _saves;
+
+            Assert.That(_vault.UpdateEntry(never, none, VaultExpiry.Never).Ok, Is.True);
+            Assert.That(_vault.UpdateEntry(dated, none, VaultExpiry.At(Moment)).Ok, Is.True);
+            Assert.That(_saves, Is.EqualTo(saves), "both of those were already there");
+            Assert.That(Entry(never).History.UCount + Entry(dated).History.UCount, Is.Zero);
+
+            Assert.That(_vault.UpdateEntry(never, none, VaultExpiry.At(Moment)).Ok, Is.True);
+            Assert.That(_vault.UpdateEntry(dated, none, VaultExpiry.Never).Ok, Is.True);
+            Assert.That(_saves, Is.EqualTo(saves + 2), "and these two were not");
+            Assert.That(Entry(never).Expires, Is.True);
+            Assert.That(Entry(dated).Expires, Is.False);
+        }
+
+        [Test]
+        public void An_attachment_holding_the_same_bytes_unprotected_is_left_as_it_is()
+        {
+            // The route stores what it writes protected, which is its own choice and not something
+            // the request asks for, so the same bytes kept unprotected are already there. A file
+            // from other software can hold an attachment that way.
+            var uuid = Created(_vault.CreateEntry(_vault.RootAlias, Named("an invented service")));
+            Assume.That(_vault.CreateAttachment(uuid, "note.txt", new byte[] { 1 }).Ok, Is.True);
+            Entry(uuid).Binaries.Set("note.txt", new KeePassLib.Security.ProtectedBinary(false, new byte[] { 4, 5 }));
+            var saves = _saves;
+
+            Assert.That(_vault.UpdateAttachment(uuid, "note.txt", new byte[] { 4, 5 }).Ok, Is.True);
+
+            Assert.That(_saves, Is.EqualTo(saves));
+            Assert.That(Entry(uuid).Binaries.Get("note.txt").IsProtected, Is.False, "left exactly as it was");
+            Assert.That(Entry(uuid).History.UCount, Is.EqualTo(1u), "the create's revision and no other");
         }
 
         [Test]
@@ -596,6 +871,158 @@ namespace KeePassGate.Host.Tests
                 "an operator keeping no history keeps none through the API either");
         }
 
+        /// <summary>A moment with nothing below the second, which is all a `.kdbx` keeps of one.</summary>
+        private static readonly DateTimeOffset Moment = new DateTimeOffset(2031, 2, 3, 4, 5, 6, TimeSpan.Zero);
+
+        [Test]
+        public void An_expiry_is_read_as_KeePass_keeps_it()
+        {
+            // KeePass keeps whether an entry expires and when, and keeps the moment while the
+            // entry does not expire as well. The moment means something only while the flag says
+            // so, and a moment kept for an entry that does not expire is not one to answer with.
+            var uuid = Created(_vault.CreateEntry(_vault.RootAlias, Named("an invented service")));
+            var entry = Entry(uuid);
+
+            entry.ExpiryTime = Moment.UtcDateTime;
+            entry.Expires = false;
+
+            Assert.That(_vault.Entry(uuid).Expires, Is.Null, "a moment kept for an entry that does not expire");
+
+            entry.Expires = true;
+
+            Assert.That(_vault.Entry(uuid).Expires, Is.EqualTo(Moment));
+            Assert.That(_vault.Read(uuid).Entry.Expires, Is.EqualTo(Moment));
+            Assert.That(_vault.Entries().Single(e => e.Uuid == uuid).Expires, Is.EqualTo(Moment),
+                "and a listing carries it for the handler to judge");
+        }
+
+        [Test]
+        public void An_expiry_given_taken_off_and_moved_is_in_the_file_afterwards()
+        {
+            var uuid = Created(_vault.CreateEntry(_vault.RootAlias, Named("an invented service"), VaultExpiry.At(Moment)));
+
+            _database.SaveCloseAndReopen();
+
+            Assert.That(Entry(uuid).Expires, Is.True);
+            Assert.That(Entry(uuid).ExpiryTime, Is.EqualTo(Moment.UtcDateTime));
+
+            var reopened = new KdbxVault(_database.Database, Writer(), null);
+            Assert.That(reopened.UpdateEntry(uuid, new Dictionary<string, string>(), VaultExpiry.Never).Ok, Is.True);
+
+            _database.SaveCloseAndReopen();
+
+            Assert.That(Entry(uuid).Expires, Is.False);
+            Assert.That(Entry(uuid).ExpiryTime, Is.EqualTo(Moment.UtcDateTime),
+                "the moment is left where it was, as KeePass's own dialog leaves it");
+
+            var later = Moment.AddYears(1);
+            reopened = new KdbxVault(_database.Database, Writer(), null);
+            Assert.That(reopened.UpdateEntry(uuid, new Dictionary<string, string>(), VaultExpiry.At(later)).Ok, Is.True);
+
+            _database.SaveCloseAndReopen();
+
+            Assert.That(Entry(uuid).Expires, Is.True);
+            Assert.That(Entry(uuid).ExpiryTime, Is.EqualTo(later.UtcDateTime));
+        }
+
+        [Test]
+        public void An_update_naming_only_an_expiry_is_a_change_like_any_other()
+        {
+            // Saved, and kept in the entry's history, which is where KeePass's own Expire Now
+            // leaves the entry as it was too: an operator wanting the old expiry back finds it
+            // where every other overwritten value is.
+            var uuid = Created(_vault.CreateEntry(_vault.RootAlias, Named("an invented service")));
+            var saves = _saves;
+
+            Assert.That(_vault.UpdateEntry(uuid, new Dictionary<string, string>(), VaultExpiry.At(Moment)).Ok, Is.True);
+
+            Assert.That(_saves, Is.EqualTo(saves + 1));
+            Assert.That(Entry(uuid).History.UCount, Is.EqualTo(1u));
+            Assert.That(Entry(uuid).Expires, Is.True);
+        }
+
+        [Test]
+        public void Auto_gives_a_new_entry_what_KeePass_s_options_give_one()
+        {
+            // Read at the moment the entry is made, as KeePass's own Add Entry reads it, and
+            // restored afterwards, because it is the configuration of the KeePass running these.
+            var was = KeePass.Program.Config.Defaults.NewEntryExpiresInDays;
+
+            try
+            {
+                KeePass.Program.Config.Defaults.NewEntryExpiresInDays = -1;
+                var off = Created(_vault.CreateEntry(_vault.RootAlias, Named("off"), VaultExpiry.Auto));
+
+                KeePass.Program.Config.Defaults.NewEntryExpiresInDays = 0;
+                var early = DateTime.UtcNow;
+                var today = Created(_vault.CreateEntry(_vault.RootAlias, Named("today"), VaultExpiry.Auto));
+                var late = DateTime.UtcNow;
+
+                KeePass.Program.Config.Defaults.NewEntryExpiresInDays = 30;
+                var from = DateTime.UtcNow.AddDays(30);
+                var month = Created(_vault.CreateEntry(_vault.RootAlias, Named("a month"), VaultExpiry.Auto));
+                var to = DateTime.UtcNow.AddDays(30);
+
+                var silent = Created(_vault.CreateEntry(_vault.RootAlias, Named("silent")));
+
+                Assert.That(Entry(off).Expires, Is.False, "the option switched off");
+                Assert.That(Entry(today).Expires, Is.True, "zero days is now, which KeePass reads as expired at once");
+                Assert.That(Entry(today).ExpiryTime, Is.InRange(early, late));
+                Assert.That(Entry(month).Expires, Is.True);
+                Assert.That(Entry(month).ExpiryTime, Is.InRange(from, to));
+                Assert.That(Entry(silent).Expires, Is.False, "asked for and never assumed");
+            }
+            finally
+            {
+                KeePass.Program.Config.Defaults.NewEntryExpiresInDays = was;
+            }
+        }
+
+        [Test]
+        public void Auto_gives_nothing_in_the_entry_templates_group_as_KeePass_gives_nothing_there()
+        {
+            // A template's expiry would be copied into every entry made from it, which is why
+            // KeePass's own Add Entry applies no new-entry default in that group or under it.
+            var was = KeePass.Program.Config.Defaults.NewEntryExpiresInDays;
+
+            try
+            {
+                KeePass.Program.Config.Defaults.NewEntryExpiresInDays = 30;
+                var templates = Created(_vault.CreateGroup(_vault.RootAlias, "Invented templates", null));
+                var inside = Created(_vault.CreateGroup(templates, "Invented kinds", null));
+                _database.Database.EntryTemplatesGroup = new PwUuid(MemUtil.HexStringToByteArray(templates));
+
+                var template = Created(_vault.CreateEntry(templates, Named("a template"), VaultExpiry.Auto));
+                var deeper = Created(_vault.CreateEntry(inside, Named("a deeper template"), VaultExpiry.Auto));
+                var dated = Created(_vault.CreateEntry(templates, Named("a dated template"), VaultExpiry.At(Moment)));
+                var outside = Created(_vault.CreateEntry(_vault.RootAlias, Named("an entry"), VaultExpiry.Auto));
+
+                Assert.That(Entry(template).Expires, Is.False);
+                Assert.That(Entry(deeper).Expires, Is.False);
+                Assert.That(Entry(dated).ExpiryTime, Is.EqualTo(Moment.UtcDateTime), "a moment asked for outright");
+                Assert.That(Entry(outside).Expires, Is.True);
+            }
+            finally
+            {
+                KeePass.Program.Config.Defaults.NewEntryExpiresInDays = was;
+            }
+        }
+
+        [Test]
+        public void An_update_asking_for_auto_is_a_failure_on_this_side_and_writes_nothing()
+        {
+            // The handler refuses it with `400`, so only a defect above the vault can send one.
+            var uuid = Created(_vault.CreateEntry(_vault.RootAlias, Named("an invented service"), VaultExpiry.At(Moment)));
+            var saves = _saves;
+
+            var write = _vault.UpdateEntry(uuid, Named("renamed"), VaultExpiry.Auto);
+
+            Assert.That(write.IsFailed, Is.True, write.Reason);
+            Assert.That(_saves, Is.EqualTo(saves));
+            Assert.That(Entry(uuid).Strings.ReadSafe(PwDefs.TitleField), Is.EqualTo("an invented service"));
+            Assert.That(Entry(uuid).ExpiryTime, Is.EqualTo(Moment.UtcDateTime));
+        }
+
         [Test]
         public void A_read_taken_while_the_tree_moves_answers_or_says_it_could_not()
         {
@@ -741,6 +1168,26 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void A_standard_field_can_be_emptied_and_not_taken_off()
+        {
+            // Every entry KeePass makes has all five, and an entry left without its title read as
+            // an empty title in a listing and as no title at all in a read: a client could not
+            // tell a stripped field from one it was refused.
+            var uuid = Created(_vault.CreateEntry(_vault.RootAlias, Named("an invented service")));
+
+            foreach (var name in new[] { "Title", "UserName", "Password", "URL", "Notes" })
+            {
+                Assert.That(_vault.DeleteField(uuid, name).IsConflict, Is.True, name);
+            }
+
+            Assert.That(_vault.Fields(uuid).Select(f => f.Name),
+                Is.SupersetOf(new[] { "Title", "UserName", "Password", "URL", "Notes" }));
+            Assert.That(_vault.UpdateField(uuid, "Title", string.Empty).Ok, Is.True, "emptying is the way");
+            Assert.That(_vault.CreateField(uuid, "Invented", "a value", false).Ok, Is.True);
+            Assert.That(_vault.DeleteField(uuid, "Invented").Ok, Is.True, "and any other field goes as before");
+        }
+
+        [Test]
         public void A_change_whose_save_never_lands_leaves_the_database_as_it_was()
         {
             // The whole point of taking a change back out. A caller told the write did not land
@@ -750,7 +1197,7 @@ namespace KeePassGate.Host.Tests
             // nobody meant to put in it.
             _database.Database.RecycleBinEnabled = true;
             var group = Created(_vault.CreateGroup(_vault.RootAlias, "Fictitious", null));
-            var entry = Created(_vault.CreateEntry(group, Named("an invented service")));
+            var entry = Created(_vault.CreateEntry(group, Named("an invented service"), VaultExpiry.At(Moment)));
 
             // A group of its own for the removal, because a group only goes when it is empty and
             // the entry above is put back by its own undo before that line is reached.
@@ -770,6 +1217,8 @@ namespace KeePassGate.Host.Tests
             Assert.That(stuck.CreateEntry(group, Named("never written")).IsUnsaved, Is.True);
             Assert.That(stuck.CreateGroup(group, "never written", null).IsUnsaved, Is.True);
             Assert.That(stuck.UpdateEntry(entry, Named("renamed")).IsUnsaved, Is.True);
+            Assert.That(stuck.UpdateEntry(entry, Named("renamed"), VaultExpiry.At(Moment.AddYears(1))).IsUnsaved, Is.True);
+            Assert.That(stuck.UpdateEntry(entry, new Dictionary<string, string>(), VaultExpiry.Never).IsUnsaved, Is.True);
             Assert.That(stuck.UpdateGroup(group, "renamed", "notes").IsUnsaved, Is.True);
             Assert.That(stuck.CreateField(entry, "Another", "x", false).IsUnsaved, Is.True);
             Assert.That(stuck.UpdateField(entry, "Invented", "changed").IsUnsaved, Is.True);
@@ -800,7 +1249,8 @@ namespace KeePassGate.Host.Tests
         ///
         /// The history is in it because every change to an entry now adds a revision, and making
         /// one can prune an older one to stay inside the operator's limits. A change taken back
-        /// out therefore has to put the whole list back, not merely drop what it added.
+        /// out therefore has to put the whole list back, not merely drop what it added. The
+        /// expiry is in it because an update can move it or take it off, flag and moment alike.
         /// </remarks>
         private string Describe()
         {
@@ -822,7 +1272,9 @@ namespace KeePassGate.Host.Tests
                 text.Append("entry ").Append(entry.Uuid.ToHexString())
                     .Append(' ').Append(entry.ParentGroup.Uuid.ToHexString())
                     .Append(' ').Append(entry.LastModificationTime.Ticks)
-                    .Append(' ').Append(entry.LocationChanged.Ticks).Append('\n');
+                    .Append(' ').Append(entry.LocationChanged.Ticks)
+                    .Append(' ').Append(entry.Expires)
+                    .Append(' ').Append(entry.ExpiryTime.Ticks).Append('\n');
 
                 foreach (var pair in entry.Strings)
                 {

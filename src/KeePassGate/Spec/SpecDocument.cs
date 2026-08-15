@@ -18,19 +18,26 @@ namespace KeePassGate.Spec
             string operationId,
             string method,
             PathTemplate path,
+            IDictionary<string, OpenApiSchema> captures,
             bool needsIdentity,
             AclVerb verb,
             AclReach reach,
-            OpenApiSchema body)
+            OpenApiSchema body,
+            ISet<string> query)
         {
             OperationId = operationId;
             Method = method;
             Path = path;
+            Captures = new ReadOnlyDictionary<string, OpenApiSchema>(captures);
             NeedsIdentity = needsIdentity;
             Verb = verb;
             Reach = reach;
             Body = body;
+            _query = query;
+            Query = new ReadOnlyCollection<string>(new List<string>(query));
         }
+
+        private readonly ISet<string> _query;
 
         /// <summary>What a handler binds to. Never a path.</summary>
         public string OperationId { get; private set; }
@@ -39,6 +46,36 @@ namespace KeePassGate.Spec
         public string Method { get; private set; }
 
         public PathTemplate Path { get; private set; }
+
+        /// <summary>The schema each segment the path captures is held to, by the name it is captured under.</summary>
+        /// <remarks>
+        /// Internal for the reason <see cref="Body"/> is: the reader's schema has no read only form.
+        /// </remarks>
+        internal IReadOnlyDictionary<string, OpenApiSchema> Captures { get; private set; }
+
+        /// <summary>
+        /// Whether every segment a matched path captured is one its parameter allows.
+        /// </summary>
+        /// <remarks>
+        /// **A segment the schema refuses is a path the document does not declare.** Its lengths
+        /// were stated and nothing held a request to them: a uuid of three characters, or a field
+        /// name longer than any a body may create, matched its route and was left for a lookup to
+        /// answer, and a document that says a parameter is 32 characters was saying something the
+        /// plugin did not keep.
+        /// </remarks>
+        internal bool Admits(IReadOnlyDictionary<string, string> captured)
+        {
+            foreach (var pair in Captures)
+            {
+                string value;
+                if (captured == null || !captured.TryGetValue(pair.Key, out value) || !BodyCheck.Fits(pair.Value, value))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
 
         /// <summary>
         /// False only for the two routes an invitee may reach before it has a certificate. Default
@@ -62,7 +99,38 @@ namespace KeePassGate.Spec
         public AclReach Reach { get; private set; }
 
         /// <summary>The schema a body is checked against, or null when the operation takes none.</summary>
-        public OpenApiSchema Body { get; private set; }
+        /// <remarks>
+        /// **Internal, because it is the one part of this that cannot be made read only.** The
+        /// routing table is shared by every connection, which is why its operations are wrapped
+        /// before anybody is handed them, and `OpenApiSchema` is the reader's own object, with a
+        /// setter on every facet and no read only form. So nothing outside the assembly is given
+        /// it, and nothing inside it writes to it.
+        /// </remarks>
+        internal OpenApiSchema Body { get; private set; }
+
+        /// <summary>
+        /// The query parameters this operation declares, which today is `includeExpired` on the
+        /// two entry listings and on the heads beside them.
+        /// </summary>
+        /// <remarks>
+        /// Read off the document rather than assumed empty, because `API.md` §407 says filtering
+        /// and paging arrive here as query parameters on the list routes, and that one filter has.
+        /// What the router does with this is refuse a name that is not in it: the transport parses
+        /// a query and nothing consulted the answer, so a request scoping itself with one got the
+        /// whole collection back and was told nothing. What a declared name's value says is the
+        /// handler's to read, since the router holds a value to nothing.
+        ///
+        /// **Read only, as the operations around it are.** This is read on every connection, and a
+        /// set handed out as `ISet` needed no cast to be written to: anything holding the document
+        /// could change what every later request was refused for.
+        /// </remarks>
+        public IReadOnlyCollection<string> Query { get; private set; }
+
+        /// <summary>Whether a query parameter of this name is one the operation declares.</summary>
+        public bool DeclaresQuery(string name)
+        {
+            return name != null && _query.Contains(name);
+        }
     }
 
     /// <summary>
@@ -364,9 +432,12 @@ namespace KeePassGate.Spec
                             " was not saved is answered with.");
                     }
 
+                    var captures = new Dictionary<string, OpenApiSchema>(StringComparer.Ordinal);
+
                     foreach (var name in template.Parameters)
                     {
-                        if (!Declares(path.Value.Parameters, operation.Parameters, name))
+                        var declared = Declared(path.Value.Parameters, operation.Parameters, name);
+                        if (declared == null)
                         {
                             // The document says what this API is, so a route whose parameter
                             // it never declares is a route it does not describe. Checked here
@@ -377,16 +448,30 @@ namespace KeePassGate.Spec
                                 operation.OperationId +
                                 " declares no path parameter for it.");
                         }
+
+                        var unsupported = BodyCheck.SupportsParameter(declared.Schema);
+                        if (unsupported != null)
+                        {
+                            // What a body schema that cannot be enforced is refused for: a
+                            // constraint the document states and nothing checks.
+                            throw new InvalidOperationException(
+                                operation.OperationId + " declares a path parameter " + name +
+                                " this cannot check: " + unsupported);
+                        }
+
+                        captures[name] = declared.Schema;
                     }
 
                     operations.Add(new SpecOperation(
                         operation.OperationId,
                         method,
                         template,
+                        captures,
                         !IsTrue(operation.Extensions, UnauthenticatedExtension, operation.OperationId),
                         verb.Value,
                         reach,
-                        body));
+                        body,
+                        QueryNames(path.Value.Parameters, operation.Parameters)));
                 }
             }
 
@@ -520,25 +605,79 @@ namespace KeePassGate.Spec
                         operation.OperationId + " reaches " + operation.Reach +
                         ", so the head would be scoped differently from its own get.");
                 }
+
+                // The query is part of the request the pair is one of. A name one of them
+                // declares and the other does not is a target the router serves at one method and
+                // refuses as undeclared at the other, so a head would say nothing is there where
+                // its own get answers.
+                if (!new HashSet<string>(head.Query, StringComparer.Ordinal).SetEquals(operation.Query))
+                {
+                    throw new InvalidOperationException(
+                        head.OperationId + " and " + operation.OperationId +
+                        " disagree about the query parameters they take, so they are not one" +
+                        " request with the content left off.");
+                }
             }
         }
 
-        /// <summary>Whether either list declares this name as a path parameter.</summary>
+        /// <summary>Every query parameter either list declares.</summary>
         /// <remarks>
-        /// Both lists, because OpenAPI allows a path parameter on the path item, where every
-        /// operation under it inherits one, or on the operation itself.
+        /// Both lists, for the reason `Declared` reads both: OpenAPI puts a parameter on the path
+        /// item, where every operation under it inherits one, or on the operation itself.
         /// </remarks>
-        private static bool Declares(
-            IList<OpenApiParameter> onThePath, IList<OpenApiParameter> onTheOperation, string name)
+        private static ISet<string> QueryNames(
+            IList<OpenApiParameter> onThePath, IList<OpenApiParameter> onTheOperation)
         {
-            return Declares(onThePath, name) || Declares(onTheOperation, name);
+            var names = new HashSet<string>(StringComparer.Ordinal);
+
+            foreach (var parameters in new[] { onThePath, onTheOperation })
+            {
+                if (parameters == null)
+                {
+                    continue;
+                }
+
+                foreach (var parameter in parameters)
+                {
+                    if (parameter.In != ParameterLocation.Query)
+                    {
+                        continue;
+                    }
+
+                    var unsupported = BodyCheck.SupportsQuery(parameter.Schema);
+                    if (unsupported != null)
+                    {
+                        // The router asks whether a name is declared and never looks at its
+                        // value, so anything this says about one is something nothing keeps.
+                        throw new InvalidOperationException(
+                            "The routing table declares a query parameter " + parameter.Name +
+                            " this cannot check: " + unsupported);
+                    }
+
+                    names.Add(parameter.Name);
+                }
+            }
+
+            return names;
         }
 
-        private static bool Declares(IList<OpenApiParameter> parameters, string name)
+        /// <summary>The path parameter either list declares under this name, or null.</summary>
+        /// <remarks>
+        /// Both lists, because OpenAPI allows a path parameter on the path item, where every
+        /// operation under it inherits one, or on the operation itself. The operation's own comes
+        /// first, because OpenAPI lets it override the one it would have inherited.
+        /// </remarks>
+        private static OpenApiParameter Declared(
+            IList<OpenApiParameter> onThePath, IList<OpenApiParameter> onTheOperation, string name)
+        {
+            return Declared(onTheOperation, name) ?? Declared(onThePath, name);
+        }
+
+        private static OpenApiParameter Declared(IList<OpenApiParameter> parameters, string name)
         {
             if (parameters == null)
             {
-                return false;
+                return null;
             }
 
             foreach (var parameter in parameters)
@@ -546,11 +685,11 @@ namespace KeePassGate.Spec
                 if (parameter.In == ParameterLocation.Path
                     && string.Equals(parameter.Name, name, StringComparison.Ordinal))
                 {
-                    return true;
+                    return parameter;
                 }
             }
 
-            return false;
+            return null;
         }
 
         /// <summary>Whether the operation declares an answer under this status.</summary>

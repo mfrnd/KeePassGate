@@ -15,7 +15,9 @@ namespace KeePassGate.Vault
     /// **Reads happen on the connection's thread**, like every other read here, because KeePass's
     /// object model answers from one and `DESIGN.md` §119 measured that rather than assuming
     /// it. **Writes marshal and save**, and do not return until the database says it has no unsaved
-    /// changes, so a client told that something was written can believe it.
+    /// changes, so a client told that something was written can believe it. An update naming only
+    /// what the node already holds is marshaled and checked like any write and then saves nothing,
+    /// since it writes nothing: `openapi.yaml` §504 says why.
     ///
     /// **`root` is a group identifier.** Every method taking a group takes it, so a client holding
     /// `create` and nothing else can put an entry somewhere without first being granted `list` to
@@ -25,11 +27,30 @@ namespace KeePassGate.Vault
     /// Nothing here filters by permission. The rules are asked by the router, about the node each
     /// of these carries, and a vault that quietly returned less than it was asked for would make
     /// the audit a record of the wrong question.
+    ///
+    /// **A listing of something that is not there is null, never empty.** An empty list is an
+    /// answer about a group or an entry, that it holds nothing, and a group removed or a database
+    /// locked between the router's decision and the handler's read used to come back as one: a
+    /// client was told `200` and an empty group. Null is what every single lookup here already
+    /// answers for a node that is not there, and <see cref="IsOpen"/> is what tells a node that has
+    /// gone from a database that has, which `openapi.yaml` §503 and §502 answer differently.
     /// </remarks>
     public interface IVault
     {
         /// <summary>The alias every group identifier accepts, resolving to the root group.</summary>
         string RootAlias { get; }
+
+        /// <summary>
+        /// Whether the database is still open, with a tree to read.
+        /// </summary>
+        /// <remarks>
+        /// Asked once a lookup has found nothing, to say why. A lock or a close leaves every lookup
+        /// finding nothing, and a node in a database that has locked has not gone: the request is
+        /// answered as one meeting the locked database before routing is. Asked after the lookup
+        /// rather than before it, so that a lock landing between the two is answered as the lock it
+        /// is by then.
+        /// </remarks>
+        bool IsOpen { get; }
 
         /// <summary>
         /// Whether a value written under this name would be one the database protects.
@@ -45,11 +66,11 @@ namespace KeePassGate.Vault
         /// <summary>A group by identifier or by the root alias, or null when there is none.</summary>
         VaultGroup Group(string uuid);
 
-        /// <summary>Every group under this one, one level down.</summary>
+        /// <summary>Every group under this one, one level down, or null when it is not there.</summary>
         IReadOnlyList<VaultGroup> Subgroups(string uuid);
 
         /// <summary>Every group in the database, root included and the recycle bin aside, in tree
-        /// order.</summary>
+        /// order, or null when the database has no tree to read.</summary>
         IReadOnlyList<VaultGroup> Groups();
 
         /// <summary>An entry by identifier, or null when there is none.</summary>
@@ -58,19 +79,22 @@ namespace KeePassGate.Vault
         /// <summary>An entry and everything it holds, or null when there is none.</summary>
         VaultEntryDetail Read(string uuid);
 
-        /// <summary>The entries in a group, one level down.</summary>
+        /// <summary>The entries in a group, one level down, or null when it is not there.</summary>
         IReadOnlyList<VaultEntry> Entries(string groupUuid);
 
-        /// <summary>Every entry in the database, the recycle bin aside, in tree order.</summary>
+        /// <summary>Every entry in the database, the recycle bin aside, in tree order, or null when
+        /// the database has no tree to read.</summary>
         IReadOnlyList<VaultEntry> Entries();
 
-        /// <summary>The names of an entry's strings, never their values.</summary>
+        /// <summary>The names of an entry's strings, never their values, or null when it is not
+        /// there.</summary>
         IReadOnlyList<VaultField> Fields(string entryUuid);
 
         /// <summary>One string's value, or null when the entry or the name is not there.</summary>
         string Field(string entryUuid, string name);
 
-        /// <summary>The names and sizes of an entry's attachments, never their contents.</summary>
+        /// <summary>The names and sizes of an entry's attachments, never their contents, or null
+        /// when it is not there.</summary>
         IReadOnlyList<VaultAttachment> Attachments(string entryUuid);
 
         /// <summary>
@@ -115,9 +139,20 @@ namespace KeePassGate.Vault
         /// </remarks>
         VaultWrite DeleteGroup(string uuid);
 
-        VaultWrite CreateEntry(string groupUuid, IReadOnlyDictionary<string, string> fields);
+        /// <param name="expiry">
+        /// When the new entry expires, or null, as <see cref="VaultExpiry.Never"/>, for an entry
+        /// that does not expire.
+        /// </param>
+        VaultWrite CreateEntry(
+            string groupUuid, IReadOnlyDictionary<string, string> fields, VaultExpiry expiry = null);
 
-        VaultWrite UpdateEntry(string uuid, IReadOnlyDictionary<string, string> fields);
+        /// <param name="expiry">
+        /// When the entry expires from now on, or null to leave its expiry as it is.
+        /// <see cref="VaultExpiry.Auto"/> is a create's, and a vault given it here answers a failure
+        /// on this side, as it does an empty name for a new field.
+        /// </param>
+        VaultWrite UpdateEntry(
+            string uuid, IReadOnlyDictionary<string, string> fields, VaultExpiry expiry = null);
 
         VaultWrite DeleteEntry(string uuid);
 

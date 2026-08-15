@@ -144,9 +144,9 @@ namespace KeePassGate.Tests
         [TestCase("PUT", "/gate/status")]
         [TestCase("DELETE", "/gate/status")]
         [TestCase("PATCH", "/gate/status")]
-        [TestCase("POST", "/entries/7b1c")]
-        [TestCase("PATCH", "/entries/7b1c")]
-        [TestCase("DELETE", "/entries/7b1c/fields")]
+        [TestCase("POST", "/entries/7b1c0000000000000000000000000000")]
+        [TestCase("PATCH", "/entries/7b1c0000000000000000000000000000")]
+        [TestCase("DELETE", "/entries/7b1c0000000000000000000000000000/fields")]
         public void A_method_a_private_path_does_not_serve_tells_a_stranger_no_more_than_any_other(
             string method, string path)
         {
@@ -321,6 +321,119 @@ namespace KeePassGate.Tests
                 // gets for a route that is not there. It is admitted, so it is told the difference:
                 // nothing is withheld from it that asking on its own name would not answer.
                 Assert.That(context.Status, Is.EqualTo(404));
+            }
+        }
+
+        [Test]
+        public void A_query_parameter_the_document_does_not_declare_makes_the_target_undeclared()
+        {
+            // The transport splits a query off and parses it, and nothing read the answer, so
+            // `/gate/status?anything=1` was served as `/gate/status`: a caller scoping a request
+            // with a word this API never declared got the unscoped answer and was told nothing.
+            var context = Request("GET", GateOperations.StatusPath, Paired("db"), string.Empty,
+                new Dictionary<string, string> { { "anything", "1" } });
+
+            _router.Handle(context);
+
+            Assert.That(context.Status, Is.EqualTo(404));
+            Assert.That(context.Json, Does.Contain("no such route"));
+        }
+
+        [Test]
+        public void A_query_nothing_on_the_path_declares_is_undeclared_whatever_the_method()
+        {
+            // The query was asked about only once a method had matched, so a method the path does
+            // not serve answered `405` and named what it does serve, for a target the document does
+            // not declare at any method.
+            var query = new Dictionary<string, string> { { "anything", "1" } };
+
+            var admitted = Request("DELETE", GateOperations.StatusPath, Paired("db"), string.Empty, query);
+            var stranger = Request("GET", "/pair/hello", ClientIdentity.Stranger("db"), string.Empty, query);
+
+            _router.Handle(admitted);
+            _router.Handle(stranger);
+
+            Assert.That(admitted.Status, Is.EqualTo(404));
+            Assert.That(admitted.Headers, Is.Null, "an Allow field is a list of what the path serves");
+            Assert.That(stranger.Status, Is.EqualTo(401), "on a public path, what every caller with no certificate is told");
+        }
+
+        [Test]
+        public void A_body_the_operation_does_not_declare_is_refused_as_an_undeclared_request()
+        {
+            // Told what a query nobody declared is told: `404` to a client the database admits
+            // and the uniform `401` to anybody else, and nothing about the body either way.
+            var admitted = Request("GET", GateOperations.StatusPath, Paired("db"), "{\"group\":\"x\"}");
+            var stranger = Request("GET", GateOperations.StatusPath, ClientIdentity.Stranger("db"), "{\"group\":\"x\"}");
+
+            _router.Handle(admitted);
+            _router.Handle(stranger);
+
+            Assert.That(admitted.Status, Is.EqualTo(404));
+            Assert.That(admitted.Json, Does.Contain("no such route"));
+            Assert.That(stranger.Status, Is.EqualTo(401));
+        }
+
+        [Test]
+        public void A_query_another_method_on_the_path_declares_still_names_the_methods()
+        {
+            // A name the path does declare, at a method that was not asked for, is a target the
+            // document does declare, so it is the `405` it always was.
+            var document = SpecDocument.Parse(
+                "{\"openapi\":\"3.0.3\",\"info\":{\"title\":\"t\",\"version\":\"1\"},\"paths\":{" +
+                "\"/a\":{\"parameters\":[{\"name\":\"limit\",\"in\":\"query\",\"schema\":{\"type\":\"string\"}}]," +
+                "\"get\":{\"operationId\":\"readA\",\"x-kpg-verb\":\"none\",\"responses\":{\"200\":{\"description\":\"o\"}}}," +
+                "\"head\":{\"operationId\":\"headA\",\"x-kpg-verb\":\"none\",\"responses\":{\"200\":{\"description\":\"o\"}}}}}}");
+            OperationHandler handler = answering => answering.Respond(200, "{}");
+            var router = new SpecRouter(document, new Dictionary<string, OperationHandler>
+            {
+                { "readA", handler },
+                { "headA", handler },
+            });
+
+            var declared = Request("DELETE", "/a", Paired("db"), string.Empty,
+                new Dictionary<string, string> { { "limit", "5" } });
+            var undeclared = Request("DELETE", "/a", Paired("db"), string.Empty,
+                new Dictionary<string, string> { { "since", "5" } });
+
+            router.Handle(declared);
+            router.Handle(undeclared);
+
+            Assert.That(declared.Status, Is.EqualTo(405));
+            Assert.That(declared.Headers["Allow"], Is.EqualTo("GET, HEAD"));
+            Assert.That(undeclared.Status, Is.EqualTo(404));
+        }
+
+        [Test]
+        public void A_stranger_sending_one_is_told_what_every_caller_with_no_certificate_is_told()
+        {
+            // Refused as the undeclared target it is, which means the refusal is the uniform one
+            // rather than something that would tell a stranger the path is there.
+            var context = Request("GET", GateOperations.StatusPath, ClientIdentity.Stranger("db"),
+                string.Empty, new Dictionary<string, string> { { "anything", "1" } });
+
+            _router.Handle(context);
+
+            Assert.That(context.Status, Is.EqualTo(401));
+            Assert.That(context.Json, Does.Contain("unpaired"));
+        }
+
+        [Test]
+        public void The_one_query_parameter_is_the_expiry_flag_on_the_two_entry_listings()
+        {
+            // `API.md` 407: scoping is a path here, and filtering and paging were cut but for this
+            // one flag. The check reads the document rather than refusing every query for all
+            // time, so this is what says the document has not quietly grown another: a name
+            // declared is one the router lets through to a handler.
+            var declaring = GateOperations.Document.Operations.Where(o => o.Query.Count > 0).ToList();
+
+            Assert.That(
+                declaring.Select(o => o.OperationId).OrderBy(name => name, StringComparer.Ordinal),
+                Is.EqualTo(new[] { "headEntries", "headGroupEntries", "listEntries", "listGroupEntries" }));
+
+            foreach (var operation in declaring)
+            {
+                Assert.That(operation.Query, Is.EquivalentTo(new[] { "includeExpired" }), operation.OperationId);
             }
         }
 
@@ -513,6 +626,47 @@ namespace KeePassGate.Tests
             Assert.That(captured["uuid"], Is.EqualTo("abcdef01"));
         }
 
+        [Test]
+        public void A_segment_its_parameter_does_not_allow_is_a_path_the_document_does_not_declare()
+        {
+            // The document said a uuid is 32 characters and nothing held a request to it: three
+            // characters matched the route and were left for a lookup to answer. Refused as an
+            // undeclared path is, so not with a `405` naming what the path serves either.
+            var document = SpecDocument.Parse(
+                "{\"openapi\":\"3.0.3\",\"info\":{\"title\":\"t\",\"version\":\"1\"},\"paths\":{" +
+                "\"/entries/{uuid}\":{\"parameters\":[{\"name\":\"uuid\",\"in\":\"path\",\"required\":true," +
+                "\"schema\":{\"type\":\"string\",\"minLength\":32,\"maxLength\":32}}]," +
+                "\"get\":{\"operationId\":\"readEntry\",\"x-kpg-verb\":\"none\",\"responses\":{\"200\":{\"description\":\"o\"}}}," +
+                "\"head\":{\"operationId\":\"headEntry\",\"x-kpg-verb\":\"none\",\"responses\":{\"200\":{\"description\":\"o\"}}}}}}");
+
+            var reached = 0;
+            OperationHandler handler = answering =>
+            {
+                reached++;
+                answering.Respond(200, "{}");
+            };
+
+            var router = new SpecRouter(document, new Dictionary<string, OperationHandler>
+            {
+                { "readEntry", handler },
+                { "headEntry", handler },
+            });
+
+            var shortened = Request("GET", "/entries/" + new string('a', 31), Paired("db"));
+            var wrongMethod = Request("PATCH", "/entries/" + new string('a', 31), Paired("db"));
+            var whole = Request("GET", "/entries/" + new string('a', 32), Paired("db"));
+
+            router.Handle(shortened);
+            router.Handle(wrongMethod);
+            router.Handle(whole);
+
+            Assert.That(shortened.Status, Is.EqualTo(404));
+            Assert.That(shortened.Json, Does.Contain("no such route"));
+            Assert.That(wrongMethod.Status, Is.EqualTo(404), "not a 405: there is no such path");
+            Assert.That(whole.Status, Is.EqualTo(200));
+            Assert.That(reached, Is.EqualTo(1), "only the segment the schema allows reached the handler");
+        }
+
         /// <summary>A body the document accepts, so that a routing test measures routing.</summary>
         private const string Hello = "{\"proof\":\"AAAA\"}";
 
@@ -523,10 +677,20 @@ namespace KeePassGate.Tests
 
         private static GateContext Request(string method, string path, ClientIdentity client, string body)
         {
+            return Request(method, path, client, body, new Dictionary<string, string>());
+        }
+
+        private static GateContext Request(
+            string method,
+            string path,
+            ClientIdentity client,
+            string body,
+            IReadOnlyDictionary<string, string> query)
+        {
             var head = new HttpRequestHead(
                 method,
                 path,
-                new Dictionary<string, string>(),
+                query,
                 new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase),
                 body == null ? 0 : body.Length);
 

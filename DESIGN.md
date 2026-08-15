@@ -478,6 +478,16 @@ one of them can be stripped on its own would forbid the smaller act while allowi
 `...S....` strips an attachment and a protected field alike, and a removal takes both away with the
 entry around them.
 
+**One removal is asked about, and it is a removal only in form.** A rule holding `strip` and
+`create` can take a protected field away and write another under the same name, which is a
+substitution rather than a removal: what it ends with is a protected field holding a value the
+client chose, and `protected` is exactly the scope that governs writing one. So a strip is refused
+when the same rule could create in that field's place and could not have created a protected value
+there. The question is asked about `create`, never about `strip`, which is what leaves the paragraph
+above standing: a rule that may strip and may not create still takes a protected field off with no
+switch at all. The refusal is the `404` every other protected refusal gives, and the audit says
+which it was.
+
 **It governs writing too.** A rule holding `update` without `protected` may change a URL and may not
 overwrite a password, and one holding `create` without it may add a field but not a protected one.
 That half matters more than it first looks: reading a credential is the attack everybody pictures,
@@ -562,7 +572,9 @@ The OpenAPI document is the routing table, and it ships as an embedded resource.
 - **No schema library validates the body**, because every candidate costs more than the subset
   this wire carries is worth: fourteen assemblies, twenty, or a license an MIT plugin cannot take.
   What checks a body instead is a checker over that subset, one flat object of strings and arrays
-  of strings, plus a **startup refusal of any schema it does not implement**. That is what keeps a
+  of strings, plus a **startup refusal of any schema it does not implement**: a body's, a path
+  parameter's or a query parameter's, held keyword by keyword to a list of what each type there may
+  say, so that anything the checker would not act on refuses to load. That is what keeps a
   subset from becoming a gap: a construct nobody implemented stops the plugin loading, and can
   never be a body that went unchecked because the checker did not recognize its schema.
 - **The grammar is `Newtonsoft.Json`'s and the policy is ours**, which is the split worth keeping.
@@ -584,9 +596,10 @@ separately and bound to one handler, which is what makes RFC 9110 section 9.3.2'
 GET, except no content" true by construction rather than by two implementations agreeing.
 Deriving it instead would have left this document an incomplete account of what the API answers,
 which is the one thing it is for; refusing it would have left an HTTP requirement unmet for no
-gain. **A pair carries one verb between them**, one reach, one answer about needing a certificate
-and one about carrying a body. The plugin refuses to load a `get` with no `head`, or a pair that
-disagrees about any of them, because a `head` governed differently would answer whether
+gain. **A pair carries one verb between them**, one reach, one answer about needing a certificate,
+one about carrying a body, one set of query parameters and one guard. The plugin refuses to load a
+`get` with no `head`, or a pair that disagrees about any of them, because a `head` governed
+differently would answer whether
 a node exists to a caller its own `get` would have refused, which is an oracle rather than a
 route. The answer carries no length, which section 9.3.2 permits: it asks for the same header
 fields as GET and allows omitting the ones determined while generating the content.
@@ -637,6 +650,15 @@ So the rules here:
   as thread-agnostic as the reads are, but a change made on the request thread and saved on the UI
   thread has an instant between them for a dialog to open on the node, and the whole of the
   writer's argument is that there must not be one.
+
+  **So a read sees a change before its save does.** Reads take no lock against the writer, so a
+  change is in the tree for every other connection from the moment it is made, and a save that
+  fails takes it back out: a read in between can be handed a node, and with `read` its values,
+  that is then withdrawn and answered `404` like anything absent. It shows nothing the rules
+  would not, and it is what the read would have returned had the save landed. That is accepted
+  rather than locked against, because taking the writer's lock for a read is waiting on the user
+  interface thread's save, which is what this rule exists to avoid; `openapi.yaml` §501 says it
+  to the client.
 - **Persistence marshals with `BeginInvoke` and then waits on the handle**, never `Control.Invoke`,
   which has no timeout. One writer owns every write, so a request thread does wait on the UI thread.
   What that buys is a wait that ends: a marshal that does not complete fails the request rather than
@@ -655,6 +677,12 @@ So the rules here:
   hidden here: both put a message box on the screen and both wait on a person, so a request that
   provokes one holds its thread and the writer's lock until somebody presses OK. Nothing here
   bounds that, and pretending otherwise is what this paragraph used to do.
+
+  **For a database KeePass opened from a URL, the work is the network's.** The save reads the
+  file, uploads it and by default reads it back: each a download or an upload on KeePass's thread,
+  under the writer's lock, bounded only by the network timeouts KeePass gives it. For a server that
+  has stopped answering that is minutes, for every write and for every other write waiting behind
+  it.
 - **A plugin-wide write lock.** It closes the one race this design can close cheaply: two requests
   mutating the same entry at once. It does nothing about a user editing in the UI at the same
   moment, which stays exactly as unprotected as it is today.
@@ -702,6 +730,13 @@ So the rules here:
   KeePass's thread and the writer's lock for as long as it works. That is the operator's
   configuration doing what it was set up to do, so it is run rather than refused, and it is said
   here so that the list of what a write can wait on is not read as closed.
+- **Every `503` this gate sends carries `Retry-After: 2`**: `busy`, `locked` and pairing's own.
+  One number for all of them, written by the
+  response writer rather than by the four places that answer, so a refusal added later cannot be
+  the one that forgets. Which refusal it was is in the body, where a client that treats a lock
+  differently from a busy window reads it; the delay is the same because how long any of these
+  lasts is a person's business rather than this gate's, and two numbers would invite reading a
+  meaning into the difference that nothing here measured.
 - **Pairing is the one deliberate exception, and it is a real one.** `/pair/request` exists to ask
   the operator, and issuance writes the admission record and saves it before the certificate is
   handed over, because a certificate must not leave here until its record is on disk.
@@ -747,7 +782,11 @@ access, and its end is reported too, with how many decisions went unrecorded whi
 A line records the authorization and not what the request then did: it is written before
 the body is checked and before the handler runs, so a permitted line also stands for a request
 answered afterwards with a malformed body, a conflict, `503 busy` or a failure, none of which gets a
-line of its own.
+line of its own. **A lock is not a decision either.** A request that meets the database locked or
+closed before the router has decided about it, whether it was locked when the request arrived or
+locked while the request was being read, is answered `503 locked` and written down nowhere, because
+no rule was asked; a node that is simply not there while the database is open is still decided
+about, refused and recorded. `openapi.yaml` §502 states the rule for the caller.
 
 Three things step 14 settled about it. It defaults to this user's own application data rather than
 beside the `.kdbx`, because a database is often on a share or in a cloud folder and a record of
@@ -775,16 +814,16 @@ than the decision, because an audit that grows past eight megabytes is a smaller
 audit that silently stops.
 
 **A bound by size is a bound the caller can spend, so each client's lines are paced.** Every
-request an admitted client sends writes a line, a lookup of a node that is not there included, and
-with nothing holding it back one client rolled the file twice in under two minutes and took every
-earlier line out of both files, its own earlier reads among them. The threat model includes the
-caller, and a caller covering its tracks is the one the audit exists for. So `DecisionPace` lets a
-client be recorded a thousand times at once and ten times a second after that, per admission key,
-and a decision past that **waits** on the caller's own connection rather than being dropped or
-refused: a line left out is the loss being prevented, and a refusal would be a status the API does
-not have. That is a floor rather than a guarantee, since one flooding client now needs well over an
-hour to push a decision out of both files, and shipping the lines elsewhere is still what makes the
-record durable.
+decision about a request an admitted client sends writes a line, a lookup of a node that is not
+there included, and with nothing holding it back one client rolled the file twice in under two
+minutes and took every earlier line out of both files, its own earlier reads among them. The threat
+model includes the caller, and a caller covering its tracks is the one the audit exists for. So
+`DecisionPace` lets a client be recorded a thousand times at once and ten times a second after that,
+per admission key, and a decision past that **waits** on the caller's own connection rather than
+being dropped or refused: a line left out is the loss being prevented, and a refusal would be a
+status the API does not have. That is a floor rather than a guarantee, since one flooding client now
+needs well over an hour to push a decision out of both files, and shipping the lines elsewhere is
+still what makes the record durable.
 
 A line carries neither the profiles the client holds nor the verb it asked for. Which profiles a
 client has is in the database already, and a log repeating them is a second copy of the thing worth
@@ -1100,8 +1139,7 @@ Each step is refusable, and each ends with something that runs.
 15. **The database API**: the routes that read and change groups, entries, fields and attachments.
     They arrive with no new machinery, which is the point of everything under them: a verb in the
     document, a node selector beside the handler, and the router does the rest.
-    `API.md` is the account of them, and `openapi.yaml` is the contract.
-    TODO(step 15): `API.md` arrives with these routes.
+    [`API.md`](API.md) is the account of them, and `openapi.yaml` is the contract.
 16. **Running it**: two launchers that build, deploy and start the pinned KeePass with the plugin in
     it, one per configuration.
 17. **A profile gets a home**: the set of names a database knows, stored with the authority, with a page

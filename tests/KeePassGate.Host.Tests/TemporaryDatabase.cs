@@ -112,8 +112,24 @@ namespace KeePassGate.Host.Tests
         /// </remarks>
         public void LockAndUnlock()
         {
+            Lock();
+            Unlock();
+        }
+
+        /// <summary>The first half of <see cref="LockAndUnlock"/>: saved, and closed.</summary>
+        /// <remarks>
+        /// On its own for a test that asks something while the database is locked, which is when
+        /// everything holding the old root group is reading a tree nothing points at any more.
+        /// </remarks>
+        public void Lock()
+        {
             Save();
             _database.Close();
+        }
+
+        /// <summary>The second half: the same `PwDatabase`, opened again.</summary>
+        public void Unlock()
+        {
             _database.Open(IOConnectionInfo.FromPath(Path), KeyFor(), null);
         }
 

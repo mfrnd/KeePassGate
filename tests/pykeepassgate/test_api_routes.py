@@ -11,17 +11,19 @@ from __future__ import annotations
 import base64
 import json
 from collections.abc import Callable
+from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 from urllib.parse import quote
 
 import pytest
-import yaml
 
 from conftest import FakeGate
 from pykeepassgate import credentials as credentials_module
 from pykeepassgate.client import ROOT, GateClient
-from test_reference import DOCUMENT, operations
+from pykeepassgate.errors import ProtocolError
+from pykeepassgate.model import Attachment, Entry, Field, Group
+from test_reference import operations, routing_table
 
 UUID = "7b1c" * 8
 OTHER = "9f86" * 8
@@ -391,6 +393,9 @@ STANDARD_SENT = {
 ATTACHED = base64.b64encode(b"an invented attachment").decode("ascii")
 REPLACED = base64.b64encode(b"replaced").decode("ascii")
 
+#: A moment with nothing below the second, which is all a `.kdbx` keeps of one.
+MOMENT = datetime(2031, 2, 3, 4, 5, 6, tzinfo=UTC)
+
 #: Every call that puts a caller's value into a path or a body: the operation it is meant to be,
 #: the call, what fills the path's parameters, and the body it has to send, or None for none.
 #: Every optional argument is given, so a body missing a member the client can write is wrong.
@@ -414,15 +419,15 @@ WIRE: list[tuple[str, Callable[[GateClient], object], dict[str, str], dict[str, 
     ("readEntry", lambda c: c.entry(AWKWARD), {"uuid": AWKWARD}, None),
     (
         "createEntry",
-        lambda c: c.create_entry(AWKWARD, **STANDARD),
+        lambda c: c.create_entry(AWKWARD, **STANDARD, expires="auto"),
         {"uuid": AWKWARD},
-        STANDARD_SENT,
+        {**STANDARD_SENT, "expires": "auto"},
     ),
     (
         "updateEntry",
-        lambda c: c.update_entry(AWKWARD, **STANDARD),
+        lambda c: c.update_entry(AWKWARD, **STANDARD, expires=MOMENT),
         {"uuid": AWKWARD},
-        STANDARD_SENT,
+        {**STANDARD_SENT, "expires": "2031-02-03T04:05:06Z"},
     ),
     ("deleteEntry", lambda c: c.delete_entry(AWKWARD), {"uuid": AWKWARD}, None),
     ("listFields", lambda c: c.fields(AWKWARD), {"uuid": AWKWARD}, None),
@@ -477,7 +482,15 @@ WIRE: list[tuple[str, Callable[[GateClient], object], dict[str, str], dict[str, 
     ),
 ]
 
-#: One answer every reader above can take, since what is asserted here is the question.
+#: The two reads whose answer shares a member's name with another's and not its type: a field
+#: listing's `fields` is a list where an entry's is an object, and a field's `protected` is a flag
+#: where an entry's is a list of names. Each is answered as the gate answers it.
+OWN_ANSWER: dict[str, dict[str, Any]] = {
+    "listFields": {"fields": []},
+    "readField": {"name": "an invented name", "value": "x", "protected": False},
+}
+
+#: One answer every other reader above can take, since what is asserted here is the question.
 ANY_ANSWER: dict[str, Any] = {
     "uuid": UUID,
     "name": "an invented name",
@@ -498,11 +511,7 @@ ANY_ANSWER: dict[str, Any] = {
 @pytest.fixture(scope="module")
 def document() -> dict[str, Any]:
     """The routing table the plugin embeds, read from the same file it embeds."""
-    if not DOCUMENT.exists():  # pragma: no cover, only when the tree is not the repository
-        pytest.skip(f"no routing table at {DOCUMENT}")
-
-    parsed: dict[str, Any] = yaml.safe_load(DOCUMENT.read_text("utf-8"))
-    return parsed
+    return routing_table()
 
 
 def resolved(schema: dict[str, Any], document: dict[str, Any]) -> dict[str, Any]:
@@ -574,7 +583,7 @@ def test_every_call_sends_what_its_operation_declares(
 
     def answer(path: str, sent: str, client: bytes | None) -> tuple[int, str]:
         bodies.append(json.loads(sent) if sent else None)
-        return 200, json.dumps(ANY_ANSWER)
+        return 200, json.dumps(OWN_ANSWER.get(operation, ANY_ANSWER))
 
     gate.handler = answer
 
@@ -613,3 +622,291 @@ def test_every_call_that_carries_a_value_is_held_to_the_document(
     }
 
     assert carrying == {case[0] for case in WIRE}
+
+
+def test_a_read_entry_says_when_it_expires(gate: FakeGate, paired: GateClient) -> None:
+    """`None` is an entry that does not expire, and a moment is when one does."""
+    answering(
+        gate,
+        {
+            "uuid": UUID,
+            "group": OTHER,
+            "fields": {},
+            "protected": [],
+            "expires": "2001-02-03T04:05:06Z",
+        },
+    )
+
+    retired = paired.entry(UUID)
+
+    assert retired.expires == datetime(2001, 2, 3, 4, 5, 6, tzinfo=UTC)
+    assert retired.expired, "a moment in the past is an entry KeePass strikes through"
+
+    answering(gate, {"uuid": UUID, "group": OTHER, "fields": {}, "protected": [], "expires": None})
+
+    live = paired.entry(UUID)
+
+    assert live.expires is None
+    assert not live.expired
+
+
+def test_an_entry_expiring_later_has_not_expired(gate: FakeGate, paired: GateClient) -> None:
+    later = datetime.now(UTC) + timedelta(days=1)
+    answering(
+        gate,
+        {
+            "uuid": UUID,
+            "group": OTHER,
+            "fields": {},
+            "protected": [],
+            "expires": later.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        },
+    )
+
+    assert not paired.entry(UUID).expired
+
+
+def test_a_listed_entry_says_nothing_about_when_it_expires(
+    gate: FakeGate, paired: GateClient
+) -> None:
+    """Absent rather than never: a listing does not carry it, so a listed entry has none."""
+    listing = {"entries": [{"uuid": UUID, "group": OTHER, "title": "x", "url": ""}], "count": 1}
+    answering(gate, listing)
+
+    listed = paired.entries()[0]
+
+    assert not hasattr(listed, "expires")
+    with pytest.raises(AttributeError, match="listed rather than read"):
+        _ = listed.expired
+
+
+def test_a_read_that_says_nothing_about_expiry_has_none(gate: FakeGate, paired: GateClient) -> None:
+    """Not never, which is what `None` means here, and not the listing's message either."""
+    answering(gate, {"uuid": UUID, "group": OTHER, "fields": {}, "protected": []})
+
+    entry = paired.entry(UUID)
+
+    with pytest.raises(AttributeError, match="said nothing"):
+        _ = entry.expires
+
+
+@pytest.mark.parametrize("said", ["not a time", "", 20310203, "2031-02-03T04:05:06+01:00"])
+def test_an_expiry_this_client_cannot_read_is_refused_rather_than_read_as_never(
+    gate: FakeGate, paired: GateClient, said: object
+) -> None:
+    """Read as never, it would report a credential the operator retired as a live one."""
+    answering(gate, {"uuid": UUID, "group": OTHER, "fields": {}, "protected": [], "expires": said})
+
+    with pytest.raises(ProtocolError):
+        paired.entry(UUID)
+
+
+def test_a_listing_can_leave_expired_entries_out(gate: FakeGate, paired: GateClient) -> None:
+    """Kept unless asked, and asked in the one word the gate reads."""
+    answering(gate, {"entries": [], "count": 0})
+
+    paired.entries()
+    assert gate.requests[-1] == ("GET", "/entries"), "the default asks nothing of the query"
+
+    paired.entries(include_expired=False)
+    assert gate.requests[-1] == ("GET", "/entries?includeExpired=false")
+
+    paired.entries(group=UUID, include_expired=False)
+    assert gate.requests[-1] == ("GET", f"/groups/{UUID}/entries?includeExpired=false")
+
+
+def test_an_entry_is_made_to_expire_or_not(gate: FakeGate, paired: GateClient) -> None:
+    sent: list[dict[str, Any]] = []
+
+    def answer(path: str, body: str, client: bytes | None) -> tuple[int, str]:
+        sent.append(json.loads(body))
+        return 201, json.dumps({"uuid": UUID})
+
+    gate.handler = answer
+
+    paired.create_entry(title="x")
+    assert sent[-1] == {"Title": "x"}, "no expiry is asked for unless one is given"
+
+    paired.create_entry(title="x", expires="auto")
+    assert sent[-1] == {"Title": "x", "expires": "auto"}
+
+    paired.create_entry(title="x", expires=False)
+    assert sent[-1] == {"Title": "x", "expires": ""}
+
+    # In UTC, whatever zone the moment was given in, and to the second.
+    ahead = timezone(timedelta(hours=2))
+    paired.create_entry(title="x", expires=datetime(2031, 2, 3, 6, 5, 6, 789000, tzinfo=ahead))
+    assert sent[-1] == {"Title": "x", "expires": "2031-02-03T04:05:06Z"}
+
+
+def test_an_update_moves_an_expiry_or_takes_it_off(gate: FakeGate, paired: GateClient) -> None:
+    sent: list[dict[str, Any]] = []
+
+    def answer(path: str, body: str, client: bytes | None) -> tuple[int, str]:
+        sent.append(json.loads(body))
+        return 200, json.dumps({"ok": True})
+
+    gate.handler = answer
+
+    paired.update_entry(UUID, expires=MOMENT)
+    assert sent[-1] == {"expires": "2031-02-03T04:05:06Z"}
+
+    paired.update_entry(UUID, password="a-fresh-invented-one", expires=False)
+    assert sent[-1] == {"Password": "a-fresh-invented-one", "expires": ""}
+
+    paired.update_entry(UUID, username="agent-fictitious")
+    assert sent[-1] == {"UserName": "agent-fictitious"}, "left out, the expiry stays as it is"
+
+
+@pytest.mark.parametrize(
+    "call",
+    [
+        lambda c: c.create_entry(title="x", expires=datetime(2031, 2, 3, 4, 5, 6)),
+        lambda c: c.update_entry(UUID, expires=datetime(2031, 2, 3, 4, 5, 6)),
+        lambda c: c.update_entry(UUID, expires="auto"),
+        lambda c: c.create_entry(title="x", expires=True),
+        lambda c: c.create_entry(title="x", expires="Auto"),
+    ],
+    ids=["a create with no zone", "an update with no zone", "auto on an update", "true", "Auto"],
+)
+def test_an_expiry_the_gate_would_refuse_is_never_sent(
+    gate: FakeGate, paired: GateClient, call: Callable[[GateClient], object]
+) -> None:
+    """A moment with no time zone names no instant, and the rest the gate answers `400`."""
+    answering(gate, {"uuid": UUID})
+
+    with pytest.raises(ValueError, match="expiry"):
+        call(paired)
+
+    assert gate.requests == [], "refused before anything was dialed"
+
+
+#: Answers the gate never gives, one member missing or of the wrong type each, and the call that
+#: reads it. Only a plugin defect or a plugin and a client of different versions sends one.
+UNREADABLE: list[tuple[str, dict[str, Any], Callable[[GateClient], object]]] = [
+    ("a create with no uuid", {}, lambda c: c.create_entry(title="x")),
+    ("a null uuid", {"uuid": None}, lambda c: c.create_group("x")),
+    ("a uuid that is a number", {"uuid": 7}, lambda c: c.create_group("x")),
+    ("names rather than groups", {"groups": ["root"]}, lambda c: c.groups()),
+    ("a group with no name", {"groups": [{"uuid": UUID, "parent": None}]}, lambda c: c.subgroups()),
+    ("an entry with no group", {"entries": [{"uuid": UUID, "title": "x"}]}, lambda c: c.entries()),
+    (
+        "fields that are a list",
+        {"uuid": UUID, "group": OTHER, "fields": ["Title"], "protected": []},
+        lambda c: c.entry(UUID),
+    ),
+    (
+        "a value that is a number",
+        {"uuid": UUID, "group": OTHER, "fields": {"Title": 7}, "protected": []},
+        lambda c: c.entry(UUID),
+    ),
+    ("a field listed as unprotected by saying nothing", {"fields": [{"name": "x"}]},
+     lambda c: c.fields(UUID)),
+    ("a field whose value is a number", {"name": "x", "value": 7, "protected": False},
+     lambda c: c.field(UUID, "x")),
+    ("a size that is a word", {"attachments": [{"name": "a.txt", "size": "big"}]},
+     lambda c: c.attachments(UUID)),
+    ("content cut short", {"name": "a.txt", "size": 3, "content": "abc"},
+     lambda c: c.attachment(UUID, "a.txt")),
+    ("content outside the alphabet", {"name": "a.txt", "size": 3, "content": "YW!Jj"},
+     lambda c: c.attachment(UUID, "a.txt")),
+    ("no content", {"name": "a.txt", "size": 3, "content": None},
+     lambda c: c.attachment(UUID, "a.txt")),
+]
+
+
+@pytest.mark.parametrize(
+    ("answer", "call"),
+    [case[1:] for case in UNREADABLE],
+    ids=[case[0] for case in UNREADABLE],
+)
+def test_an_answer_this_client_cannot_read_is_a_protocol_error(
+    gate: FakeGate,
+    paired: GateClient,
+    answer: dict[str, Any],
+    call: Callable[[GateClient], object],
+) -> None:
+    """What `errors.py` promises rather than `KeyError`, `ValueError` or `binascii.Error`.
+
+    Each of these used to leave as one of those, outside the one root a caller catches, and end
+    the command line in a traceback. A `null` uuid came back as the word "None", addressed as a
+    group, and base64 read leniently dropped a character outside its alphabet and answered with
+    bytes the gate never sent.
+    """
+    answering(gate, answer)
+
+    with pytest.raises(ProtocolError):
+        call(paired)
+
+
+def test_a_moment_that_is_not_text_is_absent_rather_than_a_crash(
+    gate: FakeGate, paired: GateClient
+) -> None:
+    # A time the gate did not write is `None`, as one it wrote wrongly already was. A number used
+    # to reach `strptime` and leave as a `TypeError`.
+    answering(
+        gate, {"uuid": UUID, "group": OTHER, "fields": {}, "protected": [], "created": 20260304}
+    )
+
+    assert paired.entry(UUID).created is None
+
+
+@pytest.mark.parametrize("kind", [Entry, Group, Field, Attachment, GateClient])
+def test_nothing_here_has_a_save(kind: type) -> None:
+    # The first of the read model's two rules. `pykeepass` saves the file it opened, and a method
+    # that looks like that and does something else is worse than no method: a write here is one
+    # of the client's named calls, which says it is talking to a gate.
+    assert not hasattr(kind, "save")
+
+
+def test_a_listed_entry_holds_no_custom_fields_rather_than_none(
+    gate: FakeGate, paired: GateClient
+) -> None:
+    # The second rule: absent rather than empty. An empty dictionary here would report every
+    # entry a listing returned as having no custom fields, which nobody asked.
+    answering(gate, {"entries": [{"uuid": UUID, "group": OTHER, "title": "x", "url": ""}]})
+
+    with pytest.raises(AttributeError, match="listed rather than read"):
+        paired.entries()[0].custom()
+
+
+def test_a_value_withheld_on_its_own_still_says_it_is_protected(
+    gate: FakeGate, paired: GateClient
+) -> None:
+    # `is_read` cannot tell a withheld value from a name that was only listed: both are `None`.
+    # `protected` is what does, so it has to arrive as the gate said it.
+    answering(gate, {"name": "Password", "protected": True, "value": None})
+
+    read = paired.field(UUID, "Password")
+
+    assert read.protected
+    assert read.value is None
+
+
+def test_a_title_a_read_withholds_is_none_and_one_it_does_not_carry_is_empty(
+    gate: FakeGate, paired: GateClient
+) -> None:
+    # `None` is withheld wherever this client says it, and a read carries every string the entry
+    # holds, so a title it does not carry is one the entry does not have: empty, as KeePass shows
+    # it and as a listing of the same entry says.
+    answering(
+        gate,
+        {
+            "uuid": UUID,
+            "group": OTHER,
+            "created": "2026-03-04T05:06:07Z",
+            "fields": {"Title": None, "URL": None},
+            "protected": ["Title", "URL"],
+        },
+    )
+
+    withheld = paired.entry(UUID)
+
+    assert (withheld.title, withheld.url) == (None, None)
+    assert withheld.created == datetime(2026, 3, 4, 5, 6, 7, tzinfo=UTC), "in UTC, and aware"
+
+    answering(gate, {"uuid": UUID, "group": OTHER, "fields": {}, "protected": []})
+
+    bare = paired.entry(UUID)
+
+    assert (bare.title, bare.url) == ("", "")

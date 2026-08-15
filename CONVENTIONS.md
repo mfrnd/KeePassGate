@@ -53,23 +53,28 @@ proof established, not the code that established it.
 
 ## References
 
-**A reference to a decision names the section that settles it.** Four documents settle things,
-each from the step that writes it: `DESIGN.md`, `CA.md`, `PAIRING.md` and `API.md`. Every section
-of each carries a number, and everything else points at the number rather than at a title: code
-comments, the operator's pages, `CLAUDE.md` and commit messages alike. The form is a section sign
-and three digits. One grep then finds the paragraph that decides something and every place leaning
-on it, in one answer, which is what a reference by title never gives.
+**A reference to a decision names the section that settles it.** Four documents settle things:
+`DESIGN.md`, `CA.md`, `PAIRING.md` and `API.md`. Every section of each carries a number, and
+everything else points at the number rather than at a title: code comments, the operator's pages,
+`CLAUDE.md` and commit messages alike. The form is a section sign and three digits. One grep then
+finds the paragraph that decides something and every place leaning on it, in one answer, which is
+what a reference by title never gives. **The routing document is a fifth**,
+`src/KeePassGate/Spec/openapi.yaml`, which settles what each route answers, and it carries a number
+only where something cites it.
 
 **The numbers are flat and permanent.** Each document allocates from its own hundred, `DESIGN.md`
-from 100, `CA.md` from 200, `PAIRING.md` from 300 and `API.md` from 400, so a number says which
-document it is in before anything is looked up. A new section takes the next number above the
-highest that document has used, wherever in the document it is inserted. **A number is never
-renumbered and never reused.** Renumbering silently rewrites every reference that was correct the
-day before, and reusing a number that a deleted section held sends an old reference somewhere
-plausible and wrong, which is worse than sending it nowhere.
+from 100, `CA.md` from 200, `PAIRING.md` from 300, `API.md` from 400 and `openapi.yaml` from 500,
+so a number says which document it is in before anything is looked up. A new section takes the
+next number above the highest that document has used, wherever in the document it is inserted.
+**A number is never renumbered and never reused.** Renumbering silently rewrites every reference
+that was correct the day before, and reusing a number that a deleted section held sends an old
+reference somewhere plausible and wrong, which is worse than sending it nowhere.
 
 **A number is defined by sitting at the end of a heading and nowhere else**, so that what it names
-is always a section and never a sentence about one.
+is always a section and never a sentence about one. `openapi.yaml` has no headings, so there it sits
+at the end of a comment line between keys, beside the operation, schema, parameter or response it
+names. A `#` inside a description is part of the text a client reads, so a number is never written
+there, and neither is a reference.
 
 **Nothing else is anchored.** `CONVENTIONS.md`, `CLAUDE.md`, `TESTING.md`, `FINDINGS.md` and the
 pages a reader goes through start to finish are read rather than cited, and numbering them would

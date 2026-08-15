@@ -17,19 +17,26 @@ from __future__ import annotations
 import base64
 import json
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 from urllib.parse import quote
 
 from . import credentials as credentials_module
 from . import sni, transport
-from .errors import DatabaseLocked, GateBusy, NotAdmitted, ProtocolError, RouteRefused
-from .model import Attachment, Entry, Field, Group
+from .errors import DatabaseLocked, GateBusy, NotAdmitted, RouteRefused
+from .model import EXPIRES, Attachment, Entry, Field, Group, made
 
 STATUS_PATH = "/gate/status"
 
 ROOT = "root"
 """What every group identifier may say instead of a UUID."""
+
+INCLUDE_EXPIRED = "includeExpired"
+"""The query parameter that leaves expired entries out of a listing when it says `false`."""
+
+AUTO = "auto"
+"""What a create's expiry says to ask for the one KeePass's options give every new entry."""
 
 
 def _segment(text: str) -> str:
@@ -116,7 +123,7 @@ class GateClient:
         Anchored at the root, so it needs `list` there. A client granted less asks the group it was
         granted, with `subgroups`.
         """
-        return [Group.of(item) for item in self.get("/groups").get("groups", [])]
+        return Group.listing(self.get("/groups"))
 
     def group(self, uuid: str = ROOT) -> Group:
         """One group's own settings, which needs `read` rather than `list`."""
@@ -124,8 +131,7 @@ class GateClient:
 
     def subgroups(self, uuid: str = ROOT) -> list[Group]:
         """The groups directly inside this one."""
-        body = self.get(f"/groups/{_segment(uuid)}/groups")
-        return [Group.of(item) for item in body.get("groups", [])]
+        return Group.listing(self.get(f"/groups/{_segment(uuid)}/groups"))
 
     def create_group(self, name: str, parent: str = ROOT, notes: str | None = None) -> str:
         """Put a new group inside this one, and answer with what addresses it."""
@@ -133,7 +139,7 @@ class GateClient:
         if notes is not None:
             body["Notes"] = notes
 
-        return str(self.send("POST", f"/groups/{_segment(parent)}/groups", body)["uuid"])
+        return made(self.send("POST", f"/groups/{_segment(parent)}/groups", body))
 
     def update_group(self, uuid: str, name: str | None = None, notes: str | None = None) -> None:
         """Rename a group, or change its notes. Only what is named is written."""
@@ -151,14 +157,21 @@ class GateClient:
 
     # Entries
 
-    def entries(self, group: str | None = None) -> list[Entry]:
+    def entries(self, group: str | None = None, include_expired: bool = True) -> list[Entry]:
         """Every entry, or the ones directly inside a group.
 
         With no group this is the flat sweep, anchored at the root and recursive. With one it is
         that group's own entries, one level: a different question rather than the same one narrowed.
+
+        `include_expired=False` leaves out every entry that has expired, judged by the gate on its
+        own clock as KeePass judges one: it expires, at a moment that is now or earlier. The
+        default keeps them, as KeePass's own list does, and asks nothing of the query.
         """
         path = "/entries" if group is None else f"/groups/{_segment(group)}/entries"
-        return [Entry.listed(item) for item in self.get(path).get("entries", [])]
+        if not include_expired:
+            path = f"{path}?{INCLUDE_EXPIRED}=false"
+
+        return Entry.listing(self.get(path))
 
     def entry(self, uuid: str) -> Entry:
         """One entry and every string it holds.
@@ -175,14 +188,23 @@ class GateClient:
         password: str | None = None,
         url: str | None = None,
         notes: str | None = None,
+        expires: datetime | Literal["auto", False] | None = None,
     ) -> str:
         """Put a new entry in a group, and answer with what addresses it.
 
         Only the five standard strings, because adding anything else is a different verb: use
         `create_field` afterwards, which is what `create` and `update` being separate means.
+
+        `expires` is when the entry expires: a moment with a time zone; `"auto"`, for whatever
+        KeePass's options give every new entry, which is none unless the operator switched that
+        on; or `False`, or leaving it out, for an entry that does not expire. Nothing is assumed:
+        the options apply only when asked for.
         """
         body = self._standard(title, username, password, url, notes)
-        return str(self.send("POST", f"/groups/{_segment(group)}/entries", body)["uuid"])
+        if expires is not None:
+            body[EXPIRES] = _expiry(expires, creating=True)
+
+        return made(self.send("POST", f"/groups/{_segment(group)}/entries", body))
 
     def update_entry(
         self,
@@ -192,9 +214,18 @@ class GateClient:
         password: str | None = None,
         url: str | None = None,
         notes: str | None = None,
+        expires: datetime | Literal[False] | None = None,
     ) -> None:
-        """Change the standard fields of an entry. Only what is named is written."""
+        """Change the standard fields of an entry. Only what is named is written.
+
+        `expires` moves the entry's expiry to a moment, and `False` takes it off, which is how a
+        program that rotates an expired password leaves it unmarked. Left out, the expiry stays
+        as it is. `"auto"` is a new entry's alone and is refused here with `ValueError`.
+        """
         body = self._standard(title, username, password, url, notes)
+        if expires is not None:
+            body[EXPIRES] = _expiry(expires, creating=False)
+
         self.send("PUT", f"/entries/{_segment(uuid)}", body)
 
     def delete_entry(self, uuid: str) -> None:
@@ -205,25 +236,11 @@ class GateClient:
 
     def fields(self, uuid: str) -> list[Field]:
         """The names of an entry's strings, never their values."""
-        body = self.get(f"/entries/{_segment(uuid)}/fields")
-        return [
-            Field(name=str(item["name"]), protected=bool(item["protected"]))
-            for item in body.get("fields", [])
-        ]
+        return Field.listing(self.get(f"/entries/{_segment(uuid)}/fields"))
 
     def field(self, uuid: str, name: str) -> Field:
         """One string's value."""
-        body = self.get(f"/entries/{_segment(uuid)}/fields/{_segment(name)}")
-        # `None` survives as `None`, for the reason `Entry.read` gives: the gate answers a
-        # protected value this client may not read with `null`, and `str` would make that the word
-        # "None". `Field.is_read` is what asks, and it can only answer while the `None` is intact.
-        raw = body.get("value")
-
-        return Field(
-            name=str(body.get("name", name)),
-            protected=bool(body.get("protected")),
-            value=None if raw is None else str(raw),
-        )
+        return Field.read(self.get(f"/entries/{_segment(uuid)}/fields/{_segment(name)}"))
 
     def create_field(self, uuid: str, name: str, value: str, protected: bool = False) -> None:
         """Add a string this entry does not have. Refused when the name is already taken.
@@ -251,6 +268,8 @@ class GateClient:
 
         A strip rather than a delete: it removes a part of the entry and leaves the entry, so it
         needs `strip` on the entry and says nothing about whether the entry itself may be removed.
+        The five standard fields every entry has are refused, `RouteRefused` with `409`: empty one
+        with `update_field` instead.
         """
         self.send("DELETE", f"/entries/{_segment(uuid)}/fields/{_segment(name)}")
 
@@ -262,20 +281,11 @@ class GateClient:
         Needs the attachment switch as well as `list`, which is what the seventh letter of a grant
         means: not "may read attachments" but "and the attachments too".
         """
-        body = self.get(f"/entries/{_segment(uuid)}/attachments")
-        return [
-            Attachment(name=str(item["name"]), size=int(item["size"]))
-            for item in body.get("attachments", [])
-        ]
+        return Attachment.listing(self.get(f"/entries/{_segment(uuid)}/attachments"))
 
     def attachment(self, uuid: str, name: str) -> Attachment:
         """One attachment, contents and all."""
-        body = self.get(f"/entries/{_segment(uuid)}/attachments/{_segment(name)}")
-        return Attachment(
-            name=str(body.get("name", name)),
-            size=int(body.get("size", 0)),
-            content=_bytes(body.get("content")),
-        )
+        return Attachment.read(self.get(f"/entries/{_segment(uuid)}/attachments/{_segment(name)}"))
 
     def create_attachment(self, uuid: str, name: str, content: bytes) -> None:
         """Add an attachment this entry does not have."""
@@ -362,16 +372,29 @@ class GateClient:
         return reply.json()
 
 
-def _bytes(value: object) -> bytes:
-    """An attachment's content, or a refusal to guess at one.
+def _expiry(value: object, *, creating: bool) -> str:
+    """What `expires` carries for what a caller asked, or a refusal to send it.
 
-    `str` around this would turn a `null` into the word "None", which is valid base64 and
-    decodes to three bytes of something. Wrong data is worse than an error, so this is an error.
+    `False` is an entry that does not expire, which on an update takes an expiry off. A moment is
+    sent in UTC to the second, the one way the gate reads one and all a `.kdbx` keeps of one, so
+    anything below the second is dropped. One with no time zone is refused, because which instant
+    it names would be a guess. `"auto"` is a create's, and the gate answers it `400` on an update,
+    so it is refused here before anything is sent.
     """
-    if not isinstance(value, str):
-        raise ProtocolError("the gate sent an attachment with no content")
+    if value is False:
+        return ""
 
-    return base64.b64decode(value)
+    if isinstance(value, datetime):
+        if value.utcoffset() is None:
+            raise ValueError("an expiry needs a time zone, which datetime.now(UTC) has")
+
+        return value.astimezone(UTC).replace(microsecond=0, tzinfo=None).isoformat() + "Z"
+
+    if value == AUTO and creating:
+        return AUTO
+
+    allowed = "a moment, 'auto' or False" if creating else "a moment or False"
+    raise ValueError(f"an expiry is {allowed}, not {value!r}")
 
 
 def _refuse(reply: transport.Response) -> None:

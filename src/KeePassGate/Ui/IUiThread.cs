@@ -105,12 +105,15 @@ namespace KeePassGate.Ui
                 return false;
             }
 
-            // Already running, so the only honest answer is to wait for it. Bounded by the work
-            // rather than by a clock, and the work is nearly always bounded: the write is a save,
-            // and the dialog closes itself. The exception is a save that stops to ask something or
-            // has already gone wrong, which KeePass puts in a message box this wait then lasts
-            // until somebody answers. Returning here instead would let a caller release a lock
-            // while its own write was still going on.
+            // Already running, so the only honest answer is to wait for it. Returning instead
+            // would let a caller release a lock while its own write was still going on.
+            //
+            // **Bounded by the work rather than by a clock, and the work is nearly always
+            // bounded.** A file save ends, and the pairing dialog closes itself. The exceptions are
+            // a save that stops to ask something or has already gone wrong, which KeePass puts in a
+            // message box this wait then lasts until somebody answers, and whatever the save runs
+            // that is not KeePass's own: the operator's triggers and other plugins' save handlers
+            // take as long as they take. `DESIGN.md` §119 names the questions and the failures.
             pending.AsyncWaitHandle.WaitOne();
             _control.EndInvoke(pending);
             marshaled.Rethrow();

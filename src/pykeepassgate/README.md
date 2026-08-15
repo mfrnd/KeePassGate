@@ -70,6 +70,11 @@ pykeepassgate status
 pykeepassgate whoami
 ```
 
+An entry KeePass shows as expired is listed and read like any other, because an expiry is advice
+rather than a control. `client.entries(include_expired=False)` leaves the expired ones out, a read
+entry's `expires` says when it expires, and `client.update_entry(uuid, expires=False)` takes the
+mark off a password that has just been rotated.
+
 ## What to catch
 
 Every exception says what to do next rather than what went wrong, because that is the part a caller

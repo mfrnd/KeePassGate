@@ -207,7 +207,8 @@ namespace KeePassGate.Bridge
         /// </summary>
         /// <param name="change">
         /// Runs on the user interface thread, under the writer's lock. It returns what it decided:
-        /// a refusal stops the save from happening at all, so a conflict costs nothing.
+        /// a refusal stops the save from happening at all, so a conflict costs nothing, and so does
+        /// <see cref="VaultChange.Unchanged"/>, which is answered as having worked.
         /// </param>
         public VaultWrite Change(PwDatabase database, Func<VaultChange> change)
         {
@@ -286,6 +287,15 @@ namespace KeePassGate.Bridge
                 return decided == null || decided.Outcome == null
                     ? VaultWrite.Failed("nothing was written")
                     : decided.Outcome;
+            }
+
+            if (!decided.Changed)
+            {
+                // The node already held every value the request named, which the change found out
+                // here, on this thread and under this lock, where the answer cannot move before it
+                // is acted on. Nothing was touched, so nothing is saved and nothing on screen is out
+                // of date: `openapi.yaml` §504 says why writing anyway was the defect.
+                return decided.Outcome;
             }
 
             // Whether this call is the one that made the database dirty. A database that already
