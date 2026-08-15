@@ -144,7 +144,28 @@ So the shape that works: discover the keys through the accessibility tree with t
 closed through it, then drive the menu purely from synthesized keystrokes, then read the result back
 through the tree once nothing is modal.
 
-## 8. Reconstruction
+## 8. Storing an authority inside a database
+
+Established while building step 5. The first two decide where the private key lives; the rest cost
+time to find.
+
+| Fact | How it was established |
+| --- | --- |
+| **A PKCS#12 imported on .NET Framework writes a key file into `%APPDATA%\Microsoft\Crypto\Keys`** for as long as the certificate is loaded, and removes it on dispose. `EphemeralKeySet` keeps it off the disk entirely | counted the files either side of the import, `EphemeralKeyProbe` |
+| **An `EphemeralKeySet` certificate signs happily and SChannel will not do TLS with it in either direction.** A server gets `SEC_E_NO_CREDENTIALS`, a client never gets its certificate onto the wire. That is what put `Org.BouncyCastle.Tls` under the transport, which does serve with them, so no key this plugin loads reaches the disk | `EphemeralKeyProbe` case A, which is first and alone for the reason below |
+| **That is a correction.** An earlier reading of the same probe said ephemeral keys serve TLS. It had imported the same PKCS#12 with a persisted container moments before, and Windows found that key | reordering the cases changed the answer |
+| A `CertificateRequest.Create` under an issuer returns a certificate **with no private key**: it has to be married to the generated key with `CopyWithPrivateKey` | `HasPrivateKey` was false until it was |
+| An ECDSA P-256 authority is about 384 bytes of DER and 1.3 KB of base64 PKCS#12, so custom data holds it comfortably | measured on the issued certificates |
+| **`PwGroup.CustomData` has a setter, and it is not public.** KeePass can replace a group's custom data wholesale from inside its own assembly; a plugin can only set and remove keys one at a time | `PropertyInfo.CanWrite` says true, the compiler says no, and `GetSetMethod(true).IsPublic` says false |
+| **Every authority this plugin issues carries the same subject**, so telling a stored pair apart by issuer name accepts a host certificate from a foreign authority. The anchor pin is the only check that works | a test written to prove the name comparison correct failed instead |
+| **KeePass's own dialogs cannot be shown outside a running KeePass.** `GroupForm.Show` throws inside the message pump, and WinForms answers with its unhandled-exception dialog, which blocks a test run until something kills it | an automated run hung for five minutes on a window titled "Microsoft .NET Framework" |
+
+That last one bounds what the middle test tier can do. Constructing KeePass's dialogs works and is
+worth doing; showing them does not. So the snapshot hazard is measured in two halves: the mechanism
+by reflection over the real types, and the behavior by reproducing it with KeePass's own
+`CloneDeep` and a real `PwGroup`.
+
+## 9. Reconstruction
 
 The proofs were deleted once they had answered their questions. To rebuild any of them:
 
@@ -164,7 +185,7 @@ The proofs were deleted once they had answered their questions. To rebuild any o
 `TlsProbe.cs` on `spikes/tls-and-certificates` is kept because it answers the TLS question in
 isolation and is the cheapest way to re-check it on a new machine.
 
-## 9. The gate, and where it can run
+## 10. The gate, and where it can run
 
 **A warning is not a failure, and under `Stop` it becomes one.** A native command writing to stderr
 raises a terminating error as soon as anything upstream merges the streams, which is what capturing

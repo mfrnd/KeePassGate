@@ -82,6 +82,7 @@ words:
   # Cryptography and the transport
   - DPAPI
   - HMAC
+  - secp
 
   # The platform
   - CREAT

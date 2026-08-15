@@ -10,7 +10,7 @@ a database.
 
 **Status: the design is settled, steps 1 to 4 of the build order are done, and step 5, the
 authority, is under way.** The plugin loads into KeePass, puts a KPG tab on the database settings
-dialog and stops cleanly. It has no certificate authority, serves no API and opens no socket.
+dialog and stops cleanly. It serves no API and opens no socket.
 
 ## Read these before proposing anything
 
@@ -71,7 +71,7 @@ designing around them.
   and merges those key by key; a group's dictionary carries no stamps at all, so
   `PwGroup.AssignProperties` replaces the whole of it from whichever replica's group was touched
   last. Records shaped one-per-client to survive a merge did not. Two consequences worth keeping
-  straight. The authority's three parts are **one key**, because there the
+  straight. The authority's three parts are **one key**, `AuthorityDocument`, because there the
   argument runs the other way: merged apart, a certificate from one replica and a private key from
   another read as damage. And **a revocation is written empty rather than removed**, since a merge
   carries a newer value and carries nothing for a key that went. See CA.md §204.
@@ -178,7 +178,7 @@ file.
 ```powershell
 .\build.ps1                # build, then every test that does not need a running KeePass
 .\build.ps1 -Task All      # the above, then the end to end tests
-.\build.ps1 -Task Deploy   # copy the plugin into the provided KeePass's plugins directory
+.\build.ps1 -Task Deploy   # copy the plugin into plugins\KeePassGate in the provided KeePass
 ```
 
 **`build.ps1 -ListGates` is what CI asks for.** The workflow builds one job per name it returns, so

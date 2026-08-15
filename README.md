@@ -4,8 +4,7 @@ A KeePass 2.x plugin that serves a small, specification-defined HTTP API over mu
 automation and AI agents can each be given a narrow, revocable, audited slice of a database.
 
 **Design settled. The skeleton is built**: the plugin loads into KeePass, shows a KPG tab on the
-database settings dialog and stops cleanly. It has no certificate authority, serves no API and opens
-no socket yet.
+database settings dialog and stops cleanly. It serves no API and opens no socket yet.
 
 **License: MIT.** GPLv2 is not required. KeePass is GPL-2.0-or-later and grants no plugin exception,
 but the FSF's own requirement is a GPL-compatible license, and MIT is one, so a permissive
@@ -63,7 +62,7 @@ that does not depend on where the bytes came from.
 ```powershell
 .\build.ps1                # build, then every test that does not need a running KeePass
 .\build.ps1 -Task All      # the above, then the end to end tests
-.\build.ps1 -Task Deploy   # copy the plugin into the provided KeePass's plugins directory
+.\build.ps1 -Task Deploy   # copy the plugin into plugins\KeePassGate in the provided KeePass
 ```
 
 A plain DLL on .NET Framework 4.8, built with the `dotnet` CLI, opening in Visual Studio 2019 as
