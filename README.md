@@ -76,7 +76,29 @@ that does not depend on where the bytes came from.
 ```
 
 A plain DLL on .NET Framework 4.8, built with the `dotnet` CLI, opening in Visual Studio 2019 as
-well. [`TESTING.md`](TESTING.md) says what the three test tiers are for.
+well. [`TESTING.md`](TESTING.md) says what the test tiers are for.
+
+## The client
+
+[`src/pykeepassgate/`](src/pykeepassgate/README.md) is **PyKeePassGate**, the reference client:
+pairing, and every route the gate serves. `pykeepassgate.api` is the library and
+`pykeepassgate.cli` is a command line over it that can do nothing the library cannot.
+
+Reference implementation means the code is the second copy of the specification. Where it and the
+plugin disagree, one of them is wrong, and the protocol tests pin every construction against
+vectors the plugin itself produced, so a disagreement fails a test rather than a pairing.
+
+```shell
+uv sync
+uv run pykeepassgate pair --port 45678 --name agent-invented --profile-name reader
+uv run pykeepassgate status
+```
+
+The question a `pykeepass` user asks first is answered on `spikes/pykeepass-compatibility`, taken from
+`master` and never merged. Short version: not as a `PyKeePass` object, because that is a decrypted
+`.kdbx` and this side has neither the file nor the password, but 23 of its 56 public members are
+servable over the routes the API is to have. That branch's `RESULTS.md` has the table.
+TODO(step 15): those routes arrive with this step.
 
 ## The measurements
 

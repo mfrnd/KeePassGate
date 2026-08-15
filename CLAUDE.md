@@ -156,6 +156,31 @@ designing around them.
   subject out of the ACL could only ever be wrong here, however sensible it looks in a design that
   has something older to carry.
 
+- **PyKeePassGate is the reference client, and reference means load bearing.** It lives at
+  `src/pykeepassgate/`, imports as `pykeepassgate`, and is split into `pykeepassgate.api`, the
+  library, and `pykeepassgate.cli`, a command line that can do nothing the library cannot. A route
+  the gate serves and this does not cover is a gap, and a method here with no route behind it is a
+  lie. Its `pyproject.toml` is at the repository root because there is one Python project.
+- **The client's protocol code is pinned against the plugin's own output.**
+  `tests/pykeepassgate/test_protocol.py` holds vectors produced by `PairingToken`, `SniName` and
+  `PairingProof` over inputs written down beside them. Without those, both halves could agree on
+  something neither document describes, because both halves are code written here. Regenerate them
+  from the plugin rather than from the client if they ever have to change. `ProtocolVectorsTests`
+  holds the plugin to the same values, so a change to either half fails in that half's own tier.
+- **The client cannot be a `pykeepass` backend, and the reason is the design.** A `PyKeePass` is a
+  decrypted `.kdbx`, and this side of the API has neither the file nor the master password on
+  purpose. Its `save` writes the file it was opened from, so an edit to a synthesized one would
+  change a copy while the real database carried on and the ACL never saw the write.
+
+  **The read model that replaces it has two rules**: no `save`, because a method that looks like
+  theirs and does something else is worse than no method, and absent rather than empty, so a
+  missing feature is an attribute that is not there rather than a blank value.
+
+  Measured on `spikes/pykeepass-compatibility`, taken from `master` and never merged: of the 56 public
+  members on `PyKeePass`, 23 are servable over the routes the API is to have, 6 would need routes
+  nothing forbids, and 27 cannot exist here. Its `RESULTS.md` has the per member table and what
+  would have to change on each side. TODO(step 15): those routes arrive with this step.
+
 ## Measured facts that cost time if rediscovered
 
 Every one of these was established by running code, and most contradict what the documentation
@@ -284,7 +309,9 @@ file.
 
 ```powershell
 .\build.ps1                # prose, the client, the build, and every test that does not need KeePass
-.\build.ps1 -Task All      # the above, then the end to end tests
+.\build.ps1 -Task Lint     # markdownlint and cspell on their own
+.\build.ps1 -Task Client   # PyKeePassGate on its own: ruff, mypy, pytest
+.\build.ps1 -Task All      # the default, then the end to end tests
 .\build.ps1 -Task Deploy   # copy the plugin into plugins\KeePassGate in the provided KeePass
 ```
 
@@ -355,6 +382,18 @@ and `-pw:` puts the password in the process list, so it is only ever acceptable 
 layout, prose and commits. What follows is what this branch adds, because each of these depends on
 the tools this branch carries.
 
+- **Python is checked the way the C# is.** `ruff`, `mypy --strict` and `pytest` with a coverage
+  floor, all configured in the root `pyproject.toml`, all run by `build.ps1 -Task Client`, which
+  `Test` runs. `uv` owns the environment and `uv.lock` is committed, so every machine gets the same
+  versions.
+
+  **`ruff check` is the gate and `ruff format` is not**, which is a decision rather than an
+  omission: thirteen files have never been through the formatter and running it would rewrite them
+  all. What is enforced is what a formatter cannot decide for you, and `pycodestyle` is in the
+  selected rules, so a line too long or a space in the wrong place still fails. What is left to the
+  author is where a line breaks, which is a judgment this project spends deliberately. Adopting it
+  means reformatting everything in one commit that changes nothing else, not letting it arrive a
+  file at a time under other work.
 - **Docs stay with code.** A behavior or architecture change updates the design documents in the
   same pass, and reversals are recorded rather than edited away.
 
