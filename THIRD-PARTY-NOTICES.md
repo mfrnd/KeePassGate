@@ -1,5 +1,8 @@
 # Third party notices
 
+<!-- A copyright holder SharpYaml's license names, quoted as it is written there. -->
+<!-- cspell:ignore Aubry -->
+
 KeePassGate redistributes the components below, and what each license asks of that is one thing:
 that its copyright notice and its permission notice go with every copy. Each is reproduced here in
 full, as the component publishes it. Nothing packages a release yet, so this file is where they are
@@ -49,6 +52,78 @@ no private key this plugin holds is ever written to disk. Redistributed as
 > DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
 > OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.**
 
+## Microsoft.OpenApi, Microsoft.OpenApi.Readers
+
+> Copyright (c) Microsoft Corporation. All rights reserved.
+>
+> MIT License
+>
+> Permission is hereby granted, free of charge, to any person obtaining a copy
+> of this software and associated documentation files (the "Software"), to deal
+> in the Software without restriction, including without limitation the rights
+> to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+> copies of the Software, and to permit persons to whom the Software is
+> furnished to do so, subject to the following conditions:
+>
+> The above copyright notice and this permission notice shall be included in all
+> copies or substantial portions of the Software.
+>
+> THE SOFTWARE IS PROVIDED *AS IS*, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+> IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+> FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+> AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+> LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+> OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+> SOFTWARE.
+
+## SharpYaml
+
+> Copyright (c) 2013-2022 SharpYaml - Alexandre Mutel
+>
+> Permission is hereby granted, free of charge, to any person obtaining a copy
+> of this software and associated documentation files (the "Software"), to deal
+> in the Software without restriction, including without limitation the rights
+> to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+> copies of the Software, and to permit persons to whom the Software is
+> furnished to do so, subject to the following conditions:
+>
+> The above copyright notice and this permission notice shall be included in
+> all copies or substantial portions of the Software.
+>
+> THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+> IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+> FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+> AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+> LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+> OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+> THE SOFTWARE.
+
+SharpYaml is a fork of YamlDotNet, and its license carries YamlDotNet's beside its own:
+
+> Copyright (c) 2008, 2009, 2010, 2011, 2012 Antoine Aubry
+>
+> Permission is hereby granted, free of charge, to any person obtaining a copy of
+> this software and associated documentation files (the "Software"), to deal in
+> the Software without restriction, including without limitation the rights to
+> use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+> of the Software, and to permit persons to whom the Software is furnished to do
+> so, subject to the following conditions:
+>
+> The above copyright notice and this permission notice shall be included in all
+> copies or substantial portions of the Software.
+>
+> THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+> IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+> FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+> AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+> LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+> OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+> SOFTWARE.
+
+It arrives with `Microsoft.OpenApi.Readers`, whose package depends on it whether or not any YAML is
+parsed. Since it ships either way, the routing table is written in YAML rather than JSON: shipping a
+YAML reader and then not using it would have cost the readability for nothing.
+
 ## Newtonsoft.Json
 
 > The MIT License (MIT)
@@ -85,3 +160,14 @@ one candidate and links none of the others, so nothing on this side inherits any
 
 That is what makes the LGPL-2.1 candidate a decision rather than a problem: measuring a library is
 not taking it. The branch carries its own `THIRD-PARTY-NOTICES.md` for what it redistributes.
+
+## What is actually redistributed
+
+Five assemblies, and all of them are MIT: `BouncyCastle.Cryptography`, `Microsoft.OpenApi`,
+`Microsoft.OpenApi.Readers`, `SharpYaml` and `Newtonsoft.Json`. `build.ps1 -Task Deploy` copies every
+DLL from the build output, so what ships is exactly that list, and puts this file beside them. It
+takes the file from the repository, since the build output holds no copy of it, which is why the
+head of this file puts carrying it on whatever packages a release as well.
+
+This file is maintained by hand and is to be re-checked against the resolved package set as each
+step lands.

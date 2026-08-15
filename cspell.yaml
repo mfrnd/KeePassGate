@@ -140,6 +140,10 @@ words:
   - wasmtime
   - libwasmtime
 
+  # People credited in `THIRD-PARTY-NOTICES.md`
+  - Alexandre
+  - Mutel
+
   # More of the platform, and of the wire
   - Consolas
   - Ecas

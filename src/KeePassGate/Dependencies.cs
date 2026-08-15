@@ -25,6 +25,9 @@ namespace KeePassGate
     /// **Never inlined**, because the runtime resolves these types as it compiles the method that
     /// names them. Written into `Initialize`, a missing assembly would fail the call before the
     /// guard inside it, where nothing is logged.
+    ///
+    /// `SharpYaml` is not among them, since the plugin names nothing in it:
+    /// `Microsoft.OpenApi.Readers` loads it the first time a document is read.
     /// </remarks>
     internal static class Dependencies
     {
@@ -35,7 +38,9 @@ namespace KeePassGate
             return new[]
             {
                 typeof(Newtonsoft.Json.JsonTextReader).Assembly,
-                typeof(Org.BouncyCastle.Utilities.Arrays).Assembly
+                typeof(Org.BouncyCastle.Utilities.Arrays).Assembly,
+                typeof(Microsoft.OpenApi.Models.OpenApiDocument).Assembly,
+                typeof(Microsoft.OpenApi.Readers.OpenApiStringReader).Assembly
             };
         }
     }

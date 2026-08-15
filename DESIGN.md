@@ -744,7 +744,7 @@ Each step is refusable, and each ends with something that runs.
     They arrive with no new machinery, which is the point of everything under them: a verb in the
     document, a node selector beside the handler, and the router does the rest.
     `API.md` is the account of them, and `openapi.yaml` is the contract.
-    TODO(step 11): `openapi.yaml` arrives with step 11, and `API.md` with these routes.
+    TODO(step 15): `API.md` arrives with these routes.
 16. **Running it**: two launchers that build, deploy and start the pinned KeePass with the plugin in
     it, one per configuration.
 17. **A profile gets a home**: the set of names a database knows, stored with the authority, with a page

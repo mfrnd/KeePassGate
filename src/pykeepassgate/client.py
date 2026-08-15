@@ -75,12 +75,10 @@ class GateClient:
     def status(self) -> Status:
         """The route that proves a connection and nothing else.
 
-        It reads nothing out of the database on purpose, which is why it will be one of the
-        three routes declaring `x-kpg-verb: none`, the other two being the pairing ones: no
-        grant could allow or refuse it, because it reaches nothing a grant is about. It
-        exists to prove a connection rather than to be useful.
-        TODO(step 12): the routing document declares that extension at step 11, and every
-        route carries one from step 12, which is when the count of three becomes true.
+        It reads nothing out of the database on purpose, which is why it is one of the three
+        routes declaring `x-kpg-verb: none`, the other two being the pairing ones: no grant
+        could allow or refuse it, because it reaches nothing a grant is about. It exists to
+        prove a connection rather than to be useful.
 
         A client can use it to answer three questions at once: whether the gate is listening,
         whether this certificate is still admitted, and whether the database is unlocked.

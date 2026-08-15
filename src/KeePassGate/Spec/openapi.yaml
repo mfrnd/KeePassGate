@@ -1,0 +1,290 @@
+openapi: 3.0.3
+
+info:
+  title: KeePassGate
+  version: 0.1.0
+  description: |
+    The routing table, not a description of one. This document ships embedded in the plugin and is
+    read at startup: an operation with no handler, or a handler with no operation, stops the plugin
+    loading rather than becoming a 404 somebody finds later. A path that is not declared here has
+    nowhere to go.
+
+    HEAD is declared nowhere and served everywhere GET is, by running the GET operation and
+    discarding the content. RFC 9110 section 9.3.2 permits omitting header fields determined while
+    generating that content, which is why the answer carries no length. Declaring a second operation
+    per route would have meant two operationIds for one behavior and a document that could disagree
+    with itself.
+
+    `x-kpg-unauthenticated` marks the two routes an invitee may reach before it has a certificate.
+    Everything else needs one, by default rather than by remembering to say so.
+
+    `x-kpg-verb` is what the access control layer will read to decide what an operation may do. It is
+    declared now so that the document stays the single account of what this API permits, and nothing
+    reads it yet. TODO(step 12): that layer arrives with the access control model, which is also
+    when a route that declares no verb stops the plugin loading.
+
+servers:
+  - url: https://127.0.0.1:{port}
+    description: |
+      Loopback only, and reaching it from elsewhere is a tunnel's job.
+
+      **The address is where a connection is made and not what it is made to.** Every connection
+      is resolved by the name in its ClientHello, which is one name per connection, computed from
+      the gate key this client was given when it paired. No TLS client sends a name for an IP
+      literal, so a client that offers this address alone offers no name, and a connection with no
+      name is dropped without a byte back. The host certificate is issued for that name rather than
+      for the address, so a client pins the authority instead of matching a host.
+    variables:
+      port:
+        default: "51776"
+        description: Chosen at startup, or set with KEEPASSGATE_PORT.
+
+paths:
+  /gate/status:
+    get:
+      operationId: getStatus
+      summary: Whether the gate is serving, and which database this client reached.
+      description: |
+        Reads nothing out of the database. It exists to prove a connection: that the gate is
+        listening, that this certificate is still admitted, and that the database is unlocked.
+      x-kpg-verb: none
+      responses:
+        "200":
+          description: Serving.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, database, version]
+                additionalProperties: false
+                properties:
+                  ok:
+                    type: boolean
+                  database:
+                    type: string
+                    description: |
+                      The first characters of the authority's digest, which is what names a database
+                      without naming it.
+                  version:
+                    type: string
+        "401":
+          $ref: "#/components/responses/Unpaired"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+
+  /pair/hello:
+    post:
+      operationId: pairHello
+      summary: Prove the invitation, and be proved to in return.
+      description: |
+        The client speaks first, so a captured name replayed at the gate is refused here rather than
+        in front of the operator. The answer carries the gate's own proof, which is the only thing a
+        client with no trust anchor has to go on.
+      x-kpg-unauthenticated: true
+      x-kpg-verb: none
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [proof]
+              additionalProperties: false
+              properties:
+                proof:
+                  type: string
+                  maxLength: 64
+                  description: |
+                    Base64 of HMAC-SHA256 under the invitation, over the channel binding and the
+                    nonce.
+      responses:
+        "200":
+          description: Proved. The challenge carries the exchange to the second connection.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [challenge, proof, expires]
+                additionalProperties: false
+                properties:
+                  challenge:
+                    type: string
+                  proof:
+                    type: string
+                  expires:
+                    type: string
+        "400":
+          $ref: "#/components/responses/Malformed"
+        "401":
+          $ref: "#/components/responses/PairingRefused"
+        "404":
+          $ref: "#/components/responses/NotPairing"
+        "409":
+          $ref: "#/components/responses/NoInvitation"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+
+  /pair/request:
+    post:
+      operationId: pairRequest
+      summary: Ask to be admitted, and wait for the operator.
+      description: |
+        Slow on purpose: a human reads a dialog. What comes back says what was approved, which is
+        not always what was asked for. The record is written and saved before the certificate is
+        handed over, so a certificate the database has no record of is never issued.
+      x-kpg-unauthenticated: true
+      x-kpg-verb: none
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, profiles, proof]
+              additionalProperties: false
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 64
+                  description: |
+                    What this client should be called. Letters, digits, space, dot, dash and
+                    underscore.
+                profiles:
+                  type: array
+                  maxItems: 32
+                  items:
+                    type: string
+                    minLength: 1
+                    maxLength: 64
+                  description: |
+                    A ceiling asked for, not a grant. The operator may take any of them away.
+                proof:
+                  type: string
+                  maxLength: 64
+      responses:
+        "200":
+          description: |
+            Admitted. The bundle is the client's identity, the authority to pin, and the gate key.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  [identity, authority, gateKey, subject, database, expires, profiles]
+                additionalProperties: false
+                properties:
+                  identity:
+                    type: string
+                  authority:
+                    type: string
+                  gateKey:
+                    type: string
+                  subject:
+                    type: string
+                  database:
+                    type: string
+                  expires:
+                    type: string
+                  profiles:
+                    type: array
+                    items:
+                      type: string
+        "400":
+          $ref: "#/components/responses/Malformed"
+        "401":
+          $ref: "#/components/responses/PairingRefused"
+        "403":
+          description: The operator refused, and the invitation is spent.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          $ref: "#/components/responses/NotPairing"
+        "409":
+          $ref: "#/components/responses/NoInvitation"
+        "500":
+          description: The record did not land, so nothing was handed over.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+        "504":
+          description: Nobody answered. The invitation is not spent.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+components:
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      additionalProperties: false
+      properties:
+        error:
+          type: string
+          description: |
+            A fixed string, matched whole rather than parsed. The two worth matching on are one word
+            each, `locked` and `proof`, because each is a different thing for a client to do next;
+            the rest are told apart by the status and read by a person. None of them carries anything
+            the caller sent back to it.
+
+  responses:
+    Unavailable:
+      description: |
+        Not now. Either the database is locked, or a dialog is open on what this would change and a
+        change made underneath one is a change the operator's OK destroys. The body says which, and
+        the second is worth trying again shortly.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+    Unpaired:
+      description: No admission record for this certificate. Also what revocation looks like.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+    Malformed:
+      description: The body is not what the document declares.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+    PairingRefused:
+      description: |
+        Either the proof did not verify, in which case nothing is spent, or this connection may not
+        pair at all and is being told what every caller without a certificate is told on every path
+        there is. `proof` is the first and `unpaired` the second, and they are not told apart on
+        purpose: a caller the database does not admit cannot tell a pairing route from a path
+        nobody declared.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+    NotPairing:
+      description: |
+        This connection may not pair: it arrived on no invitation, or it already holds a certificate.
+        Only a client the database already admits is told this much, and it is told exactly what an
+        undeclared path tells it. Everybody else gets the `401` above instead.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+    NoInvitation:
+      description: |
+        The invitation is gone: expired, spent, or this did not follow its own hello.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"

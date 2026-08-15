@@ -77,8 +77,10 @@ certificate.
   accept loop and pipeline are ours: 40 lines. **Superseded**: the accept loop, the TLS and the
   request parser are all ours now, and no HTTP dependency is taken.
 
-The tooling exists on .NET Framework, which was not obvious: **`Microsoft.OpenApi` 1.6.22** and its
-readers target netstandard2.0.
+The tooling exists on .NET Framework, which was not obvious: **`Microsoft.OpenApi` 1.6** and its
+readers target netstandard2.0. That was measured on 1.6.22, and the plugin takes 1.6.30: NuGet marks
+1.6.22 deprecated for a denial of service in its YAML reading that 1.6.30 fixes, and 1.6.30 brings
+the same three assemblies.
 
 **Nothing in .NET does this off the shelf.** Swashbuckle and NSwag are code-first or build-time
 generators; runtime spec-driven routing has no mainstream .NET equivalent, so it is custom work on

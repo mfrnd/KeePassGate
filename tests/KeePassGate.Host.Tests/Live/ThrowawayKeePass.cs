@@ -398,9 +398,9 @@ namespace KeePassGate.Host.Tests.Live
             // proved something deployment never produces.
             //
             // **Followed through, and not one level deep.** A dependency that brings one of its own
-            // is not named by the plugin at all, so what each assembly references is followed in
-            // turn. A plugin missing a transitive dependency fails to load with nothing in the log
-            // to say why.
+            // is not named by the plugin at all: `Microsoft.OpenApi.Readers` brings `SharpYaml`, and
+            // the plugin names neither. A plugin missing a transitive dependency fails to load with
+            // nothing in the log to say why.
             var beside = Path.GetDirectoryName(pluginPath);
             foreach (var dependency in NeededBy(pluginAssembly, beside))
             {

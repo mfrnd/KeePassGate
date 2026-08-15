@@ -230,6 +230,35 @@ namespace KeePassGate.Spec
             new ReadOnlyDictionary<string, string>(
                 new Dictionary<string, string>(StringComparer.Ordinal));
 
+        /// <summary>Whether some request could match both this template and another.</summary>
+        /// <remarks>
+        /// Two templates overlap when they have the same number of segments and every position
+        /// is a capture on one side or the other, or the same literal on both. `/a/{x}` and `/a/b`
+        /// overlap; `/a/{x}` and `/c/{x}` do not.
+        /// </remarks>
+        public bool Overlaps(PathTemplate other)
+        {
+            if (other == null || other._segments.Length != _segments.Length)
+            {
+                return false;
+            }
+
+            for (var i = 0; i < _segments.Length; i++)
+            {
+                if (_captures[i] || other._captures[i])
+                {
+                    continue;
+                }
+
+                if (!string.Equals(_segments[i], other._segments[i], StringComparison.Ordinal))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
         public override string ToString()
         {
             return Text;
