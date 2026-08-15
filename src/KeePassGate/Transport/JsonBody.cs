@@ -24,19 +24,19 @@ namespace KeePassGate.Transport
     /// the pairing handler, which posts one.
     ///
     /// What the policy refuses: nesting, numbers, booleans, null, duplicate names, anything after
-    /// the closing brace, and more members, items or characters than the limits below. A body that
-    /// is not exactly one of these objects is not read, it is refused, which is the same answer an
-    /// admission record gives to anything that is not exactly a record.
+    /// the closing brace, more members, items or characters than the limits below, and any
+    /// character or string a `.kdbx` could not hold, which <see cref="IsUsable"/> says more
+    /// about. A body that is not exactly one of these objects is not read, it is refused, which is
+    /// the same answer an admission record gives to anything that is not exactly a record.
     ///
     /// **What it does not refuse is a trailing comma, a comment inside the object, a string or a
     /// name in single quotes, a name in no quotes at all, or `\'` inside a string**, because
     /// Json.NET accepts all of them and none carries a member or changes what the object says.
-    /// Fighting a parser to reject punctuation that means nothing is how owning a grammar starts.
+    /// Fighting a parser to reject punctuation that means nothing is how owning a grammar starts,
+    /// and each is pinned so that the leniency is a decision rather than something nobody noticed.
     /// A comment **after** the closing brace is refused with everything else that follows one:
     /// measured, the reader hands it back as a token like any other, and telling it from a second
-    /// document means reading past the object, which is what that refusal exists to prevent. A
-    /// NUL is the one exception: the reader reports a NUL after the object as the end of its
-    /// input, so an object followed by a NUL alone is read as the object.
+    /// document means reading past the object, which is what that refusal exists to prevent.
     ///
     /// **Depth is bounded while parsing**, at two, which is one level deeper than this wire
     /// carries. So one level of nesting is built and then refused by the value check, because a
@@ -79,6 +79,18 @@ namespace KeePassGate.Transport
 
         /// <summary>One object of values, so a nested one is refused before it is built.</summary>
         private const int MaxDepth = 2;
+
+        /// <summary>
+        /// The two code points Unicode guarantees are never characters, written as escapes.
+        /// </summary>
+        /// <remarks>
+        /// Named rather than spelled, because either of them typed into this file is a byte
+        /// sequence no editor renders and no reviewer can see. XML 1.0 excludes both, and so does
+        /// the KeePass method that writes a string into a `.kdbx`.
+        /// </remarks>
+        private const char NotACharacter = '\uFFFE';
+
+        private const char NotACharacterEither = '\uFFFF';
 
         private readonly Dictionary<string, string> _text;
         private readonly Dictionary<string, IReadOnlyList<string>> _arrays;
@@ -155,6 +167,15 @@ namespace KeePassGate.Transport
         private static JObject Parse(string body)
         {
             if (body == null)
+            {
+                return null;
+            }
+
+            // Before the parser sees it. Json.NET's reader reports a NUL after the object as the
+            // end of its input, so one sent there passed the check below that refuses anything
+            // after the closing brace. Nothing this reads holds one anywhere else either: inside a
+            // string it is a control character, which the value check refuses.
+            if (body.IndexOf('\0') >= 0)
             {
                 return null;
             }
@@ -268,10 +289,113 @@ namespace KeePassGate.Transport
         /// other and people write paragraphs in them. What keeps a line break out of a log is
         /// escaping on the way out, which every answer and every audit line goes through, rather
         /// than refusing it on the way in.
+        ///
+        /// **What it may not hold is a character the database would drop**, which is the other
+        /// half of the same question and the half this used to get wrong. A `.kdbx` is XML, and
+        /// KeePass writes every unprotected string through `StrUtil.SafeXmlString`, which removes
+        /// what XML 1.0 cannot represent: `\b` and `\f` and the rest of the control characters
+        /// other than tab, carriage return and line feed, `U+FFFE` and `U+FFFF`, and any surrogate
+        /// without its pair. So a body carrying one of those was accepted, answered `200` or `201`
+        /// with the value reported as stored, and came back short from the file: the client
+        /// believed it had written a password it had not. Measured against KeePass 2.61.1 over
+        /// every code point in the basic multilingual plane, and this rule and that method agree
+        /// on all 65,536 of them.
+        ///
+        /// **A carriage return is let through, and comes back changed**, which that measurement
+        /// could not see because it asked only what the writer keeps. The reader is the other
+        /// half: an XML reader turns a carriage return, or a carriage return and line feed, into
+        /// one line feed, as section 2.11 of XML 1.0 requires, so a value holding `\r` is stored
+        /// as sent and reads back with `\n` once KeePass has opened the file again. That is
+        /// KeePass's behavior and it is left as KeePass's, rather than refused or normalized here:
+        /// refusing it would turn away every note pasted from a Windows editor, and normalizing it
+        /// would make this wire change a value KeePass itself would have kept until the next open.
+        ///
+        /// **Nor may a string be whitespace and nothing else.** KeePass writes an unprotected
+        /// string as the text of an element, and its reader drops text that is only whitespace,
+        /// so a user name of one space was answered `201` and read back empty once the file had
+        /// been opened again, and a custom field named with a space came back named nothing, which
+        /// no route can address. Measured against KeePass 2.61.1, with a value of spaces, one of
+        /// line breaks and tabs, and a name. Whitespace means the four characters XML counts, and
+        /// a string with anything else in it keeps all of them, as a protected one does.
+        ///
+        /// **Asked of every string on this wire**, rather than only of the ones bound for an
+        /// unprotected field. Whether a given field is protected is the database's own setting
+        /// and a flag the operator can change afterwards, so a rule that let a character in
+        /// wherever it happens to survive today would be a rule that a later change to Database
+        /// Settings turns back into silent truncation. Nothing else this wire carries wants one:
+        /// the pairing bodies are base64 and hex, and an attachment's bytes travel as base64 too,
+        /// so what is refused here is a name or a value nothing could have stored.
+        ///
+        /// **The one thing it cannot reach is an escaped surrogate half**, because Json.NET
+        /// substitutes `U+FFFD` for `\uD800` while it is reading and this policy is handed the
+        /// substitute. Owning that would mean reading the text before the parser does, which is
+        /// the grammar this deliberately does not own; what a caller asked to store there was not
+        /// a character in the first place, and the replacement is what every other reader would
+        /// have made of it.
         /// </remarks>
         private static bool IsUsable(string text)
         {
-            return text != null && text.Length <= MaxStringLength;
+            if (text == null || text.Length > MaxStringLength)
+            {
+                return false;
+            }
+
+            for (var index = 0; index < text.Length; index++)
+            {
+                var character = text[index];
+
+                if (char.IsHighSurrogate(character))
+                {
+                    // The pair is one character, and half of one is not a character at all.
+                    // Nothing off the wire arrives this way: a body is UTF-8 decoded strictly, and
+                    // an escaped half is turned into `U+FFFD` by Json.NET before this sees it. A
+                    // document read back out of a `.kdbx` this plugin did not write is the caller
+                    // that can carry one, and refusing there is the fail-closed direction.
+                    if (index + 1 >= text.Length || !char.IsLowSurrogate(text[index + 1]))
+                    {
+                        return false;
+                    }
+
+                    index++;
+                    continue;
+                }
+
+                if (char.IsLowSurrogate(character)
+                    || character == NotACharacter
+                    || character == NotACharacterEither)
+                {
+                    return false;
+                }
+
+                if (character < ' ' && character != '\t' && character != '\n' && character != '\r')
+                {
+                    return false;
+                }
+            }
+
+            return !IsWhitespaceAlone(text);
+        }
+
+        /// <summary>
+        /// Whether a string is not empty and holds nothing but the four characters XML counts as
+        /// whitespace.
+        /// </summary>
+        private static bool IsWhitespaceAlone(string text)
+        {
+            if (text.Length == 0)
+            {
+                return false;
+            }
+
+            foreach (var character in text)
+            {
+                if (character != ' ' && character != '\t' && character != '\n' && character != '\r')
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
     }
 }

@@ -185,7 +185,25 @@ The proofs were deleted once they had answered their questions. To rebuild any o
 `TlsProbe.cs` on `spikes/tls-and-certificates` is kept because it answers the TLS question in
 isolation and is the cheapest way to re-check it on a new machine.
 
-## 10. The gate, and where it can run
+## 10. What KeePass does with a change, measured
+
+**A `.kdbx` silently drops 2,079 of the 65,536 code points in the basic multilingual plane.** KeePass
+writes every unprotected string through `StrUtil.SafeXmlString`, which removes what XML 1.0 cannot
+represent and reports nothing: the 29 control characters other than tab, carriage return and line
+feed, the 2,048 surrogates when they arrive without a pair, and `U+FFFE` and `U+FFFF`. A surrogate
+pair survives, including the pairs whose halves look like those last two, so `U+1FFFE` is stored as
+it was sent. Measured by calling that method on KeePass 2.61.1 once per code point and comparing
+what came back, which is also what `JsonBody.IsUsable` is now written against: the two agree on all
+65,536.
+
+**A lone surrogate reaches a body reader only as `U+FFFD`.** Json.NET substitutes the replacement
+character for an escaped half while it is reading, so `{"a":"one\uD800two"}` comes out of
+`JObject.Load` carrying `U+FFFD` and nothing downstream can tell it from a caller that sent one. A
+surrogate written raw in the text is passed through untouched, which is why the refusal is still
+worth having: `JsonBody` also reads documents out of a `.kdbx` this plugin did not write. Measured
+against the Json.NET this builds against, by printing the code points that came back.
+
+## 11. The gate, and where it can run
 
 **A warning is not a failure, and under `Stop` it becomes one.** A native command writing to stderr
 raises a terminating error as soon as anything upstream merges the streams, which is what capturing

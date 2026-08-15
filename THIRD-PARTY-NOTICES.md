@@ -72,6 +72,12 @@ no private key this plugin holds is ever written to disk. Redistributed as
 > IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 > CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+It reads what this plugin stores, and is to read request bodies, and it is one assembly with no
+dependencies of its own. The policy over what it parses is not its: `JsonBody` decides what this
+wire may carry, which is one flat object of strings and arrays of strings. The
+`spikes/json-reading` branch has what the alternatives cost. TODO(step 8): the first route that
+takes a body arrives with pairing.
+
 ## The proofs are not here, and neither are their licenses
 
 The three HTTP implementations this project measured are vendored on the `spikes/http-lib-measurements`

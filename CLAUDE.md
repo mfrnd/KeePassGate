@@ -105,6 +105,11 @@ designing around them.
   WebSocket, HTTP/2 or chunked bodies flips this; nothing else does.
 - **Spec-first routing.** The OpenAPI document is the routing table and handlers bind to
   `operationId`, so an undeclared path has nowhere to go.
+- **The JSON grammar is `Newtonsoft.Json`'s and the policy is ours**, which is the split worth
+  keeping. `JsonBody` decides what this wire may carry, which is one flat object of strings and
+  arrays of strings, and parses none of it. Three alternatives were measured and refused, on
+  assembly count and on license. The counts are on `spikes/json-reading`, and re-proposing one means
+  arguing with them.
 - **A plain DLL on .NET Framework 4.8**, not a `.plgx`.
 - **The access control model is one document per node**, and its types arrive with step 12.
   Grants live under a `KPG` key, which is this plugin's own namespace and touches nothing another

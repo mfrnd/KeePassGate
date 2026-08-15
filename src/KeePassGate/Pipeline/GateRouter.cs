@@ -2,6 +2,7 @@ using System;
 using System.Net;
 using KeePassGate.Authority;
 using KeePassGate.Transport;
+using Newtonsoft.Json;
 
 namespace KeePassGate.Pipeline
 {
@@ -76,8 +77,8 @@ namespace KeePassGate.Pipeline
         {
             var database = CertificateDigest.Shorten(context.Client.DatabaseId ?? string.Empty);
 
-            return "{\"ok\":true,\"database\":\"" + HttpResponse.Escape(database) +
-                   "\",\"version\":\"" + HttpResponse.Escape(_version) + "\"}";
+            return "{\"ok\":true,\"database\":" + JsonConvert.ToString(database) +
+                   ",\"version\":" + JsonConvert.ToString(_version) + "}";
         }
     }
 }

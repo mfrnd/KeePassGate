@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Net;
 using System.Text;
+using Newtonsoft.Json;
 
 namespace KeePassGate.Transport
 {
@@ -60,9 +61,19 @@ namespace KeePassGate.Transport
         }
 
         /// <summary>A JSON object saying only what went wrong, under `error`.</summary>
+        /// <remarks>
+        /// **Mostly one word an agent can match on, and not always.** A refusal with more to say
+        /// than a word says it in a sentence, as the transport does about a head over its cap, and a
+        /// client tells those apart by their status rather than by matching the words.
+        ///
+        /// The value is quoted and escaped by `Json.NET`, which arrived with the body reader and
+        /// is the only thing here that decides what a JSON string looks like. Escaping written
+        /// out a second time is a second answer to that question, and the two would only ever
+        /// be found to disagree by something a caller sent.
+        /// </remarks>
         public static string ErrorBody(string error)
         {
-            return "{\"error\":\"" + Escape(error ?? "refused") + "\"}";
+            return "{\"error\":" + JsonConvert.ToString(error ?? "refused") + "}";
         }
 
         /// <param name="headers">
@@ -116,53 +127,5 @@ namespace KeePassGate.Transport
             stream.Flush();
         }
 
-        /// <summary>
-        /// The smallest correct JSON string escaping. Enough for the words this server puts in a
-        /// body, and it refuses nothing, because everything it is given comes from us.
-        /// </summary>
-        public static string Escape(string text)
-        {
-            var builder = new StringBuilder(text.Length + 8);
-            foreach (var c in text)
-            {
-                switch (c)
-                {
-                    case '"':
-                        builder.Append("\\\"");
-                        break;
-                    case '\\':
-                        builder.Append("\\\\");
-                        break;
-                    case '\b':
-                        builder.Append("\\b");
-                        break;
-                    case '\f':
-                        builder.Append("\\f");
-                        break;
-                    case '\n':
-                        builder.Append("\\n");
-                        break;
-                    case '\r':
-                        builder.Append("\\r");
-                        break;
-                    case '\t':
-                        builder.Append("\\t");
-                        break;
-                    default:
-                        if (c < 0x20)
-                        {
-                            builder.Append("\\u").Append(((int)c).ToString("x4", CultureInfo.InvariantCulture));
-                        }
-                        else
-                        {
-                            builder.Append(c);
-                        }
-
-                        break;
-                }
-            }
-
-            return builder.ToString();
-        }
     }
 }
