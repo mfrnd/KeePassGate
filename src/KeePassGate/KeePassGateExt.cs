@@ -222,7 +222,7 @@ namespace KeePassGate
                 // since the window manager's events are static and outlive this object. A plugin
                 // that answers false is left out without a word and never has `Terminate` called,
                 // so this calls it, and the refusal is the one line `Report` writes to the log,
-                // which reaches a file only when `KEEPASSGATE_LOG_FILE` names one.
+                // a file beside the audit unless `KEEPASSGATE_LOG_FILE` names another.
                 Report("initialization failed", error);
                 Terminate();
                 return false;

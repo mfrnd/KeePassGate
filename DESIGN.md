@@ -684,17 +684,34 @@ So the rules here:
   not cancel anything: the invitation is still spent and the record still saved, and only the answer
   is lost. `GateOptions.PairingBudget` covers the whole of what a pairing waits for, and a test pins
   it against the four timeouts it has to outlast.
-- **Nothing throws to the transport.** A handler failure becomes a 500 with an audited reason,
-  because an unhandled exception in this process takes KeePass with it.
+- **Nothing throws to the transport.** A handler failure becomes `500 internal error` and an
+  incident, counted on the KPG tab and logged at `UNEXPECTED`, because an unhandled exception in
+  this process takes KeePass with it.
 - Distribution is a **plain DLL** targeting .NET Framework 4.8, not a `.plgx`, which is what allows
   modern C# and what the packaging measurement showed.
 
 ## 9. Audit §120
 
 Every decision, allowed or refused, as JSON Lines outside the database: the admission key,
-operationId, entry UUID, decision, reason. Never a title, never a value, because a log of titles is
-an inventory of the database sitting beside it. A write failure is reported, not fatal, so a full
-disk cannot silently revoke every agent's access.
+operationId, entry UUID, the node whose rule answered, decision, reason. The node asked about
+and the node that decided are both there because nearest wins, so they are usually not the same
+one: a line naming only the first sends an operator to an entry that carries no rule. Never a
+title, never a value, because a log of titles is an inventory of the database sitting beside it.
+A write failure is reported, not fatal, so a full disk cannot silently revoke every agent's
+access.
+
+**Where it is writing is said as it opens, and so is having nowhere to.** Nothing on a screen names
+this file, so a machine where `KEEPASSGATE_AUDIT_FILE` is set, or where the default resolved
+elsewhere, left the record of what an agent reached to be guessed at; the path now goes into the
+plugin's log as the audit is opened. The case that had to be made audible is the one that made no
+sound at all: with no path there is nothing to record to, every request is still answered, nothing
+is counted as lost because nothing was attempted, and an audit that is not being written looks
+exactly like an audit with nothing in it. That is reported as an error and names the variable that
+fixes it.
+
+A line carries neither the profiles the client holds nor the verb it asked for. Which profiles a
+client has is in the database already, and a log repeating them is a second copy of the thing worth
+stealing.
 
 ---
 

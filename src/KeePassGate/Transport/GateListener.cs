@@ -361,8 +361,8 @@ namespace KeePassGate.Transport
         /// Every refusal used to write a line of its own, and a refusal costs the peer one packet.
         /// A peer that has proved nothing can hold the slots whatever this says, and then
         /// every further connect is a line, each one opening and closing the log file, for as long
-        /// as it cares to keep connecting. Whatever else the log was for is buried, and the file
-        /// has no bound.
+        /// as it cares to keep connecting. Whatever else the log was for is buried, and once the
+        /// file reaches its bound, pushed out of it altogether.
         ///
         /// The first refusal of a run is said at once, because that is the one worth reading, and
         /// the rest are counted and reported with the next line that goes out. A run that stops is

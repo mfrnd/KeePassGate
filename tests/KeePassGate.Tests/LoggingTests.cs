@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using KeePassGate.Audit;
 using KeePassGate.Diagnostics;
 using NUnit.Framework;
 
@@ -118,7 +119,8 @@ namespace KeePassGate.Tests
         [Test]
         public void Every_level_reaches_the_trace_listeners()
         {
-            var log = new TraceGateLog();
+            // No file, because the one a log with nothing named writes to is this account's own.
+            var log = new TraceGateLog((string)null);
 
             log.Info("one");
             log.Warn("two");
@@ -171,7 +173,10 @@ namespace KeePassGate.Tests
         [Test]
         public void A_file_that_cannot_be_written_does_not_stop_the_plugin()
         {
-            var log = new TraceGateLog(Path.Combine(_directory, "no-such-directory", "gate.log"));
+            // A file where the directory would have to be, which no write can get past.
+            var blocker = Path.Combine(_directory, "not-a-directory");
+            File.WriteAllText(blocker, string.Empty);
+            var log = new TraceGateLog(Path.Combine(blocker, "gate.log"));
 
             Assert.DoesNotThrow(() => log.Info("one"));
             Assert.DoesNotThrow(() => log.Info("two"));
@@ -189,6 +194,115 @@ namespace KeePassGate.Tests
             log.Info("one");
 
             Assert.That(Directory.GetFiles(_directory), Is.Empty);
+        }
+
+        [Test]
+        public void A_directory_that_is_not_there_yet_is_made_rather_than_the_log_given_up()
+        {
+            // The default is under this account's application data, in a directory nothing makes
+            // until something is written there.
+            var path = Path.Combine(_directory, "not-yet", "gate.log");
+
+            new TraceGateLog(path).Info("one");
+
+            Assert.That(File.ReadAllLines(path), Has.Length.EqualTo(1));
+        }
+
+        [Test]
+        public void The_file_rolls_rather_than_growing_without_end()
+        {
+            var path = Path.Combine(_directory, "gate.log");
+            Grow(path, TraceGateLog.RollAt + 1);
+
+            new TraceGateLog(path).Info("one");
+
+            Assert.That(File.Exists(path + ".1"), Is.True, "the old lines are set aside, not deleted");
+            Assert.That(File.ReadAllLines(path), Has.Length.EqualTo(1), "and the new file starts clean");
+        }
+
+        [Test]
+        public void Rolling_twice_keeps_one_previous_file_and_no_more()
+        {
+            var path = Path.Combine(_directory, "gate.log");
+            File.WriteAllText(path + ".1", "older");
+            Grow(path, TraceGateLog.RollAt + 1);
+
+            new TraceGateLog(path).Info("one");
+
+            Assert.That(File.ReadAllText(path + ".1"), Does.Not.Contain("older"));
+        }
+
+        [Test]
+        public void A_file_that_cannot_be_set_aside_is_still_written_to()
+        {
+            // Setting the file aside bounds it and is no condition for writing to it. A viewer
+            // holding the previous file stops it being deleted, and the log goes on regardless.
+            var path = Path.Combine(_directory, "gate.log");
+            Grow(path, TraceGateLog.RollAt + 1);
+
+            using (new FileStream(path + ".1", FileMode.Create, FileAccess.Write, FileShare.ReadWrite))
+            {
+                var log = new TraceGateLog(path);
+                log.Info("one");
+                log.Info("two");
+
+                Assert.That(File.ReadAllText(path), Does.Contain("KPG INFO one").And.Contain("KPG INFO two"));
+                Assert.That(_listener.Lines.Count(l => l.Contains("not set aside")), Is.EqualTo(1),
+                    "said once rather than at every line");
+                Assert.That(_listener.Lines.Any(l => l.Contains("log file disabled")), Is.False);
+            }
+        }
+
+        [Test]
+        public void A_log_with_nothing_named_writes_where_the_environment_says()
+        {
+            var path = Path.Combine(_directory, "named.log");
+            var was = Environment.GetEnvironmentVariable(TraceGateLog.LogFileVariable);
+            try
+            {
+                Environment.SetEnvironmentVariable(TraceGateLog.LogFileVariable, path);
+
+                new TraceGateLog().Info("one");
+            }
+            finally
+            {
+                Environment.SetEnvironmentVariable(TraceGateLog.LogFileVariable, was);
+            }
+
+            Assert.That(File.ReadAllText(path), Does.Contain("KPG INFO one"));
+        }
+
+        [Test]
+        public void Without_a_name_the_log_is_kept_beside_the_audit()
+        {
+            // Resolved rather than written to, since the answer is this account's own directory.
+            var log = Environment.GetEnvironmentVariable(TraceGateLog.LogFileVariable);
+            var audit = Environment.GetEnvironmentVariable(JsonLinesAudit.AuditFileVariable);
+            try
+            {
+                Environment.SetEnvironmentVariable(TraceGateLog.LogFileVariable, null);
+                Environment.SetEnvironmentVariable(JsonLinesAudit.AuditFileVariable, null);
+
+                var local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+                var logPath = PluginFiles.Resolve(TraceGateLog.LogFileVariable, TraceGateLog.DefaultFileName);
+
+                Assert.That(logPath, Is.EqualTo(Path.Combine(local, "KeePassGate", "plugin.log")));
+                Assert.That(Path.GetDirectoryName(JsonLinesAudit.DefaultPath()), Is.EqualTo(Path.GetDirectoryName(logPath)));
+            }
+            finally
+            {
+                Environment.SetEnvironmentVariable(TraceGateLog.LogFileVariable, log);
+                Environment.SetEnvironmentVariable(JsonLinesAudit.AuditFileVariable, audit);
+            }
+        }
+
+        /// <summary>A file of a given length, without the bytes to fill it.</summary>
+        private static void Grow(string path, long bytes)
+        {
+            using (var file = new FileStream(path, FileMode.Create, FileAccess.Write))
+            {
+                file.SetLength(bytes);
+            }
         }
     }
 

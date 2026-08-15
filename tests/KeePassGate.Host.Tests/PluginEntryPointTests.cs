@@ -7,6 +7,7 @@ using System.Threading;
 using System.Windows.Forms;
 using KeePass.Plugins;
 using KeePass.UI;
+using KeePassGate.Diagnostics;
 using KeePassGate.Ui;
 using NUnit.Framework;
 
@@ -131,6 +132,39 @@ namespace KeePassGate.Host.Tests
     public sealed class PluginLifecycleTests
     {
         private KeePassGateExt _plugin;
+        private string _logDirectory;
+        private string _logWas;
+
+        /// <summary>
+        /// Points the plugin's log at a file of this fixture's own: every `Initialize` here writes
+        /// to it, and with nothing named that is the log of whoever runs the tests.
+        /// </summary>
+        [OneTimeSetUp]
+        public void KeepTheLogOutOfTheAccountsOwn()
+        {
+            _logWas = Environment.GetEnvironmentVariable(TraceGateLog.LogFileVariable);
+            _logDirectory = Path.Combine(Path.GetTempPath(), "KeePassGateTests", Guid.NewGuid().ToString("N"));
+            Environment.SetEnvironmentVariable(
+                TraceGateLog.LogFileVariable, Path.Combine(_logDirectory, TraceGateLog.DefaultFileName));
+        }
+
+        [OneTimeTearDown]
+        public void PutTheLogBack()
+        {
+            Environment.SetEnvironmentVariable(TraceGateLog.LogFileVariable, _logWas);
+
+            try
+            {
+                if (Directory.Exists(_logDirectory))
+                {
+                    Directory.Delete(_logDirectory, true);
+                }
+            }
+            catch (Exception error) when (error is IOException || error is UnauthorizedAccessException)
+            {
+                // A temporary directory, and nothing reads it afterwards.
+            }
+        }
 
         [SetUp]
         public void SetUp()

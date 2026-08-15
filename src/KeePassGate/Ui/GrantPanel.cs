@@ -1615,8 +1615,8 @@ namespace KeePassGate.Ui
                 //
                 // With the reason, from the innermost exception: the store reaches the dialog's copy
                 // through reflection, whose own exception says only that something it called threw.
-                // The reason is said here rather than left to the log, which is a file only when
-                // somebody has asked for one.
+                // The reason is said here rather than left to the log, which is a file the person
+                // at this dialog would have to go and find.
                 Warn("That could not be stored, so it is not in force: "
                     + Clipped.Message(error.GetBaseException().Message));
             }

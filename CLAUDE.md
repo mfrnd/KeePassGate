@@ -581,5 +581,6 @@ Only KeePass has a binding redirect, so one `Newtonsoft.Json.dll` cannot serve t
 against different major versions, and whichever was there first stops binding.
 **The whole closure, not the direct references**: copying what the plugin names was enough while its
 one dependency had none of its own, and stopped being enough the moment one did. A plugin missing a
-transitive dependency fails to load with nothing in the log to say why, which is what 34 of the 35
-end to end tests said the first time.
+transitive dependency failed to load with nothing in the log to say why, which is what 34 of the 35
+end to end tests said the first time. It still fails to load, and now names what is missing in its
+log, which has a file by default.

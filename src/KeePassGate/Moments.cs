@@ -8,8 +8,7 @@ namespace KeePassGate
     /// </summary>
     /// <remarks>
     /// **Three formats, and no fourth.** <see cref="WireFormat"/> is RFC 3339 and goes anywhere a
-    /// machine reads it: the wire, an admission record, the audit (TODO(step 14): steps 6, 7 and 14
-    /// bring them). <see cref="OnScreenFormat"/> drops
+    /// machine reads it: the wire, an admission record, the audit. <see cref="OnScreenFormat"/> drops
     /// the `T` and the `Z` for a person reading a table, where a column of them is already headed by
     /// what they are and the separators are noise. <see cref="LogFormat"/> is the wire's with
     /// milliseconds, because two log lines written in the same second still happened in an order and

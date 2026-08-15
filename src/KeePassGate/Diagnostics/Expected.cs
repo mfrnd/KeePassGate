@@ -83,6 +83,27 @@ namespace KeePassGate.Diagnostics
         }
 
         /// <summary>
+        /// Writing to a file this plugin owns, which today is the audit.
+        /// </summary>
+        /// <remarks>
+        /// Every way a path can turn out to be unusable: gone, locked by somebody else, forbidden
+        /// by policy, full, or not a path at all. The same list the log uses, named once here now
+        /// that a second writer needs it.
+        ///
+        /// What lands here is never allowed to fail a request. A gate that stopped answering
+        /// because it could not write a line would be a denial of service anybody with a full disk
+        /// could arrange.
+        /// </remarks>
+        public static bool OfStorage(Exception error)
+        {
+            return error is IOException
+                   || error is UnauthorizedAccessException
+                   || error is SecurityException
+                   || error is ArgumentException
+                   || error is NotSupportedException;
+        }
+
+        /// <summary>
         /// Reaching into KeePass by reflection, which is how everything the plugin does not compile
         /// against is reached.
         /// </summary>

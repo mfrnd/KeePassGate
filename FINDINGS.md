@@ -230,7 +230,7 @@ three things about KeePass that the rules depend on and could not be reasoned ou
 | **`ParentGroup` is set by `AddEntry` and `AddGroup` with `takeOwnership` true**, on entries and groups alike, which is the whole of what inheritance walks | resolved a grant written on the root group from an entry three groups down |
 
 Two things this section deliberately does not claim. Nothing here was measured about **where** a rule
-is asked, because step 12 does not ask one: the resolver is not wired to the router. TODO(step 14): step 14 is
+is asked, because step 12 did not ask one: the resolver was not wired to the router, and step 14 is
 where the two answers are combined. And the `GroupForm` snapshot hazard in section 9 applies to
 grants exactly as it applies to everything else in custom data, which is why the editor is step 13
 and not this one.

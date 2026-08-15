@@ -380,7 +380,7 @@ namespace KeePassGate.Tests
 
                 Assert.That(panel.Warning, Does.Contain("not in force"));
                 Assert.That(panel.Warning, Does.Contain("nowhere to put it"),
-                    "the reason is on the tab, not only in a log nobody may have asked for");
+                    "the reason is on the tab, not only in a log file somewhere else");
                 Assert.That(panel.Writes, Is.Zero);
             }
         }
