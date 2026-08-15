@@ -688,7 +688,7 @@ So the rules here:
   incident, counted on the KPG tab and logged at `UNEXPECTED`, because an unhandled exception in
   this process takes KeePass with it. It is not audited, which this bullet used to claim: the
   request's audit line is the permitted one written before the handler ran, since the audit
-  records the authorization and not what the request then did.
+  records the authorization and not what the request then did (§120).
 - Distribution is a **plain DLL** targeting .NET Framework 4.8, not a `.plgx`, which is what allows
   modern C# and what the packaging measurement showed.
 
@@ -700,7 +700,65 @@ and the node that decided are both there because nearest wins, so they are usual
 one: a line naming only the first sends an operator to an entry that carries no rule. Never a
 title, never a value, because a log of titles is an inventory of the database sitting beside it.
 A write failure is reported, not fatal, so a full disk cannot silently revoke every agent's
-access.
+access, and its end is reported too, with how many decisions went unrecorded while it lasted.
+A line records the authorization and not what the request then did: it is written before
+the body is checked and before the handler runs, so a permitted line also stands for a request
+answered afterwards with a malformed body, a conflict, `503 busy` or a failure, none of which gets a
+line of its own.
+
+Three things step 14 settled about it. It defaults to this user's own application data rather than
+beside the `.kdbx`, because a database is often on a share or in a cloud folder and a record of
+which agent read which entry belongs in neither; `KEEPASSGATE_AUDIT_FILE` names another. It rolls at
+eight megabytes keeping one previous file, which is the smallest thing that stops an unbounded file
+while leaving the recent past readable. And **every value it carries is a string**, the decision
+included, so a line says `"decision":"refused"` rather than `false` and a person skimming the file
+reads a word rather than a flag whose sense they have to remember. A member with nothing to say is
+written as an explicit `null` rather than left out, because a reader that has to tell "absent" from
+"not applicable" is a reader that will guess, and a missing member reads as a log written by a
+different version.
+
+**That null is why `JsonBody` cannot read a line back**, and this corrects a claim made here
+earlier. The all-strings shape was argued for partly on the plugin being able to read its own audit
+with the reader it already has, and it cannot: that reader takes strings and arrays of strings, so
+the lines it refuses are precisely the interesting ones, a question that never reached a node, which
+every refused certificate is. A line with no client is written only by a defect, since a caller that
+proved nothing to this authority is not written down at all. The shape is kept on its first reason
+alone. Nothing in the plugin
+reads the audit back, and the reader it is written for is whatever the operator already greps with.
+
+**Rolling is a bound on the file and not permission to write to it.** A roll fails when the
+previous copy is held open by whatever is tailing the audit, and what that costs is the bound rather
+than the decision, because an audit that grows past eight megabytes is a smaller failure than an
+audit that silently stops.
+
+**A bound by size is a bound the caller can spend, so each client's lines are paced.** Every
+request an admitted client sends writes a line, a lookup of a node that is not there included, and
+with nothing holding it back one client rolled the file twice in under two minutes and took every
+earlier line out of both files, its own earlier reads among them. The threat model includes the
+caller, and a caller covering its tracks is the one the audit exists for. So `DecisionPace` lets a
+client be recorded a thousand times at once and ten times a second after that, per admission key,
+and a decision past that **waits** on the caller's own connection rather than being dropped or
+refused: a line left out is the loss being prevented, and a refusal would be a status the API does
+not have. That is a floor rather than a guarantee, since one flooding client now needs well over an
+hour to push a decision out of both files, and shipping the lines elsewhere is still what makes the
+record durable.
+
+A line carries neither the profiles the client holds nor the verb it asked for. Which profiles a
+client has is in the database already, and a log repeating them is a second copy of the thing worth
+stealing.
+
+**A certificate this authority issued is written down when an operation refuses it**, by its admission key,
+with the reason the credential check gave and no node. It has no admission record, or is outside
+its dates, or is not a client certificate, so no rule is asked; but a revoked client still trying is
+exactly what the operator who revoked it opens this file to see, and until this it was answered
+`401` and left a line nowhere. A caller with no certificate, or with one from another authority,
+names nobody the operator issued and is not written down, because a line for it would let anybody
+who reaches the port grow the file.
+
+**What the caller is told is less than what is recorded.** A node it may not reach and a node that
+is not there answer the same 404, because telling them apart would let a client that may reach
+nothing map the database by asking, one identifier at a time, which is what `list` exists to be able
+to withhold. The audit says which it was.
 
 **Where it is writing is said as it opens, and so is having nowhere to.** Nothing on a screen names
 this file, so a machine where `KEEPASSGATE_AUDIT_FILE` is set, or where the default resolved
@@ -710,10 +768,6 @@ sound at all: with no path there is nothing to record to, every request is still
 is counted as lost because nothing was attempted, and an audit that is not being written looks
 exactly like an audit with nothing in it. That is reported as an error and names the variable that
 fixes it.
-
-A line carries neither the profiles the client holds nor the verb it asked for. Which profiles a
-client has is in the database already, and a log repeating them is a second copy of the thing worth
-stealing.
 
 ---
 

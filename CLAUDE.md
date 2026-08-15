@@ -503,6 +503,17 @@ decision to the audit, and the router asks it before any handler runs. `AclDecis
 well as whether, and it names the node that decided by its UUID rather than by its title, because
 that is what a log can safely hold.
 
+**What step 14 settled about authorization.** The intersection is structural: the profiles handed to
+the resolver are the ones the admission record carries, so the rules can only ever answer about what
+the operator approved at pairing, and there is no place where the two halves could be compared
+wrongly. The **router** asks, before the body is checked and before any handler runs, because a
+handler could forget to. A node that may not be reached and one that is not there answer the same
+404, and the audit is where the operator is told which it was. **Each client's lines are paced**, by
+`DecisionPace`: a thousand at once and ten a second after that, per admission key, and a decision
+past that waits on the caller's own connection rather than being dropped or refused, because the
+file rolls by size and a client that could fill it quickly could push its own earlier lines out of
+it. `DESIGN.md` §120 has the argument.
+
 **What step 12 settled about verbs.** A rule holds **six verbs and two switches**, which is
 `CRUSDLAP` and is the order they are declared, written and shown in. The verbs are create, read,
 update, strip, delete and list, and `list` sits below `read` because knowing an entry exists is not
