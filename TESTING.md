@@ -151,8 +151,9 @@ a pin. TODO(step 10): that file arrives with the client transport.
 **Against the plugin's own output.** `tests/pykeepassgate/test_protocol.py` pins the token
 encoding, the name construction and all three proofs against vectors produced by `PairingToken`,
 `SniName` and `PairingProof`. Without those, the two halves could agree on something neither
-document describes, because both halves would be code somebody wrote here. TODO(step 10): that
-file arrives with the protocol code.
+document describes, because both halves would be code somebody wrote here. `ProtocolVectorsTests`
+holds the plugin to the same values over the same inputs, so a change to either half fails in that
+half's own tier rather than at the first real pairing.
 
 ```shell
 uv run pytest --cov        # the client, with its coverage floor

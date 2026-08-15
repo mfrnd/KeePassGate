@@ -116,7 +116,6 @@ ignore = [
 # handed every argument whether it reads them or not, which is `ARG`. And a test vector that looks
 # like a credential is an input written down beside its expected output, which is `S105` and its
 # siblings: the whole point of `test_protocol.py` is that these values are public and reproducible.
-# TODO(step 10): `test_protocol.py` arrives with the protocol code.
 "tests/**/*.py" = [
     "S101", "S105", "S106", "S107",
     "D100", "D101", "D102", "D103", "D104", "D107",
