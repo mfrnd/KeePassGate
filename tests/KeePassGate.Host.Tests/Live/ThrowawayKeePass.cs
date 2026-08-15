@@ -253,6 +253,64 @@ namespace KeePassGate.Host.Tests.Live
             }
         }
 
+        /// <summary>
+        /// Writes a fixed authority and one fixed admitted client into the file.
+        /// </summary>
+        /// <remarks>
+        /// **Written rather than minted, because a minted one is different every time.** The plugin
+        /// signs with .NET's `CertificateRequest`, whose ECDSA picks a random k, so the same
+        /// certificate made twice has different bytes and a different fingerprint. Any picture
+        /// taken of this database shows that fingerprint and the dates beside it, so a
+        /// database that mints its own is a database that changes the pictures on every
+        /// regeneration.
+        ///
+        /// **Only before KeePass starts**, for the reason `Admit` gives below: a running KeePass
+        /// serves the database it holds in memory and would overwrite this on its next save.
+        /// </remarks>
+        public void SeedAuthority()
+        {
+            var database = new PwDatabase();
+            try
+            {
+                database.Open(IOConnectionInfo.FromPath(DatabasePath), NewKey(), null);
+
+                // Through `CustomDataStore`, not the dictionary underneath it, so that a seeded
+                // database is written exactly the way the plugin writes one.
+                var store = new CustomDataStore(database);
+                string fingerprint;
+                using (var authority = CertificateBlob.Load(SeededAuthority.Authority))
+                {
+                    fingerprint = CertificateDigest.Of(authority);
+                }
+
+                store.Set(
+                    AuthorityKeys.AuthorityKey(fingerprint),
+                    AuthorityDocument.Save(
+                        SeededAuthority.Authority, SeededAuthority.Host, SeededAuthority.SniKey));
+                store.Set(SeededAuthority.ClientKey, SeededAuthority.ClientRecord);
+
+                database.Save(null);
+            }
+            finally
+            {
+                database.Close();
+            }
+        }
+
+        /// <summary>
+        /// Ends this KeePass without ending the session it belongs to, so another can be
+        /// started against the same file.
+        /// </summary>
+        /// <remarks>
+        /// Delegates rather than repeats. The first version of this was a copy of `Release`
+        /// with `Win32Exception` dropped from the filter, which is exactly what `Kill` throws
+        /// when the target is already terminating.
+        /// </remarks>
+        public void Stop()
+        {
+            Release();
+        }
+
         public void Dispose()
         {
             DropReservation();
@@ -476,6 +534,34 @@ namespace KeePassGate.Host.Tests.Live
                 // one anywhere.
                 return CertificateBlob.Load(
                     CertificateBlob.Save(issued), System.Security.Cryptography.X509Certificates.X509KeyStorageFlags.Exportable);
+            }
+        }
+
+        /// <summary>
+        /// Writes an admission record into the file, which is what pairing does from inside the
+        /// plugin. TODO(step 8): that step is still ahead.
+        /// </summary>
+        /// <remarks>
+        /// **Only before KeePass starts.** A running KeePass holds the database in memory and
+        /// serves from that, so a record written to the file underneath it is not seen, and would
+        /// be overwritten by its next save. That is not a limitation to work around: it is why
+        /// pairing writes through the plugin rather than through the file.
+        /// </remarks>
+        public void Admit(X509Certificate2 certificate, params string[] profiles)
+        {
+            var database = new PwDatabase();
+            try
+            {
+                database.Open(IOConnectionInfo.FromPath(DatabasePath), NewKey(), null);
+
+                new AdmissionStore(new CustomDataStore(database), NullGateLog.Instance)
+                    .Write(AdmissionRecord.For(certificate, DateTimeOffset.UtcNow, profiles));
+
+                database.Save(null);
+            }
+            finally
+            {
+                database.Close();
             }
         }
 

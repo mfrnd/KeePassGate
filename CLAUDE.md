@@ -291,7 +291,7 @@ here can hang or crash the password manager.
 
 [`DESIGN.md`](DESIGN.md) §132 ends with a multi-step build order. **Steps 1 to 6 are done.** The skeleton
 loads and shows a KPG tab, that tab creates, recreates and deletes the authority, and the gate
-serves one route over mutual TLS to a client the authority issued.
+serves one route over mutual TLS to a client the database holds an admission record for.
 
 **The storage decision survived the thing most likely to invalidate it.** The `GroupForm` snapshot
 hazard is real and now measured rather than remembered: `SnapshotHazardTests` reads the mechanism off
@@ -300,10 +300,10 @@ step 8 has to build on: the settings dialog the KPG tab lives on carries **no** 
 buttons are safe from their own dialog, and anything written while a **group** dialog is open is
 destroyed by its OK.
 
-**Step 7 is validation**, and it is smaller than the build order implies. The anchor pin and the
-extended key usage check are already in `ClientCredentials`, because a transport with no identity is
-not testable. What is left is the admission record lookup, the profiles that come from it, and the
-validity window with its five minutes of skew on `notBefore` only.
+**Step 7 is validation**, and it was smaller than the build order implied. The anchor pin and the
+extended key usage check were already in `ClientCredentials`, because a transport with no identity
+is not testable, and the admission record lookup, the profiles that come from it, and the validity
+window with its five minutes of skew on `notBefore` only have joined them.
 
 **One thing to know before touching the transport.** An `EphemeralKeySet` certificate signs happily
 and SChannel will not do TLS with it in either direction. That is why `Org.BouncyCastle.Tls`

@@ -66,9 +66,10 @@ namespace KeePassGate.Authority
         /// True when the leaf chains to the anchor and to nothing else.
         /// </summary>
         /// <param name="ignoreExpiry">
-        /// True when only the relationship is being asked about, as when reporting whether a
-        /// stored pair belongs together. The connection path passes false and checks the dates
-        /// itself.
+        /// True when the chain build should not judge the dates. Every caller passes true. The
+        /// connection path checks expiry itself, so the clock skew it allows is this plugin's
+        /// rather than the platform's, and every other caller asks which authority a certificate
+        /// belongs to, which an expired one still does, and reports its expiry on its own terms.
         /// </param>
         public static bool Chains(X509Certificate2 leaf, X509Certificate2 anchor, bool ignoreExpiry)
         {

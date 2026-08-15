@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Security.Cryptography.X509Certificates;
+using KeePassGate.Authority;
 
 namespace KeePassGate.Gate
 {
@@ -34,6 +35,16 @@ namespace KeePassGate.Gate
 
         /// <summary>The authority every client certificate has to chain to.</summary>
         X509Certificate2 Authority { get; }
+
+        /// <summary>
+        /// The record admitting this certificate, or null when there is none.
+        /// </summary>
+        /// <remarks>
+        /// Read from the database on every call rather than cached with the certificates, because
+        /// a revocation beside the record has to take effect on the next connection
+        /// rather than on the next time something else changed.
+        /// </remarks>
+        AdmissionRecord Admission(string admissionKey);
     }
 
     /// <summary>

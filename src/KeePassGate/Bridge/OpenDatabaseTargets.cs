@@ -225,7 +225,7 @@ namespace KeePassGate.Bridge
                 return null;
             }
 
-            var target = new MaterialTarget(reading, host);
+            var target = new MaterialTarget(reading, host, database, _log);
             _cache[database] = new CachedTarget(stored, target);
             _log.Info("serving a database with authority " + CertificateDigest.Shorten(target.DatabaseId));
             return target;
@@ -264,14 +264,19 @@ namespace KeePassGate.Bridge
             private readonly AuthorityReading _reading;
             private readonly HostKeyMaterial _host;
             private readonly string _databaseId;
+            private PwDatabase _database;
+            private readonly IGateLog _log;
 
             // The cache holds the first of these; `Current` takes one more per caller.
             private int _holders = 1;
 
-            public MaterialTarget(AuthorityReading reading, HostKeyMaterial host)
+            public MaterialTarget(
+                AuthorityReading reading, HostKeyMaterial host, PwDatabase database, IGateLog log)
             {
                 _reading = reading;
                 _host = host;
+                _database = database;
+                _log = log ?? NullGateLog.Instance;
 
                 // Taken once. It is a digest over bytes that cannot change while this target lives,
                 // and the connection path reads it twice, so recomputing it per read is a hash and
@@ -317,10 +322,47 @@ namespace KeePassGate.Bridge
             /// </remarks>
             public void Dispose()
             {
+                // The database goes with the last reference, so a target nobody holds answers
+                // nothing rather than answering out of a live `PwDatabase` while its own
+                // certificates have already been reset. `Admission` reads the group on every call,
+                // and without this it would go on reporting clients as admitted.
                 if (Interlocked.Decrement(ref _holders) == 0)
                 {
+                    _database = null;
                     _reading.Dispose();
                 }
+            }
+
+            /// <summary>
+            /// The record admitting this certificate, read now and from the custom data the
+            /// database holds now.
+            /// </summary>
+            /// <remarks>
+            /// **The store reads through the `PwDatabase`, and that is the whole of it.** A target
+            /// is cached while the authority is unchanged, and a database that is locked and opened
+            /// again comes back with its custom data replaced behind the same `PwDatabase`, so
+            /// anything holding the dictionary itself would go on reading the one that was
+            /// replaced: a revoked client would keep being admitted and a newly paired one would
+            /// never be. `CustomDataStore` asks the database for its dictionary on every access,
+            /// and is built per call besides, as `OpenDatabase` builds its own per read.
+            ///
+            /// **What it does not do is keep the database out of the cache.** The target holds the
+            /// `PwDatabase` and the cache is keyed on it, so a target that outlives its usefulness
+            /// until the next connection prunes it pins that object. It pins no entries, because
+            /// KeePass empties a `PwDatabase` when it locks or closes it, and the last holder to let
+            /// go of the target drops the reference besides.
+            /// </remarks>
+            public AdmissionRecord Admission(string admissionKey)
+            {
+                var root = _database == null ? null : _database.RootGroup;
+                if (root == null)
+                {
+                    // Locked, between this and the check `Current` made. Nothing is admitted by a
+                    // database that is not open, which is the same answer the transport gives.
+                    return null;
+                }
+
+                return new AdmissionStore(new CustomDataStore(_database), _log).Find(admissionKey);
             }
         }
     }
