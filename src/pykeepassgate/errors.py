@@ -21,11 +21,20 @@ class MalformedToken(GateError):
 
 
 class TransportError(GateError):
-    """The connection failed, or was closed before an answer arrived."""
+    """The connection failed, or was closed before an answer arrived.
+
+    A handshake that failed carries the reason the TLS library gave, because the reasons want
+    different things done: a certificate that does not chain to the authority pinned at pairing,
+    one that has expired, and a connection the gate dropped because no open database answers to
+    this client are three of them.
+    """
 
 
 class ProtocolError(GateError):
-    """The gate answered, but not with something this client can read."""
+    """Something on this wire is not what the protocol allows.
+
+    Either direction: an answer this client cannot read, or a request it will not send.
+    """
 
 
 class PairingError(GateError):

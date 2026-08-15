@@ -146,7 +146,7 @@ host certificate under it, and a TLS 1.3 server that answers one request per con
 what the plugin's transport does. That covers everything a client has to get right about the
 protocol, including the parts `ssl` decides: that the rotating name arrives as SNI, that the
 server's certificate is readable before a body is written, and that loading one authority really is
-a pin. TODO(step 10): that file arrives with the client transport.
+a pin.
 
 **Against the plugin's own output.** `tests/pykeepassgate/test_protocol.py` pins the token
 encoding, the name construction and all three proofs against vectors produced by `PairingToken`,

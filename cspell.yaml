@@ -63,6 +63,9 @@ words:
   - Reichl
 
 
+  # own the transport, because the name rotates
+  - REUSEADDR
+  - cafile
 
   # start the reference client, with the checks it is held to
   - addopts

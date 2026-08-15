@@ -89,7 +89,7 @@ has to decide.
 | `RouteRefused` | Everything else the gate refuses, carrying the status and the reason it gave, usually one word: a `413` says in a sentence what was too large. A `404` is deliberately both "no such node" and "not yours", so a client cannot map a database by asking: if the node should be there, the rule is too narrow and the operator has to widen it (TODO(step 15): the routes about nodes arrive with this step). |
 | `MalformedToken` | The text handed over is not an invitation, so nothing was sent. Check what was pasted. |
 | `ProtocolError` | The gate answered with something this client cannot read. Do not retry: the two halves disagree about the wire, which `tests/pykeepassgate/test_protocol.py` exists to stop. |
-| `TransportError` | Nothing is listening, or the handshake failed. |
+| `TransportError` | No whole answer arrived: nothing is listening, the handshake failed, or the connection broke or timed out once the request was on its way. |
 
 ## What it does not do
 
