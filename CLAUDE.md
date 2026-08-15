@@ -140,8 +140,9 @@ designing around them.
 
 Every one of these was established by running code, and most contradict what the documentation
 suggests. The code is on branches of its own: `spikes/tls-and-certificates` holds the nine that
-measured TLS and X.509, and `spikes/build-environment` the one that measured whether the gate can
-fail while nothing is wrong. Each gathers what it settled in its own `RESULTS.md`. Run them from
+measured TLS and X.509, `spikes/build-environment` the one that measured whether the gate can
+fail while nothing is wrong, and `spikes/revocation-merge` the one that measured how KeePass merges
+a database's custom data. Each gathers what it settled in its own `RESULTS.md`. Run them from
 **Windows PowerShell**, not PowerShell 7, which is .NET Core and answers a different question.
 
 - **`X509Chain` does not pin an anchor.** `ExtraStore` plus `AllowUnknownCertificateAuthority`
@@ -166,6 +167,26 @@ fail while nothing is wrong. Each gathers what it settled in its own `RESULTS.md
   `RemoteCertificateNameMismatch` (the SNI rotates). The callback ignores it entirely.
 - **`X509Certificate2.Thumbprint` is SHA-1**, 40 hex characters. Admission keys on SHA-256 over
   `RawData`. `ChainProbe` prints it.
+- **`new X509Certificate2(byte[])` accepts a PKCS#12, not just a certificate.** The constructor
+  sniffs the blob, so 2350 bytes of password-less PFX load happily, report `HasPrivateKey` true, and
+  answer `RawData` with the 676 bytes of the certificate inside. Anything keyed on the digest of
+  what it stored therefore has to take the digest of `RawData` after parsing and refuse a
+  disagreement, or a record admits a certificate whose stored bytes nobody ever checked and quietly
+  carries a private key besides. `AdmissionRecord` does exactly that; measured by feeding a PFX to
+  the byte constructor on .NET Framework 4.8 and printing all three numbers.
+- **A KeePass merge of `PwDatabase.CustomData` visits the source's keys and no others, and never
+  reads a value.** `PwDatabase.MergeInDbProperties` is the whole of it, run at the end of every
+  `MergeIn`, which is File then Synchronize and File then Import alike. So no method removes a key
+  the target holds, and a removal travels nowhere. For a key both sides hold, the two modification
+  times, the method and `SettingsChanged` decide: `KeepExisting` copies nothing; `OverwriteExisting`
+  takes every source key with the source's time, or with none where it has none; `Synchronize`,
+  `OverwriteIfNewer` and `CreateNewUuids` take the source only when its time is strictly newer or
+  only it has one, and between two keys without times only when the target lacks the key or the
+  source's settings are newer. A key that is only ever added and never changed therefore survives
+  every KeePass merge, whatever the clocks say and whether or not a program that drops the times
+  has saved either copy. `CustomDataMergeRuleTests` pins that against the pinned KeePass, and
+  `spikes/revocation-merge` holds the probe that measured every method in both directions and with
+  the times lost on either side.
 - **Never parse a SAN with `X509Extension.Format` or `GetNameInfo`.** `AddDnsName` accepts text that
   renders as a URI claim, the labels are localized, and `GetNameInfo` returns one entry. Read the
   ASN.1 tags: `0x86` URI, `0x82` dNSName, `0x81` rfc822Name. `SanProbe`.
@@ -304,6 +325,12 @@ destroyed by its OK.
 extended key usage check were already in `ClientCredentials`, because a transport with no identity
 is not testable, and the admission record lookup, the profiles that come from it, and the validity
 window with its five minutes of skew on `notBefore` only have joined them.
+
+**Two things about records that cost time to learn.** They are read from the live database on every
+connection and never cached, which is what makes revocation immediate. And a record written into the
+`.kdbx` file underneath a running KeePass is invisible to it and will be overwritten by its next
+save: KeePass serves the database it holds in memory, which is why pairing writes through the plugin
+rather than through the file.
 
 **One thing to know before touching the transport.** An `EphemeralKeySet` certificate signs happily
 and SChannel will not do TLS with it in either direction. That is why `Org.BouncyCastle.Tls`

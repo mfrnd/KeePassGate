@@ -512,7 +512,8 @@ CRL adds a refresh window in which a revoked client still works.
 The admission record does both jobs. A certificate that chains, passes its EKU check and has no
 record is refused, and so is one with a revocation beside it. Revoking adds that revocation and
 empties the record, §204, which takes effect on the next connection,
-offline and immediately.
+offline and immediately: the record is read from the live database per connection and never cached
+beside the certificates, so nothing has to be reloaded for a revocation to bite.
 
 **The key is SHA-256 over the certificate's `RawData`**, compared in fixed time, stored lowercase
 hex. `X509Certificate2.Thumbprint` is **SHA-1**, measured at 40 hex characters, and a design that
@@ -520,6 +521,33 @@ says SHA-256 throughout should not key its allowlist on it.
 
 Each record holds that key, the certificate itself so expiry is knowable, the subject as issued, the
 **approved profiles**, and the issuance date.
+
+### The stored form §223
+
+One field per line, name and value either side of the first equals sign, with a version marker
+first:
+
+```text
+v=1
+subject=CN=agent-fictitious
+admitted=2026-08-15T09:14:22Z
+profiles=ops,readonly
+certificate=<base64 DER>
+```
+
+Small and strict rather than general, and that is a decision rather than laziness. Everything in a
+record has already been through issuance, which refuses a subject or a profile that is not a plain
+name, so a reader can be total in eighty lines. **Anything that is not exactly a record is refused**:
+a missing field, a repeated one, an unknown version, a date that will not parse, a certificate that
+will not decode, or a certificate whose digest is not the key the record is filed under. A record
+that cannot be read admits nobody, which is the same answer as no record at all.
+
+Profile names that could not have been issued as claims are dropped when a record is read, so a
+record edited by hand into something strange grants nothing strange.
+
+A JSON dependency has since arrived for the access control document, so this could move to it, and
+deliberately has not: a record is read before anything is trusted, and that is worth a reader with no
+third-party grammar underneath it.
 
 ---
 
