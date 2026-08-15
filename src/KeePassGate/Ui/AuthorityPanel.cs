@@ -480,7 +480,7 @@ namespace KeePassGate.Ui
                         return;
                     }
 
-                    // **Nor against an authority that has run out.** `PairingHandler` refuses a
+                    // **Nor against an authority that has run out.** `PAIRING.md` §311 refuses a
                     // request on one before the operator is disturbed, so a code minted here is a
                     // code its holder is told to throw away, and the operator finds that out from
                     // whoever was setting the program up rather than from the page they made it
@@ -695,7 +695,7 @@ namespace KeePassGate.Ui
                 // **An authority that has run out is the same answer as one that is gone.** The
                 // invitation is still in the book and still live by its own clock, so a page that
                 // asked the book alone would count a code down with the copy button alive beside
-                // it; `PairingHandler` refuses the redemption, so what an operator copied and
+                // it; `PAIRING.md` §311 refuses the redemption, so what an operator copied and
                 // handed over would be answered with `500 expired authority`. Nothing burns it
                 // here, because a recreated authority has a different digest and this one is
                 // swept on its own expiry: what changes is only what the page offers.

@@ -16,7 +16,7 @@ namespace KeePassGate.Ui
         /// </summary>
         /// <remarks>
         /// **Including when one is in the book and this authority has expired**, which is a code
-        /// nobody can redeem and nothing can bring back: `PairingHandler` refuses the redemption,
+        /// nobody can redeem and nothing can bring back: `PAIRING.md` §311 refuses the redemption,
         /// and recreating the authority changes the digest the book answers on. This line used to
         /// say the authority had expired, which the authority page already says whenever this
         /// state is reached, with the date and above the button that recreates it. This line is

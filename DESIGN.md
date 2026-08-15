@@ -488,6 +488,12 @@ So the rules here:
   handed over, because a certificate must not leave here until its record is on disk.
   [`PAIRING.md`](PAIRING.md) phase 5 is the sequence.
 
+  **Built as `MainForm.SaveDatabase(db, null)` rather than `UIFileSave`**, which is a correction
+  to the sentence above rather than a departure from it: `UIFileSave` saves whichever document is
+  active, and pairing has to save the database the connection resolved to. Both are the same save
+  underneath, and neither tells its caller anything, so what "it worked" is made of is the record
+  still being there afterwards and the database no longer saying it has unsaved changes.
+
   So the deadlock case is **mitigated rather than absent**, and earlier versions of this section
   claimed otherwise twice over: first that it was absent, then that pairing was the only path that
   waited on the UI thread. Neither is true. Every write marshals the same way, through the same

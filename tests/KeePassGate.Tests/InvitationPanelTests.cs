@@ -199,7 +199,7 @@ namespace KeePassGate.Tests
         [Test]
         public void An_authority_that_has_run_out_cannot_be_invited_to()
         {
-            // `PairingHandler` refuses a pairing request on an expired authority before the
+            // `PAIRING.md` §311 refuses a pairing request on an expired authority before the
             // operator is ever disturbed, because one past its own dates signs nothing valid. A
             // code handed out here is therefore a code no program can redeem, and the operator
             // finds that out from whoever they sent it to rather than from the page they made it
@@ -237,7 +237,7 @@ namespace KeePassGate.Tests
             // The one state an operator reaches by pressing nothing at all: the code was minted
             // while the authority was current and the clock crossed its expiry with the dialog
             // still open. The line went on counting down, the copy button stayed alive, and the
-            // string in the box was one whose redemption `PairingHandler` answers with
+            // string in the box was one whose redemption `PAIRING.md` §311 answers with
             // `500 expired authority`.
             //
             // Arranged rather than played out. Playing it out needs a clock this panel does not

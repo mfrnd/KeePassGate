@@ -149,7 +149,7 @@ namespace KeePassGate.Ui
         /// Narrower in both directions that matter. A damaged authority and one past its own
         /// dates are both authorities recreating is the answer to, and neither can sign anything,
         /// so the button that offers to recreate has to be alive in exactly the two states where
-        /// the button that hands out a code must not be. `PairingHandler` refuses a pairing
+        /// the button that hands out a code must not be. `PAIRING.md` §311 refuses a pairing
         /// request on an expired authority before the operator is disturbed.
         /// </remarks>
         public bool CanInvite

@@ -215,7 +215,7 @@ namespace KeePassGate.Tests
         {
             // A narrower question than the three buttons on the first page answer. Recreating and
             // deleting are both offered here, because recreating is the remedy; what cannot be
-            // offered is a code, since `PairingHandler` refuses a request on this authority
+            // offered is a code, since `PAIRING.md` §311 refuses a request on this authority
             // before anybody is asked anything.
             var longAgo = DateTimeOffset.UtcNow - TimeSpan.FromDays(4000);
             var service = new AuthorityService(_values, new AuthorityIssuer(() => longAgo), null);

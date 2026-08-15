@@ -99,6 +99,7 @@ Recorded because a reader who only sees conclusions will re-make the same mistak
 | websocket-sharp was disqualified | Ten lines |
 | **An `EphemeralKeySet` certificate can serve TLS** | It cannot, in either direction. The probe that said so imported the same PKCS#12 with a persisted container first and an ephemeral one second, and the second borrowed the key the first had left. Measuring the ephemeral case on its own gives `SEC_E_NO_CREDENTIALS` for a server and a dropped handshake for a client. The probe now runs that case first, alone |
 | uHttpSharp supported spec-first binding "decisively" | Both do. It judged websocket-sharp by one facade |
+| **The channel binding needs `TransportContext.GetChannelBinding`** | It needs no transport interface at all. `tls-server-end-point` is defined as a hash of the server's certificate, so each side computes it from bytes it already holds: the server from the certificate it chose, the client from the one it was just sent. `BindingProbe` answered a question that mattered while `SslStream` terminated the TLS, and the question went away with `SslStream`. The offset warning it left behind is now unreachable |
 
 ## 6. Providing the KeePass everything is built against
 

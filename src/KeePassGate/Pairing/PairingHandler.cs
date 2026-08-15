@@ -352,7 +352,7 @@ namespace KeePassGate.Pairing
             // "Recreate authority" on the Certificate Authority page, which revokes every client
             // already admitted.
             //
-            // **A `500` even though nothing is spent.** `PAIRING.md` §303 makes `503` the answer a
+            // **A `500` even though nothing is spent.** `PAIRING.md` §311 makes `503` the answer a
             // caller is invited to try again, and no retry issues anything until the operator has
             // acted, so an invitation that survives is worth less here than an answer that does not
             // send a client round a loop it cannot leave.
