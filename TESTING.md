@@ -49,6 +49,16 @@ initialize, open the real dialog, close it, terminate, and check that nothing of
 The authority is exercised against a real `PwDatabase` as well, written to a real KDBX4 file and
 opened again, because a dictionary cannot prove that KeePass keeps what it is given.
 
+The access control rules are split the same way, and the split is worth reading as an example of the
+whole arrangement. What a grant **means** is decided against `IAclNode`, a document and a parent, so
+`AclResolverTests` builds the interesting trees in three lines each and runs in the unit tier.
+`AclInRealDatabaseTests` asks the questions KeePass alone can answer, which are that an entry
+carries custom data at all, that an unwritten key reads back as nothing, and that the parent chain
+really reaches the root from an entry three groups down. Then it runs the resolver's own rules over
+a real tree, to see them hold on what KeePass hands back rather than to settle what they mean:
+nearest wins, a seal, a tree with no rule granting nothing, the rules surviving a save and a
+reopen, a decision naming its node by identifier, and a walk taken while the rules move.
+
 **What it cannot do is show those dialogs.** `Show` throws inside the message pump outside a running
 KeePass, and WinForms answers with its unhandled-exception dialog, which blocks the run until
 something kills it. So `SnapshotHazardTests` measures the group dialog's custom data snapshot in two
