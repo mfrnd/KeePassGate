@@ -35,9 +35,46 @@ namespace KeePassGate.Host.Tests.Live
     {
         public static LiveReply Get(int port, string serverName, X509Certificate2 certificate, string path)
         {
+            return Send(port, serverName, certificate, "GET", path, null);
+        }
+
+        /// <summary>
+        /// One request, with a body when the route takes one.
+        /// </summary>
+        /// <remarks>
+        /// Written by hand rather than through a client library, deliberately: the gate's own
+        /// parser is what this exercises, and a library that quietly corrected a request would hide
+        /// exactly the thing worth knowing.
+        /// </remarks>
+        public static LiveReply Send(
+            int port,
+            string serverName,
+            X509Certificate2 certificate,
+            string method,
+            string path,
+            string body)
+        {
             var reply = new LiveReply();
-            var request = Encoding.ASCII.GetBytes(
-                "GET " + path + " HTTP/1.1\r\nHost: " + serverName + "\r\n\r\n");
+            var payload = body == null ? Array.Empty<byte>() : Encoding.UTF8.GetBytes(body);
+
+            var head = new StringBuilder();
+            head.Append(method).Append(' ').Append(path).Append(" HTTP/1.1\r\n");
+            head.Append("Host: ").Append(serverName).Append("\r\n");
+
+            if (body != null)
+            {
+                head.Append("Content-Type: application/json\r\n");
+                head.Append("Content-Length: ")
+                    .Append(payload.Length.ToString(CultureInfo.InvariantCulture))
+                    .Append("\r\n");
+            }
+
+            head.Append("\r\n");
+
+            var prefix = Encoding.ASCII.GetBytes(head.ToString());
+            var request = new byte[prefix.Length + payload.Length];
+            Buffer.BlockCopy(prefix, 0, request, 0, prefix.Length);
+            Buffer.BlockCopy(payload, 0, request, prefix.Length, payload.Length);
 
             try
             {

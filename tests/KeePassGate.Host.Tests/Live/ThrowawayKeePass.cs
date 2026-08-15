@@ -11,6 +11,7 @@ using System.Security.Cryptography.X509Certificates;
 using KeePassLib;
 using KeePassLib.Keys;
 using KeePassLib.Serialization;
+using KeePassGate.Acl;
 using KeePassGate.Authority;
 using KeePassGate.Bridge;
 using KeePassGate.Diagnostics;
@@ -595,6 +596,52 @@ namespace KeePassGate.Host.Tests.Live
                     .Write(AdmissionRecord.For(certificate, DateTimeOffset.UtcNow, profiles));
 
                 database.Save(null);
+            }
+            finally
+            {
+                database.Close();
+            }
+        }
+
+        /// <summary>
+        /// Writes a grant on the root group, the way the KPG tab does, before KeePass is
+        /// started.
+        /// </summary>
+        /// <remarks>
+        /// Before, and it has to be: a running KeePass serves the database it holds in memory, so a
+        /// rule written to the file underneath it would be invisible and then overwritten by its
+        /// next save. That is the same reason a record is admitted before the process starts.
+        /// </remarks>
+        public void Grant(string document)
+        {
+            var database = new PwDatabase();
+            try
+            {
+                database.Open(IOConnectionInfo.FromPath(DatabasePath), NewKey(), null);
+                database.RootGroup.CustomData.Set(AclDocument.CustomDataKey, document);
+                database.Save(null);
+            }
+            finally
+            {
+                database.Close();
+            }
+        }
+
+        /// <summary>Every entry in the file, read after KeePass has exited.</summary>
+        public IReadOnlyList<PwEntry> ReadEntries()
+        {
+            var database = new PwDatabase();
+            try
+            {
+                database.Open(IOConnectionInfo.FromPath(DatabasePath), NewKey(), null);
+
+                var found = new List<PwEntry>();
+                foreach (var entry in database.RootGroup.GetEntries(true))
+                {
+                    found.Add(entry.CloneDeep());
+                }
+
+                return found;
             }
             finally
             {
