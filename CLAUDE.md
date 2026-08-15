@@ -8,7 +8,7 @@ Guidance for anyone, human or AI assistant, working in this repository.
 mutual TLS, so that automation and AI agents can each be given a narrow, revocable, audited slice of
 a database.
 
-**Status: the design is settled and steps 1 to 12 of the build order are done.** The plugin loads
+**Status: the design is settled and steps 1 to 13 of the build order are done.** The plugin loads
 into KeePass, the KPG tab creates, recreates and deletes the database's own certificate authority,
 the gate listens on loopback and answers over mutual TLS 1.3, a client is served only if
 the database holds an admission record for its certificate, and **a stranger can now become one**:
@@ -18,9 +18,10 @@ KeePass now answers `503 locked`** with a second host certificate held only in m
 table is now the OpenAPI document itself**: handlers bind to `operationId`, an undeclared path has
 nowhere to go, and a document that disagrees with the handlers stops the plugin loading. **What a
 grant means is now settled**: rules live in group and entry `CustomData`, nearest wins per profile,
-and every operation declares the verb it needs or the plugin does not load. Step 13, the editor an
-operator writes a rule with, is next, and step 14 is where the rules start being enforced: nothing
-asks them until the intersection with the admission record lands.
+and every operation declares the verb it needs or the plugin does not load. **An operator can now
+write one**: the KPG tab on the group and entry dialogs edits the rules as a `CRUSDLAP` mask,
+writing into the copy the dialog puts back on OK. Step 14, the intersection with the admission record
+and the audit log, is what is left; nothing enforces the rules until it lands.
 
 ## Read these before proposing anything
 
@@ -462,11 +463,11 @@ here can hang or crash the password manager.
 
 ## Where to start
 
-[`DESIGN.md`](DESIGN.md) §132 ends with a multi-step build order. **Steps 1 to 12 are done.** The skeleton
-loads and shows a KPG tab, that tab creates, recreates and deletes the authority, the gate serves
-the document's routes over mutual TLS to a client the authority issued and the database holds a
-record for, a stranger can pair, a locked database answers `503 locked`, and a grant now means something
-definite even though nothing asks it yet.
+[`DESIGN.md`](DESIGN.md) §132 ends with a multi-step build order. **Steps 1 to 13 are done.** The
+skeleton loads and shows a KPG tab, that tab creates, recreates and deletes the authority, the gate
+serves the document's routes over mutual TLS to a client the authority issued and the database holds
+a record for, a stranger can pair, a locked database answers `503 locked`, a grant means something
+definite, and an operator can write one from the group and entry dialogs.
 
 **The storage decision survived the thing most likely to invalidate it.** The `GroupForm` snapshot
 hazard is real and now measured rather than remembered: `SnapshotHazardTests` reads the mechanism off

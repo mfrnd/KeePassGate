@@ -104,6 +104,15 @@ one waiting for the answer; the certificate that comes back is then used on the 
 connection; and the record is looked for in the `.kdbx` after KeePass has exited. A refusal is
 driven the same way, and leaves nothing behind.
 
+**Step 13**, in `LiveGrantEditorTests`: a rule made on the KPG tab of a real KeePass, kept by the
+group dialog's **OK**, and read out of the `.kdbx` after the process has gone. Pressing OK rather
+than Escape is what it is for: the dialog writes its own copy of the group's settings back over the
+group at that moment, so a rule written anywhere else would be destroyed exactly there.
+`LiveAuthorityTests` presses OK too, for the reason the end of this document gives, so this is no
+longer the only one that does. It is also the only one that moves the pointer, because neither
+column on that table can be typed into and a list is not something the accessibility tree can be
+asked to operate.
+
 The client half of pairing lives in `tests/Shared/PairingClient.cs` and is compiled into **both**
 test assemblies. That is deliberate: if the loopback tests and the end to end test each had their
 own client, either could pass against a protocol only it knew.

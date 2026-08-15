@@ -929,7 +929,17 @@ Each step is refusable, and each ends with something that runs.
     verb an operation needs is now read out of the routing table as an `AclVerb` rather than a
     string, and an operation that declares none stops the plugin loading. Nothing is enforced yet:
     this step is what a grant means, not where it is asked.
-13. **The editor**: the grant UI, the largest single piece and the last thing needed.
+13. **The editor**: the grant UI, and the largest single piece. **Done**, and
+    it is what makes everything above it reachable: `CustomData` is not editable in the stock
+    KeePass dialogs, so without it no grant can be made at all and the model is inert. A **KPG** tab
+    on the group and entry dialogs, one row per profile, its rule a `CRUSDLAP` mask, and what the
+    groups above grant shown among the local rules so the table is the whole answer. Neither column
+    is typed into: a mask spelled by hand is a rule nobody meant, and a profile spelled by hand is a
+    rule for a name that may not exist, which grants nobody anything and reads exactly like one that
+    works. Both are chosen from a list. The rule is written into the dialog's own copy of the node's
+    custom data, which is what makes that dialog's OK keep it and its Cancel discard it. The end to
+    end test makes a rule in a real KeePass with a real pointer and real keystrokes, presses OK, and
+    finds it in the `.kdbx` after the process has gone.
 14. **Intersection and audit**: the two answers combined, every decision recorded.
 15. **The database API**: the routes that read and change groups, entries, fields and attachments.
     They arrive with no new machinery, which is the point of everything under them: a verb in the
