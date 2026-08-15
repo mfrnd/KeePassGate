@@ -763,10 +763,10 @@ Each step is refusable, and each ends with something that runs.
    the end
    because a second implementation is what turns a specification into a contract: where the two
    disagree one of them is wrong, and a disagreement should fail a test rather than a pairing.
-11. **Spec router**: the document, `operationId` binding, schema validation, startup assertion.
-   `HEAD` is decided here: every `GET` declares one, and both reach the same handler, because HTTP
-   says a `HEAD` should be served wherever a `GET` is and the document is the place to say which
-   methods exist.
+11. **Spec router**: the document, `operationId` binding, body checking, startup assertion. `HEAD`
+   is decided: every `GET` declares one, and both reach the same handler. **Done.** Bodies are
+   checked against the declared schema by a checker over the subset this wire carries, which is
+   what §118 settles and why no schema library is taken.
 12. **The ACL**: the model in section 7, resolving against a real database.
 13. **The editor**: the grant UI, the largest single piece and the last thing needed.
 14. **Intersection and audit**: the two answers combined, every decision recorded.
