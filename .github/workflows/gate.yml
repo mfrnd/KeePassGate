@@ -1,9 +1,11 @@
-# Runs the gate. Whatever `build.ps1` says its checks are, this runs each of them as a job.
+# Runs the gate. Whatever `build.ps1` says its checks are, this runs each of them as a job, on the
+# runner the script names for it.
 #
-# **The job list is not written here.** It is `build.ps1 -ListGates`, read at run time, so a task
-# added to the script is checked by CI without anybody editing this file, and there is no second
-# list that could disagree with the first. That is the whole design: the list is never written here,
-# however many steps the repository grows.
+# **The job list is not written here, and nor is where a job runs.** Both are `build.ps1 -ListGates`,
+# read at run time, one line per check and runner, so a task added to the script, or a runner added
+# for one, is checked by CI without anybody editing this file, and there is no second list that
+# could disagree with the first. That is the whole design: the list is never written here, however
+# many steps the repository grows.
 #
 # **The actions are pinned by commit**, with the release each commit is beside it, because a tag is
 # whatever its maintainers move it to next, and what every run executes would then change with no
@@ -26,11 +28,13 @@
 # guarded on the file that proves its subject has arrived, rather than on a step number this file
 # would then have to know about.
 #
-# **`windows-latest` throughout**, including the short job that only reads the task list. Everything
-# here is a Windows repository and the gate is Windows PowerShell; running one job on a cheaper
+# **`windows-latest` for everything Windows does**, including the short job that only reads the task
+# list. This is a Windows repository and the gate is Windows PowerShell; running a job on a cheaper
 # image would buy about a minute a month and introduce the one difference nobody would think to
 # check. That a hosted runner can do all of it, including driving a real KeePass across a desktop,
-# is measured on `spikes/hosted-runner-desktop` rather than assumed.
+# is measured on `spikes/hosted-runner-desktop` rather than assumed. **The client is the exception**:
+# it is a Python package that installs anywhere, so the script runs its check on `ubuntu-latest`
+# as well, under PowerShell 7, where the tests of a credential file's mode can run at all.
 
 name: gate
 
@@ -62,29 +66,46 @@ jobs:
       - id: ask
         shell: powershell
         run: |
-          $gates = & .\build.ps1 -ListGates
+          $gates = @(& .\build.ps1 -ListGates)
           if (-not $gates) {
             throw 'build.ps1 declares no gates. A green check here would say this branch was checked when nothing ran.'
           }
           Write-Host "gates: $($gates -join ', ')"
 
+          # One job per line, which is a check and the runner it runs on. A line that is not both
+          # is refused rather than guessed at, since a job with no runner fails in a way that names
+          # nothing about why.
+          #
           # Spelled out rather than handed to ConvertTo-Json, which renders a one element array as
-          # a bare string. A branch with a single gate would then produce a matrix over the letters
-          # of its name, and the first branch in this repository has exactly one.
-          $list = '[' + (($gates | ForEach-Object { '"' + $_ + '"' }) -join ',') + ']'
+          # a bare object. A branch with a single gate would then produce no matrix at all, and the
+          # first branch in this repository has exactly one.
+          $jobs = foreach ($line in $gates) {
+            $task, $runner, $rest = @($line -split ' ')
+            if (-not $task -or -not $runner -or $rest) {
+              throw "build.ps1 -ListGates said '$line', which is not a check and a runner."
+            }
+            '{"task":"' + $task + '","runner":"' + $runner + '"}'
+          }
+          $list = '[' + (@($jobs) -join ',') + ']'
           "list=$list" | Out-File $env:GITHUB_OUTPUT -Append -Encoding utf8
 
   gate:
-    name: ${{ matrix.task }}
+    name: ${{ matrix.task }} on ${{ matrix.runner }}
     needs: gates
-    runs-on: windows-latest
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 45
     strategy:
       # Every check reports for itself. One failure hiding the others would mean a second push to
       # learn the second thing.
       fail-fast: false
       matrix:
-        task: ${{ fromJSON(needs.gates.outputs.list) }}
+        include: ${{ fromJSON(needs.gates.outputs.list) }}
+    # Windows PowerShell on Windows, which is what the gate is written for, and PowerShell 7
+    # everywhere else, where there is no other. Here rather than on each step, because a step's
+    # own `shell` reads no expression and a job's default does.
+    defaults:
+      run:
+        shell: ${{ startsWith(matrix.runner, 'windows') && 'powershell' || 'pwsh' }}
     steps:
       # The whole history, because the anchors check reads every commit that ever touched a
       # document and compares against `HEAD^`, and a depth-one clone has neither. The job above
@@ -105,20 +126,21 @@ jobs:
         with:
           enable-cache: true
 
+      # Windows only, because only there is KeePass provided: a check on another system has no
+      # KeePass to build against, and a cache of nothing is a warning on every run.
       - name: the pinned KeePass, where one is pinned
-        if: hashFiles('keepass.sha256') != ''
+        if: runner.os == 'Windows' && hashFiles('keepass.sha256') != ''
         uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
         with:
           path: .keepass
           key: keepass-${{ hashFiles('keepass.sha256') }}
 
+      # A forward slash, which both PowerShells read as a separator on every system.
       - name: ${{ matrix.task }}
-        shell: powershell
-        run: .\build.ps1 -Task ${{ matrix.task }}
+        run: ./build.ps1 -Task ${{ matrix.task }}
 
       # The end to end tier starts a real KeePass. One left running holds the job open until the
-      # timeout, which costs minutes and says nothing.
+      # timeout, which costs minutes and says nothing. There is none to leave anywhere else.
       - name: leave nothing running
-        if: always()
-        shell: powershell
+        if: always() && runner.os == 'Windows'
         run: Get-Process KeePass -ErrorAction SilentlyContinue | Stop-Process -Force

@@ -9,6 +9,7 @@
       KeePass  provide the pinned KeePass, which everything else needs
       Build    compile everything, in Debug and in Release
       Lint     check the prose: markdown rules and spelling
+      Client   check and test PyKeePassGate, the Python reference client
       Unit     run the tests that never load KeePass
       Host     run the tests that drive the real KeePass types in this process
       Coverage run both test tiers and hold what they reach above a floor
@@ -39,7 +40,7 @@
 
 [CmdletBinding()]
 param(
-    [ValidateSet('KeePass', 'Build', 'Lint', 'Unit', 'Host', 'Coverage', 'Test', 'Live', 'All', 'Deploy', 'Clean')]
+    [ValidateSet('KeePass', 'Build', 'Lint', 'Client', 'Unit', 'Host', 'Coverage', 'Test', 'Live', 'All', 'Deploy', 'Clean')]
     [string] $Task = 'Test',
 
     [ValidateSet('Debug', 'Release')]
@@ -54,7 +55,8 @@ param(
     # commit somebody has to write a reason into.
     [int] $CoverageFloor = 80,
 
-    # Print the tasks that are checks and exit. This is what CI asks for.
+    # Print the tasks that are checks, one line for each runner CI gives one, and exit. This is
+    # what CI asks for.
     [switch] $ListGates
 )
 
@@ -98,13 +100,39 @@ if ($strays.Count -gt 0) {
     throw "notGates names $($strays -join ', '), which no task declares."
 }
 
+# **Where CI runs each check**, which `-ListGates` says beside it so that the workflow reads that
+# from here too. This is a Windows repository and every check runs on Windows. The client is a
+# Python package that installs anywhere, so its check runs on Linux as well, which is also the only
+# place the tests of a credential file's mode can run at all: Windows answers those with an ACL.
+# A name here that is not a check is refused, as a stray in `notGates` is.
+$runners = @{ 'Client' = @('windows-latest', 'ubuntu-latest') }
+
+$gates = @($declaredTasks | Where-Object { $notGates -notcontains $_ })
+$misplaced = @($runners.Keys | Where-Object { $gates -notcontains $_ })
+if ($misplaced.Count -gt 0) {
+    throw "runners names $($misplaced -join ', '), which is not a check."
+}
+
 if ($ListGates) {
-    $declaredTasks | Where-Object { $notGates -notcontains $_ }
+    foreach ($gate in $gates) {
+        $on = @('windows-latest')
+        if ($runners.ContainsKey($gate)) {
+            $on = $runners[$gate]
+        }
+
+        foreach ($runner in $on) {
+            "$gate $runner"
+        }
+    }
+
     exit 0
 }
 
 $root = Split-Path -Parent $MyInvocation.MyCommand.Definition
-. (Join-Path $root 'tools\KeePass.ps1')
+
+# Joined a part at a time, because the client's check also runs under PowerShell 7 on Linux, and a
+# backslash written into a path is a separator only on Windows.
+. (Join-Path (Join-Path $root 'tools') 'KeePass.ps1')
 $solution = Join-Path $root 'KeePassGate.sln'
 $unitTests = Join-Path $root 'tests\KeePassGate.Tests\KeePassGate.Tests.csproj'
 $hostTests = Join-Path $root 'tests\KeePassGate.Host.Tests\KeePassGate.Host.Tests.csproj'
@@ -292,7 +320,11 @@ function Invoke-Lint {
     # clone carries it and every checkout of an early commit puts it back. Asked of git rather
     # than of a list here, so the answer is whatever `.gitignore` currently says.
     Invoke-Step 'tracked but ignored' {
-        $stowaways = @(& git ls-files --cached --ignored --exclude-standard)
+        # The pathspec is what makes this the whole repository rather than whatever
+        # directory the caller stood in: git scopes a bare `ls-files` to the working
+        # directory, so from `src` this checked 112 files instead of 247 and said so
+        # in exactly the same words.
+        $stowaways = @(& git ls-files --cached --ignored --exclude-standard -- $root)
         $global:LASTEXITCODE = 0
 
         if ($stowaways.Count -gt 0) {
@@ -316,6 +348,60 @@ function Invoke-Lint {
     # reads both.
     Invoke-Step 'doc comments' {
         & (Join-Path $root 'tools/DocComments.ps1')
+    }
+}
+
+# The Python half. `uv` owns the environment, so nothing here installs anything by hand and the
+# versions are whatever `uv.lock` pins. The three checks are the same three the client's own
+# `pyproject.toml` configures, run in the order that fails cheapest first.
+function Invoke-Client {
+    if (-not (Get-Command uv -ErrorAction SilentlyContinue)) {
+        throw 'uv was not found. PyKeePassGate is managed with uv: https://docs.astral.sh/uv/'
+    }
+
+    # Every other task joins its paths against $root. These four are bare commands that read
+    # the working directory, and they fail in the direction that reports success: from a
+    # subdirectory `ruff check .` prints 'All checks passed!' having never opened
+    # tests/pykeepassgate, and .coverage lands somewhere .gitignore does not cover. CI always
+    # runs from the root, so nothing there would ever have shown it.
+    Push-Location $root
+    try {
+        # `--locked` rather than `--frozen`, and only here. `--frozen` uses the lockfile without
+        # checking it still agrees with pyproject.toml, so a dependency edited and never
+        # re-locked passes the whole gate green. Catching that is the one thing committing a
+        # lockfile is for. The three steps below stay `--frozen`: they should use the
+        # environment this one just settled, not re-resolve it.
+        Invoke-Step 'client environment' {
+            uv sync --locked --quiet
+        }
+
+        Invoke-Step 'client style' {
+            uv run --frozen ruff check .
+        }
+
+        Invoke-Step 'client types' {
+            uv run --frozen mypy
+        }
+
+        Invoke-Step 'client tests' {
+            uv run --frozen pytest --cov --cov-report=term-missing -q
+        }
+
+        # What PyPI is handed, not what the working tree holds. `uv build` builds the sdist and
+        # then builds the wheel *from that sdist*, which is the step that catches a source
+        # distribution nobody can install: a packaging table that reads the working tree's layout
+        # and ships a different one passes every other check here. Into .tmp, which is ignored,
+        # because the artifacts are the gate's business and not the repository's.
+        Invoke-Step 'client package' {
+            # A part at a time, for the reason the helper above is joined that way: this one goes
+            # to `uv`, which reads a backslash on Linux as part of a name.
+            $distribution = Join-Path (Join-Path $root '.tmp') 'dist'
+            if (Test-Path $distribution) { Remove-Item $distribution -Recurse -Force }
+            uv build --out-dir $distribution
+        }
+    }
+    finally {
+        Pop-Location
     }
 }
 
@@ -395,9 +481,78 @@ function Invoke-Coverage {
     }
 }
 
+# **The client is checked beside the plugin rather than before it.** Neither half reads anything
+# the other writes, and one after the other the client's minute or two was spent with every core
+# but one idle. So it runs as this same script asked for `Client`, in a process of its own, while
+# the plugin builds and its tiers run here. Its output goes to a file and is printed once the
+# plugin's half is done, in one piece rather than interleaved line by line with the other half's.
+#
+# A failure on either side fails the run, and the client's is reported even when the plugin's
+# half failed too, because the second failure is the one that would otherwise surface only on
+# the next run. The process is waited for in every case, so nothing is left running.
+function Start-Client {
+    $directory = Join-Path $root '.tmp'
+    New-Item -ItemType Directory -Force -Path $directory | Out-Null
+    $output = Join-Path $directory 'client.log'
+    $errors = Join-Path $directory 'client.err'
+    Remove-Item $output, $errors -Force -ErrorAction SilentlyContinue
+
+    # The PowerShell running this script, whichever it is: Windows PowerShell here, PowerShell 7
+    # on a runner. The execution policy is a Windows setting, so it is only named there.
+    $shell = [System.Diagnostics.Process]::GetCurrentProcess().MainModule.FileName
+    $arguments = @('-NoProfile')
+    if ($env:OS -eq 'Windows_NT') {
+        $arguments += @('-ExecutionPolicy', 'Bypass')
+    }
+    $arguments += @('-File', "`"$PSCommandPath`"", '-Task', 'Client')
+    $process = Start-Process -FilePath $shell -ArgumentList $arguments -WorkingDirectory $root -NoNewWindow -PassThru `
+        -RedirectStandardOutput $output -RedirectStandardError $errors
+
+    # Read once now, because `Process.ExitCode` comes back empty for a process started this way
+    # unless its handle was taken before it exited.
+    $null = $process.Handle
+    return [pscustomobject] @{ Process = $process; Output = $output; Errors = $errors }
+}
+
+function Complete-Client {
+    param($Client)
+
+    $Client.Process.WaitForExit()
+
+    Write-Host ''
+    Write-Host '==> client (beside the plugin)' -ForegroundColor Cyan
+    foreach ($file in $Client.Output, $Client.Errors) {
+        if (Test-Path $file) {
+            Get-Content -LiteralPath $file | ForEach-Object { Write-Host $_ }
+        }
+    }
+
+    return $Client.Process.ExitCode
+}
+
 function Invoke-Test {
     Invoke-Lint
-    Invoke-Coverage
+    $client = Start-Client
+    $failed = $null
+    try {
+        Invoke-Coverage
+    }
+    catch {
+        $failed = $_
+    }
+
+    $code = Complete-Client $client
+    if ($failed) {
+        if ($code -ne 0) {
+            Write-Host "The client failed too, with exit code $code." -ForegroundColor Red
+        }
+
+        throw $failed
+    }
+
+    if ($code -ne 0) {
+        throw "client failed with exit code $code."
+    }
 }
 
 # Prints what a failed end to end run leaves behind, because on a hosted runner the console is all
@@ -673,12 +828,30 @@ function Invoke-Clean {
             Write-Host "removing $($_.FullName)"
             Remove-Item $_.FullName -Recurse -Force
         }
+
+    # What the client tier leaves behind, which is the same list `.gitignore` had to learn.
+    # A clean that removes half of what a build makes is a clean nobody can rely on.
+    $caches = '.venv', '.mypy_cache', '.pytest_cache', '.ruff_cache', '.coverage'
+    foreach ($cache in $caches) {
+        $path = Join-Path $root $cache
+        if (Test-Path $path) {
+            Write-Host "removing $path"
+            Remove-Item $path -Recurse -Force
+        }
+    }
+
+    Get-ChildItem -Path (Join-Path $root 'src'), (Join-Path $root 'tests') -Include '__pycache__' -Recurse -Directory |
+        ForEach-Object {
+            Write-Host "removing $($_.FullName)"
+            Remove-Item $_.FullName -Recurse -Force
+        }
 }
 
 switch ($Task) {
     'KeePass' { Resolve-KeePass | Out-Null; Test-KeePassLatest }
     'Build' { Invoke-Compile }
     'Lint' { Invoke-Lint }
+    'Client' { Invoke-Client }
     'Unit' { Invoke-Unit }
     'Host' { Invoke-Host }
     'Coverage' { Invoke-Coverage }

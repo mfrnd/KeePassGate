@@ -80,8 +80,9 @@ def test_only_the_directories_this_created_are_narrowed(
     # The parent of whatever was named used to be narrowed as well, so `--directory ~/agent`
     # changed the mode of a home directory and `--directory /tmp/kept` raised out of `chmod`
     # with the invitation already spent and the record already saved. Asserted on the call
-    # rather than on the mode, because Windows decides a directory with an ACL, reports every
-    # one of them alike, and is the only platform CI runs on.
+    # rather than on the mode, so that it holds on Windows too, which decides a directory with
+    # an ACL and reports every one of them alike. The test below asks the mode itself, where
+    # there is one to ask.
     narrowed: list[Path] = []
     chmod = Path.chmod
 

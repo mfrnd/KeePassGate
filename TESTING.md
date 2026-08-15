@@ -11,7 +11,7 @@ fails in a way that names its own cause.
 | **Client** | `tests/pykeepassgate` | Python, and `uv` to arrange it | a few seconds | PyKeePassGate against stand-ins, and its protocol code against vectors the plugin produced |
 
 ```powershell
-.\build.ps1                # build, then the unit and host tiers
+.\build.ps1                # the prose, the client tier, then the unit and host tiers
 .\build.ps1 -Task Live     # the end to end tier
 .\build.ps1 -Task All      # everything
 ```
@@ -156,12 +156,11 @@ holds the plugin to the same values over the same inputs, so a change to either 
 half's own tier rather than at the first real pairing.
 
 ```shell
-uv run pytest --cov        # the client, with its coverage floor
+uv run pytest --cov        # the client, with the coverage floor the gate enforces
 ```
 
 ```powershell
 .\build.ps1 -Task Client         # the same thing, and its style and types
-# TODO(step 10): that task arrives with the client's checks.
 ```
 
 ## Conventions
@@ -206,6 +205,9 @@ unlucky and so reads as a flake.
 fixtures drive KeePass's own statics, which belong to the whole process as much as anything above
 does, and the plugin reads them. A mark forgotten there would fail now and then rather than
 plainly, and the tier is a minute or two either way.
+
+**And the client tier runs beside both.** `build.ps1` starts it as a process of its own while the
+plugin builds and its tiers run, prints its output once they are done, and fails if either half did.
 
 ## What the coverage floor holds
 

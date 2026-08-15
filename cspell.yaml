@@ -125,6 +125,8 @@ words:
   - noresult
   - Parallelizable
   - pathspec
+  - pycache
+  - venv
   - USERPROFILE
   - LOCALAPPDATA
 

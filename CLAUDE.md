@@ -283,14 +283,16 @@ request and on every push to `master`, because there is one definition of clean 
 file.
 
 ```powershell
-.\build.ps1                # build, then every test that does not need a running KeePass
+.\build.ps1                # prose, the client, the build, and every test that does not need KeePass
 .\build.ps1 -Task All      # the above, then the end to end tests
 .\build.ps1 -Task Deploy   # copy the plugin into plugins\KeePassGate in the provided KeePass
 ```
 
-**`build.ps1 -ListGates` is what CI asks for.** The workflow builds one job per name it returns, so
-a task added to the script is checked without anybody editing `.github/workflows/gate.yml`. The
-jobs are never written there, so what changes in that file is the commit each action is pinned
+**`build.ps1 -ListGates` is what CI asks for.** It answers one line per check and the runner CI
+gives it, and the workflow builds one job per line, so a task added to the script, or a runner
+added for one, is checked without anybody editing `.github/workflows/gate.yml`. Every check runs on
+Windows, and the client's on Linux as well, under PowerShell 7. The jobs are never written there
+and neither is where they run, so what changes in that file is the commit each action is pinned
 to, which its header says as well.
 
 The projects are SDK-style, target `net48` and build with the **.NET SDK's `dotnet` CLI**, which is

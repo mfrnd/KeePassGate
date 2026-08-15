@@ -70,7 +70,7 @@ for, and carry a valid Authenticode signature from KeePass's author. That last c
 that does not depend on where the bytes came from.
 
 ```powershell
-.\build.ps1                # build, then every test that does not need a running KeePass
+.\build.ps1                # prose, the client, the build, and every test that does not need KeePass
 .\build.ps1 -Task All      # the above, then the end to end tests
 .\build.ps1 -Task Deploy   # copy the plugin into plugins\KeePassGate in the provided KeePass
 ```
