@@ -8,9 +8,9 @@ Guidance for anyone, human or AI assistant, working in this repository.
 mutual TLS, so that automation and AI agents can each be given a narrow, revocable, audited slice of
 a database.
 
-**Status: the design is settled and steps 1 to 4 of the build order are done.** The plugin loads into
-KeePass, puts a KPG tab on the database settings dialog and stops cleanly. It has no certificate
-authority, serves no API and opens no socket. Step 5, the authority, is next.
+**Status: the design is settled, steps 1 to 4 of the build order are done, and step 5, the
+authority, is under way.** The plugin loads into KeePass, puts a KPG tab on the database settings
+dialog and stops cleanly. It has no certificate authority, serves no API and opens no socket.
 
 ## Read these before proposing anything
 
