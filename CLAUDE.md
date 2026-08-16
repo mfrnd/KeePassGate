@@ -8,13 +8,14 @@ Guidance for anyone, human or AI assistant, working in this repository.
 mutual TLS, so that automation and AI agents can each be given a narrow, revocable, audited slice of
 a database.
 
-**Status: the design is settled and steps 1 to 8 of the build order are done.** The plugin loads
+**Status: the design is settled and steps 1 to 9 of the build order are done.** The plugin loads
 into KeePass, the KPG tab creates, recreates and deletes the database's own certificate authority,
 the gate listens on loopback and answers over mutual TLS 1.3, a client is served only if
 the database holds an admission record for its certificate, and **a stranger can now become one**:
 the tab hands out an invitation, both sides prove they hold it, the operator approves what it may
-reach, and the record is written and saved before the certificate is handed over. Step 9, lock and
-unlock, is next.
+reach, and the record is written and saved before the certificate is handed over, and **a locked
+KeePass now answers `503 locked`** with a second host certificate held only in memory. Step 10, the
+reference client, is next.
 
 ## Read these before proposing anything
 
@@ -365,7 +366,7 @@ here can hang or crash the password manager.
 
 ## Where to start
 
-[`DESIGN.md`](DESIGN.md) §132 ends with a multi-step build order. **Steps 1 to 8 are done.** The skeleton
+[`DESIGN.md`](DESIGN.md) §132 ends with a multi-step build order. **Steps 1 to 9 are done.** The skeleton
 loads and shows a KPG tab, that tab creates, recreates and deletes the authority, and the gate
 serves one route over mutual TLS to a client the database holds an admission record for.
 
@@ -376,11 +377,10 @@ step 8 built on: the settings dialog the KPG tab lives on carries **no** snapsho
 buttons are safe from their own dialog, and anything written while a **group** dialog is open is
 destroyed by its OK.
 
-**Step 9 is lock and unlock**, and `PAIRING.md` §308 is the specification: a second host
-certificate minted at unlock and held only in memory, the authority key and the records dropped at
-lock, the `KPG.SniKey` deliberately kept because the gate resolves names before any TLS work, and
-every connection closed on **both** transitions, because one that shook hands with the
-responder certificate was authenticated against nothing.
+**Step 11 is the spec router**: the OpenAPI document as the routing table, handlers bound to
+`operationId`, schema validation, and a startup assertion that the document and the handlers agree.
+`GateRouter` is what it replaces, and the shape to keep is the one already there: identity is
+refused in one place before dispatch, and a locked database is refused before even that.
 
 What steps 8 and 9 leave it. `AdmissionWriter` is the single writer, and the only place a request
 writes to a database. `GroupDialogs` watches for the dialog that would take a write back, tracking
