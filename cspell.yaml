@@ -1,0 +1,80 @@
+version: "0.2"
+language: en-US
+
+enableFiletypes:
+  - csharp
+  - powershell
+  - python
+
+files:
+  - "**/*.md"
+  - "**/*.cs"
+  - "**/*.ps1"
+  - "**/*.py"
+  - "**/*.yaml"
+  - "**/*.yml"
+  - "**/*.json"
+  - "**/*.toml"
+  - "**/*.csproj"
+  - "**/*.props"
+
+# **What git ignores is not ours to spell.** The globs above match dot-prefixed paths only because
+# the gate runs with `--dot`, and it does because this repository keeps files of its own there: the
+# assistant's settings under `.claude`, and the configuration at the root. `--dot` on its own would
+# walk into every directory a tool makes as well, which is what this keeps out: `.gitignore` already
+# says what is not ours, and it is maintained for its own reasons.
+useGitignore: true
+
+ignorePaths:
+  # Somebody else's source, vendored or generated. Not ours to spell, and a checker that reports it
+  # is a checker whose findings nobody reads. The spike branches vendor whole libraries under
+  # `vendor/`, which is what that first line is for.
+  - "**/vendor/**"
+  - "**/*.generated.cs"
+  - node_modules/**
+  - "**/bin/**"
+  - "**/obj/**"
+  - .tmp/**
+  - scratchpad/**
+  - package-lock.json
+  - "**/*.kdbx"
+
+ignoreRegExpList:
+  # A run of hex, which covers fingerprints, key identifiers and the SNI labels.
+  - "/\\b[0-9a-fA-F]{8,}\\b/g"
+  # base64 and base64url, which covers certificates, tokens and invitations.
+  - "/\\b[A-Za-z0-9+/_-]{20,}={0,2}\\b/g"
+  # A URL, whose path is somebody else's spelling.
+  - "/https?:\\/\\/[^\\s)\"'`]+/g"
+
+words:
+
+
+
+
+
+
+
+
+
+
+  # This project
+  - KeePassGate
+  - kdbx
+  - keepass
+
+
+
+  # KeePass's own names, which are spelled the way KeePass spells them
+  - Kdbx
+
+
+
+  # Tooling
+  - LASTEXITCODE
+
+
+
+  # More of the platform, and of the wire
+  - Ecas
+
