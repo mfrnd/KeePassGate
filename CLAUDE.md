@@ -115,8 +115,7 @@ designing around them.
   memory, minted at unlock and again at the lock it answers and good for ninety days, so a locked
   KeePass can answer `503 locked` rather than failing at the transport. It was seven days and minted
   at unlock until a long lock outlived it. The normal host key is actively dropped at lock.
-  TODO(step 9): minting it for each database served, the locked answer and dropping the key at
-  lock arrive with step 9.
+  TODO(step 9): hearing KeePass's own lock and unlock arrives with step 9.
 - **We own the transport.** Accept loop, ClientHello peek, TLS termination, request parser, body
   read, response write. Selecting a host certificate by SNI makes this unavoidable, because
   .NET Framework exposes no server-side SNI hook. Which TLS stack terminates it is the bullet
@@ -206,6 +205,12 @@ a database's custom data. Each gathers what it settled in its own `RESULTS.md`. 
   `ChannelBindingKind.Unique` returns something under TLS 1.3 where tls-unique is undefined; ignore
   it. `BindingProbe`.
 - **The SNI needs two labels.** 64 hex characters exceed the 63-octet DNS label limit.
+- **A locked document's close carries no path, and the document is what still knows it.** The lock
+  ran `PwDatabase.Close` already, which resets the connection, so both `FileClosingPre` and
+  `FileClosed` announce that document with an empty path. `PwDocument.LockedIoc` is where KeePass
+  moved the file it was locked from, reachable through `MainForm.DocumentManager.FindDocument`.
+  Anything that fills the gap from a single remembered string instead names whichever database last
+  closed with a name. `MainWindowDatabasesTests` drives the four handlers in KeePass's own order.
 - **`MainForm.SaveDatabase(db, null)` saves a named database**; `UIFileSave` saves whichever document
   is active. Pairing names its database, so it uses the first. Neither reports anything, so a write
   is believed only after reading the record back and finding `PwDatabase.Modified` false.
@@ -366,7 +371,7 @@ register with `GlobalWindowManager`. **It refuses while it is not watching**, wh
 seeing nothing open and is the fail-closed direction on the one guard this design rests on.
 `IGateTarget` now has `Admit`, `AdmissionBlocked` and `DatabaseName` on it, so anything that serves
 a database can also be paired with and can say what to call it on the approval dialog, and
-`OpenDatabaseTargets` is where locking will have to start refusing.
+`OpenDatabaseTargets` is where a database becomes a `LockedTarget` and back.
 
 **A pairing connection is measured against `GateOptions.PairingBudget` rather than `Budget`.** The
 ordinary thirty seconds is what stops a peer holding a thread by feeding it slowly, and phase 4

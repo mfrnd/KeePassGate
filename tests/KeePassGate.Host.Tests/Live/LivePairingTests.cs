@@ -62,15 +62,7 @@ namespace KeePassGate.Host.Tests.Live
             var keePass = _session.KeePass;
 
             var driver = KeePassDriver.Start(keePass);
-            WaitForListening(keePass, driver);
-
-            // KeePass opens the database it was started with only after its plugins are
-            // initialized, and names it in its title bar once it has. Until then a rotating name
-            // resolves to nothing and the tab has no database to act on.
-            Assert.That(
-                driver.WaitForWindow(System.IO.Path.GetFileName(keePass.DatabasePath), StartTimeout),
-                Is.Not.Null,
-                "KeePass never showed the database it was started with as open. " + driver.Diagnostics);
+            WaitUntilServing(keePass, driver);
 
             InviteFromTheTab(driver);
 
@@ -289,12 +281,40 @@ namespace KeePassGate.Host.Tests.Live
             _statusBody = reply.Body ?? reply.Failure;
         }
 
-        private static void WaitForListening(ThrowawayKeePass keePass, KeePassDriver driver)
+        /// <summary>
+        /// Ready is the database being served, not the socket being open.
+        /// </summary>
+        /// <remarks>
+        /// The listener starts inside the plugin's `Initialize`, and KeePass opens the database it
+        /// was given on its command line only once its plugins are initialized. In between, the
+        /// resolver has no target for the rotating name, so the connection is dropped before any
+        /// TLS answer and a client reports the remote party closing the stream. That is the gate
+        /// being fail-closed and is correct; a fixture that goes on `listening on` is racing the
+        /// startup, and on a cold machine it loses. `serving a database with authority` is written
+        /// when the target is built, which the unlock this file's opening does, and is the first
+        /// moment a name resolves.
+        ///
+        /// Both lines, in that order, because the serving line on its own would not tell a gate
+        /// that never started from one that started and has nothing to serve yet. And the tab this
+        /// fixture presses the invite button on needs the database quite as much as the wire does:
+        /// there is no invitation to hand out until there is an authority to hand one out for.
+        /// </remarks>
+        private static void WaitUntilServing(ThrowawayKeePass keePass, KeePassDriver driver)
+        {
+            WaitForLog(keePass, driver, "listening on 127.0.0.1:" + keePass.Port,
+                "The plugin never reported a listening gate.");
+
+            WaitForLog(keePass, driver, "serving a database with authority",
+                "The plugin never reported serving the database KeePass was started with.");
+        }
+
+        private static void WaitForLog(
+            ThrowawayKeePass keePass, KeePassDriver driver, string marker, string failure)
         {
             var deadline = DateTime.UtcNow + StartTimeout;
             while (DateTime.UtcNow < deadline)
             {
-                if (keePass.ReadPluginLog().Contains("listening on 127.0.0.1:" + keePass.Port))
+                if (keePass.ReadPluginLog().Contains(marker))
                 {
                     return;
                 }
@@ -302,8 +322,8 @@ namespace KeePassGate.Host.Tests.Live
                 Thread.Sleep(250);
             }
 
-            Assert.Fail("The plugin never reported a listening gate. Log so far:" +
-                        Environment.NewLine + keePass.ReadPluginLog());
+            Assert.Fail(failure + " " + driver.Diagnostics + Environment.NewLine +
+                        "Log so far:" + Environment.NewLine + keePass.ReadPluginLog());
         }
     }
 }

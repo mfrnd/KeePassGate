@@ -43,6 +43,9 @@ namespace KeePassGate.Gate
         /// Read from the database on every call rather than cached with the certificates, because
         /// a revocation beside the record has to take effect on the next connection
         /// rather than on the next time something else changed.
+        ///
+        /// **Throws `DatabaseShut` when the database closed under the caller**, a lock nearly
+        /// always, which is answered as one rather than as there being no record.
         /// </remarks>
         AdmissionRecord Admission(string admissionKey);
 
@@ -75,6 +78,17 @@ namespace KeePassGate.Gate
         /// cannot land its record has to fail rather than hand over a certificate nobody can see.
         /// </remarks>
         AdmissionWrite Admit(AdmissionRecord record);
+
+        /// <summary>
+        /// Whether this database is locked, in which case it can answer a connection and do
+        /// nothing else.
+        /// </summary>
+        /// <remarks>
+        /// Asked rather than inferred. A locked database has no authority, so every caller is a
+        /// stranger anyway, but a stranger and a locked database deserve different answers: one is
+        /// told to pair and the other is told to wait. `PAIRING.md` §308.
+        /// </remarks>
+        bool IsLocked { get; }
     }
 
     /// <summary>

@@ -62,4 +62,27 @@ namespace KeePassGate.Diagnostics
         {
         }
     }
+
+    /// <summary>
+    /// The database a connection was given closed underneath it, which is a lock nearly always.
+    /// </summary>
+    /// <remarks>
+    /// Its own type so that the caller is told the database is locked rather than that it has no
+    /// record. KeePass empties a database before it says why, so between the two a connection
+    /// resolved a moment earlier reads a target whose records are gone: answered as no record,
+    /// an admitted and unrevoked client was told `401 unpaired`, which tells it to pair again.
+    /// </remarks>
+    [Serializable]
+    public sealed class DatabaseShut : GateFailure
+    {
+        public DatabaseShut(string message)
+            : base(message)
+        {
+        }
+
+        private DatabaseShut(SerializationInfo info, StreamingContext context)
+            : base(info, context)
+        {
+        }
+    }
 }

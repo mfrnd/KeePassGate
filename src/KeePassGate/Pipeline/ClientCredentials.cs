@@ -53,6 +53,14 @@ namespace KeePassGate.Pipeline
             var logger = log ?? NullGateLog.Instance;
             var databaseId = target.DatabaseId;
 
+            if (target.IsLocked)
+            {
+                // Nothing about this caller can be established: the authority that would validate
+                // its certificate went with the database. Saying so is not the same as calling it a
+                // stranger, because a stranger can pair and this one cannot do anything at all.
+                return ClientIdentity.Locked(databaseId);
+            }
+
             if (presented == null)
             {
                 return ClientIdentity.Stranger(databaseId);
@@ -96,6 +104,13 @@ namespace KeePassGate.Pipeline
                 }
 
                 return ClientIdentity.Paired(databaseId, presented, record.Profiles);
+            }
+            catch (DatabaseShut error)
+            {
+                // Closed under this connection, which is KeePass locking it: told as every
+                // connection to a locked database is, rather than as a certificate with no record.
+                logger.Info("a certificate could not be checked, because " + error.Message);
+                return ClientIdentity.Locked(databaseId);
             }
             catch (Exception error) when (Expected.OfCustomData(error) || Expected.OfCryptography(error))
             {

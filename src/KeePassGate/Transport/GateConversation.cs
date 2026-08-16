@@ -19,6 +19,63 @@ namespace KeePassGate.Transport
     /// </remarks>
     public static class GateConversation
     {
+        /// <summary>
+        /// What a locked database answers, on every path there is. One word, so that a client
+        /// library can match on it and wait rather than parse a sentence.
+        /// </summary>
+        public const string LockedError = "locked";
+
+        /// <summary>
+        /// Answers a connection to a locked database, having decided before it asked.
+        /// </summary>
+        /// <remarks>
+        /// Here rather than behind the router, and that is the whole point of it. A locked database
+        /// has the same answer for every path, every method and every body, so letting the request
+        /// be judged can only produce a second answer: a head this reader will not take is a 400,
+        /// an expectation it does not meet is a 417, a missing length is a 411, an announced body
+        /// over the cap is a 413, and one that stops early is a 400 again. None of those is true.
+        /// The database is locked, and that is all there is to say.
+        ///
+        /// **No body is ever invited.** `Expect: 100-continue` is not answered, because answering
+        /// it means telling a client to spend on something already refused.
+        ///
+        /// **A body already in flight is taken off the wire and dropped**, which is not the same
+        /// thing and is not politeness either. Closing a socket with the peer's bytes still unread
+        /// is answered by the stack with a reset, and a reset discards what it has already
+        /// delivered: the client is left with no answer at all, which is the one outcome the
+        /// responder certificate exists to prevent. `Content-Length` bounds it, and `ReadHead` has
+        /// already refused a length over the cap. A client that asked to be told first has sent
+        /// nothing, so there is nothing to take and waiting for it would deadlock both sides.
+        ///
+        /// What it names is the lock and nothing else: not which database, not whether anything is
+        /// stored, not whether the caller would have been admitted. `PAIRING.md` §308 refuses
+        /// pairing here the same way, because issuing needs the authority key and the admission
+        /// write and neither exists in this state.
+        /// </remarks>
+        public static void Locked(Stream stream, GateOptions options, IGateLog log)
+        {
+            if (stream == null)
+            {
+                throw new ArgumentNullException(nameof(stream));
+            }
+
+            var logger = log ?? NullGateLog.Instance;
+            var read = HttpRequestReader.ReadHead(stream, options ?? new GateOptions());
+            if (read.Silent)
+            {
+                // Nothing arrived, so there is nobody to answer.
+                return;
+            }
+
+            if (read.Ok && read.Head.ContentLength > 0 &&
+                string.IsNullOrEmpty(read.Head.GetHeader("Expect")))
+            {
+                HttpRequestReader.ReadBody(stream, read.Head);
+            }
+
+            Answer(stream, 503, HttpResponse.ErrorBody(LockedError), logger, null);
+        }
+
         public static void Serve(
             Stream stream, ClientIdentity client, IGateHandler handler, GateOptions options, IGateLog log)
         {
