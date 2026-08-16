@@ -12,11 +12,21 @@ generation bolted onto [KeePassRPC](https://github.com/mfrnd/keepassrpc):
   certificate handling,
 - and the browser extension keeps talking to KeePassRPC, untouched.
 
+**[`ANALYSIS.md`](ANALYSIS.md) is the whole of the repository so far.** It argues with the proposal
+rather than planning it, and it reaches three conclusions worth knowing before reading further:
+
+- The premise holds. Roughly half of the KeePassRPC fork's C# exists only to carry a protocol it
+  inherited, along with three concepts a clean design would not have at all.
+- mTLS works here, verified rather than assumed, including TLS 1.3. `HttpListener` cannot serve
+  HTTPS without administrator rights, so an HTTP server has to be written by hand over `SslStream`.
+- Authorization should **not** be read out of certificate metadata as proposed. A certificate should
+  cap what a client could ask for; the database should keep deciding what it may actually do.
+
 ## Status
 
 | | |
 | --- | --- |
-| Analysis | not written yet |
+| Analysis | written, [`ANALYSIS.md`](ANALYSIS.md) |
 | Decision to build | not taken |
 | Code | none, beyond the probe below |
 

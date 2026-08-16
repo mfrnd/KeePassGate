@@ -67,15 +67,38 @@ words:
 
   # KeePass's own names, which are spelled the way KeePass spells them
   - Kdbx
+  - plgx
 
 
+  # The platform
+  - CREAT
+  - netstandard
+  - SChannel
 
   # Tooling
   - LASTEXITCODE
   - noresult
+  - USERPROFILE
 
+  # Names of other people's projects, spelled the way they spell them
+  - httparse
+  - Nowin
+  - picohttpparser
+  - wasmtime
+  - libwasmtime
 
 
   # More of the platform, and of the wire
   - Ecas
+  - nameof
+  - netsh
+  - OCSP
+  - SPIFFE
+  - sslcert
 
+  # Words this project uses on purpose. Each is the shortest way to say the thing, and each has
+  # earned its place by appearing in more than one document.
+  - desync
+  - reimplementations
+  - sandboxing
+  - unpayable

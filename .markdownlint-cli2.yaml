@@ -9,9 +9,9 @@
 # markdownlint's defaults are the baseline. Only the deviations are written down, and each says why.
 
 config:
-  # Prose here is hand-wrapped at about 100, but one document will be historical and frozen
-  # (`ANALYSIS.md`), and reflowing it would churn text nobody should edit. 120
-  # accommodates it while still catching a line that has genuinely run away.
+  # Prose here is hand-wrapped at about 100, but one document is historical and frozen
+  # (`ANALYSIS.md`) and reflowing it would churn text nobody should edit. 120
+  # accommodates what is already written while still catching a line that has genuinely run away.
   #
   # Tables, code and headings are exempt because wrapping them is impossible rather than merely
   # inconvenient: a table row, a shell command and a mermaid edge are each one logical line.
