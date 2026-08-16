@@ -3,7 +3,7 @@
 A KeePass 2.x plugin that serves a small, specification-defined HTTP API over mutual TLS, so that
 automation and AI agents can each be given a narrow, revocable, audited slice of a database.
 
-**Design settled, and the first fifteen steps are built.** The plugin loads into KeePass, the KPG tab
+**Design settled, and the first sixteen steps are built.** The plugin loads into KeePass, the KPG tab
 creates, recreates and deletes the database's own certificate authority, and the gate answers over
 mutual TLS 1.3 with the host certificate chosen from the rotating name in the ClientHello. A client
 is served only if the database holds an admission record for its certificate, so revoking one
@@ -18,7 +18,8 @@ and change groups, entries, fields and attachments**, each answered for by the n
 addressable node, so a field or an attachment is answered for by the entry holding it. **And
 what a grant means is settled**: rules live in group and entry `CustomData`, the nearest one to
 a node wins per profile, and every operation declares the verb it needs or the plugin does not
-load. **And the two halves are combined**: the
+load. **And it can be started**: two launchers build the plugin, deploy it beside the pinned
+KeePass and start that KeePass with it, one per configuration. **And the two halves are combined**: the
 router intersects the admission record with those rules before any handler runs, and every decision
 either way is written to a file outside the database.
 
