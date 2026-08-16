@@ -23,7 +23,7 @@ write one**: the KPG tab on the group and entry dialogs edits the rules as a `CR
 writing into the copy the dialog puts back on OK. **And the two halves are combined**: the router
 intersects the admission record with the rules before any handler runs, and writes every decision
 the rules make, and every certificate the database issued that an operation turns away, to a JSON Lines file
-outside the database. What is left is the API itself, because nothing this build
+outside the database. **Step 15, the API itself, is under way**: nothing this build
 declares touches an entry yet.
 
 ## Read these before proposing anything
@@ -473,7 +473,7 @@ record for, a stranger can pair, a locked database answers `503 locked`, a grant
 definite, an operator can write one from the group and entry dialogs, and the router refuses
 anything the record and the rules do not both allow, recording every decision either way.
 
-**What is left is the API**: the routes that read and change entries. Everything they need is in
+**The API is under way**: the routes that read and change entries. Everything they need is in
 place, and the assertion that greets the first one is the point of the arrangement: declare a verb,
 name the node it is about, or the plugin does not load.
 
