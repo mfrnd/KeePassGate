@@ -9,6 +9,18 @@ This branch is taken from `master` and holds nothing else: no plugin, no tests, 
 documents. Those are on the mainline branches, which carry what these proofs establish and not the
 code that establishes it.
 
+## What is here
+
+| | vendored | changed lines |
+| --- | --- | --- |
+| [`spikes/httplistener/`](spikes/httplistener/) | `dotnet/runtime`'s managed `HttpListener` | 116 |
+| [`spikes/uhttpsharp/`](spikes/uhttpsharp/) | uHttpSharp | 0 |
+| [`spikes/wssharp/`](spikes/wssharp/) | websocket-sharp | 10 |
+
+All three serve. **[`RESULTS.md`](RESULTS.md) is what they settled**: the numbers, what each library
+needed, the two verdicts that were corrected along the way, and what the mainline eventually did
+with the answer.
+
 ## What a proof here looks like
 
 One directory per candidate, named `spikes/<library>`, self contained and buildable on its own:

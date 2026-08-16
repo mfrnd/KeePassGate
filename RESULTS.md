@@ -107,3 +107,21 @@ the second. What is left is a judgment rather than a measurement:
   implementation the design does not want. For it, 6000 stars and commits that month.
 
 The smallest thing to own, or the one most likely to be fixed by somebody else.
+
+## What the mainline did with it
+
+**It took none of them, and that is not these proofs failing.** Selecting a host certificate by SNI
+means owning the accept loop, because .NET Framework exposes no server-side SNI hook, and once the
+accept loop and the TLS are ours a candidate is reduced to a parser fed from a stream. What was
+left of the winner was small enough to write, and a dependency that small is not worth its license
+and liveness risk.
+
+So the measurements decided the question they were asked and then dissolved it, which is the useful
+kind of answer. What survived onto the mainline:
+
+- **uHttpSharp is the candidate to reopen**, recorded as such, if this project ever wants WebSocket,
+  HTTP/2 or chunked bodies. It fits the seam natively with zero changes and is ruled out on license
+  and liveness, not on fit.
+- **Spec-first routing**, proven twice here, is how the mainline routes.
+- **The transport is ours**, which is the shape the first proof was already testing when it drove a
+  vendored parser from a stream it had authenticated itself.
