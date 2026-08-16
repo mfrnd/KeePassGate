@@ -3,9 +3,9 @@ using System.Globalization;
 namespace KeePassGate
 {
     // Deliberately in the root namespace and not in `Ui`. It is implemented by the transport and
-    // is to be read by the tab, and putting it under `Ui` made `GateListener` take a `using` on
-    // the user interface to describe itself. The root is visible from every namespace in this
-    // assembly without one.
+    // read by the tab, and putting it under `Ui` made `GateListener` take a `using` on the user
+    // interface to describe itself. The root is visible from every namespace in this assembly
+    // without one.
     /// <summary>Whether the gate is listening, and where.</summary>
     public interface IGateStatus
     {
@@ -36,10 +36,9 @@ namespace KeePassGate
         /// </summary>
         /// <remarks>
         /// A few places in the plugin catch every exception, because in each of them an escaping
-        /// one ends KeePass. They count what they caught, and this is where the count is to
-        /// surface: on the line the operator already reads, without a row of its own, because the
-        /// tab has no room for one. What happened is in the log; that it happened at all belongs
-        /// here. TODO(step 6): the tab shows this line from step 6.
+        /// one ends KeePass. They count what they caught, and this is where the count surfaces: on
+        /// the line the operator already reads, without a row of its own, because the tab has no
+        /// room for one. What happened is in the log; that it happened at all belongs here.
         /// </remarks>
         public static string For(IGateStatus status, bool isServed, string incidents)
         {

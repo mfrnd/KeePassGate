@@ -5,9 +5,16 @@ using System.Diagnostics;
 using System.IO;
 using System.Reflection;
 using System.Text;
+using System.Net;
+using System.Net.Sockets;
+using System.Security.Cryptography.X509Certificates;
 using KeePassLib;
 using KeePassLib.Keys;
 using KeePassLib.Serialization;
+using KeePassGate.Authority;
+using KeePassGate.Bridge;
+using KeePassGate.Diagnostics;
+using KeePassGate.Gate;
 
 namespace KeePassGate.Host.Tests.Live
 {
@@ -44,11 +51,25 @@ namespace KeePassGate.Host.Tests.Live
         };
 
         private readonly string _root;
+        private readonly int _port;
+        private TcpListener _reservation;
         private Process _process;
 
-        private ThrowawayKeePass(string root)
+        private ThrowawayKeePass(string root, TcpListener reservation)
         {
             _root = root;
+            _reservation = reservation;
+            _port = ((IPEndPoint)reservation.LocalEndpoint).Port;
+        }
+
+        /// <summary>
+        /// The port this KeePass is told to listen on: the documented one when nothing holds it,
+        /// and anything free when something does, so that what is published does not change for a
+        /// reason nobody chose and a test still never collides with a real instance.
+        /// </summary>
+        public int Port
+        {
+            get { return _port; }
         }
 
         public string ExePath
@@ -77,6 +98,15 @@ namespace KeePassGate.Host.Tests.Live
         /// </summary>
         public static ThrowawayKeePass Create(string workingDirectory)
         {
+            return Create(workingDirectory, false);
+        }
+
+        /// <summary>
+        /// Builds the installation, optionally with an authority already in the database, which is
+        /// what a test needs when it is the gate it wants to reach rather than the tab.
+        /// </summary>
+        public static ThrowawayKeePass Create(string workingDirectory, bool withAuthority)
+        {
             // No identifier here: the working directory this sits in is already one per session.
             var root = Path.Combine(workingDirectory, "keepass");
             Directory.CreateDirectory(root);
@@ -104,10 +134,25 @@ namespace KeePassGate.Host.Tests.Live
 
             WriteConfiguration(root);
 
-            var installation = new ThrowawayKeePass(root);
-            installation.InstallPlugin();
-            installation.CreateDatabase();
-            return installation;
+            // Given back if anything below throws. Nothing else holds the instance until it is
+            // returned, so a failure here left the reserved port bound until a collection found
+            // the socket, and the next fixture in the same run quietly took another port.
+            var installation = new ThrowawayKeePass(root, Reserve());
+            var built = false;
+            try
+            {
+                installation.InstallPlugin();
+                installation.CreateDatabase(withAuthority);
+                built = true;
+                return installation;
+            }
+            finally
+            {
+                if (!built)
+                {
+                    installation.Dispose();
+                }
+            }
         }
 
         public Process Start()
@@ -121,7 +166,9 @@ namespace KeePassGate.Host.Tests.Live
                 WorkingDirectory = _root,
                 UseShellExecute = false
             };
-            info.EnvironmentVariables[KeePassGate.Diagnostics.TraceGateLog.LogFileVariable] = PluginLogPath;
+            info.EnvironmentVariables[TraceGateLog.LogFileVariable] = PluginLogPath;
+            info.EnvironmentVariables[KeePassGate.Transport.GateOptions.PortVariable] =
+                _port.ToString(System.Globalization.CultureInfo.InvariantCulture);
 
             // The one before it is dealt with first. This fixture is started twice, once to
             // create the authority and once to read it back after a restart, and simply
@@ -131,8 +178,32 @@ namespace KeePassGate.Host.Tests.Live
             // next fixture sends: one real failure turned into a run of unrelated ones.
             Release();
 
+            // The port goes back a moment before the process that wants it is launched, rather
+            // than when it was chosen. Nothing else on the machine gets a window to take it.
+            DropReservation();
+
             _process = Process.Start(info);
             return _process;
+        }
+
+        /// <summary>Gives the reserved port up. Safe to call when there is nothing to give up.</summary>
+        private void DropReservation()
+        {
+            var reserved = _reservation;
+            _reservation = null;
+
+            if (reserved == null)
+            {
+                return;
+            }
+
+            try
+            {
+                reserved.Stop();
+            }
+            catch (SocketException)
+            {
+            }
         }
 
         public string ReadPluginLog()
@@ -184,6 +255,7 @@ namespace KeePassGate.Host.Tests.Live
 
         public void Dispose()
         {
+            DropReservation();
             Release();
 
             try
@@ -289,6 +361,16 @@ namespace KeePassGate.Host.Tests.Live
             }
         }
 
+        /// <summary>
+        /// Every assembly the plugin references that is found beside it, and whatever those
+        /// reference in turn.
+        /// </summary>
+        /// <remarks>
+        /// Followed transitively rather than taken one level deep, because a dependency that brings
+        /// one of its own is not named by the plugin at all and a plugin missing one fails to load
+        /// with nothing in the log to say why. Anything not found beside the plugin is the
+        /// framework or KeePass, both of which the host already has.
+        /// </remarks>
         private static IEnumerable<string> NeededBy(Assembly plugin, string beside)
         {
             var found = new List<string>();
@@ -332,17 +414,119 @@ namespace KeePassGate.Host.Tests.Live
             return found;
         }
 
-        private void CreateDatabase()
+        private void CreateDatabase(bool withAuthority)
         {
-            var key = new CompositeKey();
-            key.AddUserKey(new KcpPassword(DatabasePassword));
-
             var database = new PwDatabase();
-            database.New(IOConnectionInfo.FromPath(DatabasePath), key);
+            database.New(IOConnectionInfo.FromPath(DatabasePath), NewKey());
             database.Name = "KeePassGate throwaway";
             database.RootGroup.Name = "Throwaway";
+
+            if (withAuthority)
+            {
+                var created = new AuthorityService(
+                    new CustomDataStore(database), NullGateLog.Instance).Create();
+                if (!created.Succeeded)
+                {
+                    throw new InvalidOperationException("The throwaway database got no authority: " + created.Message);
+                }
+            }
+
             database.Save(null);
             database.Close();
         }
+
+        /// <summary>
+        /// Opens the database the way anybody holding the file could, which is how a test issues
+        /// itself a client certificate and works out a name the gate will answer to.
+        /// </summary>
+        public AuthorityReading ReadAuthority()
+        {
+            var database = new PwDatabase();
+            try
+            {
+                database.Open(IOConnectionInfo.FromPath(DatabasePath), NewKey(), null);
+                return new AuthorityStore(new CustomDataStore(database)).Read();
+            }
+            finally
+            {
+                database.Close();
+            }
+        }
+
+        /// <summary>A name this database's gate will answer to, fresh each time.</summary>
+        public string NewGateName()
+        {
+            using (var reading = ReadAuthority())
+            {
+                return SniName.For(reading.Material.SniKey);
+            }
+        }
+
+        /// <summary>
+        /// A client certificate issued by the database's own authority, loaded so that TLS can
+        /// present it. TODO(step 8): this is what pairing will do for real in step 8.
+        /// </summary>
+        public X509Certificate2 IssueClientCertificate(string subject)
+        {
+            using (var reading = ReadAuthority())
+            using (var issued = new AuthorityIssuer().IssueClient(reading.Material.Authority, subject, null))
+            {
+                // With a key container, because the client in these tests is an SslStream and
+                // SChannel will not present an ephemeral key. The plugin itself no longer asks for
+                // one anywhere.
+                return CertificateBlob.Load(
+                    CertificateBlob.Save(issued), System.Security.Cryptography.X509Certificates.X509KeyStorageFlags.Exportable);
+            }
+        }
+
+        public string DatabaseId()
+        {
+            using (var reading = ReadAuthority())
+            {
+                return reading.Material.AuthorityDigest;
+            }
+        }
+
+        private static CompositeKey NewKey()
+        {
+            var key = new CompositeKey();
+            key.AddUserKey(new KcpPassword(DatabasePassword));
+            return key;
+        }
+
+        /// <summary>The port examples and pictures use, or any free one.</summary>
+        private const int Documented = 45678;
+
+        /// <summary>A port nothing is using, held until the moment KeePass is told to take it.</summary>
+        /// <remarks>
+        /// **One port when it is free, rather than a fresh one every time.** Anything published or
+        /// compared between runs then does not change for a reason nobody chose. Anything else free
+        /// will do when something on the machine already holds it.
+        ///
+        /// **Held rather than let go.** Choosing it in `Create` and binding it in `Start` leaves
+        /// seconds of copying and key generation in between, and the number is a fixed one, so a
+        /// previous run's KeePass that has not finished exiting is the likeliest thing to take it.
+        /// The reservation is dropped in `Start`, immediately before the process that wants it is
+        /// launched.
+        /// </remarks>
+        private static TcpListener Reserve()
+        {
+            foreach (var port in new[] { Documented, 0 })
+            {
+                var listener = new TcpListener(IPAddress.Loopback, port);
+                try
+                {
+                    listener.Start();
+                    return listener;
+                }
+                catch (SocketException)
+                {
+                    // The documented one is taken. Anything free will do.
+                }
+            }
+
+            throw new InvalidOperationException("No loopback port could be reserved for the gate.");
+        }
+
     }
 }

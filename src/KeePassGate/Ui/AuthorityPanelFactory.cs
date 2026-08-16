@@ -17,13 +17,43 @@ namespace KeePassGate.Ui
         private readonly IOperatorPrompt _prompt;
         private readonly IGateLog _log;
         private readonly string _version;
+        private readonly IGateStatus _gate;
+        private readonly GateIncidents _incidents;
 
         public AuthorityPanelFactory(IGateDatabaseSource databases, IGateLog log)
-            : this(databases, new MessageBoxPrompt(), log, GateVersion.Current)
+            : this(databases, new MessageBoxPrompt(), log, GateVersion.Current, null)
+        {
+        }
+
+        public AuthorityPanelFactory(
+            IGateDatabaseSource databases, IGateLog log, IGateStatus gate, GateIncidents incidents)
+            : this(databases, new MessageBoxPrompt(), log, GateVersion.Current, gate, incidents)
+        {
+        }
+
+        public AuthorityPanelFactory(IGateDatabaseSource databases, IGateLog log, IGateStatus gate)
+            : this(databases, new MessageBoxPrompt(), log, GateVersion.Current, gate)
         {
         }
 
         public AuthorityPanelFactory(IGateDatabaseSource databases, IOperatorPrompt prompt, IGateLog log, string version)
+            : this(databases, prompt, log, version, null)
+        {
+        }
+
+        public AuthorityPanelFactory(
+            IGateDatabaseSource databases, IOperatorPrompt prompt, IGateLog log, string version, IGateStatus gate)
+            : this(databases, prompt, log, version, gate, null)
+        {
+        }
+
+        public AuthorityPanelFactory(
+            IGateDatabaseSource databases,
+            IOperatorPrompt prompt,
+            IGateLog log,
+            string version,
+            IGateStatus gate,
+            GateIncidents incidents)
         {
             if (databases == null)
             {
@@ -39,6 +69,8 @@ namespace KeePassGate.Ui
             _prompt = prompt;
             _log = log ?? NullGateLog.Instance;
             _version = version;
+            _gate = gate;
+            _incidents = incidents;
         }
 
         public Control CreatePanel(Form dialog)
@@ -50,7 +82,7 @@ namespace KeePassGate.Ui
             // on a tab that would otherwise write the moment a button was pressed.
             var database = found == null ? null : new PendingDatabase(found, _log);
 
-            var panel = new AuthorityPanel(database, _prompt, _log, _version);
+            var panel = new AuthorityPanel(database, _prompt, _log, _version, _gate, _incidents);
             Commit(dialog, database);
             return panel;
         }

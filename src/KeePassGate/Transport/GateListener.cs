@@ -371,14 +371,20 @@ namespace KeePassGate.Transport
                         return;
                     }
 
-                    var resolution = _resolver.Resolve(peek.ServerName);
-                    if (!resolution.IsResolved)
+                    // In a `using`, because a resolved target arrives holding a reference taken
+                    // for this connection. Releasing it here is what lets the cache retire the
+                    // material at the moment nothing is serving from it any more.
+                    using (var resolution = _resolver.Resolve(peek.ServerName))
                     {
-                        _log.Info("dropped a connection: " + resolution.Outcome.ToString().ToLowerInvariant());
-                        return;
-                    }
+                        if (!resolution.IsResolved)
+                        {
+                            _log.Info(
+                                "dropped a connection: " + resolution.Outcome.ToString().ToLowerInvariant());
+                            return;
+                        }
 
-                    Serve(raw, peek, resolution.Target);
+                        Serve(raw, peek, resolution.Target);
+                    }
                 }
             }
             catch (Exception error) when (Expected.OfConnection(error) || error is CryptographicException)

@@ -37,6 +37,9 @@ namespace KeePassGate.Ui
         /// <summary>The sentences under it, which are the warnings and nothing else.</summary>
         public const string DetailLabelName = "KpgDetailLabel";
 
+        /// <summary>Whether the gate is listening, and where.</summary>
+        public const string ServingLabelName = "KpgServingLabel";
+
         /// <summary>The standing notice that nothing on this tab lands before OK.</summary>
         public const string NoticeLabelName = "KpgNoticeLabel";
 

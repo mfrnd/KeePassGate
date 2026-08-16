@@ -81,6 +81,31 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void The_settings_dialog_still_names_the_database_it_is_editing()
+        {
+            var type = KeePassAssembly.GetType(KeePassContract.DatabaseSettingsFormTypeName, false);
+            var property = type.GetProperty(
+                KeePassContract.DatabaseSettingsFormDatabaseProperty, BindingFlags.Public | BindingFlags.Instance);
+
+            Assert.That(property, Is.Not.Null,
+                "The tab reaches the database through this, and degrades to an empty tab without it.");
+            Assert.That(property.PropertyType, Is.EqualTo(typeof(KeePassLib.PwDatabase)));
+        }
+
+        [Test]
+        public void The_main_window_still_lists_the_open_databases()
+        {
+            // This is how the gate knows what it can serve.
+            var documentManager = typeof(KeePass.Forms.MainForm).GetProperty("DocumentManager");
+            Assert.That(documentManager, Is.Not.Null);
+
+            var open = documentManager.PropertyType.GetMethod("GetOpenDatabases", Type.EmptyTypes);
+            Assert.That(open, Is.Not.Null);
+            Assert.That(typeof(System.Collections.Generic.IEnumerable<KeePassLib.PwDatabase>)
+                .IsAssignableFrom(open.ReturnType), Is.True);
+        }
+
+        [Test]
         public void The_KeePass_under_test_is_the_one_the_plugin_was_built_against()
         {
             var version = KeePassAssembly.GetName().Version;

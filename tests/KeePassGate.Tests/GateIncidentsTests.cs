@@ -18,8 +18,7 @@ namespace KeePassGate.Tests
     /// A few places in the plugin catch every exception, because in each of them an escaping one
     /// ends the password manager. The risk that comes with such a catch is that it turns a defect
     /// into a log line nobody reads, so this fixture is about the other half: that it is counted,
-    /// ready for the one screen the operator already looks at. TODO(step 6): the KPG tab shows
-    /// the count from step 6.
+    /// and that the count reaches the one screen the operator already looks at.
     /// </remarks>
     [TestFixture]
     public sealed class GateIncidentsTests

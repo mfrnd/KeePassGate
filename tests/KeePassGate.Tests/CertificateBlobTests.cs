@@ -1,5 +1,4 @@
 using System;
-using System.IO;
 using System.Linq;
 using System.Security.Cryptography.X509Certificates;
 using KeePassGate.Authority;
@@ -52,23 +51,77 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void The_private_key_never_reaches_the_disk()
+        [NonParallelizable]
+        public void No_key_reaches_the_disk_from_minting_one_to_loading_it_back()
         {
             // Measured: importing a PKCS#12 without EphemeralKeySet writes a key file into the
             // user's profile, which would put a key outside the database that is meant to be the
-            // only place it lives. Nothing the plugin loads asks for that any more, which is only
-            // possible because the TLS server is managed code.
-            var keyDirectory = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                @"Microsoft\Crypto\Keys");
+            // only place it lives. Nothing the plugin loads asks for that any more, and that is
+            // what decided the transport, `CA.md` §222: an ephemeral key cannot be used with
+            // SChannel at all, so the platform's own TLS would have meant a host key on the disk.
+            //
+            // The baseline used to be taken after this fixture had already minted an authority,
+            // which left the two steps most likely to write a key outside what was measured:
+            // generating the key pair, and `CopyWithPrivateKey`, which is how every leaf under
+            // that authority gets its key. Every step from the first key pair to the last import
+            // is inside the window now.
+            //
+            // **Asked more than once, because the directories are not ours.** They belong to the
+            // whole logon session, so a key any other process writes inside the window, the other
+            // test assembly `dotnet test` runs beside this one among them, reads exactly like a
+            // regression. A path that writes a key writes one every time, so one attempt that sees
+            // nothing acquits it, and only every attempt seeing something accuses it. A quiet
+            // moment afterwards then tells a machine writing keys throughout from the code under
+            // test, and says so rather than guessing. Each attempt mints keys of its own, so none
+            // of them reuses a key an earlier one already put somewhere.
+            var seen = new System.Collections.Generic.List<string>();
 
-            var before = Directory.Exists(keyDirectory) ? Directory.GetFiles(keyDirectory).Length : 0;
+            for (var attempt = 0; attempt < KeyAttempts; attempt++)
+            {
+                var appeared = KeysAppearingFromMintingToLoading();
+                if (appeared.Length == 0)
+                {
+                    return;
+                }
 
-            using (var restored = CertificateBlob.Load(CertificateBlob.Save(_certificate)))
+                seen.AddRange(appeared);
+            }
+
+            var idle = PrivateKeyFiles.Names();
+            System.Threading.Thread.Sleep(KeyQuietWindow);
+            if (PrivateKeyFiles.Appeared(idle).Length > 0)
+            {
+                Assert.Inconclusive(
+                    "something else on this machine is writing private keys throughout, so this run " +
+                    "cannot tell whether minting and loading wrote one");
+            }
+
+            Assert.Fail("a private key reached the disk on every attempt: " + string.Join(", ", seen));
+        }
+
+        /// <summary>How many attempts in a row have to write a key before the code is accused.</summary>
+        private const int KeyAttempts = 3;
+
+        /// <summary>How long nothing is done while the key directories are watched for anybody else.</summary>
+        private static readonly TimeSpan KeyQuietWindow = TimeSpan.FromMilliseconds(250);
+
+        /// <summary>
+        /// The key files that appeared from minting an authority, a host and a client under it, to
+        /// loading the stored host back.
+        /// </summary>
+        private static string[] KeysAppearingFromMintingToLoading()
+        {
+            var before = PrivateKeyFiles.Names();
+
+            var issuer = new AuthorityIssuer();
+            using (var authority = issuer.CreateAuthority())
+            using (var host = issuer.IssueHost(authority))
+            using (var client = issuer.IssueClient(authority, "agent-fictitious", new[] { "ops" }))
+            using (var restored = CertificateBlob.Load(CertificateBlob.Save(host)))
             {
                 Assert.That(restored.HasPrivateKey, Is.True);
-                var during = Directory.Exists(keyDirectory) ? Directory.GetFiles(keyDirectory).Length : 0;
-                Assert.That(during, Is.EqualTo(before));
+                Assert.That(client.HasPrivateKey, Is.True);
+                return PrivateKeyFiles.Appeared(before);
             }
         }
 

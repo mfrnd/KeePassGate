@@ -1,7 +1,4 @@
 using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
@@ -60,12 +57,60 @@ namespace KeePassGate.Tests
             // The point of the whole exercise. SChannel refuses a key that is not in the user's
             // profile, so serving with it meant writing the host key to the disk for as long as a
             // database was open. This asserts that nothing does.
-            var before = KeyFiles();
+            //
+            // The window is the handshake, and only that. What comes before it, minting a key
+            // pair and exporting and importing a PKCS#12, is measured by
+            // `CertificateBlobTests.No_key_reaches_the_disk_from_minting_one_to_loading_it_back`,
+            // which takes its baseline before any of it happens.
+            //
+            // **Asked more than once, because the directories are not ours.** They belong to the
+            // whole logon session, so a key any other process writes inside the window, the other
+            // test assembly `dotnet test` runs beside this one among them, reads exactly like a
+            // regression. A server that writes a key writes one every time it serves, so one
+            // handshake that sees nothing acquits it, and only every handshake seeing something
+            // accuses it. A quiet moment afterwards then tells a machine writing keys throughout
+            // from the server, and says so rather than guessing. Each attempt serves a host
+            // certificate of its own, so none of them is a second handshake with a key the first
+            // one already put somewhere.
+            var seen = new System.Collections.Generic.List<string>();
 
-            Assert.That(Handshake(_host), Is.EqualTo("ok"));
+            for (var attempt = 0; attempt < KeyAttempts; attempt++)
+            {
+                HostKeyMaterial host;
+                using (var issued = _issuer.IssueHost(_authority))
+                {
+                    host = HostKeyMaterial.From(CertificateBlob.Bytes(CertificateBlob.Save(issued)));
+                }
 
-            Assert.That(Appeared(before), Is.Empty, "a private key reached the disk");
+                var before = PrivateKeyFiles.Names();
+                Assert.That(Handshake(host), Is.EqualTo("ok"));
+
+                var appeared = PrivateKeyFiles.Appeared(before);
+                if (appeared.Length == 0)
+                {
+                    return;
+                }
+
+                seen.AddRange(appeared);
+            }
+
+            var idle = PrivateKeyFiles.Names();
+            Thread.Sleep(KeyQuietWindow);
+            if (PrivateKeyFiles.Appeared(idle).Length > 0)
+            {
+                Assert.Inconclusive(
+                    "something else on this machine is writing private keys throughout, so this run " +
+                    "cannot tell whether serving wrote one");
+            }
+
+            Assert.Fail("a private key reached the disk on every attempt: " + string.Join(", ", seen));
         }
+
+        /// <summary>How many handshakes in a row have to write a key before the server is accused.</summary>
+        private const int KeyAttempts = 3;
+
+        /// <summary>How long nothing is done while the key directories are watched for anybody else.</summary>
+        private static readonly TimeSpan KeyQuietWindow = TimeSpan.FromMilliseconds(250);
 
         [Test]
         public void The_same_certificate_is_still_refused_by_SChannel()
@@ -114,48 +159,6 @@ namespace KeePassGate.Tests
         private X509Certificate2 WithKey()
         {
             return _issuer.IssueHost(_authority);
-        }
-
-        /// <summary>
-        /// The names of every private key file this account holds, in both places Windows keeps
-        /// them.
-        /// </summary>
-        /// <remarks>
-        /// **Names rather than a count, and both directories.** These are shared by the whole logon
-        /// session, so a count changes when anything else on the machine creates or removes a key,
-        /// and a test that compared counts failed while nothing was wrong. Comparing names and
-        /// asking only whether one appeared leaves the far commoner case, something else tidying up
-        /// its own key, unable to fail this. And `Crypto\Keys` is CNG only: a regression that wrote
-        /// through a legacy provider would land in `Crypto\RSA` and go unseen, so both are read.
-        /// </remarks>
-        private static HashSet<string> KeyFiles()
-        {
-            var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-            var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-            foreach (var directory in new[] { @"Microsoft\Crypto\Keys", @"Microsoft\Crypto\RSA" })
-            {
-                var path = Path.Combine(appData, directory);
-                if (!Directory.Exists(path))
-                {
-                    continue;
-                }
-
-                foreach (var file in Directory.GetFiles(path, "*", SearchOption.AllDirectories))
-                {
-                    names.Add(file);
-                }
-            }
-
-            return names;
-        }
-
-        /// <summary>What appeared while something was being done, which is the only direction that means anything.</summary>
-        private static string[] Appeared(HashSet<string> before)
-        {
-            var after = KeyFiles();
-            after.ExceptWith(before);
-            return after.ToArray();
         }
 
         /// <summary>The managed server, driven by an ordinary .NET client.</summary>

@@ -2,6 +2,9 @@ using System;
 using KeePass.Plugins;
 using KeePassGate.Bridge;
 using KeePassGate.Diagnostics;
+using KeePassGate.Gate;
+using KeePassGate.Pipeline;
+using KeePassGate.Transport;
 using KeePassGate.Ui;
 
 namespace KeePassGate
@@ -28,6 +31,8 @@ namespace KeePassGate
         private GateIncidents _incidents;
         private GlobalWindowManagerWindows _windows;
         private GateHost _host;
+        private OpenDatabaseTargets _targets;
+        private GateListener _listener;
 
         public override string UpdateUrl
         {
@@ -112,12 +117,15 @@ namespace KeePassGate
                 // log, rather than failing wherever the plugin first uses it.
                 Dependencies.Load();
 
+                StartListening(host);
+
                 _windows = new GlobalWindowManagerWindows();
                 _host = new GateHost(
                     _windows,
                     new TypeNameFormMatcher(KeePassContract.DatabaseSettingsFormTypeName),
                     new TabPageInjector(
-                        new AuthorityPanelFactory(new DialogDatabases(_log, () => Changed(host)), _log),
+                        new AuthorityPanelFactory(
+                            new DialogDatabases(_log, () => Changed(host)), _log, _listener, _incidents),
                         _log,
                         KeePassContract.DatabaseSettingsTabControlName,
                         Icon),
@@ -173,6 +181,35 @@ namespace KeePassGate
 
             try
             {
+                if (_listener != null)
+                {
+                    _listener.Dispose();
+                    _listener = null;
+                }
+            }
+            catch (Exception error)
+            {
+                Report("failed to stop listening", error);
+            }
+
+            try
+            {
+                if (_targets != null)
+                {
+                    // Disposing these is what drops the host certificates. Nothing comes off
+                    // the disk, because nothing was put there: every key this plugin loads is
+                    // loaded with `EphemeralKeySet`, which is what `CertificateBlob` is for.
+                    _targets.Dispose();
+                    _targets = null;
+                }
+            }
+            catch (Exception error)
+            {
+                Report("failed to release the served databases", error);
+            }
+
+            try
+            {
                 if (_windows != null)
                 {
                     _windows.Dispose();
@@ -208,10 +245,37 @@ namespace KeePassGate
         }
 
         /// <summary>
+        /// Starts the gate. A port that cannot be opened is reported and nothing else: the KPG tab
+        /// says the gate is not listening, and KeePass carries on regardless, because a password
+        /// manager that will not start because a plugin wanted a socket is a worse outcome than a
+        /// plugin that does nothing.
+        /// </summary>
+        private void StartListening(IPluginHost host)
+        {
+            var mainWindow = host.MainWindow;
+            if (mainWindow == null)
+            {
+                _log.Warn("no main window, so nothing is served");
+                return;
+            }
+
+            _targets = new OpenDatabaseTargets(
+                delegate { return mainWindow.DocumentManager.GetOpenDatabases(); }, _log);
+
+            _listener = new GateListener(
+                GateOptions.FromEnvironment(),
+                new GateResolver(_targets, _log),
+                new GateRouter(GateVersion.Current),
+                _incidents,
+                _log);
+
+            _listener.Start();
+        }
+
+        /// <summary>
         /// Where everything this class catches goes. It is one of the places that catch
         /// every exception, so what it caught is counted as an incident and shown on the KPG tab
-        /// rather than left in a log nobody opens. TODO(step 6): the showing half arrives with
-        /// the tab's status line; the counting half is here.
+        /// rather than left in a log nobody opens.
         /// </summary>
         private void Report(string message, Exception error)
         {

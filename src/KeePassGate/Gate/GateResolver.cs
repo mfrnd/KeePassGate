@@ -23,7 +23,7 @@ namespace KeePassGate.Gate
         Resolved
     }
 
-    public sealed class GateResolution
+    public sealed class GateResolution : IDisposable
     {
         private readonly GateOutcome _outcome;
         private readonly IGateTarget _target;
@@ -32,6 +32,21 @@ namespace KeePassGate.Gate
         {
             _outcome = outcome;
             _target = target;
+        }
+
+        /// <summary>
+        /// Gives back the target this resolution is holding.
+        /// </summary>
+        /// <remarks>
+        /// A resolved target arrives with a reference taken on the caller's behalf, so a
+        /// connection that has finished with it says so. Nothing else is owned here.
+        /// </remarks>
+        public void Dispose()
+        {
+            if (_target != null)
+            {
+                _target.Dispose();
+            }
         }
 
         public GateOutcome Outcome
@@ -115,74 +130,92 @@ namespace KeePassGate.Gate
             IReadOnlyList<IGateTarget> candidates;
             try
             {
-                candidates = _targets.Current();
-            }
-            catch (Exception error) when (Expected.OfCustomData(error))
-            {
-                _log.Error("the open databases could not be listed", error);
-                return GateResolution.NoMatch();
-            }
-
-            if (candidates == null || candidates.Count == 0)
-            {
-                return GateResolution.NoMatch();
-            }
-
-            IGateTarget matched = null;
-            var matches = 0;
-
-            foreach (var candidate in candidates)
-            {
-                if (candidate == null)
+                    candidates = _targets.Current();
+                }
+                catch (Exception error) when (Expected.OfCustomData(error))
                 {
-                    continue;
+                    _log.Error("the open databases could not be listed", error);
+                    return GateResolution.NoMatch();
                 }
 
-                var key = candidate.GateKey;
-                bool hit;
+                if (candidates == null || candidates.Count == 0)
+                {
+                    return GateResolution.NoMatch();
+                }
+
+                IGateTarget matched = null;
+                IGateTarget kept = null;
+                var matches = 0;
+
                 try
                 {
-                    hit = SniName.Matches(serverName, key);
-                }
-                catch (Exception error) when (Expected.OfCryptography(error))
+                foreach (var candidate in candidates)
                 {
-                    // A gate key of the wrong length is a database that cannot be addressed at
-                    // all, rather than one that did not match this name.
-                    hit = false;
-                }
-                finally
-                {
-                    if (key != null)
+                    if (candidate == null)
                     {
-                        Array.Clear(key, 0, key.Length);
+                        continue;
+                    }
+
+                    var key = candidate.GateKey;
+                    bool hit;
+                    try
+                    {
+                        hit = SniName.Matches(serverName, key);
+                    }
+                    catch (Exception error) when (Expected.OfCryptography(error))
+                    {
+                        // A gate key of the wrong length is a database that cannot be addressed at
+                        // all, rather than one that did not match this name.
+                        hit = false;
+                    }
+                    finally
+                    {
+                        if (key != null)
+                        {
+                            Array.Clear(key, 0, key.Length);
+                        }
+                    }
+
+                    if (!hit)
+                    {
+                        continue;
+                    }
+
+                    matches++;
+                    if (matched == null)
+                    {
+                        matched = candidate;
                     }
                 }
 
-                if (!hit)
+                if (matches == 0)
                 {
-                    continue;
+                    return GateResolution.NoMatch();
                 }
 
-                matches++;
-                if (matched == null)
+                if (matches > 1)
                 {
-                    matched = candidate;
+                    _log.Warn("refusing to serve: " + matches +
+                              " open databases answer to the same name, so they cannot be told apart");
+                    return GateResolution.Ambiguous();
+                }
+
+                kept = matched;
+                return GateResolution.Resolved(matched);
+            }
+            finally
+            {
+                // Every candidate arrived holding a reference. The one being returned keeps its
+                // own, released when the resolution is disposed; the rest go back here, including
+                // the match on an ambiguous name, which is refused rather than served.
+                foreach (var candidate in candidates)
+                {
+                    if (candidate != null && !ReferenceEquals(candidate, kept))
+                    {
+                        candidate.Dispose();
+                    }
                 }
             }
-
-            if (matches == 0)
-            {
-                return GateResolution.NoMatch();
-            }
-
-            if (matches > 1)
-            {
-                _log.Warn("refusing to serve: " + matches +
-                          " open databases answer to the same name, so they cannot be told apart");
-                return GateResolution.Ambiguous();
-            }
-
-            return GateResolution.Resolved(matched);
         }
     }
 }

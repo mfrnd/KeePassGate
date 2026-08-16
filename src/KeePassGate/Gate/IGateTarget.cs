@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Security.Cryptography.X509Certificates;
 
@@ -10,8 +11,12 @@ namespace KeePassGate.Gate
     /// <remarks>
     /// Deliberately not a KeePass database. The transport has no business reaching entries, and the
     /// seam is what lets every one of these tests run without a password manager.
+    ///
+    /// **Disposable, because a target is held rather than owned.** The cache that builds them and
+    /// the connection that serves from one are two holders of the same thing, and the material
+    /// goes when the last of them lets go. A caller that took one from `Current` gives it back.
     /// </remarks>
-    public interface IGateTarget
+    public interface IGateTarget : IDisposable
     {
         /// <summary>
         /// The authority's digest, lowercase hex. Stable for the life of the authority, derived

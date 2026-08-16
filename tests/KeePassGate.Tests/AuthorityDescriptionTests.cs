@@ -35,6 +35,7 @@ namespace KeePassGate.Tests
             Assert.That(description.CanCreate, Is.False);
             Assert.That(description.CanRecreate, Is.False);
             Assert.That(description.CanDelete, Is.False);
+            Assert.That(description.IsServed, Is.False);
         }
 
         [Test]
@@ -48,6 +49,7 @@ namespace KeePassGate.Tests
                 Assert.That(description.CanCreate, Is.True);
                 Assert.That(description.CanRecreate, Is.False);
                 Assert.That(description.CanDelete, Is.False);
+                Assert.That(description.IsServed, Is.False);
             }
         }
 
@@ -77,6 +79,7 @@ namespace KeePassGate.Tests
                 Assert.That(description.CanCreate, Is.False);
                 Assert.That(description.CanRecreate, Is.True);
                 Assert.That(description.CanDelete, Is.True);
+                Assert.That(description.IsServed, Is.True);
             }
         }
 
@@ -218,6 +221,8 @@ namespace KeePassGate.Tests
                 Assert.That(description.CanCreate, Is.False, "Creating over damage would hide it.");
                 Assert.That(description.CanRecreate, Is.True);
                 Assert.That(description.CanDelete, Is.True);
+                Assert.That(description.IsServed, Is.False,
+                    "damage is served to nobody, whatever the buttons offer");
             }
         }
 

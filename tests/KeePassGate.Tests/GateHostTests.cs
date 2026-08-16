@@ -192,8 +192,8 @@ namespace KeePassGate.Tests
                 Assert.DoesNotThrow(() => _windows.RaiseWindowAdded(form));
 
                 // Reported as an incident rather than as an ordinary error. This is one of the
-                // places that catch everything, so what it caught is a surprise by definition,
-                // and it is counted rather than only logged.
+                // places that catch everything, so what it caught is a surprise by
+                // definition, and the operator is told the count on the KPG tab.
                 Assert.That(_log.Surprises, Is.Not.Empty);
             }
         }
