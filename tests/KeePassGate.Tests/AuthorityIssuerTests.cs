@@ -184,6 +184,22 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_responder_never_outlives_the_authority_that_vouches_for_it()
+        {
+            // Unlocking in the authority's last ninety days. Unclamped, `CertificateRequest.Create`
+            // refuses a leaf that ends after its issuer, so the unlock would throw rather than
+            // mint a shorter responder.
+            var later = Now + AuthorityIssuer.AuthorityLifetime - TimeSpan.FromDays(30);
+            var issuer = new AuthorityIssuer(() => later);
+
+            using (var responder = issuer.IssueResponder(_authority))
+            {
+                Assert.That(responder.NotAfter.ToUniversalTime(),
+                    Is.EqualTo(_authority.NotAfter.ToUniversalTime()).Within(TimeSpan.FromSeconds(1)));
+            }
+        }
+
+        [Test]
         public void An_expired_authority_issues_nothing()
         {
             var afterTheEnd = Now + AuthorityIssuer.AuthorityLifetime + TimeSpan.FromDays(1);
@@ -191,6 +207,7 @@ namespace KeePassGate.Tests
 
             Assert.Throws<InvalidOperationException>(() => issuer.IssueHost(_authority));
             Assert.Throws<InvalidOperationException>(() => issuer.IssueClient(_authority, "agent-fictitious", null));
+            Assert.Throws<InvalidOperationException>(() => issuer.IssueResponder(_authority));
         }
 
         [Test]
@@ -208,6 +225,7 @@ namespace KeePassGate.Tests
 
             Assert.Throws<InvalidOperationException>(() => issuer.IssueHost(_authority));
             Assert.Throws<InvalidOperationException>(() => issuer.IssueClient(_authority, "agent-fictitious", null));
+            Assert.Throws<InvalidOperationException>(() => issuer.IssueResponder(_authority));
         }
 
         [TestCase(" agent-fictitious")]

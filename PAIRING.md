@@ -288,8 +288,11 @@ challenge the server chose makes the request fresh to the server.
 ## 8. When the database is locked §308
 
 Locking closes the database, and with it the authority, the admission records and the gate key.
-A **second host certificate**, minted at unlock and held only in plugin memory, is what lets a
-locked KeePass answer `503 locked` instead of failing at the transport.
+A **second host certificate**, minted at unlock and again at the lock it answers, held only in
+plugin memory, is what lets a locked KeePass answer `503 locked` instead of failing at the
+transport. Minted twice because its life has to cover the lock rather than the session before it,
+and the lock is the last moment the authority that signs it is still there: `CA.md` §208 has the
+dates and what they are worth.
 
 | Held in memory | Unlocked | Locked |
 | --- | --- | --- |
@@ -310,7 +313,7 @@ stateDiagram-v2
     [*] --> Cold: KeePass starts
     Cold --> Unlocked: first unlock mints the responder certificate
     Cold --> [*]: never unlocked, so nothing to answer with
-    Unlocked --> Locked: drop the authority key, the records and the normal host key.<br/>close every connection.
+    Unlocked --> Locked: re-mint the responder, then drop the authority key,<br/>the records and the normal host key. close every connection.
     Locked --> Unlocked: reload, re-mint.<br/>close every connection.
     Locked --> Locked: answer 503, naming nothing but the lock
 ```

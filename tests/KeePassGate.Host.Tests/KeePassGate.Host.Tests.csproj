@@ -45,6 +45,7 @@
     <Compile Include="..\Shared\HttpAnswer.cs" Link="Shared\HttpAnswer.cs" />
     <Compile Include="..\Shared\PairingClient.cs" Link="Shared\PairingClient.cs" />
     <Compile Include="..\Shared\PrivateKeyFiles.cs" Link="Shared\PrivateKeyFiles.cs" />
+    <Compile Include="..\Shared\CertificateUris.cs" Link="Shared\CertificateUris.cs" />
   </ItemGroup>
 
   <ItemGroup>

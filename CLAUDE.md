@@ -111,10 +111,12 @@ designing around them.
   certificate in use, so each side computes it from bytes it already holds. Do not re-propose
   `TransportContext.GetChannelBinding`: it was necessary while `SslStream` terminated the TLS and
   the reason went away with it.
-- **Two host certificates per database**: a normal one in the kdbx, and a short-lived responder
-  minted at unlock and held in memory so a locked KeePass can answer `503 locked` rather than failing at
-  the transport. The normal host key is actively dropped at lock. TODO(step 9): the responder,
-  the locked answer and dropping the key at lock arrive with step 9.
+- **Two host certificates per database**: a normal one in the kdbx, and a responder held only in
+  memory, minted at unlock and again at the lock it answers and good for ninety days, so a locked
+  KeePass can answer `503 locked` rather than failing at the transport. It was seven days and minted
+  at unlock until a long lock outlived it. The normal host key is actively dropped at lock.
+  TODO(step 9): minting it for each database served, the locked answer and dropping the key at
+  lock arrive with step 9.
 - **We own the transport.** Accept loop, ClientHello peek, TLS termination, request parser, body
   read, response write. Selecting a host certificate by SNI makes this unavoidable, because
   .NET Framework exposes no server-side SNI hook. Which TLS stack terminates it is the bullet
