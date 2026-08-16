@@ -551,7 +551,7 @@ Each step is refusable, and each ends with something that runs.
 1. **Foundations and the design**: the repository, the prose gate, the license and the design
    itself, standing on measurements taken on branches of their own. Nothing here compiles, and
    that is the point: what this is and why it is shaped this way is settled and written down
-   before any of it is built, so the argument can be refused before anybody has paid for it.
+   before any of it is built, so the argument can be refused before anybody has paid for it. **Done.**
 
 2. **Continuous integration**: the gate script, the four checks nothing else can make, and the
    workflow that runs whatever a branch declares. Nothing compiles yet, so the only thing to check is
