@@ -21,6 +21,15 @@ imposes anything stronger is not a trade to weigh, it is a refusal.
 
 ## How it is answered here
 
-By building, not by reading package pages. `spikes/json/count.ps1` creates a throwaway `net48` library,
-adds one package, builds it, and counts what lands in the output directory beside the project's own
-assembly. That is exactly the set that would ship next to the plugin.
+By building, not by reading package pages. [`spikes/json/count.ps1`](spikes/json/count.ps1) creates a
+throwaway `net48` library, adds one package, builds it, and counts what lands in the output
+directory beside the project's own assembly. That is exactly the set that would ship next to the
+plugin.
+
+## The answer
+
+**Newtonsoft.Json for the grammar, and a checker of our own for the policy.** One assembly against
+nine for the alternative, no schema library at all, and a startup refusal of any schema construct
+the checker does not implement so that a subset cannot become a gap. [`RESULTS.md`](RESULTS.md) has
+the numbers, the licenses, and the trap worth naming: refusing a schema library is a decision about
+validation, and letting it become a decision to own a JSON grammar is a much worse trade.
