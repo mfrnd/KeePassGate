@@ -60,8 +60,10 @@ words:
 
   # What this branch's own sources and prose need, over what the mainline already knows.
   - httplistener
+  - Newtonsoft
   - NTLM
   - obsoletion
   - Obsoletions
   - SYSLIB
+  - uhttpsharp
 
