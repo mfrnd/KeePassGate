@@ -100,10 +100,16 @@ designing around them.
   the locked answer and dropping the key at lock arrive with step 9.
 - **We own the transport.** Accept loop, ClientHello peek, TLS termination, request parser, body
   read, response write. Selecting a host certificate by SNI makes this unavoidable, because
-  .NET Framework exposes no server-side SNI hook.
+  .NET Framework exposes no server-side SNI hook. Which TLS stack terminates it is the bullet
+  below.
 - **No third-party HTTP dependency.** `uHttpSharp` fits the seam natively with zero changes and is
   ruled out on **license** (LGPL-2.1) and liveness (no commits since 2021), not on fit. Wanting
   WebSocket, HTTP/2 or chunked bodies flips this; nothing else does.
+- **The TLS is Bouncy Castle, not SChannel**, and that reverses an earlier decision on a
+  measurement: SChannel will not serve with a key that has not been written to the user's profile,
+  so the platform's own TLS meant a host key on the disk. `Org.BouncyCastle.Tls` is MIT, alive, and
+  parses the stored PKCS#12 itself. Do not re-propose `SslStream` for the server without measuring
+  `EphemeralKeyProbe.cs` on `spikes/tls-and-certificates` again first.
 - **Spec-first routing.** The OpenAPI document is the routing table and handlers bind to
   `operationId`, so an undeclared path has nowhere to go.
 - **The JSON grammar is `Newtonsoft.Json`'s and the policy is ours**, which is the split worth
@@ -288,3 +294,13 @@ destroyed by its OK.
 **Step 6 is the gate and the transport**: accept loop, ClientHello peek, SNI resolution, TLS 1.3,
 our request parser, one route, and `IGateContext` landing. The gate key is already stored, and
 `AnchorPin` is already written and tested, so step 7 inherits both.
+
+**One thing to know before touching the transport.** An `EphemeralKeySet` certificate signs happily
+and SChannel will not do TLS with it in either direction. That is why `Org.BouncyCastle.Tls`
+terminates the transport, and why every key the plugin loads can stay off the disk.
+`HostCertificateHandshakeTests` pins both halves, including the SChannel refusal, so a tidy-up that
+goes back to `SslStream` fails loudly rather than quietly writing keys to somebody's profile.
+
+**A dependency ships beside the plugin.** `build.ps1 -Task Deploy` copies every DLL from the build
+output into the plugins directory, because KeePass loads plugins with `Assembly.LoadFrom`, which
+probes the plugin's own directory rather than KeePass's.

@@ -76,8 +76,8 @@ the file already holds every secret the authority protects.
 
 Issuing takes no third-party cryptography: `CertificateRequest` and `SubjectAlternativeNameBuilder`
 mint every certificate here. The rest of the cryptography is Bouncy Castle's: it terminates the
-TLS, and it is the fixed-time comparison every certificate's bytes go through, §214, which
-.NET Framework does not have.
+TLS, `DESIGN.md` §133, and it is the fixed-time comparison every certificate's bytes go through,
+§214, which .NET Framework does not have.
 
 ---
 
@@ -156,18 +156,26 @@ a passphrase here would be cryptography written by us over cryptography that alr
 key is base64 of the 32 raw bytes. Sizes are unremarkable: roughly 1.3 KB of base64 for the
 authority.
 
-**They are loaded with `EphemeralKeySet`, and that is load bearing.** Measured in
-`EphemeralKeyProbe.cs`: importing a PKCS#12 without it writes a key file into
-`%APPDATA%\Microsoft\Crypto\Keys` for as long as the certificate is loaded, which would put the
-authority's private key on a disk outside the database that is meant to be the only place it lives.
-With the flag nothing touches the disk.
+**Nothing here is ever written to the disk, and that is what decided the transport.** Importing a
+PKCS#12 on .NET Framework writes a key file into `%APPDATA%\Microsoft\Crypto\Keys` for as long as
+the certificate is loaded, unless `EphemeralKeySet` is asked for. Everything the plugin loads asks
+for it.
 
-**It does not follow that SChannel will serve with one, and an earlier draft of this document
-said it would.** Measured afterwards: an `EphemeralKeySet` certificate signs, and SChannel
-refuses TLS with it in either direction, a server getting `SEC_E_NO_CREDENTIALS` and a client
-never getting its certificate onto the wire. That is what put `Org.BouncyCastle.Tls` under the
-transport, which does serve with them, so no key this plugin loads reaches the disk.
-`FINDINGS.md` records the measurement.
+That is only possible because the TLS server is managed code. An ephemeral key **signs perfectly
+well and cannot be used with SChannel at all**, in either direction, so serving with the platform's
+own TLS would have meant putting the host key on the disk for as long as a database was open.
+`DESIGN.md` §133 records the reversal; `EphemeralKeyProbe.cs` and `ManagedTlsProbe.cs` are the two
+halves of the measurement.
+
+So all three secrets live in the database and in memory, and nowhere else the plugin puts them: the
+authority that can mint identities, the host key that authenticates a server, and the gate key.
+
+**KeePass can put them somewhere else.** Its own File, Export, KeePass XML (2.x) writes the
+database's custom data in the clear with everything else, so an exported file holds the authority's
+private key, the host key, the gate key and every admission record, and KeePass announces an export
+to no plugin. Such a file is the unlocked database: it is kept as one, and if it leaves the
+operator's hands the answer is recreating the authority, which [`PAIRING.md`](PAIRING.md) §301
+names as the recovery from a leaked authority key.
 
 **Reading is total and fails closed.** Anything that will not decode leaves the authority *damaged*
 rather than absent, and the two are never conflated: an absent authority is created, a damaged one
@@ -498,6 +506,8 @@ Storing the certificate rather than only its digest is what makes any of this po
   approval is what stands there.
 - **Two copies of one database open at once.** They share an authority and a `SniKey` and are
   genuinely indistinguishable, so the plugin refuses to serve and logs how many answered.
+- **An export KeePass makes.** Its XML export writes everything the database holds in the clear,
+  the authority's key included, and tells no plugin it did; §222 says what such a file is.
 
 ---
 
@@ -519,6 +529,7 @@ Recorded because a reader seeing only this version will not know which parts wer
 | One host certificate | two, the second memory only | so a locked KeePass answers `503 locked` without holding a privileged key |
 | Signing requests accepted | the issuer generates the key and every extension | a request carries extensions, and copying them lets a client choose its own claims |
 | No `keyUsage`, SKI, AKI or `pathLen` | all specified, and `notAfter` clamped | |
-| The stored form was unspecified | base64 PKCS#12, no password, loaded with `EphemeralKeySet` | without the flag the key is written to the user's profile, which contradicts "inside the database and nowhere else" |
+| The stored form was unspecified | base64 PKCS#12, no password | the database's own encryption is what guards it |
+| Everything loaded with `EphemeralKeySet`, on SChannel | still everything, on a managed TLS stack | measured: SChannel cannot use an ephemeral key, so keeping the platform's TLS would have meant writing the host key to the disk |
 | A stored pair was to be checked by issuer name | checked with the anchor pin | every authority shares one subject, so names match where bytes do not |
 | SAN read loosely | ASN.1 tags, reject rather than repair | measured three ways to smuggle a claim past a renderer |

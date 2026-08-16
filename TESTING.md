@@ -29,6 +29,10 @@ bare `using KeePass` matches every file that imports one of them.
 The consequence worth having: the unit project **cannot** compile against KeePass, so a dependency
 that creeps up into the pipeline shows up as a build error rather than as a design argument.
 
+**The transport is tested there too**, over a real loopback socket with real TLS 1.3 and real
+certificates, because none of that needs a password manager. `GateListenerTests` is the one to read
+first: it is where the pieces stop being separately correct and start being a server.
+
 ## What the host tier is for
 
 Two jobs.

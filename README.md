@@ -41,6 +41,9 @@ KeePassGate is sound under the strict reading of the linking question as well as
 - **No third-party HTTP dependency.** Selecting a certificate by SNI means owning the accept loop,
   so all that was left to buy was a header parser. The one that fits the seam natively is LGPL-2.1
   and unmaintained; `DESIGN.md` §107 records the trade and what would reopen it.
+- **The TLS is Bouncy Castle**, taken so that no private key is ever written to the user's profile.
+  The platform's own TLS refuses to serve with a key that has not been, which would have put the
+  host key on the disk for as long as a database was open.
 - **`IGateContext`** is the seam. The router, authorization and audit never see the transport, which
   is how it stays replaceable.
 - **Spec-first routing.** The OpenAPI document is the routing table and handlers bind to

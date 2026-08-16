@@ -129,6 +129,8 @@ words:
   # Words this project uses on purpose. Each is the shortest way to say the thing, and each has
   # earned its place by appearing in more than one document.
   - desync
+  - interoperating
+  - middleboxes
   - recompiler
   - refusable
   - reimplementations

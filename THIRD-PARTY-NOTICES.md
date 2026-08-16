@@ -8,9 +8,9 @@ independent of KeePassGate's own license and would exist whatever that license w
 
 **The HTTP half of the transport is not among them.** The accept loop, the ClientHello peek and the
 request parser are this project's own code. **The TLS half is Bouncy Castle**, and the reason is
-measured rather than assumed: the platform's own TLS refuses to serve with a key that has not been
+recorded rather than assumed: the platform's own TLS refuses to serve with a key that has not been
 written to the user's profile, and `CA.md` §202 says an authority lives in the database and nowhere
-else. See `ManagedTlsProbe.cs` on `spikes/tls-and-certificates`.
+else. See `DESIGN.md` §133 and `ManagedTlsProbe.cs` on `spikes/tls-and-certificates`.
 
 **KeePass itself is not redistributed.** The plugin is built against a local copy of `KeePass.exe`
 and ships neither it nor KeePassLib. What a user runs is assembled on their machine, by KeePass's
