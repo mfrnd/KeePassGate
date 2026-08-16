@@ -242,9 +242,17 @@ namespace KeePassGate.Ui
 
         private TabPage BuildPage(Form form)
         {
+            // Left to right whatever the dialog is, because what the pages draw is this plugin's
+            // own untranslated English and the names it keeps. A KeePass translation reading
+            // right to left sets the dialog to it before the page exists, and inherited, Unicode's
+            // bidirectional algorithm moves a leading run of digits, or a leading or trailing '-'
+            // or '_', to the other end of a name: `2-ops` and `ops-2` draw alike, `-ops` and
+            // `ops-` trade places, and whatever is chosen by what it reads is another name. The
+            // tab strip is the dialog's and stays mirrored.
             var page = new TabPage(GateTab.Text)
             {
                 Name = GateTab.PageControlName,
+                RightToLeft = RightToLeft.No,
                 UseVisualStyleBackColor = true
             };
 

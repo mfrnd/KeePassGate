@@ -20,6 +20,8 @@ namespace KeePassGate.Ui
     /// Folded on characters rather than on measured pixels, because a tooltip is drawn in whatever
     /// font the desktop gives it and this has no window to ask. What that costs is a ragged right
     /// edge on a proportional font, which is what a paragraph looks like anyway.
+    ///
+    /// **And every line is marked left to right**, which <see cref="LeftToRight"/> says why.
     /// </remarks>
     public static class Tooltips
     {
@@ -34,8 +36,13 @@ namespace KeePassGate.Ui
         public const int Width = 72;
 
         /// <summary>
-        /// The same text, folded at word boundaries, or exactly the same text where it is short
-        /// enough or already broken by hand.
+        /// Marks the ends of a line as left to right, and draws as nothing.
+        /// </summary>
+        public const char LeftToRightMark = (char)0x200E;
+
+        /// <summary>
+        /// The same text, folded at word boundaries unless it is short enough or already broken by
+        /// hand, with every line marked left to right.
         /// </summary>
         public static string Wrapped(string text)
         {
@@ -45,7 +52,64 @@ namespace KeePassGate.Ui
         /// <summary>The same, at a width a caller names. For the tests, mostly.</summary>
         public static string Wrapped(string text, int width)
         {
-            if (string.IsNullOrEmpty(text) || width <= 0)
+            if (string.IsNullOrEmpty(text))
+            {
+                return text;
+            }
+
+            return LeftToRight(Folded(text, width));
+        }
+
+        /// <summary>
+        /// Every line of the text between two left-to-right marks, its breaks where they were.
+        /// </summary>
+        /// <remarks>
+        /// **A tooltip is read in the direction of the window it belongs to, not of the control it
+        /// describes.** `ToolTip` asks the top-level form, and has the tip read right to left
+        /// whenever that form does, whatever the control itself does; under a right-to-left
+        /// KeePass translation that form is KeePass's dialog, which this plugin does not own. Every
+        /// tooltip here is English, and read right to left a sentence's full stop was drawn at its
+        /// start, and a line starting with digits or punctuation moved them to its other end.
+        ///
+        /// A mark at each end puts everything on the line between two strong left-to-right
+        /// characters, which is all the bidirectional algorithm needs to keep it in order; the
+        /// reading direction then only decides the edge it is drawn against. At each end of each
+        /// line, because every line break ends a paragraph as far as the algorithm is concerned,
+        /// and a mark at the end alone leaves a leading run of digits or punctuation where it was.
+        /// `TooltipsTests` measures both halves: the flag, and the drawing.
+        /// </remarks>
+        private static string LeftToRight(string text)
+        {
+            var marked = new StringBuilder(text.Length + 8);
+            marked.Append(LeftToRightMark);
+
+            for (var i = 0; i < text.Length; i++)
+            {
+                var character = text[i];
+                if (character != '\r' && character != '\n')
+                {
+                    marked.Append(character);
+                    continue;
+                }
+
+                // Closed before the break and opened after the whole of it, so that a `\r\n` is
+                // still one break rather than two with a mark between them.
+                marked.Append(LeftToRightMark).Append(character);
+                if (character == '\r' && i + 1 < text.Length && text[i + 1] == '\n')
+                {
+                    marked.Append('\n');
+                    i++;
+                }
+
+                marked.Append(LeftToRightMark);
+            }
+
+            return marked.Append(LeftToRightMark).ToString();
+        }
+
+        private static string Folded(string text, int width)
+        {
+            if (width <= 0)
             {
                 return text;
             }

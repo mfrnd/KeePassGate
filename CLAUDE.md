@@ -341,7 +341,9 @@ ordering that matters: the record is written and saved **before** the certificat
 because a certificate whose record never landed is one nobody can revoke.
 
 **Two things about records that cost time to learn.** They are read from the live database on every
-connection and never cached, which is what makes revocation immediate. And a record written into the
+connection and never cached, which is what makes revocation immediate: the KPG tab's clients page
+lists every admitted client and takes one away, and the client is refused from its next request onwards with
+nothing having to be reloaded or told. And a record written into the
 `.kdbx` file underneath a running KeePass is invisible to it and will be overwritten by its next
 save: KeePass serves the database it holds in memory, which is why pairing writes through the plugin
 rather than through the file.

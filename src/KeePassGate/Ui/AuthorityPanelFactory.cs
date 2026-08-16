@@ -22,6 +22,8 @@ namespace KeePassGate.Ui
         private readonly IInvitations _invitations;
         private readonly GateIncidents _incidents;
 
+        private readonly IAdmissionNotice _admissions;
+
         public AuthorityPanelFactory(
             IGateDatabaseSource databases,
             IGateLog log,
@@ -29,6 +31,19 @@ namespace KeePassGate.Ui
             IInvitations invitations,
             GateIncidents incidents)
             : this(databases, new MessageBoxPrompt(), log, GateVersion.Current, gate, invitations, incidents)
+        {
+        }
+
+        /// <summary>The same, and handed the notice every panel it builds should listen to.</summary>
+        public AuthorityPanelFactory(
+            IGateDatabaseSource databases,
+            IGateLog log,
+            IGateStatus gate,
+            IInvitations invitations,
+            GateIncidents incidents,
+            IAdmissionNotice admissions)
+            : this(databases, new MessageBoxPrompt(), log, GateVersion.Current, gate, invitations,
+                   incidents, admissions)
         {
         }
 
@@ -56,6 +71,27 @@ namespace KeePassGate.Ui
             IGateStatus gate,
             IInvitations invitations,
             GateIncidents incidents)
+            : this(databases, prompt, log, version, gate, invitations, incidents, null)
+        {
+        }
+
+        /// <summary>
+        /// The same, and telling every panel it builds what to listen to for a record landing.
+        /// </summary>
+        /// <remarks>
+        /// One notice for the whole plugin, handed to each panel as it is built. A panel drops it
+        /// when it is disposed, so the dialog being opened and closed all afternoon leaves nothing
+        /// behind.
+        /// </remarks>
+        public AuthorityPanelFactory(
+            IGateDatabaseSource databases,
+            IOperatorPrompt prompt,
+            IGateLog log,
+            string version,
+            IGateStatus gate,
+            IInvitations invitations,
+            GateIncidents incidents,
+            IAdmissionNotice admissions)
         {
             if (databases == null)
             {
@@ -74,6 +110,7 @@ namespace KeePassGate.Ui
             _gate = gate;
             _invitations = invitations;
             _incidents = incidents;
+            _admissions = admissions;
         }
 
         public Control CreatePanel(Form dialog)
@@ -90,7 +127,8 @@ namespace KeePassGate.Ui
             // is OK.
             var invitations = _invitations == null ? null : new PendingInvitations(_invitations);
 
-            var panel = new AuthorityPanel(database, _prompt, _log, _version, _gate, invitations, _incidents);
+            var panel = new AuthorityPanel(
+                database, _prompt, _log, _version, _gate, invitations, _incidents, _admissions);
             Commit(dialog, database, invitations);
             return panel;
         }

@@ -41,8 +41,8 @@ namespace KeePassGate.Ui
         /// </summary>
         public const string Consequence =
             "Approving issues it a certificate and saves this database, so the admission is on " +
-            "disk before the client is told anything. It can be revoked later by recreating " +
-            "the authority on the " + GateName.OnATab + " tab, which revokes every client.";
+            "disk before the client is told anything. It can be revoked later from the " +
+            GateName.OnATab + " tab.";
 
         /// <summary>
         /// What the list underneath is, said in terms of what the client asked for rather than as

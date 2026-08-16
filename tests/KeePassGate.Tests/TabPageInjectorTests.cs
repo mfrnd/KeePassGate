@@ -63,6 +63,23 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void The_page_reads_left_to_right_on_a_dialog_that_reads_right_to_left()
+        {
+            // A right to left translation sets the dialog before the page is built. Inherited, it
+            // draws `2-ops` and `ops-2` alike, so the one chosen by what it reads is the other.
+            using (var form = Dialogs.WithNestedTabControl("General"))
+            {
+                form.RightToLeft = RightToLeft.Yes;
+
+                _injector.Attach(form);
+
+                Assert.That(PageOf(form).RightToLeft, Is.EqualTo(RightToLeft.No));
+                Assert.That(_panels.Last.RightToLeft, Is.EqualTo(RightToLeft.No),
+                    "and everything on it, which inherits from the page");
+            }
+        }
+
+        [Test]
         public void Attaching_twice_leaves_one_page_and_builds_one_panel()
         {
             using (var form = Dialogs.WithNestedTabControl("General"))

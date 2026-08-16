@@ -29,6 +29,12 @@ namespace KeePassGate.Host.Tests
     public sealed class GateTabFitsTests
     {
         /// <summary>
+        /// The least a list of clients may be given and still be a list. Four rows and a header,
+        /// roughly: less than that and the operator is scrolling to see who is admitted.
+        /// </summary>
+        private const int MinimumListHeight = 90;
+
+        /// <summary>
         /// The least that has to be left for the pages themselves beside the notice under them,
         /// which is what stops a long line about what just happened eating the page above it.
         /// </summary>
@@ -101,6 +107,107 @@ namespace KeePassGate.Host.Tests
                             " tall in " + room.Height +
                             ". Shorten what is on the tab rather than scrolling it.");
                     }
+                }
+            }
+        }
+
+        [Test]
+        public void The_clients_page_keeps_room_for_the_list_under_the_invitation()
+        {
+            // The invitation widgets are a band at the top of that page and the list takes what is
+            // left, so a band that grows takes the list with it. A page showing how to invite
+            // somebody and not who has been invited would be a list behind a button, without the
+            // button.
+            foreach (var state in States())
+            {
+                using (var panel = state.Panel)
+                {
+                    LayOut(panel, _page.DisplayRectangle.Size);
+
+                    var list = ControlTree.FindByName<ClientList>(panel, ClientList.ControlName);
+                    Assert.That(list, Is.Not.Null, "the clients page has no list on it");
+
+                    TestContext.Out.WriteLine(state.Description + ": the list has " + list.Height);
+                    Assert.That(list.Height, Is.GreaterThanOrEqualTo(MinimumListHeight),
+                        state.Description + " leaves the list " + list.Height +
+                        " pixels, which is not a list.");
+                }
+            }
+        }
+
+        [Test]
+        public void The_columns_of_the_client_list_fit_the_width_it_is_given()
+        {
+            // Columns that overflow would go unnoticed until somebody looked at the tab: the test
+            // below cannot see a grid's scroll bars, and a column with a width written into it
+            // fits the page it was written for and no other.
+            foreach (var state in States())
+            {
+                using (var panel = state.Panel)
+                {
+                    LayOut(panel, _page.DisplayRectangle.Size);
+
+                    var clients = ControlTree.FindByName<ClientList>(panel, ClientList.ControlName);
+                    Assert.That(clients, Is.Not.Null);
+
+                    // A page behind another is never laid out, so its controls keep the size the
+                    // designer gave them and would be measured against nothing.
+                    Show(clients);
+
+                    var list = ControlTree.FindFirst<DataGridView>(clients);
+                    Assert.That(list, Is.Not.Null);
+
+                    var columns = 0;
+                    foreach (DataGridViewColumn column in list.Columns)
+                    {
+                        columns += column.Width;
+                    }
+
+                    // The grid's own width, because the grid is what the columns are shared out
+                    // across and it reserves what a scroll bar needs itself once there are rows to
+                    // scroll. What this catches is a column going back to a written down width.
+                    var room = list.ClientSize.Width;
+                    TestContext.Out.WriteLine(state.Description + ": columns " + columns + " of " + room);
+
+                    Assert.That(columns, Is.LessThanOrEqualTo(room),
+                        state.Description + ": the client list's columns are " + columns +
+                        " wide in " + room + ", so it scrolls sideways.");
+                }
+            }
+        }
+
+        [Test]
+        public void The_invitation_box_takes_the_width_the_page_leaves()
+        {
+            // The row shares the page between a button, a box and an icon, and the box is the part
+            // that grows. A box that ends up a few characters wide still passes every other test
+            // here, because a narrow control fits: what it stops being is readable, and reading a
+            // code out of it is the whole reason it is on screen.
+            //
+            // This pins the arithmetic rather than the hazard. A page that has never been in front
+            // is sized differently by a real dialog than by a panel a test built and laid out, so
+            // the way this actually went wrong is only visible on the desktop, which is what
+            // `DocumentationScreenshots` walks into every time it runs. TODO(step 19): that fixture
+            // arrives with the documentation.
+            foreach (var state in States())
+            {
+                using (var panel = state.Panel)
+                {
+                    LayOut(panel, _page.DisplayRectangle.Size);
+
+                    var box = ControlTree.FindByName<TextBox>(panel, GateTab.InvitationBoxName);
+                    Assert.That(box, Is.Not.Null);
+                    Show(box);
+
+                    var page = Page(box);
+                    Assert.That(page, Is.Not.Null);
+
+                    var room = page.ClientSize.Width - page.Padding.Horizontal;
+                    TestContext.Out.WriteLine(state.Description + ": the box has " + box.Width + " of " + room);
+
+                    Assert.That(box.Width, Is.GreaterThanOrEqualTo(room / 2),
+                        state.Description + ": the invitation box is " + box.Width +
+                        " wide on a page offering " + room + ".");
                 }
             }
         }
@@ -232,9 +339,9 @@ namespace KeePassGate.Host.Tests
         /// <summary>
         /// Brings the page this stack sits on to the front, so that what is on it has a size.
         /// </summary>
-        private static void Show(Control column)
+        private static void Show(Control control)
         {
-            var page = column.Parent as TabPage;
+            var page = Page(control);
             if (page == null)
             {
                 return;
@@ -245,6 +352,21 @@ namespace KeePassGate.Host.Tests
 
             tabs.SelectedTab = page;
             page.PerformLayout();
+        }
+
+        /// <summary>The page a control is on, however deep inside it sits, or null.</summary>
+        private static TabPage Page(Control control)
+        {
+            for (var at = control; at != null; at = at.Parent)
+            {
+                var page = at.Parent as TabPage;
+                if (page != null)
+                {
+                    return page;
+                }
+            }
+
+            return null;
         }
 
         /// <summary>How much room whatever holds this stack is giving it.</summary>
@@ -279,19 +401,38 @@ namespace KeePassGate.Host.Tests
                 height += child.Height + child.Margin.Vertical;
             }
 
-            // The stack above the pages shares the panel with the pages themselves, so what it
-            // needs includes the room that has to be left for them.
+            // A stack docked to an edge shares its room with whatever fills the rest, so what it
+            // needs includes the room that has to be left over.
             if (column.Dock == DockStyle.Top || column.Dock == DockStyle.Bottom)
             {
-                height += MinimumPageHeight;
+                height += RoomForTheRest(column);
             }
 
             return new Size(width + column.Padding.Horizontal, height + column.Padding.Vertical);
         }
 
+        /// <summary>
+        /// What a docked band has to leave for whatever fills the rest of the room it is in.
+        /// </summary>
+        /// <remarks>
+        /// Two bands and two answers. The notice is docked to the bottom of the tab and shares it
+        /// with the pages, so what has to be left is a page. The invitation band is docked to the
+        /// top of the clients page and shares it with the list, so what has to be left is a list.
+        ///
+        /// **Told apart by the edge rather than by looking for the list**, because looking found it
+        /// either way: `FindByName` walks everything under what it is given, and the notice's
+        /// parent is the panel, which holds the clients page and therefore the list. Both bands
+        /// answered `MinimumListHeight`, so the notice was measured against ninety pixels where two
+        /// hundred was meant and `MinimumPageHeight` was named by nothing.
+        /// </remarks>
+        private static int RoomForTheRest(FlowLayoutPanel column)
+        {
+            return column.Dock == DockStyle.Bottom ? MinimumPageHeight : MinimumListHeight;
+        }
+
         private static string Where(Control column)
         {
-            var page = column.Parent as TabPage;
+            var page = Page(column);
             if (page != null)
             {
                 return "the " + page.Text + " page";

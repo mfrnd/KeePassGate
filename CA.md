@@ -515,6 +515,18 @@ empties the record, §204, which takes effect on the next connection,
 offline and immediately: the record is read from the live database per connection and never cached
 beside the certificates, so nothing has to be reloaded for a revocation to bite.
 
+**The operator revokes from the KPG tab's clients page**, which lists every client the database has
+admitted with what each one may reach, and takes one away. It is a list rather than a bare set of
+names because revoking is a decision about access, and a name on its own does not say what is being
+taken. It sits under the widgets that hand an invitation out, on the same page, because a list of
+clients is what an invitation turns into and the operator letting somebody in is the one who should
+see who is already in. It writes the way the rest of that tab writes: the row goes at once, the
+revocation lands when the dialog is accepted, and saving is what keeps it. Cancel discards it.
+
+Recreating the authority is the other way, and it is the blunt one: it revokes every client at once
+and each has to pair again. That is a recovery from a compromised authority, not a way to remove one
+client.
+
 **The key is SHA-256 over the certificate's `RawData`**, compared in fixed time, stored lowercase
 hex. `X509Certificate2.Thumbprint` is **SHA-1**, measured at 40 hex characters, and a design that
 says SHA-256 throughout should not key its allowlist on it.

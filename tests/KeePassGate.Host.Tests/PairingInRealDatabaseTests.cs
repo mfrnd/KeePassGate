@@ -81,6 +81,47 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void A_record_that_lands_is_announced_once_it_is_on_the_disk()
+        {
+            // What the clients page listens to. The moment worth announcing is this one and not
+            // the write before it: a record put in the database and not saved is taken back out
+            // again, and a page told about that would list a client the next request refuses.
+            var announced = 0;
+            var writer = new AdmissionWriter(
+                CurrentThread.Instance, Save, () => announced++, _dialogs, _log);
+
+            using (var certificate = IssueClient())
+            {
+                var result = writer.Write(_database.Database, Record(certificate, "ops"));
+
+                Assert.That(result.Ok, Is.True, result.Reason);
+                Assert.That(announced, Is.EqualTo(1));
+            }
+        }
+
+        [Test]
+        public void A_write_that_never_landed_is_not_announced()
+        {
+            // A save that does not reach the disk is undone, and the record is gone with it. A
+            // page told about that would put a client on the list that is in no database.
+            var announced = 0;
+            var writer = new AdmissionWriter(
+                CurrentThread.Instance,
+                delegate { throw new System.IO.IOException("the disk said no"); },
+                () => announced++,
+                _dialogs,
+                _log);
+
+            using (var certificate = IssueClient())
+            {
+                var result = writer.Write(_database.Database, Record(certificate, "ops"));
+
+                Assume.That(result.Ok, Is.False, "this write was supposed to fail");
+                Assert.That(announced, Is.EqualTo(0));
+            }
+        }
+
+        [Test]
         public void KeePass_saying_it_has_no_unsaved_changes_is_what_written_is_made_of()
         {
             // Measured rather than assumed. KeePass's save tells its caller nothing, so the writer

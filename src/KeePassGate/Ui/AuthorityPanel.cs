@@ -68,6 +68,8 @@ namespace KeePassGate.Ui
         private readonly IGateStatus _gate;
         private readonly IInvitations _invitations;
         private readonly GateIncidents _incidents;
+
+        private readonly IAdmissionNotice _admissions;
         private readonly AuthorityService _service;
         private readonly Font _titleFont;
         private readonly Font _valueFont;
@@ -92,6 +94,7 @@ namespace KeePassGate.Ui
         private readonly Button _copy;
         private readonly ToolTip _tips;
         private readonly Label _invitation;
+        private readonly ClientList _clients;
 
         /// <summary>
         /// Where a copied invitation goes. Settable for the same reason the button's work is a
@@ -130,6 +133,29 @@ namespace KeePassGate.Ui
             IGateStatus gate,
             IInvitations invitations,
             GateIncidents incidents)
+            : this(database, prompt, log, version, gate, invitations, incidents, null)
+        {
+        }
+
+        /// <summary>
+        /// The same, and listening for a record landing while this tab is open.
+        /// </summary>
+        /// <remarks>
+        /// Pairing is invited from this very tab and writes its record from a connection thread,
+        /// so the one moment the clients page is most likely to be wrong is the moment somebody is
+        /// watching it. Without this the list changes when a page comes forward and at no other
+        /// time, and an operator who paired while looking at it would have to switch away and
+        /// back.
+        /// </remarks>
+        public AuthorityPanel(
+            IGateDatabase database,
+            IOperatorPrompt prompt,
+            IGateLog log,
+            string version,
+            IGateStatus gate,
+            IInvitations invitations,
+            GateIncidents incidents,
+            IAdmissionNotice admissions)
         {
             if (version == null)
             {
@@ -143,6 +169,13 @@ namespace KeePassGate.Ui
             _gate = gate;
             _invitations = invitations;
             _incidents = incidents;
+            _admissions = admissions;
+
+            if (_admissions != null)
+            {
+                _admissions.Landed += OnAdmitted;
+            }
+
             _service = database == null || !database.IsOpen
                 ? null
                 : new AuthorityService(database.PluginCustomData, _log);
@@ -201,6 +234,25 @@ namespace KeePassGate.Ui
             _tabs.TabPages.Add(NewPage(GateTab.AuthorityPageName, GateTab.AuthorityPageText));
             _tabs.TabPages.Add(NewPage(GateTab.ClientsPageName, GateTab.ClientsPageText));
 
+            // Read and fitted again whenever a page comes forward, which are two different repairs
+            // that both hang off the same moment.
+            //
+            // Fitting, because a page that was behind another was never given the width it will
+            // have, so anything measured against it while it was hidden stays measured that way:
+            // labels wrap after a few words and the invitation box shrinks until a code cannot be
+            // read out of it.
+            //
+            // Reading, because the database changes while this dialog is open. Pairing is invited
+            // from this very page and writes its record from somewhere else entirely, so a page
+            // that only ever showed what was true when the tab was built would answer "no client
+            // has been admitted" about the client the operator had just approved. Bringing a page
+            // to the front is a request to see what is there.
+            _tabs.SelectedIndexChanged += delegate
+            {
+                Describe();
+                PerformLayout();
+            };
+
             var authority = NewColumn(DockStyle.Fill);
 
             // Air above as well as below, so it reads as the opening sentence of the page
@@ -245,7 +297,7 @@ namespace KeePassGate.Ui
             // The button, the token it produces and the copy button sit on one line, and the box
             // takes whatever width is left over, so nothing here has a size that a wider or
             // narrower tab breaks.
-            var invitation = NewColumn(DockStyle.Fill);
+            var invitation = NewColumn(DockStyle.Top);
 
             // A docked band is laid out edge to edge against what it is given, so its margin
             // is never consulted and the space above it has to be padding.
@@ -309,20 +361,27 @@ namespace KeePassGate.Ui
 
             invitation.Controls.Add(_inviting);
 
+            // Under the widgets that hand an invitation out, because the list is what an invitation
+            // turns into. The list fills what the invitation band leaves, so it goes in first:
+            // docking is applied from the end of the collection backwards.
+            _clients = new ClientList(RevokeAndDescribe);
+            _tabs.TabPages[1].Controls.Add(_clients);
             _tabs.TabPages[1].Controls.Add(invitation);
 
             // What the last press did, below both pages rather than on one of them. Both have
             // something to say here: the authority page has three buttons and the clients page has
-            // an invitation and a copy, and while this label lived on the authority page an
-            // invitation that could not be made reported itself onto a page the operator was not
-            // looking at.
+            // an invitation, a copy and a revocation, and while this label lived on the authority
+            // page an invitation that could not be made reported itself onto a page the operator
+            // was not looking at.
             var footer = NewColumn(DockStyle.Bottom);
             _result = NewTextLabel(GateTab.ResultLabelName, new Padding(0, Spacing.Gap, 0, 0));
             footer.Controls.Add(_result);
 
             // **Under every page rather than on one of them**, for the reason the line above it is:
-            // what it says is true of the whole tab. It is also the last thing above the dialog's
-            // own OK button, which is what it is about.
+            // what it says is true of the whole tab. It used to sit at the bottom of the authority
+            // page, where an operator revoking a client on the clients page never saw it and was
+            // never told that the revocation was waiting for OK like everything else. It is also
+            // the last thing above the dialog's own OK button, which is what it is about.
             footer.Controls.Add(
                 NewTextLabel(GateTab.NoticeLabelName, new Padding(0, Spacing.Tight, 0, 0), ImmediateNotice));
 
@@ -469,8 +528,9 @@ namespace KeePassGate.Ui
         /// Whether any of the authority's own keys is still waiting for the dialog to be accepted.
         /// </summary>
         /// <remarks>
-        /// Only the authority's keys, since they decide what the gate would resolve a fresh code
-        /// to.
+        /// Only the authority's keys. A revocation waiting on the clients page changes nothing
+        /// about what the gate would resolve a fresh code to, so refusing to invite because of one
+        /// would be refusing for no reason.
         /// </remarks>
         private static bool AuthorityWaiting(IPendingChanges pending)
         {
@@ -589,10 +649,28 @@ namespace KeePassGate.Ui
                 _invite.Enabled = false;
                 _copy.Enabled = !string.IsNullOrEmpty(_token.Text);
             }
+
+            // Outside the catch above, because a tab that failed to describe its authority and went
+            // on showing the clients it listed a minute ago would be lying about who can reach this
+            // database. Reading the records has its own refusal and answers with nobody.
+            //
+            // Inside one of its own, though, because filling a grid is not reading a database: rows
+            // and window handles fail for reasons of their own, and this runs on the click of every
+            // button on the tab. An exception leaving here would leave a click handler and reach
+            // KeePass's message loop, which closes the dialog and reports nothing.
+            try
+            {
+                var admitted = AdmittedClients();
+                _clients.Fill(admitted, Strangers(admitted));
+            }
+            catch (Exception error) when (Expected.OfUserInterface(error) || Expected.OfCustomData(error))
+            {
+                _log.Error("the admitted clients could not be shown", error);
+            }
         }
 
         /// <summary>
-        /// What the tab says about outstanding codes, and whether there is one at all.
+        /// What the clients page says about outstanding codes, and whether there is one at all.
         /// </summary>
         /// <remarks>
         /// Two answers rather than one sentence, because the caller has to decide whether the box
@@ -659,10 +737,51 @@ namespace KeePassGate.Ui
             }
         }
 
+        /// <summary>
+        /// A record landed in some database, so what this tab draws from the records is stale.
+        /// </summary>
+        /// <remarks>
+        /// Raised on the user interface thread, inside the write it follows, so this reads the
+        /// database and redraws directly rather than marshaling.
+        ///
+        /// **Disposal is the only thing asked about**, and a window existing is deliberately not:
+        /// `Describe` is what the constructor itself ends with, long before there is a handle, so
+        /// a panel that has not been shown yet reads and draws exactly as one that has. Asking for
+        /// a handle here meant the redraw was skipped for any tab built and not yet displayed.
+        /// </remarks>
+        private void OnAdmitted(object sender, EventArgs e)
+        {
+            if (IsDisposed || Disposing)
+            {
+                return;
+            }
+
+            try
+            {
+                Describe();
+            }
+            catch (Exception error) when (Expected.OfUserInterface(error)
+                                          || Expected.OfCustomData(error))
+            {
+                // A tab that could not redraw is a tab an operator can bring forward again. The
+                // record is already written and the client is already being answered.
+                _log.Warn("the tab could not be redrawn after a record landed: " + error.Message);
+            }
+        }
+
         protected override void Dispose(bool disposing)
         {
             if (disposing)
             {
+                // First, and not conditional on anything below it. This tab lives as long as the
+                // dialog it is injected into and the notice lives as long as the plugin, so a
+                // subscription left behind is a disposed control handed an event on the next
+                // pairing, for every settings dialog the operator ever opened.
+                if (_admissions != null)
+                {
+                    _admissions.Landed -= OnAdmitted;
+                }
+
                 if (_titleFont != null)
                 {
                     _titleFont.Dispose();
@@ -716,15 +835,7 @@ namespace KeePassGate.Ui
 
             foreach (var label in _wrapping)
             {
-                // Asked of whatever the label happens to sit in, rather than of the panel, because
-                // a label on a page has a page's width and one above the pages has the panel's.
-                var parent = label.Parent;
-                if (parent == null)
-                {
-                    continue;
-                }
-
-                var width = parent.ClientSize.Width - parent.Padding.Horizontal - label.Margin.Horizontal;
+                var width = RoomAround(label) - label.Margin.Horizontal;
 
                 // Only when it changes: assigning this asks for another layout pass.
                 if (width > 0 && label.MaximumSize.Width != width)
@@ -733,7 +844,7 @@ namespace KeePassGate.Ui
                 }
             }
 
-            if (_token != null && _invite != null && _copy != null && _inviting.Parent != null)
+            if (_token != null && _invite != null && _copy != null)
             {
                 // Square, and as tall as the box it sits beside, so the row reads as one thing.
                 // Taken from the box rather than written down, because a text box is as tall as the
@@ -744,9 +855,7 @@ namespace KeePassGate.Ui
                     _copy.Size = new Size(side, side);
                 }
 
-                var available = _inviting.Parent.ClientSize.Width
-                                - _inviting.Parent.Padding.Horizontal
-                                - _inviting.Margin.Horizontal;
+                var available = RoomAround(_inviting) - _inviting.Margin.Horizontal;
 
                 var width = available
                             - _invite.Width - _invite.Margin.Horizontal
@@ -765,6 +874,36 @@ namespace KeePassGate.Ui
                     _token.Width = width;
                 }
             }
+        }
+
+        /// <summary>
+        /// How much width whatever this control sits on really offers.
+        /// </summary>
+        /// <remarks>
+        /// Asked of the page, or of the panel above the pages, rather than of the band the control
+        /// happens to be in. A `FlowLayoutPanel` that sizes itself to its content reports the width
+        /// of that content, so a band docked to the top of a page answers with how wide it is
+        /// rather than with how wide it may be. Everything measured against that comes out narrow,
+        /// and it is visible rather than subtle: labels wrap after a few words and the invitation
+        /// box shrinks until a code cannot be read out of it.
+        /// </remarks>
+        private int RoomAround(Control control)
+        {
+            for (var at = control.Parent; at != null; at = at.Parent)
+            {
+                var page = at as TabPage;
+                if (page != null)
+                {
+                    return page.ClientSize.Width - page.Padding.Horizontal;
+                }
+
+                if (ReferenceEquals(at, this))
+                {
+                    return ClientSize.Width - Padding.Horizontal;
+                }
+            }
+
+            return 0;
         }
 
         /// <summary>
@@ -1002,7 +1141,7 @@ namespace KeePassGate.Ui
             // tab's own buffer wraps whatever that answers with. Reading through it finds no keys,
             // which reads exactly like a database that has no authority yet, so the tab offered
             // Create for a database that was not there. `IsOpen` is the question with an answer,
-            // and the constructor was already asking it.
+            // and `AdmittedClients` and `Revoke` were already asking it.
             if (!_database.IsOpen)
             {
                 return AuthorityDescription.NoDatabase();
@@ -1064,6 +1203,175 @@ namespace KeePassGate.Ui
         private void OnInvite(object sender, EventArgs e)
         {
             InviteClient();
+        }
+
+        /// <summary>
+        /// What the list revokes through: the revocation is added, and the tab is read again so the
+        /// count on the authority page stops naming a client that is no longer admitted.
+        /// </summary>
+        private string RevokeAndDescribe(AdmissionRecord record)
+        {
+            var refused = Revoke(record);
+            if (refused == null)
+            {
+                Describe();
+            }
+
+            return refused;
+        }
+
+        /// <summary>
+        /// Every client this database has admitted, newest first.
+        /// </summary>
+        /// <remarks>
+        /// Public, and separate from the list that shows it, because what the operator is shown is
+        /// a decision worth testing on its own, without a control tree to walk to reach it.
+        /// </remarks>
+        public AdmissionListing AdmittedClients()
+        {
+            if (_database == null || !_database.IsOpen)
+            {
+                // Read rather than unreadable: there is no database to have admitted anybody,
+                // and the tab says that in its own words on the page above this one.
+                return new AdmissionListing(Array.Empty<AdmissionRecord>(), true);
+            }
+
+            try
+            {
+                var found = new AdmissionStore(_database.PluginCustomData, _log).All();
+                var ordered = new List<AdmissionRecord>(found.Records);
+                ordered.Sort((left, right) => right.Admitted.CompareTo(left.Admitted));
+
+                // Sorting does not make an incomplete listing complete, so the answer is
+                // carried through rather than re-decided here.
+                return new AdmissionListing(ordered, found.CameBack, found.Complete);
+            }
+            catch (Exception error) when (Expected.OfCustomData(error))
+            {
+                _log.Error("the admitted clients could not be read", error);
+                return new AdmissionListing(Array.Empty<AdmissionRecord>(), false);
+            }
+        }
+
+        /// <summary>
+        /// Which of those records this database's authority did not issue, by admission key.
+        /// </summary>
+        /// <remarks>
+        /// **Asked through `AnchorPin`, because that is the first thing the gate asks.**
+        /// `ClientCredentials` pins the anchor before the usage, the dates and the record itself,
+        /// so a certificate chaining to some other authority is refused whatever else is true of
+        /// it. The clients page listed those rows as admitted clients with a date in the future
+        /// beside them, which is a page promising access nobody has. They arrive by a recreate or
+        /// a delete landing while a pairing does, and by a merge or a partial restore carrying
+        /// records past the authority that made sense of them.
+        ///
+        /// **An absent or damaged authority makes every record one**, and that is an answer rather
+        /// than a gap: nothing is served for such a database at all, so no record in it reaches
+        /// anything. The first page says the same in words, and the two agreeing is the point.
+        ///
+        /// **An engine that could not evaluate the chain is not an answer**, which is the
+        /// distinction `AnchorPin` takes an `out` parameter for. A locked down machine store or a
+        /// CryptoAPI that will not load says nothing about where a certificate came from, and
+        /// calling a healthy record foreign here points the operator at Recreate, which destroys
+        /// the authority and every record with it.
+        ///
+        /// Public, like the listing it judges, because what the operator is shown is worth testing
+        /// without a control tree to walk to reach it.
+        /// </remarks>
+        public ICollection<string> Strangers(AdmissionListing listing)
+        {
+            var strangers = new HashSet<string>(StringComparer.Ordinal);
+
+            if (_service == null || listing == null || listing.Records.Count == 0)
+            {
+                return strangers;
+            }
+
+            try
+            {
+                using (var reading = _service.Read())
+                {
+                    var authority = reading.IsPresent ? reading.Material.Authority : null;
+
+                    foreach (var record in listing.Records)
+                    {
+                        if (record == null)
+                        {
+                            continue;
+                        }
+
+                        using (var certificate = record.Certificate())
+                        {
+                            bool evaluated;
+                            if (!AnchorPin.Chains(certificate, authority, true, out evaluated)
+                                && evaluated)
+                            {
+                                strangers.Add(record.AdmissionKey);
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception error) when (Expected.OfCryptography(error) || Expected.OfCustomData(error))
+            {
+                _log.Error("the admitted clients could not be checked against this authority", error);
+            }
+
+            return strangers;
+        }
+
+        /// <summary>
+        /// Take a client's admission away, answering with why it could not or null when it did.
+        /// </summary>
+        /// <remarks>
+        /// **This writes the way every other button on this tab writes**, which is through the
+        /// decorator holding the tab's changes until the dialog is accepted. Nothing reaches the
+        /// database here: OK is what applies it and saving is what puts it on disk, which is what
+        /// the notice under the pages says. A revocation that went straight to the database would
+        /// be the one gesture on this tab behaving differently from the rest, on the page where an
+        /// operator is least likely to expect it.
+        ///
+        /// **It takes effect once it is applied and saved, and not before**, which is the honest
+        /// thing to say about it: a record is read from the live database on every connection, so
+        /// from that moment the client is refused from its next request onwards without anything
+        /// having to be told. Until then it is still admitted, and Cancel still means Cancel.
+        /// </remarks>
+        public string Revoke(AdmissionRecord record)
+        {
+            if (record == null)
+            {
+                return "there is no client to revoke";
+            }
+
+            if (_database == null || !_database.IsOpen)
+            {
+                return "the database is not open";
+            }
+
+            try
+            {
+                var store = new AdmissionStore(_database.PluginCustomData, _log);
+
+                // **The answer is not thrown away.** `AdmissionStore.Remove` reads the key back
+                // before it says yes, precisely because telling somebody a client is revoked when
+                // the write did not land is the one wrong answer here that nothing notices until
+                // that client connects again. A false can also mean the record was already gone,
+                // which is the operator's intent either way, so the two are told apart by looking.
+                if (!store.Remove(record.AdmissionKey) && store.Find(record.AdmissionKey) != null)
+                {
+                    _log.Error("an admission record would not go away", null);
+                    return "the record is still in the database";
+                }
+            }
+            catch (Exception error) when (Expected.OfCustomData(error))
+            {
+                _log.Error("an admission record could not be removed", error);
+                return error.Message;
+            }
+
+            _database.MarkModified();
+            _log.Info("an admission record was removed by the operator");
+            return null;
         }
 
         private void OnCopy(object sender, EventArgs e)

@@ -39,9 +39,29 @@ namespace KeePassGate.Bridge
         private readonly Action<PwDatabase> _save;
         private readonly GroupDialogs _dialogs;
         private readonly IGateLog _log;
+        private readonly Action _admitted;
+
         private readonly object _writing = new object();
 
         public AdmissionWriter(IUiThread ui, Action<PwDatabase> save, GroupDialogs dialogs, IGateLog log)
+            : this(ui, save, null, dialogs, log)
+        {
+        }
+
+        /// <summary>
+        /// The same, and told what to say when a record lands.
+        /// </summary>
+        /// <remarks>
+        /// An action rather than an event: what this class needs to know about anything drawn from
+        /// the records is that something wants telling, and `AdmissionNotice` is what turns that
+        /// into listeners.
+        /// </remarks>
+        public AdmissionWriter(
+            IUiThread ui,
+            Action<PwDatabase> save,
+            Action admitted,
+            GroupDialogs dialogs,
+            IGateLog log)
         {
             if (ui == null)
             {
@@ -55,6 +75,7 @@ namespace KeePassGate.Bridge
 
             _ui = ui;
             _save = save;
+            _admitted = admitted;
             _dialogs = dialogs;
             _log = log ?? NullGateLog.Instance;
         }
@@ -203,7 +224,41 @@ namespace KeePassGate.Bridge
                     "the database still has unsaved changes, so nothing is on disk");
             }
 
+            Admitted();
             return AdmissionWrite.Done();
+        }
+
+        /// <summary>Says a record landed, to whatever is drawn from the records.</summary>
+        /// <remarks>
+        /// Here and nowhere earlier: every path above this either put its change back or is still
+        /// deciding, and a page told about a record that was taken out again would list a client
+        /// the next request refuses.
+        ///
+        /// **A page that fails to redraw never fails the write.** By the time this runs the record
+        /// is on the disk and the client is about to be handed its certificate, so a page that
+        /// failed to redraw is a page an operator can bring forward again; failing the pairing
+        /// over it would spend the invitation and give nothing back. What is caught is what
+        /// drawing can throw, the list `Expected.OfUserInterface` keeps. Anything else is a
+        /// defect in the listener and is not caught here, because this is not one of the places
+        /// that catch everything: it reaches the connection thread's, which counts it, and the
+        /// pairing ends with its record saved and no certificate handed over.
+        /// </remarks>
+        private void Admitted()
+        {
+            if (_admitted == null)
+            {
+                return;
+            }
+
+            try
+            {
+                _admitted();
+            }
+            catch (Exception error) when (Expected.OfUserInterface(error))
+            {
+                _log.Warn("a record landed and the tab showing the clients was not told, so it " +
+                          "is listing them as they were: " + error.Message);
+            }
         }
 
         /// <summary>

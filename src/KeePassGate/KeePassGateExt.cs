@@ -34,6 +34,16 @@ namespace KeePassGate
         private GateHost _host;
         private GroupDialogs _groupDialogs;
         private InvitationBook _invitations;
+
+        /// <summary>
+        /// What the writer says a landed record into and every KPG tab listens to.
+        /// </summary>
+        /// <remarks>
+        /// One for the plugin rather than one per dialog, because the writer is built once
+        /// and outlives every tab: a tab subscribes when it is injected and lets go when its
+        /// dialog closes.
+        /// </remarks>
+        private readonly AdmissionNotice _admissions = new AdmissionNotice();
         private OpenDatabaseTargets _targets;
         private GateListener _listener;
 
@@ -112,6 +122,16 @@ namespace KeePassGate
             try
             {
                 _pluginHost = host;
+
+                // KeePass's own icons, lent to the tabs for as long as this plugin is loaded. The
+                // columns that remove things head themselves with its waste bin, and without a
+                // KeePass to borrow from they simply have no icon.
+                var main = host.MainWindow;
+                if (main != null)
+                {
+                    GateIcon.Borrow(main.ClientIcons);
+                }
+
                 _log = new TraceGateLog();
                 _incidents = new GateIncidents(_log);
                 _log.Info("initializing version " + GateVersion.Current);
@@ -147,7 +167,7 @@ namespace KeePassGate
                     new TabPageInjector(
                         new AuthorityPanelFactory(
                             new DialogDatabases(_log, () => Changed(host)),
-                            _log, _listener, _invitations, _incidents),
+                            _log, _listener, _invitations, _incidents, _admissions),
                         _log,
                         KeePassContract.DatabaseSettingsTabControlName,
                         Icon),
@@ -190,6 +210,8 @@ namespace KeePassGate
             // well and nothing orders the two.
             try
             {
+                GateIcon.Return();
+
                 if (_host != null)
                 {
                     _host.Stop();
@@ -316,7 +338,12 @@ namespace KeePassGate
             // saves whichever document is active, and pairing names the database it wrote to.
             _targets = new OpenDatabaseTargets(
                 delegate { return mainWindow.DocumentManager.GetOpenDatabases(); },
-                new AdmissionWriter(ui, database => mainWindow.SaveDatabase(database, null), _groupDialogs, _log),
+                new AdmissionWriter(
+                    ui,
+                    database => mainWindow.SaveDatabase(database, null),
+                    _admissions.Raise,
+                    _groupDialogs,
+                    _log),
                 _log);
 
             _listener = new GateListener(
