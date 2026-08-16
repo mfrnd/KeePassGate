@@ -26,5 +26,12 @@ Two measurements rather than an argument, both runnable with nothing arranged fi
   The classification is checked in and the probe reads the library's own `dir()`, so a member that
   appears or disappears upstream is reported rather than missed.
 
-Both live under `spikes/pykeepass/`, which is a directory rather than a package: nothing here is
-installed, imported by anything, or shipped.
+Both live under [`spikes/pykeepass/`](spikes/pykeepass/), which is a directory rather than a package:
+nothing here is installed, imported by anything, or shipped.
+
+## The answer
+
+**Not as a `PyKeePass` object. Yes as a facade, for 23 of its 56 members.**
+[`RESULTS.md`](RESULTS.md) has the whole of it: why the object itself is a trap rather than an
+integration, what the 23 cover and what they cost, the 6 that need routes nothing forbids, the 27
+that cannot exist here, and what would have to change on each side.
