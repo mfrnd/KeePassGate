@@ -1,0 +1,9 @@
+# Anchored with a leading slash, so that a rule meant for one place cannot quietly match another
+# somewhere else. What a project writes is ignored beside that project rather than from here.
+
+/.tmp/
+/node_modules/
+/scratchpad/
+
+# Per machine, and not everybody's business: the checked-in `.claude/settings.json` is.
+/.claude/settings.local.json
