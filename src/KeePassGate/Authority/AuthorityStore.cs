@@ -104,7 +104,7 @@ namespace KeePassGate.Authority
                     return AuthorityReading.Damaged(problems, records);
                 }
 
-                var material = new AuthorityMaterial(authority, host, sniKey);
+                var material = new AuthorityMaterial(authority, host, sniKey, CertificateBlob.Bytes(hostBlob));
                 Array.Clear(sniKey, 0, sniKey.Length);
                 authority = null;
                 host = null;

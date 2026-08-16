@@ -11,7 +11,7 @@ request parser are this project's own code. **The TLS half is to be Bouncy Castl
 is measured rather than assumed: the platform's own TLS refuses to serve with a key that has not
 been written to the user's profile, and `CA.md` §202 says an authority lives in the database and
 nowhere else. See `ManagedTlsProbe.cs` on `spikes/tls-and-certificates`. TODO(step 6): the TLS
-arrives with this step, and Bouncy Castle's notice below with the reference that brings it in.
+arrives with this step.
 
 **KeePass itself is not redistributed.** The plugin is built against a local copy of `KeePass.exe`
 and ships neither it nor KeePassLib. What a user runs is assembled on their machine, by KeePass's
@@ -27,6 +27,29 @@ the `SslStream`, which left it parsing only a request line and a header block.
 Nothing of it is redistributed, so no notice is owed. If it is ever reinstated, it is MIT, parts of
 that tree derive from Mono and carry headers naming **Novell, Inc.** alongside sta.blockhead, and a
 submodule rather than an assembled copy is what keeps those headers intact.
+
+## Bouncy Castle for .NET
+
+Taken for `Org.BouncyCastle.Tls`, which terminates the transport's TLS 1.3 in managed code so that
+no private key this plugin holds is ever written to disk. Redistributed as
+`BouncyCastle.Cryptography.dll` beside the plugin. TODO(step 6): the TLS server arrives with this
+step, and until then it parses the stored PKCS#12 and compares secrets in fixed time.
+
+> MIT License (<https://opensource.org/licenses/MIT>)
+>
+> Copyright (c) 2000-2026 The Legion of the Bouncy Castle Inc. (<https://www.bouncycastle.org>).
+> Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+> associated documentation files (the "Software"), to deal in the Software without restriction,
+> including without limitation the rights to use, copy, modify, merge, publish, distribute,
+> sub license, and/or sell copies of the Software, and to permit persons to whom the Software is
+> furnished to do so, subject to the following conditions: The above copyright notice and this
+> permission notice shall be included in all copies or substantial portions of the Software.
+>
+> **THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+> NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+> NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+> DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+> OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.**
 
 ## Newtonsoft.Json
 

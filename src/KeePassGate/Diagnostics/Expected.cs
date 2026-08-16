@@ -115,8 +115,6 @@ namespace KeePassGate.Diagnostics
         /// A socket, a stream, or the TLS over it.
         /// </summary>
         /// <remarks>
-        /// TODO(step 6): the transport takes Bouncy Castle there; until then this filter is written
-        /// for the stack that is coming rather than the one in the tree.
         /// Bouncy Castle's `TlsFatalAlert` derives from `IOException`, so a failed handshake and a
         /// client that hung up arrive as the same kind of thing, which is what they are to a server
         /// that is about to close the connection either way.

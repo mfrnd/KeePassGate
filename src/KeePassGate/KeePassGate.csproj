@@ -39,6 +39,10 @@
          `spikes/json-reading` branch. What stays written here is the policy over what it parses, which
          is a decision rather than a grammar. -->
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <!-- The TLS server. Taken so that the host key never has to be written to the user's profile,
+         which is what SChannel requires and what the design forbids. MIT, and it ships beside the
+         plugin: KeePass loads plugins with Assembly.LoadFrom, which probes their own directory. -->
+    <PackageReference Include="BouncyCastle.Cryptography" Version="2.7.0" />
   </ItemGroup>
 
   <ItemGroup>

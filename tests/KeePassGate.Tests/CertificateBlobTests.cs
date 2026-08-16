@@ -55,8 +55,9 @@ namespace KeePassGate.Tests
         public void The_private_key_never_reaches_the_disk()
         {
             // Measured: importing a PKCS#12 without EphemeralKeySet writes a key file into the
-            // user's profile, which would put the authority's key outside the database that is
-            // meant to be the only place it lives.
+            // user's profile, which would put a key outside the database that is meant to be the
+            // only place it lives. Nothing the plugin loads asks for that any more, which is only
+            // possible because the TLS server is managed code.
             var keyDirectory = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
                 @"Microsoft\Crypto\Keys");

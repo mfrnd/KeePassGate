@@ -34,7 +34,8 @@ namespace KeePassGate
         {
             return new[]
             {
-                typeof(Newtonsoft.Json.JsonTextReader).Assembly
+                typeof(Newtonsoft.Json.JsonTextReader).Assembly,
+                typeof(Org.BouncyCastle.Utilities.Arrays).Assembly
             };
         }
     }

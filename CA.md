@@ -74,8 +74,10 @@ the file already holds every secret the authority protects.
 | Leaf certificate | 393 bytes |
 | Serial | 16 random bytes, high bit cleared so the INTEGER encodes positive |
 
-No third-party cryptography: `CertificateRequest` and `SubjectAlternativeNameBuilder` cover
-everything an authority does here.
+Issuing takes no third-party cryptography: `CertificateRequest` and `SubjectAlternativeNameBuilder`
+mint every certificate here. The rest of the cryptography is Bouncy Castle's: it is the fixed-time
+comparison every certificate's bytes go through, §214, which .NET Framework does not have, and it
+is to terminate the TLS.
 
 ---
 
@@ -373,6 +375,23 @@ if (!FixedTimeEquals(root, resolved.AuthorityDer)) return false;   // the load-b
 ```
 
 With the pin: our client `True`, foreign client `False`.
+
+**And the engine goes out on the way to `False`, which nothing here asked it to do.** When it cannot
+find the issuer it reads the leaf's authority information access extension, RFC 5280 section
+4.2.2.1, and downloads whatever that names before `Build` returns. The leaf belongs to whoever
+opened the connection, so the address does too: measured, one address that accepts and answers
+nothing holds the connection thread for 15.0 s, and the request really is issued by the KeePass
+process. Nothing worth fetching exists here. The anchor is handed in through `ExtraStore` and the
+hierarchy is a leaf and the certificate above it, so a download can only ever be the engine looking
+for an issuer the pin is about to refuse.
+
+`X509ChainPolicy.DisableCertificateDownloads` says exactly that and is .NET 5 and later, like
+`CustomRootTrust` above. What this framework has is `UrlRetrievalTimeout`, where zero is the default
+the policy already carries and means fifteen seconds, so the pin sets the smallest positive value
+and the same leaf is refused in 79 ms. A millisecond is still a millisecond: the request may be
+opened before it is abandoned, so what the bound takes away is the wait and the answer rather than
+the first packet. §217 declines to depend on the network at all, and this is that network arriving
+through a door nobody opened, closed here as far as the platform allows.
 
 `SslPolicyErrors.None` is the **wrong** test. The authority is deliberately in no machine store, so
 a correct deployment always reports `RemoteCertificateChainErrors`, and since the SNI rotates it
