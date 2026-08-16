@@ -329,6 +329,29 @@ against nothing, because validating a client certificate needs the authority, wh
 Letting it survive into the unlocked state would promote a connection to an authority it never
 proved anything to.
 
+**An unlock that lifts no lock closes nothing**, which is a refinement the end to end tier forced
+rather than a weakening. KeePass announces a database being opened and a database being unlocked
+with the same event, so a KeePass starting with a database on its command line raised an unlock
+while a client was already connecting, and killed a handshake that had never seen a responder. The
+privilege argument only applies where there was a responder to be promoted from, so the close
+follows a lock actually being lifted rather than the event that announces both.
+
+**A database closed for real closes every connection too**, for the reason a lock does: a socket
+thread must not be reading a database the UI thread is emptying. It closed none while the database
+had never been locked, so a connection resolved before File > Close, or before KeePass closes every
+database on exit, ran on to its deadline against a database with nothing left in it.
+
+**The responder is minted when the database opens, not when a connection arrives.** Minting it
+lazily looks equivalent and is not: a database nobody happened to connect to between an unlock and
+the next lock would have nothing to answer with, which is the exact failure the responder exists to
+remove.
+
+**And every open database is read again just before a close or a lock**, because that is the last
+moment it can be read and a lock answers out of what was read last. Without it, whatever changed
+with no connection to notice was invisible to the lock: a Save As moved the file out from under what
+the lock matches on, an authority created on the KPG tab had nothing to answer with, and one deleted
+there went on being answered for.
+
 ---
 
 ## 9. What is on the wire §311
