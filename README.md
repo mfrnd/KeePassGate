@@ -26,5 +26,5 @@ Two measurements rather than an argument, both runnable with nothing arranged fi
   The classification is checked in and the probe reads the library's own `dir()`, so a member that
   appears or disappears upstream is reported rather than missed.
 
-Both live under `poc-pykeepass/`, which is a directory rather than a package: nothing here is
+Both live under `spikes/pykeepass/`, which is a directory rather than a package: nothing here is
 installed, imported by anything, or shipped.

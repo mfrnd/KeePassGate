@@ -36,7 +36,7 @@ deletion in the history of everything downstream, which is what this arrangement
 `uv` with no project, so nothing is installed into anything:
 
 ```powershell
-cd poc-pykeepass
+cd spikes/pykeepass
 uv run --no-project --with pykeepass python surface.py
 uv run --no-project --with pykeepass --with pytest python -m pytest test_pykeepass.py -q
 ```
