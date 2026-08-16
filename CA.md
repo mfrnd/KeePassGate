@@ -75,9 +75,9 @@ the file already holds every secret the authority protects.
 | Serial | 16 random bytes, high bit cleared so the INTEGER encodes positive |
 
 Issuing takes no third-party cryptography: `CertificateRequest` and `SubjectAlternativeNameBuilder`
-mint every certificate here. The rest of the cryptography is Bouncy Castle's: it is the fixed-time
-comparison every certificate's bytes go through, §214, which .NET Framework does not have, and it
-is to terminate the TLS.
+mint every certificate here. The rest of the cryptography is Bouncy Castle's: it terminates the
+TLS, and it is the fixed-time comparison every certificate's bytes go through, §214, which
+.NET Framework does not have.
 
 ---
 
@@ -337,7 +337,7 @@ Order matters, and every failure is a refusal.
 
 1. **The gate resolves the SNI**, before any TLS work. Section 8.
 2. **TLS 1.3 offered and nothing older**, so the handshake fails rather than falling back.
-3. **A certificate is always asked for**, decided in the gate's own TLS server rather than by an
+3. **A certificate is always asked for**, decided in `GateTlsServer` rather than by an
    SChannel flag, with a callback that tolerates absence. Measured:
    `false` makes the server send no `CertificateRequest` under TLS 1.3, so a client holding a good
    certificate never offers one; and `true` requires nothing, since a certificate-less client
@@ -371,10 +371,17 @@ chain.Build(presented)
 if (!chain.Build(presented)) return false;
 if (chain.ChainElements.Count != 2) return false;               // no intermediates in this hierarchy
 byte[] root = chain.ChainElements[chain.ChainElements.Count - 1].Certificate.RawData;
-if (!FixedTimeEquals(root, resolved.AuthorityDer)) return false;   // the load-bearing line
+if (!FixedTime.Equals(root, anchor.RawData)) return false;      // the load-bearing line
 ```
 
 With the pin: our client `True`, foreign client `False`.
+
+**The load-bearing part is the comparison, not its timing.** `FixedTime.Equals` is what does it,
+because every comparison of certificate bytes in this plugin goes through that one door and one
+that did not would be a question a reader has to answer again. On its own it defends nothing here:
+an anchor is a public certificate, and every client that can reach this code was handed a copy of
+it at pairing. What is load bearing is that the anchor's own bytes are compared at all, which is
+the line the platform will not write.
 
 **And the engine goes out on the way to `False`, which nothing here asked it to do.** When it cannot
 find the issuer it reads the leaf's authority information access extension, RFC 5280 section

@@ -7,11 +7,10 @@ kept, and whatever packages one has to carry it beside the assemblies. This obli
 independent of KeePassGate's own license and would exist whatever that license were.
 
 **The HTTP half of the transport is not among them.** The accept loop, the ClientHello peek and the
-request parser are this project's own code. **The TLS half is to be Bouncy Castle**, and the reason
-is measured rather than assumed: the platform's own TLS refuses to serve with a key that has not
-been written to the user's profile, and `CA.md` §202 says an authority lives in the database and
-nowhere else. See `ManagedTlsProbe.cs` on `spikes/tls-and-certificates`. TODO(step 6): the TLS
-arrives with this step.
+request parser are this project's own code. **The TLS half is Bouncy Castle**, and the reason is
+measured rather than assumed: the platform's own TLS refuses to serve with a key that has not been
+written to the user's profile, and `CA.md` §202 says an authority lives in the database and nowhere
+else. See `ManagedTlsProbe.cs` on `spikes/tls-and-certificates`.
 
 **KeePass itself is not redistributed.** The plugin is built against a local copy of `KeePass.exe`
 and ships neither it nor KeePassLib. What a user runs is assembled on their machine, by KeePass's
@@ -32,8 +31,7 @@ submodule rather than an assembled copy is what keeps those headers intact.
 
 Taken for `Org.BouncyCastle.Tls`, which terminates the transport's TLS 1.3 in managed code so that
 no private key this plugin holds is ever written to disk. Redistributed as
-`BouncyCastle.Cryptography.dll` beside the plugin. TODO(step 6): the TLS server arrives with this
-step, and until then it parses the stored PKCS#12 and compares secrets in fixed time.
+`BouncyCastle.Cryptography.dll` beside the plugin.
 
 > MIT License (<https://opensource.org/licenses/MIT>)
 >

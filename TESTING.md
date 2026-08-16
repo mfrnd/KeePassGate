@@ -5,7 +5,7 @@ fails in a way that names its own cause.
 
 | | Project | Needs | Runs in | What it proves |
 | --- | --- | --- | --- | --- |
-| **Unit** | `tests/KeePassGate.Tests` | nothing but a compiler | under a second | the logic, against stand-ins shaped like KeePass |
+| **Unit** | `tests/KeePassGate.Tests` | nothing but a compiler, and a loopback socket | under a minute | the logic, and the whole transport, against stand-ins shaped like KeePass |
 | **Host** | `tests/KeePassGate.Host.Tests` | a KeePass to reference | about a second | the same code against real KeePass types, dialogs and events |
 | **End to end** | the same project, category `Live` | a desktop, and the machine to itself | under a minute | the plugin loading into a KeePass a user could have started |
 
@@ -19,8 +19,9 @@ fails in a way that names its own cause.
 
 Everything above the KeePass boundary is written against small interfaces: `IWindowEventSource`
 announces dialogs, `IFormMatcher` recognizes them, `IFormDecorator` decorates them,
-`IGatePanelFactory` fills them, `IKeyValueStore` stores things, and `IGateLog` records all of it.
-Two things touch KeePass: `KeePassGateExt`, which KeePass itself instantiates, and everything under
+`IGatePanelFactory` fills them, `IKeyValueStore` stores things, `IGateTargets` says what can be
+served, `IGateContext` is one request, and `IGateLog` records all of it. Two things touch KeePass:
+`KeePassGateExt`, which KeePass itself instantiates, and everything under
 `src/KeePassGate/Bridge`. `grep -rlE '^using (KeePass|KeePassLib)[.;]' src` is the check, and it is
 a check rather than a claim. Anchored, because the plugin's own namespaces begin `KeePassGate` and a
 bare `using KeePass` matches every file that imports one of them.

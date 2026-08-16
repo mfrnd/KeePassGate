@@ -1,5 +1,4 @@
 using System;
-using System.Linq;
 using System.Security.Cryptography.X509Certificates;
 using KeePassGate.Diagnostics;
 
@@ -127,8 +126,15 @@ namespace KeePassGate.Authority
                         return false;
                     }
 
+                    // `FixedTime.Equals` rather than a comparison that stops at the first
+                    // difference, which is what `CA.md` §214 writes down. It defends nothing on
+                    // its own: an anchor is a public certificate and every client that can reach
+                    // this code was handed a copy of it at pairing. It is here because every
+                    // comparison of certificate bytes in this plugin goes through that one door,
+                    // and one that did not would be a question a reader has to answer again. The
+                    // load-bearing part is comparing the anchor's bytes at all.
                     var root = chain.ChainElements[chain.ChainElements.Count - 1].Certificate;
-                    return root.RawData.SequenceEqual(anchor.RawData);
+                    return FixedTime.Equals(root.RawData, anchor.RawData);
                 }
             }
             catch (Exception error) when (Expected.OfCryptography(error))

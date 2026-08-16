@@ -116,6 +116,7 @@ words:
   - keybd
   - nameof
   - netsh
+  - nosniff
   - OCSP
   - oids
   - SPIFFE

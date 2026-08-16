@@ -172,8 +172,10 @@ ranked first because it terminated TLS for us, configured through `SslConfigurat
 TLS ourselves now, so that convenience is worth nothing, and what remains is reflection into an
 `internal static` for a parser.
 
-**Decision: the parser is ours.** Roughly 150 lines, bounded the way websocket-sharp bounds its own:
-read to the CRLF CRLF that ends a head, under a hard cap, reject `Transfer-Encoding`, cap the body by `Content-Length`,
+**Decision: the parser is ours.** That decision is unchanged by taking a TLS dependency: what ruled
+uHttpSharp out was its license and its liveness, and Bouncy Castle fails neither test. A few
+hundred lines, bounded the way websocket-sharp bounds its own: read to the CRLF CRLF that ends a head,
+under a hard cap, reject `Transfer-Encoding`, cap the body by `Content-Length`,
 never offer keep-alive or upgrade. That is a smaller and better understood liability than either
 alternative, and it sits behind the gate and behind TLS, unlike the ClientHello parser we already
 have to write.
@@ -201,14 +203,15 @@ manager's API on a network interface, and no amount of authentication makes that
 this process when a tunnel does the same job outside it.
 
 **Availability is not defended at this boundary, and that is a concession rather than an
-oversight.** A connection takes one of a fixed number of slots when its socket is
+oversight.** A connection takes one of `GateOptions.MaxConnections` slots when its socket is
 accepted, before the ClientHello is read and before any name resolves, so a peer holding no gate
 key, no certificate and no invitation takes one by connecting, and enough of them, reopened as each
 is cut, keep every admitted client out. A per-source cap would mean nothing here, since the gate
 binds loopback and every peer arrives from `127.0.0.1`, whatever arrives through a tunnel included. Closing it
 would mean reserving slots for connections whose name has resolved, or evicting the oldest that
 has not, and that is a decision this design has not taken. What it costs is availability and
-nothing else: no secret and no write is reachable from a slot.
+nothing else: no secret and no write is reachable from a slot. `GateListener.Take` carries the same
+concession beside the code.
 
 ## 5. Identity, and what a certificate means §111
 
@@ -383,7 +386,7 @@ So the rules here:
 - **No API request ever raises a dialog.** An unattended agent must not be able to prompt somebody's
   screen, so anything behind the spec router that would need a human answer is refused with a
   distinct status instead.
-- **Pairing is the one deliberate exception, and it is a real one.** Its request exists to ask
+- **Pairing is the one deliberate exception, and it is a real one.** `/pair/request` exists to ask
   the operator, and issuance writes the admission record and saves it before the certificate is
   handed over, because a certificate must not leave here until its record is on disk.
   [`PAIRING.md`](PAIRING.md) phase 5 is the sequence.
@@ -397,7 +400,7 @@ So the rules here:
   pairing rather than waiting on it.
 
   **A pairing connection is also given a longer socket deadline**, which is a third correction. The
-  transport closes a connection that takes more than its budget, and phase 4 exceeds that
+  transport closes a connection that takes more than `GateOptions.Budget`, and phase 4 exceeds that
   by design because it is waiting on a person rather than on the wire. Closing the socket there does
   not cancel anything: the invitation is still spent and the record still saved, and only the answer
   is lost. A pairing budget of its own covers the whole of what a pairing waits for, and a test is
