@@ -673,7 +673,19 @@ Each step is refusable, and each ends with something that runs.
    answer for. Two things step 7 inherits early: `AnchorPin`, because telling a stored pair apart by
    issuer name turned out to accept a foreign authority, and the gate key.
 6. **Gate and transport**: accept loop, ClientHello peek, SNI resolution, TLS 1.3, our request
-   parser, one route. `IGateContext` lands here.
+   parser, one route. `IGateContext` lands here. **Done.** A real client reaches a real KeePass over
+   mutual TLS 1.3 and is answered, with the host certificate chosen from the name in the
+   ClientHello and read out of the database it belongs to. The refusals are all in place and
+   tested: a connection that is not TLS costs five bytes, a name that resolves to nothing is
+   dropped without a response, two databases answering to one name are both refused, and a client
+   whose certificate does not chain to that database's authority is told it is unpaired rather
+   than served. The request parser refuses transfer encodings, folded headers, two content
+   lengths, a head over 8 KB, a body over 1 MB and a path that climbs.
+
+   Two things landed early because the transport could not be built without them. `AuthorityIssuer`
+   can issue a client certificate, which pairing will call for real in step 8. And identity is
+   already checked with the anchor pin and an explicit extended key usage check, which leaves step 7
+   the admission record and the validity window rather than the whole of validation.
 7. **Validation**: anchor pin, EKU check, admission record lookup, and a test that a foreign
    authority's certificate is refused.
 8. **Pairing**: invitation in memory, the proof exchange, the approval dialog, issuance with the

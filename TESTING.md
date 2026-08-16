@@ -66,6 +66,12 @@ there, with the same fingerprint, after the database has been saved and KeePass 
 started again. That second session is the whole point. Everything else in the suite proves the
 plugin writes what it means to write; only this proves KeePass keeps it.
 
+**Step 6**, in `LiveGateTests`: a real client, in the test process, reaches a real KeePass over
+mutual TLS 1.3 and is answered. It issues itself a certificate from the authority inside the
+database file, because it holds the file and its password, which is exactly what the design says
+possession of the file means. Nothing about this one uses the desktop, so it is the fastest of the
+three.
+
 It builds a **throwaway KeePass** under `%ProgramData%\KeePassGateLive` rather than the temporary
 directory, whose path names the account that ran it: a copy of the program, a local
 configuration, the plugin in `plugins`, and a database created with KeePassLib. Nothing it touches is

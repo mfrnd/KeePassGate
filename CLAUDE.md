@@ -8,11 +8,12 @@ Guidance for anyone, human or AI assistant, working in this repository.
 mutual TLS, so that automation and AI agents can each be given a narrow, revocable, audited slice of
 a database.
 
-**Status: the design is settled and steps 1 to 5 of the build order are done.** The plugin loads
-into KeePass, puts a KPG tab on the database settings dialog, and that tab creates, recreates and
+**Status: the design is settled and steps 1 to 6 of the build order are done.** The plugin loads
+into KeePass, puts a KPG tab on the database settings dialog, that tab creates, recreates and
 deletes the database's own certificate authority, and the gate listens on loopback and answers one
-route over mutual TLS 1.3 to a client that authority issued. Step 6, the gate and the transport,
-is under way.
+route over mutual TLS 1.3 to a client that authority issued. Step 7, validation, is next: the
+anchor pin and the extended key usage check are already in, so what is left there is the admission
+record and the validity window.
 
 ## Read these before proposing anything
 
@@ -280,9 +281,9 @@ here can hang or crash the password manager.
 
 ## Where to start
 
-[`DESIGN.md`](DESIGN.md) §132 ends with a multi-step build order. **Steps 4 and 5 are done.** The skeleton
-loads and shows a KPG tab, and that tab creates, recreates and deletes the authority, with the
-certificates and the gate key in the database's own `CustomData`.
+[`DESIGN.md`](DESIGN.md) §132 ends with a multi-step build order. **Steps 1 to 6 are done.** The skeleton
+loads and shows a KPG tab, that tab creates, recreates and deletes the authority, and the gate
+serves one route over mutual TLS to a client the authority issued.
 
 **The storage decision survived the thing most likely to invalidate it.** The `GroupForm` snapshot
 hazard is real and now measured rather than remembered: `SnapshotHazardTests` reads the mechanism off
@@ -291,9 +292,10 @@ step 8 has to build on: the settings dialog the KPG tab lives on carries **no** 
 buttons are safe from their own dialog, and anything written while a **group** dialog is open is
 destroyed by its OK.
 
-**Step 6 is the gate and the transport**: accept loop, ClientHello peek, SNI resolution, TLS 1.3,
-our request parser, one route, and `IGateContext` landing. The gate key is already stored, and
-`AnchorPin` is already written and tested, so step 7 inherits both.
+**Step 7 is validation**, and it is smaller than the build order implies. The anchor pin and the
+extended key usage check are already in `ClientCredentials`, because a transport with no identity is
+not testable. What is left is the admission record lookup, the profiles that come from it, and the
+validity window with its five minutes of skew on `notBefore` only.
 
 **One thing to know before touching the transport.** An `EphemeralKeySet` certificate signs happily
 and SChannel will not do TLS with it in either direction. That is why `Org.BouncyCastle.Tls`
