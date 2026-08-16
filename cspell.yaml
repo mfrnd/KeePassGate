@@ -64,6 +64,7 @@ words:
   - NTLM
   - obsoletion
   - Obsoletions
+  - resx
   - SYSLIB
   - uhttpsharp
   - wssharp
