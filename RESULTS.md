@@ -30,7 +30,7 @@ beside the plugin.
 | | version | assemblies | license | what it actually does |
 | --- | --- | --- | --- | --- |
 | Newtonsoft.Json.Schema | 4.0.1 | 2 | **AGPL-3.0**, or paid | validates at run time |
-| NJsonSchema | 11.0.2 | 13 | MIT | validates at run time |
+| NJsonSchema | 11.6.1 | 14 | MIT | validates at run time |
 | Corvus.Json.ExtendedTypes | 4.0.4 | 20 | Apache-2.0 | generates C# types at build time |
 
 **Newtonsoft.Json.Schema is refused on its license and nothing else.** It is the cheapest of the
@@ -38,8 +38,15 @@ three by a wide margin and it is by the same author as the reader, so it would h
 pairing. AGPL-3.0 for an MIT plugin distributed beside a GPL host is not a trade to weigh. The
 license was read out of the `LICENSE.md` inside the package.
 
-**NJsonSchema is thirteen assemblies to validate bodies that are one flat object of strings.** That
-is the shape this wire carries and nothing more, so almost all of what it brings would never run.
+**NJsonSchema was the plan, and counting it is what changed the plan.** It is the only candidate
+that targets `.NETFramework4.6.2` directly, with no shims and no guesswork, which is exactly why a
+design written before anybody counted named it for checking bodies.
+
+It costs **fourteen assemblies**, and the list is the argument: `Newtonsoft.Json` **and**
+`System.Text.Json`, `System.IO.Pipelines`, `Namotion.Reflection`, `NJsonSchema.Annotations`, and the
+usual shims down to `System.ValueTuple`. It brings two JSON readers into the process to validate
+bodies that are one flat object of strings, which is the shape this wire carries and nothing more,
+so almost all of what it brings would never run.
 
 **Corvus answers a different question.** It generates C# types from a JSON Schema at build time, so
 it does not validate an incoming body against a document at run time, which is what is needed. It

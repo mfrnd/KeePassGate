@@ -59,6 +59,7 @@ words:
 
   # What this branch's own sources and prose need, over what the mainline already knows.
   - LASTEXITCODE
+  - Namotion
   - Newtonsoft
   - nologo
 

@@ -8,7 +8,9 @@
       "assemblies": 1,
       "license": "MIT",
       "reads": "JSON",
-      "output": ["Newtonsoft.Json.dll"]
+      "output": [
+        "Newtonsoft.Json.dll"
+      ]
     },
     {
       "package": "System.Text.Json",
@@ -30,10 +32,27 @@
     },
     {
       "package": "NJsonSchema",
-      "version": "11.0.2",
-      "assemblies": 13,
+      "version": "11.6.1",
+      "assemblies": 14,
       "license": "MIT",
-      "reads": "JSON Schema, and validates against it"
+      "reads": "JSON Schema, and validates against it",
+      "note": "The only candidate that targets .NETFramework4.6.2 directly, which is why it was the plan before it was counted.",
+      "output": [
+        "Microsoft.Bcl.AsyncInterfaces.dll",
+        "Namotion.Reflection.dll",
+        "Newtonsoft.Json.dll",
+        "NJsonSchema.Annotations.dll",
+        "NJsonSchema.dll",
+        "System.Buffers.dll",
+        "System.IO.Pipelines.dll",
+        "System.Memory.dll",
+        "System.Numerics.Vectors.dll",
+        "System.Runtime.CompilerServices.Unsafe.dll",
+        "System.Text.Encodings.Web.dll",
+        "System.Text.Json.dll",
+        "System.Threading.Tasks.Extensions.dll",
+        "System.ValueTuple.dll"
+      ]
     },
     {
       "package": "Newtonsoft.Json.Schema",
