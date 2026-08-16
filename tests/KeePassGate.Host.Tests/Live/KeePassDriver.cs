@@ -268,6 +268,14 @@ namespace KeePassGate.Host.Tests.Live
             System.Threading.Thread.Sleep(1500);
         }
 
+        /// <summary>Locks the workspace with the shortcut KeePass gives it, as an operator does.</summary>
+        public void LockWorkspace()
+        {
+            Keyboard.Front(_mainWindow);
+            Keyboard.SendControl('l');
+            System.Threading.Thread.Sleep(1000);
+        }
+
         /// <summary>Closes KeePass and waits for it to go. True when it exited by itself.</summary>
         public bool ShutDown()
         {

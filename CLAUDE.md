@@ -115,7 +115,6 @@ designing around them.
   memory, minted at unlock and again at the lock it answers and good for ninety days, so a locked
   KeePass can answer `503 locked` rather than failing at the transport. It was seven days and minted
   at unlock until a long lock outlived it. The normal host key is actively dropped at lock.
-  TODO(step 9): hearing KeePass's own lock and unlock arrives with step 9.
 - **We own the transport.** Accept loop, ClientHello peek, TLS termination, request parser, body
   read, response write. Selecting a host certificate by SNI makes this unavoidable, because
   .NET Framework exposes no server-side SNI hook. Which TLS stack terminates it is the bullet
@@ -211,6 +210,12 @@ a database's custom data. Each gathers what it settled in its own `RESULTS.md`. 
   moved the file it was locked from, reachable through `MainForm.DocumentManager.FindDocument`.
   Anything that fills the gap from a single remembered string instead names whichever database last
   closed with a name. `MainWindowDatabasesTests` drives the four handlers in KeePass's own order.
+- **KeePass tells two database paths apart by lowering them in the current culture**,
+  `Trim().ToLower()`, so under a Turkish culture `I` and `i` are different letters and two paths
+  differing only there are two databases. A path matched against one of KeePass's has to be
+  compared the same way, which is `KeePassPaths`, taking the culture of KeePass's own thread once;
+  `OrdinalIgnoreCase` would join what KeePass keeps apart.
+  `LockInRealDatabaseTests.Two_spellings_KeePass_keeps_apart_are_kept_apart_here_too`, under tr-TR.
 - **`MainForm.SaveDatabase(db, null)` saves a named database**; `UIFileSave` saves whichever document
   is active. Pairing names its database, so it uses the first. Neither reports anything, so a write
   is believed only after reading the record back and finding `PwDatabase.Modified` false.

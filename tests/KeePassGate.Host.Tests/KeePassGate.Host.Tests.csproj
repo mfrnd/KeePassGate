@@ -55,6 +55,12 @@
       <_Parameter1>KeePassDevDir</_Parameter1>
       <_Parameter2>$(KeePassDevDir)</_Parameter2>
     </AssemblyAttribute>
+    <!-- And the release `keepass.version` names, which the contract tests hold the referenced
+         KeePass to: a directory given on the command line can hold any release. -->
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>KeePassPinnedVersion</_Parameter1>
+      <_Parameter2>$(KeePassPinnedVersion)</_Parameter2>
+    </AssemblyAttribute>
   </ItemGroup>
 
   <Target Name="RequireKeePassDevDir" BeforeTargets="ResolveAssemblyReferences">

@@ -2,6 +2,7 @@ using System;
 using System.Reflection;
 using System.Threading;
 using System.Windows.Forms;
+using KeePass.Forms;
 using KeePass.Plugins;
 using KeePass.UI;
 using KeePassGate.Ui;
@@ -168,13 +169,77 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
-        public void The_KeePass_under_test_is_the_one_the_plugin_was_built_against()
+        public void KeePass_still_announces_a_database_opening_and_closing()
         {
-            var version = KeePassAssembly.GetName().Version;
+            // How the plugin learns about a lock. Without these it never drops the authority key
+            // and never mints a responder, and nothing about that would be visible at run time.
+            var opened = typeof(KeePass.Forms.MainForm).GetEvent("FileOpened");
+            var closed = typeof(KeePass.Forms.MainForm).GetEvent("FileClosed");
 
-            Assert.That(version, Is.Not.Null);
+            Assert.That(opened, Is.Not.Null);
+            Assert.That(closed, Is.Not.Null);
+            Assert.That(typeof(KeePass.Forms.FileOpenedEventArgs).GetProperty("Database"), Is.Not.Null);
+            Assert.That(typeof(KeePass.Forms.FileClosedEventArgs).GetProperty("IOConnectionInfo"), Is.Not.Null);
+        }
+
+        [Test]
+        public void A_lock_is_still_told_apart_from_a_close_by_a_flag()
+        {
+            // The whole difference between a database the gate keeps answering for and one it
+            // forgets. KeePass raises the same event for both and only this says which.
+            var flags = typeof(KeePass.Forms.FileClosedEventArgs).GetProperty("Flags");
+
+            Assert.That(flags, Is.Not.Null);
+            Assert.That(Enum.IsDefined(flags.PropertyType, "Locking"), Is.True,
+                "without this the plugin cannot tell a lock from a close and would drop the responder.");
+        }
+
+        [Test]
+        public void A_closing_file_still_says_which_file_it_was()
+        {
+            // The path is what identifies a database across a lock, because `PwDatabase.Close`
+            // clears the object it belonged to. This is the surface the plugin actually reads it
+            // from: the event argument, not `PwDocument`, which nothing here touches.
+            var closing = typeof(FileClosedEventArgs).GetProperty("IOConnectionInfo");
+            var flags = typeof(FileClosedEventArgs).GetProperty("Flags");
+
+            Assert.That(closing, Is.Not.Null);
+            Assert.That(closing.PropertyType, Is.EqualTo(typeof(KeePassLib.Serialization.IOConnectionInfo)));
+            Assert.That(flags, Is.Not.Null, "a lock and a close arrive on the same event and differ by this");
+            Assert.That(flags.PropertyType, Is.EqualTo(typeof(FileEventFlags)));
+        }
+
+        [Test]
+        public void The_KeePass_under_test_is_the_release_this_repository_pins()
+        {
+            // The name promised more than the assertion under it, which asked only for a major
+            // version of 2 and was true of every KeePass 2.x. The release `keepass.version` names
+            // is written into this assembly by its project, so a build pointed at another KeePass
+            // with `KeePassDevDir` is told so here rather than measuring that one quietly.
+            var version = KeePassAssembly.GetName().Version;
+            var pinned = PinnedRelease();
+
             TestContext.Out.WriteLine("KeePass " + version + " at " + KeePassAssembly.Location);
-            Assert.That(version.Major, Is.EqualTo(2), "KeePassGate is a KeePass 2.x plugin.");
+            Assert.That(version, Is.EqualTo(pinned),
+                "these tests ran against KeePass " + version + ", and this repository pins " + pinned);
+        }
+
+        /// <summary>The release `keepass.version` names, as the four numbers an assembly carries.</summary>
+        private static Version PinnedRelease()
+        {
+            foreach (AssemblyMetadataAttribute recorded in typeof(KeePassContractTests).Assembly
+                         .GetCustomAttributes(typeof(AssemblyMetadataAttribute), false))
+            {
+                Version pinned;
+                if (recorded.Key == "KeePassPinnedVersion" && Version.TryParse(recorded.Value, out pinned))
+                {
+                    return new Version(
+                        pinned.Major, pinned.Minor, Math.Max(pinned.Build, 0), Math.Max(pinned.Revision, 0));
+                }
+            }
+
+            Assert.Fail("this build did not record which KeePass release the repository pins");
+            return null;
         }
     }
 }

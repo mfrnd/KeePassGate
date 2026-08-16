@@ -39,10 +39,35 @@ namespace KeePassGate.Bridge
         /// <remarks>
         /// Keyed on the path rather than on the `PwDatabase`, because KeePass clears that object
         /// when it closes it and the path is the only thing a lock and the unlock after it have in
-        /// common. Compared without case, as Windows compares paths.
+        /// common. Compared as KeePass compares paths, which is <see cref="KeePassPaths"/>.
         /// </remarks>
-        private readonly Dictionary<string, LockedTarget> _locked =
-            new Dictionary<string, LockedTarget>(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, LockedTarget> _locked;
+
+        /// <summary>
+        /// What a database that has gone away would be locked with, held until the event arrives
+        /// that says whether it was locked or closed.
+        /// </summary>
+        /// <remarks>
+        /// KeePass clears the `PwDatabase` first and raises `FileClosed` afterwards, so a
+        /// connection arriving in between finds the database shut and `DropClosed` stops serving
+        /// it. Everything a lock needs used to go with it, and the lock that followed found
+        /// nothing to build a `LockedTarget` from: the database that should have gone on answering
+        /// `503 locked` answered nothing at all, which is the one case `PAIRING.md` §308 exists to
+        /// remove.
+        ///
+        /// **Nothing in here is served.** Until the event arrives the plugin has not been told
+        /// which transition this was, and answering `locked` for a database that is being closed
+        /// would be saying something nobody said. What it does is keep the answer available for
+        /// the lock that may be about to arrive.
+        ///
+        /// Only the responder and the gate key are kept, which is exactly what a locked database
+        /// is left with: the authority and the normal host key go the moment the database does,
+        /// whichever transition this turns out to be.
+        /// </remarks>
+        private readonly Dictionary<string, LockedTarget> _closing;
+
+        /// <summary>How two paths are told to be one database, taken as the plugin starts.</summary>
+        private readonly KeePassPaths _paths = new KeePassPaths();
 
         public OpenDatabaseTargets(Func<IEnumerable<PwDatabase>> openDatabases, IGateLog log)
             : this(openDatabases, null, log)
@@ -65,6 +90,8 @@ namespace KeePassGate.Bridge
             _openDatabases = openDatabases;
             _writer = writer;
             _log = log ?? NullGateLog.Instance;
+            _locked = new Dictionary<string, LockedTarget>(_paths);
+            _closing = new Dictionary<string, LockedTarget>(_paths);
         }
 
         public IReadOnlyList<IGateTarget> Current()
@@ -163,6 +190,13 @@ namespace KeePassGate.Bridge
                 }
 
                 _locked.Clear();
+
+                foreach (var kept in _closing.Values)
+                {
+                    kept.Dispose();
+                }
+
+                _closing.Clear();
             }
         }
 
@@ -174,8 +208,13 @@ namespace KeePassGate.Bridge
         /// disposes, so dropping them is one call rather than a list to keep up to date. The
         /// admission records were never here to drop: they are read from the live database on every
         /// connection, and locking cuts them off by closing the database rather than by clearing
-        /// anything. The gate key is copied out first, because disposing the material zeroes it,
-        /// and the responder was minted while the database was open and is held on its own.
+        /// anything. The gate key is copied out before the material goes, because disposing it
+        /// zeroes the key, and the responder was minted while the database was open and is held on
+        /// its own.
+        ///
+        /// A lock that finds nothing cached is not necessarily a database nobody served: a
+        /// connection may have found it shut before this arrived, in which case what it will
+        /// answer with is in <see cref="_closing"/> rather than in the cache.
         /// </remarks>
         public bool Lock(string path)
         {
@@ -195,7 +234,7 @@ namespace KeePassGate.Bridge
                     // `Refresh` brings level just before every lock, since a Save As moves it with
                     // no connection to notice. Read live here it would be empty: a lock arrives
                     // after the database is closed.
-                    if (string.Equals(pair.Value.Path, path, StringComparison.OrdinalIgnoreCase))
+                    if (_paths.Equals(pair.Value.Path, path))
                     {
                         found = pair.Key;
                         cached = pair.Value;
@@ -205,58 +244,130 @@ namespace KeePassGate.Bridge
 
                 if (cached == null)
                 {
+                    // A connection may have found the database shut before this event arrived, in
+                    // which case what it will answer with was kept then rather than dropped.
+                    LockedTarget kept;
+                    if (_closing.TryGetValue(path, out kept))
+                    {
+                        _closing.Remove(path);
+                        Replace(path, kept);
+                        _log.Info("locked, answering with the responder kept when it closed: " +
+                                  CertificateDigest.Shorten(kept.DatabaseId));
+                        return true;
+                    }
+
                     // Never served: no authority, or locked before anything reached it. There is
-                    // nothing to answer with and nothing to drop.
-                    //
-                    // Said out loud, because it is also what a race looks like. KeePass closes the
-                    // database and only then announces it, so a connection arriving in between can
-                    // evict this entry through `DropClosed`; the lock then installs no responder
-                    // and the database answers nothing at all. Silence here made that
-                    // indistinguishable from a database nobody had served.
-                    _log.Info("locked, but nothing was being served for it: " + path);
+                    // nothing to answer with and nothing to drop. Said out loud, because a
+                    // database that answers nothing while it is locked says nothing else about
+                    // why. By the file name alone, as `DatabaseName` names one: the log is a file
+                    // anybody reading a support request may be sent, and a path says where
+                    // somebody keeps their passwords.
+                    _log.Info("locked, but nothing was being served for it: " + UrlUtil.GetFileName(path));
                     return false;
                 }
 
-                // Minted when the database was first served and good for `ResponderLifetime`, so
-                // a KeePass left open longer than that would present an expired certificate, which
-                // `PAIRING.md` §304 requires the client to refuse. Nothing re-mints on a timer, so
-                // the check belongs at the one moment it is about to be used.
-                var responder = cached.Responder;
-                if (responder != null && !StillCurrent(responder))
+                var answering = Answering(cached);
+                if (answering != null)
                 {
-                    _log.Info("the responder had aged out, minting another to answer this lock with");
-                    responder = Responder(cached.Target.Reading);
+                    Replace(path, answering);
+                    _log.Info("locked, answering with the responder: " +
+                              CertificateDigest.Shorten(answering.DatabaseId));
                 }
-                var databaseId = cached.Target.DatabaseId;
-                var gateKey = cached.Target.GateKey;
-
-                try
+                else
                 {
-                    if (responder != null)
-                    {
-                        Replace(path, new LockedTarget(databaseId, gateKey, responder));
-                        _log.Info("locked, answering with the responder: " + CertificateDigest.Shorten(databaseId));
-                    }
-                    else
-                    {
-                        // No responder was minted, so there is nothing to answer with. `CA.md`
-                        // §207 names this case and accepts it: the connection really is a bare
-                        // failure until somebody unlocks.
-                        // `Release` rather than `Forget`: the cache entry is disposed below, and
-                        // `Forget` would drop it here as well, releasing one reference for two.
-                        Release(path);
-                        _log.Warn("locked with no responder, so nothing answers for this database");
-                    }
-                }
-                finally
-                {
-                    Array.Clear(gateKey, 0, gateKey.Length);
+                    // No responder was minted, so there is nothing to answer with. `CA.md`
+                    // §207 names this case and accepts it: the connection really is a bare
+                    // failure until somebody unlocks.
+                    // `Release` rather than `Forget`: the cache entry is disposed below, and
+                    // `Forget` would drop it here as well, releasing one reference for two.
+                    Release(path);
+                    _log.Warn("locked with no responder, so nothing answers for this database");
                 }
 
                 cached.Dispose();
                 _cache.Remove(found);
                 return true;
             }
+        }
+
+        /// <summary>
+        /// What this database answers with once it is locked, built from what is cached for it.
+        /// Null when there is no responder to answer with at all. Called with the lock held.
+        /// </summary>
+        /// <remarks>
+        /// **Minted here rather than reused, so its life is spent on the lock.** The one minted
+        /// when the database was first served has already spent however long the session lasted,
+        /// and a certificate that expires mid-lock is one `PAIRING.md` §304 requires the client to
+        /// refuse: the operator then gets the bare handshake failure the responder exists to
+        /// replace. Nothing re-mints on a timer and nothing can once the authority is gone, so the
+        /// only moment worth minting at is the last one where it is still possible, and this is it
+        /// whether the lock announced itself or a connection got there first.
+        ///
+        /// The one from the cache is the fallback, and only while it is still valid: minting fails
+        /// for an authority whose own dates have passed, which is reported rather than thrown, and
+        /// an aged responder answers nothing anyway.
+        /// </remarks>
+        private LockedTarget Answering(CachedTarget cached)
+        {
+            var responder = Responder(cached.Target.Reading);
+            if (responder == null && cached.Responder != null && StillCurrent(cached.Responder))
+            {
+                _log.Info("a fresh responder could not be minted, so the lock answers with the one held");
+                responder = cached.Responder;
+            }
+
+            if (responder == null)
+            {
+                return null;
+            }
+
+            // Into a local and zeroed afterwards. The property hands out a fresh copy of the gate
+            // key each time it is read, and `LockedTarget` takes a copy of its own.
+            var gateKey = cached.Target.GateKey;
+            try
+            {
+                return new LockedTarget(cached.Target.DatabaseId, gateKey, responder);
+            }
+            finally
+            {
+                Array.Clear(gateKey, 0, gateKey.Length);
+            }
+        }
+
+        /// <summary>
+        /// Keeps what a lock would answer with, for a database KeePass has closed without yet
+        /// saying why. Called with the lock held.
+        /// </summary>
+        /// <remarks>
+        /// Built now rather than when the lock arrives, because building it needs the authority and
+        /// this is the last moment the authority is here: the material is let go as soon as this
+        /// returns. A close that follows takes it away again, having answered nothing in the
+        /// meantime.
+        /// </remarks>
+        private void Keep(CachedTarget cached)
+        {
+            var path = cached.Path;
+            if (string.IsNullOrEmpty(path))
+            {
+                // Nothing to recognize it by, so no lock could ask for it. A database served before
+                // it was ever written to a file is the case, and KeePass has no file to lock it
+                // from either.
+                return;
+            }
+
+            var answering = Answering(cached);
+            if (answering == null)
+            {
+                return;
+            }
+
+            LockedTarget existing;
+            if (_closing.TryGetValue(path, out existing))
+            {
+                existing.Dispose();
+            }
+
+            _closing[path] = answering;
         }
 
         /// <summary>
@@ -289,18 +400,27 @@ namespace KeePassGate.Bridge
         /// </summary>
         /// <remarks>
         /// **Straight away rather than on the next connection**, and that is the whole reason this
-        /// method does more than forget. `PAIRING.md` §308 says the responder is minted at
-        /// unlock, and minting it lazily would mean a database that nobody happened to connect to
-        /// between an unlock and the next lock has nothing to answer with: the operator would get a
-        /// bare connection failure for a KeePass that is merely locked, which is exactly the case
-        /// the responder exists to remove.
+        /// method does more than forget. Reading every database is what puts a cache entry there,
+        /// and a lock answers out of that entry: the responder it presents is minted from the
+        /// authority the entry holds. Left until the next connection, a database that nobody
+        /// happened to connect to between an unlock and the next lock reaches its lock with nothing
+        /// cached and nothing to mint from, and the operator gets a bare connection failure for a
+        /// KeePass that is merely locked, which is exactly the case the responder exists to remove.
+        /// `PAIRING.md` §308 is where the mint at unlock is named, and it is this one.
         ///
         /// It costs one key pair and one signature on the user interface thread, at a moment when
         /// KeePass is already opening a database.
+        ///
+        /// **It answers whether a lock was lifted, and nothing else.** A database being opened for
+        /// the first time can have been read already, by a connection that got there before the
+        /// event did, and dropping that reading lifts no lock: `LockWatch` closes every connection
+        /// on a lifted lock, and closing them over a first open is what `LockWatch` says the first
+        /// end to end run found.
         /// </remarks>
         public bool Unlock(string path)
         {
-            var lifted = Forget(path);
+            bool lifted;
+            LetGo(path, out lifted);
 
             // Reading them all is what builds the target, and building it is what mints the
             // responder. Which database was unlocked does not matter: the rest are cached.
@@ -332,10 +452,29 @@ namespace KeePassGate.Bridge
 
         /// <summary>
         /// A database was closed for real. Nothing is kept, and nothing answers for it. True when
-        /// there was something being held for it, which is to say when it had been locked.
+        /// anything was held for it, which is when a connection may still be reading it: what it
+        /// was served with, what a lock would have answered with, or what a lock was answering with.
         /// </summary>
+        /// <remarks>
+        /// It answered only for a lock, so closing a database that was being served and never
+        /// locked closed no connection, and one resolved before the close ran on to its deadline
+        /// against a database KeePass had already emptied. `LockWatch` closes them for the reason
+        /// it closes them at a lock: a socket thread must not be reading a database the user
+        /// interface thread is closing.
+        /// </remarks>
         public bool Forget(string path)
         {
+            bool lifted;
+            return LetGo(path, out lifted);
+        }
+
+        /// <summary>
+        /// Lets go of everything held for this path, and says whether there was anything.
+        /// </summary>
+        /// <param name="lifted">Whether a lock was among it, which is all an unlock is asked.</param>
+        private bool LetGo(string path, out bool lifted)
+        {
+            lifted = false;
             if (string.IsNullOrEmpty(path))
             {
                 return false;
@@ -343,14 +482,20 @@ namespace KeePassGate.Bridge
 
             lock (_cacheLock)
             {
-                var lifted = Release(path);
+                lifted = Release(path);
 
                 // The cache too. A close that was never a lock still has to drop the authority's
                 // private key, and the only other reaper is `DropClosed`, which runs inside
                 // `Current` and so never runs again for a database nobody will ask about.
-                DropCached(path);
+                var dropped = DropCached(path);
 
-                return lifted;
+                // And whatever was kept in case this turned out to be a lock. This is the event
+                // that says it was not. It counts all the same, because it is kept only for a
+                // database that was being served until a connection found it shut, and whatever
+                // was reading it then may be reading it still.
+                var discarded = Discard(path);
+
+                return lifted || dropped || discarded;
             }
         }
 
@@ -368,20 +513,41 @@ namespace KeePassGate.Bridge
             return true;
         }
 
-        /// <summary>Drops the served material for this path, if any is still held.</summary>
-        private void DropCached(string path)
+        /// <summary>
+        /// Lets go of what was kept in case this path turned out to be a lock, and says whether
+        /// anything was.
+        /// </summary>
+        private bool Discard(string path)
+        {
+            LockedTarget kept;
+            if (string.IsNullOrEmpty(path) || !_closing.TryGetValue(path, out kept))
+            {
+                return false;
+            }
+
+            _closing.Remove(path);
+            kept.Dispose();
+            return true;
+        }
+
+        /// <summary>
+        /// Drops the served material for this path, if any is still held, and says whether it was.
+        /// </summary>
+        private bool DropCached(string path)
         {
             foreach (var pair in _cache)
             {
-                if (!string.Equals(pair.Value.Path, path, StringComparison.OrdinalIgnoreCase))
+                if (!_paths.Equals(pair.Value.Path, path))
                 {
                     continue;
                 }
 
                 pair.Value.Dispose();
                 _cache.Remove(pair.Key);
-                return;
+                return true;
             }
+
+            return false;
         }
 
         /// <summary>Called with the lock held.</summary>
@@ -409,7 +575,14 @@ namespace KeePassGate.Bridge
 
             foreach (var database in gone)
             {
-                _cache[database].Dispose();
+                var cached = _cache[database];
+
+                // Kept before it is let go, because this may be a lock that has not been announced
+                // yet: KeePass clears the database first and says why afterwards. What is
+                // privileged goes either way.
+                Keep(cached);
+
+                cached.Dispose();
                 _cache.Remove(database);
                 _log.Info("stopped serving a database that is no longer open");
             }
@@ -501,19 +674,27 @@ namespace KeePassGate.Bridge
 
             var target = new MaterialTarget(
                 database, reading, host, _writer, _log);
-            _cache[database] = new CachedTarget(stored, PathOf(database), Responder(reading), target);
+            var path = PathOf(database);
+
+            // Open again, which is the other answer to what was kept when it went away. Without
+            // this a database that came back with no unlock being announced would leave a gate key
+            // held until KeePass exits.
+            Discard(path);
+
+            _cache[database] = new CachedTarget(stored, path, Responder(reading), target);
             _log.Info("serving a database with authority " + CertificateDigest.Shorten(target.DatabaseId));
             return target;
         }
 
         /// <summary>
-        /// The responder this database will answer with once it is locked, minted now while the
-        /// authority is still available.
+        /// A responder for this database, minted while the authority is still available.
         /// </summary>
         /// <remarks>
-        /// `PAIRING.md` §308 says minted at unlock, and this is that moment: the first time
-        /// the database is served after being opened. A failure here is not a failure to serve, so
-        /// it is reported and the database is served without one, which costs a readable refusal while
+        /// Called at both ends of a session. Once the first time the database is served after being
+        /// opened, which is the mint at unlock `PAIRING.md` §308 names and is the fallback if the
+        /// second one fails; and once at the lock this responder is about to answer, which is what
+        /// leaves its whole life ahead of that lock. A failure here is not a failure to serve, so it
+        /// is reported and the database is served without one, which costs a readable refusal while
         /// locked and nothing else.
         /// </remarks>
         private HostKeyMaterial Responder(AuthorityReading reading)

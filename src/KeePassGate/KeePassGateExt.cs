@@ -33,6 +33,8 @@ namespace KeePassGate
         private GlobalWindowManagerWindows _windows;
         private GateHost _host;
         private GroupDialogs _groupDialogs;
+        private MainWindowDatabases _databases;
+        private LockWatch _locks;
         private InvitationBook _invitations;
 
         /// <summary>
@@ -238,6 +240,32 @@ namespace KeePassGate
 
             try
             {
+                if (_locks != null)
+                {
+                    _locks.Dispose();
+                    _locks = null;
+                }
+            }
+            catch (Exception error)
+            {
+                Report("failed to stop watching for locks", error);
+            }
+
+            try
+            {
+                if (_databases != null)
+                {
+                    _databases.Dispose();
+                    _databases = null;
+                }
+            }
+            catch (Exception error)
+            {
+                Report("failed to release the database events", error);
+            }
+
+            try
+            {
                 if (_invitations != null)
                 {
                     // KeePass exiting takes every outstanding invitation with it, which is what
@@ -356,6 +384,15 @@ namespace KeePassGate
                 _log);
 
             _listener.Start();
+
+            // Locking has to be watched from here rather than from the tab, because it happens
+            // whether or not anybody has the settings dialog open, and because both transitions
+            // close every connection the listener is holding.
+            _databases = new MainWindowDatabases(mainWindow);
+            // The plugin's own incidents, not a second tally: these handlers are two of the
+            // places that catch everything, and the KPG tab is where the count is read.
+            _locks = new LockWatch(_databases, _targets, _listener, _log, _incidents);
+            _locks.Start();
         }
 
         /// <summary>
