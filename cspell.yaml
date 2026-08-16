@@ -77,8 +77,10 @@ words:
 
   # The platform
   - CREAT
+  - msbuild
   - netstandard
   - SChannel
+  - vswhere
 
   # Tooling
   - autonumber
