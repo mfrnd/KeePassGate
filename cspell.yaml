@@ -60,6 +60,8 @@ words:
 
   # This project
   - KeePassGate
+  - PyKeePassGate
+  - pykeepass
   - kdbx
   - keepass
 
@@ -85,12 +87,14 @@ words:
   - USERPROFILE
 
   # Names of other people's projects, spelled the way they spell them
+  - Connexion
   - httparse
+  - Newtonsoft
   - Nowin
   - picohttpparser
+  - Swashbuckle
   - wasmtime
   - libwasmtime
-
 
   # More of the platform, and of the wire
   - Ecas
@@ -99,11 +103,14 @@ words:
   - OCSP
   - SPIFFE
   - sslcert
+  - syscall
 
   # Words this project uses on purpose. Each is the shortest way to say the thing, and each has
   # earned its place by appearing in more than one document.
   - desync
+  - refusable
   - reimplementations
   - replayable
   - sandboxing
+  - unparseable
   - unpayable

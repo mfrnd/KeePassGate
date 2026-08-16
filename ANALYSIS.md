@@ -1,5 +1,30 @@
 # KeePassGate: the argument, before anything was built
 
+> **This is the argument that was made, not what to build.** Several of its conclusions were
+> reversed by later measurement, and the reversals are recorded where they happened rather than
+> edited into this text, because the reasoning is the point of keeping it. These matter enough to
+> warn about at the top:
+>
+> - **Certificates no longer name a database, and there is no `any` wildcard.** Section 4 argues for
+>   `kpg://<uuid>/<profile>` with `any` reserved. The authority later moved inside each database, so
+>   the issuer identifies it and a claim carries only `kpg://profile/<name>`. The wildcard this
+>   document recommends is the escalation [`CA.md`](CA.md) §209 now exists to close. Do not
+>   build from section 4c or 4d.
+> - **There is no local registry.** Sections 5 and 8 describe admission as a list of fingerprints
+>   beside the plugin. Admission records now live in the database, keyed by SHA-256 over the
+>   certificate DER, and are required on every connection. See [`CA.md`](CA.md) §204 and §217.
+> - **No HTTP dependency is taken.** See [`DESIGN.md`](DESIGN.md) §107.
+> - **A certificate carries no ceiling.** Section 4a settles that a `kpg://` entry bounds what a
+>   client may ask for, and section 8 counts that among the decisions taken. The admission record
+>   is the only ceiling instead, and nothing reads a claim: a certificate whose record is missing
+>   grants nothing, which is what makes a lost record fail closed. See [`CA.md`](CA.md) §212.
+> - **There is no option to trust an outside authority.** Section 5 recommends designing for one.
+>   Every database is its own authority instead, and a connection is refused unless its chain ends
+>   in that authority's own bytes, which is exactly the door an outside authority would open. See
+>   [`CA.md`](CA.md) §202 and §214.
+>
+> [`DESIGN.md`](DESIGN.md), [`CA.md`](CA.md) and [`PAIRING.md`](PAIRING.md) are current.
+
 An analysis of the proposal, written before anything is built. It exists to test the idea rather
 than to plan it, so it argues with the proposal in several places. The conclusion is that the
 instinct behind it is correct and better founded than it might feel, that two of its four pillars
@@ -853,7 +878,8 @@ Nothing here justifies committing to the build yet. Three spikes would settle it
 > **Spikes 1 and 2 were superseded before they were run.** The transport question was answered on
 > the `spikes/http-lib-measurements` branch and then re-answered when selecting a host certificate by
 > name forced us to own the accept loop, so no port is spiked at all. Issuance writes an admission
-> record into the database rather than a fingerprint into a local registry.
+> record into the database rather than a fingerprint into a local registry. [`DESIGN.md`](DESIGN.md)
+> §132 carries the build order that replaced these.
 
 1. ~~**The vendored `HttpListener`, ported and fed our own `SslStream`, inside a running KeePass**~~,
    answering one route. What survived from this spike is its instinct: feeding a listener our own

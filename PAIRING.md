@@ -1,6 +1,7 @@
 # Pairing
 
-How a stranger becomes a client. [`CA.md`](CA.md) covers the authority this flow issues from.
+How a stranger becomes a client. [`CA.md`](CA.md) covers the authority this flow issues from,
+[`DESIGN.md`](DESIGN.md) covers the transport it runs over.
 
 Every database carries its own certificate authority, so pairing is an act of **issuance** rather
 than a key exchange. The flow exists to answer one question safely: may this stranger ask, and is
@@ -98,7 +99,7 @@ sequenceDiagram
     KPG->>KPG: generate the key pair, issue from that database's authority
     KPG->>MEM: burn the token, under the plugin's own lock
     KPG->>DB: write the admission record
-    KPG->>DB: SaveDatabase through Invoke, then read back to confirm
+    KPG->>DB: SaveDatabase, marshaled by BeginInvoke with a bounded wait, then read back to confirm
     KPG-->>CL: only now: certificate + key + authority + gate key
     CL->>CL: store, then discard the token
 ```

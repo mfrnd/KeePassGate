@@ -43,9 +43,9 @@ config:
   # The first line of every document is its title.
   MD041: true
 
-  # OFF. `DESIGN.md` will be two documents in one file on purpose: the design, and a second
-  # top-level part that attacks it. The attack is not a subsection of the thing it argues with,
-  # and demoting it would put it on a level with the design's own sections.
+  # OFF. `DESIGN.md` is two documents in one file on purpose: the design, and a second top-level
+  # part that attacks it. The attack is not a subsection of the thing it argues with, and demoting
+  # it would put it on a level with the design's own sections.
   MD025: false
 
 globs:

@@ -1,35 +1,48 @@
 # KeePassGate
 
-A proposal, under analysis. **Nothing is built, and the decision to build has not been taken.**
+A KeePass 2.x plugin that serves a small, specification-defined HTTP API over mutual TLS, so that
+automation and AI agents can each be given a narrow, revocable, audited slice of a database.
 
-The idea is a KeePass plugin written from scratch for automation and agents, rather than a third API
-generation bolted onto [KeePassRPC](https://github.com/mfrnd/keepassrpc):
+**Design settled, implementation not started.**
 
-- clients authenticate with **mTLS**, so there is no bespoke pairing protocol and no hand-written
-  session crypto,
-- the contract is **OpenAPI-first**, so a consumer has a machine-readable specification,
-- a client's identity and its coarse scope come from its **certificate**, so admission is mostly
-  certificate handling,
-- and the browser extension keeps talking to KeePassRPC, untouched.
+**License: MIT.** GPLv2 is not required. KeePass is GPL-2.0-or-later and grants no plugin exception,
+but the FSF's own requirement is a GPL-compatible license, and MIT is one, so a permissive
+KeePassGate is sound under the strict reading of the linking question as well as the loose one.
 
-**[`ANALYSIS.md`](ANALYSIS.md) was the whole of the repository until the design began**, in
-[`CA.md`](CA.md) and [`PAIRING.md`](PAIRING.md). It argues with the proposal
-rather than planning it, and it reaches three conclusions worth knowing before reading further:
-
-- The premise holds. Roughly half of the KeePassRPC fork's C# exists only to carry a protocol it
-  inherited, along with three concepts a clean design would not have at all.
-- mTLS works here, verified rather than assumed, including TLS 1.3. `HttpListener` cannot serve
-  HTTPS without administrator rights, so an HTTP server has to be written by hand over `SslStream`.
-- Authorization should **not** be read out of certificate metadata as proposed. A certificate should
-  cap what a client could ask for; the database should keep deciding what it may actually do.
-
-## Status
+## The documents, in reading order
 
 | | |
 | --- | --- |
-| Analysis | written, [`ANALYSIS.md`](ANALYSIS.md) |
-| Decision to build | not taken |
-| Code | none, beyond the probe below |
+| [`DESIGN.md`](DESIGN.md) | what to build, and a section attacking it |
+| [`API.md`](API.md) | the routes, what each verb is worth, and what is deliberately absent (TODO(step 15): it arrives with them) |
+| [`CA.md`](CA.md) | the certificate authority in full: issuance, claims, validation, revocation |
+| [`PAIRING.md`](PAIRING.md) | how a stranger becomes a client, with the flow diagrams |
+| [`FINDINGS.md`](FINDINGS.md) | what was measured rather than assumed, and what turned out wrong |
+| [`CONVENTIONS.md`](CONVENTIONS.md) | the rules that hold on every branch |
+| [`ANALYSIS.md`](ANALYSIS.md) | the argument, and the alternatives that were rejected |
+
+## What was decided, in one place
+
+- **mTLS instead of a pairing protocol.** Verified working in process on .NET Framework 4.8,
+  including TLS 1.3.
+- **TLS 1.3 required, nothing older offered**, which is affordable now that Windows 10 is out of
+  support and is what makes it safe for a certificate to carry claims.
+- **Every database is its own certificate authority**, stored inside itself. A malicious kdbx
+  vouches only for itself, which is what a registry on the host could never guarantee.
+- **A certificate proves identity, an admission record grants.** The record lives in the database
+  and is checked on every connection, so losing it makes a certificate inert rather than invisible.
+- **A rotating SNI names the database**, resolved before any TLS work. An unresolvable name is
+  dropped with no response, so an attacker never reaches TLS, certificate selection, or the
+  pairing dialog.
+- **No third-party HTTP dependency.** Selecting a certificate by SNI means owning the accept and the
+  TLS, so all that was left to buy was a header parser. The one that fits the seam natively is
+  LGPL-2.1 and unmaintained; `DESIGN.md` §107 records the trade and what would reopen it.
+- **`IGateContext`** is the seam. The router, authorization and audit never see the transport, which
+  is how it stays replaceable. TODO(step 6): `IGateContext` arrives with the transport.
+- **Spec-first routing.** The OpenAPI document is the routing table and handlers bind to
+  `operationId`, so an undeclared path has nowhere to go.
+- **A plain DLL on .NET Framework 4.8**, not a `.plgx`, because the packaging format is what forces
+  C# 5.
 
 ## The measurements
 

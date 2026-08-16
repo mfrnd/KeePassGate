@@ -5,8 +5,9 @@
 <!-- cspell:ignore AURL -->
 
 Reference for how KeePassGate issues, presents, validates and withdraws identity.
-[`PAIRING.md`](PAIRING.md) covers the flow that gets a stranger admitted, and
-`spikes/tls-and-certificates` holds the code behind every measurement quoted here.
+[`DESIGN.md`](DESIGN.md) says how it fits the rest, [`PAIRING.md`](PAIRING.md) covers the flow that
+gets a stranger admitted, and `spikes/tls-and-certificates` holds the code behind every measurement
+quoted here.
 
 **The one sentence.** Every database carries its own certificate authority inside itself, so pairing
 a client means issuing it a certificate that only that database will ever honor.
@@ -124,8 +125,8 @@ everywhere, and the mark stays in the file: one string per client ever paired.
 **It carries only while the file keeps the time the mark was written at, and other programs decide
 that.** The time is the 4.1 field, and a program that saves the file without it leaves a mark with
 nothing to be newer with. Measured: KeePassXC 2.7.12 saves a paired file as 4.0 with every time
-gone, and so does KeePass 2.47, which opens a 4.1 file rather than refusing it.
-KeePass 2.61.1 then keeps whichever side is stamped, or whichever side already holds
+gone, and so does KeePass 2.47, which opens a 4.1 file rather than refusing it; pykeepass 4.2.0
+keeps them. KeePass 2.61.1 then keeps whichever side is stamped, or whichever side already holds
 the key, so a synchronize against a copy that still holds the record admits the client again with
 everything it had, whichever copy the synchronize runs from. A later save in KeePass puts the 4.1
 header back and not the times, so the version says nothing about whether the marks can still
