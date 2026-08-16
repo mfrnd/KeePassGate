@@ -11,7 +11,7 @@ a database.
 **Status: the design is settled and steps 1 to 5 of the build order are done.** The plugin loads
 into KeePass, puts a KPG tab on the database settings dialog, and that tab creates, recreates and
 deletes the database's own certificate authority. It serves no API and opens no socket. Step 6, the
-gate and the transport, is next.
+gate and the transport, is under way.
 
 ## Read these before proposing anything
 
