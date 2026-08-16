@@ -12,7 +12,8 @@ generation bolted onto [KeePassRPC](https://github.com/mfrnd/keepassrpc):
   certificate handling,
 - and the browser extension keeps talking to KeePassRPC, untouched.
 
-**[`ANALYSIS.md`](ANALYSIS.md) is the whole of the repository so far.** It argues with the proposal
+**[`ANALYSIS.md`](ANALYSIS.md) was the whole of the repository until the design began**, in
+[`CA.md`](CA.md) and [`PAIRING.md`](PAIRING.md). It argues with the proposal
 rather than planning it, and it reaches three conclusions worth knowing before reading further:
 
 - The premise holds. Roughly half of the KeePassRPC fork's C# exists only to carry a protocol it

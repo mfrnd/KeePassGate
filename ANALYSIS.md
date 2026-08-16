@@ -636,7 +636,7 @@ should own it. **As finally built** they are: a certificate proves who a client 
 record inside the database** admits it and carries the profiles the operator approved, and the
 database's ACL decides what those profiles reach. This section originally placed the second layer in
 a local registry beside the plugin and had the certificate carry the ceiling; both moved into the
-database. That is a better design than the
+database, for reasons [`CA.md`](CA.md) §202 and §204 give. That is a better design than the
 proposal as stated, and it is only slightly more machinery.
 
 ### Who runs the CA

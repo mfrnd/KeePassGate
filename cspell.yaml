@@ -69,6 +69,9 @@ words:
   - Kdbx
   - plgx
 
+  # Cryptography and the transport
+  - DPAPI
+  - HMAC
 
   # The platform
   - CREAT
@@ -76,6 +79,7 @@ words:
   - SChannel
 
   # Tooling
+  - autonumber
   - LASTEXITCODE
   - noresult
   - USERPROFILE
@@ -100,5 +104,6 @@ words:
   # earned its place by appearing in more than one document.
   - desync
   - reimplementations
+  - replayable
   - sandboxing
   - unpayable
