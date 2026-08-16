@@ -407,6 +407,8 @@ file.
 .\build.ps1 -Task Client   # PyKeePassGate on its own: ruff, mypy, pytest
 .\build.ps1 -Task All      # the default, then the end to end tests
 .\build.ps1 -Task Deploy   # copy the plugin into plugins\KeePassGate in the provided KeePass
+.\run-debug.ps1            # deploy, then start that KeePass, Debug
+.\run-release.ps1          # deploy, then start that KeePass, Release
 ```
 
 **`build.ps1 -ListGates` is what CI asks for.** It answers one line per check and the runner CI
