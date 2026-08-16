@@ -72,6 +72,7 @@ words:
 
   # Tooling
   - LASTEXITCODE
+  - noresult
 
 
 
