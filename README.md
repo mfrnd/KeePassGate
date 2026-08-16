@@ -21,6 +21,11 @@ All three serve. **[`RESULTS.md`](RESULTS.md) is what they settled**: the number
 needed, the two verdicts that were corrected along the way, and what the mainline eventually did
 with the answer.
 
+Each proof vendors exactly one library and links none of the others, so nothing here is a combined
+work and no license reaches past its own directory.
+[`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md) says what is vendored, under what, and why that
+arrangement is the whole of the answer.
+
 ## What a proof here looks like
 
 One directory per candidate, named `spikes/<library>`, self contained and buildable on its own:

@@ -31,6 +31,9 @@ deletion in the history of everything downstream, which is what this arrangement
 - One directory per candidate, `spikes/<library>`, self contained, buildable with `dotnet build`.
 - The vendored library goes under `vendor/` **as it arrives**, and every line changed is recorded
   beside it, because divergence is the measurement.
+- **One candidate per directory, and no directory references another.** That is what keeps three
+  licenses from becoming one question, and a new proof adds its entry to
+  `THIRD-PARTY-NOTICES.md` rather than assuming somebody will notice.
 - The harness goes under `src/` and is ours.
 - A proof mints its certificate authority in memory and serves on loopback, so running one arranges
   nothing and leaves nothing behind.
