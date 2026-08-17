@@ -398,8 +398,8 @@ def test_a_request_that_reaches_its_own_hello_is_served(gate: FakeGate, pairing_
 
 
 def test_a_pairing_waits_longer_than_the_gate_may_take(gate: FakeGate) -> None:
-    # Not the ordinary timeout. The plugin gives this one exchange five minutes because its own
-    # worst case is 185 seconds, and a client that hangs up first throws away the answer to a
+    # Not the ordinary timeout. The plugin gives this one exchange six minutes because its own
+    # worst case is 305 seconds, and a client that hangs up first throws away the answer to a
     # pairing whose invitation is already spent and whose record is already written.
     assert (
         Pairing(gate.port, INVITATION)._connection_timeout

@@ -263,7 +263,7 @@ namespace KeePassGate.Gate
             catch (Exception error)
             {
                 // The same reason as the unlock above: KeePass's thread, KeePass's event, and
-                // the same reporting, so that both halves are counted alike.
+                // the same reporting, so that the window under Tools counts both halves.
                 _incidents.Record("a lock or close could not be handled", error);
             }
         }

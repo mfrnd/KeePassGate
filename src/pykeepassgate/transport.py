@@ -69,12 +69,14 @@ RESPONDER_CLAIM = "kpg://host/responder"
 DEFAULT_CONNECTION_TIMEOUT = 120.0
 
 #: What a pairing's socket gets instead, which is the one exchange that waits on a person. It has
-#: to outlast the plugin's own sum of `PairingOptions.ApprovalTimeout` two minutes, plus
-#: `PairingApprovalPrompt.Grace` fifteen seconds, plus `DatabaseWriter.LockTimeout` twenty and
-#: `WriteTimeout` thirty. That sum is 185 seconds, and is why `GateOptions.PairingBudget` is five
-#: minutes. Hanging up early cancels nothing: the invitation is spent and the record is written and
+#: to outlast the plugin's own sum: `PairingOptions.ApprovalTimeout` two minutes waiting for the
+#: screen while another pairing holds it, the same two minutes again for the dialog plus
+#: `PairingApprovalPrompt.Grace` fifteen seconds, then `DatabaseWriter.LockTimeout` twenty and
+#: `WriteTimeout` thirty. That sum is 305 seconds, and is why `GateOptions.PairingBudget` is six
+#: minutes; this is the same six, since the gate closes the connection then and waiting past it buys
+#: nothing. Hanging up early cancels nothing: the invitation is spent and the record is written and
 #: saved regardless, and only the answer is lost, leaving a record for a certificate nobody holds.
-PAIRING_CONNECTION_TIMEOUT = 300.0
+PAIRING_CONNECTION_TIMEOUT = 360.0
 
 #: How long to go on waiting out a `503 busy`, in seconds, and `None` for not waiting at all, which
 #: is what a client does unless it is told otherwise: the refusal is raised, and what to do about it

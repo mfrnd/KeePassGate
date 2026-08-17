@@ -91,10 +91,6 @@ namespace KeePassGate.Ui
         private readonly Button _copy;
         private readonly ToolTip _tips;
         private readonly Label _invitation;
-        private readonly IGateStatus _gate;
-        private readonly GateIncidents _incidents;
-        private readonly Font _titleFont;
-        private readonly Label _serving;
         private readonly ClientList _clients;
         private readonly Label _notice;
         private readonly ProfileList _profiles;
@@ -106,38 +102,33 @@ namespace KeePassGate.Ui
         /// </summary>
         internal IClipboard Clipboard { get; set; }
 
-        public AuthorityPanel(IGateDatabase database, IOperatorPrompt prompt, IGateLog log, string version)
-            : this(database, prompt, log, version, null, null, null, null, null)
+        public AuthorityPanel(IGateDatabase database, IOperatorPrompt prompt, IGateLog log)
+            : this(database, prompt, log, null, null)
         {
         }
 
         public AuthorityPanel(
-            IGateDatabase database, IOperatorPrompt prompt, IGateLog log, string version, IGateStatus gate)
-            : this(database, prompt, log, version, gate, null, null, null, null)
+            IGateDatabase database, IOperatorPrompt prompt, IGateLog log, IInvitations invitations)
+            : this(database, prompt, log, invitations, null)
         {
         }
 
-        public AuthorityPanel(
-            IGateDatabase database,
-            IOperatorPrompt prompt,
-            IGateLog log,
-            string version,
-            IGateStatus gate,
-            IInvitations invitations)
-            : this(database, prompt, log, version, gate, invitations, null, null, null)
-        {
-        }
-
+        /// <summary>
+        /// The tab, for one database.
+        /// </summary>
+        /// <remarks>
+        /// It takes what it is about and nothing else. The plugin's version and whether the gate is
+        /// listening used to arrive here too, and they were answers about the plugin rather than
+        /// about this database: they are the same whichever one is open, and are wanted when none
+        /// is. They live on the window the Tools menu opens, and this is what stopped needing them.
+        /// </remarks>
         public AuthorityPanel(
             IGateDatabase database,
             IOperatorPrompt prompt,
             IGateLog log,
-            string version,
-            IGateStatus gate,
             IInvitations invitations,
-            GateIncidents incidents,
             IProfiles profiles)
-            : this(database, prompt, log, version, gate, invitations, incidents, profiles, null)
+            : this(database, prompt, log, invitations, profiles, null)
         {
         }
 
@@ -155,24 +146,14 @@ namespace KeePassGate.Ui
             IGateDatabase database,
             IOperatorPrompt prompt,
             IGateLog log,
-            string version,
-            IGateStatus gate,
             IInvitations invitations,
-            GateIncidents incidents,
             IProfiles profiles,
             IAdmissionNotice admissions)
         {
-            if (version == null)
-            {
-                throw new ArgumentNullException(nameof(version));
-            }
-
             _database = database;
             Clipboard = SystemClipboard.Instance;
             _prompt = prompt ?? new MessageBoxPrompt();
             _log = log ?? NullGateLog.Instance;
-            _gate = gate;
-            _incidents = incidents;
             _invitations = invitations;
             _admissions = admissions;
 
@@ -185,9 +166,8 @@ namespace KeePassGate.Ui
                 ? null
                 : new AuthorityService(database.PluginCustomData, _log);
 
-            _titleFont = new Font(SystemFonts.DefaultFont, FontStyle.Bold);
-
             Name = GateTab.PanelControlName;
+            AccessibleName = GateTab.PanelAccessibleLabel;
             Dock = DockStyle.Fill;
             Padding = new Padding(Spacing.Gap);
 
@@ -197,7 +177,13 @@ namespace KeePassGate.Ui
             // that outgrows the tab fails a test rather than appearing on somebody's screen.
             AutoScroll = false;
 
-            _valueFont = new Font(SystemFonts.DefaultFont, FontStyle.Bold);
+            // The prototype is disposed, because `SystemFonts.DefaultFont` hands back a new font
+            // every time it is read and `new Font(prototype, style)` copies rather than adopts.
+            // Without the `using`, every settings dialog opened leaves one behind.
+            using (var prototype = SystemFonts.DefaultFont)
+            {
+                _valueFont = new Font(prototype, FontStyle.Bold);
+            }
 
             _tabs = new TabControl
             {
@@ -228,39 +214,7 @@ namespace KeePassGate.Ui
                 PerformLayout();
             };
 
-            // What the plugin is and whether it is serving, above both pages, because neither
-            // answer depends on which page is in front.
-            var header = NewColumn(DockStyle.Top);
-
-            // The name and the version share a line rather than taking two, and the line about
-            // the socket goes tight under them: all three answer questions about the plugin
-            // rather than about this database, so they read as one band and are separated from
-            // what follows once rather than twice. The room that buys is what the headline
-            // under it spends on having air above as well as below.
-            var heading = NewRow(new Padding(0, 0, 0, Spacing.Tight));
-            heading.Controls.Add(new TextLabel
-            {
-                Name = GateTab.TitleLabelName,
-                Text = "KeePassGate",
-                Font = _titleFont,
-                AutoSize = true,
-                Margin = new Padding(0, 0, Spacing.Gap, 0)
-            });
-
-            heading.Controls.Add(new TextLabel
-            {
-                Name = GateTab.VersionLabelName,
-                Text = "Version " + version,
-                AutoSize = true,
-                Margin = new Padding(0)
-            });
-
-            header.Controls.Add(heading);
-
-            _serving = NewTextLabel(GateTab.ServingLabelName, new Padding(0, 0, 0, Spacing.Gap));
-            header.Controls.Add(_serving);
-
-            var authority = NewColumn(DockStyle.Fill);
+            var authority = NewColumn("KpgAuthorityColumn", DockStyle.Fill);
 
             // Air above as well as below, so it reads as the opening sentence of the page
             // rather than as a caption on whatever is over it or a label on the table under
@@ -290,7 +244,7 @@ namespace KeePassGate.Ui
             authority.Controls.Add(_facts);
             authority.Controls.Add(_detail);
 
-            var buttons = NewRow(new Padding(0, 0, 0, Spacing.Tight));
+            var buttons = NewRow("KpgAuthorityButtonRow", new Padding(0, 0, 0, Spacing.Tight));
             _create = NewButton(GateTab.CreateButtonName, GateTab.CreateButtonText, OnCreate);
             _recreate = NewButton(GateTab.RecreateButtonName, GateTab.RecreateButtonText, OnRecreate);
             _delete = NewButton(GateTab.DeleteButtonName, GateTab.DeleteButtonText, OnDelete);
@@ -304,16 +258,16 @@ namespace KeePassGate.Ui
             // The button, the token it produces and the copy button sit on one line, and the box
             // takes whatever width is left over, so nothing here has a size that a wider or
             // narrower tab breaks.
-            var invitation = NewColumn(DockStyle.Top);
+            var invitation = NewColumn("KpgInvitationColumn", DockStyle.Top);
 
-            // A docked band is laid out edge to edge against what it is given, so its margin
-            // is never consulted and the space above it has to be padding.
+            // A docked band is laid out edge to edge against what it is given, so its margin is
+            // never consulted and the space above it has to be padding.
             invitation.Padding = new Padding(0, Spacing.Gap, 0, 0);
 
-            // Tight above, because the line over it is about the code this row hands out and
-            // the two read as one thing. Nothing below: what follows this band brings its own
-            // space.
-            _inviting = NewRow(new Padding(0, Spacing.Tight, 0, 0));
+            // Tight above, because the lines over it are about the code this row hands out and
+            // the three read as one thing. Nothing below: the list is what separates itself from
+            // this band, with its own top padding.
+            _inviting = NewRow("KpgInvitingRow", new Padding(0, Spacing.Tight, 0, 0));
             _invite = NewButton(GateTab.InviteButtonName, GateTab.InviteButtonText, OnInvite);
             _invite.Margin = new Padding(0, 0, Spacing.Gap, 0);
 
@@ -395,7 +349,7 @@ namespace KeePassGate.Ui
             // an invitation, a copy and a revocation, and while this label lived on the authority
             // page an invitation that could not be made reported itself onto a page the operator
             // was not looking at.
-            var footer = NewColumn(DockStyle.Bottom);
+            var footer = NewColumn("KpgAuthorityFooter", DockStyle.Bottom);
             _result = NewTextLabel(GateTab.ResultLabelName, new Padding(0, Spacing.Gap, 0, 0));
 
             // Nothing to say means no room taken. The band sizes itself to its content, so an
@@ -416,9 +370,6 @@ namespace KeePassGate.Ui
 
             Controls.Add(_tabs);
             Controls.Add(footer);
-
-            // Last, so docking gives it the top band: what is added later takes its edge first.
-            Controls.Add(header);
 
             Describe();
         }
@@ -630,13 +581,6 @@ namespace KeePassGate.Ui
             {
                 var description = DescribeNow();
                 _status.Text = description.Headline;
-
-                // Written before the table is rebuilt rather than after it. `Draw` tears down and
-                // repopulates a `TableLayoutPanel` and is the likeliest thing on this path to
-                // throw; a header left saying where the gate was listening some minutes ago is a
-                // worse answer than one briefly ahead of the facts under it.
-                _serving.Text = GateStatusText.For(
-                    _gate, description.IsServed, _incidents == null ? null : _incidents.Summary);
 
                 Draw(description.Facts);
                 _detail.Text = string.Join(Environment.NewLine, description.Details);
@@ -945,11 +889,6 @@ namespace KeePassGate.Ui
                     _admissions.Landed -= OnAdmitted;
                 }
 
-                if (_titleFont != null)
-                {
-                    _titleFont.Dispose();
-                }
-
                 if (_valueFont != null)
                 {
                     _valueFont.Dispose();
@@ -1099,10 +1038,11 @@ namespace KeePassGate.Ui
         }
 
         /// <summary>A stack of things, one under the next, that never wraps and never scrolls.</summary>
-        private static FlowLayoutPanel NewColumn(DockStyle dock)
+        private static FlowLayoutPanel NewColumn(string name, DockStyle dock)
         {
             return new FlowLayoutPanel
             {
+                Name = name,
                 Dock = dock,
                 FlowDirection = FlowDirection.TopDown,
                 WrapContents = false,
@@ -1115,10 +1055,11 @@ namespace KeePassGate.Ui
             };
         }
 
-        private static FlowLayoutPanel NewRow(Padding margin)
+        private static FlowLayoutPanel NewRow(string name, Padding margin)
         {
             return new FlowLayoutPanel
             {
+                Name = name,
                 FlowDirection = FlowDirection.LeftToRight,
                 AutoSize = true,
                 AutoSizeMode = AutoSizeMode.GrowAndShrink,
@@ -1260,8 +1201,8 @@ namespace KeePassGate.Ui
 
                 for (var at = 0; at < facts.Count; at++)
                 {
-                    _facts.Controls.Add(NewFactLabel(facts[at].Name, false), 0, at);
-                    _facts.Controls.Add(NewFactLabel(facts[at].Value, true), 1, at);
+                    _facts.Controls.Add(NewFactLabel(facts[at], false), 0, at);
+                    _facts.Controls.Add(NewFactLabel(facts[at], true), 1, at);
                 }
             }
             finally
@@ -1270,11 +1211,12 @@ namespace KeePassGate.Ui
             }
         }
 
-        private Label NewFactLabel(string text, bool value)
+        private Label NewFactLabel(Fact fact, bool value)
         {
             return new TextLabel
             {
-                Text = text,
+                Name = fact.ControlName(value),
+                Text = value ? fact.Value : fact.Name,
                 AutoSize = true,
                 Font = value ? _valueFont : Font,
 
@@ -1657,12 +1599,34 @@ namespace KeePassGate.Ui
         /// store threw, and so does the sentence this page composes after a failure. Cutting at
         /// each site meant the two that were missed were exactly the two that could not be
         /// bounded, and it meant the band's own limit was whatever the last author remembered.
-        /// One setter, one bound, and `Clipped.Message` is where the bound is written down.
+        /// One setter, one bound, and <see cref="LongestResult"/> is that bound written down for
+        /// the test that measures the band.
         /// </remarks>
         private void Said(string line)
         {
             _result.Text = Clipped.Message(line);
         }
 
+        /// <summary>
+        /// The longest line the band under the pages can ever hold.
+        /// </summary>
+        /// <remarks>
+        /// For measurement, like <see cref="DrawFacts"/>. What has to fit the tab is the longest
+        /// this band can be, which is a refusal carrying somebody else's exception message, rather
+        /// than a sentence a third of that. A band measured against the short one fits while the
+        /// long one arrives on somebody's screen, and the room for the long one is what the gate's
+        /// address and the version leaving this tab pay for.
+        ///
+        /// The words are ordinary words in ordinary lengths rather than a run of one character,
+        /// because what is being measured is how many lines the band wraps to and a string with
+        /// nowhere to break does not wrap at all.
+        /// </remarks>
+        public static string LongestResult()
+        {
+            return Clipped.Message(
+                "The authority could not be recreated: the key set for this certificate is not "
+                + "available on this machine, and the profile it would have been written to could "
+                + "not be loaded either. Ask whoever administers this computer.");
+        }
     }
 }

@@ -117,20 +117,6 @@ namespace KeePassGate.Ui
         }
 
         /// <summary>
-        /// Whether the gate would serve this database as it stands.
-        /// </summary>
-        /// <remarks>
-        /// True for a whole authority and for nothing else, which is the same test
-        /// `OpenDatabaseTargets` applies before it builds a target. Separate from the buttons on
-        /// purpose: `CanRecreate` is true for a damaged authority as well, so a line that asked it
-        /// this question told the operator a database was reachable that nothing could reach.
-        /// </remarks>
-        public bool IsServed
-        {
-            get { return _isServed; }
-        }
-
-        /// <summary>
         /// Whether the authority's own dates have passed, which is a state an operator can only
         /// leave by replacing it.
         /// </summary>
@@ -374,6 +360,10 @@ namespace KeePassGate.Ui
         {
             return string.Join(" ", new[]
             {
+                Clipped.Message(
+                    "The authority could not be read: the key set for this certificate is not " +
+                    "available on this machine, and the profile it would have been read from " +
+                    "could not be loaded either. Ask whoever administers this computer."),
                 "The host certificate could not be checked against this authority on this " +
                 "machine. Nothing here says the authority is wrong; recreating it would not help.",
                 "Authority expired on 2036-08-12 09:41:07.",

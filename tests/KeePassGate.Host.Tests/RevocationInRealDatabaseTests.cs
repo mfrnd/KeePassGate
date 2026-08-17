@@ -88,7 +88,7 @@ namespace KeePassGate.Host.Tests
 
         private AuthorityPanel NewPanel()
         {
-            return new AuthorityPanel(new OpenDatabase(_database.Database), null, NullGateLog.Instance, "1.2.3");
+            return new AuthorityPanel(new OpenDatabase(_database.Database), null, NullGateLog.Instance);
         }
 
         private AdmissionRecord Admit()

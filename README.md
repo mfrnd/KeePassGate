@@ -108,6 +108,9 @@ uv run pykeepassgate pair --port 45678 --name agent-invented --profile-name read
 uv run pykeepassgate status
 ```
 
+`45678` stands for the port the gate is listening on, which its window under **Tools**,
+**KeePassGate (KPG)**, shows: 51776 unless another has been chosen.
+
 The question a `pykeepass` user asks first is answered on `spikes/pykeepass-compatibility`, taken from
 `master` and never merged. Short version: not as a `PyKeePass` object, because that is a decrypted
 `.kdbx` and this side has neither the file nor the password, but 23 of its 56 public members are

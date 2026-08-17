@@ -141,10 +141,17 @@ designing around them.
   .NET Framework exposes no server-side SNI hook. Which TLS stack terminates it is the bullet
   below.
 - **Handlers catch what they named.** `Diagnostics/Expected` holds the lists, used as exception
-  filters. A few places catch everything, because in each of them an escaping exception ends
-  KeePass: the plugin entry point, the KeePass window event handlers, and the connection thread.
-  Those report through `GateIncidents`, which counts on the KPG tab and
-  logs at `UNEXPECTED`.
+  filters. Four places catch everything, because in those four an escaping exception ends KeePass:
+  the plugin entry point, the handlers of KeePass's window events, the settings dialog's close
+  among them, the Tools menu item, and the connection thread.
+  Those report through `GateIncidents`, which counts on the plugin's window under Tools and
+  logs at `UNEXPECTED`. Two more roots are kept safe another way: the accept thread and a
+  connection's deadline timer have nothing above them either, and rather than catching
+  everything, every call they make is total or filtered. `GateListener.Drop` says what keeps
+  that true. And two places catch everything without being a fifth, since each keeps what was
+  thrown and throws it again where one of the four sees it: `GateTlsServer`'s callbacks, because
+  Bouncy Castle turns whatever a callback throws into a fatal alert, and the call `ControlUiThread`
+  marshals, because WinForms would answer one escaping it with a dialog of its own.
 - **Everything on the KPG settings tab waits for that dialog's OK**, and this reverses an
   earlier decision rather than refining it. The tab used to write the moment a button was pressed,
   which was safe, because KeePass's database settings dialog holds no copy of the custom data this
@@ -186,19 +193,26 @@ designing around them.
   on those dialogs and any other plugin may add one, so every character spent there is width taken
   from everybody, and the icon does the work a long caption was doing. A menu item is a line of its
   own, costs nobody anything, and is the only place that can teach the abbreviation. `GateName` has
-  all three forms and every caption reads one of them. TODO(step 18): the menu item arrives with
-  the plugin's own window.
+  all three forms and every caption reads one of them.
 
-- **The plugin's own name carries KeePass's icon 29, `TerminalEncrypted`**, on all three tabs. Read
-  off `MainWindow.ClientIcons` rather than shipped as a resource, so it matches the window it is in
-  and follows a KeePass that restyles its icons, and copied every time because each copy is handed
-  to an image list that disposes it. **A tab strip shows
+- **The plugin's own name carries KeePass's icon 29, `TerminalEncrypted`**, on the Tools menu item
+  and on all three tabs. Read off `MainWindow.ClientIcons` rather than shipped as a resource, so it
+  matches the window it is in and follows a KeePass that restyles its icons, and copied every time
+  because each copy is handed to a menu or an image list that disposes it. **A tab strip shows
   pictures only if the whole control has an `ImageList`**, and none of the three dialogs brings one,
   so `TabPageInjector` gives it one and takes it away again on detach: that makes every tab on
   those dialogs a little taller, which WinForms offers no way around. `GateIconTests` pins both the
   icon's identity and the fact that KeePass brings no list of its own, because a KeePass that
   started putting icons on its own tabs would have us appending to somebody else's list.
 
+- **What is about the plugin is not on the KPG tab.** The listening socket and the port live
+  on the window `Plugin.GetMenuItem` puts under Tools, because that answer is the same whichever
+  database is open and is wanted when none is. The tab carries what is about the database it is on,
+  and nothing else. **The version is not shown on either**, which is a deletion rather than an
+  oversight: KeePass's own plugins dialog lists every plugin with its version, which is where
+  somebody checking one looks and where the answer is right for all of them at once. The menu item
+  is given a mnemonic of its own: `K`, since KeePass spends g, l, t, d, a, r, p and o on that
+  menu's own items.
 - **Nothing on a tab scrolls.** The content is held to 449 by 314 and has to fit it; horizontal
   scrolling is never acceptable. That is KeePass's own first page on the settings dialog, inside a
   padding of 3. The page this plugin adds has no padding and is laid out to the tab control's whole
@@ -745,9 +759,9 @@ request bodies strictly and says in its own comments where it stops being enough
 where step 11 began.
 
 **A pairing connection is measured against `GateOptions.PairingBudget` rather than `Budget`.** The
-ordinary thirty seconds is what stops a peer holding a thread by feeding it slowly, and phase 4
-exceeds it on purpose, because it is blocked on a person. Closing the socket there cancels nothing:
-the invitation is still spent and the record still saved, and only the answer is lost.
+ordinary budget is what stops a peer holding a thread by feeding it slowly, and phase 4 exceeds it
+on purpose, because it is blocked on a person. Closing the socket there cancels nothing: the
+invitation is still spent and the record still saved, and only the answer is lost.
 
 **Two things about records that cost time to learn.** They are read from the live database on every
 connection and never cached, so a record that lands takes effect with nothing having to be reloaded
@@ -755,7 +769,8 @@ or told: the KPG tab's clients page lists every admitted client and takes one aw
 the next request onwards that client is refused. **Landing is what waits now**, see the tab's own
 entry below: the row goes at once, the revocation lands when the dialog is accepted, and the file changes
 when the database is saved. Until then the certificate still works. The press itself goes into the
-dialog's buffer and cannot fail there. And a record written into the
+dialog's buffer and cannot fail there, so whether a revocation reached the database is said in the
+log when the dialog is accepted, not on the page. And a record written into the
 `.kdbx` file underneath a running KeePass is invisible to it and will be overwritten by its next
 save: KeePass serves the database it holds in memory, which is why pairing writes through the plugin
 rather than through the file.

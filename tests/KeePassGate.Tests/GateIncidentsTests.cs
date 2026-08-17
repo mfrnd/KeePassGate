@@ -15,7 +15,7 @@ namespace KeePassGate.Tests
     /// What happens to a failure nobody predicted.
     /// </summary>
     /// <remarks>
-    /// A few places in the plugin catch every exception, because in each of them an escaping one
+    /// Four places in the plugin catch every exception, because in those four an escaping one
     /// ends the password manager. The risk that comes with such a catch is that it turns a defect
     /// into a log line nobody reads, so this fixture is about the other half: that it is counted,
     /// and that the count reaches the one screen the operator already looks at.

@@ -116,7 +116,9 @@ def test_status_prints_what_the_gate_said(
     credentials_module.save(tmp_path / "kept", gate.port, bundle)
     gate.handler = lambda path, body, client: (
         200,
-        json.dumps({"ok": True, "database": "abcdef01", "version": "0.1.0"}),
+        json.dumps(
+            {"ok": True, "database": "abcdef01", "version": "0.1.0", "revision": "0123abcd"}
+        ),
     )
 
     assert cli.main(["status", "--directory", str(tmp_path / "kept")]) == 0
@@ -133,7 +135,9 @@ def test_a_gate_that_says_it_is_not_ok_exits_with_the_number_a_script_reads(
     credentials_module.save(tmp_path / "kept", gate.port, bundle)
     gate.handler = lambda path, body, client: (
         200,
-        json.dumps({"ok": False, "database": "abcdef01", "version": "0.1.0"}),
+        json.dumps(
+            {"ok": False, "database": "abcdef01", "version": "0.1.0", "revision": "0123abcd"}
+        ),
     )
 
     assert cli.main(["status", "--directory", str(tmp_path / "kept")]) == 1

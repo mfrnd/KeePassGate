@@ -1,4 +1,5 @@
 using System;
+using System.Windows.Forms;
 using KeePass.Plugins;
 using KeePassGate.Audit;
 using KeePassGate.Bridge;
@@ -52,6 +53,10 @@ namespace KeePassGate
         private JsonLinesAudit _audit;
         private OpenDatabaseTargets _targets;
         private GateListener _listener;
+        // The seam rather than the class, because the seam is what the window is written
+        // against and a field typed at the implementation is a claim about testing that nothing
+        // is making good on.
+        private IGateSettings _settings;
 
         public override string UpdateUrl
         {
@@ -61,12 +66,135 @@ namespace KeePassGate
         }
 
         /// <summary>
+        /// Which port to listen on: what the operator chose, or what the environment says, or the
+        /// default. Zero when the environment names something that is not a port.
+        /// </summary>
+        /// <remarks>
+        /// The operator's choice comes first, because it is the only one of the three a person
+        /// made deliberately. The environment variable stays underneath it so that a test can take
+        /// a free port without touching anybody's settings, which is what it was always for.
+        /// `GateOptions.PortToTake` is where that order is decided, and where a variable that is
+        /// set to something other than a port stops the gate rather than being passed over.
+        /// </remarks>
+        private int Wanted()
+        {
+            string refused;
+            return Wanted(out refused);
+        }
+
+        /// <summary>The same, and why there is no port when there is none.</summary>
+        private int Wanted(out string refused)
+        {
+            var chosen = _settings == null ? 0 : _settings.Port;
+            return GateOptions.PortToTake(chosen, GateOptions.PortFromEnvironment(), out refused);
+        }
+
+        /// <summary>
+        /// Opens the socket. Answers with why it could not, or null when it did.
+        /// </summary>
+        /// <remarks>
+        /// Called once, from `Initialize`. A port is bound once and never rebound, which is what
+        /// `ChangePort` explains: an operator's new port is saved and taken at the next start, so
+        /// there is never a second listener and never an old one to close first.
+        /// </remarks>
+        private string Listen(int port, GateResolver resolver, IGateHandler router)
+        {
+            // No old listener to close. This runs once, from `Initialize`, because a port is bound
+            // once and never rebound, which is what `ChangePort` explains.
+            var options = new GateOptions { Port = port };
+
+            // **A variable naming something that is not a port stops the gate** rather than the
+            // default being bound in its place, and the log says so in the words the variable is
+            // refused in. The listener is built and never started, so everything that asks it
+            // hears that nothing is listening.
+            string refused;
+            Wanted(out refused);
+            if (refused != null)
+            {
+                _log.Error(refused, null);
+                _listener = new GateListener(options, resolver, router, _incidents, _log);
+                return refused;
+            }
+
+            _listener = new GateListener(options, resolver, router, _incidents, _log);
+
+            return _listener.Start()
+                ? null
+                : "nothing is listening on 127.0.0.1:" + port + ". The log says why.";
+        }
+
+        /// <summary>
+        /// Takes a port from the operator and writes it down. **It does not open one.**
+        /// </summary>
+        /// <remarks>
+        /// **A port is bound once, at startup, and never again**, and this reverses an earlier
+        /// decision rather than refining it. Changing it used to close the socket and open another
+        /// while the operator watched, which had two things wrong with it. It acted at once from a
+        /// window that also offers Cancel, so a setting was live before the dialog it was typed
+        /// into had been answered. And it could half fail: the old socket is given up before the
+        /// new one is asked for, so a port something else already held left this KeePass serving
+        /// nobody, from a gesture whose worst outcome should have been nothing happening.
+        ///
+        /// Written down and read at the next start. The one thing that is lost is immediacy, and
+        /// what is bought is that the gate a client is talking to cannot be moved out from under
+        /// it by somebody looking at a settings window.
+        /// </remarks>
+        private string ChangePort(int port)
+        {
+            return _settings.Save(port);
+        }
+
+        /// <summary>
+        /// The plugin's entry in KeePass's own menus: one item, under Tools.
+        /// </summary>
+        /// <remarks>
+        /// Through `GetMenuItem` rather than by reaching into `ToolsMenu.DropDownItems`, because
+        /// this is the seam KeePass offers: it decides where the item goes and removes it when the
+        /// plugin is unloaded, and a plugin that added and removed its own items has to get the
+        /// second half right on every path out.
+        ///
+        /// **Only under Tools.** The group and entry menus already lead to the dialogs this plugin
+        /// puts a tab on, and an item in the tray menu would be a second route to a window that
+        /// says nothing about whichever database is open.
+        ///
+        /// It opens rather than answers. What it shows is what the plugin is and whether the gate
+        /// is listening, which are questions about the plugin and are wanted when no database is
+        /// open at all, which is exactly when a tab inside a database's settings cannot be reached.
+        /// </remarks>
+        public override ToolStripMenuItem GetMenuItem(PluginMenuType t)
+        {
+            if (t != PluginMenuType.Main)
+            {
+                return null;
+            }
+
+            // With a mnemonic, because every item KeePass puts in that menu has one and an item
+            // without one is the odd entry a keyboard cannot reach. `K` is free: the menu already
+            // spends g, l, t, d, a, r, p and o on its own items.
+            var item = new ToolStripMenuItem("&" + GateTab.MenuItemText)
+            {
+                Name = GateTab.MenuItemName,
+
+                // The same picture the three tabs carry, so that everything this plugin puts into
+                // KeePass is recognizable as one plugin's doing.
+                Image = Icon()
+            };
+
+            item.Click += (sender, e) => ShowStatus();
+            return item;
+        }
+
+        /// <summary>
         /// A fresh copy of the picture this plugin puts beside its own name, or null.
         /// </summary>
         /// <remarks>
-        /// Fresh every time, because each one is handed to a dialog's image list and disposed with
-        /// it. KeePass's own icons are read rather than a picture of ours shipped, so the plugin
-        /// looks like the window it is in and follows a KeePass that restyles them.
+        /// Fresh every time, because each one is handed somewhere that copies it rather than
+        /// borrows it: an `ImageList` copies into its own handle, and a menu item keeps the
+        /// reference it was given. **Neither disposes what it was handed**, which is why
+        /// `TabPageInjector.Decorate` disposes its copy itself and says so; the one this hands to
+        /// the Tools menu is 16 by 16 and lives as long as the menu does, which is the process.
+        /// KeePass's own icons are read rather than a picture of ours shipped, so the plugin looks
+        /// like the window it is in and follows a KeePass that restyles them.
         /// </remarks>
         private System.Drawing.Image Icon()
         {
@@ -87,6 +215,29 @@ namespace KeePassGate
                 }
 
                 return null;
+            }
+        }
+
+        /// <summary>
+        /// Opens the status window.
+        /// </summary>
+        /// <remarks>
+        /// A catch-all, like the other places KeePass calls into this plugin: a menu item runs on
+        /// KeePass's own thread and an exception escaping it ends the password manager. A window
+        /// that would not open is worth a log line and an incident of its own, not a crash.
+        /// </remarks>
+        private void ShowStatus()
+        {
+            try
+            {
+                using (var window = new GateStatusForm(_listener, _incidents, ChangePort, Wanted()))
+                {
+                    window.ShowDialog();
+                }
+            }
+            catch (Exception error)
+            {
+                _incidents.Record("the status window could not be shown", error);
             }
         }
 
@@ -212,10 +363,10 @@ namespace KeePassGate
                 return false;
             }
 
+            _pluginHost = host;
+
             try
             {
-                _pluginHost = host;
-
                 // KeePass's own icons, lent to the tabs for as long as this plugin is loaded. The
                 // columns that remove things head themselves with its waste bin, and without a
                 // KeePass to borrow from they simply have no icon.
@@ -267,11 +418,9 @@ namespace KeePassGate
                             new DialogDatabases(_log, () => Changed(host)),
                             new MessageBoxPrompt(),
                             _log,
-                            GateVersion.Current,
-                            _listener,
                             _invitations,
-                            _incidents,
-                            _admissions),
+                            _admissions,
+                            _incidents),
                         _log,
                         KeePassContract.DatabaseSettingsTabControlName,
                         GateTab.Text,
@@ -476,10 +625,10 @@ namespace KeePassGate
         }
 
         /// <summary>
-        /// Starts the gate. A port that cannot be opened is reported and nothing else: the KPG tab
-        /// says the gate is not listening, and KeePass carries on regardless, because a password
-        /// manager that will not start because a plugin wanted a socket is a worse outcome than a
-        /// plugin that does nothing.
+        /// Starts the gate. A port that cannot be opened is reported and nothing else: the window says
+        /// the gate is not listening, and KeePass carries on regardless, because a password manager
+        /// that will not start because a plugin wanted a socket is a worse outcome than a plugin
+        /// that does nothing.
         /// </summary>
         private void StartListening(IPluginHost host)
         {
@@ -519,32 +668,41 @@ namespace KeePassGate
                     _log),
                 _log);
 
-            _listener = new GateListener(
-                GateOptions.FromEnvironment(),
-                new GateResolver(_targets, _invitations, _log),
-                GateOperations.Router(
-                    GateVersion.Current,
-                    new PairingHandler(_invitations, new PairingApprovalPrompt(ui, _log), _log),
-                    new AccessCheck(_audit)),
-                _incidents,
-                _log);
+            _settings = new KeePassSettings(_log);
 
-            _listener.Start();
+            // Locals rather than fields, because nothing outside this call needs either and a
+            // field would be a second way to reach KeePass's own window: the router holds the
+            // pairing handler, which holds the prompt, which holds the control every approval is
+            // marshaled to. `Terminate` lets go of the listener, and letting go of the listener
+            // has to be letting go of all of it.
+            var router = GateOperations.Router(
+                GateVersion.Current,
+                GateVersion.Revision,
+                new PairingHandler(_invitations, new PairingApprovalPrompt(ui, _log), _log),
+                new AccessCheck(_audit));
+
+            var resolver = new GateResolver(_targets, _invitations, _log);
+
+            Listen(Wanted(), resolver, router);
 
             // Locking has to be watched from here rather than from the tab, because it happens
             // whether or not anybody has the settings dialog open, and because both transitions
             // close every connection the listener is holding.
             _databases = new MainWindowDatabases(mainWindow);
-            // The plugin's own incidents, not a second tally: these handlers are two of the
-            // places that catch everything, and the KPG tab is where the count is read.
+            // The listener is asked for each time rather than handed over once. That is about
+            // construction order rather than about rebinding, which this commit takes away: the
+            // port is bound once at startup, so the listener this hands back is the only one there
+            // will be. The incidents are the plugin's own rather than a second
+            // tally: these handlers are two of the four places that catch everything, and the
+            // window under Tools is where the count is read.
             _locks = new LockWatch(_databases, _targets, () => _listener, _log, _incidents);
             _locks.Start();
         }
 
         /// <summary>
         /// Where everything this class catches goes. It is one of the places that catch
-        /// every exception, so what it caught is counted as an incident and shown on the KPG tab
-        /// rather than left in a log nobody opens.
+        /// every exception, so what it caught is counted as an incident and shown on the plugin's
+        /// own window under the Tools menu rather than left in a log nobody opens.
         /// </summary>
         private void Report(string message, Exception error)
         {

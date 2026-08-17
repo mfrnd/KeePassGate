@@ -11,12 +11,12 @@ namespace KeePassGate.Diagnostics
     /// Four places in this plugin catch every exception rather than a named one, because in those
     /// four an exception that escapes ends the password manager: the plugin's entry point, the
     /// KeePass window event handlers, the Tools menu item, and the thread serving one
-    /// connection. TODO(step 18): the Tools menu item arrives with the plugin's own window.
+    /// connection.
     ///
     /// A catch-all that only writes a log line is how an unexpected failure becomes an unnoticed
-    /// one, so those four record here instead. The count reaches the KPG tab, which is the one
-    /// place the operator already looks, and the whole exception reaches the log.
-    /// Anything caught
+    /// one, so those four record here instead. The count reaches the plugin's own window under the
+    /// Tools menu, which is the one place that can be reached with no database open, and the whole
+    /// exception reaches the log. Anything caught
     /// here is a defect in this plugin or a change in KeePass, never a client behaving badly:
     /// clients are refused by name, and a refusal is an ordinary warning.
     ///
@@ -99,9 +99,9 @@ namespace KeePassGate.Diagnostics
         }
 
         /// <summary>
-        /// One line for the KPG tab, or nothing at all when nothing has gone wrong. Deliberately
-        /// says nothing about what happened: the log has that, and this is a row rather than an
-        /// account.
+        /// One line for the window under the Tools menu, or nothing at all when nothing has
+        /// gone wrong. Deliberately says nothing about what happened: the log has that, and this is
+        /// a row rather than an account.
         /// </summary>
         public string Summary
         {

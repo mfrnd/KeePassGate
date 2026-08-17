@@ -456,6 +456,34 @@ namespace KeePassGate.Host.Tests
             }
         }
 
+        [Test]
+        public void The_settings_dialog_leaves_the_window_manager_in_a_close_handler_it_subscribes_when_built()
+        {
+            // The KPG tab applies what it held from a `FormClosed` handler of its own, subscribed
+            // as the tab is built, which is after the dialog's constructor. The dialog subscribes
+            // its own handler there, and that one takes it off the window manager, which detaches
+            // the page and disposes the panel: the tab's handler therefore runs with the page gone
+            // and must need nothing from it. `AuthorityPanelFactory.Commit` says so, on this.
+            var dialog = typeof(DatabaseSettingsForm);
+            var closed = dialog.GetMethod(
+                "OnFormClosed",
+                BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.DeclaredOnly,
+                null,
+                new[] { typeof(object), typeof(FormClosedEventArgs) },
+                null);
+            var build = dialog.GetMethod("InitializeComponent", BindingFlags.Instance | BindingFlags.NonPublic);
+
+            Assert.That(closed, Is.Not.Null, "the dialog's own close handler is gone");
+            Assert.That(build, Is.Not.Null, "the dialog no longer builds itself in InitializeComponent");
+            Assert.That(Calls(dialog.GetConstructor(Type.EmptyTypes), build), Is.True,
+                "the dialog no longer builds itself as it is constructed");
+            Assert.That(Calls(build, typeof(Form).GetEvent("FormClosed").GetAddMethod()), Is.True,
+                "the dialog no longer subscribes to its own close as it is built");
+            Assert.That(Calls(closed, typeof(GlobalWindowManager).GetMethod("RemoveWindow", new[] { typeof(Form) })),
+                Is.True,
+                "the dialog no longer takes itself off the window manager when it closes");
+        }
+
         /// <summary>Whether a method's body calls, or constructs through, the other one.</summary>
         /// <remarks>
         /// The token after every call, virtual call and constructor call opcode in the body is

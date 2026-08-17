@@ -868,7 +868,18 @@ So the rules here:
   by design because it is waiting on a person rather than on the wire. Closing the socket there does
   not cancel anything: the invitation is still spent and the record still saved, and only the answer
   is lost. `GateOptions.PairingBudget` covers the whole of what a pairing waits for, and a test pins
-  it against the four timeouts it has to outlast.
+  it against the five waits it has to outlast: the screen, because one pairing is put to the
+  operator at a time and a second waits as long again just to get in front of them, then the dialog,
+  the grace on it, the turn at the writer and the write.
+
+  **And the ordinary budget has a floor of the same kind**, which is the half that was missed while
+  pairing was being counted. Every route that changes the database waits for the single writer and
+  then for the marshaled write and save, and nothing extends a deadline for those, because nothing
+  about them is a person. A budget under `DatabaseWriter.LockTimeout + DatabaseWriter.WriteTimeout`
+  closes the socket while a write that is still going to land is landing, leaving a client unable to
+  tell a create that happened from one that did not and holding no identifier either way. That is
+  the same loss pairing is protected from, arriving on every other route.
+
 - **A write that landed is told to the window as well as to the client.** KeePass's save ends in
   `MainForm.UpdateUIState`, which redraws the title bar and the menus and rebuilds neither the
   group tree nor the entry list, so an operator watching the window sees the database as it was
@@ -896,10 +907,10 @@ So the rules here:
   **Not for an admission record.** A record is in the database's own custom data, which the main
   window has no view of, so pairing saves and redraws nothing.
 - **Nothing throws to the transport.** A handler failure becomes `500 internal error` and an
-  incident, counted on the KPG tab and logged at `UNEXPECTED`, because an unhandled exception in
-  this process takes KeePass with it. It is not audited, which this bullet used to claim: the
-  request's audit line is the permitted one written before the handler ran, since the audit
-  records the authorization and not what the request then did (§120).
+  incident, counted on the plugin's window under Tools and logged at `UNEXPECTED`, because an
+  unhandled exception in this process takes KeePass with it. It is not audited, which this bullet
+  used to claim: the request's audit line is the permitted one written before the handler ran,
+  since the audit records the authorization and not what the request then did (§120).
 - Distribution is a **plain DLL** targeting .NET Framework 4.8, not a `.plgx`, which is what allows
   modern C# and what the packaging measurement showed.
 

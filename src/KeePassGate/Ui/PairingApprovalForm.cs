@@ -287,11 +287,11 @@ namespace KeePassGate.Ui
             ShowInTaskbar = true;
             TopMost = true;
 
-            // Sized by what is in it rather than by a number written here. A fixed client area is
-            // right at one display scaling and wrong at every other, and here it failed in the
-            // granting direction: at 125% the profile list showed one row of what was asked for and
-            // at 150% it showed none, while every profile stayed checked and Approve granted all of
-            // them.
+            // Sized by what is in it rather than by a number written here, which is what
+            // `GateStatusForm` does and for the same reason. A fixed client area is right at one
+            // display scaling and wrong at every other, and here it failed in the granting
+            // direction: at 125% the profile list showed one row of what was asked for and at 150%
+            // it showed none, while every profile stayed checked and Approve granted all of them.
             //
             // **No automatic scaling**, because there is nothing for it to do. What the content is
             // sized from is measured below in the font the dialog is built at, which on a scaled

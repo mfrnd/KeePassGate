@@ -50,11 +50,17 @@ def _segment(text: str) -> str:
 
 @dataclass(frozen=True)
 class Status:
-    """What the gate says about itself and the database this client reached."""
+    """What the gate says about itself and the database this client reached.
+
+    `version` is the plugin's release, which this client and the routing document share, and
+    `revision` the commit the plugin was built from, in full, or empty for a build that carries
+    none: every build between two releases carries the same version, and this tells them apart.
+    """
 
     ok: bool
     database: str
     version: str
+    revision: str
 
 
 class GateClient:
@@ -165,15 +171,18 @@ class GateClient:
         A client can use it to answer three questions at once: whether the gate is listening,
         whether this certificate is still admitted, and whether the database is unlocked.
 
-        The three members are read as the document declares them, as every other answer's are:
-        `bool` would read the text "false" as true, and `str` a `null` as the word "None".
+        Every member is read as the document declares it, as every other answer's are: `bool`
+        would read the text "false" as true, and `str` a `null` as the word "None".
         """
         body = self.get(STATUS_PATH)
-        ok, database, version = body.get("ok"), body.get("database"), body.get("version")
-        if not isinstance(ok, bool) or not (isinstance(database, str) and isinstance(version, str)):
+        ok, database = body.get("ok"), body.get("database")
+        version, revision = body.get("version"), body.get("revision")
+        if not isinstance(ok, bool) or not (
+            isinstance(database, str) and isinstance(version, str) and isinstance(revision, str)
+        ):
             raise ProtocolError("the gate answered its status in a form this client cannot read")
 
-        return Status(ok=ok, database=database, version=version)
+        return Status(ok=ok, database=database, version=version, revision=revision)
 
     # Groups
 

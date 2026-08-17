@@ -17,7 +17,7 @@ namespace KeePassGate.Ui
     /// and to whoever else adds a tab: five of KeePass's own are already on the entry dialog. The
     /// line at the top of the page says what the page is for, which is the job a longer caption
     /// would have been doing, and the item under the Tools menu is where the abbreviation is spelled
-    /// out. TODO(step 18): that menu item is what the plugin's own window step adds.
+    /// out.
     /// </remarks>
     public static class GrantTab
     {

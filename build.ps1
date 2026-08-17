@@ -904,7 +904,10 @@ function Invoke-Run {
     }
 
     Write-Host "KeePass $($process.Id) is running with the $Configuration build." -ForegroundColor Green
-    Write-Host 'Open a database, then look for the KPG tab under File, Database Settings.'
+    # This commit is what makes the answer the Tools menu rather than the database settings
+    # dialog: the window it adds says whether the plugin loaded without a database being open
+    # at all, which is the question somebody starting a launcher is asking.
+    Write-Host 'To check that it loaded, open Tools, KeePassGate (KPG).'
     Write-Host "The plugin writes its log to $log."
 }
 

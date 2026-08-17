@@ -44,8 +44,19 @@ namespace KeePassGate.Tests.Fakes
             get { return _store; }
         }
 
+        /// <summary>
+        /// What marking the database as modified throws, or null for a mark that works. For the
+        /// failure nobody predicted, which the handlers that catch everything have to count.
+        /// </summary>
+        public System.Exception MarkThrows { get; set; }
+
         public void MarkModified()
         {
+            if (MarkThrows != null)
+            {
+                throw MarkThrows;
+            }
+
             MarkedModifiedCount++;
         }
     }

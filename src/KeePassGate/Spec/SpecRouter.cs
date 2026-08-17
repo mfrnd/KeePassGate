@@ -516,7 +516,7 @@ namespace KeePassGate.Spec
                 // The database kept changing while it was being read. That is somebody using
                 // KeePass, not a fault here, and letting it travel makes it one: the catch-all
                 // around this counts anything escaping the router as a defect in this plugin,
-                // answers 500, and counts an incident for it.
+                // answers 500, and puts an incident on the plugin's own window for it.
                 context.Respond(503, HttpResponse.ErrorBody("busy"));
             }
         }

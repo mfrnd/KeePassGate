@@ -39,8 +39,6 @@ namespace KeePassGate.Host.Tests
                     new DialogDatabases(NullGateLog.Instance),
                     new AlwaysConfirms(),
                     NullGateLog.Instance,
-                    "1.2.3",
-                    null,
                     _book),
                 NullGateLog.Instance);
 

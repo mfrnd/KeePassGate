@@ -147,7 +147,7 @@ namespace KeePassGate.Host.Tests
             pending = new PendingDatabase(
                 new OpenDatabase(_database.Database, delegate { }), NullGateLog.Instance);
 
-            return new AuthorityPanel(pending, new NeverAsked(), NullGateLog.Instance, "1.2.3");
+            return new AuthorityPanel(pending, new NeverAsked(), NullGateLog.Instance);
         }
 
         private bool Authority()

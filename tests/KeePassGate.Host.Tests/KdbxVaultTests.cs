@@ -1030,7 +1030,7 @@ namespace KeePassGate.Host.Tests
             // on a connection thread while the user interface thread changes them. What must never
             // escape is one of KeePass's own collection exceptions: those reach the catch-all that
             // reports a defect in this plugin, so an agent reading while somebody typed answered
-            // 500 and put a false incident on the KPG tab.
+            // 500 and put a false incident on the operator's window.
             var group = Created(_vault.CreateGroup(_vault.RootAlias, "Fictitious", null));
             var behind = _database.Database.RootGroup.FindGroup(
                 new PwUuid(MemUtil.HexStringToByteArray(group)), true);

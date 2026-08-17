@@ -168,7 +168,11 @@ servers:
     variables:
       port:
         default: "51776"
-        description: Chosen at startup, or set with KEEPASSGATE_PORT.
+        description: |
+          The port the operator set on the plugin's window under KeePass's Tools menu, taken when
+          KeePass starts. `KEEPASSGATE_PORT` is read only when no port is set there, and has to
+          name one from 1024 to 65535: set to anything else, it stops the gate from listening at
+          all. This default is taken only when neither names a port.
 
 paths:
   /gate/status:
@@ -186,7 +190,7 @@ paths:
             application/json:
               schema:
                 type: object
-                required: [ok, database, version]
+                required: [ok, database, version, revision]
                 additionalProperties: false
                 properties:
                   ok:
@@ -198,6 +202,12 @@ paths:
                       without naming it.
                   version:
                     type: string
+                  revision:
+                    type: string
+                    description: |
+                      The commit the plugin was built from, in full, or empty for a build that
+                      carries none. Every build between two releases carries the same version, and
+                      this is what tells them apart.
         "401":
           $ref: "#/components/responses/Unpaired"
         "503":

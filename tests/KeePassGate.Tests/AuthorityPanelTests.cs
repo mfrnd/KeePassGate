@@ -26,9 +26,6 @@ namespace KeePassGate.Tests
     [Apartment(ApartmentState.STA)]
     public sealed class AuthorityPanelTests
     {
-        /// <summary>Invented, and only ever shown in a label.</summary>
-        private const string Version = "1.2.3";
-
         private FakeGateDatabase _database;
         private RecordingGateLog _log;
 
@@ -223,7 +220,7 @@ namespace KeePassGate.Tests
         [Test]
         public void A_dialog_with_no_database_shows_that_and_offers_nothing()
         {
-            using (var panel = new AuthorityPanel(null, new FakePrompt(true), _log, Version))
+            using (var panel = new AuthorityPanel(null, new FakePrompt(true), _log))
             {
                 Assert.That(Label(panel, GateTab.StatusLabelName).Text, Is.EqualTo(AuthorityDescription.NoDatabaseHeadline));
                 Assert.That(Button(panel, GateTab.CreateButtonName).Enabled, Is.False);
@@ -310,7 +307,7 @@ namespace KeePassGate.Tests
             // for a database that was not there.
             var pending = new PendingDatabase(_database, _log);
 
-            using (var panel = new AuthorityPanel(pending, new FakePrompt(true), _log, "1.0.0"))
+            using (var panel = new AuthorityPanel(pending, new FakePrompt(true), _log))
             {
                 panel.CreateAuthority();
                 pending.Apply();
@@ -360,9 +357,7 @@ namespace KeePassGate.Tests
             // pairing succeed, saw nothing change, and had to switch away and back.
             var notice = new AdmissionNotice();
 
-            using (var panel = new AuthorityPanel(
-                       _database, new FakePrompt(true), _log, "1.0.0", null, null, null, null,
-                       notice))
+            using (var panel = new AuthorityPanel(_database, new FakePrompt(true), _log, null, null, notice))
             {
                 panel.CreateAuthority();
                 panel.Describe();
@@ -390,9 +385,7 @@ namespace KeePassGate.Tests
             // pairing, once for every settings dialog that was ever opened.
             var notice = new AdmissionNotice();
 
-            using (var panel = new AuthorityPanel(
-                       _database, new FakePrompt(true), _log, "1.0.0", null, null, null, null,
-                       notice))
+            using (var panel = new AuthorityPanel(_database, new FakePrompt(true), _log, null, null, notice))
             {
                 panel.CreateAuthority();
                 panel.Describe();
@@ -842,7 +835,7 @@ namespace KeePassGate.Tests
         [Test]
         public void Revoking_with_no_database_says_so_rather_than_throwing()
         {
-            using (var panel = new AuthorityPanel(null, new FakePrompt(true), _log, Version))
+            using (var panel = new AuthorityPanel(null, new FakePrompt(true), _log))
             {
                 Assert.That(panel.AdmittedClients().Records, Is.Empty);
                 Assert.That(panel.Revoke(null), Is.Not.Null);
@@ -907,7 +900,7 @@ namespace KeePassGate.Tests
             // KeePass is holding, which has not been told.
             var pending = new PendingDatabase(_database, null);
 
-            using (var panel = new AuthorityPanel(pending, new FakePrompt(true), _log, Version))
+            using (var panel = new AuthorityPanel(pending, new FakePrompt(true), _log))
             {
                 Assert.That(panel.AuthorityIsWaiting, Is.False, "before anybody pressed anything");
                 Assert.That(Label(panel, GateTab.InviteNoticeName).Visible, Is.False);
@@ -937,7 +930,7 @@ namespace KeePassGate.Tests
             var pending = new PendingDatabase(_database, null);
 
             using (var panel = new AuthorityPanel(
-                pending, new FakePrompt(true), _log, Version, null, new InvitationBook(_log), null, null))
+                pending, new FakePrompt(true), _log, new InvitationBook(_log), null))
             {
                 panel.CreateAuthority();
                 pending.Apply();
@@ -985,7 +978,7 @@ namespace KeePassGate.Tests
             var pending = new PendingDatabase(_database, null);
 
             using (var panel = new AuthorityPanel(
-                pending, new FakePrompt(true), _log, Version, null, new InvitationBook(_log), null, null))
+                pending, new FakePrompt(true), _log, new InvitationBook(_log), null))
             {
                 panel.CreateAuthority();
                 pending.Apply();
@@ -1015,7 +1008,7 @@ namespace KeePassGate.Tests
             var pending = new PendingDatabase(_database, null);
 
             using (var panel = new AuthorityPanel(
-                pending, new FakePrompt(true), _log, Version, null, new InvitationBook(_log), null, null))
+                pending, new FakePrompt(true), _log, new InvitationBook(_log), null))
             {
                 panel.CreateAuthority();
 
@@ -1076,7 +1069,7 @@ namespace KeePassGate.Tests
 
         private AuthorityPanel NewPanel(IOperatorPrompt prompt)
         {
-            return new AuthorityPanel(_database, prompt, _log, Version);
+            return new AuthorityPanel(_database, prompt, _log);
         }
 
         private string Digest()

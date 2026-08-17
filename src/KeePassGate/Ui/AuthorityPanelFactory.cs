@@ -9,113 +9,70 @@ namespace KeePassGate.Ui
     /// Builds the KPG tab for whichever database the dialog is about.
     /// </summary>
     /// <remarks>
-    /// A dialog with no database behind it still gets a panel, saying so. Refusing to attach would
-    /// leave the operator looking for a tab that is missing for reasons they cannot see.
+    /// The dialog arrives rather than the database, because which database a settings dialog is
+    /// editing is a KeePass question and `IGateDatabaseSource` is the only thing here that answers
+    /// it. A dialog with no database behind it still gets a tab, which says so.
     /// </remarks>
     public sealed class AuthorityPanelFactory : IGatePanelFactory
     {
         private readonly IGateDatabaseSource _databases;
         private readonly IOperatorPrompt _prompt;
         private readonly IGateLog _log;
-        private readonly string _version;
-        private readonly IGateStatus _gate;
         private readonly IInvitations _invitations;
-        private readonly GateIncidents _incidents;
 
         private readonly IAdmissionNotice _admissions;
-
-        public AuthorityPanelFactory(
-            IGateDatabaseSource databases,
-            IGateLog log,
-            IGateStatus gate,
-            IInvitations invitations,
-            GateIncidents incidents)
-            : this(databases, new MessageBoxPrompt(), log, GateVersion.Current, gate, invitations, incidents)
-        {
-        }
-
-        /// <summary>The same, and handed the notice every panel it builds should listen to.</summary>
-        public AuthorityPanelFactory(
-            IGateDatabaseSource databases,
-            IGateLog log,
-            IGateStatus gate,
-            IInvitations invitations,
-            GateIncidents incidents,
-            IAdmissionNotice admissions)
-            : this(databases, new MessageBoxPrompt(), log, GateVersion.Current, gate, invitations,
-                   incidents, admissions)
-        {
-        }
-
-        public AuthorityPanelFactory(IGateDatabaseSource databases, IOperatorPrompt prompt, IGateLog log, string version)
-            : this(databases, prompt, log, version, null, null)
-        {
-        }
+        private readonly GateIncidents _incidents;
 
         public AuthorityPanelFactory(
             IGateDatabaseSource databases,
             IOperatorPrompt prompt,
             IGateLog log,
-            string version,
-            IGateStatus gate,
             IInvitations invitations)
-            : this(databases, prompt, log, version, gate, invitations, null)
-        {
-        }
-
-        public AuthorityPanelFactory(
-            IGateDatabaseSource databases,
-            IOperatorPrompt prompt,
-            IGateLog log,
-            string version,
-            IGateStatus gate,
-            IInvitations invitations,
-            GateIncidents incidents)
-            : this(databases, prompt, log, version, gate, invitations, incidents, null)
+            : this(databases, prompt, log, invitations, null, null)
         {
         }
 
         /// <summary>
-        /// The same, and telling every panel it builds what to listen to for a record landing.
+        /// The same, telling every panel it builds what to listen to for a record landing, and
+        /// counting what escapes the dialog's close where the plugin's window shows it.
         /// </summary>
         /// <remarks>
         /// One notice for the whole plugin, handed to each panel as it is built. A panel drops it
         /// when it is disposed, so the dialog being opened and closed all afternoon leaves nothing
         /// behind.
+        ///
+        /// The incidents are the plugin's own rather than a tally of this factory's, because the
+        /// handler that applies what the tab held is one of the KeePass window event handlers that
+        /// catch everything, and every one of those reports to the count the Tools window reads. A
+        /// factory given none counts on one of its own, which is what a test builds.
         /// </remarks>
         public AuthorityPanelFactory(
             IGateDatabaseSource databases,
             IOperatorPrompt prompt,
             IGateLog log,
-            string version,
-            IGateStatus gate,
             IInvitations invitations,
-            GateIncidents incidents,
-            IAdmissionNotice admissions)
+            IAdmissionNotice admissions,
+            GateIncidents incidents)
         {
+            // Refused rather than tolerated, because the alternative is a tab that reads "no
+            // database open on this dialog" whether that is true or whether this was wired up
+            // wrongly, and those want different answers from whoever is looking at it.
             if (databases == null)
             {
                 throw new ArgumentNullException(nameof(databases));
             }
 
-            if (version == null)
-            {
-                throw new ArgumentNullException(nameof(version));
-            }
-
             _databases = databases;
             _prompt = prompt;
-            _log = log ?? NullGateLog.Instance;
-            _version = version;
-            _gate = gate;
+            _log = log;
             _invitations = invitations;
-            _incidents = incidents;
             _admissions = admissions;
+            _incidents = incidents ?? new GateIncidents(Log());
         }
 
         public Control CreatePanel(Form dialog)
         {
-            var found = _databases == null ? null : _databases.ForDialog(dialog);
+            var found = _databases.ForDialog(dialog);
 
             // Held back until the dialog says so. Everything the pages do goes through this, so
             // none of them has to know, and the dialog's own OK and Cancel come to mean what they
@@ -131,10 +88,7 @@ namespace KeePassGate.Ui
                 database,
                 _prompt,
                 _log,
-                _version,
-                _gate,
                 invitations,
-                _incidents,
                 database == null ? null : new DatabaseProfiles(database, _log),
                 _admissions);
 
@@ -153,14 +107,17 @@ namespace KeePassGate.Ui
         /// **After the page has gone, and that is fine.** KeePass's own dialog subscribes a
         /// `FormClosed` handler in its constructor, and that handler takes the dialog off
         /// `GlobalWindowManager`, which is what detaches the page and disposes the panel, before
-        /// this runs: read off 2.61.1. Nothing here needs the panel: what is applied or discarded
-        /// is the buffer the panel wrote into, which outlives it. Subscribed while the panel is
-        /// built only because that is when the buffer exists, and before the injector's own
-        /// handler, which finds nothing left to take away.
+        /// this runs: read off 2.61.1, and `KeePassContractTests` keeps checking it. Nothing here
+        /// needs the panel: what is applied or discarded is the buffer the panel wrote into, which
+        /// outlives it. Subscribed while the panel is built only because that is when the buffer
+        /// exists, and before the injector's own handler, which finds nothing left to take away.
         ///
         /// **The invitations made on the dialog go first when it is not accepted**, before the
         /// buffer is discarded, because a code still out is the one thing here a stranger can act
         /// on. Every answer that is not OK withdraws them: Cancel, the close box and Escape alike.
+        ///
+        /// **What landed is said in the log**, which is the only place left to say it: the dialog
+        /// that could have is closing.
         /// </remarks>
         private void Commit(Form dialog, PendingDatabase database, PendingInvitations invitations)
         {
@@ -183,13 +140,18 @@ namespace KeePassGate.Ui
                             invitations.Apply();
                         }
 
-                        database.Apply();
+                        if (database.Apply())
+                        {
+                            Log().Info("what the " + GateName.Product + " tab held was put into "
+                                + "the database, which KeePass now says has changes to save");
+                        }
+
                         return;
                     }
 
                     if (invitations != null && invitations.Discard() > 0)
                     {
-                        _log.Info("the invitation made on the " + GateTab.Text
+                        Log().Info("the invitation made on the " + GateName.Product
                             + " tab was withdrawn: the dialog closed without OK");
                     }
 
@@ -200,8 +162,9 @@ namespace KeePassGate.Ui
                     // A catch-all, because KeePass raises `FormClosed` itself and anything escaping
                     // here ends the password manager. A narrow filter left every unpredicted type
                     // to do just that: a null reference, or a `TypeLoadException` after a KeePass
-                    // upgrade. Reported at the level that means there is a defect here.
-                    Log().Unexpected(
+                    // upgrade. Counted as an incident, like every handler of KeePass's events that
+                    // catches everything, so the Tools window shows it and the log has it whole.
+                    _incidents.Record(
                         "what the " + GateName.Product + " tab was holding could not be written", error);
                 }
             };

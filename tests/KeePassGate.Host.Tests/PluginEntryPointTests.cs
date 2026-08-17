@@ -122,6 +122,16 @@ namespace KeePassGate.Host.Tests
             Assert.That(Plugin.GetName().Version, Is.Not.EqualTo(new Version(0, 0, 0, 0)));
             Assert.That(GateVersion.Current, Does.Match(@"^\d+\.\d+\.\d+"));
         }
+
+        [Test]
+        public void It_names_the_commit_it_was_built_from_apart_from_its_version()
+        {
+            // The SDK appends the commit to the informational version after a plus sign, and the
+            // status route answers the two as members of their own, so neither may carry the
+            // other. None at all is a build from a tree that is not a repository.
+            Assert.That(GateVersion.Current, Does.Not.Contain("+"));
+            Assert.That(GateVersion.Revision, Does.Match("^([0-9a-f]{40})?$"), "a commit in full, or none");
+        }
     }
 
     /// <summary>

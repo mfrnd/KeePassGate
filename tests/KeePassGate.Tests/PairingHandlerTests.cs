@@ -472,7 +472,7 @@ namespace KeePassGate.Tests
             // Ten years, or a clock that jumped. The database is still served, because
             // `AuthorityStore.Read` ignores expiry on purpose, so the refusal has to happen here.
             // Left to the issuance below, it arrived as an exception nothing named, escaped the
-            // handler, and was counted on the KPG tab as a defect in this plugin.
+            // handler, and was counted on the operator's window as a defect in this plugin.
             using (var old = TestAuthority.New(Aged))
             {
                 var approval = Approving();

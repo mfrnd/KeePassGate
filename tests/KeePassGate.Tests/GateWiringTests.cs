@@ -1,6 +1,9 @@
+using System;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 using System.Windows.Forms;
+using KeePassGate.Diagnostics;
 using KeePassGate.Tests.Fakes;
 using KeePassGate.Ui;
 using NUnit.Framework;
@@ -29,7 +32,7 @@ namespace KeePassGate.Tests
             _log = new RecordingGateLog();
             _database = new FakeGateDatabase();
             _injector = new TabPageInjector(
-                new AuthorityPanelFactory(new FakeDatabaseSource(_database), new FakePrompt(false), _log, "1.2.3"),
+                new AuthorityPanelFactory(new FakeDatabaseSource(_database), new FakePrompt(false), _log, null),
                 _log);
             _host = new GateHost(_windows, new TypeNameFormMatcher(typeof(TestDialogForm).FullName), _injector, _log);
         }
@@ -105,6 +108,36 @@ namespace KeePassGate.Tests
 
             Assert.That(_log.Errors, Is.Empty);
             Assert.That(_log.Warnings, Is.Empty);
+        }
+
+        [Test]
+        public void A_failure_applying_the_tab_on_OK_is_counted_where_the_Tools_window_reads_it()
+        {
+            // H042: the handler applying what the tab held is one of KeePass's window event
+            // handlers that catch everything, and it logged at the level that means a defect
+            // without counting one, so the Tools window's incidents never showed it.
+            var incidents = new GateIncidents(_log);
+            var factory = new AuthorityPanelFactory(
+                new FakeDatabaseSource(_database), new FakePrompt(true), _log, null, null, incidents);
+
+            using (var form = Dialogs.WithNestedTabControl("General"))
+            using (var panel = (AuthorityPanel)factory.CreatePanel(form))
+            {
+                panel.CreateAuthority();
+                _database.MarkThrows = new InvalidOperationException("invented for the test");
+
+                form.DialogResult = DialogResult.OK;
+                typeof(Form).GetMethod(
+                        "OnFormClosed",
+                        BindingFlags.NonPublic | BindingFlags.Instance,
+                        null,
+                        new[] { typeof(FormClosedEventArgs) },
+                        null)
+                    .Invoke(form, new object[] { new FormClosedEventArgs(CloseReason.UserClosing) });
+
+                Assert.That(incidents.Count, Is.EqualTo(1), "the failure was not counted");
+                Assert.That(incidents.Recent.Single(), Does.Contain("could not be written"));
+            }
         }
     }
 }

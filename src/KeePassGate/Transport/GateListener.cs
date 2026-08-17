@@ -256,10 +256,11 @@ namespace KeePassGate.Transport
                         // `_running` before it closes the listener, so an accept that fails while
                         // the flag is still set is the case the `finally` below names: one nobody
                         // chose. Saying nothing there was the whole of the report. The gate stops
-                        // listening for the rest of the session, and the log, which is the one
-                        // place a reason could be, had the reason and threw it away. An accept
-                        // refused for want of buffers or of handles is what this is for, and the
-                        // socket error code is the whole of what distinguishes one.
+                        // listening for the rest of the session, the plugin's own window says only
+                        // that it is not listening, and the log, which is the one place a reason
+                        // could be, had the reason and threw it away. An accept refused for want
+                        // of buffers or of handles is what this is for, and the socket error code
+                        // is the whole of what distinguishes one.
                         if (_running)
                         {
                             _log.Error(
@@ -528,7 +529,7 @@ namespace KeePassGate.Transport
             }
             catch (Exception error)
             {
-                // One of the catch-alls. This runs on a thread pool thread, so an exception
+                // One of the four catch-alls. This runs on a thread pool thread, so an exception
                 // that escapes it is an unhandled exception in the password manager's process, and
                 // the process is what would end. A client chooses when this happens, which is why
                 // what it caught is counted where the operator can see it.

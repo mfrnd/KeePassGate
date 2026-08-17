@@ -38,13 +38,30 @@ def test_the_status_route_says_what_the_gate_and_the_database_are(
 ) -> None:
     gate.handler = lambda path, body, client: (
         200,
-        json.dumps({"ok": True, "database": "abcdef01", "version": "0.1.0"}),
+        json.dumps(
+            {"ok": True, "database": "abcdef01", "version": "0.1.0", "revision": "0123abcd"}
+        ),
     )
 
     status = paired.status()
 
-    assert (status.ok, status.database, status.version) == (True, "abcdef01", "0.1.0")
+    assert (status.ok, status.database, status.version, status.revision) == (
+        True, "abcdef01", "0.1.0", "0123abcd"
+    )
     assert gate.requests == [("GET", "/gate/status")]
+
+
+def test_a_build_carrying_no_commit_is_read_as_an_empty_revision(
+    gate: FakeGate, paired: GateClient
+) -> None:
+    # Empty is an answer, and the member is still required: a gate leaving it out is answering in
+    # a form the document does not declare.
+    gate.handler = lambda path, body, client: (
+        200,
+        json.dumps({"ok": True, "database": "abcdef01", "version": "0.1.0", "revision": ""}),
+    )
+
+    assert paired.status().revision == ""
 
 
 def test_every_request_is_named_from_the_gate_key(gate: FakeGate, paired: GateClient) -> None:
@@ -221,7 +238,9 @@ def test_a_client_is_one_identity_for_as_long_as_it_lives(
     client = GateClient(stored, connection_timeout=10.0)
     gate.handler = lambda path, body, certificate: (
         200,
-        json.dumps({"ok": True, "database": "abcdef01", "version": "0.1.0"}),
+        json.dumps(
+            {"ok": True, "database": "abcdef01", "version": "0.1.0", "revision": "0123abcd"}
+        ),
     )
 
     client.status()
@@ -387,7 +406,9 @@ class TestWaitingOutARefusal:
                 left[0] -= 1
                 return 503, json.dumps({"error": error})
 
-            return 200, json.dumps({"ok": True, "database": "abcdef01", "version": "0.1.0"})
+            return 200, json.dumps(
+                {"ok": True, "database": "abcdef01", "version": "0.1.0", "revision": "0123abcd"}
+            )
 
         gate.handler = answer
         gate.retry_after = "2"
@@ -589,11 +610,13 @@ def test_an_identity_cut_short_opens_no_client_and_says_which_file(
 @pytest.mark.parametrize(
     "answer",
     [
-        {"ok": "false", "database": "abcdef01", "version": "0.1.0"},
-        {"ok": True, "database": None, "version": "0.1.0"},
-        {"ok": True, "database": "abcdef01"},
+        {"ok": "false", "database": "abcdef01", "version": "0.1.0", "revision": "0123abcd"},
+        {"ok": True, "database": None, "version": "0.1.0", "revision": "0123abcd"},
+        {"ok": True, "database": "abcdef01", "revision": "0123abcd"},
+        {"ok": True, "database": "abcdef01", "version": "0.1.0"},
+        {"ok": True, "database": "abcdef01", "version": "0.1.0", "revision": None},
     ],
-    ids=["ok as text", "a null database", "no version"],
+    ids=["ok as text", "a null database", "no version", "no revision", "a null revision"],
 )
 def test_a_status_this_client_cannot_read_is_a_protocol_error(
     answer: dict[str, Any], gate: FakeGate, paired: GateClient

@@ -151,7 +151,7 @@ namespace KeePassGate.Bridge
                     // by nobody: the count never reaches zero, so the gate key and the host PKCS#12
                     // of a database that was perfectly readable are never wiped. Given back here
                     // rather than in a `catch`, so the throw goes on to the resolver untouched and
-                    // this stays out of the places that catch everything.
+                    // this stays out of the four places that catch everything.
                     if (!handedOver)
                     {
                         foreach (var taken in targets)

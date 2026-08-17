@@ -118,12 +118,18 @@ sequenceDiagram
     CL->>CL: store, then discard the token
 ```
 
-**A pairing connection is measured against a budget of its own.** Every other connection has thirty
-seconds from accept to answer, which is what stops a peer holding a thread by feeding it a byte at a
-time. Phase 4 blows through that on purpose: the operator is given two minutes to read the dialog,
-the prompt waits a little longer than the dialog does, and the write and save that follow have
-timeouts of their own. So the moment the name resolves to an invitation, the connection's deadline
-is set again to `GateOptions.PairingBudget`.
+**A pairing connection is measured against a budget of its own.** Every other connection has a
+fixed span from accept to answer, which is what stops a peer holding a thread by feeding it a byte
+at a time. It is not free to be as short as that purpose alone would make it: a route that changes
+the database waits for its turn at the single writer and then for the write and the save, and a
+budget under those closes the socket while a write that is still going to land is landing.
+
+Phase 4 blows through it on purpose, and by more than one wait. The operator is given two minutes to
+read the dialog; a second pairing waits that long again just to get in front of them, since only one
+is put to the operator at a time; the prompt waits a little longer than the dialog does; and the
+write and save that follow have timeouts of their own. So the moment the name resolves to an
+invitation, the connection's deadline is set again to `GateOptions.PairingBudget`, which outlasts
+all of them together.
 
 Closing the socket underneath phase 4 does not stop the pairing, which is what makes this worth
 saying. Everything after the dialog still happens: the certificate is issued, the invitation is

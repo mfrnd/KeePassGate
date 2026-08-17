@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography.X509Certificates;
 using KeePassGate.Acl;
+using KeePassGate.Audit;
 using KeePassGate.Authority;
 using KeePassGate.Diagnostics;
 using KeePassGate.Gate;
@@ -52,6 +53,32 @@ namespace KeePassGate.Tests
             _router.Handle(context);
 
             Assert.That(context.Json, Does.Contain("\"database\":\"" + CertificateDigest.Shorten(databaseId) + "\""));
+        }
+
+        [Test]
+        public void The_status_names_the_commit_the_build_was_made_from()
+        {
+            // A member of its own, beside a version left as it was, because every build between
+            // two releases carries the same version and this is what tells them apart.
+            var router = GateOperations.Router("9.9.9", "0123abcd", null, new AccessCheck(NullGateAudit.Instance));
+            var context = Request("GET", GateOperations.StatusPath, Paired("db-digest"));
+
+            router.Handle(context);
+
+            Assert.That(context.Json, Does.Contain("\"version\":\"9.9.9\""));
+            Assert.That(context.Json, Does.Contain("\"revision\":\"0123abcd\""));
+        }
+
+        [Test]
+        public void A_build_that_carries_no_commit_says_so_rather_than_leaving_it_out()
+        {
+            // Empty, and still there: the document requires the member, and a client reading it
+            // as the document declares it would refuse an answer without one.
+            var context = Request("GET", GateOperations.StatusPath, Paired("db-digest"));
+
+            _router.Handle(context);
+
+            Assert.That(context.Json, Does.Contain("\"revision\":\"\""));
         }
 
         [Test]
@@ -180,7 +207,7 @@ namespace KeePassGate.Tests
             // Every operation the document declares, with the two this test watches replaced.
             // Naming only those would fail the startup assertion, which is the assertion working.
             var handlers = new Dictionary<string, OperationHandler>(
-                GateOperations.Handlers("9.9.9", null).ToDictionary(p => p.Key, p => p.Value),
+                GateOperations.Handlers("9.9.9", string.Empty, null).ToDictionary(p => p.Key, p => p.Value),
                 StringComparer.Ordinal)
             {
                 [GateOperations.Status] = reached.Handle,
@@ -227,7 +254,7 @@ namespace KeePassGate.Tests
             // apart.
             var raised = Assert.Throws<InvalidOperationException>(
                 () => new SpecRouter(GateOperations.Document, new Dictionary<string, OperationHandler>(
-                    GateOperations.Handlers("9.9.9", null).ToDictionary(p => p.Key, p => p.Value),
+                    GateOperations.Handlers("9.9.9", string.Empty, null).ToDictionary(p => p.Key, p => p.Value),
                     StringComparer.Ordinal)
                 {
                     [GateOperations.HeadStatus] = Nothing,
@@ -246,7 +273,7 @@ namespace KeePassGate.Tests
             var raised = Assert.Throws<InvalidOperationException>(
                 () => new SpecRouter(
                     GateOperations.Document,
-                    GateOperations.Handlers("9.9.9", null),
+                    GateOperations.Handlers("9.9.9", string.Empty, null),
                     new Dictionary<string, OperationGuard> { { GateOperations.Status, refuses } }));
 
             Assert.That(raised.Message, Does.Contain("guarded differently"));
@@ -275,7 +302,7 @@ namespace KeePassGate.Tests
         public void A_handler_the_document_does_not_declare_stops_it_too()
         {
             var extra = new Dictionary<string, OperationHandler>(
-                GateOperations.Handlers("9.9.9", null).ToDictionary(p => p.Key, p => p.Value))
+                GateOperations.Handlers("9.9.9", string.Empty, null).ToDictionary(p => p.Key, p => p.Value))
             {
                 { "readEverything", Nothing },
             };

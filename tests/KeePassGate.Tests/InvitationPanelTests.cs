@@ -23,9 +23,6 @@ namespace KeePassGate.Tests
     [Apartment(ApartmentState.STA)]
     public sealed class InvitationPanelTests
     {
-        /// <summary>Invented, and only ever shown in a label.</summary>
-        private const string Version = "1.2.3";
-
         private FakeGateDatabase _database;
         private RecordingGateLog _log;
         private InvitationBook _book;
@@ -397,7 +394,7 @@ namespace KeePassGate.Tests
             // code minted now would look right, count down, and resolve nowhere.
             var pending = new PendingDatabase(_database, _log);
 
-            using (var panel = new AuthorityPanel(pending, new FakePrompt(true), _log, "1.0.0", null, _book))
+            using (var panel = new AuthorityPanel(pending, new FakePrompt(true), _log, _book))
             {
                 panel.CreateAuthority();
 
@@ -416,7 +413,7 @@ namespace KeePassGate.Tests
         {
             var pending = new PendingDatabase(_database, _log);
 
-            using (var panel = new AuthorityPanel(pending, new FakePrompt(true), _log, "1.0.0", null, _book))
+            using (var panel = new AuthorityPanel(pending, new FakePrompt(true), _log, _book))
             {
                 panel.CreateAuthority();
                 pending.Apply();
@@ -563,7 +560,7 @@ namespace KeePassGate.Tests
         [Test]
         public void A_tab_assembled_without_pairing_has_the_button_and_cannot_press_it()
         {
-            using (var panel = new AuthorityPanel(_database, new FakePrompt(true), _log, Version))
+            using (var panel = new AuthorityPanel(_database, new FakePrompt(true), _log))
             {
                 panel.CreateAuthority();
 
@@ -594,7 +591,7 @@ namespace KeePassGate.Tests
 
         private AuthorityPanel NewPanel()
         {
-            return new AuthorityPanel(_database, new FakePrompt(true), _log, Version, null, _book);
+            return new AuthorityPanel(_database, new FakePrompt(true), _log, _book);
         }
 
         /// <summary>

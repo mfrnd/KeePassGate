@@ -74,6 +74,17 @@ namespace KeePassGate.Host.Tests.Live
             return OpenFromMenu("File", "Database Settings", "Database Settings");
         }
 
+        /// <summary>Tools, and the plugin's own item, which opens the status window.</summary>
+        /// <remarks>
+        /// KeePass places a plugin's item under Tools itself, from `GetMenuItem`, so this is a
+        /// menu like any other and is driven the same way: keys discovered once, then sent with
+        /// nothing watching.
+        /// </remarks>
+        public AutomationElement OpenStatusWindow()
+        {
+            return OpenFromMenu("Tools", GateTab.MenuItemText, GateStatusForm.Caption);
+        }
+
         /// <summary>Group, Edit Group, on whichever group the tree has selected.</summary>
         public AutomationElement OpenGroupDialog()
         {
