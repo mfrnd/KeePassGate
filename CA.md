@@ -97,6 +97,7 @@ revocation paragraph below is about.
 | `KPG.RetiredAuthority.<sha256>` | the constant `retired`, for an authority recreated, deleted or not kept | once, and never changed or removed |
 | `KPG.Client.<sha256>` | one admission record per paired client | at every pairing, and written empty when the client is revoked |
 | `KPG.Revoked.<sha256>` | the revoked certificate's `notAfter` | once, when the client is revoked, and never changed; removed once that moment has passed |
+| `KPG.Profiles` | the set of profile names this database knows | when the Profiles page is accepted, and at a pairing that approves a name it does not hold, in the same write as the record |
 
 **Not the root group, and the group dialog is why.** `GroupForm` copies a group's `CustomData` when
 it opens and writes the copy back on OK, so anything written to the root group while an Edit Group
@@ -106,13 +107,13 @@ refuses to write while that one is open.
 
 **A node's rule is carried by the node, because nothing smaller carries it.** A group's and an
 entry's `CustomData` keeps no time per key, so a merge takes the whole dictionary from one side or
-the other and decides by the node's own modification time. A rule rewritten without that time moving
-therefore loses every merge it is in: one ordinary synchronize against a copy made before a profile
-was deleted hands the profile back. So the write that changes a rule touches the group or entry as
-well, which is the one place in this plugin that rule still applies, and the cost is stated rather
-than hidden: a purge moves the modification and access time of every entry it rewrites, none of
-which the operator edited. A write that says nothing new stays a no-op, so reading a rule is never
-an unsaved change.
+the other and decides by the node's own modification time. A rule is written only into the copy a
+group or entry dialog puts back on OK, so it travels exactly as far as any other edit made in that
+dialog, and the plugin writes no rule of its own. A merge that hands back a rule for a profile the
+operator has since removed hands back something inert, because the database's list of profiles
+decides which names are in force (`DESIGN.md` §139); that replaced a purge which rewrote every rule
+naming a removed profile, and moved the times of entries nobody had edited to make the rewrite
+carry. A write that says nothing new stays a no-op, so reading a rule is never an unsaved change.
 
 **One key per client, never one blob, and in the dictionary that merges per key.** Measured on
 KeePass 2.61.1: `PwDatabase.CustomData` keeps a modification time for each key and a merge
@@ -120,6 +121,16 @@ arbitrates key by key, while a group's dictionary keeps none, so `PwGroup.Assign
 replaces the whole of it from whichever replica's group was touched last. Two hosts pairing
 different clients keep both only in the first. A single blob would be last-writer-wins in either,
 and would lose pairings silently.
+
+**The profile list is one key, so a merge takes it whole.** `KPG.Profiles` holds every name in one
+value, and a merge keeps one side's list, which for a synchronize is whichever copy wrote it last: a
+name only the other copy added is lost, and a name only the other copy took out comes back. Two hosts
+that each approve a pairing for a name the database has never named therefore keep both records and
+one list. The list decides which names are in force (`DESIGN.md` §139), so a lost name grants
+nothing until it is added again, and the clients page shows it as removed on every client holding
+it, while a name that came back is in force again, its rules and its clients with it, as though it
+had been added on the Profiles page without the question that page asks first. After merging two
+copies that both changed their profiles, the Profiles page is where to look.
 
 **A revocation is a key of its own, only ever added and never changed.** Revoking adds
 `KPG.Revoked.<sha256>` beside the record, holding the certificate's `notAfter`, and writes the
@@ -409,7 +420,8 @@ permitted = record(kdbx) INTERSECT acl(kdbx)
 ```
 
 **Neither term is the certificate.** The admission record says which profiles this client was
-approved for, the rules say what those profiles reach, and the router allows the intersection.
+approved for, less any the database no longer names, the rules say what those profiles reach, and
+the router allows the intersection.
 Nothing anywhere reads a profile claim, and the plugin reads no subject alternative name at all: the
 one thing ever read out of one is the responder marker of §208, and the client is what reads it.
 

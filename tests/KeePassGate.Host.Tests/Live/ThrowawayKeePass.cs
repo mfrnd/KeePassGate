@@ -595,6 +595,25 @@ namespace KeePassGate.Host.Tests.Live
                 new AdmissionStore(new CustomDataStore(database), NullGateLog.Instance)
                     .Write(AdmissionRecord.For(certificate, DateTimeOffset.UtcNow, profiles));
 
+                // Named as well, because pairing names what it approves in the same write as the
+                // record, and a client holds only the names the database still lists: a record
+                // written without them would be a client reaching nothing.
+                var names = ProfileNames.Read(database.CustomData.Get(ProfileNames.CustomDataKey));
+                foreach (var profile in profiles)
+                {
+                    var refused = names.Add(profile);
+                    if (refused != null)
+                    {
+                        throw new ArgumentException(refused, nameof(profiles));
+                    }
+                }
+
+                var document = names.Write();
+                if (document != null)
+                {
+                    database.CustomData.Set(ProfileNames.CustomDataKey, document);
+                }
+
                 database.Save(null);
             }
             finally
@@ -619,6 +638,50 @@ namespace KeePassGate.Host.Tests.Live
             {
                 database.Open(IOConnectionInfo.FromPath(DatabasePath), NewKey(), null);
                 database.RootGroup.CustomData.Set(AclDocument.CustomDataKey, document);
+                database.Save(null);
+            }
+            finally
+            {
+                database.Close();
+            }
+        }
+
+        /// <summary>
+        /// Writes the profiles this database names, which is what the grant editor picks from.
+        /// </summary>
+        /// <remarks>
+        /// Written into the file before KeePass opens it, because a rule can only be made for a
+        /// profile the database already names and the editor offers no way to invent one. Pairing
+        /// is the other way they arrive, and it is a whole test of its own.
+        /// </remarks>
+        public void NameProfiles(params string[] names)
+        {
+            var database = new PwDatabase();
+            try
+            {
+                database.Open(IOConnectionInfo.FromPath(DatabasePath), NewKey(), null);
+
+                var profiles = ProfileNames.Read(null);
+                foreach (var name in names)
+                {
+                    // Answered rather than discarded. A name this plugin would refuse is a name the
+                    // operator could not have typed, so a test seeding one is testing a state the
+                    // product cannot reach. This used to do that silently, then hand `Write`'s
+                    // null to `Set`, which throws about an argument instead.
+                    var refused = profiles.Add(name);
+                    if (refused != null)
+                    {
+                        throw new ArgumentException(refused, nameof(names));
+                    }
+                }
+
+                var document = profiles.Write();
+                if (document == null)
+                {
+                    throw new ArgumentException("no profile name was given", nameof(names));
+                }
+
+                database.CustomData.Set(ProfileNames.CustomDataKey, document);
                 database.Save(null);
             }
             finally

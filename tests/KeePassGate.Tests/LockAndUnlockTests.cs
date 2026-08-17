@@ -183,7 +183,7 @@ namespace KeePassGate.Tests
             _connections = new RecordingConnections(_order);
             _log = new RecordingGateLog();
             _incidents = new GateIncidents(_log);
-            _watch = new LockWatch(_events, _targets, _connections, _log, _incidents);
+            _watch = new LockWatch(_events, _targets, () => _connections, _log, _incidents);
 
             Assert.That(_watch.Start(), Is.True);
         }
@@ -347,7 +347,7 @@ namespace KeePassGate.Tests
         [Test]
         public void A_plugin_with_no_listener_still_locks()
         {
-            using (var watch = new LockWatch(_events, _targets, null, _log))
+            using (var watch = new LockWatch(_events, _targets, (IConnections)null, _log))
             {
                 watch.Start();
                 _events.RaiseClosed("C:\\invented\\two.kdbx", true);

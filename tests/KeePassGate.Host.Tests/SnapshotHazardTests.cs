@@ -81,6 +81,10 @@ namespace KeePassGate.Host.Tests
         {
             // The KPG tab lives on that dialog, so this is the difference between its buttons being
             // safe and being a way to lose an authority.
+            //
+            // It is a claim about custom data and about nothing else. That dialog does write other
+            // things back on OK, and one of them, the recycle bin choice, reaches this plugin:
+            // `RecycleBinDialogTests` measures that one and what the vault does about it.
             var settingsForm = typeof(Plugin).Assembly.GetType(
                 KeePassContract.DatabaseSettingsFormTypeName, false);
 

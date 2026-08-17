@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using KeePassGate.Authority;
 
 namespace KeePassGate.Pairing
 {
@@ -13,6 +14,8 @@ namespace KeePassGate.Pairing
         private readonly string _invitationId;
         private readonly string _name;
         private readonly IReadOnlyList<string> _profiles;
+        private readonly IReadOnlyList<string> _known;
+        private readonly IReadOnlyDictionary<string, IReadOnlyList<AdmissionRecord>> _returning;
         private readonly string _peer;
 
         public PairingRequest(
@@ -21,7 +24,7 @@ namespace KeePassGate.Pairing
             string name,
             IReadOnlyList<string> profiles,
             string peer)
-            : this(databaseId, null, invitationId, name, profiles, peer)
+            : this(databaseId, null, invitationId, name, profiles, null, peer)
         {
         }
 
@@ -29,19 +32,32 @@ namespace KeePassGate.Pairing
         /// What KeePass calls this database. A dialog naming it only by its fingerprint asks the
         /// operator to recognize sixteen hexadecimal characters.
         /// </param>
+        /// <param name="known">
+        /// The profiles this database already names. What is asked for and is not among them is
+        /// new, and approving it is what creates it, unless a client already holds it.
+        /// </param>
+        /// <param name="returning">
+        /// For each profile asked for that the database does not name, the admitted clients whose
+        /// records still hold it. Approving such a profile puts the name back on the list, which
+        /// gives it back to every one of them. Null or absent when nobody does.
+        /// </param>
         public PairingRequest(
             string databaseId,
             string databaseName,
             string invitationId,
             string name,
             IReadOnlyList<string> profiles,
-            string peer)
+            IReadOnlyList<string> known,
+            string peer,
+            IReadOnlyDictionary<string, IReadOnlyList<AdmissionRecord>> returning = null)
         {
             _databaseId = databaseId ?? string.Empty;
             _databaseName = databaseName ?? string.Empty;
             _invitationId = invitationId ?? string.Empty;
             _name = name ?? string.Empty;
             _profiles = profiles ?? Nothing;
+            _known = known ?? Nothing;
+            _returning = returning ?? new Dictionary<string, IReadOnlyList<AdmissionRecord>>();
             _peer = peer ?? string.Empty;
         }
 
@@ -79,6 +95,67 @@ namespace KeePassGate.Pairing
             get { return _peer; }
         }
 
+        /// <summary>
+        /// Whether a profile being asked for is one this database does not name now and no client
+        /// holds.
+        /// </summary>
+        /// <remarks>
+        /// Shown to the operator, because approving one of these does two things rather than one:
+        /// it admits the client, and it puts a name on the list that every rule can then grant to.
+        /// A dialog that showed a new name exactly like an existing one would be asking somebody to
+        /// notice a spelling. **It is not "never named"**: a name removed once, whose holders have
+        /// all been revoked or have expired since, reads the same here, and any rule still naming
+        /// it applies at once, which the dialog says.
+        /// </remarks>
+        public bool IsNew(string profile)
+        {
+            if (string.IsNullOrEmpty(profile) || Returning(profile).Count > 0)
+            {
+                return false;
+            }
+
+            foreach (var known in _known)
+            {
+                if (string.Equals(known, profile, StringComparison.Ordinal))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Whether the database already names as many profiles as its list holds, so that approving
+        /// adds no name to it, new or removed.
+        /// </summary>
+        /// <remarks>
+        /// The writer skips a name that does not fit and says so in the log, and the pairing lands
+        /// without it, so a dialog promising to create one or to put one back would promise what
+        /// does not happen.
+        /// </remarks>
+        public bool ListIsFull
+        {
+            get { return _known.Count >= KeePassGate.Acl.ProfileNames.Most; }
+        }
+
+        /// <summary>
+        /// The clients that regain a profile if it is approved, because it was removed and their
+        /// records still hold it. Empty for every other profile.
+        /// </summary>
+        /// <remarks>
+        /// Not new, and shown differently: approving it does not create a name, it restores one,
+        /// and every client approved for it before gets it back along with every rule still
+        /// naming it. The operator approving one client is otherwise approving all of those
+        /// without being told.
+        /// </remarks>
+        public IReadOnlyList<AdmissionRecord> Returning(string profile)
+        {
+            IReadOnlyList<AdmissionRecord> holding;
+            return profile != null && _returning.TryGetValue(profile, out holding) && holding != null
+                ? holding
+                : Array.Empty<AdmissionRecord>();
+        }
     }
 
     public enum PairingDecision

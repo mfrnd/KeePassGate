@@ -74,7 +74,7 @@ namespace KeePassGate.Gate
     {
         private readonly IDatabaseEvents _databases;
         private readonly ILockableTargets _targets;
-        private readonly IConnections _connections;
+        private readonly Func<IConnections> _connections;
         private readonly IGateLog _log;
         private readonly GateIncidents _incidents;
         private readonly object _stateLock = new object();
@@ -83,10 +83,16 @@ namespace KeePassGate.Gate
 
         public LockWatch(
             IDatabaseEvents databases, ILockableTargets targets, IConnections connections, IGateLog log)
-            : this(databases, targets, connections, log, null)
+            : this(databases, targets, () => connections, log, null)
         {
         }
 
+        /// <param name="connections">
+        /// Asked for the connections each time rather than handed them once, so that a watch built
+        /// before the listener exists still finds it. The listener is no longer replaced while the
+        /// plugin runs, because a port is bound once at startup, so this is about construction
+        /// order rather than about rebinding.
+        /// </param>
         /// <param name="incidents">
         /// Where an unpredicted failure is reported. These handlers run on KeePass's own thread from
         /// KeePass's own events, so each of the three is one of the places that catch everything:
@@ -95,7 +101,7 @@ namespace KeePassGate.Gate
         public LockWatch(
             IDatabaseEvents databases,
             ILockableTargets targets,
-            IConnections connections,
+            Func<IConnections> connections,
             IGateLog log,
             GateIncidents incidents)
         {
@@ -271,7 +277,13 @@ namespace KeePassGate.Gate
 
             try
             {
-                _connections.CloseAll(why);
+                var connections = _connections();
+                if (connections == null)
+                {
+                    return;
+                }
+
+                connections.CloseAll(why);
             }
             catch (Exception error) when (Expected.OfConnection(error))
             {

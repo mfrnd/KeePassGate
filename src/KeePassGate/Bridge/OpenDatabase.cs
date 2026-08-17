@@ -39,10 +39,34 @@ namespace KeePassGate.Bridge
             get { return _database.IsOpen && _database.RootGroup != null; }
         }
 
+        /// <summary>
+        /// What KeePass calls this database: the name it was given, or the file it came from when
+        /// it was given none. A screen naming a database by its fingerprint alone is asking the
+        /// operator to recognize sixteen hexadecimal characters.
+        /// </summary>
+        public string Name
+        {
+            get
+            {
+                if (!string.IsNullOrEmpty(_database.Name))
+                {
+                    return _database.Name;
+                }
+
+                var path = _database.IOConnectionInfo == null ? null : _database.IOConnectionInfo.Path;
+                return string.IsNullOrEmpty(path) ? string.Empty : System.IO.Path.GetFileName(path);
+            }
+        }
+
+        /// <summary>Every group and entry, for the one count that is not about a single node.</summary>
+        public Acl.IRuledNodes Nodes
+        {
+            get { return new DatabaseNodes(_database); }
+        }
+
         /// <remarks>
-        /// Built on each read rather than remembered. A database that is locked and opened again
-        /// comes back with a different root group, and a store held from construction would go on
-        /// writing into the one that was replaced.
+        /// Built on each read rather than remembered, which costs nothing and keeps this honest
+        /// about a database that is locked and opened again.
         /// </remarks>
         public IKeyValueStore PluginCustomData
         {

@@ -408,7 +408,7 @@ namespace KeePassGate.Bridge
                     return VaultWrite.Conflict("the group still holds something");
                 }
 
-                var blocked = Blocking(group) ?? BlockingRemoval(group);
+                var blocked = Blocking(group) ?? BlockingRemoval(group) ?? RecycleBinBlocked();
                 if (blocked != null)
                 {
                     return VaultWrite.Busy(blocked);
@@ -643,7 +643,7 @@ namespace KeePassGate.Bridge
                     return VaultWrite.Missing();
                 }
 
-                var blocked = Blocking(entry);
+                var blocked = Blocking(entry) ?? RecycleBinBlocked();
                 if (blocked != null)
                 {
                     return VaultWrite.Busy(blocked);
@@ -1305,6 +1305,35 @@ namespace KeePassGate.Bridge
         {
             return VaultWrite.Conflict(
                 "this database cannot tell that field name apart from one the entry already has");
+        }
+
+        /// <summary>
+        /// Why a removal cannot happen right now because it would have to make the first recycle
+        /// bin, or null when it can.
+        /// </summary>
+        /// <remarks>
+        /// **Only the branch that makes one.** KeePass's database settings dialog fills its recycle
+        /// bin combo from `RecycleBinUuid` when it loads and writes the choice back on OK, so a
+        /// database that had no bin when that dialog opened has the dialog holding "none": a bin
+        /// made underneath it is undone by its OK, and everything the removal moved into it becomes
+        /// an ordinary group under the root that `Discarded` no longer recognizes. `DESIGN.md` §138
+        /// closes that relocation by putting the bin out of reach, and this is the one way it was
+        /// still reachable. A bin that already existed when the dialog opened is what the dialog
+        /// puts back, so nothing is refused for it.
+        ///
+        /// **Refused rather than made permanent.** The alternative to making a bin is destroying
+        /// what was removed outright, which is a worse answer to a dialog being open than telling
+        /// the caller to come back.
+        /// </remarks>
+        private string RecycleBinBlocked()
+        {
+            var root = _database.RootGroup;
+            if (_writer == null || !_database.RecycleBinEnabled || root == null)
+            {
+                return null;
+            }
+
+            return Bin(root) != null ? null : _writer.BlockingRecycleBin(_database);
         }
 
         /// <summary>

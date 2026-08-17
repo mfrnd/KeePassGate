@@ -390,7 +390,9 @@ Both halves live in the database, which is deliberate. The **admission record** 
 the operator approved at pairing, and it is what the certificate's SAN once did. The SAN still
 carries them, but only as a convenience for a human reading a certificate: a client that presents a
 valid certificate whose record is missing is refused outright rather than falling back to the SAN.
-[`CA.md`](CA.md) §206 says why that is the only arrangement that survives a lost record.
+[`CA.md`](CA.md) §206 says why that is the only arrangement that survives a lost record. Of the
+record's profiles, only those the database's list still names are handed on, so a name the operator
+removed grants nothing whatever rule still carries it; §139 says why that replaced purging the rules.
 
 The ACL is `AclDocument`, `AclResolver`, `AclGrant`, `AclVerb` and `AclDefault`, with `KdbxNodes`
 adapting a `PwGroup` or a `PwEntry` to the one seam the rules need. It stays authoritative, so access
@@ -525,6 +527,71 @@ The reader's ceilings are the format's ceilings, and reaching one denies rather 
 node carries the default and 31 profiles, and a 32nd makes the whole document unreadable and
 everything under that node refused. That is the right way round, but it is worth knowing about
 rather than discovering.
+
+### The set of profiles is written down §139
+
+A profile had no home for most of this design. A name became real by being approved at a pairing and
+meant something by being named in a rule, and nothing anywhere held the set. That works until
+somebody has to answer "what may I grant here", and the honest answer was "whatever you type,
+spelled exactly as somebody else typed it". A typo made a profile that existed, granted nothing, and
+looked exactly like the one that was meant.
+
+So the set is `ProfileNames`, under `KPG.Profiles` beside the authority and the records, in the
+same grammar as everything else here:
+
+```json
+{"profiles":["reader","ops"]}
+```
+
+**It holds names and nothing else.** What a name reaches is on the nodes, who holds one is in the
+admission records, and the set of them is here. Three places, three questions, none of them
+duplicated, and no fourth place where they could disagree.
+
+**A name this list does not hold grants nothing.** A client is given the profiles its admission
+record holds that the list still names, read uncached beside the record on every request, and the
+resolver is handed only those. So taking a name off the list is the whole of taking it away: a rule
+for it that stays on a node, or comes back with a restored revision or a merge, answers for nobody.
+**This reverses what this section first said**, that nothing is authorized by the list and the
+resolver has never heard of it, which made losing the list cost an operator their pick list rather
+than anybody their access. The intersection makes it load bearing, and fails closed the way
+everything here does: a list that will not read is an empty set, so every client stays admitted
+and reaches nothing until it reads again.
+
+The one rule it applies is the issuer's, `AuthorityIssuer.IsUsableProfileName`, because a name that
+cannot travel as a claim is a name no client can ever hold: it would be granted here and refused at
+the certificate. `default` is refused by that rule already, so there is no second reservation written
+beside it to disagree with the first.
+
+Two things follow from it existing, and both are what it was for:
+
+**The editor picks rather than types**, on both columns. A mask spelled by hand is a rule nobody
+meant and a profile spelled by hand is a rule for a name that may not exist, and the second one is
+worse: it grants nobody anything and reads exactly like a rule that works. `GrantSheet.Available` is
+what is offered, which is this list less every profile already on the table, explicit and inherited
+alike, because a profile is one row however it got there and narrowing an inherited one is done on
+the row that is already there.
+
+**Removing a profile touches the list and nothing else**, and that reverses the purge this section
+used to require. `ProfilePurge` walked the tree and took a removed name out of every rule, because
+a name left in the documents went on being obeyed and a profile of the same name created later
+would arrive holding permissions nobody wrote for it. Each way the name came back then needed a
+rule of its own. The page refused to remove while a group or entry dialog was open, since that
+dialog's OK would put the rule back for its node. The walk reached every revision in an entry's
+history, since restoring one copies its rules back over the live entry. It rewrote a revision
+without touching it, since KeePass matches revisions across a merge by modification time and keeps
+the local one where both carry that time. And it ran a second time over the live tree at OK, since
+an API update made while the removal waited put a new revision naming the profile into the history
+and, at KeePass's history limit, moved every older one down a place. None of that closed a stale
+copy merged in, which brings the old rule back with the node's own time.
+
+**The intersection closes all of them at once**, because a rule for a name off the list grants
+nothing wherever it comes from: kept by a dialog's OK, restored from a revision, or merged in from
+an older copy. The grant editor marks such a rule not named rather than hiding it, removal needs no
+walk and is refused under no node dialog, and the page counts the live tree's rules only, since a
+revision's rule is in force for nobody. **Adding the name back is a full undo**, rules and clients
+alike, so the page asks first, saying how many rules come back into force and naming every client
+that regains the name. Approving a pairing for a removed name that clients still hold warns the same
+way, because pairing writes the approved name onto the list.
 
 ### Resolution §137
 
@@ -827,7 +894,10 @@ still what makes the record durable.
 
 A line carries neither the profiles the client holds nor the verb it asked for. Which profiles a
 client has is in the database already, and a log repeating them is a second copy of the thing worth
-stealing.
+stealing. A refusal that the client's whole record would have permitted names the profiles the
+operator removed, under the reason `profile removed`, and that is not the copy: a removed name
+grants nothing, so writing it down says why a request failed without saying what anybody can
+reach.
 
 **A certificate this authority issued is written down when an operation refuses it**, by its admission key,
 with the reason the credential check gave and no node. It has no admission record, or is outside
@@ -1003,6 +1073,14 @@ in KeePass's own settings, which is a KeePass decision rather than one this plug
 them. And an entry that goes into the bin leaves the reach of every rule, so its rule is no longer
 consulted for anything: recovering it is the operator's job, in KeePass, where they can see it.
 
+**One case reopens the question, and it is refused rather than repaired.** A database that has never
+had a bin gets one the first time something is removed, and the database settings dialog holds a copy
+of that choice from the moment it opens: a bin made underneath it is undone by its OK, which would
+leave the entry sitting in a group that no longer is one. So a removal that would make the first bin
+is refused with `503 busy` while that dialog is open, the way every other write a dialog would take
+back is refused. A database that already has a bin is unaffected, because the dialog is putting back
+the same answer it copied.
+
 ## What would falsify the design §131
 
 Written down so that it is possible to be wrong about this on purpose rather than by drift.
@@ -1059,7 +1137,10 @@ Each step is refusable, and each ends with something that runs.
    than argued. The hazard is now measured rather than remembered, and it cut both ways: the dialog
    the KPG tab lives on carries no snapshot, so those buttons are safe from their own dialog, while
    anything written during a **group** dialog is destroyed by its OK, which is what step 8 has to
-   answer for. Two things step 7 inherits early: `AnchorPin`, because telling a stored pair apart by
+   answer for. That the settings dialog keeps no snapshot is also why the tab now keeps one of its
+   own: safe from Cancel turned out to mean unaffected by it, and a tab that has already acted
+   inside a dialog offering OK and Cancel is a tab disagreeing with the buttons around it.
+   Two things step 7 inherits early: `AnchorPin`, because telling a stored pair apart by
    issuer name turned out to accept a foreign authority, and the gate key.
 6. **Gate and transport**: accept loop, ClientHello peek, SNI resolution, TLS 1.3, our request
    parser, one route. `IGateContext` lands here. **Done.** A real client reaches a real KeePass over
@@ -1147,7 +1228,8 @@ Each step is refusable, and each ends with something that runs.
     against a version nobody chose. Deploying is not enough on its own, since a plugin that is
     present and not loaded looks exactly like one that is loaded and doing nothing.
 17. **A profile gets a home**: the set of names a database knows, stored with the authority, with a page
-    of its own on the tab to manage them and a purge that takes a deleted one out of every rule.
+    of its own on the tab to manage them, and a name taken off it granting nothing wherever a rule
+    still names it.
 18. **The plugin's own window**: one item under KeePass's Tools menu, opening a window that says
     where the gate is listening and sets the port it listens on.
 19. **The documentation for whoever runs it**: `docs/`, in the order an operator meets the plugin,

@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using KeePassLib;
+using KeePassGate.Acl;
 using KeePassGate.Authority;
 using KeePassGate.Diagnostics;
 using KeePassGate.Ui;
@@ -110,10 +112,10 @@ namespace KeePassGate.Bridge
                 return null;
             }
 
-            // Two dictionaries, two dialogs. Everything this plugin stores about the database
-            // itself is in the database's own custom data, which the maintenance dialog copies;
-            // a node's rules are on the node, which the group dialog copies. A write here can
-            // reach either, so both are asked.
+            // Two dictionaries, two dialogs. The authority and the profile list are on the root
+            // group, which the group dialog copies; the records are in the database's own custom
+            // data, which the maintenance dialog copies. A write here can touch either, so both
+            // are asked.
             return _dialogs.Blocking(root) ?? _dialogs.BlockingRecords(database);
         }
 
@@ -142,6 +144,18 @@ namespace KeePassGate.Bridge
         public string Blocking(PwEntry entry)
         {
             return _dialogs == null ? null : _dialogs.Blocking(entry);
+        }
+
+        /// <summary>
+        /// Why this database cannot be given its first recycle bin right now, or null when it can.
+        /// </summary>
+        /// <remarks>
+        /// The one thing KeePass's database settings dialog holds a copy of that a write here can
+        /// change. `GroupDialogs.BlockingRecycleBin` says what its OK does with it.
+        /// </remarks>
+        public string BlockingRecycleBin(PwDatabase database)
+        {
+            return _dialogs == null ? null : _dialogs.BlockingRecycleBin(database);
         }
 
         public AdmissionWrite WriteAdmission(PwDatabase database, AdmissionRecord record)
@@ -375,6 +389,77 @@ namespace KeePassGate.Bridge
             return answer;
         }
 
+        /// <summary>
+        /// Adds any profile the operator approved that this database had never named.
+        /// </summary>
+        /// <remarks>
+        /// **Here rather than beside the approval, because it is the same decision as the record
+        /// and has to be the same write**: on this thread, under this lock, kept by the save below,
+        /// and refused by the same open dialog. Written anywhere else it is a change to the
+        /// database's custom data while Database Maintenance may be holding its own copy, and that
+        /// copy's write-back would put the old list back. It would also be a write that can succeed
+        /// while the record fails, leaving a database naming a profile for a client it never
+        /// admitted.
+        ///
+        /// **A name that cannot be added is skipped rather than refused, and what that costs is
+        /// said.** The list holds <see cref="ProfileNames.Most"/> names, and the operator can
+        /// approve a new one while it already holds that many. The client then carries the name in
+        /// its certificate and its record, and since a client reaches only what the list still
+        /// names, it reaches nothing through that one until the operator adds it on the Profiles
+        /// page, which at the ceiling means taking another off first; the grant editor offers no
+        /// name the list does not hold, so no rule can be written for it before then. Refusing the
+        /// approved pairing would cost more: a client holding a certificate for a record nobody
+        /// wrote. So the pairing lands, and the log says that a name was left off and why, without
+        /// naming it, as the pairing's own line does not.
+        /// </remarks>
+        private void Name(CustomDataStore store, IReadOnlyList<string> profiles)
+        {
+            if (profiles == null || profiles.Count == 0)
+            {
+                return;
+            }
+
+            try
+            {
+                var names = ProfileNames.Read(store.Get(ProfileNames.CustomDataKey));
+                var added = false;
+
+                foreach (var profile in profiles)
+                {
+                    if (names.Holds(profile))
+                    {
+                        continue;
+                    }
+
+                    var refused = names.Add(profile);
+                    if (refused != null)
+                    {
+                        _log.Warn("a profile the operator approved was left off the list this database " +
+                                  "names, so the client reaches nothing through it until it is added on " +
+                                  "the Profiles page: " + refused);
+                        continue;
+                    }
+
+                    added = true;
+                }
+
+                if (!added)
+                {
+                    return;
+                }
+
+                var document = names.Write();
+                if (document != null)
+                {
+                    store.Set(ProfileNames.CustomDataKey, document);
+                }
+            }
+            catch (Exception error) when (Expected.OfCustomData(error))
+            {
+                _log.Error("a profile the operator approved could not be named", error);
+            }
+        }
+
         private AdmissionWrite OnTheUiThread(PwDatabase database, AdmissionRecord record)
         {
             var blocked = Blocked(database);
@@ -392,17 +477,24 @@ namespace KeePassGate.Bridge
             // again. A record left behind by a pairing that failed is a client on the tab that was
             // never issued anything, and the operator's next save is what would make it permanent.
             var before = store.Get(record.StorageKey);
+
+            // The name list too. `Name` below writes it *before* the record, so a pairing that
+            // failed after that point left the profile it had just created in a database KeePass
+            // believes has nothing to save. The operator's next unrelated edit then commits a
+            // name no record holds.
+            var namesBefore = store.Get(ProfileNames.CustomDataKey);
             var wasModified = database.Modified;
 
             try
             {
+                Name(store, record.Profiles);
                 store.Set(record.StorageKey, written);
                 database.Modified = true;
             }
             catch (Exception error) when (Expected.OfCustomData(error))
             {
                 _log.Error("an admission record could not be put in the database", error);
-                return Undo(store, database, record, before, wasModified, error.Message);
+                return Undo(store, database, record, before, namesBefore, wasModified, error.Message);
             }
 
             try
@@ -414,13 +506,13 @@ namespace KeePassGate.Bridge
                 // KeePass's own save, which reaches the file system and can fail for every reason
                 // a file can. What it must not do is take the connection thread with it.
                 _log.Error("the database could not be saved after pairing", error);
-                return Undo(store, database, record, before, wasModified, error.Message);
+                return Undo(store, database, record, before, namesBefore, wasModified, error.Message);
             }
 
             if (!string.Equals(store.Get(record.StorageKey), written, StringComparison.Ordinal))
             {
                 return Undo(
-                    store, database, record, before, wasModified, "the record did not survive being written");
+                    store, database, record, before, namesBefore, wasModified, "the record did not survive being written");
             }
 
             if (database.Modified)
@@ -428,7 +520,7 @@ namespace KeePassGate.Bridge
                 // KeePass tells a caller nothing about whether a save worked. This is what it does
                 // say: a database it has saved has no unsaved changes left.
                 return Undo(
-                    store, database, record, before, wasModified,
+                    store, database, record, before, namesBefore, wasModified,
                     "the database still has unsaved changes, so nothing is on disk");
             }
 
@@ -488,6 +580,7 @@ namespace KeePassGate.Bridge
             PwDatabase database,
             AdmissionRecord record,
             string before,
+            string namesBefore,
             bool wasModified,
             string reason)
         {
@@ -500,6 +593,20 @@ namespace KeePassGate.Bridge
                 else
                 {
                     store.Set(record.StorageKey, before);
+                }
+
+                // Only when it actually moved. `StringDictionaryEx.Set` stamps a modification time,
+                // so putting an identical value back is a change of its own.
+                if (!string.Equals(store.Get(ProfileNames.CustomDataKey), namesBefore, StringComparison.Ordinal))
+                {
+                    if (namesBefore == null)
+                    {
+                        store.Remove(ProfileNames.CustomDataKey);
+                    }
+                    else
+                    {
+                        store.Set(ProfileNames.CustomDataKey, namesBefore);
+                    }
                 }
 
                 if (!wasModified)

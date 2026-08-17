@@ -28,6 +28,12 @@ namespace KeePassGate.Bridge
     /// they hold nothing of, which `BlockingRemoval` answers, and Add Group has put a group into
     /// the tree that its Cancel takes back out, which `BlockingAdditions` answers.
     ///
+    /// **The database settings dialog is here for one thing only**, and it is not custom data:
+    /// that dialog copies nothing of the kind, which is what makes the KPG tab's own buttons safe
+    /// on it. What it does copy is the recycle bin choice, so a removal that makes a database its
+    /// first bin while one is open is undone by that dialog's OK. `BlockingRecycleBin` is that
+    /// question and nothing else asks it.
+    ///
     /// **Specific dialogs are tracked, never a count**, and `PAIRING.md` §307 is explicit about
     /// it. A count answers a different question from the one asked here, which is per node: a group
     /// dialog open on some other group must not refuse a write to this one, and
@@ -50,9 +56,10 @@ namespace KeePassGate.Bridge
         private readonly Dictionary<Form, PwGroup> _open = new Dictionary<Form, PwGroup>();
         private readonly HashSet<Form> _creating = new HashSet<Form>();
         private readonly Dictionary<Form, PwGroup> _filling = new Dictionary<Form, PwGroup>();
-        private readonly Dictionary<Form, PwDatabase> _openMaintenance = new Dictionary<Form, PwDatabase>();
         private readonly Dictionary<Form, PwEntry> _openEntries = new Dictionary<Form, PwEntry>();
         private readonly Dictionary<Form, PwDatabase> _openBulk = new Dictionary<Form, PwDatabase>();
+        private readonly Dictionary<Form, PwDatabase> _openMaintenance = new Dictionary<Form, PwDatabase>();
+        private readonly Dictionary<Form, PwDatabase> _openSettings = new Dictionary<Form, PwDatabase>();
 
         private bool _started;
 
@@ -276,6 +283,54 @@ namespace KeePassGate.Bridge
         }
 
         /// <summary>
+        /// Why this database cannot be given its first recycle bin right now, or null when it can.
+        /// </summary>
+        /// <remarks>
+        /// **Asked only where a bin would have to be made.** KeePass's database settings dialog
+        /// fills its recycle bin combo from `RecycleBinUuid` when it loads and writes the choice
+        /// back on OK, so a database that had no bin when the dialog opened has that dialog holding
+        /// "none": a removal that makes the first bin underneath it is undone the moment the
+        /// operator presses OK, and the group the removal moved things into stays under the root as
+        /// an ordinary group that `Discarded` no longer recognizes. That is the relocation
+        /// `DESIGN.md` §138 closes by putting the bin out of the API's reach, reopened by a dialog
+        /// nobody had to touch.
+        ///
+        /// **A bin that was already there is safe**, because the dialog copied it and puts the same
+        /// answer back, which is why the vault asks this only on the branch that would create one.
+        /// </remarks>
+        public string BlockingRecycleBin(PwDatabase database)
+        {
+            if (database == null)
+            {
+                return null;
+            }
+
+            lock (_lock)
+            {
+                if (!_started)
+                {
+                    return "the dialogs are not being watched";
+                }
+
+                foreach (var pair in _openSettings)
+                {
+                    if (pair.Value == null)
+                    {
+                        return "the database settings dialog is open, and which database it is editing could not be read";
+                    }
+
+                    if (ReferenceEquals(pair.Value, database))
+                    {
+                        return "the database settings dialog is open on this database, and its OK would "
+                               + "take back a recycle bin made now";
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
         /// Why an entry cannot be written right now, or null when it can.
         /// </summary>
         /// <remarks>
@@ -357,14 +412,24 @@ namespace KeePassGate.Bridge
             return ReferenceEquals(top, database.RootGroup);
         }
 
-        /// <summary>How many are open, for a test and for a log line.</summary>
+        /// <summary>
+        /// How many of the dialogs this watches are open, of every kind, for a test and for a log
+        /// line.
+        /// </summary>
+        /// <remarks>
+        /// Nothing refuses on it. A count cannot say "I do not know", since a watch that never
+        /// started counts zero exactly as an empty desktop does, so every refusal here asks
+        /// `Blocking` or `BlockingRecords`, which fold that question into their answer. The
+        /// database settings dialog is not in it: it carries no node's custom data, and what it
+        /// does copy is asked about by `BlockingRecycleBin` instead.
+        /// </remarks>
         public int Count
         {
             get
             {
                 lock (_lock)
                 {
-                    return _open.Count;
+                    return _open.Count + _openEntries.Count + _openBulk.Count + _openMaintenance.Count;
                 }
             }
         }
@@ -394,9 +459,10 @@ namespace KeePassGate.Bridge
                 _open.Clear();
                 _creating.Clear();
                 _filling.Clear();
-                _openMaintenance.Clear();
                 _openEntries.Clear();
                 _openBulk.Clear();
+                _openMaintenance.Clear();
+                _openSettings.Clear();
             }
         }
 
@@ -407,7 +473,7 @@ namespace KeePassGate.Bridge
             {
                 var form = e == null ? null : e.Form;
                 if (form == null || (!IsGroupDialog(form) && !IsEntryDialog(form)
-                                     && !IsMaintenanceDialog(form)
+                                     && !IsMaintenanceDialog(form) && !IsSettingsDialog(form)
                                      && !IsTanWizard(form)))
                 {
                     return;
@@ -420,6 +486,18 @@ namespace KeePassGate.Bridge
                     lock (_lock)
                     {
                         _filling[form] = filled;
+                    }
+
+                    return;
+                }
+
+                if (IsSettingsDialog(form))
+                {
+                    var edited = SettingsDatabaseBehind(form);
+
+                    lock (_lock)
+                    {
+                        _openSettings[form] = edited;
                     }
 
                     return;
@@ -522,9 +600,10 @@ namespace KeePassGate.Bridge
                     _open.Remove(form);
                     _creating.Remove(form);
                     _filling.Remove(form);
-                    _openMaintenance.Remove(form);
                     _openEntries.Remove(form);
                     _openBulk.Remove(form);
+                    _openMaintenance.Remove(form);
+                    _openSettings.Remove(form);
                 }
             }
             catch (Exception error)
@@ -540,6 +619,11 @@ namespace KeePassGate.Bridge
                 form.GetType().FullName, KeePassContract.GroupFormTypeName, StringComparison.Ordinal);
         }
 
+        private static bool IsEntryDialog(Form form)
+        {
+            return string.Equals(
+                form.GetType().FullName, KeePassContract.EntryFormTypeName, StringComparison.Ordinal);
+        }
 
         private static bool IsMaintenanceDialog(Form form)
         {
@@ -553,10 +637,65 @@ namespace KeePassGate.Bridge
                 form.GetType().FullName, KeePassContract.TanWizardFormTypeName, StringComparison.Ordinal);
         }
 
-        private static bool IsEntryDialog(Form form)
+        private static bool IsSettingsDialog(Form form)
         {
             return string.Equals(
-                form.GetType().FullName, KeePassContract.EntryFormTypeName, StringComparison.Ordinal);
+                form.GetType().FullName, KeePassContract.DatabaseSettingsFormTypeName, StringComparison.Ordinal);
+        }
+
+        /// <summary>Null when it cannot be read, which is taken to mean any database at all.</summary>
+        /// <remarks>
+        /// A public property rather than a field, and the same one the KPG tab reads to find out
+        /// which database it is on.
+        /// </remarks>
+        private PwDatabase SettingsDatabaseBehind(Form form)
+        {
+            try
+            {
+                var property = form.GetType().GetProperty(
+                    KeePassContract.DatabaseSettingsFormDatabaseProperty,
+                    BindingFlags.Public | BindingFlags.Instance);
+
+                if (property == null)
+                {
+                    _log.Warn("the settings dialog no longer names its database in " +
+                              KeePassContract.DatabaseSettingsFormDatabaseProperty +
+                              ", so a first recycle bin is refused while one is open");
+                    return null;
+                }
+
+                return property.GetValue(form, null) as PwDatabase;
+            }
+            catch (Exception error) when (Expected.OfReflection(error))
+            {
+                _log.Error("the database behind the settings dialog could not be read", error);
+                return null;
+            }
+        }
+
+        /// <summary>Null when it cannot be read, which is taken to mean any database at all.</summary>
+        private PwDatabase DatabaseBehind(Form form)
+        {
+            try
+            {
+                var field = form.GetType().GetField(
+                    KeePassContract.MaintenanceFormDatabaseField, BindingFlags.NonPublic | BindingFlags.Instance);
+
+                if (field == null)
+                {
+                    _log.Warn("the maintenance dialog no longer names its database in " +
+                              KeePassContract.MaintenanceFormDatabaseField +
+                              ", so pairing is refused while one is open");
+                    return null;
+                }
+
+                return field.GetValue(form) as PwDatabase;
+            }
+            catch (Exception error) when (Expected.OfReflection(error))
+            {
+                _log.Error("the database behind the maintenance dialog could not be read", error);
+                return null;
+            }
         }
 
         /// <summary>
@@ -733,32 +872,6 @@ namespace KeePassGate.Bridge
             catch (Exception error) when (Expected.OfReflection(error))
             {
                 _log.Error("the group behind a dialog could not be read", error);
-                return null;
-            }
-        }
-
-
-        /// <summary>Null when it cannot be read, which is taken to mean any database at all.</summary>
-        private PwDatabase DatabaseBehind(Form form)
-        {
-            try
-            {
-                var field = form.GetType().GetField(
-                    KeePassContract.MaintenanceFormDatabaseField, BindingFlags.NonPublic | BindingFlags.Instance);
-
-                if (field == null)
-                {
-                    _log.Warn("the maintenance dialog no longer names its database in " +
-                              KeePassContract.MaintenanceFormDatabaseField +
-                              ", so pairing is refused while one is open");
-                    return null;
-                }
-
-                return field.GetValue(form) as PwDatabase;
-            }
-            catch (Exception error) when (Expected.OfReflection(error))
-            {
-                _log.Error("the database behind the maintenance dialog could not be read", error);
                 return null;
             }
         }

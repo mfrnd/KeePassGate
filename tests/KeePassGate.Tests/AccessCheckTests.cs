@@ -206,6 +206,62 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_refusal_a_removed_profile_would_have_permitted_says_so_and_names_it()
+        {
+            // The record holds `ops` and the list does not, so the client asks holding `reader`
+            // alone and the rule for `ops` answers about nobody. Written as the rules refusing,
+            // that sends the operator looking for a rule; the reason is that they removed a name.
+            var entry = TestNode.Root("root").Holding("{\"ops\":[\"read\"],\"audit\":[\"read\"]}").Child("an entry");
+
+            var permitted = _check.Permits(
+                Removing(new[] { "reader" }, "ops", "audit", "legacy"), "readEntry", AclVerb.Read, AclReach.Fields, entry);
+
+            var recorded = _audit.Entries.Single();
+
+            Assert.That(permitted, Is.False, "the second walk decides what is written, never what is answered");
+            Assert.That(recorded.Permitted, Is.False);
+            Assert.That(recorded.Reason, Is.EqualTo(AccessCheck.ProfileRemoved));
+            Assert.That(recorded.RemovedProfiles, Is.EqualTo(new[] { "ops", "audit" }),
+                "the removed names that would each have permitted it, and not `legacy`, which would not");
+            Assert.That(recorded.DecidedAt, Is.EqualTo("root"), "where the rule that would have is");
+
+            var line = recorded.Line();
+            Assert.That(line, Does.Contain("\"removedProfiles\":[\"ops\",\"audit\"]"));
+            Assert.That(line, Does.Not.Contain("reader"), "what the client still holds is never written");
+        }
+
+        [Test]
+        public void A_refusal_no_removed_profile_would_have_permitted_is_the_rules_refusing()
+        {
+            var entry = TestNode.Root("root").Granting("reader", AclVerb.List).Child("an entry");
+
+            _check.Permits(Removing(new[] { "reader" }, "ops"), "readEntry", AclVerb.Read, AclReach.Fields, entry);
+
+            var recorded = _audit.Entries.Single();
+
+            Assert.That(recorded.Reason, Is.Not.EqualTo(AccessCheck.ProfileRemoved));
+            Assert.That(recorded.RemovedProfiles, Is.Null);
+            Assert.That(recorded.Line(), Does.Not.Contain("ops"));
+        }
+
+        [Test]
+        public void A_removal_two_removed_profiles_allow_only_together_names_both()
+        {
+            // A removal is asked of the group it leaves and of the node itself, so one removed name
+            // can be what the container needed and another what the node did: `ops` may remove
+            // from the root and not this entry, `audit` this entry and nothing from the root.
+            var entry = TestNode.Root("root").Granting("ops", AclVerb.Delete)
+                .Child("an entry").Holding("{\"audit\":[\"delete\"],\"ops\":[]}");
+
+            _check.Permits(Removing(Array.Empty<string>(), "ops", "audit"), "deleteEntry", AclVerb.Delete, AclReach.Fields, entry);
+
+            var recorded = _audit.Entries.Single();
+
+            Assert.That(recorded.Reason, Is.EqualTo(AccessCheck.ProfileRemoved));
+            Assert.That(recorded.RemovedProfiles, Is.EqualTo(new[] { "ops", "audit" }));
+        }
+
+        [Test]
         public void The_line_names_the_rule_that_decided_and_not_only_the_node_asked_about()
         {
             // Nearest wins, so a refusal is usually decided somewhere above the node in question.
@@ -281,6 +337,16 @@ namespace KeePassGate.Tests
             using (var certificate = authority.IssueClient("agent-fictitious"))
             {
                 return ClientIdentity.Paired("d1e2f3", certificate, profiles);
+            }
+        }
+
+        /// <summary>A client holding these profiles, whose record also holds these removed ones.</summary>
+        private static ClientIdentity Removing(string[] held, params string[] removed)
+        {
+            using (var authority = TestAuthority.New())
+            using (var certificate = authority.IssueClient("agent-fictitious"))
+            {
+                return ClientIdentity.Paired("d1e2f3", certificate, held, removed);
             }
         }
     }

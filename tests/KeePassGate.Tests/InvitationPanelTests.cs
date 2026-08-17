@@ -23,6 +23,9 @@ namespace KeePassGate.Tests
     [Apartment(ApartmentState.STA)]
     public sealed class InvitationPanelTests
     {
+        /// <summary>Invented, and only ever shown in a label.</summary>
+        private const string Version = "1.2.3";
+
         private FakeGateDatabase _database;
         private RecordingGateLog _log;
         private InvitationBook _book;
@@ -121,7 +124,8 @@ namespace KeePassGate.Tests
                 // the same thing about the same one outstanding code.
                 panel.InviteClient();
 
-                Assert.That(Label(panel, GateTab.InvitationLabelName).Text, Does.Contain("good for"));
+                Assert.That(Label(panel, GateTab.InvitationLabelName).Text, Does.Contain("good for"),
+                    "renewing replaces the code rather than adding one, so the line reads the same");
             }
         }
 
@@ -213,6 +217,27 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void The_clients_page_says_why_and_says_what_the_remedy_costs()
+        {
+            // Where the operator is already looking, which is the page holding the dead button.
+            // The Certificate Authority page carries the date it expired on, and somebody who came
+            // here to invite a program is not on it.
+            RunOut();
+
+            using (var panel = NewPanel())
+            {
+                var notice = Label(panel, GateTab.InviteNoticeName);
+
+                Assert.That(OnScreen(panel, notice), Is.True);
+                Assert.That(notice.Text, Is.EqualTo(GateTab.ExpiredAuthorityNotice));
+                Assert.That(notice.Text, Does.Contain("Recreate it on the first page"),
+                    "the one thing that fixes this is named, and where it is");
+                Assert.That(notice.Text, Does.Contain("every client pairs again"),
+                    "and so is what pressing it costs, because it revokes everybody");
+            }
+        }
+
+        [Test]
         public void Nothing_is_minted_against_an_authority_that_has_run_out()
         {
             // The button is dead, so what this covers is the clock crossing the expiry between
@@ -226,8 +251,47 @@ namespace KeePassGate.Tests
 
                 Assert.That(Box(panel, GateTab.InvitationBoxName).Text, Is.Empty);
                 Assert.That(_book.Outstanding(), Is.Empty);
-                Assert.That(Label(panel, GateTab.ResultLabelName).Text,
-                    Is.EqualTo(InvitationText.AuthorityExpired));
+                Assert.That(Label(panel, GateTab.InviteNoticeName).Text,
+                    Is.EqualTo(GateTab.ExpiredAuthorityNotice));
+                Assert.That(Label(panel, GateTab.ResultLabelName).Text, Is.Empty,
+                    "the notice says it, and the line under the pages does not say it again");
+            }
+        }
+
+        [Test]
+        public void A_press_that_finds_the_authority_has_run_out_says_so_once()
+        {
+            // N082: the press said the notice's own sentence on the line under the pages and left
+            // the page as it was drawn, so the notice came up at the next redraw and the two stood
+            // one above the other saying the same thing. Arranged the way that happens: the page
+            // is drawn over an authority that is still current, and the one the press finds has
+            // run out, because the panel reads the clock rather than taking one.
+            using (var panel = NewPanel())
+            {
+                panel.CreateAuthority();
+                Assume.That(Button(panel, GateTab.InviteButtonName).Enabled, Is.True);
+
+                var whenItWasMinted =
+                    DateTimeOffset.UtcNow - AuthorityIssuer.AuthorityLifetime - TimeSpan.FromDays(1);
+                new AuthorityService(_database.Store, new AuthorityIssuer(() => whenItWasMinted), _log)
+                    .Recreate();
+
+                panel.InviteClient();
+
+                var notice = Label(panel, GateTab.InviteNoticeName);
+                var line = Label(panel, GateTab.ResultLabelName);
+
+                Assert.That(_book.Outstanding(), Is.Empty);
+                Assert.That(Button(panel, GateTab.InviteButtonName).Enabled, Is.False,
+                    "the press draws the page again, so the button it found dead goes dead");
+                Assert.That(notice.Text, Is.EqualTo(GateTab.ExpiredAuthorityNotice));
+                Assert.That(line.Text, Is.Empty);
+
+                // And both on the page at once: bringing it to the front draws it again.
+                Assert.That(OnScreen(panel, notice), Is.True, "the notice says why");
+                Assert.That(line.Text, Does.Not.Contain(notice.Text),
+                    "the line under the pages says the notice's sentence a second time");
+                Assert.That(line.Text, Is.Empty, "the line under the pages says something else instead");
             }
         }
 
@@ -260,6 +324,51 @@ namespace KeePassGate.Tests
                     "a code this authority cannot honor must not stay on screen to be handed over");
                 Assert.That(Button(panel, GateTab.CopyButtonName).Enabled, Is.False,
                     "and must not be copyable");
+            }
+        }
+
+        [Test]
+        public void A_host_certificate_that_has_run_out_closes_the_page_the_same_way()
+        {
+            // Five years into the authority's ten. `PAIRING.md` §311 refuses a request then too,
+            // before anybody is disturbed, because every connection a paired program made
+            // afterwards would be served with the certificate that ran out.
+            RunHostOut();
+
+            using (var panel = NewPanel())
+            {
+                var notice = Label(panel, GateTab.InviteNoticeName);
+
+                Assert.That(Button(panel, GateTab.InviteButtonName).Enabled, Is.False);
+                Assert.That(OnScreen(panel, notice), Is.True);
+                Assert.That(notice.Text, Is.EqualTo(GateTab.ExpiredHostNotice),
+                    "the date that passed is the one named, since the authority's has not");
+
+                panel.InviteClient();
+
+                Assert.That(_book.Outstanding(), Is.Empty);
+                Assert.That(notice.Text, Is.EqualTo(GateTab.ExpiredHostNotice));
+                Assert.That(Label(panel, GateTab.ResultLabelName).Text, Is.Empty,
+                    "the notice says it, and the line under the pages does not say it again");
+            }
+        }
+
+        [Test]
+        public void A_code_minted_before_the_host_certificate_ran_out_stops_being_offered()
+        {
+            RunHostOut();
+
+            var invitation = _book.Invite(Digest());
+            Assume.That(invitation, Is.Not.Null);
+
+            using (var panel = NewPanel())
+            {
+                Box(panel, GateTab.InvitationBoxName).Text = invitation.Text;
+                panel.Describe();
+
+                Assert.That(Label(panel, GateTab.InvitationLabelName).Text, Is.EqualTo(InvitationText.None));
+                Assert.That(Box(panel, GateTab.InvitationBoxName).Text, Is.Empty);
+                Assert.That(Button(panel, GateTab.CopyButtonName).Enabled, Is.False);
             }
         }
 
@@ -454,7 +563,7 @@ namespace KeePassGate.Tests
         [Test]
         public void A_tab_assembled_without_pairing_has_the_button_and_cannot_press_it()
         {
-            using (var panel = new AuthorityPanel(_database, new FakePrompt(true), _log, "1.0.0"))
+            using (var panel = new AuthorityPanel(_database, new FakePrompt(true), _log, Version))
             {
                 panel.CreateAuthority();
 
@@ -462,9 +571,30 @@ namespace KeePassGate.Tests
             }
         }
 
+        [Test]
+        public void A_code_that_is_no_longer_outstanding_stops_being_shown()
+        {
+            // It has been spent or has run out either way, so what was on screen was the one string
+            // that no longer works, beside a line saying there is none. Exactly the string somebody
+            // would copy and hand over.
+            using (var panel = NewPanel())
+            {
+                panel.CreateAuthority();
+                panel.InviteClient();
+
+                Assert.That(Box(panel, GateTab.InvitationBoxName).Text, Is.Not.Empty);
+
+                _book.Burn(_book.Outstanding()[0].Id);
+                panel.Describe();
+
+                Assert.That(Label(panel, GateTab.InvitationLabelName).Text, Is.EqualTo(InvitationText.None));
+                Assert.That(Box(panel, GateTab.InvitationBoxName).Text, Is.Empty);
+            }
+        }
+
         private AuthorityPanel NewPanel()
         {
-            return new AuthorityPanel(_database, new FakePrompt(true), _log, "1.0.0", null, _book);
+            return new AuthorityPanel(_database, new FakePrompt(true), _log, Version, null, _book);
         }
 
         /// <summary>
@@ -505,6 +635,19 @@ namespace KeePassGate.Tests
         {
             var whenItWasMinted =
                 DateTimeOffset.UtcNow - AuthorityIssuer.AuthorityLifetime - TimeSpan.FromDays(1);
+
+            new AuthorityService(_database.Store, new AuthorityIssuer(() => whenItWasMinted), _log)
+                .Create();
+        }
+
+        /// <summary>
+        /// Gives this database an authority whose host certificate ran out a day ago, five years
+        /// into the authority's ten, minted the way <see cref="RunOut"/> is.
+        /// </summary>
+        private void RunHostOut()
+        {
+            var whenItWasMinted =
+                DateTimeOffset.UtcNow - AuthorityIssuer.HostLifetime - TimeSpan.FromDays(1);
 
             new AuthorityService(_database.Store, new AuthorityIssuer(() => whenItWasMinted), _log)
                 .Create();

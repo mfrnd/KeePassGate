@@ -34,6 +34,22 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_refusal_a_removed_profile_caused_ends_with_the_names_that_would_have_permitted_it()
+        {
+            var line = new AuditEntry(
+                At, "d1e2f3", "9f86d081", "readEntry", "7b1c", "3a9f", false, "profile removed",
+                new[] { "ops" }).Line();
+
+            Assert.That(line, Does.EndWith(
+                "\"decision\":\"refused\"," +
+                "\"reason\":\"profile removed\"," +
+                "\"removedProfiles\":[\"ops\"]}"));
+
+            // Still a line this plugin's own reader takes, being strings and a list of them.
+            Assert.That(JsonBody.Read(line).Array("removedProfiles"), Is.EqualTo(new[] { "ops" }));
+        }
+
+        [Test]
         public void It_reads_back_as_the_object_it_claims_to_be()
         {
             // Through this plugin's own reader, which refuses anything that is not one flat object
@@ -61,6 +77,8 @@ namespace KeePassGate.Tests
             Assert.That(line, Does.Contain("\"client\":null"));
             Assert.That(line, Does.Contain("\"node\":null"));
             Assert.That(line, Does.Contain("\"decidedAt\":null"));
+            Assert.That(line, Does.Not.Contain("removedProfiles"),
+                "the one member written only where it applies, which is a refusal a removed profile caused");
 
             // And the cost of saying it that way, asserted rather than left to be discovered: this
             // plugin's own reader refuses null, so a question that never reached a node, which is

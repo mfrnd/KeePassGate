@@ -610,6 +610,31 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void Approving_a_removed_profile_names_the_old_clients_and_gives_it_back_to_them()
+        {
+            // Pairing writes the approved names onto the list, so a removed name approved again is
+            // back for every client whose record still holds it. The operator is shown who.
+            using (var old = _target.IssueClient("ci-runner", "ops"))
+            {
+                _target.Admit(old, "ops");
+                _target.Forget("ops");
+                Assume.That(ClientCredentials.For(old, _target, _log).Profiles, Is.Empty);
+
+                var approval = FakePairingApproval.Approving("ops");
+                Hello(ClientProof());
+
+                var context = Request("agent-fictitious", new[] { "ops" }, approval);
+
+                Assert.That(context.Status, Is.EqualTo(200));
+                Assert.That(approval.LastRequest.Returning("ops").Select(record => record.Subject),
+                    Is.EqualTo(new[] { "CN=ci-runner" }));
+                Assert.That(approval.LastRequest.IsNew("ops"), Is.False);
+                Assert.That(ClientCredentials.For(old, _target, _log).Profiles, Is.EqualTo(new[] { "ops" }),
+                    "the name is back on the list, so the old client holds it again");
+            }
+        }
+
+        [Test]
         public void The_operator_is_told_which_database_by_name_and_not_only_by_digest()
         {
             // Approving lets a stranger into one of possibly several open databases, and sixteen

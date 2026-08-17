@@ -139,6 +139,16 @@ screen. Nothing is spent by that, so the invitee can simply ask again. The refer
 so by itself when it is given a budget for waiting, starting again from the hello rather than
 repeating the approval request alone.
 
+**The dialog says what approving a profile brings back.** Pairing writes the approved names onto
+the database's list of profiles in the same write as the record, and that list decides which names
+are in force (`DESIGN.md` §139). A name the database does not name now and no client holds is
+marked "(new)", because approving adds it, and the dialog says that any rule already naming it
+applies at once: a name removed once, whose every holder has since been revoked or has expired,
+looks the same from a connection, which does not walk the tree to count rules. A name the operator
+removed that other clients still hold is marked
+"(removed)", and the dialog names those clients: approving puts the name back, every one of them
+regains it, and every rule still naming it applies again.
+
 Both proofs are bound to the RFC 5929 `tls-server-end-point` channel binding, which both sides
 derive independently and which hashes the certificate actually in use. **It needs no interface from
 the transport on either side**, because it is defined as a hash of the server's certificate: the

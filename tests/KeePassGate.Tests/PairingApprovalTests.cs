@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows.Forms;
+using KeePassGate.Authority;
 using KeePassGate.Pairing;
 using KeePassGate.Tests.Fakes;
 using KeePassGate.Ui;
@@ -54,30 +56,62 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        [TestCase(1.00f)]
-        [TestCase(1.25f)]
-        [TestCase(1.50f)]
-        [TestCase(2.00f)]
-        public void Every_profile_asked_for_can_be_seen_and_unchecked_at_any_scaling(float scaling)
+        [TestCase(1.00f, 3)]
+        [TestCase(1.25f, 3)]
+        [TestCase(1.50f, 3)]
+        [TestCase(2.00f, 3)]
+        [TestCase(1.00f, 32)]
+        [TestCase(1.25f, 32)]
+        [TestCase(1.50f, 32)]
+        [TestCase(2.00f, 32)]
+        public void Every_profile_asked_for_can_be_seen_and_unchecked_at_any_scaling(float scaling, int asked)
         {
             // The dialog used to be a fixed 460 by 340 with the list filling whatever the two
             // docked bands left. Those bands grow with the font and the client area did not, so at
             // 125% the list showed one row of what was being asked for and at 150% it showed none,
             // while every profile stayed checked and Approve granted all of them. A dialog that
             // hides what it is granting is worse than one that is ugly.
-            using (var dialog = New("ops", "reader", "deploy"))
-            using (var larger = Scaled(dialog.Font, scaling))
+            //
+            // **Built at the larger font rather than given it afterwards**, because a scaled
+            // display hands the dialog its font before it is built and everything is measured then.
+            // Giving it the font afterwards measured a path no display takes, and this passed only
+            // because an automatic scaling nothing else used scaled the result (H156).
+            //
+            // **And a list longer than the rows it shows**, which is the other way to hide what
+            // Approve grants: 32 profiles is the most a request carries, all checked, ten on
+            // screen. Every one can still be reached, and the line under the list says how many
+            // there are (J056).
+            var names = Enumerable.Range(1, asked).Select(at => "profile-" + at).ToArray();
+
+            using (var larger = Scaled(Control.DefaultFont, scaling))
+            using (var dialog = New(larger, names))
             {
-                dialog.Font = larger;
                 dialog.CreateControl();
                 dialog.PerformLayout();
 
                 var list = ControlTree.FindByName<CheckedListBox>(dialog, GateTab.ApprovalProfilesListName);
 
                 Assert.That(list, Is.Not.Null);
-                Assert.That(list.Items.Count, Is.EqualTo(3), "all three are being asked for");
-                Assert.That(list.Height, Is.GreaterThanOrEqualTo(list.ItemHeight * 2),
-                    "a list showing one row of three profiles is a list the operator cannot read");
+                Assert.That(list.Items.Count, Is.EqualTo(asked), "every one is being asked for");
+                Assert.That(list.CheckedItems.Count, Is.EqualTo(asked), "and every one arrives checked");
+                Assert.That(list.Height, Is.GreaterThanOrEqualTo(list.ItemHeight * Math.Min(asked, 10)),
+                    "a list showing fewer rows than it was sized for is a list the operator cannot read");
+
+                var scrolling = ControlTree.FindByName<Label>(dialog, GateTab.ApprovalScrollingName);
+                if (asked > 10)
+                {
+                    Assert.That(scrolling, Is.Not.Null, "a list that scrolls says nothing about what it hides");
+                    Assert.That(scrolling.Text, Does.Contain(asked + " profiles"));
+                    Assert.That(InDialog(scrolling, dialog).Bottom, Is.LessThanOrEqualTo(Asked(dialog).Height),
+                        "the line under the list is off the bottom of the dialog at " + scaling);
+
+                    list.TopIndex = asked - 1;
+                    Assert.That(list.TopIndex, Is.GreaterThan(0), "the list does not scroll to the rows it hides");
+                }
+                else
+                {
+                    Assert.That(scrolling, Is.Null, "a list that shows everything needs no line about scrolling");
+                }
 
                 foreach (var name in new[] { GateTab.ApproveButtonName, GateTab.RefuseButtonName })
                 {
@@ -101,14 +135,13 @@ namespace KeePassGate.Tests
         {
             // The other half of the same claim: the window is sized by what is in it, so a larger
             // font makes a larger dialog rather than the same dialog with less showing.
+            using (var larger = Scaled(Control.DefaultFont, 1.5f))
             using (var ordinary = New("ops", "reader", "deploy"))
-            using (var enlarged = New("ops", "reader", "deploy"))
-            using (var larger = Scaled(enlarged.Font, 1.5f))
+            using (var enlarged = New(larger, "ops", "reader", "deploy"))
             {
                 ordinary.CreateControl();
                 ordinary.PerformLayout();
 
-                enlarged.Font = larger;
                 enlarged.CreateControl();
                 enlarged.PerformLayout();
 
@@ -405,6 +438,183 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_profile_this_database_has_never_named_is_marked_as_new()
+        {
+            // Approving one of these does two things rather than one: it admits the client, and it
+            // creates a profile every rule can then grant to. A list showing a new name exactly
+            // like an existing one would be asking somebody to notice a spelling.
+            using (var dialog = new PairingApprovalForm(
+                Request("agent-fictitious", new[] { "ops", "invented" }, new[] { "ops" }), Timeout))
+            {
+                var shown = Texts(dialog);
+
+                Assert.That(PairingApprovalForm.Listed("invented", true, false), Is.EqualTo("invented (new)"));
+                Assert.That(PairingApprovalForm.Listed("ops", false, false), Is.EqualTo("ops"));
+                Assert.That(shown, Does.Contain(PairingApprovalForm.NewProfilesAsked));
+                Assert.That(PairingApprovalForm.NewProfilesAsked, Does.Contain("approving adds them"));
+
+                // Not "never named": a name removed once, whose holders have all gone, reads the
+                // same here, and a rule still naming it grants it to this client at once.
+                Assert.That(PairingApprovalForm.NewProfilesAsked, Does.Not.Contain("never named"));
+                Assert.That(PairingApprovalForm.NewProfilesAsked, Does.Contain("any rule already naming one grants it"));
+            }
+        }
+
+        [Test]
+        public void A_list_longer_than_it_shows_says_Approve_grants_what_is_out_of_sight_too()
+        {
+            // J056: ten harmless names first and the wanted one after, marked as new below the
+            // fold, and a glance at the ten approved all of them. The line under the list is what
+            // says there is more.
+            var asked = Enumerable.Range(1, 32).Select(at => "profile-" + at).ToArray();
+            var request = Request("agent-fictitious", asked, asked.Take(31).ToArray());
+
+            var said = PairingApprovalForm.Scrolling(request);
+
+            Assert.That(said, Does.Contain("32 profiles").And.Contain("10 at a time"));
+            Assert.That(said, Does.Contain("Approve grants every one still checked"));
+            Assert.That(PairingApprovalForm.Scrolling(Request("agent-fictitious", asked.Take(10).ToArray())),
+                Is.Null, "ten fit, so nothing is out of sight");
+
+            using (var dialog = new PairingApprovalForm(request, Timeout))
+            {
+                Assert.That(Texts(dialog), Does.Contain(said));
+
+                dialog.Approve();
+
+                Assert.That(dialog.Answer().Profiles, Is.EqualTo(asked),
+                    "what the line warns about is exactly what happens");
+            }
+        }
+
+        [Test]
+        public void What_is_approved_is_the_profile_rather_than_what_the_list_called_it()
+        {
+            // The mark is for the reader. A record naming "invented (new)" would be a record for a
+            // profile no certificate can carry and no rule can name.
+            Assert.That(PairingApprovalForm.Asked("invented (new)"), Is.EqualTo("invented"));
+            Assert.That(PairingApprovalForm.Asked("retired (removed)"), Is.EqualTo("retired"));
+            Assert.That(PairingApprovalForm.Asked("ops"), Is.EqualTo("ops"));
+
+            using (var dialog = new PairingApprovalForm(
+                Request("agent-fictitious", new[] { "invented" }, Array.Empty<string>()), Timeout))
+            {
+                dialog.Approve();
+
+                Assert.That(dialog.Answer().Profiles, Is.EqualTo(new[] { "invented" }));
+            }
+        }
+
+        [Test]
+        public void A_removed_profile_is_marked_and_every_client_that_regains_it_is_named()
+        {
+            // Pairing writes the approved names onto the list, so approving a removed name adds it
+            // back, and every client approved for it before regains it. The operator approving one
+            // client is told who else that approves.
+            using (var authority = TestAuthority.New())
+            using (var seven = authority.IssueClient("agent-seven"))
+            using (var runner = authority.IssueClient("ci-runner"))
+            {
+                var holding = new[]
+                {
+                    AdmissionRecord.For(runner, DateTimeOffset.UtcNow, new[] { "retired" }),
+                    AdmissionRecord.For(seven, DateTimeOffset.UtcNow, new[] { "retired", "ops" })
+                };
+
+                var request = new PairingRequest(
+                    "aaaabbbbccccdddd", "Invented Vault", "abcdef01", "agent-fictitious",
+                    new[] { "ops", "retired" }, new[] { "ops" }, "127.0.0.1:60001",
+                    new Dictionary<string, IReadOnlyList<AdmissionRecord>> { { "retired", holding } });
+
+                Assert.That(request.IsNew("retired"), Is.False, "it was named once, so approving it creates nothing");
+
+                using (var dialog = new PairingApprovalForm(request, Timeout))
+                {
+                    var list = ControlTree.FindByName<CheckedListBox>(dialog, GateTab.ApprovalProfilesListName);
+                    Assert.That(list.Items.Cast<string>(), Is.EqualTo(new[] { "ops", "retired (removed)" }));
+
+                    var regaining = ControlTree.FindByName<Label>(dialog, GateTab.ApprovalRegainingName);
+                    Assert.That(regaining, Is.Not.Null);
+                    Assert.That(regaining.Text, Does.StartWith(
+                        "2 clients still hold retired from before and will regain it: agent-seven, ci-runner."));
+                    Assert.That(regaining.Text, Does.Contain("every rule still naming it applies again"));
+
+                    dialog.Approve();
+                    Assert.That(dialog.Answer().Profiles, Is.EqualTo(new[] { "ops", "retired" }),
+                        "what is approved is the name, not what the list called it");
+                }
+            }
+        }
+
+        [Test]
+        public void At_the_ceiling_the_dialog_promises_to_add_nothing_and_names_nobody_regaining()
+        {
+            // The writer skips a name the full list cannot take, and the pairing lands without it,
+            // so promising to create a "(new)" name or to give a "(removed)" one back to its
+            // holders promised what does not happen.
+            var known = Enumerable.Range(0, KeePassGate.Acl.ProfileNames.Most).Select(i => "named-" + i).ToArray();
+
+            using (var authority = TestAuthority.New())
+            using (var runner = authority.IssueClient("ci-runner"))
+            {
+                var holding = new[] { AdmissionRecord.For(runner, DateTimeOffset.UtcNow, new[] { "retired" }) };
+                var request = new PairingRequest(
+                    "aaaabbbbccccdddd", "Invented Vault", "abcdef01", "agent-fictitious",
+                    new[] { "named-0", "fresh", "retired" }, known, "127.0.0.1:60001",
+                    new Dictionary<string, IReadOnlyList<AdmissionRecord>> { { "retired", holding } });
+
+                Assert.That(request.ListIsFull, Is.True);
+                Assert.That(PairingApprovalForm.Asking(request), Is.EqualTo(PairingApprovalForm.FullProfilesAsked));
+                Assert.That(PairingApprovalForm.FullProfilesAsked, Does.Contain("approving adds none of them"));
+                Assert.That(PairingApprovalForm.Regaining(request), Is.Null);
+
+                var listed = new PairingRequest(
+                    "aaaabbbbccccdddd", "Invented Vault", "abcdef01", "agent-fictitious",
+                    new[] { "named-0" }, known, "127.0.0.1:60001");
+                Assert.That(PairingApprovalForm.Asking(listed), Is.EqualTo(PairingApprovalForm.ProfilesAsked),
+                    "a full list says nothing about names already on it");
+            }
+        }
+
+        [Test]
+        public void A_dialog_giving_nothing_back_to_anybody_has_no_such_line()
+        {
+            using (var dialog = New("ops"))
+            {
+                Assert.That(ControlTree.FindByName<Label>(dialog, GateTab.ApprovalRegainingName), Is.Null);
+            }
+        }
+
+        [Test]
+        public void The_dialog_names_the_database_rather_than_only_its_fingerprint()
+        {
+            // Sixteen hexadecimal characters is not something anybody recognizes. The fingerprint
+            // stays, because it is what actually identifies a database and two can share a name.
+            var facts = PairingApprovalForm.Facts(Request("agent-fictitious", new[] { "ops" }));
+
+            Assert.That(Named(facts, "Database"), Is.EqualTo("Invented Vault"));
+            Assert.That(Named(facts, "Fingerprint"), Is.EqualTo("aaaabbbbccccdddd"));
+        }
+
+        [Test]
+        public void A_database_with_no_name_is_still_named_by_its_fingerprint()
+        {
+            var facts = PairingApprovalForm.Facts(new PairingRequest(
+                "aaaabbbbccccdddd", "abcdef01", "agent-fictitious", Array.Empty<string>(), null));
+
+            Assert.That(Named(facts, "Database"), Is.EqualTo("aaaabbbbccccdddd"));
+        }
+
+        [Test]
+        public void It_says_that_approving_saves_the_database()
+        {
+            // Which is the one thing on this dialog that touches the file. An operator who does not
+            // expect it finds a saved database and cannot tell what else went with it.
+            Assert.That(PairingApprovalForm.Consequence, Does.Contain("saves this database"));
+            Assert.That(PairingApprovalForm.Consequence, Does.Contain("before the client is told"));
+        }
+
+        [Test]
         public void The_invitation_row_names_the_invitation_rather_than_the_code()
         {
             var request = new PairingRequest(
@@ -458,41 +668,24 @@ namespace KeePassGate.Tests
             Assert.Throws<ArgumentNullException>(() => PairingApprovalForm.Facts(null));
         }
 
-        [Test]
-        public void The_dialog_names_the_database_rather_than_only_its_fingerprint()
-        {
-            // Sixteen hexadecimal characters is not something anybody recognizes. The fingerprint
-            // stays, because it is what actually identifies a database and two can share a name.
-            var facts = PairingApprovalForm.Facts(Request("agent-fictitious", new[] { "ops" }));
-
-            Assert.That(Named(facts, "Database"), Is.EqualTo("Invented Vault"));
-            Assert.That(Named(facts, "Fingerprint"), Is.EqualTo("aaaabbbbccccdddd"));
-        }
-
-        [Test]
-        public void A_database_with_no_name_is_still_named_by_its_fingerprint()
-        {
-            var facts = PairingApprovalForm.Facts(new PairingRequest(
-                "aaaabbbbccccdddd", "abcdef01", "agent-fictitious", Array.Empty<string>(), null));
-
-            Assert.That(Named(facts, "Database"), Is.EqualTo("aaaabbbbccccdddd"));
-        }
-
-        [Test]
-        public void It_says_that_approving_saves_the_database()
-        {
-            // Which is the one thing on this dialog that touches the file. An operator who does not
-            // expect it finds a saved database and cannot tell what else went with it.
-            Assert.That(PairingApprovalForm.Consequence, Does.Contain("saves this database"));
-            Assert.That(PairingApprovalForm.Consequence, Does.Contain("before the client is told"));
-        }
-
+        /// <summary>A dialog for profiles this database already names, which is the usual case.</summary>
         private static PairingApprovalForm New(params string[] profiles)
         {
-            return new PairingApprovalForm(Request("agent-fictitious", profiles), Timeout);
+            return new PairingApprovalForm(Request("agent-fictitious", profiles, profiles), Timeout);
+        }
+
+        /// <summary>The same dialog, built at a font a scaled display would hand it.</summary>
+        private static PairingApprovalForm New(Font font, params string[] profiles)
+        {
+            return new PairingApprovalForm(Request("agent-fictitious", profiles, profiles), Timeout, font);
         }
 
         private static PairingRequest Request(string name, string[] profiles)
+        {
+            return Request(name, profiles, profiles);
+        }
+
+        private static PairingRequest Request(string name, string[] profiles, string[] known)
         {
             return new PairingRequest(
                 "aaaabbbbccccdddd",
@@ -500,6 +693,7 @@ namespace KeePassGate.Tests
                 "abcdef01",
                 name,
                 profiles,
+                known,
                 "127.0.0.1:60001");
         }
 

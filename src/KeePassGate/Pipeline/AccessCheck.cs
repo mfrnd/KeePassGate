@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using KeePassGate.Acl;
 using KeePassGate.Audit;
 
@@ -9,18 +11,21 @@ namespace KeePassGate.Pipeline
     /// </summary>
     /// <remarks>
     /// <code>
-    /// permitted = record(from the kdbx)  INTERSECT  acl(from the kdbx)
+    /// permitted = (record INTERSECT list)(from the kdbx)  INTERSECT  acl(from the kdbx)
     /// </code>
     ///
     /// **The intersection is structural rather than a step.** The profiles handed to the resolver
-    /// are the ones the admission record carries, so the rules can only ever answer about what the
-    /// operator approved at pairing: a rule granting `analyst` says nothing about a client whose
-    /// record does not name `analyst`, and a record naming ten profiles opens nothing that no rule
-    /// mentions. There is no place where the two are compared and could be compared wrongly.
+    /// are the ones the admission record carries that the database's list still names, so the
+    /// rules can only ever answer about what the operator approved at pairing and has not taken
+    /// away since: a rule granting `analyst` says nothing about a client whose record does not
+    /// name `analyst`, or while the list does not, and a record naming ten profiles opens nothing
+    /// that no rule mentions. There is no place where the two are compared and could be compared
+    /// wrongly.
     ///
-    /// Both halves live in the database, which is what makes either of them enough to take access
-    /// away. Deleting the record refuses the certificate on the next connection; narrowing the rule
-    /// refuses the operation on the next request; neither needs a certificate reissued.
+    /// All three live in the database, which is what makes any of them enough to take access
+    /// away. Deleting the record refuses the certificate on the next connection; taking a name off
+    /// the list or narrowing the rule refuses the operation on the next request; none needs a
+    /// certificate reissued.
     ///
     /// **Every question asked here is written down**, permitted or refused, because a decision
     /// nobody recorded is a decision nobody can review. Recording never fails the request: see
@@ -56,16 +61,82 @@ namespace KeePassGate.Pipeline
             return Decide(client, operationId, verb, reach, node).Permitted;
         }
 
+        /// <summary>
+        /// What a refusal says when the profiles the operator removed would have permitted it.
+        /// </summary>
+        public const string ProfileRemoved = "profile removed";
+
         /// <summary>The same question, with what answered it.</summary>
+        /// <remarks>
+        /// **A refusal is asked a second time when the client's record holds a removed name**,
+        /// this time with the record's whole list. If that would have permitted it, the line says
+        /// <see cref="ProfileRemoved"/> and names the removed profiles that would have done it,
+        /// and the node whose rule would have; otherwise it is written as the rules refused it.
+        /// Without this the two read alike, and an operator who took a name away and then finds a
+        /// client refused goes looking for a rule that is not the reason.
+        ///
+        /// Only a refusal, and only from a client holding such a name, pays for the second walk,
+        /// and nothing about it reaches the caller: the answer returned is the first one.
+        /// </remarks>
         public AclDecision Decide(
             ClientIdentity client, string operationId, AclVerb verb, AclReach reach, IAclNode node)
         {
-            var decision = Answer(client, verb, reach, node);
+            var decision = Answer(client, client == null ? null : client.Profiles, verb, reach, node);
+            var name = node == null ? null : node.Name;
 
-            Write(client, operationId, node == null ? null : node.Name, decision.DecidedAt,
-                decision.Permitted, decision.Reason);
+            AclDecision restored = null;
+            var removed = decision.Permitted ? null : Restoring(client, verb, reach, node, out restored);
+
+            if (removed == null || restored == null)
+            {
+                Write(client, operationId, name, decision.DecidedAt, decision.Permitted, decision.Reason, null);
+            }
+            else
+            {
+                Write(client, operationId, name, restored.DecidedAt, false, ProfileRemoved, removed);
+            }
 
             return decision;
+        }
+
+        /// <summary>
+        /// The removed profiles that would have permitted this, or null when the client holds none
+        /// or even all of them would not have.
+        /// </summary>
+        /// <remarks>
+        /// Each name is asked on its own beside what the client still holds, so that a removed
+        /// name that grants nothing here is not blamed for a refusal. When none does alone and all
+        /// of them together do, which a removal asked on two nodes allows, every one is named.
+        /// </remarks>
+        private static IReadOnlyList<string> Restoring(
+            ClientIdentity client, AclVerb verb, AclReach reach, IAclNode node, out AclDecision restored)
+        {
+            restored = null;
+
+            if (client == null || !client.IsPaired || client.Removed.Count == 0)
+            {
+                return null;
+            }
+
+            var whole = Answer(client, client.Profiles.Concat(client.Removed).ToList(), verb, reach, node);
+            if (!whole.Permitted)
+            {
+                return null;
+            }
+
+            restored = whole;
+
+            if (client.Removed.Count == 1)
+            {
+                return client.Removed;
+            }
+
+            var alone = client.Removed
+                .Where(profile => Answer(
+                    client, client.Profiles.Concat(new[] { profile }).ToList(), verb, reach, node).Permitted)
+                .ToList();
+
+            return alone.Count == 0 ? client.Removed : alone;
         }
 
         /// <summary>
@@ -88,11 +159,17 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            Write(client, operationId, null, null, false, client.Refusal);
+            Write(client, operationId, null, null, false, client.Refusal, null);
         }
 
         private void Write(
-            ClientIdentity client, string operationId, string node, string decidedAt, bool permitted, string reason)
+            ClientIdentity client,
+            string operationId,
+            string node,
+            string decidedAt,
+            bool permitted,
+            string reason,
+            IReadOnlyList<string> removedProfiles)
         {
             // Before the line, so the wait is paid by the request that would have written it.
             _pace.Take(client == null ? null : client.AdmissionKey);
@@ -105,10 +182,12 @@ namespace KeePassGate.Pipeline
                 node,
                 decidedAt,
                 permitted,
-                reason));
+                reason,
+                removedProfiles));
         }
 
-        private static AclDecision Answer(ClientIdentity client, AclVerb verb, AclReach reach, IAclNode node)
+        private static AclDecision Answer(
+            ClientIdentity client, IReadOnlyList<string> profiles, AclVerb verb, AclReach reach, IAclNode node)
         {
             if (client == null || !client.IsPaired)
             {
@@ -128,7 +207,7 @@ namespace KeePassGate.Pipeline
                 // reading that goes looking for the rule that refused a node that was never there.
                 // A caller is told the same 404 either way on purpose; the audit is the one place
                 // the two are meant to be told apart.
-                return AclResolver.Decide(node, client.Profiles, verb, reach);
+                return AclResolver.Decide(node, profiles, verb, reach);
             }
 
             // A removal is a move, so it is asked on both sides of it: the group the node is
@@ -143,13 +222,13 @@ namespace KeePassGate.Pipeline
                 return AclDecisions.Refused("nothing above this node allows removals");
             }
 
-            var container = AclResolver.Decide(leaving, client.Profiles, verb, reach);
+            var container = AclResolver.Decide(leaving, profiles, verb, reach);
             if (!container.Permitted)
             {
                 return container;
             }
 
-            return AclResolver.Decide(node, client.Profiles, verb, reach);
+            return AclResolver.Decide(node, profiles, verb, reach);
         }
     }
 }

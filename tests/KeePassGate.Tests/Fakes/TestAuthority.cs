@@ -24,6 +24,7 @@ namespace KeePassGate.Tests.Fakes
         private readonly byte[] _gateKey;
         private readonly List<X509Certificate2> _issued = new List<X509Certificate2>();
         private readonly AdmissionStore _admissions;
+        private readonly List<string> _named = new List<string>();
 
         private TestAuthority(
             X509Certificate2 authority, X509Certificate2 host, string hostBlob, HostKeyMaterial hostKey, byte[] gateKey)
@@ -34,6 +35,8 @@ namespace KeePassGate.Tests.Fakes
             _hostKey = hostKey;
             _gateKey = gateKey;
             _admissions = new AdmissionStore(new InMemoryKeyValueStore(), NullGateLog.Instance);
+
+            DatabaseName = "Invented Vault";
         }
 
         public static TestAuthority New()
@@ -74,6 +77,46 @@ namespace KeePassGate.Tests.Fakes
             get { return CertificateDigest.Of(_authority); }
         }
 
+        /// <summary>What a screen would call it. Invented, like everything else here.</summary>
+        public string DatabaseName { get; set; }
+
+        /// <summary>
+        /// The profiles this database names. Settable, because what the approval dialog marks as
+        /// new is exactly what is not in here, and a name taken out of it is one no client holds.
+        /// </summary>
+        /// <remarks>
+        /// Admitting a client names its profiles, because that is what pairing does for real: a
+        /// record is written in the same operation as the names it holds, and a client whose names
+        /// were not on the list would reach nothing.
+        /// </remarks>
+        public IReadOnlyList<string> KnownProfiles
+        {
+            get { return _named.ToArray(); }
+            set
+            {
+                _named.Clear();
+                Name(value);
+            }
+        }
+
+        /// <summary>Takes a name off the list, as the Profiles page does.</summary>
+        public void Forget(string profile)
+        {
+            _named.Remove(profile);
+        }
+
+        private void Name(IEnumerable<string> profiles)
+        {
+            foreach (var profile in profiles ?? Array.Empty<string>())
+            {
+                if (profile != null && !_named.Contains(profile))
+                {
+                    _named.Add(profile);
+                }
+            }
+        }
+
+
         public byte[] GateKey
         {
             get { return (byte[])_gateKey.Clone(); }
@@ -101,11 +144,21 @@ namespace KeePassGate.Tests.Fakes
             return _admissions.Find(admissionKey);
         }
 
-        /// <summary>
-        /// What the approval dialog calls this database. Empty by default, which is what a database
-        /// KeePass has never been told a name for answers.
-        /// </summary>
-        public string DatabaseName { get; set; } = string.Empty;
+        /// <summary>The admitted clients whose records hold a profile.</summary>
+        public IReadOnlyList<AdmissionRecord> Holding(string profile)
+        {
+            var holding = new List<AdmissionRecord>();
+
+            foreach (var record in _admissions.All().Records)
+            {
+                if (System.Linq.Enumerable.Contains(record.Profiles, profile))
+                {
+                    holding.Add(record);
+                }
+            }
+
+            return holding;
+        }
 
         /// <summary>
         /// Set to refuse the write, which is how a test stands in for a group dialog being open.
@@ -149,6 +202,7 @@ namespace KeePassGate.Tests.Fakes
             }
 
             _admissions.Write(record);
+            Name(record.Profiles);
             Admitted = record;
             return AdmissionWrite.Done();
         }
@@ -160,6 +214,7 @@ namespace KeePassGate.Tests.Fakes
         public void Admit(X509Certificate2 certificate, params string[] profiles)
         {
             _admissions.Write(AdmissionRecord.For(certificate, DateTimeOffset.UtcNow, profiles));
+            Name(profiles);
         }
 
         /// <summary>

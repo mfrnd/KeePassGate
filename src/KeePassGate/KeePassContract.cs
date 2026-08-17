@@ -8,7 +8,28 @@ namespace KeePassGate
     public static class KeePassContract
     {
         /// <summary>The dialog behind File, Database Settings.</summary>
+        /// <remarks>
+        /// It holds no copy of any custom data, which is what makes the KPG tab's own buttons safe
+        /// there, and it does hold the recycle bin choice: the combo below is filled from
+        /// `RecycleBinUuid` when the dialog loads, and its OK writes the choice back, setting
+        /// `RecycleBinUuid` to `PwUuid.Zero` when the combo is on the item that names no group. A
+        /// database with no bin yet opens that dialog with the combo on exactly that item, so a
+        /// removal that makes the first bin underneath one is undone by its OK, leaving what the
+        /// removal moved in an ordinary group under the root. See <see cref="Bridge.GroupDialogs"/>.
+        /// </remarks>
         public const string DatabaseSettingsFormTypeName = "KeePass.Forms.DatabaseSettingsForm";
+
+        /// <summary>The combo on that dialog naming the group the recycle bin is.</summary>
+        public const string DatabaseSettingsFormRecycleBinComboField = "m_cmbRecycleBin";
+
+        /// <summary>
+        /// What that combo's selected index means, which is the dialog's own copy of the choice.
+        /// </summary>
+        /// <remarks>
+        /// An index this does not hold is the item naming no group, and that is the branch whose
+        /// OK zeroes `RecycleBinUuid`.
+        /// </remarks>
+        public const string DatabaseSettingsFormRecycleBinGroupsField = "m_dictRecycleBinGroups";
 
         /// <summary>
         /// The tab strip on that dialog. A name rather than a position, and the injector falls
@@ -44,6 +65,22 @@ namespace KeePassGate
         /// into one that may vanish.
         /// </remarks>
         public const string GroupFormCreatingField = "m_bCreatingNew";
+
+        /// <summary>
+        /// The dialog behind Tools then Database Maintenance, which holds a copy of the database's
+        /// own custom data and puts it back on Close whenever the live one has grown or shrunk.
+        /// </summary>
+        /// <remarks>
+        /// The same hazard as the group dialog and easier to miss, because the write-back is
+        /// conditional: it compares the count it copied against the count it finds, so a pairing
+        /// landing while this is open is destroyed even though the operator touched nothing. That
+        /// its one button is both the accept and the cancel button, with `DialogResult.Cancel`,
+        /// means there is no way for an operator to decline it either.
+        /// </remarks>
+        public const string MaintenanceFormTypeName = "KeePass.Forms.DatabaseOperationsForm";
+
+        /// <summary>The database that dialog is working on.</summary>
+        public const string MaintenanceFormDatabaseField = "m_pwDatabase";
 
         /// <summary>The dialog behind Edit Entry, where an entry's own grants are edited.</summary>
         public const string EntryFormTypeName = "KeePass.Forms.PwEntryForm";
@@ -130,22 +167,6 @@ namespace KeePassGate
         /// one, so it shows the rules, changes none of them, and says why.
         /// </summary>
         public const string NodeFormDatabaseField = "m_pwDatabase";
-
-        /// <summary>
-        /// The dialog behind Tools then Database Maintenance, which holds a copy of the database's
-        /// own custom data and puts it back on Close whenever the live one has grown or shrunk.
-        /// </summary>
-        /// <remarks>
-        /// The same hazard as the group dialog and easier to miss, because the write-back is
-        /// conditional: it compares the count it copied against the count it finds, so a pairing
-        /// landing while this is open is destroyed even though the operator touched nothing. That
-        /// its one button is both the accept and the cancel button, with `DialogResult.Cancel`,
-        /// means there is no way for an operator to decline it either.
-        /// </remarks>
-        public const string MaintenanceFormTypeName = "KeePass.Forms.DatabaseOperationsForm";
-
-        /// <summary>The database that dialog is working on.</summary>
-        public const string MaintenanceFormDatabaseField = "m_pwDatabase";
 
         /// <summary>
         /// How a named database is saved. Not `UIFileSave`, which saves whichever document is

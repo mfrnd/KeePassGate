@@ -26,6 +26,9 @@ namespace KeePassGate.Ui
 
         public const string VersionLabelName = "KpgVersionLabel";
 
+        /// <summary>Whether the gate is listening, and where.</summary>
+        public const string ServingLabelName = "KpgServingLabel";
+
         /// <summary>One sentence saying what state the authority is in.</summary>
         public const string StatusLabelName = "KpgStatusLabel";
 
@@ -36,9 +39,6 @@ namespace KeePassGate.Ui
 
         /// <summary>The sentences under it, which are the warnings and nothing else.</summary>
         public const string DetailLabelName = "KpgDetailLabel";
-
-        /// <summary>Whether the gate is listening, and where.</summary>
-        public const string ServingLabelName = "KpgServingLabel";
 
         /// <summary>The standing notice that nothing on this tab lands before OK.</summary>
         public const string NoticeLabelName = "KpgNoticeLabel";
@@ -86,10 +86,11 @@ namespace KeePassGate.Ui
         public const string RenewInviteButtonText = "Renew invite";
 
         /// <summary>
-        /// The pages inside the KPG tab. Two subjects live here, the authority and the clients, and
-        /// they answer different questions: what this database can issue, and who holds what it
-        /// already issued. One page showing both means every line competing for the same 449 by
-        /// 314, which is a tab that has to be shortened rather than read.
+        /// The pages inside the KPG tab. Three subjects live here, the authority, the
+        /// profiles and the clients, and they answer different questions: what this database can
+        /// issue, which names it can issue for, and who holds what it already issued. One page
+        /// showing all of them means every line competing for the same 449 by 314, which is a tab
+        /// that has to be shortened rather than read.
         /// </summary>
         public const string SubTabsName = "KpgSubTabs";
 
@@ -101,6 +102,16 @@ namespace KeePassGate.Ui
         public const string ClientsPageName = "KpgClientsPage";
 
         public const string ClientsPageText = "Clients";
+
+        public const string ProfilesPageName = "KpgProfilesPage";
+
+        /// <summary>
+        /// The third subject: the names a rule can grant to and a client can be approved for. Its
+        /// own page because it is neither what this database can issue nor who holds what it
+        /// issued, and because whether it names a profile decides whether every rule for that
+        /// profile grants anything.
+        /// </summary>
+        public const string ProfilesPageText = "Profiles";
 
         /// <summary>
         /// The token itself, in a box rather than a label so the operator can select and copy it.
@@ -147,10 +158,121 @@ namespace KeePassGate.Ui
         /// <summary>What is outstanding, and until when.</summary>
         public const string InvitationLabelName = "KpgInvitationLabel";
 
+        /// <summary>
+        /// Where the clients page says why the button under it would hand out a code nothing
+        /// could redeem.
+        /// </summary>
+        /// <remarks>
+        /// One band for every such reason rather than one band each, because they answer the same
+        /// question and the page is 449 by 314. It was named for the only reason it had, which
+        /// stopped being true when an expired authority became a second one.
+        ///
+        /// **Every reason is one line**, and that is a measurement. The band sits over the client
+        /// list, which takes whatever the band leaves, and on the most crowded page the longest
+        /// reason, at three lines, left the list 72 pixels where `GateTabFitsTests` holds it to 90.
+        /// So each sentence says what is wrong and what to do about it, and stops.
+        /// </remarks>
+        public const string InviteNoticeName = "KpgInviteNotice";
+
+        /// <summary>
+        /// What it says while an authority change is waiting for OK, which is the one thing the
+        /// waiting arrangement costs an operator.
+        /// </summary>
+        /// <remarks>
+        /// A client pairs against the gate, and the gate answers out of the database KeePass is
+        /// holding. It cannot see a change that is still waiting for this dialog, so a client that
+        /// paired now would be answered by the authority as it was: refused if there is none yet,
+        /// or issued a certificate that OK is about to invalidate. Neither is a failure anybody
+        /// would connect back to a dialog they had not finished with.
+        ///
+        /// Shown only while there is something to say, because a warning that is always there is a
+        /// warning nobody reads.
+        /// </remarks>
+        public const string PendingAuthorityNotice =
+            "The authority change is not applied yet. Press OK and reopen this dialog to pair.";
+
+        /// <summary>
+        /// What it says while a profile edit is waiting for OK.
+        /// </summary>
+        /// <remarks>
+        /// `KPG.Profiles` is the one key this tab and pairing both write, and they write it
+        /// differently: the tab holds its version until OK, pairing writes live and saves. A
+        /// client approved while an edit is buffered is approved against a list that is about to
+        /// change under it, so the invite button is dead for that span, and this is the third
+        /// reason it can be dead and the last one that said nothing.
+        ///
+        /// The remedy is the remedy above, because the state is the same state: something on this
+        /// tab has not reached the database, and OK is what puts it there.
+        /// </remarks>
+        public const string PendingProfilesNotice =
+            "The profile change is not applied yet. Press OK and reopen this dialog to pair.";
+
+        /// <summary>
+        /// What it says when this database's authority has run out.
+        /// </summary>
+        /// <remarks>
+        /// The remedy is named because there is only one and it is not on this page, and what the
+        /// remedy costs is named with it because "Recreate authority" reads like a repair and is
+        /// not: `CA.md` §219 has no reissue, so a new authority invalidates every certificate the
+        /// old one signed and takes every admission record with it. An operator who reads this,
+        /// presses that, and finds the clients list empty afterwards was told the wrong thing.
+        ///
+        /// It says nothing about pressing OK, because a recreate on the first page raises the
+        /// waiting notice above and that one says it.
+        /// </remarks>
+        public const string ExpiredAuthorityNotice =
+            "This authority has expired. Recreate it on the first page; every client pairs again.";
+
+        /// <summary>
+        /// What it says when the host certificate has run out and the authority has not.
+        /// </summary>
+        /// <remarks>
+        /// The same remedy at the same cost, for the reason the notice above gives: `CA.md` §219
+        /// has no reissue for a host certificate either. Its own sentence rather than the one
+        /// above, because an operator told the authority had expired would look at the wrong date
+        /// on the first page and find it years away.
+        /// </remarks>
+        public const string ExpiredHostNotice =
+            "The host certificate has expired. Recreate the authority; every client pairs again.";
+
+        /// <summary>
+        /// The longest of them, which is what the tab has to be measured against.
+        /// </summary>
+        /// <remarks>
+        /// Here rather than in the test that measures it, so that a further reason to say
+        /// something above the invite button is measured by adding it to this rather than by
+        /// somebody remembering to. `GateTabFitsTests` is what reads it. It went from two
+        /// candidates to three the first time that happened, which is why the comparison is over a
+        /// list rather than written out.
+        /// </remarks>
+        public static readonly string LongestInviteNotice = Longest(
+            PendingAuthorityNotice, PendingProfilesNotice, ExpiredAuthorityNotice, ExpiredHostNotice);
+
+        private static string Longest(params string[] candidates)
+        {
+            var longest = string.Empty;
+
+            foreach (var candidate in candidates)
+            {
+                if (candidate.Length > longest.Length)
+                {
+                    longest = candidate;
+                }
+            }
+
+            return longest;
+        }
+
         /// <summary>The dialog raised when somebody asks to pair.</summary>
         public const string ApprovalFormName = "KpgApprovalForm";
 
         public const string ApprovalDetailLabelName = "KpgApprovalDetailLabel";
+
+        /// <summary>The line saying the list holds more profiles than it shows at once.</summary>
+        public const string ApprovalScrollingName = "KpgApprovalScrolling";
+
+        /// <summary>The line naming the clients that regain a removed profile if it is approved.</summary>
+        public const string ApprovalRegainingName = "KpgApprovalRegaining";
 
         public const string ApprovalProfilesListName = "KpgApprovalProfilesList";
 

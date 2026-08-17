@@ -94,6 +94,33 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void The_settings_dialog_still_holds_its_own_copy_of_the_recycle_bin_choice()
+        {
+            // Why a removal that would make the first recycle bin is refused while this dialog is
+            // open. The combo is filled from `RecycleBinUuid` when the dialog loads and the
+            // dictionary says which group each of its items means; an index the dictionary does not
+            // hold is the item naming no group, and that is the branch whose OK sets
+            // `RecycleBinUuid` back to zero. A KeePass that drops either of these is one where the
+            // refusal is guarding nothing, which is worth being told about rather than carrying.
+            var type = KeePassAssembly.GetType(KeePassContract.DatabaseSettingsFormTypeName, false);
+
+            var combo = type.GetField(
+                KeePassContract.DatabaseSettingsFormRecycleBinComboField,
+                BindingFlags.NonPublic | BindingFlags.Instance);
+            var groups = type.GetField(
+                KeePassContract.DatabaseSettingsFormRecycleBinGroupsField,
+                BindingFlags.NonPublic | BindingFlags.Instance);
+
+            Assert.That(combo, Is.Not.Null,
+                KeePassContract.DatabaseSettingsFormRecycleBinComboField + " is gone, so that dialog no "
+                + "longer offers the choice the refusal exists for.");
+            Assert.That(combo.FieldType, Is.EqualTo(typeof(ComboBox)));
+            Assert.That(groups, Is.Not.Null,
+                KeePassContract.DatabaseSettingsFormRecycleBinGroupsField + " is gone, so which item "
+                + "means which group is decided somewhere else now.");
+        }
+
+        [Test]
         public void The_main_window_still_lists_the_open_databases()
         {
             // This is how the gate knows what it can serve.

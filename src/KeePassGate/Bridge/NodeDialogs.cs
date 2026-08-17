@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Windows.Forms;
-using KeePassGate.Authority;
+using KeePassGate.Acl;
 using KeePassGate.Diagnostics;
 using KeePassGate.Ui;
 using KeePassLib;
@@ -52,49 +52,40 @@ namespace KeePassGate.Bridge
         }
 
         /// <summary>
-        /// The profiles this database has admitted somebody into, for the pick list.
+        /// The profiles a rule here may be written for.
         /// </summary>
         /// <remarks>
-        /// From the admission records, because that is where a profile becomes real: a client holds
-        /// what the operator approved at pairing, and nothing else defines the set. Empty rather
-        /// than wrong when they cannot be read, since an editor offering nothing still shows the
-        /// rules and still lets the ones already there be changed, where an invented list would
-        /// offer names that grant nobody anything.
+        /// The database's own list and nothing else, because that is what a profile is: a name the
+        /// operator keeps on the Profiles page and that pairing adds to. It is also what makes the
+        /// pick list complete, since a profile can be created before any client holds it.
+        ///
+        /// The admission records are deliberately not read. A record goes on holding a name the
+        /// operator has taken off the list, and offering that name here would let a rule be
+        /// written for a profile that grants nothing, which reads exactly like one that works. A
+        /// record left behind by a recreated authority would likewise add a name this database
+        /// never kept.
+        ///
+        /// Empty rather than wrong when the list cannot be read. An editor offering nothing still
+        /// shows the rules that are there, where an invented list would offer names that grant
+        /// nobody anything.
         /// </remarks>
         private IEnumerable<string> ProfilesOf(PwDatabase database)
         {
-            var offered = new List<string>();
-
             if (database == null || database.RootGroup == null)
             {
-                return offered;
+                return Array.Empty<string>();
             }
 
             try
             {
-                // `Records` rather than the listing, and the listing's `Complete` is not asked
-                // about: a purge that misses a client leaves a profile named by nobody, which
-                // is a rule doing nothing rather than a rule letting somebody in.
-                var records = new AdmissionStore(new CustomDataStore(database), _log)
-                    .All().Records;
-
-                foreach (var record in records)
-                {
-                    foreach (var profile in record.Profiles)
-                    {
-                        if (!offered.Contains(profile))
-                        {
-                            offered.Add(profile);
-                        }
-                    }
-                }
+                return ProfileNames.Read(
+                    database.CustomData.Get(ProfileNames.CustomDataKey)).Names;
             }
             catch (Exception error) when (Expected.OfReflection(error) || Expected.OfCustomData(error))
             {
-                _log.Error("the profiles this database has admitted could not be read", error);
+                _log.Error("the profiles this database names could not be read", error);
+                return Array.Empty<string>();
             }
-
-            return offered;
         }
     }
 }

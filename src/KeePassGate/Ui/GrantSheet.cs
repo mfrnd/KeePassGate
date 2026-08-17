@@ -8,19 +8,15 @@ namespace KeePassGate.Ui
     /// <summary>One line of the editor: a profile, what it holds here, and where that came from.</summary>
     public sealed class GrantRow
     {
-        internal GrantRow(string profile, string mask, bool local, string inheritedMask)
-            : this(profile, mask, local, inheritedMask, true)
-        {
-        }
-
         internal GrantRow(
-            string profile, string mask, bool local, string inheritedMask, bool reaches)
+            string profile, string mask, bool local, string inheritedMask, bool reaches, bool named)
         {
             Profile = profile;
             Mask = mask;
             Local = local;
             InheritedMask = inheritedMask;
             Reaches = reaches;
+            Named = named;
         }
 
         public string Profile { get; private set; }
@@ -52,11 +48,24 @@ namespace KeePassGate.Ui
         /// </remarks>
         public bool Reaches { get; private set; }
 
+        /// <summary>
+        /// Whether the database still names this row's profile. False means the rule grants
+        /// nothing, wherever it is and whatever it says.
+        /// </summary>
+        /// <remarks>
+        /// A client holds only the names its record carries that the database's list still
+        /// names, so removing a profile leaves its rules in place and inert. They are shown rather
+        /// than dropped, because adding the name again puts every one of them back in force, and
+        /// the node an operator is looking at is where they would want to know that.
+        /// </remarks>
+        public bool Named { get; private set; }
+
         public override string ToString()
         {
             return Profile + " " + Mask
                    + (Local ? string.Empty : " (inherited)")
-                   + (Reaches ? string.Empty : " (refused here)");
+                   + (Reaches ? string.Empty : " (refused here)")
+                   + (Named ? string.Empty : " (not named)");
         }
     }
 
@@ -96,6 +105,9 @@ namespace KeePassGate.Ui
         private string _canonical;
 
         private readonly List<string> _offered = new List<string>();
+
+        /// <summary>The database's list exactly as given, or null when none was.</summary>
+        private readonly HashSet<string> _named;
         private readonly Dictionary<string, List<AclVerb>> _rules =
             new Dictionary<string, List<AclVerb>>(StringComparer.Ordinal);
 
@@ -118,9 +130,10 @@ namespace KeePassGate.Ui
         /// inherits nothing.
         /// </param>
         /// <param name="offered">
-        /// The profiles this database has admitted somebody into, for the pick list. A rule may
-        /// still name one that is not offered: a profile no client holds grants nobody anything,
-        /// which is a rule waiting rather than a rule that is wrong.
+        /// The profiles this database names, for the pick list. A rule may still name one that is
+        /// not offered, written before the name was removed or by hand; it grants nothing, because
+        /// a client holds only the names the list still names, and its row says so. Null asks
+        /// nothing about the list and marks no row.
         /// </param>
         /// <param name="readOnlyReason">
         /// Why an edit here could not be kept, or null when it can. Set, the rules stay readable,
@@ -137,6 +150,8 @@ namespace KeePassGate.Ui
 
             if (offered != null)
             {
+                _named = new HashSet<string>(offered, StringComparer.Ordinal);
+
                 foreach (var profile in offered)
                 {
                     if (AuthorityIssuer.IsUsableProfileName(profile) && !_offered.Contains(profile))
@@ -288,7 +303,8 @@ namespace KeePassGate.Ui
                     List<AclVerb> here;
                     if (_rules.TryGetValue(profile, out here))
                     {
-                        rows.Add(new GrantRow(profile, VerbMask.Of(here), true, inheritedMask));
+                        rows.Add(new GrantRow(
+                            profile, VerbMask.Of(here), true, inheritedMask, true, Named(profile)));
                         continue;
                     }
 
@@ -298,11 +314,25 @@ namespace KeePassGate.Ui
                     // nobody has, beside a warning saying it has stopped reaching.
                     rows.Add(new GrantRow(
                         profile, inheritedMask, false, inheritedMask,
-                        !Unreadable && _default != AclDefault.Deny));
+                        !Unreadable && _default != AclDefault.Deny, Named(profile)));
                 }
 
                 return rows;
             }
+        }
+
+        /// <summary>
+        /// Whether the database names a profile, which is whether a rule for it grants anything.
+        /// </summary>
+        /// <remarks>
+        /// Asked of the names this sheet was given to offer, which are the database's list. A sheet
+        /// given none at all, rather than an empty list, is one nobody asked about the list, and
+        /// marks nothing: an editor whose list could not be read is given an empty one, and there
+        /// every rule is marked, which is what the gate does with it too.
+        /// </remarks>
+        private bool Named(string profile)
+        {
+            return _named == null || _named.Contains(profile);
         }
 
         /// <summary>

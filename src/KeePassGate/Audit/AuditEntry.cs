@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using Newtonsoft.Json;
@@ -30,6 +31,12 @@ namespace KeePassGate.Audit
     /// written as a bare `null` rather than left out, because a reader that has to tell "absent"
     /// from "not applicable" is a reader that will guess.
     ///
+    /// **One member is written only where it applies**, and it is `removedProfiles`, a list of
+    /// names on a refusal that profiles the operator removed would have permitted. It is not a
+    /// question every line answers but a note on one kind of refusal, whose reason already says
+    /// it is there; written as `null` on every other line it would change every line to explain
+    /// a few, and make each one unreadable to `JsonBody`, which reads strings and lists of them.
+    ///
     /// **That null is why `JsonBody` cannot read a line back**, since that reader takes strings and
     /// arrays of strings and nothing else. It is a real cost and it is paid deliberately: the lines
     /// it refuses are exactly the interesting ones, a question that never reached a node, which is
@@ -54,8 +61,10 @@ namespace KeePassGate.Audit
             string node,
             string decidedAt,
             bool permitted,
-            string reason)
+            string reason,
+            IReadOnlyList<string> removedProfiles = null)
         {
+            RemovedProfiles = removedProfiles;
             At = at;
             DatabaseId = databaseId;
             AdmissionKey = admissionKey;
@@ -104,12 +113,29 @@ namespace KeePassGate.Audit
         public string Reason { get; private set; }
 
         /// <summary>
-        /// The line this becomes. One object, flat, with every member always present.
+        /// The profiles the operator removed that would have permitted this, or null on every
+        /// line but a refusal they caused, where the line then leaves the member out.
+        /// </summary>
+        /// <remarks>
+        /// **The one place a profile name reaches this file, and only a name that grants nothing.**
+        /// A client's profiles are its record's less every name the database no longer lists, so a
+        /// refusal because the operator took a name away read exactly like a rule saying no. When
+        /// the record's whole list would have been permitted, the reason is
+        /// `AccessCheck.ProfileRemoved` and this names the removed profiles that would have done
+        /// it. What the client still holds is never written, which is the rule the line keeps.
+        /// </remarks>
+        public IReadOnlyList<string> RemovedProfiles { get; private set; }
+
+        /// <summary>
+        /// The line this becomes. One object, flat, with every member always present but the note
+        /// a removed profile adds.
         /// </summary>
         /// <remarks>
         /// Always present, including as `null`, because a reader that has to tell "absent" from
         /// "not applicable" is a reader that will guess. A missing member reads as a log written by
-        /// a different version; an explicit null reads as a question that did not arise.
+        /// a different version; an explicit null reads as a question that did not arise. The one
+        /// exception is <see cref="RemovedProfiles"/>, for the reason the class gives: the reason
+        /// `profile removed` beside it is what says it is there.
         /// </remarks>
         public string Line()
         {
@@ -132,6 +158,18 @@ namespace KeePassGate.Audit
 
             Member(json, "decision", Permitted ? Granted : Refused);
             Member(json, "reason", Reason);
+
+            if (RemovedProfiles != null)
+            {
+                json.WritePropertyName("removedProfiles");
+                json.WriteStartArray();
+                foreach (var profile in RemovedProfiles)
+                {
+                    json.WriteValue(profile);
+                }
+
+                json.WriteEndArray();
+            }
 
             json.WriteEndObject();
             json.Flush();

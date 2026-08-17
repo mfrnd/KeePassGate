@@ -396,8 +396,17 @@ namespace KeePassGate.Pairing
             // then show two identical rows: clearing one of them leaves the other checked, so a
             // profile the operator refused is granted anyway. The proof was computed over the list
             // exactly as it arrived, which is why this happens here and not before it was checked.
+            var once = Once(asked);
+            var known = target.KnownProfiles;
             var request = new PairingRequest(
-                target.DatabaseId, Named(target), invitation.Id, name, Once(asked), connection.Peer);
+                target.DatabaseId,
+                Named(target),
+                invitation.Id,
+                name,
+                once,
+                known,
+                connection.Peer,
+                Returning(target, once, known));
 
             PairingApproval decision;
             try
@@ -490,6 +499,9 @@ namespace KeePassGate.Pairing
                     return;
                 }
 
+                // A profile the operator approved that this database had never named is created by
+                // their approval, and the writer does that inside the same marshaled write as the
+                // record, off the profiles the record already carries.
                 var record = AdmissionRecord.For(certificate, _clock(), profiles);
 
                 AdmissionWrite written;
@@ -629,6 +641,40 @@ namespace KeePassGate.Pairing
             }
 
             return once;
+        }
+
+        /// <summary>
+        /// For each profile asked for that the database does not name, the clients whose records
+        /// still hold it.
+        /// </summary>
+        /// <remarks>
+        /// A removed profile stays in every record approved for it, granting nothing while the
+        /// list does not name it. Approving it here puts the name back on the list in the same
+        /// write as the new record, and every one of those clients regains it, so the dialog has
+        /// to say who they are. Asked only for names off the list: a listed name is already held
+        /// by whoever holds it, and approving it changes nothing for them.
+        /// </remarks>
+        private static IReadOnlyDictionary<string, IReadOnlyList<AdmissionRecord>> Returning(
+            IGateTarget target, IReadOnlyList<string> asked, IReadOnlyList<string> known)
+        {
+            var named = new HashSet<string>(known ?? Array.Empty<string>(), StringComparer.Ordinal);
+            var returning = new Dictionary<string, IReadOnlyList<AdmissionRecord>>(StringComparer.Ordinal);
+
+            foreach (var profile in asked)
+            {
+                if (named.Contains(profile))
+                {
+                    continue;
+                }
+
+                var holding = target.Holding(profile);
+                if (holding != null && holding.Count > 0)
+                {
+                    returning[profile] = holding;
+                }
+            }
+
+            return returning;
         }
 
         /// <summary>

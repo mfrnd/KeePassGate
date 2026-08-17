@@ -474,8 +474,8 @@ namespace KeePassGate.Tests
                 panel.OpenProfilePicker(0);
 
                 Assert.That(panel.Warning, Is.EqualTo(GrantTab.NoProfilesYet));
-                Assert.That(GrantTab.NoProfilesYet, Does.Contain("Pair a client"),
-                    "which is the only way a profile exists at all so far");
+                Assert.That(GrantTab.NoProfilesYet, Does.Contain(GateName.OnATab),
+                    "named as the tab is labeled, which is what the operator has to find");
             }
         }
 

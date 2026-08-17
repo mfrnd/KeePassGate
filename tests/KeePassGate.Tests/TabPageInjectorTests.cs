@@ -49,13 +49,14 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void A_second_page_can_be_called_something_else()
+        public void A_second_page_is_told_apart_by_its_name_rather_than_its_caption()
         {
-            // The plugin puts two different pages on two different dialogs, and what each is called
-            // is the caller's answer rather than this class's. That both of them happen to carry
-            // the plugin's own short name is a decision made elsewhere and could change.
+            // The plugin builds two different pages across three dialogs, and both carry the
+            // plugin's name because that is what somebody is looking for. They never appear beside
+            // each other, so the caption does not have to tell them apart; the control name does,
+            // and that is what everything here finds them by.
             var editor = new TabPageInjector(
-                _panels, _log, "m_tabMain", "Something else", "KpgSomethingElsePage");
+                _panels, _log, "m_tabMain", GrantTab.Text, GrantTab.PageControlName);
 
             using (var form = Dialogs.WithNestedTabControl("General"))
             {
@@ -63,8 +64,9 @@ namespace KeePassGate.Tests
 
                 var page = Dialogs.TabsOf(form).TabPages.Cast<TabPage>().Last();
 
-                Assert.That(page.Text, Is.EqualTo("Something else"));
-                Assert.That(page.Name, Is.EqualTo("KpgSomethingElsePage"));
+                Assert.That(page.Text, Is.EqualTo(GrantTab.Text));
+                Assert.That(page.Name, Is.EqualTo(GrantTab.PageControlName));
+                Assert.That(GrantTab.PageControlName, Is.Not.EqualTo(GateTab.PageControlName));
             }
         }
 
@@ -368,7 +370,7 @@ namespace KeePassGate.Tests
         [Test]
         public void The_page_carries_the_plugins_icon_and_gives_it_back()
         {
-            // A tab strip shows pictures only if the whole control has an image list, and the
+            // A tab strip shows pictures only if the whole control has an image list, and the three
             // KeePass dialogs this lands on bring none. So one is made here, which makes every tab
             // on that dialog a little taller: WinForms has no way to put a picture on one tab and
             // leave the others alone. Taking it away again is what leaves the dialog as it was.

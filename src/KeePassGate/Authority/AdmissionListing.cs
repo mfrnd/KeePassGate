@@ -18,9 +18,10 @@ namespace KeePassGate.Authority
     /// old answer keep working untouched, which is convenient and is exactly the failure: the
     /// next person wanting the records writes a `foreach` and never learns there is a question to
     /// ask. Reaching them through `Records` costs one word and puts `Complete` in front of
-    /// whoever reads it. Most callers go on ignoring it, which is right for them: one that only
-    /// warns under-reports on a failed listing, and that is a warning going missing rather than a
-    /// claim that is wrong.
+    /// whoever reads it. Most callers go on ignoring it, which is right for them: counting who
+    /// holds a profile, naming who would regain one and warning about what expires soon each
+    /// under-report on a failed listing, and that is a warning going missing rather than a claim
+    /// that is wrong.
     /// Only the screen stating how many clients there are turns it into a lie.
     /// </remarks>
     public sealed class AdmissionListing

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Security.Cryptography.X509Certificates;
 using KeePassGate.Authority;
@@ -69,6 +70,31 @@ namespace KeePassGate.Gate
             _responder = responder;
         }
 
+        /// <summary>
+        /// Nothing. A locked database answers that it is locked and says nothing else about
+        /// itself, including what it is called.
+        /// </summary>
+        /// <remarks>
+        /// The name is only ever read to put on an approval dialog, and pairing is refused here
+        /// before anything reaches one.
+        /// </remarks>
+        public string DatabaseName
+        {
+            get { return string.Empty; }
+        }
+
+        /// <summary>Nothing, for the same reason: there is no tree to read them from.</summary>
+        public IReadOnlyList<string> KnownProfiles
+        {
+            get { return Array.Empty<string>(); }
+        }
+
+        /// <summary>Nobody, for the same reason.</summary>
+        public IReadOnlyList<AdmissionRecord> Holding(string profile)
+        {
+            return Array.Empty<AdmissionRecord>();
+        }
+
         public string DatabaseId
         {
             get { return _databaseId; }
@@ -100,20 +126,6 @@ namespace KeePassGate.Gate
         public AdmissionRecord Admission(string admissionKey)
         {
             return null;
-        }
-
-        /// <summary>
-        /// Empty, because a locked database says nothing about itself.
-        /// </summary>
-        /// <remarks>
-        /// The name is only ever read to put on an approval dialog, and pairing is refused here
-        /// before anything reaches one. A locked database names the lock and nothing else: not
-        /// which database it is, not what it is called, not whether the caller would have been
-        /// admitted.
-        /// </remarks>
-        public string DatabaseName
-        {
-            get { return string.Empty; }
         }
 
         public string AdmissionBlocked

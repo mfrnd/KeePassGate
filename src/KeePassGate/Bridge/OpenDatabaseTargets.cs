@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using KeePassLib;
 using KeePassLib.Utility;
+using KeePassGate.Acl;
 using KeePassGate.Authority;
 using KeePassGate.Diagnostics;
 using KeePassGate.Vault;
@@ -846,6 +848,74 @@ namespace KeePassGate.Bridge
                 get { return _databaseId; }
             }
 
+            /// <summary>
+            /// The profiles this database names now. Empty when they cannot be read, which leaves
+            /// every client reaching nothing and marks every profile being asked for as new.
+            /// </summary>
+            public IReadOnlyList<string> KnownProfiles
+            {
+                get
+                {
+                    // Read into a local first, for the reason `DatabaseName` below gives: this is
+                    // asked from a connection thread, and both the field and the root group go away
+                    // underneath it. The field goes when the last holder lets go, the root group
+                    // when KeePass locks. A `NullReferenceException` is in no filter here and would
+                    // be answered as a fault in this plugin rather than as a database that is shut.
+                    var root = _database == null ? null : _database.RootGroup;
+                    if (root == null)
+                    {
+                        return Array.Empty<string>();
+                    }
+
+                    try
+                    {
+                        return ProfileNames.Read(
+                            _database.CustomData.Get(ProfileNames.CustomDataKey)).Names;
+                    }
+                    catch (Exception error) when (Expected.OfCustomData(error))
+                    {
+                        return Array.Empty<string>();
+                    }
+                }
+            }
+
+            /// <summary>
+            /// The admitted clients whose records hold a profile, read now. Nobody when the
+            /// database has gone or the records cannot be read, which leaves the approval dialog
+            /// with no warning to give rather than a wrong one.
+            /// </summary>
+            public IReadOnlyList<AdmissionRecord> Holding(string profile)
+            {
+                // Into a local first, for the reason `KnownProfiles` gives.
+                var database = _database;
+                if (database == null || database.RootGroup == null || string.IsNullOrEmpty(profile))
+                {
+                    return Array.Empty<AdmissionRecord>();
+                }
+
+                try
+                {
+                    var holding = new List<AdmissionRecord>();
+
+                    foreach (var record in new AdmissionStore(new CustomDataStore(database), _log).All().Records)
+                    {
+                        if (record != null && record.Profiles != null
+                            && record.Profiles.Contains(profile, StringComparer.Ordinal))
+                        {
+                            holding.Add(record);
+                        }
+                    }
+
+                    return holding;
+                }
+                catch (Exception error) when (Expected.OfCustomData(error))
+                {
+                    _log.Warn("the clients holding a profile being approved could not be listed: " + error.Message);
+                    return Array.Empty<AdmissionRecord>();
+                }
+            }
+
+
             public byte[] GateKey
             {
                 get { return _reading.Material.SniKey; }
@@ -874,9 +944,13 @@ namespace KeePassGate.Bridge
             }
 
             /// <summary>
-            /// What KeePass calls this database, read now because it can be renamed while it is
-            /// open, and empty when it has no name and no file to be named after.
+            /// What KeePass calls it: the name it was given, or the file it came from, read now
+            /// because it can be renamed while it is open. Empty when it has neither.
             /// </summary>
+            /// <remarks>
+            /// Read into a local first, because `Dispose` sets the field to null when the last
+            /// holder lets go and this is asked from a connection thread.
+            /// </remarks>
             public string DatabaseName
             {
                 get

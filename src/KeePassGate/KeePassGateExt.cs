@@ -179,7 +179,13 @@ namespace KeePassGate
                     new TabPageInjector(
                         new AuthorityPanelFactory(
                             new DialogDatabases(_log, () => Changed(host)),
-                            _log, _listener, _invitations, _incidents, _admissions),
+                            new MessageBoxPrompt(),
+                            _log,
+                            GateVersion.Current,
+                            _listener,
+                            _invitations,
+                            _incidents,
+                            _admissions),
                         _log,
                         KeePassContract.DatabaseSettingsTabControlName,
                         GateTab.Text,
@@ -431,7 +437,7 @@ namespace KeePassGate
             _databases = new MainWindowDatabases(mainWindow);
             // The plugin's own incidents, not a second tally: these handlers are two of the
             // places that catch everything, and the KPG tab is where the count is read.
-            _locks = new LockWatch(_databases, _targets, _listener, _log, _incidents);
+            _locks = new LockWatch(_databases, _targets, () => _listener, _log, _incidents);
             _locks.Start();
         }
 

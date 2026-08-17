@@ -18,6 +18,7 @@ namespace KeePassGate.Tests.Fakes
         {
             _store = store;
             IsOpen = true;
+            Name = "Invented Vault";
         }
 
         public bool IsOpen { get; set; }
@@ -28,6 +29,15 @@ namespace KeePassGate.Tests.Fakes
         {
             get { return _store; }
         }
+
+        /// <summary>What a screen calls it. Invented, like everything else in a test.</summary>
+        public string Name { get; set; }
+
+        /// <summary>
+        /// The nodes the rules are counted over. Settable, because most tests have no tree at all
+        /// and the ones that do are about what is counted in it.
+        /// </summary>
+        public KeePassGate.Acl.IRuledNodes Nodes { get; set; }
 
         public IKeyValueStore PluginCustomData
         {

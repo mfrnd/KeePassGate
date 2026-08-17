@@ -7,6 +7,7 @@ using System.Threading;
 using KeePass.Forms;
 using KeePass.UI;
 using KeePassLib;
+using KeePassGate.Acl;
 using KeePassGate.Authority;
 using KeePassGate.Bridge;
 using KeePassGate.Diagnostics;
@@ -156,6 +157,90 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void The_profiles_the_record_carries_are_named_in_the_same_write()
+        {
+            // A profile the operator approved is created by their approval, and it has to exist by
+            // the time anybody opens the tab to write a rule for it. It is done here rather than
+            // beside the approval because it is the same decision as the record: the same thread,
+            // the same lock, the same save, and refused by the same open dialog.
+            using (var certificate = IssueClient())
+            {
+                Assume.That(_writer.WriteAdmission(_database.Database, Record(certificate, "invented")).Ok, Is.True);
+
+                var names = ProfileNames.Read(
+                    _database.Database.CustomData.Get(ProfileNames.CustomDataKey));
+
+                Assert.That(names.Holds("invented"), Is.True,
+                    "a profile in a record and in no list is a name no rule can be written against");
+
+                _database.SaveCloseAndReopen();
+
+                var kept = ProfileNames.Read(
+                    _database.Database.CustomData.Get(ProfileNames.CustomDataKey));
+
+                Assert.That(kept.Holds("invented"), Is.True, "and the save that keeps the record keeps it");
+            }
+        }
+
+        [Test]
+        public void A_profile_past_what_the_list_holds_is_left_off_it_and_said_so()
+        {
+            // An operator can approve a name the database has never held while it already names as
+            // many as the list takes. The pairing stands, since refusing it would leave a client
+            // holding a certificate for a record nobody wrote. What it costs is that the name
+            // grants nothing, a client reaching only what the list names, and the log says so.
+            var names = ProfileNames.Empty();
+            for (var i = 0; i < ProfileNames.Most; i++)
+            {
+                Assume.That(names.Add("invented-" + i), Is.Null);
+            }
+
+            _database.Database.CustomData.Set(ProfileNames.CustomDataKey, names.Write());
+
+            using (var certificate = IssueClient())
+            {
+                var result = _writer.WriteAdmission(_database.Database, Record(certificate, "one-too-many"));
+
+                Assert.That(result.Ok, Is.True, result.Reason);
+
+                var kept = ProfileNames.Read(_database.Database.CustomData.Get(ProfileNames.CustomDataKey));
+                Assert.That(kept.Holds("one-too-many"), Is.False);
+                Assert.That(kept.Names.Count, Is.EqualTo(ProfileNames.Most));
+                Assert.That(_log.Warnings, Has.Some.Contains("reaches nothing through it"));
+                Assert.That(_log.Warnings, Has.None.Contains("one-too-many"),
+                    "and it says so without naming what the client may reach");
+            }
+        }
+
+        [Test]
+        public void A_refused_write_names_nothing()
+        {
+            // The half that made this worth moving. Written anywhere but inside the marshaled
+            // write, a name could be added while the record was refused, leaving a database naming
+            // a profile for a client it never admitted.
+            using (var certificate = IssueClient())
+            using (var form = GroupDialogOnTheRoot())
+            {
+                GlobalWindowManager.AddWindow(form);
+
+                try
+                {
+                    Assume.That(_writer.WriteAdmission(_database.Database, Record(certificate, "invented")).Ok,
+                        Is.False);
+
+                    var names = ProfileNames.Read(
+                        _database.Database.CustomData.Get(ProfileNames.CustomDataKey));
+
+                    Assert.That(names.Holds("invented"), Is.False);
+                }
+                finally
+                {
+                    GlobalWindowManager.RemoveWindow(form);
+                }
+            }
+        }
+
+        [Test]
         public void A_group_dialog_open_on_the_root_group_refuses_the_write()
         {
             using (var certificate = IssueClient())
@@ -221,6 +306,33 @@ namespace KeePassGate.Host.Tests
 
                 Assert.That(store.Get(record.StorageKey), Is.Null,
                     "a record that did not land must not be left in the group");
+                Assert.That(_database.Database.Modified, Is.False,
+                    "and the database must not be left asking to be saved for it");
+            }
+        }
+
+        [Test]
+        public void A_save_that_does_not_happen_leaves_no_profile_name_behind_either()
+        {
+            // The other half of the same write, and the half that outlives it. `Name` writes the
+            // profile list *before* the record, so a pairing that failed after that point left a
+            // name the operator never typed in a database KeePass had been told has nothing to
+            // save. The next unrelated edit commits it. What is then on the profiles page is
+            // a name no record holds and nobody can account for, and removing it walks every rule
+            // in the database for a profile that never granted anything.
+            var writer = new DatabaseWriter(CurrentThread.Instance, database => { }, _dialogs, _log);
+
+            using (var certificate = IssueClient())
+            {
+                var store = new CustomDataStore(_database.Database);
+                _database.Database.Modified = false;
+
+                Assume.That(writer.WriteAdmission(_database.Database, Record(certificate, "invented")).Ok,
+                    Is.False);
+
+                Assert.That(ProfileNames.Read(store.Get(ProfileNames.CustomDataKey)).Names,
+                    Does.Not.Contain("invented"),
+                    "a name written for a pairing that did not land must not be left in the group");
                 Assert.That(_database.Database.Modified, Is.False,
                     "and the database must not be left asking to be saved for it");
             }
@@ -363,6 +475,67 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void The_dialog_is_built_from_the_request_the_handler_made_out_of_the_database()
+        {
+            // Every other dialog test builds its request by hand, so what the real target answers
+            // for the Regaining line, `MaterialTarget.Holding`, was pinned by nothing: a Holding
+            // returning nobody, everybody or the revoked would have changed or silenced the
+            // warning with every tier green.
+            using (var kept = Issue("agent-kept", "ops"))
+            using (var revoked = Issue("agent-revoked", "ops"))
+            using (var elsewhere = Issue("agent-elsewhere", "audit"))
+            {
+                Assume.That(_writer.WriteAdmission(_database.Database, Record(kept, "ops")).Ok, Is.True);
+                Assume.That(_writer.WriteAdmission(_database.Database, Record(revoked, "ops")).Ok, Is.True);
+                Assume.That(_writer.WriteAdmission(_database.Database, Record(elsewhere, "audit")).Ok, Is.True);
+
+                var admissions = new AdmissionStore(new CustomDataStore(_database.Database), null);
+                Assume.That(admissions.Remove(CertificateDigest.Of(revoked)), Is.True);
+
+                // "ops" taken off the list, as the Profiles page does, so that its holders would
+                // regain it; "audit" left on it.
+                var names = ProfileNames.Read(null);
+                Assume.That(names.Add("audit"), Is.Null);
+                _database.Database.CustomData.Set(ProfileNames.CustomDataKey, names.Write());
+
+                using (var book = new InvitationBook(TimeSpan.FromMinutes(10), null, _log))
+                using (var targets = Targets())
+                {
+                    var target = targets.Current().Single();
+                    var invitation = book.Invite(target.DatabaseId);
+
+                    PairingRequest asked = null;
+                    string shown = null;
+                    var operatorAt = new LookingOperator(request =>
+                    {
+                        asked = request;
+                        using (var dialog = new PairingApprovalForm(request, TimeSpan.FromMinutes(2)))
+                        {
+                            shown = Texts(dialog);
+                        }
+                    });
+
+                    var context = Pair(book, target, invitation, "agent-new", new[] { "ops", "audit", "fresh" }, operatorAt);
+
+                    Assume.That(context.Status, Is.EqualTo(403), context.Json);
+                    Assert.That(asked, Is.Not.Null);
+
+                    Assert.That(asked.Returning("ops").Select(r => r.Subject), Is.EqualTo(new[] { "CN=agent-kept" }),
+                        "the live holder of a removed name, and not the revoked one");
+                    Assert.That(asked.Returning("audit"), Is.Empty, "a listed name gives nothing back");
+                    Assert.That(asked.IsNew("fresh"), Is.True);
+                    Assert.That(asked.IsNew("ops"), Is.False, "held, so removed rather than new");
+                    Assert.That(asked.IsNew("audit"), Is.False);
+
+                    Assert.That(shown, Does.Contain(PairingApprovalForm.Regaining(asked)));
+                    Assert.That(shown, Does.Contain("agent-kept"));
+                    Assert.That(shown, Does.Not.Contain("agent-revoked"));
+                    Assert.That(shown, Does.Contain(PairingApprovalForm.NewProfilesAsked));
+                }
+            }
+        }
+
+        [Test]
         public void A_group_dialog_open_on_the_root_group_refuses_the_pairing_and_keeps_the_invitation()
         {
             using (var book = new InvitationBook(TimeSpan.FromMinutes(10), null, _log))
@@ -399,6 +572,18 @@ namespace KeePassGate.Host.Tests
         private GateContext Pair(
             IInvitations book, IGateTarget target, Invitation invitation, string name, string[] profiles)
         {
+            return Pair(book, target, invitation, name, profiles, new AgreeingOperator());
+        }
+
+        /// <summary>The same, put to the operator given.</summary>
+        private GateContext Pair(
+            IInvitations book,
+            IGateTarget target,
+            Invitation invitation,
+            string name,
+            string[] profiles,
+            IPairingApproval operatorAt)
+        {
             var token = invitation.Token;
             var binding = PairingProof.Binding(target.Host.CertificateDer);
             var nonce = new byte[SniName.NonceLength];
@@ -408,7 +593,7 @@ namespace KeePassGate.Host.Tests
             }
 
             var connection = new PairingConnection(invitation, target, binding, nonce, "127.0.0.1:60001");
-            var handler = new PairingHandler(book, new AgreeingOperator(), _log);
+            var handler = new PairingHandler(book, operatorAt, _log);
 
             var hello = Post(
                 PairingHandler.HelloPath,
@@ -506,6 +691,47 @@ namespace KeePassGate.Host.Tests
             }
         }
 
+        /// <summary>An operator who looks at what they are shown, and refuses.</summary>
+        private sealed class LookingOperator : IPairingApproval
+        {
+            private readonly Action<PairingRequest> _look;
+
+            public LookingOperator(Action<PairingRequest> look)
+            {
+                _look = look;
+            }
+
+            public PairingApproval Ask(PairingRequest request, TimeSpan timeout)
+            {
+                _look(request);
+                return PairingApproval.Refused();
+            }
+        }
+
+        /// <summary>Every label a dialog shows, one to a line.</summary>
+        private static string Texts(System.Windows.Forms.Control form)
+        {
+            var text = new System.Text.StringBuilder();
+            foreach (var control in ControlTree.Descendants(form))
+            {
+                var label = control as System.Windows.Forms.Label;
+                if (label != null)
+                {
+                    text.AppendLine(label.Text);
+                }
+            }
+
+            return text.ToString();
+        }
+
+        private X509Certificate2 Issue(string name, params string[] profiles)
+        {
+            using (var reading = new AuthorityService(new CustomDataStore(_database.Database), null).Read())
+            {
+                return new AuthorityIssuer().IssueClient(reading.Material.Authority, name, profiles);
+            }
+        }
+
         /// <summary>A user interface thread that is busy elsewhere and never gets to the work.</summary>
         private sealed class NeverRuns : IUiThread
         {
@@ -519,10 +745,16 @@ namespace KeePassGate.Host.Tests
         private sealed class RecordingLog : IGateLog
         {
             private readonly List<string> _errors = new List<string>();
+            private readonly List<string> _warnings = new List<string>();
 
             public IReadOnlyList<string> Errors
             {
                 get { return _errors; }
+            }
+
+            public IReadOnlyList<string> Warnings
+            {
+                get { return _warnings; }
             }
 
             public void Info(string message)
@@ -532,6 +764,7 @@ namespace KeePassGate.Host.Tests
 
             public void Warn(string message)
             {
+                _warnings.Add(message);
                 TestContext.Out.WriteLine("WARN  " + message);
             }
 

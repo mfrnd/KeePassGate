@@ -44,6 +44,7 @@ namespace KeePassGate.Host.Tests
         private TemporaryDatabase _database;
         private Form _dialog;
         private TabPage _page;
+        private ImageList _icons;
 
         [SetUp]
         public void SetUp()
@@ -56,13 +57,32 @@ namespace KeePassGate.Host.Tests
             Assert.That(tabs, Is.Not.Null, "KeePass no longer names its tab control what the injector looks for.");
             Assert.That(tabs.TabPages.Count, Is.GreaterThan(0));
 
+            TestContext.Out.WriteLine("page without icons: " + tabs.TabPages[0].DisplayRectangle.Size);
+
+            // With the icon on, because that is what ships. A tab strip showing pictures can be
+            // taller than one showing only words, and every pixel it takes is a pixel this page
+            // does not have. Both sizes are printed rather than asserted: this dialog is never
+            // shown here, so the strip is not always re-measured, and what the two lines are for is
+            // a KeePass where they stop agreeing.
+            _icons = new ImageList { ColorDepth = ColorDepth.Depth32Bit, ImageSize = new Size(16, 16) };
+            _icons.Images.Add(new Bitmap(16, 16));
+            tabs.ImageList = _icons;
+
             _page = tabs.TabPages[0];
+            TestContext.Out.WriteLine("page with icons:    " + _page.DisplayRectangle.Size);
         }
 
         [TearDown]
         public void TearDown()
         {
             _dialog.Dispose();
+
+            if (_icons != null)
+            {
+                _icons.Dispose();
+                _icons = null;
+            }
+
             _database.Dispose();
         }
 
@@ -186,6 +206,23 @@ namespace KeePassGate.Host.Tests
                     Assert.That(name.Margin.Right, Is.EqualTo((int)Math.Round(Spacing.Gap * scale.Width)),
                         "a fact drawn after the page was scaled kept the unscaled gap");
                 }
+
+                // And the profile name box, which the page never sizes: it kept the width a text
+                // box is born with at every scaling while the label and the button beside it grew,
+                // so at 200 percent it showed half as many characters of a name as at 100.
+                using (var plain = NewPanel(false, false))
+                using (var panel = NewPanel(false, false))
+                {
+                    panel.Scale(scale);
+
+                    // The room inside it, since a box's frame is drawn at the same width whatever
+                    // the scaling and only what it holds grows.
+                    var before = ControlTree.FindByName<TextBox>(plain, ProfileList.NameBoxName).ClientSize.Width;
+                    var after = ControlTree.FindByName<TextBox>(panel, ProfileList.NameBoxName).ClientSize.Width;
+
+                    Assert.That(after, Is.EqualTo(before * scale.Width).Within(1),
+                        "the profile name box did not grow with the dialog");
+                }
             }
         }
 
@@ -305,9 +342,42 @@ namespace KeePassGate.Host.Tests
                     var list = ControlTree.FindByName<ClientList>(panel, ClientList.ControlName);
                     Assert.That(list, Is.Not.Null, "the clients page has no list on it");
 
+                    // Its own page in front, because a page behind another is never laid out and
+                    // what is on it then has whatever size it was built with.
+                    Show(list);
+
                     TestContext.Out.WriteLine(state.Description + ": the list has " + list.Height);
                     Assert.That(list.Height, Is.GreaterThanOrEqualTo(MinimumListHeight),
                         state.Description + " leaves the list " + list.Height +
+                        " pixels, which is not a list.");
+                }
+            }
+        }
+
+        [Test]
+        public void The_profiles_page_keeps_room_for_the_list_under_the_line_that_adds_one()
+        {
+            // The same shape as the clients page and the same hazard: the row that adds a profile
+            // is a band at the top and the list takes what is left. This page is measured on its
+            // own because nothing else measures it: the whole-tab test walks the top-down stacks,
+            // and this page has none, so a list squeezed to nothing here would show up on somebody's
+            // screen rather than in a test.
+            foreach (var state in States())
+            {
+                using (var panel = state.Panel)
+                {
+                    LayOut(panel, _page.DisplayRectangle.Size);
+
+                    var list = ControlTree.FindByName<ProfileList>(panel, ProfileList.ControlName);
+                    Assert.That(list, Is.Not.Null, "the profiles page has no list on it");
+
+                    // Its own page in front, for the reason the clients page needs it: a page
+                    // behind another is never laid out.
+                    Show(list);
+
+                    TestContext.Out.WriteLine(state.Description + ": the profile list has " + list.Height);
+                    Assert.That(list.Height, Is.GreaterThanOrEqualTo(MinimumListHeight),
+                        state.Description + " leaves the profile list " + list.Height +
                         " pixels, which is not a list.");
                 }
             }
@@ -426,7 +496,20 @@ namespace KeePassGate.Host.Tests
                 + "consumes it or it gets renewed. "
                 + "The approval dialog will call it 0123456789abcdef.");
 
+            // Shown, because it can be: an operator who created an authority and went straight to
+            // the clients page is looking at this and at everything above it at the same time.
+            // Whichever of its sentences is longer, since the band holds one at a time and the
+            // question here is how much room the longest one needs.
+            Show(panel, GateTab.InviteNoticeName, GateTab.LongestInviteNotice);
+
             return panel;
+        }
+
+        /// <summary>A label that hides itself when it has nothing to say, made to say it.</summary>
+        private static void Show(Control panel, string name, string text)
+        {
+            Set(panel, name, text);
+            ControlTree.FindByName<Label>(panel, name).Visible = true;
         }
 
         private static void Set(Control panel, string name, string text)

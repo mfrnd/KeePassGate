@@ -92,8 +92,8 @@ namespace KeePassGate.Ui
         /// comes from.
         /// </remarks>
         public const string NoProfilesYet =
-            "No profile has been approved for any client yet, so there is nothing to grant to. "
-            + "Pair a client and approve the profile it asks for.";
+            "This database names no profiles yet. Add one on the " + GateName.OnATab
+            + " tab of the database settings, or pair a client and approve the profile it asks for.";
 
         /// <summary>
         /// What the Permissions cell of the empty line says, which is why it is unavailable.
