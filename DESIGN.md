@@ -1296,6 +1296,12 @@ Each step is refusable, and each ends with something that runs.
 17. **A profile gets a home**: the set of names a database knows, stored with the authority, with a page
     of its own on the tab to manage them, and a name taken off it granting nothing wherever a rule
     still names it.
+    **Done.** Before this a profile was whatever somebody had typed, and a misspelling made one that
+    existed,
+    granted nothing and looked exactly like the one that was meant. The editor stops accepting typed
+    names once there is a list to choose from, and pairing marks a name this database has never seen
+    so that approving it is visibly two decisions rather than one.
+
 18. **The plugin's own window**: one item under KeePass's Tools menu, opening a window that says
     where the gate is listening and sets the port it listens on.
 19. **The documentation for whoever runs it**: `docs/`, in the order an operator meets the plugin,
