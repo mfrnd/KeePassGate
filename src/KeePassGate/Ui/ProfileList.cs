@@ -81,7 +81,8 @@ namespace KeePassGate.Ui
 
         private const int NameColumn = 0;
         private const int UsedColumn = 1;
-        private const int RemoveColumn = 2;
+        private const int HeldColumn = 2;
+        private const int RemoveColumn = 3;
 
         private readonly IProfiles _profiles;
         private readonly IOperatorPrompt _prompt;
@@ -389,11 +390,12 @@ namespace KeePassGate.Ui
                 // the whole database, and a walk per row is what made the page cost its row count
                 // times as much.
                 var rules = _profiles.Rules();
+                var clients = _profiles.Clients();
 
                 foreach (var name in _profiles.Names())
                 {
                     _shown.Add(name);
-                    _grid.Rows.Add(name, Counted(rules, name), RemoveMark);
+                    _grid.Rows.Add(name, Counted(rules, name), Counted(clients, name), RemoveMark);
                 }
             }
             finally
@@ -458,6 +460,18 @@ namespace KeePassGate.Ui
                 // characters against a five letter heading, so sizing to the cells as well only
                 // ever measures something narrower and the column would be the heading's width
                 // anyway; saying so directly leaves the profile name the rest.
+                AutoSizeMode = DataGridViewAutoSizeColumnMode.ColumnHeader,
+                ReadOnly = true
+            });
+
+            // How many admitted clients hold it, which is the other half of what removing it would
+            // cost. The rules count says what would stop being granted; this says who would stop
+            // being granted it, and the two are different databases' worth of consequence: a
+            // profile with rules and no clients is one somebody wrote ahead of the client, and a
+            // profile with clients and no rules is one that grants nothing to anybody holding it.
+            grid.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                HeaderText = "Clients",
                 AutoSizeMode = DataGridViewAutoSizeColumnMode.ColumnHeader,
                 ReadOnly = true
             });
@@ -546,6 +560,12 @@ namespace KeePassGate.Ui
         /// </summary>
         IReadOnlyDictionary<string, int> Rules();
 
+        /// <summary>
+        /// How many admitted clients hold each profile, all of them in one count. A profile no
+        /// client holds is absent rather than zero.
+        /// </summary>
+        IReadOnlyDictionary<string, int> Clients();
+
         /// <summary>Adds one. Answers with why it could not, or null when it did.</summary>
         string Add(string name);
 
@@ -591,6 +611,11 @@ namespace KeePassGate.Ui
         }
 
         public IReadOnlyDictionary<string, int> Rules()
+        {
+            return new Dictionary<string, int>();
+        }
+
+        public IReadOnlyDictionary<string, int> Clients()
         {
             return new Dictionary<string, int>();
         }

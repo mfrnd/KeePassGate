@@ -54,7 +54,8 @@ namespace KeePassGate.Host.Tests
 
             _vault = new KdbxVault(
                 _database.Database,
-                new DatabaseWriter(CurrentThread.Instance, database => database.Save(null), _dialogs, null),
+                new DatabaseWriter(
+                    CurrentThread.Instance, database => database.Save(null), null, _dialogs, null),
                 null);
         }
 

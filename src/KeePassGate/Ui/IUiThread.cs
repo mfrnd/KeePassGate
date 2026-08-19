@@ -110,10 +110,11 @@ namespace KeePassGate.Ui
             //
             // **Bounded by the work rather than by a clock, and the work is nearly always
             // bounded.** A file save ends, and the pairing dialog closes itself. The exceptions are
-            // a save that stops to ask something or has already gone wrong, which KeePass puts in a
-            // message box this wait then lasts until somebody answers, and whatever the save runs
-            // that is not KeePass's own: the operator's triggers and other plugins' save handlers
-            // take as long as they take. `DESIGN.md` §119 names the questions and the failures.
+            // a save that has already gone wrong, which KeePass reports in a message box this wait
+            // then lasts until somebody presses OK, and whatever the save runs that is not KeePass's
+            // own: the operator's triggers and other plugins' save handlers take as long as they
+            // take. `DatabaseWriter.Asking` forestalls the three questions that can be seen coming,
+            // and `DESIGN.md` §119 says why the rest are left as they are.
             pending.AsyncWaitHandle.WaitOne();
             _control.EndInvoke(pending);
             marshaled.Rethrow();

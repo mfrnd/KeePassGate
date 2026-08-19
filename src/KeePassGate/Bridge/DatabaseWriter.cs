@@ -27,14 +27,35 @@ namespace KeePassGate.Bridge
     ///   cannot get in fails rather than queues.
     /// - **The write and the save happen together on the user interface thread**, in one marshaled
     ///   call, so nothing can open a dialog on the group between them.
+    /// - **And that call can itself be delivered inside something else.** Being on that thread is
+    ///   not being alone on it: the operations KeePass takes a while over all pump the message
+    ///   queue while they run, and a marshaled call is a message. A write dispatched inside one
+    ///   of them changes the tree that operation is walking, and saves underneath it. So there
+    ///   is a third question beside the dialogs and the save's own three, asked in the marshaled
+    ///   call because that is where the answer stops being able to change: is KeePass part way
+    ///   through something of its own. <see cref="Interrupting"/> is that question.
     /// - **A dialog open on what is being written refuses the write**, checked again inside the
     ///   marshaled call rather than only before it, because that is where the answer stops being
     ///   able to change. A dialog holds its own copy of what it shows and writes that copy back when
     ///   it is accepted, so a change made underneath one is a change the operator's OK destroys.
+    /// - **A save that would ask the operator something is refused instead**, which
+    ///   `DESIGN.md` §119 states as "no API request ever raises a dialog". `MainForm.SaveDatabase`
+    ///   has three questions that can be seen coming, and <see cref="Asking"/> is those three.
     /// - **Nothing is believed without asking.** KeePass's save reports nothing to its caller,
-    ///   so what "it worked" is made of is `PwDatabase.Modified` having gone false. Pairing asks
-    ///   for more, and reads its record back as well, because a lost admission record is a
-    ///   certificate that works and cannot be revoked.
+    ///   so what "it worked" is made of is `PwDatabase.Modified` having gone false. **That is the
+    ///   answer after an exception as well as after a return**, because `MainForm.SaveDatabase`
+    ///   catches everything the save itself throws and then raises `FileSaved` to every other
+    ///   plugin outside that try: an exception arriving from there is somebody else's handler
+    ///   failing over a file this change is already in. **And the flag is not the whole of it
+    ///   either**, because KeePass clears it as soon as it has committed the bytes and only then
+    ///   hashes the file back: when that disagrees it warns the operator and changes nothing, so
+    ///   the file is asked about as well. Pairing asks for more again, and reads its record back,
+    ///   because a lost admission record is a certificate that works and cannot be revoked.
+    /// - **A change that landed says so to the window as well as to the client.** KeePass's save
+    ///   ends in `UpdateUIState`, which redraws the title bar and the menus and rebuilds neither
+    ///   the group tree nor the entry list, so without this an operator watching the window sees
+    ///   the database as it was before the request. `DESIGN.md` §119 has the argument and the
+    ///   seven arguments the redraw is made with.
     /// </remarks>
     public sealed class DatabaseWriter
     {
@@ -46,14 +67,23 @@ namespace KeePassGate.Bridge
 
         private readonly IUiThread _ui;
         private readonly Action<PwDatabase> _save;
+        private readonly Func<string> _busy;
+        private readonly Action _redraw;
         private readonly GroupDialogs _dialogs;
         private readonly IGateLog _log;
         private readonly Action _admitted;
 
         private readonly object _writing = new object();
 
-        public DatabaseWriter(IUiThread ui, Action<PwDatabase> save, GroupDialogs dialogs, IGateLog log)
-            : this(ui, save, null, dialogs, log)
+        /// <param name="redraw">
+        /// What tells KeePass that the tree and the list it is showing are out of date, run on the
+        /// user interface thread after a change has been made and saved. Null where there is no
+        /// window to tell, which is every test that is not about this and a host with no main
+        /// window.
+        /// </param>
+        public DatabaseWriter(
+            IUiThread ui, Action<PwDatabase> save, Action redraw, GroupDialogs dialogs, IGateLog log)
+            : this(ui, save, redraw, null, dialogs, log)
         {
         }
 
@@ -61,13 +91,38 @@ namespace KeePassGate.Bridge
         /// The same, and told what to say when a record lands.
         /// </summary>
         /// <remarks>
-        /// An action rather than an event: what this class needs to know about anything drawn
-        /// from the records is that something wants telling, and `AdmissionNotice` is what
-        /// turns that into listeners.
+        /// An action rather than an event, on the same terms as `redraw` beside it: what this
+        /// class needs to know about anything drawn from the database is that something wants
+        /// telling, and `AdmissionNotice` is what turns that into listeners.
         /// </remarks>
         public DatabaseWriter(
             IUiThread ui,
             Action<PwDatabase> save,
+            Action redraw,
+            Action admitted,
+            GroupDialogs dialogs,
+            IGateLog log)
+            : this(ui, save, null, redraw, admitted, dialogs, log)
+        {
+        }
+
+        /// <summary>
+        /// The same, and able to ask whether KeePass is part way through something of its own.
+        /// </summary>
+        /// <param name="busy">
+        /// Why writing now would land inside an operation KeePass is already running, or null
+        /// when it would not. Asked inside the marshaled call, where it is the truth about the
+        /// thread the write is about to run on, and again from <see cref="Blocked"/> before an
+        /// invitation is spent, where it is a guess worth making for the same reason the dialogs
+        /// are asked about there. Null where there is nothing to ask, which is a test or a host
+        /// with no main window: **null is not "nothing is running"**, it is "nobody can say", and
+        /// it allows, because outside KeePass there is no operation of KeePass's to land in.
+        /// </param>
+        public DatabaseWriter(
+            IUiThread ui,
+            Action<PwDatabase> save,
+            Func<string> busy,
+            Action redraw,
             Action admitted,
             GroupDialogs dialogs,
             IGateLog log)
@@ -84,6 +139,8 @@ namespace KeePassGate.Bridge
 
             _ui = ui;
             _save = save;
+            _busy = busy;
+            _redraw = redraw;
             _admitted = admitted;
             _dialogs = dialogs;
             _log = log ?? NullGateLog.Instance;
@@ -101,22 +158,39 @@ namespace KeePassGate.Bridge
                 return "the database is not open";
             }
 
-            var root = database.RootGroup;
-            if (root == null)
+            if (database.RootGroup == null)
             {
                 return "the database has no root group";
             }
 
-            if (_dialogs == null)
+            var interrupting = Interrupting();
+            if (interrupting != null)
             {
-                return null;
+                // First of the three, because it is the cheapest and because it is the one that
+                // makes the other two unsafe to trust: `Asking` reads the file, and KeePass part
+                // way through writing that file has not put it back yet, so the comparison passes
+                // and says nothing about whether writing now is a good idea.
+                return interrupting;
             }
 
-            // Two dictionaries, two dialogs. The authority and the profile list are on the root
-            // group, which the group dialog copies; the records are in the database's own custom
-            // data, which the maintenance dialog copies. A write here can touch either, so both
-            // are asked.
-            return _dialogs.Blocking(root) ?? _dialogs.BlockingRecords(database);
+            if (_dialogs != null)
+            {
+                // One dialog, because one dictionary. A record and the profile names it adds go
+                // into the database's own custom data, which only the maintenance dialog copies. No
+                // group dialog is asked, the root group's included: this write touches no group, so
+                // a group dialog's OK puts back nothing it changed.
+                var open = _dialogs.BlockingRecords(database);
+                if (open != null)
+                {
+                    return open;
+                }
+            }
+
+            // Last, because it is the only one of these that reads the file. Pairing asks this
+            // before it spends an invitation for the same reason it asks about the dialogs there:
+            // a save that would stop to ask somebody costs an attempt rather than the invitation
+            // behind it.
+            return Asking(database);
         }
 
         /// <summary>Why this group cannot be changed right now, or null when it can.</summary>
@@ -156,6 +230,284 @@ namespace KeePassGate.Bridge
         public string BlockingRecycleBin(PwDatabase database)
         {
             return _dialogs == null ? null : _dialogs.BlockingRecycleBin(database);
+        }
+
+        /// <summary>
+        /// Why writing now would land inside an operation KeePass is already running, or null when
+        /// it would not.
+        /// </summary>
+        /// <remarks>
+        /// **A marshaled call is a message, and a message is delivered by whatever is pumping.**
+        /// The rest of this class was written as though running on the user interface thread meant
+        /// KeePass was between operations, and it does not: everything KeePass takes a noticeable
+        /// time over pumps that thread's queue while it runs, so a write handed to `BeginInvoke`
+        /// by a connection thread is dispatched in the middle of it.
+        ///
+        /// - **Its own save.** `MainForm.SaveDatabase` pumps before the save, and its progress
+        ///   logger pumps again for every percent of the serialization. A write delivered there
+        ///   changes the tree that is being written and then saves it, and the outer save either
+        ///   throws because the list it was walking moved or commits the copy it took before the
+        ///   change, over the top of a save the client was told had landed.
+        /// - **An import or a synchronize.** The merge's status logger pumps, and the nested save
+        ///   writes a half-merged database and clears `Modified`, so what is left of the import
+        ///   lives only in memory with nothing to say it is unsaved: lock, close and exit throw it
+        ///   away without asking.
+        /// - **An export.** The exporter walks the live tree and its logger pumps, so a write that
+        ///   adds to or removes from the list it is enumerating makes it throw, leaving a warning
+        ///   on the operator's screen and a truncated file.
+        /// - **A message box.** A modal loop pumps by definition, and a question KeePass is
+        ///   waiting on an answer to is the clearest case of it being part way through something.
+        ///
+        /// **What can be asked is not one question**, which is why this is a seam rather than a
+        /// call. KeePass blocks its own interaction for the save and for the merges, and does not
+        /// for an export: that one raises the message count instead. The wiring in
+        /// `KeePassGateExt` asks both, and here it is one string.
+        ///
+        /// **And one operation announces itself in neither.** XML Replace merges into the live
+        /// database with KeePass's progress window as its status logger, pumping on every step,
+        /// and neither blocks interaction nor raises the count. The window is the only sign of it,
+        /// and the dialog watch is what sees windows, so `GroupDialogs.Working` is asked after the
+        /// seam.
+        ///
+        /// **A question that cannot be answered refuses**, like every other guard in this class.
+        /// A write is worth losing; a client told its write landed when the operator's import
+        /// took it back is not.
+        /// </remarks>
+        private string Interrupting()
+        {
+            if (_busy != null)
+            {
+                try
+                {
+                    var busy = _busy();
+                    if (busy != null)
+                    {
+                        return busy;
+                    }
+                }
+                catch (Exception error) when (Expected.OfUserInterface(error))
+                {
+                    _log.Error("KeePass could not be asked whether it is busy", error);
+                    return "KeePass could not be asked whether it is in the middle of something";
+                }
+            }
+
+            return _dialogs == null ? null : _dialogs.Working();
+        }
+
+        /// <summary>
+        /// Why saving this database would put a question of KeePass's own on the operator's screen,
+        /// or run a merge of KeePass's own inside the request, or null when it would do neither.
+        /// </summary>
+        /// <remarks>
+        /// `MainForm.SaveDatabase` answers several conditions by asking somebody, and a request
+        /// arriving over the wire is the one caller that must never make it do that: `DESIGN.md`
+        /// §119 says an unattended agent may not prompt somebody's screen, and a modal box also
+        /// holds this thread, the writer's lock and the connection until a person answers it, which
+        /// is a wait no timeout here bounds. Three of its questions can be seen coming, and these
+        /// are those three, in the order that call reaches them.
+        ///
+        /// - **Saving is disallowed by policy.** `AppPolicy.Try` shows a warning and answers false,
+        ///   so nothing would have been written either way.
+        /// - **The database has no file yet.** `SaveDatabase` hands that to `SaveDatabaseAs`, which
+        ///   opens a file picker and asks where a program's write should be kept.
+        /// - **The file on disk is not the one KeePass read.** `PreSaveValidate` compares those two
+        ///   hashes and asks whether to synchronize, overwrite or cancel, and answering synchronize
+        ///   runs an import inside the request. A database on a shared or synced path meets this in
+        ///   the ordinary course of things, so it is the one of the three a client is likely to
+        ///   provoke without anybody having misconfigured anything.
+        ///
+        ///   **With `SaveForceSync` on, KeePass asks nothing and synchronizes**, and that is refused
+        ///   all the same. The merge still runs inside the request and underneath the change it
+        ///   was asked to save, and it can still stop for the other file's key or to warn about
+        ///   what it found, which is a question on the screen by another road. So nothing here
+        ///   reads that setting: what is refused is what the save would do with this file, and
+        ///   asking is only one of the two things it does.
+        ///
+        /// **The same comparison as `PreSaveValidate` makes, through the same function**, so the
+        /// file this refuses to save over is exactly the file KeePass would stop at, whether to ask
+        /// or to merge. It costs one more read of the file per write, which is what having the
+        /// answer before the save rather than during it costs, and the save that follows reads the
+        /// file again anyway.
+        ///
+        /// **For a database opened from a URL that read is a download**, on this thread and under
+        /// the writer's lock, bounded only by the network timeouts KeePass gives it, which for a
+        /// server that has stopped answering is minutes. The save's own read, its upload and the
+        /// read after it are the same, so a write to such a database holds KeePass and every other
+        /// write for as long as the network does. A download that fails answers null, which is
+        /// what `PreSaveValidate` makes of it as well, as below.
+        ///
+        /// **Two of its questions stay, and both are a save that has already gone wrong**:
+        /// `MessageService.ShowSaveWarning` when `PwDatabase.Save` throws, and the verification
+        /// warning `PostSavingEx` raises when the bytes on disk are not the bytes written. Neither
+        /// can be known before the save, and both report damage an operator has to be told about.
+        /// </remarks>
+        private static string Asking(PwDatabase database)
+        {
+            // Null when no KeePass has set one, which is a test or anything else assembling this
+            // without the application around it. Allowing there leaves the decision to whichever
+            // save was handed in, since outside KeePass nothing else knows what saving means.
+            var policy = KeePass.App.AppPolicy.Current;
+            if (policy != null && !policy.SaveFile)
+            {
+                return "saving this database is disallowed by policy, and KeePass reports that in a message box";
+            }
+
+            var connection = database.IOConnectionInfo;
+            if (connection == null || string.IsNullOrEmpty(connection.Path))
+            {
+                return "the database has no file, so saving it would ask the operator for one";
+            }
+
+            var known = database.HashOfFileOnDisk;
+            if (known == null)
+            {
+                // Nothing has been read from or written to that path yet, so there is no earlier
+                // state for the file to disagree with. `PreSaveValidate` passes this case too.
+                return null;
+            }
+
+            var current = KeePass.Util.WinUtil.HashFile(connection);
+            if (current == null)
+            {
+                // Missing, unreachable or unreadable: that function answers null for every reason a
+                // file can be any of them. `PreSaveValidate` treats it as nothing to compare, so
+                // this does as well, and refusing instead would stop every write to a database
+                // whose file the next save is about to put back.
+                return null;
+            }
+
+            return KeePassLib.Utility.MemUtil.ArraysEqual(current, known)
+                ? null
+                : "the file on disk is not the one KeePass read, so saving would synchronize with it " +
+                  "or ask the operator whether to";
+        }
+
+        /// <summary>
+        /// Whether the file on disk holds what the save just wrote.
+        /// </summary>
+        /// <remarks>
+        /// `PostSavingEx`'s own question, asked through the same two values, because a client told
+        /// that something was saved has to be able to believe it and `Modified` going false is not
+        /// enough to make that true. `PwDatabase.Save` clears that flag as soon as it has committed
+        /// the bytes, and KeePass then hashes the file again and compares it with what it wrote.
+        /// When they differ it shows "the new file's content does not match the data that KeePass
+        /// has written, i.e. writing to the file has failed and it might be corrupted now", and
+        /// that is the whole of what it does: it throws nothing, and it leaves `Modified` false.
+        /// So without this the request is answered `201` with an identifier for something the file
+        /// may not hold, and the next lock, close or exit throws the copy that does hold it away
+        /// without asking.
+        ///
+        /// **Asked whatever the operator has set**, rather than only when
+        /// `VerifyWrittenFileAfterSaving` is on. That setting decides whether KeePass warns
+        /// somebody about their own save; it is not a decision about what this gate promises a
+        /// program that cannot see the screen. It costs one read of the file per write that landed,
+        /// which is what having an answer rather than an assumption costs; for a database opened
+        /// from a URL that read is a download, which `Asking` says more about.
+        ///
+        /// **A file that cannot be read is not a file that holds anything**, so unreadable answers
+        /// false here, as it does in <see cref="TheFileIsAsKeePassLeftIt"/> and for the same
+        /// reason. A save that recorded no hash at all is a different case and answers true: the
+        /// value is written by `PwDatabase.Save` itself, one statement before it clears the flag
+        /// this is reached through, so inside KeePass there is no save that cleared one and not the
+        /// other. Outside it there is no save either.
+        /// </remarks>
+        private static bool TheFileHoldsWhatWasWritten(PwDatabase database)
+        {
+            var written = database.HashOfLastIO;
+            if (written == null)
+            {
+                return true;
+            }
+
+            var connection = database.IOConnectionInfo;
+            if (connection == null || string.IsNullOrEmpty(connection.Path))
+            {
+                return true;
+            }
+
+            var current = KeePass.Util.WinUtil.HashFile(connection);
+            return current != null && KeePassLib.Utility.MemUtil.ArraysEqual(current, written);
+        }
+
+        /// <summary>
+        /// Whether the file on disk is still the one KeePass last read or wrote.
+        /// </summary>
+        /// <remarks>
+        /// Asked on the way out of a save that did not land, and the only thing that makes it safe
+        /// to tell KeePass the database has nothing unsaved. `PwDatabase.Save` leaves `Modified`
+        /// set when it throws, and that flag is the whole of what makes `MainForm.CloseDocument`
+        /// ask before a lock, a close or an exit discards the copy in memory. Clearing it over a
+        /// damaged file takes the question away: the intact copy goes without anybody being asked,
+        /// and what opens next time is the damage.
+        ///
+        /// **A failed save does not always leave the file alone.** KeePass promises that only for
+        /// a transacted write committed by an atomic move. It writes the file directly, truncating
+        /// it first, when the path is a reparse point such as a symbolic link, when `File.Exists`
+        /// cannot see it, as on a share that has just gone, for ftp, and when the operator has
+        /// turned file transactions off; and a transacted commit without TxF, which is every UNC
+        /// path and every mapped or FAT drive, deletes the old file before it renames the new one.
+        /// A save that stops part way there leaves a file that is shorter than it was or is not
+        /// there at all, and a truncated kdbx opens again without an error, holding whatever
+        /// reached the disk. Stopping part way is a full disk, a share that drops, or the tray
+        /// menu's Cancel, which KeePass offers during every save.
+        ///
+        /// **The same comparison `Asking` makes, and the opposite answer to its nulls.** A file
+        /// that cannot be read cannot be shown to be intact, and a commit that got as far as
+        /// deleting the old file is exactly that case, so unreadable refuses here where it allows
+        /// there. The two are not the same question: that one asks whether KeePass would stop to
+        /// ask somebody, and this one asks whether the only undamaged copy may be thrown away.
+        /// A database that has never been read from or written to its path has no earlier state
+        /// for the file to disagree with, and there is nothing there to protect.
+        /// </remarks>
+        /// <param name="database">The database whose file is read back.</param>
+        /// <param name="what">
+        /// When it is not, what was measured: that the file could not be read, or that it was read
+        /// and is something else. Said apart, because a file another program is holding is intact
+        /// and only unreadable, and calling it damaged sends the operator after damage that is not
+        /// there.
+        /// </param>
+        private static bool TheFileIsAsKeePassLeftIt(PwDatabase database, out string what)
+        {
+            what = null;
+
+            var known = database.HashOfFileOnDisk;
+            if (known == null)
+            {
+                return true;
+            }
+
+            var connection = database.IOConnectionInfo;
+            if (connection == null || string.IsNullOrEmpty(connection.Path))
+            {
+                return true;
+            }
+
+            var current = KeePass.Util.WinUtil.HashFile(connection);
+            if (current == null)
+            {
+                what = "could not be read back, so it cannot be shown to be intact";
+                return false;
+            }
+
+            if (!KeePassLib.Utility.MemUtil.ArraysEqual(current, known))
+            {
+                what = "is neither what it was nor what was written";
+                return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Says in the log that a save which failed is being left marked as unsaved, and what was
+        /// measured of the file that makes it so.
+        /// </summary>
+        private void LeftUnsaved(string what, Exception cause)
+        {
+            _log.Error("after the save failed the file on disk " + what + ", so the database is being left " +
+                       "saying it has unsaved changes: KeePass has to ask before its next lock, close or " +
+                       "exit throws away what may be the only undamaged copy", cause);
         }
 
         public AdmissionWrite WriteAdmission(PwDatabase database, AdmissionRecord record)
@@ -282,6 +634,38 @@ namespace KeePassGate.Bridge
 
         private VaultWrite ChangeOnTheUiThread(PwDatabase database, Func<VaultChange> change)
         {
+            if (!database.IsOpen)
+            {
+                // Asked again here, because `Change` asked on the connection thread and a lock or
+                // a File > Close runs on this one, where it can come first. `PwDatabase.Close`
+                // leaves an empty connection behind, so the question below would have answered
+                // that the database has no file and turned a database that has gone into a
+                // `503 busy` worth retrying. It is the same answer `Change` gives the same event
+                // one instruction earlier.
+                return VaultWrite.Failed("the database closed before the change could be made");
+            }
+
+            var interrupting = Interrupting();
+            if (interrupting != null)
+            {
+                // Here rather than before the marshal, because this is the last instant at which
+                // the answer can still change and the first at which it is the truth about the
+                // thread the write is going to run on. A write refused here has not touched the
+                // database.
+                return VaultWrite.Busy(interrupting);
+            }
+
+            var asking = Asking(database);
+            if (asking != null)
+            {
+                // Before the change is made rather than between the change and the save, so there
+                // is nothing to take back out and the refusal costs the database nothing. Nothing
+                // between here and `_save` pumps a message, so the two instants are equally close
+                // to the save; what is *not* true, and what the guard above is for, is that
+                // nothing has pumped to get here.
+                return VaultWrite.Busy(asking);
+            }
+
             VaultChange decided;
 
             try
@@ -312,35 +696,121 @@ namespace KeePassGate.Bridge
                 return decided.Outcome;
             }
 
-            // Whether this call is the one that made the database dirty. A database that already
-            // had unsaved changes when the request arrived still has them afterwards, and clearing
-            // that on the way out would hide somebody else's work rather than this one's.
+            // Whether this call is the one that made the database dirty, for the paths below that
+            // take the change back out. A database that already had unsaved changes when the
+            // request arrived still has them after a save that failed, and clearing the flag on
+            // the way out would hide somebody else's work rather than this one's. A save that
+            // lands writes them to the file along with this change, because KeePass saves the whole
+            // database: `DESIGN.md` §119 records that as a consequence rather than a refusal.
             var wasModified = database.Modified;
             database.Modified = true;
+
+            Exception failed = null;
 
             try
             {
                 _save(database);
             }
-            catch (Exception error) when (Expected.OfCustomData(error) || error is System.IO.IOException)
+            catch (Exception error) when (Expected.OfSaving(error))
             {
-                return PutBack(database, decided, wasModified, VaultWrite.Unsaved(error.Message), error);
+                // Kept rather than answered, because an exception does not say whether the file
+                // was written. The modified flag below is what says that, and it is asked of
+                // everything a save and the handlers around it can throw: a filter naming the
+                // file's exceptions alone let another plugin's refused access through with the
+                // change still made, answered `500` as though nothing had been left behind.
+                failed = error;
             }
 
             if (database.Modified)
             {
                 // KeePass tells a caller nothing about whether a save worked. This is what it does
-                // say: a database it has saved has no unsaved changes left. This is the live path,
-                // because `SaveDatabase` shows its own warning and returns rather than throwing.
+                // say: a database it has saved has no unsaved changes left. When `_save` returned
+                // rather than threw, this is the live path, because `SaveDatabase` shows its own
+                // warning and returns.
                 return PutBack(
                     database,
                     decided,
                     wasModified,
-                    VaultWrite.Unsaved("the database still has unsaved changes, so nothing is on disk"),
-                    null);
+                    VaultWrite.Unsaved(failed == null
+                        ? "the database still has unsaved changes, so nothing is on disk"
+                        : failed.Message),
+                    failed);
             }
 
+            if (failed != null)
+            {
+                // **An exception out of `_save` with nothing unsaved left is not a save that
+                // failed.** `PwDatabase.Save` clears that flag as the last thing it does, and
+                // `MainForm.SaveDatabase` catches everything the save itself throws; what is left
+                // to throw is what runs after it, outside that try. Its `FileSaved` event is
+                // raised there, to every other plugin loaded, with the file already written. So
+                // an exception here means somebody else's handler failed after this change reached
+                // the disk, and taking the change back out over it would leave the database in
+                // memory disagreeing with the file KeePass just wrote: the client is told `500 not
+                // saved` and retries, the next unlock reads the file and brings the first copy
+                // back beside the second, and the operator's next save writes the undone state
+                // over the top instead. Decided by the flag rather than by the exception's type
+                // for the same reason every other question here is asked of the database: the type
+                // says which code threw, and the flag says what happened to the file.
+                _log.Error("the change was saved and something after the save failed, which is " +
+                           "another plugin's `FileSaved` handler: the change is on the disk and " +
+                           "is being left there", failed);
+            }
+
+            if (!TheFileHoldsWhatWasWritten(database))
+            {
+                // Not put back, and this is the one failure here that leaves the change where it
+                // is. The file disagrees with what KeePass wrote, which says nothing about which
+                // of the two it holds, so undoing would be as likely to make memory wrong as to
+                // make it right. What can be done is to stop claiming it landed and to put the
+                // flag back up, so that KeePass asks before a lock, a close or an exit discards
+                // the copy that certainly does hold the change.
+                database.Modified = true;
+
+                _log.Error("the file on disk is not what KeePass wrote to it, so a change that " +
+                           "may not be stored is not being reported as stored", null);
+
+                return VaultWrite.Unverified(
+                    "the file on disk does not hold what KeePass wrote to it");
+            }
+
+            // Last, and only here. Every path above either changed nothing or has just put its
+            // change back, and in both cases the window is already showing the database as it now
+            // is: neither the tree nor the list is rebuilt between the change and the undo, since
+            // nothing on this thread reads a `PwGroup` again until something asks it to.
+            Redraw();
+
             return decided.Outcome;
+        }
+
+        /// <summary>
+        /// Tells KeePass that the tree and the list it is showing are out of date.
+        /// </summary>
+        /// <remarks>
+        /// On this thread, which is the user interface one, and inside the writer's lock, so the
+        /// window is redrawn from the database exactly as the change left it.
+        ///
+        /// **A window that will not redraw never fails the request.** By the time this runs the
+        /// change is made and the file is written, and a client told its write failed writes again:
+        /// that is a second entry under an identifier it was never given. A repaint that did not
+        /// happen is a log line and an operator pressing something.
+        /// </remarks>
+        private void Redraw()
+        {
+            if (_redraw == null)
+            {
+                return;
+            }
+
+            try
+            {
+                _redraw();
+            }
+            catch (Exception error) when (Expected.OfUserInterface(error))
+            {
+                _log.Warn("KeePass was not told what changed, so its window is showing the " +
+                          "database as it was: " + error.Message);
+            }
         }
 
         /// <summary>Takes a change back out when the save it was made for never reached the disk.</summary>
@@ -356,6 +826,13 @@ namespace KeePassGate.Bridge
         /// answered as unsaved, and the honest thing left to say is that the database is holding a
         /// change nobody can now take out. That belongs in the log rather than in a second
         /// failure on top of the first.
+        ///
+        /// **And the modified flag goes back only over a file the save left alone**, which
+        /// <see cref="TheFileIsAsKeePassLeftIt"/> is. Putting the change back makes the database in
+        /// memory what it was; it does not make the file on disk what it was, and a save that
+        /// failed part way through writing it directly leaves it truncated. Telling KeePass there
+        /// is nothing unsaved over a file like that is what lets its next lock, close or exit throw
+        /// the undamaged copy away without asking anybody.
         /// </remarks>
         private VaultWrite PutBack(
             PwDatabase database, VaultChange change, bool wasModified, VaultWrite answer, Exception cause)
@@ -377,7 +854,15 @@ namespace KeePassGate.Bridge
 
                 if (!wasModified)
                 {
-                    database.Modified = false;
+                    string what;
+                    if (TheFileIsAsKeePassLeftIt(database, out what))
+                    {
+                        database.Modified = false;
+                    }
+                    else
+                    {
+                        LeftUnsaved(what, cause);
+                    }
                 }
             }
             catch (Exception error) when (Expected.OfCustomData(error))
@@ -460,8 +945,43 @@ namespace KeePassGate.Bridge
             }
         }
 
+        /// <summary>
+        /// Takes away the documents of retired authorities, and the admission records that came
+        /// back beside their revocations, as part of a write this plugin is making anyway,
+        /// answering with what went.
+        /// </summary>
+        /// <remarks>
+        /// **Here, inside the guarded write, and never at open**, which is operator answer 3a:
+        /// opening a database must not mark it modified, and a prune made while Database
+        /// Maintenance is open is undone by that dialog's write-back. Nothing depends on it, since
+        /// the decision reads the retirements and admission reads the revocations, so one that
+        /// fails is a warning and the pairing goes on.
+        /// </remarks>
+        private IReadOnlyList<KeyValuePair<string, string>> Prune(CustomDataStore store)
+        {
+            try
+            {
+                return new AuthorityStore(store, _log).Prune();
+            }
+            catch (Exception error) when (Expected.OfCustomData(error))
+            {
+                _log.Warn("what retired authorities and revoked clients left behind could not be taken away: " +
+                          error.Message);
+                return Array.Empty<KeyValuePair<string, string>>();
+            }
+        }
+
         private AdmissionWrite OnTheUiThread(PwDatabase database, AdmissionRecord record)
         {
+            if (!database.IsOpen)
+            {
+                // Before `Blocked`, which would say the same thing as a reason to try again. A
+                // database that closed while this waited for its turn has gone rather than being
+                // busy, and the pairing is abandoned either way: the log is where the difference
+                // is read.
+                return AdmissionWrite.Failed("the database closed before the record could be written");
+            }
+
             var blocked = Blocked(database);
             if (blocked != null)
             {
@@ -485,34 +1005,56 @@ namespace KeePassGate.Bridge
             var namesBefore = store.Get(ProfileNames.CustomDataKey);
             var wasModified = database.Modified;
 
+            // What the prune below takes away, so a write that does not land puts it back and
+            // the database in memory goes on agreeing with the file.
+            IReadOnlyList<KeyValuePair<string, string>> pruned = null;
+
             try
             {
                 Name(store, record.Profiles);
                 store.Set(record.StorageKey, written);
+                pruned = Prune(store);
                 database.Modified = true;
             }
             catch (Exception error) when (Expected.OfCustomData(error))
             {
                 _log.Error("an admission record could not be put in the database", error);
-                return Undo(store, database, record, before, namesBefore, wasModified, error.Message);
+                return Undo(store, database, record, before, namesBefore, pruned, wasModified, error.Message);
             }
 
             try
             {
                 _save(database);
             }
-            catch (Exception error) when (Expected.OfCustomData(error) || error is System.IO.IOException)
+            catch (Exception error) when (Expected.OfSaving(error))
             {
-                // KeePass's own save, which reaches the file system and can fail for every reason
-                // a file can. What it must not do is take the connection thread with it.
-                _log.Error("the database could not be saved after pairing", error);
-                return Undo(store, database, record, before, namesBefore, wasModified, error.Message);
+                // KeePass's own save and every other plugin's handlers around it, which can fail
+                // for every reason a file can and every reason a window can: `Expected.OfSaving`
+                // is that list. What it must not do is take the connection thread with it.
+                //
+                // **Which of those it was is the database's answer rather than the exception's**,
+                // for the reason `ChangeOnTheUiThread` gives: the save clears the modified flag as
+                // the last thing it does, and `MainForm.SaveDatabase` catches everything the save
+                // itself throws, so an exception arriving with nothing unsaved left is another
+                // plugin's `FileSaved` handler failing after the record reached the disk. Undoing
+                // there would refuse the client its certificate while the record stays in the
+                // file, which is the client on the clients page that never existed that `Undo`
+                // exists to prevent, arriving by the other road.
+                if (database.Modified)
+                {
+                    _log.Error("the database could not be saved after pairing", error);
+                    return Undo(store, database, record, before, namesBefore, pruned, wasModified, error.Message);
+                }
+
+                _log.Error("the record was saved and something after the save failed, which is " +
+                           "another plugin's `FileSaved` handler: the record is on the disk and " +
+                           "is being left there", error);
             }
 
             if (!string.Equals(store.Get(record.StorageKey), written, StringComparison.Ordinal))
             {
                 return Undo(
-                    store, database, record, before, namesBefore, wasModified, "the record did not survive being written");
+                    store, database, record, before, namesBefore, pruned, wasModified, "the record did not survive being written");
             }
 
             if (database.Modified)
@@ -520,8 +1062,28 @@ namespace KeePassGate.Bridge
                 // KeePass tells a caller nothing about whether a save worked. This is what it does
                 // say: a database it has saved has no unsaved changes left.
                 return Undo(
-                    store, database, record, before, namesBefore, wasModified,
+                    store, database, record, before, namesBefore, pruned, wasModified,
                     "the database still has unsaved changes, so nothing is on disk");
+            }
+
+            if (!TheFileHoldsWhatWasWritten(database))
+            {
+                // The read-back above is of the store, which is memory. This is the file, and it
+                // is the last thing between the record and a certificate: a record that may not be
+                // on the disk is a credential nobody can see and nobody can revoke, which is the
+                // one thing this whole class exists to prevent. Undone rather than left where the
+                // API's write leaves it, because refusing a pairing costs an invitation and
+                // admitting one that was never stored costs a client nobody can take away.
+                //
+                // The flag goes up whatever it was before, which is more than `Undo` does on its
+                // own: a database that arrived with unsaved edits has just had them written to a
+                // file that did not keep them either, so this is the one path where leaving it
+                // clear would be wrong about somebody else's work as well as about this record.
+                database.Modified = true;
+
+                return Undo(
+                    store, database, record, before, namesBefore, pruned, wasModified,
+                    "the file on disk does not hold what KeePass wrote to it");
             }
 
             Admitted();
@@ -573,7 +1135,10 @@ namespace KeePassGate.Bridge
         ///
         /// The modified flag goes back only if this write is what set it. Clearing one that was
         /// already there would tell KeePass it has nothing to save while somebody else's change is
-        /// still waiting.
+        /// still waiting, and clearing one over a file the failed save damaged would tell it there
+        /// is nothing to save while the only undamaged copy is the one in memory.
+        /// <see cref="TheFileIsAsKeePassLeftIt"/> is that second question, in the same words as
+        /// `PutBack` asks it.
         /// </remarks>
         private AdmissionWrite Undo(
             CustomDataStore store,
@@ -581,6 +1146,7 @@ namespace KeePassGate.Bridge
             AdmissionRecord record,
             string before,
             string namesBefore,
+            IReadOnlyList<KeyValuePair<string, string>> pruned,
             bool wasModified,
             string reason)
         {
@@ -593,6 +1159,17 @@ namespace KeePassGate.Bridge
                 else
                 {
                     store.Set(record.StorageKey, before);
+                }
+
+                // What the prune took away: retired documents and records that came back beside
+                // their revocations. They serve and admit nothing either way, and put back they
+                // leave memory agreeing with the file this write never reached.
+                if (pruned != null)
+                {
+                    foreach (var pair in pruned)
+                    {
+                        store.Set(pair.Key, pair.Value);
+                    }
                 }
 
                 // Only when it actually moved. `StringDictionaryEx.Set` stamps a modification time,
@@ -611,7 +1188,18 @@ namespace KeePassGate.Bridge
 
                 if (!wasModified)
                 {
-                    database.Modified = false;
+                    string what;
+                    if (TheFileIsAsKeePassLeftIt(database, out what))
+                    {
+                        database.Modified = false;
+                    }
+                    else
+                    {
+                        // Said, as `PutBack` says it: the database is left marked unsaved with no
+                        // change in it, and the operator is otherwise told only that the write
+                        // failed.
+                        LeftUnsaved(what, null);
+                    }
                 }
             }
             catch (Exception error) when (Expected.OfCustomData(error))

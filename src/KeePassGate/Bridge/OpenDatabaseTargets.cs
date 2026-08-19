@@ -896,11 +896,15 @@ namespace KeePassGate.Bridge
                 try
                 {
                     var holding = new List<AdmissionRecord>();
+                    var now = DateTimeOffset.UtcNow;
 
                     foreach (var record in new AdmissionStore(new CustomDataStore(database), _log).All().Records)
                     {
+                        // Not one whose certificate has expired: it regains nothing, being refused
+                        // before its record is read.
                         if (record != null && record.Profiles != null
-                            && record.Profiles.Contains(profile, StringComparer.Ordinal))
+                            && record.Profiles.Contains(profile, StringComparer.Ordinal)
+                            && !record.HasExpired(now))
                         {
                             holding.Add(record);
                         }
@@ -983,6 +987,14 @@ namespace KeePassGate.Bridge
             {
                 get
                 {
+                    // Asked on the connection thread, not the UI thread, and the part of it that
+                    // asks whether KeePass is busy is safe there without a lock. It reads two
+                    // scalars, `MainForm.m_uUIBlocked` and `MessageService`'s message count, each
+                    // one aligned 32-bit field that cannot be read torn. A stale answer costs
+                    // nothing: this is advisory, asked so that an invitation is not spent on a
+                    // write that would be refused, and the ask that decides is the one
+                    // `DatabaseWriter` makes again inside the marshaled call, on the UI thread,
+                    // where neither can change underneath it.
                     return _writer == null
                         ? "this database is served without a way to write to it"
                         : _writer.Blocked(_database);

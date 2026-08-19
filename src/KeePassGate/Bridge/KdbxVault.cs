@@ -299,7 +299,7 @@ namespace KeePassGate.Bridge
         {
             if (string.IsNullOrEmpty(name))
             {
-                return VaultWrite.Failed("a group needs a name");
+                return Logged(VaultWrite.Failed("a group needs a name"));
             }
 
             return Change(() =>
@@ -537,8 +537,8 @@ namespace KeePassGate.Bridge
 
             if (expiry != null && expiry.IsAuto)
             {
-                return VaultWrite.Failed(
-                    "an entry that exists already was asked to take the expiry KeePass's options give new ones");
+                return Logged(VaultWrite.Failed(
+                    "an entry that exists already was asked to take the expiry KeePass's options give new ones"));
             }
 
             return Change(() =>
@@ -660,7 +660,7 @@ namespace KeePassGate.Bridge
         {
             if (string.IsNullOrEmpty(name))
             {
-                return VaultWrite.Failed("a field needs a name");
+                return Logged(VaultWrite.Failed("a field needs a name"));
             }
 
             return Change(() =>
@@ -784,7 +784,7 @@ namespace KeePassGate.Bridge
         {
             if (string.IsNullOrEmpty(name))
             {
-                return VaultWrite.Failed("an attachment needs a name");
+                return Logged(VaultWrite.Failed("an attachment needs a name"));
             }
 
             return Change(() =>
@@ -1065,10 +1065,49 @@ namespace KeePassGate.Bridge
             };
         }
 
+        /// <summary>
+        /// A write's answer, with the reason written to the log when the write was refused.
+        /// </summary>
+        /// <remarks>
+        /// **A caller is told the kind of refusal and the operator is told the reason.** The route
+        /// answers `503 busy`, `409 conflict` or `500 internal error`, which is all a client can
+        /// act on, and several of the reasons behind them are something only the operator can
+        /// clear: a dialog left open on the node, a file on disk that is not the one KeePass read,
+        /// a database with no file yet, saving disallowed by policy. None of them was written
+        /// anywhere, so an agent retrying a `503 busy` for as long as it was allowed to left the
+        /// operator nothing to find. At `Warn`, the level `IGateLog` keeps for something refused.
+        ///
+        /// Not an absence, which every route answers alike and whose node the audit names, and not
+        /// a change that was made and could not be saved, which the writer logs itself with the
+        /// exception, and that says more than its message does.
+        /// </remarks>
+        private VaultWrite Logged(VaultWrite write)
+        {
+            if (write == null)
+            {
+                return null;
+            }
+
+            if (write.IsBusy)
+            {
+                _log.Warn("a change was refused as busy: " + write.Reason);
+            }
+            else if (write.IsConflict)
+            {
+                _log.Warn("a change was refused as a conflict: " + write.Reason);
+            }
+            else if (write.IsFailed)
+            {
+                _log.Warn("a change could not be attempted: " + write.Reason);
+            }
+
+            return write;
+        }
+
         private VaultWrite Change(Func<VaultChange> change)
         {
             var blocked = WriteBlocked;
-            return blocked != null ? VaultWrite.Failed(blocked) : _writer.Change(_database, change);
+            return Logged(blocked != null ? VaultWrite.Failed(blocked) : _writer.Change(_database, change));
         }
 
         /// <summary>
@@ -1105,7 +1144,7 @@ namespace KeePassGate.Bridge
             var blocked = WriteBlocked;
             if (blocked != null)
             {
-                return VaultWrite.Failed(blocked);
+                return Logged(VaultWrite.Failed(blocked));
             }
 
             return Reading(present) ? VaultWrite.Done() : VaultWrite.Missing();

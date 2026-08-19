@@ -1441,6 +1441,17 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
+            if (write.IsUnverified)
+            {
+                // The change was made and saved, and the file KeePass hashed back afterwards is
+                // not the one it wrote. Told apart from `not saved` because the two say opposite
+                // things about what is left behind: that one has been taken back out, and this
+                // one has not, because nothing knows whether the file holds it. A client that
+                // treated them alike would retry over a write that may already be there.
+                context.Respond(500, HttpResponse.ErrorBody("not verified"));
+                return;
+            }
+
             if (write.IsFailed)
             {
                 // Nothing was attempted: the database closed under the request, KeePass answered

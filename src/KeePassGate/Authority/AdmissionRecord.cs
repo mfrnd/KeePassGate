@@ -122,6 +122,29 @@ namespace KeePassGate.Authority
             return new X509Certificate2(_certificateDer, (string)null, X509KeyStorageFlags.EphemeralKeySet);
         }
 
+        /// <summary>
+        /// Whether the certificate this admits has expired by <paramref name="now"/>, and false when
+        /// it will not read, which says nothing either way.
+        /// </summary>
+        /// <remarks>
+        /// For the screens that say who regains a removed profile: an expired certificate regains
+        /// nothing, since the gate refuses it before any record is read.
+        /// </remarks>
+        public bool HasExpired(DateTimeOffset now)
+        {
+            try
+            {
+                using (var certificate = Certificate())
+                {
+                    return CertificateValidity.HasExpired(certificate, now);
+                }
+            }
+            catch (Exception error) when (Expected.OfCryptography(error))
+            {
+                return false;
+            }
+        }
+
         public static AdmissionRecord For(
             X509Certificate2 certificate, DateTimeOffset admitted, IEnumerable<string> profiles)
         {

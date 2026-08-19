@@ -371,6 +371,14 @@ namespace KeePassGate.Host.Tests
                     var list = ControlTree.FindByName<ProfileList>(panel, ProfileList.ControlName);
                     Assert.That(list, Is.Not.Null, "the profiles page has no list on it");
 
+                    // With the longest thing a removal says under it, which is a band this page
+                    // does not otherwise have: the longest name a profile can have, and counts
+                    // four digits wide, because the sentence names both.
+                    var said = ControlTree.FindByName<Label>(list, ProfileList.ResultLabelName);
+                    Assert.That(said, Is.Not.Null);
+                    said.Text = DatabaseProfiles.Said(new string('p', 64), 9999, 9999);
+                    said.Visible = true;
+
                     // Its own page in front, for the reason the clients page needs it: a page
                     // behind another is never laid out.
                     Show(list);

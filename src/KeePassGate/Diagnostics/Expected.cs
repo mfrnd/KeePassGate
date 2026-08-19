@@ -124,6 +124,27 @@ namespace KeePassGate.Diagnostics
         }
 
         /// <summary>
+        /// KeePass saving a database, and everything that runs with the save.
+        /// </summary>
+        /// <remarks>
+        /// **Not `PwDatabase.Save`**, which `MainForm.SaveDatabase` catches itself and answers
+        /// with a warning of its own. What reaches its caller is what runs outside that catch: the
+        /// `FileSavingPre`, `FileSaving` and `FileSaved` handlers of every other plugin loaded,
+        /// and the window KeePass blocks and redraws on either side. So the list is a file's, a
+        /// window's and custom data's at once, because a handler refused access to a path, or one
+        /// whose window has gone, throws here exactly as a full disk does.
+        ///
+        /// **Nothing is decided by which of them it was.** Whether the file was written is the
+        /// database's answer, `PwDatabase.Modified` read afterwards, since a handler can fail
+        /// before the save as easily as after it. This is only what the writer may catch in order
+        /// to ask that.
+        /// </remarks>
+        public static bool OfSaving(Exception error)
+        {
+            return OfStorage(error) || OfUserInterface(error) || OfCustomData(error);
+        }
+
+        /// <summary>
         /// Reaching into KeePass by reflection, which is how everything the plugin does not compile
         /// against is reached.
         /// </summary>

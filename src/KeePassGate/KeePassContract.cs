@@ -45,14 +45,16 @@ namespace KeePassGate
         public const string DatabaseSettingsFormDatabaseProperty = "DatabaseEx";
 
         /// <summary>
-        /// The dialog behind Edit Group. Pairing refuses to write while one of these is open,
-        /// because it holds a copy of the group's custom data and puts it back on OK.
+        /// The dialog behind Edit Group and Add Group. A write to the group one of these is open
+        /// on is refused, because it holds a copy of the group's properties and custom data and
+        /// puts it back on OK.
         /// </summary>
         public const string GroupFormTypeName = "KeePass.Forms.GroupForm";
 
         /// <summary>
         /// The group that dialog is editing. Read by reflection, and a KeePass that renames it
-        /// leaves pairing refused while any group dialog is open, which is the safe direction.
+        /// leaves every write to a group refused while any group dialog is open, which is the safe
+        /// direction.
         /// </summary>
         public const string GroupFormGroupField = "m_pwGroup";
 
@@ -173,5 +175,45 @@ namespace KeePassGate
         /// active: pairing names the database it is writing to and must not save a different one.
         /// </summary>
         public const string MainFormSaveDatabaseMethod = "SaveDatabase";
+
+        /// <summary>
+        /// Whether KeePass has blocked its own window for an operation of its own: a save, an
+        /// import, a synchronize, opening a database. One of the two things a write asks before it
+        /// is put in KeePass's way.
+        /// </summary>
+        /// <remarks>
+        /// Called directly rather than found by name, so the compiler already pins that it exists,
+        /// and `nameof` makes this constant the name the call binds to rather than a second copy of
+        /// it. Listed here so that this list is the whole of what the plugin reaches for, and so
+        /// that the host tests pin what it answers, which no compiler can.
+        /// </remarks>
+        public const string MainFormInteractionBlockedMethod =
+            nameof(KeePass.Forms.MainForm.UIIsInteractionBlocked);
+
+        /// <summary>
+        /// How many message boxes KeePass is waiting on, and whether an export is running. The other
+        /// thing a write asks.
+        /// </summary>
+        /// <remarks>
+        /// Called directly, for the reason <see cref="MainFormInteractionBlockedMethod"/> is. An
+        /// export raises it through `ExternalIncrementMessageCount` rather than blocking the window,
+        /// so what the host tests pin is that the one still moves the other.
+        /// </remarks>
+        public const string MessageServiceCountProperty =
+            nameof(KeePassLib.Utility.MessageService.CurrentMessageCount);
+
+        /// <summary>
+        /// KeePass's progress window, open for as long as an operation of its own reports progress
+        /// in it. The third thing a write asks.
+        /// </summary>
+        /// <remarks>
+        /// Needed for the operation that raises neither of the other two: XML Replace, under Tools
+        /// then Database Tools, merges its result back into the live database through
+        /// `PwDatabase.MergeIn` with this window as the status logger, and the window's
+        /// `ContinueWork` is `Application.DoEvents` on every call. By name rather than by type, as
+        /// the dialogs are, so that a KeePass which renames it is caught by the host tests rather
+        /// than by a build that no longer finds it.
+        /// </remarks>
+        public const string StatusProgressFormTypeName = "KeePass.Forms.StatusProgressForm";
     }
 }

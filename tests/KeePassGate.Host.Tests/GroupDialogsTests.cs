@@ -77,6 +77,35 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void Every_dialog_it_watches_for_is_in_the_KeePass_it_runs_in()
+        {
+            // The same names the contract tests pin, asked the way `Start` asks them: of the KeePass
+            // that is loaded rather than of the constants.
+            Assert.That(GroupDialogs.Watched, Has.Count.EqualTo(6));
+            Assert.That(GroupDialogs.Unrecognized(typeof(GroupForm).Assembly, GroupDialogs.Watched, null), Is.Empty);
+        }
+
+        [Test]
+        public void A_dialog_this_KeePass_does_not_have_leaves_every_question_refusing()
+        {
+            // A KeePass that renamed one of these would open it under a name nothing compares
+            // against: never recorded, so every question answered that nothing was open, the count
+            // said none, and the watch said it was running. That is allowing the one write this
+            // class exists to refuse, so a name that is not there is a watch that never starts.
+            var renamed = new[] { KeePassContract.GroupFormTypeName, "KeePass.Forms.GroupEditForm" };
+
+            using (var windows = new GlobalWindowManagerWindows())
+            using (var watch = new GroupDialogs(windows, null, NullGateLog.Instance, renamed))
+            {
+                Assert.That(watch.Start(), Is.False);
+                Assert.That(watch.Blocking(_database.RootGroup), Is.Not.Null);
+                Assert.That(watch.Blocking(EntryUnderRoot()), Is.Not.Null);
+                Assert.That(watch.BlockingRecords(_database.Database), Is.Not.Null);
+                Assert.That(watch.Working(), Is.Not.Null);
+            }
+        }
+
+        [Test]
         public void Nothing_is_blocked_while_no_group_dialog_is_open()
         {
             Assert.That(_dialogs.Blocking(_database.RootGroup), Is.Null);
@@ -496,6 +525,38 @@ namespace KeePassGate.Host.Tests
 
             Assert.That(_dialogs.BlockingRecords(_database.Database), Is.Null,
                 "and closing it lets records be written again");
+        }
+
+        [Test]
+        public void KeePass_s_progress_window_says_it_is_working_until_it_closes()
+        {
+            // The one sign XML Replace gives of merging into the live database, which it does
+            // with this window as its status logger. The real window, registered the way its own
+            // `OnFormLoad` registers it, because the guard recognizes it by name.
+            Assert.That(_dialogs.Working(), Is.Null, "nothing is running yet");
+
+            using (var form = new StatusProgressForm())
+            {
+                form.InitEx("XML Replace", true, false, null);
+                GlobalWindowManager.AddWindow(form);
+
+                try
+                {
+                    Assert.That(_dialogs.Working(), Does.Contain("progress window"));
+                }
+                finally
+                {
+                    GlobalWindowManager.RemoveWindow(form);
+                }
+            }
+
+            Assert.That(_dialogs.Working(), Is.Null, "and closing it lets writes through again");
+
+            using (var never = new GroupDialogs(new GlobalWindowManagerWindows(), NullGateLog.Instance))
+            {
+                Assert.That(never.Working(), Is.Not.Null,
+                    "a watch that is not running cannot say nothing is, so it refuses");
+            }
         }
 
         [Test]

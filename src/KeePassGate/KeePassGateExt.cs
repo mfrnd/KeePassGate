@@ -118,6 +118,93 @@ namespace KeePassGate
             }
         }
 
+        /// <summary>
+        /// Rebuild the group tree and the entry list, after a write through the API changed what
+        /// they are showing.
+        /// </summary>
+        /// <remarks>
+        /// **These are `MainForm.UpdateUISyncPost`'s seven arguments**, which is the call KeePass
+        /// makes to itself after a synchronize. That is the same situation as this one and the only
+        /// other one KeePass has: the database changed without anybody typing in the window, and
+        /// the change is already on disk. Its own editing paths pass different arguments because
+        /// they know more, adding one row or removing the rows they deleted rather than rebuilding.
+        ///
+        /// So: no tab bar, because the set of open documents did not change; no document selected,
+        /// because a write must not pull a background database to the front; both lists rebuilt;
+        /// neither a group nor an entry source named, which is what keeps the operator's selection,
+        /// their scroll position and their expanded nodes, since `UpdateGroupList` and
+        /// `UpdateEntryList` fall back to what is selected now; and not modified, because
+        /// `DatabaseWriter` has saved already and saying otherwise would put the title bar back to
+        /// claiming there is something to save.
+        ///
+        /// **What it costs, said rather than denied.** A rebuild replaces whatever the entry list
+        /// is showing with the selected group's entries, so an operator looking at search results
+        /// when a write lands loses them. KeePass accepts that for a synchronize; there is no
+        /// cheaper call that would show a created or deleted entry, and the alternative is a window
+        /// that goes on showing a database that is no longer there. It resets the inactivity timer
+        /// through `NotifyUserActivity`, which changes nothing: `SaveDatabase` ends in
+        /// `UpdateUIState`, which already does that, so every write already postponed the lock.
+        ///
+        /// Not wrapped here. `DatabaseWriter.Redraw` catches, because it is the one that knows the
+        /// write has landed and must not report otherwise.
+        /// </remarks>
+        private static void Redrawn(KeePass.Forms.MainForm main)
+        {
+            main.UpdateUI(false, null, true, null, true, null, false);
+        }
+
+        /// <summary>
+        /// Why KeePass is part way through an operation of its own, or null when it is not.
+        /// </summary>
+        /// <remarks>
+        /// `DatabaseWriter` says why this is asked at all: a write is a message, and every
+        /// operation KeePass takes a noticeable time over pumps the message queue while it runs,
+        /// so a write is delivered in the middle of one unless somebody asks first.
+        ///
+        /// **Two answers rather than one, because the operations do not announce themselves the
+        /// same way.** `UIIsInteractionBlocked` is what KeePass's own save raises, and what both
+        /// merges raise through their status loggers, so it covers `SaveDatabase`, File > Import,
+        /// File > Synchronize and opening a database. It is not what an export raises:
+        /// `PerformExport` never blocks interaction and brackets the whole export with
+        /// `MessageService.ExternalIncrementMessageCount` instead, so the count is the only signal
+        /// there is for the one operation that walks the live tree for as long as a save does.
+        /// The count also covers every message box KeePass is waiting on an answer to, which is
+        /// the plainest case of it being part way through something.
+        ///
+        /// **What the count holds shut during an export is read off KeePass 2.61.1, not driven.**
+        /// `ExportUtil.Export` sets the database's `MasterKey` and `RootGroup` to the export's
+        /// when the export dialog is told to use a key of its own or to include the parent groups,
+        /// and puts them back in a `finally`, so a save landing in between would write the live
+        /// file under the export's key or with the export's filtered tree. `MainForm.PerformExport`,
+        /// the one path behind File, Group and Entry > Export, raises the count before calling it
+        /// and lowers it after, in its IL, with no `finally`: an export that throws out of it
+        /// leaves the count raised, which refuses writes rather than letting one through. No test
+        /// drives it, because `PerformExport` opens KeePass's export dialog and so needs a running
+        /// KeePass and somebody to answer it. The trigger action that exports a database raises no
+        /// count and needs none: it builds its export without that dialog, so nothing is swapped,
+        /// and a write landing inside it would save the database exactly as it is.
+        ///
+        /// **Neither is this plugin's own.** Nothing here shows a `MessageService` box, and the
+        /// pairing prompt is a form of its own, so the count is KeePass's word about KeePass. The
+        /// save this writer makes raises the block itself, and is not refused by it, because the
+        /// question is asked before the save rather than during it.
+        /// </remarks>
+        private static string Interrupting(KeePass.Forms.MainForm main)
+        {
+            if (main.UIIsInteractionBlocked())
+            {
+                return "KeePass is in the middle of an operation of its own, such as saving, " +
+                       "importing or synchronizing";
+            }
+
+            if (KeePassLib.Utility.MessageService.CurrentMessageCount != 0)
+            {
+                return "KeePass is exporting, or is waiting for an answer to a window of its own";
+            }
+
+            return null;
+        }
+
         public override bool Initialize(IPluginHost host)
         {
             if (host == null)
@@ -146,22 +233,21 @@ namespace KeePassGate
                 // log, rather than failing wherever the plugin first uses it.
                 Dependencies.Load();
 
-                // The window events come first, because the gate refuses to write an admission
-                // record while a group dialog is open and has to have been watching from the start
-                // to know whether one is.
+                // The window events come first, because the gate refuses to write while a dialog
+                // that would take the write back is open, and has to have been watching from the
+                // start to know whether one is.
                 _windows = new GlobalWindowManagerWindows();
                 _groupDialogs = new GroupDialogs(_windows, _incidents, _log);
 
                 if (!_groupDialogs.Start())
                 {
-                    // Reported rather than ignored, and the plugin still loads: everything but
-                    // pairing and the API's writes works without this. What a watch that never
-                    // started means is that `GroupDialogs.Blocking` refuses every write from here
-                    // on, so the gate serves and reads and admits nobody, which is the safe half of
-                    // being wrong.
+                    // Reported rather than ignored, and the plugin still loads: reading works
+                    // without this. What a watch that never started means is that every question
+                    // `GroupDialogs` answers refuses from here on, so the gate serves and reads,
+                    // and writes nothing and admits nobody, which is the safe half of being wrong.
                     _log.Error(
-                        "the group dialogs could not be watched, so no client can be paired with " +
-                        "this session", null);
+                        "the dialogs that would take a write back could not be watched, so nothing " +
+                        "is written and no client can be paired with this session", null);
                 }
 
                 _invitations = new InvitationBook(_log);
@@ -409,11 +495,25 @@ namespace KeePassGate
             // The one writer, shared by every database, because pairing is a single writer by
             // design rather than by luck. `SaveDatabase` rather than `UIFileSave`: the second
             // saves whichever document is active, and pairing names the database it wrote to.
+            //
+            // The redraw beside it is the other half of a write landing, and `Redrawn` says what
+            // its seven arguments are and where they came from. `Interrupting` is the question
+            // that keeps a write out of the middle of whatever KeePass is already doing, and it
+            // is wired here because it is the one part of the writer that has to reach into
+            // KeePass's own window.
+            //
+            // `WindowEnabling` is around the save rather than inside it because the save is
+            // KeePass's: `SaveDatabase` ends by assigning `Enabled = true` to the main window,
+            // which is harmless for KeePass, whose own callers never save inside a modal loop,
+            // and is this plugin re-enabling the window behind an operator's open dialog.
             _targets = new OpenDatabaseTargets(
                 delegate { return mainWindow.DocumentManager.GetOpenDatabases(); },
                 new DatabaseWriter(
                     ui,
-                    database => mainWindow.SaveDatabase(database, null),
+                    database => WindowEnabling.Preserve(
+                        mainWindow, () => mainWindow.SaveDatabase(database, null)),
+                    () => Interrupting(mainWindow),
+                    () => Redrawn(mainWindow),
                     _admissions.Raise,
                     _groupDialogs,
                     _log),

@@ -745,11 +745,13 @@ So the rules here:
   provokes one holds its thread and the writer's lock until somebody presses OK. Nothing here
   bounds that, and pretending otherwise is what this paragraph used to do.
 
-  **For a database KeePass opened from a URL, the work is the network's.** The save reads the
-  file, uploads it and by default reads it back: each a download or an upload on KeePass's thread,
-  under the writer's lock, bounded only by the network timeouts KeePass gives it. For a server that
-  has stopped answering that is minutes, for every write and for every other write waiting behind
-  it.
+  **For a database KeePass opened from a URL, the work is the network's.** The writer's check
+  before the save reads the file, the save reads it again, uploads it and by default reads it
+  back, and the writer's check after it reads it once more: each a download or an upload on
+  KeePass's thread, under the writer's lock, bounded only by the network timeouts KeePass gives
+  it. For a server that has stopped answering that is minutes, for every write and for every
+  other write waiting behind it, and a pairing makes the first read on its connection thread as
+  well, before the operator is asked.
 - **A plugin-wide write lock.** It closes the one race this design can close cheaply: two requests
   mutating the same entry at once. It does nothing about a user editing in the UI at the same
   moment, which stays exactly as unprotected as it is today.
@@ -757,12 +759,12 @@ So the rules here:
   unattended agent must not be able to prompt somebody's screen, so anything behind the spec
   router that would need a human answer is refused with a distinct status instead.
   `MainForm.SaveDatabase` asks three questions that can be seen coming, and a write that would
-  meet any of them is to be refused `503 busy` before the save is attempted: saving disallowed by
+  meet any of them is refused `503 busy` before the save is attempted: saving disallowed by
   policy, a database with no file yet, and a file on disk that is not the one KeePass read. The
   third is the one an ordinary client provokes, because a database on a shared or synced path
-  meets it without anybody having misconfigured anything. **It is to be refused whether KeePass
-  would ask or merge.** With `SaveForceSync` on, KeePass asks nothing and synchronizes, and that
-  merge still runs inside the request and underneath the write, and can still stop for the other
+  meets it without anybody having misconfigured anything. **It is refused whether KeePass would
+  ask or merge.** With `SaveForceSync` on, KeePass asks nothing and synchronizes, and that merge
+  still runs inside the request and underneath the write, and can still stop for the other
   file's key or to warn about what it found.
 
   **Two remain, and both are a save that has already failed.** `MessageService.ShowSaveWarning`
@@ -785,9 +787,9 @@ So the rules here:
   connection thread for as long as the box stands. **This is KeePass's behavior for any failed
   save, and what this plugin adds is that an unattended agent can provoke one with nobody at the
   desk.** It cannot be closed from here: nothing in a plugin can make KeePass lock while KeePass
-  is refusing to. What is to narrow it is forestalling the failures that can be seen coming, which
-  is what the three refusals above are for, and the writer's own guard, which is to refuse a second
-  write for as long as the box is counted.
+  is refusing to. What narrows it is forestalling the failures that can be seen coming, which is
+  what the three refusals above are, and the writer's own guard, which refuses a second write for
+  as long as the box is counted.
 
   **And the operator's own triggers run inside the save**, which makes them the one dialog a
   request can raise that somebody asked for. `SaveDatabase` raises KeePass's Saving database file
@@ -797,8 +799,46 @@ So the rules here:
   KeePass's thread and the writer's lock for as long as it works. That is the operator's
   configuration doing what it was set up to do, so it is run rather than refused, and it is said
   here so that the list of what a write can wait on is not read as closed.
-- **Every `503` this gate sends carries `Retry-After: 2`**: `busy`, `locked` and pairing's own.
-  One number for all of them, written by the
+
+  **So do other plugins' own handlers.** `SaveDatabase` raises `FileSavingPre`, `FileSaving` and
+  `FileSaved` to every plugin KeePass has loaded, on its own thread and inside the same marshaled
+  call, so a plugin that uploads the file or shows a box of its own from one of them holds the
+  request and the writer's lock for as long as it takes, as a trigger does. One that cancels the
+  save leaves the database saying it has changes to save, which is what a write is believed on, so
+  the change is taken back out and answered `500 not saved`.
+- **No write lands inside an operation KeePass is already running.** Being on the UI thread is not
+  being alone on it, which the writer's own remarks claimed for a while and which is the one
+  assumption in this section that cost data. Everything KeePass takes a noticeable time over pumps
+  that thread's queue while it runs: `MainForm.SaveDatabase` pumps before the save and once per
+  percent of the serialization, an import or a synchronize pumps from the merge's status logger, an
+  export pumps from the exporter's, and a message box pumps by definition. A marshaled call is a
+  message, so a write queued by a connection thread is delivered in the middle of whichever of them
+  is running, against the tree that operation is walking.
+
+  What that costs, measured rather than reasoned. Inside KeePass's own save, the nested save lands
+  and the outer save then commits the serialization it took before the change: the client was
+  answered `200` or `201`, the change is in memory, it is not on the disk, and `Modified` is false,
+  so nothing will ever write it again. Inside an import, the nested save writes a half-merged
+  database and clears `Modified`, so the rest of the operator's import exists only in memory with
+  no asterisk in the title and no question on lock, close or exit. Inside an export, the list being
+  enumerated moves and KeePass shows the operator a failed export over a truncated file.
+
+  So the writer asks a third question, beside the dialogs and the save's own three, inside the
+  marshaled call: **is KeePass part way through something of its own**, and a write that meets it
+  is refused `503 busy` before anything is touched. It takes two answers rather than one, because
+  the operations do not announce themselves the same way: `MainForm.UIIsInteractionBlocked` covers
+  the save and both merges, and an export raises `MessageService.CurrentMessageCount` instead,
+  which also covers every message box KeePass is waiting on. **A third operation raises neither**:
+  XML Replace, under Tools then Database Tools, merges into the live database with KeePass's
+  progress window as its status logger, and that window pumps on every step of the merge. A group
+  created under the root there makes the merge throw out of `ApplyDeletions`, with the write's own
+  save already on the disk. So the dialog watch also answers whether that window is open, and the
+  writer asks it after KeePass's two signals. **Reads are not refused by it**, since
+  every one of these hazards is a write. **And a database with unsaved changes is not refused
+  either**: an API write still saves what is in memory, the operator's own edits included, which is
+  a documented consequence rather than something to guard against.
+- **Every `503` this gate sends carries `Retry-After: 2`**, the new one and the ones that were
+  always there: `busy`, `locked` and pairing's own. One number for all of them, written by the
   response writer rather than by the four places that answer, so a refusal added later cannot be
   the one that forgets. Which refusal it was is in the body, where a client that treats a lock
   differently from a busy window reads it; the delay is the same because how long any of these
@@ -829,6 +869,32 @@ So the rules here:
   not cancel anything: the invitation is still spent and the record still saved, and only the answer
   is lost. `GateOptions.PairingBudget` covers the whole of what a pairing waits for, and a test pins
   it against the four timeouts it has to outlast.
+- **A write that landed is told to the window as well as to the client.** KeePass's save ends in
+  `MainForm.UpdateUIState`, which redraws the title bar and the menus and rebuilds neither the
+  group tree nor the entry list, so an operator watching the window sees the database as it was
+  before the request: an entry created through the API is not listed, one deleted is still listed,
+  and one renamed still reads as it did. `DatabaseWriter` therefore calls
+  `MainForm.UpdateUI(false, null, true, null, true, null, false)` after a change that was made and
+  saved, on the thread it made it on and inside its own lock.
+
+  **Those seven arguments are `UpdateUISyncPost`'s**, which is the call KeePass makes to itself
+  after a synchronize: the same situation, a database changed by something other than somebody
+  typing in the window and already written to disk. Its own editing paths pass different arguments
+  because they know more, adding one row or removing the rows they deleted. Naming neither a group
+  nor an entry source is what keeps the operator's selection and scroll position, since both
+  rebuilds fall back to what is selected now, and the last argument is false because the writer has
+  saved already.
+
+  **Two costs, stated rather than denied.** A rebuild replaces whatever the entry list is showing
+  with the selected group's entries, so an operator looking at search results when a write lands
+  loses them; KeePass accepts that for a synchronize, and there is no cheaper call that would show
+  an entry that was created or deleted. And it resets the inactivity timer, which changes nothing,
+  because `UpdateUIState` inside the save already does. **A redraw that fails never fails the
+  request**: by then the change is on disk, and a client told its create failed creates a second
+  one under an identifier it was never given.
+
+  **Not for an admission record.** A record is in the database's own custom data, which the main
+  window has no view of, so pairing saves and redraws nothing.
 - **Nothing throws to the transport.** A handler failure becomes `500 internal error` and an
   incident, counted on the KPG tab and logged at `UNEXPECTED`, because an unhandled exception in
   this process takes KeePass with it. It is not audited, which this bullet used to claim: the

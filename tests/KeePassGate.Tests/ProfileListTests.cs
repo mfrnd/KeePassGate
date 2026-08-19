@@ -231,6 +231,28 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_row_says_how_many_rules_name_it_and_how_many_clients_hold_it()
+        {
+            // Two different costs of removing it, and they do not move together: a profile with
+            // rules and no clients was written ahead of the client that will hold it, and one with
+            // clients and no rules grants nothing to anybody holding it.
+            var profiles = new FakeProfiles();
+            profiles.Add("ops");
+            profiles.RuleCounts["ops"] = 3;
+            profiles.ClientCounts["ops"] = 2;
+
+            using (var list = new ProfileList(profiles, null))
+            {
+                var grid = ControlTree.FindByName<DataGridView>(list, ProfileList.ListName);
+                var row = grid.Rows[0];
+
+                Assert.That(row.Cells[0].Value, Is.EqualTo("ops"));
+                Assert.That(row.Cells[1].Value, Is.EqualTo(3));
+                Assert.That(row.Cells[2].Value, Is.EqualTo(2));
+            }
+        }
+
+        [Test]
         public void A_page_with_no_database_behind_it_is_present_and_says_so()
         {
             // Rather than absent, which is the same choice the tab makes about being there at all:
@@ -394,9 +416,20 @@ namespace KeePassGate.Tests
                 return _names;
             }
 
+            /// <summary>How many nodes name it, by name, for the tests that show a count.</summary>
+            public Dictionary<string, int> RuleCounts { get; } = new Dictionary<string, int>();
+
+            /// <summary>How many clients hold it, the same way.</summary>
+            public Dictionary<string, int> ClientCounts { get; } = new Dictionary<string, int>();
+
             public IReadOnlyDictionary<string, int> Rules()
             {
-                return new Dictionary<string, int>();
+                return RuleCounts;
+            }
+
+            public IReadOnlyDictionary<string, int> Clients()
+            {
+                return ClientCounts;
             }
 
             public string Add(string name)

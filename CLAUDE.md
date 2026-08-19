@@ -389,7 +389,26 @@ a database's custom data. Each gathers what it settled in its own `RESULTS.md`. 
   `LockInRealDatabaseTests.Two_spellings_KeePass_keeps_apart_are_kept_apart_here_too`, under tr-TR.
 - **`MainForm.SaveDatabase(db, null)` saves a named database**; `UIFileSave` saves whichever document
   is active. Pairing names its database, so it uses the first. Neither reports anything, so a write
-  is believed only after reading the record back and finding `PwDatabase.Modified` false.
+  is believed only after reading the record back and finding `PwDatabase.Modified` false. **And
+  `Modified` is not enough on its own**, see "KeePass's save reports nothing to its caller" below:
+  the file is hashed back as well.
+- **KeePass's own two busy signals say nothing about an ordinary dialog.**
+  `MainForm.UIIsInteractionBlocked` is raised only through `UIBlockInteraction`, whose callers in
+  2.61.1 are save, save as, opening a database, search, duplicate entry removal, the status dialog
+  and logger, the shell command action and file search. `MessageService.CurrentMessageCount` moves
+  only for message boxes, task dialogs, triggers, `PerformExport` and the secure desktop. An open
+  `DatabaseSettingsForm`, or any plain dialog, raises neither: read off the IL, and a host probe
+  holding the settings dialog open read a count of zero. So the writer's refusal of a write inside
+  an operation KeePass is running covers no ordinary dialog, and the dialogs that write back are
+  covered by `GroupDialogs`, one at a time. `KeePassContractTests` pins both calls, in
+  `The_main_window_still_says_when_it_has_blocked_itself` and
+  `An_export_still_shows_in_the_count_of_windows_KeePass_is_waiting_on`. **Nor do they say anything
+  about XML Replace**, under Tools then Database Tools, which merges into the live database with
+  KeePass's progress window as its status logger, pumping on every step, and raises neither: a
+  group created under the root there makes the merge throw out of `ApplyDeletions`, after the
+  write's own save. So there is a third signal, the plugin's own: `GroupDialogs.Working` answers
+  whether KeePass's `StatusProgressForm` is open, for any database, and the writer asks it after
+  the two. `VaultWritesUnderDialogsTests` drives the real window and the real merge.
 - **A `ToolStripDropDown` must not be disposed inside its own `Closed` handler.** That event is
   raised while WinForms is still delivering the click or keystroke that closed it, and disposing
   there disposes the control whose event is running: the next message reaches
@@ -469,6 +488,16 @@ write is believed on. Every write waits for its save on KeePass's thread and rea
 wrote, pairing's among them rather than pairing's alone as this once said, and it waits through
 `BeginInvoke` and a bounded wait, never `Invoke`, which has none. `DESIGN.md` §119 says why that
 wait is safe.
+
+**`Modified` alone turned out to be too generous, and a write is now believed on two things.**
+KeePass clears the flag from what it did in memory, so a save that wrote the file and then failed
+its own verification, or never reached the disk at all, still reads as done. So the file is hashed
+back against `PwDatabase.HashOfLastIO` after a landed write, and a disagreement answers
+`500 not verified`, which is deliberately not `500 not saved`: the second has been taken back out,
+so a retry duplicates nothing, while the first has not, because nothing knows whether the file holds
+the change. The same asymmetry decides the null case: `Asking` lets an unreadable file through
+because the next save is about to put it back, and both of these refuse it, since a commit that got
+as far as deleting the old file is exactly the unreadable case.
 
 ## Build and toolchain
 
@@ -605,11 +634,13 @@ is destroyed by its OK.
 **That dialog does hold one other copy**, and it is the recycle bin choice rather than custom data.
 A bin made underneath it is undone by its OK, so a removal that would make the first one is refused
 while it is open. `GroupDialogs` therefore watches the settings dialog beside the group, entry and
-maintenance dialogs, and the TAN wizard as well, which fills a group on OK: five in all. The
-settings dialog is left out of the count it keeps, since it carries no node's custom data, and so
-is the wizard, which puts back no custom data either. The count gates nothing: it gated the profile
-purge, a button on that very dialog, and went on being kept for the tests and the log when the purge
-went.
+maintenance dialogs, the TAN wizard as well, which fills a group on OK, and KeePass's progress
+window, which says an operation of KeePass's own is running inside the tree: six in all. A KeePass
+that lacks any of the six starts no watch, so every write and every pairing is refused and the log
+names the missing one. The settings dialog is left out of the count it keeps, since it carries no
+node's custom data, and so are the wizard, which puts back no custom data either, and the progress
+window, which holds nothing. The count gates nothing: it gated the profile purge, a button on that
+very dialog, and went on being kept for the tests and the log when the purge went.
 
 **The profile list is the database's own names.** `GrantSheet.Available` is what the profile
 picker offers, being `ProfileNames` less every profile already on the table, **explicit and

@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using KeePassGate.Acl;
+using KeePassGate.Authority;
 using KeePassGate.Diagnostics;
 
 namespace KeePassGate.Ui
@@ -95,6 +97,65 @@ namespace KeePassGate.Ui
             return found;
         }
 
+        /// <summary>
+        /// How many admitted clients hold each profile.
+        /// </summary>
+        /// <remarks>
+        /// Counted rather than remembered, for the reason the rules are: a pairing writes a record
+        /// from somewhere else entirely while this dialog is open, so a number kept here would be
+        /// wrong about the client the operator approved a moment ago.
+        ///
+        /// **The records are what is counted, not the certificates.** What a client may reach is
+        /// read from its record rather than from its certificate everywhere else in this plugin,
+        /// and a count that disagreed with that would be a count of something else.
+        ///
+        /// **Every profile from one reading of the records**, for the reason the rules are counted
+        /// in one walk: each reading parses every record's certificate, and the page asks for a
+        /// count on every row.
+        /// </remarks>
+        public IReadOnlyDictionary<string, int> Clients()
+        {
+            var found = new Dictionary<string, int>(StringComparer.Ordinal);
+
+            if (_database == null || !_database.IsOpen || _database.PluginCustomData == null)
+            {
+                return found;
+            }
+
+            try
+            {
+                // A listing that could not be made counts nobody, which shows this profile as
+                // held by no client rather than claiming it is held by one. The tab's own line
+                // is where a failed read is reported.
+                foreach (var record in new AdmissionStore(_database.PluginCustomData, _log).All().Records)
+                {
+                    if (record == null || record.Profiles == null)
+                    {
+                        continue;
+                    }
+
+                    // A set, because a record naming a profile twice is still one client.
+                    foreach (var held in new HashSet<string>(record.Profiles, StringComparer.Ordinal))
+                    {
+                        if (string.IsNullOrEmpty(held))
+                        {
+                            continue;
+                        }
+
+                        int counted;
+                        found.TryGetValue(held, out counted);
+                        found[held] = counted + 1;
+                    }
+                }
+            }
+            catch (Exception error) when (Expected.OfCustomData(error))
+            {
+                _log.Warn("the clients could not be counted: " + error.Message);
+            }
+
+            return found;
+        }
+
         public string Add(string name)
         {
             if (_database == null || !_database.IsOpen)
@@ -122,9 +183,10 @@ namespace KeePassGate.Ui
         /// </summary>
         /// <remarks>
         /// Only a name the list does not hold can come back, and it brings back whatever still
-        /// names it: a removal leaves the rules where they were. Counted now rather than
-        /// remembered from the removal, because a rule can be written by hand or arrive in a merge
-        /// long after the name went.
+        /// names it: a removal leaves the rules where they were and the records as they were
+        /// approved, so every client holding the name regains it. Counted now rather than
+        /// remembered from the removal, because a rule can be written by hand, or a record or a
+        /// rule arrive in a merge, long after the name went.
         /// </remarks>
         public string Returning(string name)
         {
@@ -134,14 +196,77 @@ namespace KeePassGate.Ui
             }
 
             var rules = Counted(Rules(), name);
-            if (rules == 0)
+            var holders = Holders(name);
+            if (rules == 0 && holders.Count == 0)
             {
                 return null;
             }
 
-            return rules == 1
-                ? "Adding " + name + " again puts the rule naming it back in force."
-                : "Adding " + name + " again puts the " + rules + " rules naming it back in force.";
+            var said = new List<string>();
+
+            // Every client by name, because which clients regain a name is the whole of what the
+            // operator is being asked to agree to, and a count would leave them to guess who.
+            if (holders.Count == 1)
+            {
+                said.Add("One client still holds " + name + " from before and will regain it: "
+                    + holders[0] + ".");
+            }
+            else if (holders.Count > 1)
+            {
+                said.Add(holders.Count + " clients still hold " + name + " from before and will regain it: "
+                    + string.Join(", ", holders) + ".");
+            }
+
+            if (rules == 1)
+            {
+                said.Add("Adding " + name + " again puts the rule naming it back in force.");
+            }
+            else if (rules > 1)
+            {
+                said.Add("Adding " + name + " again puts the " + rules + " rules naming it back in force.");
+            }
+
+            return string.Join(" ", said);
+        }
+
+        /// <summary>
+        /// The admitted clients whose records hold a name, as the Clients page calls them.
+        /// </summary>
+        /// <remarks>
+        /// A listing that cannot be made names nobody, as the count does; the tab's own line is
+        /// where a failed read is reported, and a warning that could not name the clients still
+        /// says what comes back of the rules.
+        /// </remarks>
+        private List<string> Holders(string name)
+        {
+            var found = new List<string>();
+
+            if (_database.PluginCustomData == null)
+            {
+                return found;
+            }
+
+            try
+            {
+                var now = DateTimeOffset.UtcNow;
+                foreach (var record in new AdmissionStore(_database.PluginCustomData, _log).All().Records)
+                {
+                    // Not one whose certificate has expired, which regains nothing.
+                    if (record != null && record.Profiles != null
+                        && record.Profiles.Contains(name, StringComparer.Ordinal)
+                        && !record.HasExpired(now))
+                    {
+                        found.Add(ClientList.Describe(record));
+                    }
+                }
+            }
+            catch (Exception error) when (Expected.OfCustomData(error))
+            {
+                _log.Warn("the clients holding " + name + " could not be listed: " + error.Message);
+            }
+
+            found.Sort(StringComparer.Ordinal);
+            return found;
         }
 
         public string Remove(string name)
@@ -165,7 +290,7 @@ namespace KeePassGate.Ui
                 return refused;
             }
 
-            _lastRemoval = Said(name, Counted(Rules(), name));
+            _lastRemoval = Said(name, Counted(Rules(), name), Counted(Clients(), name));
             return null;
         }
 
@@ -174,11 +299,15 @@ namespace KeePassGate.Ui
         /// what is left holding it.
         /// </summary>
         /// <remarks>
-        /// The rules are said to stay because they do, and that is news: an operator who removed a
-        /// name and later adds it back gets every one of them in force again. Counted from what
-        /// could be read, like the column, which is the only count there is.
+        /// The rules are said to stay because they do, and so are the clients, and both are news:
+        /// an operator who removed a name and later adds it back gets every one of those rules in
+        /// force again, for every one of those clients. Counted from what could be read, like the
+        /// columns, which are the only counts there are.
+        ///
+        /// Internal rather than private so that `GateTabFitsTests` can measure the longest one
+        /// against the page it is shown on.
         /// </remarks>
-        private static string Said(string name, int rules)
+        internal static string Said(string name, int rules, int clients)
         {
             var said = "The profile " + name + " is gone, so it grants nothing.";
 
@@ -189,6 +318,15 @@ namespace KeePassGate.Ui
             else if (rules > 1)
             {
                 said += " The " + rules + " rules naming it stay, inert.";
+            }
+
+            if (clients == 1)
+            {
+                said += " One client still holds it.";
+            }
+            else if (clients > 1)
+            {
+                said += " " + clients + " clients still hold it.";
             }
 
             return said;

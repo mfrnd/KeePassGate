@@ -178,9 +178,9 @@ namespace KeePassGate.Vault
     /// a failure because a dialog open on the node will not be open forever, and a client that
     /// knows the difference can wait instead of giving up.
     ///
-    /// **The refusals are told apart from this plugin failing**, which is what `IsFailed` and
-    /// `IsUnsaved` are for. Everything else here is an answer about the request; those two are an
-    /// answer about the gate, and a caller acts on them differently.
+    /// **The refusals are told apart from this plugin failing**, which is what `IsFailed`,
+    /// `IsUnsaved` and `IsUnverified` are for. Everything else here is an answer about the
+    /// request; those three are an answer about the gate, and a caller acts on them differently.
     /// </remarks>
     public sealed class VaultWrite
     {
@@ -214,6 +214,19 @@ namespace KeePassGate.Vault
         public bool IsUnsaved { get; private set; }
 
         /// <summary>
+        /// The change was made and saved, and the file does not hold what KeePass wrote to it.
+        /// </summary>
+        /// <remarks>
+        /// Its own state rather than <see cref="IsUnsaved"/>, because the two say opposite things
+        /// about what is left behind. That one is a change that never reached the disk and has
+        /// been taken back out, so a retry cannot duplicate anything. This one is a change that
+        /// was written to a file which then disagreed with what was written, and nothing knows
+        /// which of the two the file holds: it is not taken back out, and a retry may well make a
+        /// second copy. A caller cannot be told to treat them alike.
+        /// </remarks>
+        public bool IsUnverified { get; private set; }
+
+        /// <summary>
         /// The change could not be attempted, and not because of anything the client sent.
         /// </summary>
         /// <remarks>
@@ -237,7 +250,8 @@ namespace KeePassGate.Vault
         public string Uuid { get; private set; }
 
         /// <summary>
-        /// Why, in the vault's own words. Nothing reads it yet, and it is never sent to a caller.
+        /// Why, for the operator: `KdbxVault` writes it to the log when a change is refused. Never
+        /// sent to a caller, who is told the kind of refusal and nothing more.
         /// </summary>
         public string Reason { get; private set; }
 
@@ -271,6 +285,12 @@ namespace KeePassGate.Vault
         public static VaultWrite Unsaved(string reason)
         {
             return new VaultWrite(false, false, false, null, reason) { IsUnsaved = true };
+        }
+
+        /// <summary>Saved, and the file does not hold what was written to it.</summary>
+        public static VaultWrite Unverified(string reason)
+        {
+            return new VaultWrite(false, false, false, null, reason) { IsUnverified = true };
         }
 
         /// <summary>Nothing of that name is there, which every route answers the same way.</summary>

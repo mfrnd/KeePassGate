@@ -26,8 +26,8 @@ namespace KeePassGate.Host.Tests
     /// <remarks>
     /// The loopback tests prove the protocol. This proves the half of phase 5 that only a real
     /// database can answer: that the record reaches the file before the certificate is handed over,
-    /// that a group dialog holding a snapshot stops it, and that KeePass's own save is what
-    /// "written" is made of.
+    /// that a dialog holding a snapshot of the records stops it, and that KeePass's own save is
+    /// what "written" is made of.
     ///
     /// The one thing it cannot cover is `MainForm.SaveDatabase`, because there is no main window
     /// here. The end to end tier pairs against a real KeePass and finds the record in the file
@@ -55,7 +55,7 @@ namespace KeePassGate.Host.Tests
             _log = new RecordingLog();
             _saves = 0;
 
-            _writer = new DatabaseWriter(CurrentThread.Instance, Save, _dialogs, _log);
+            _writer = new DatabaseWriter(CurrentThread.Instance, Save, null, _dialogs, _log);
 
             var created = new AuthorityService(new CustomDataStore(_database.Database), null).Create();
             Assume.That(created.Succeeded, Is.True, created.Message);
@@ -89,7 +89,7 @@ namespace KeePassGate.Host.Tests
             // again, and a page told about that would list a client the next request refuses.
             var announced = 0;
             var writer = new DatabaseWriter(
-                CurrentThread.Instance, Save, () => announced++, _dialogs, _log);
+                CurrentThread.Instance, Save, null, () => announced++, _dialogs, _log);
 
             using (var certificate = IssueClient())
             {
@@ -109,6 +109,7 @@ namespace KeePassGate.Host.Tests
             var writer = new DatabaseWriter(
                 CurrentThread.Instance,
                 delegate { throw new System.IO.IOException("the disk said no"); },
+                null,
                 () => announced++,
                 _dialogs,
                 _log);
@@ -219,7 +220,7 @@ namespace KeePassGate.Host.Tests
             // write, a name could be added while the record was refused, leaving a database naming
             // a profile for a client it never admitted.
             using (var certificate = IssueClient())
-            using (var form = GroupDialogOnTheRoot())
+            using (var form = MaintenanceDialog())
             {
                 GlobalWindowManager.AddWindow(form);
 
@@ -241,10 +242,10 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
-        public void A_group_dialog_open_on_the_root_group_refuses_the_write()
+        public void The_maintenance_dialog_open_on_the_database_refuses_the_write()
         {
             using (var certificate = IssueClient())
-            using (var form = GroupDialogOnTheRoot())
+            using (var form = MaintenanceDialog())
             {
                 GlobalWindowManager.AddWindow(form);
 
@@ -259,7 +260,7 @@ namespace KeePassGate.Host.Tests
                     Assert.That(result.Ok, Is.False);
                     Assert.That(result.IsBusy, Is.True, "it is worth trying again once that dialog is gone");
                     Assert.That(_saves, Is.Zero, "nothing was written, so nothing was saved");
-                    Assert.That(_database.RootGroup.CustomData.Exists(record.StorageKey), Is.False);
+                    Assert.That(_database.Database.CustomData.Exists(record.StorageKey), Is.False);
                 }
                 finally
                 {
@@ -269,9 +270,233 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void A_pairing_takes_away_the_documents_of_retired_authorities()
+        {
+            // The prune rides on a write this plugin makes anyway, and this is one.
+            var retired = PlantRetiredDocument();
+
+            using (var certificate = IssueClient())
+            {
+                var result = _writer.WriteAdmission(_database.Database, Record(certificate, "ops"));
+
+                Assert.That(result.Ok, Is.True, result.Reason);
+                Assert.That(_database.Database.CustomData.Exists(AuthorityKeys.AuthorityKey(retired)), Is.False);
+                Assert.That(_database.Database.CustomData.Exists(AuthorityKeys.RetirementKey(retired)), Is.True,
+                    "the retirement is never removed");
+            }
+        }
+
+        [Test]
+        public void A_pairing_that_does_not_land_puts_what_it_pruned_back()
+        {
+            var writer = new DatabaseWriter(CurrentThread.Instance, database => { }, null, _dialogs, _log);
+            var retired = PlantRetiredDocument();
+            _database.Database.Modified = false;
+
+            using (var certificate = IssueClient())
+            {
+                Assume.That(writer.WriteAdmission(_database.Database, Record(certificate, "ops")).Ok, Is.False);
+
+                Assert.That(_database.Database.CustomData.Exists(AuthorityKeys.AuthorityKey(retired)), Is.True,
+                    "memory has to go on agreeing with the file the write never reached");
+                Assert.That(_database.Database.Modified, Is.False);
+            }
+        }
+
+        [Test]
+        public void A_pairing_takes_away_a_record_that_came_back_beside_its_revocation()
+        {
+            // Reading the database, which is all the gate does when that client connects, changes
+            // nothing in it; the next write this plugin makes anyway takes the record with it.
+            var cameBack = PlantCameBackRecord();
+            _database.Database.Modified = false;
+
+            var store = new AdmissionStore(new CustomDataStore(_database.Database), null);
+            Assume.That(store.Find(cameBack), Is.Null, "the revocation beside it refuses it meanwhile");
+            Assume.That(store.All().CameBack, Is.EqualTo(1));
+            Assert.That(_database.Database.CustomData.Exists(AuthorityKeys.ClientRecordKey(cameBack)), Is.True);
+            Assert.That(_database.Database.Modified, Is.False, "reading it marks nothing modified");
+
+            using (var certificate = IssueClient())
+            {
+                var result = _writer.WriteAdmission(_database.Database, Record(certificate, "ops"));
+                Assert.That(result.Ok, Is.True, result.Reason);
+
+                _database.SaveCloseAndReopen();
+
+                Assert.That(_database.Database.CustomData.Exists(AuthorityKeys.ClientRecordKey(cameBack)), Is.False,
+                    "gone from the file, not only from memory");
+                Assert.That(_database.Database.CustomData.Exists(AuthorityKeys.RevocationKey(cameBack)), Is.True,
+                    "and the revocation stays, for a stale copy that brings it back again");
+            }
+        }
+
+        [Test]
+        public void A_pairing_that_does_not_land_puts_a_record_that_came_back_back_as_well()
+        {
+            var writer = new DatabaseWriter(CurrentThread.Instance, database => { }, null, _dialogs, _log);
+            var cameBack = PlantCameBackRecord();
+            _database.Database.Modified = false;
+
+            using (var certificate = IssueClient())
+            {
+                Assume.That(writer.WriteAdmission(_database.Database, Record(certificate, "ops")).Ok, Is.False);
+
+                Assert.That(_database.Database.CustomData.Get(AuthorityKeys.ClientRecordKey(cameBack)),
+                    Is.EqualTo("a record that came back"),
+                    "memory has to go on agreeing with the file the write never reached");
+                Assert.That(_database.Database.Modified, Is.False);
+            }
+        }
+
+        [Test]
+        public void The_maintenance_dialog_open_on_the_database_refuses_the_prune_with_the_write()
+        {
+            // Database Maintenance writes its copy back when the key count differs, so a prune
+            // made under it comes undone, and so does a retirement written beside it.
+            var retired = PlantRetiredDocument();
+
+            using (var certificate = IssueClient())
+            using (var form = MaintenanceDialog())
+            {
+                GlobalWindowManager.AddWindow(form);
+
+                try
+                {
+                    Assume.That(_writer.WriteAdmission(_database.Database, Record(certificate, "ops")).Ok, Is.False);
+
+                    Assert.That(_database.Database.CustomData.Exists(AuthorityKeys.AuthorityKey(retired)), Is.True);
+                }
+                finally
+                {
+                    GlobalWindowManager.RemoveWindow(form);
+                }
+            }
+        }
+
+        [Test]
+        public void A_group_dialog_open_on_the_root_group_refuses_nothing()
+        {
+            // A record touches no group, so there is nothing of this write for a group dialog's OK
+            // to put back. The root group was asked about while the authority lived on it.
+            using (var certificate = IssueClient())
+            using (var form = GroupDialogOnTheRoot())
+            {
+                GlobalWindowManager.AddWindow(form);
+
+                try
+                {
+                    var record = Record(certificate, "ops");
+
+                    Assert.That(_writer.Blocked(_database.Database), Is.Null);
+                    Assert.That(_writer.WriteAdmission(_database.Database, record).Ok, Is.True);
+                    Assert.That(_database.Database.CustomData.Exists(record.StorageKey), Is.True);
+                }
+                finally
+                {
+                    GlobalWindowManager.RemoveWindow(form);
+                }
+            }
+        }
+
+        [Test]
+        public void A_record_does_not_redraw_a_window_that_never_showed_it()
+        {
+            // A database write rebuilds KeePass's group tree and entry list, because it changes
+            // what they are showing. A record does not: it lives in the database's own custom data,
+            // which the main window has no view of, and the save has already refreshed the title
+            // bar. Rebuilding anyway would take an operator's entry list away from them because
+            // somebody paired.
+            var redraws = 0;
+            var writer = new DatabaseWriter(
+                CurrentThread.Instance, Save, () => redraws++, _dialogs, _log);
+
+            using (var certificate = IssueClient())
+            {
+                var result = writer.WriteAdmission(_database.Database, Record(certificate, "ops"));
+
+                Assert.That(result.Ok, Is.True, result.Reason);
+                Assert.That(redraws, Is.Zero);
+            }
+        }
+
+        [Test]
+        public void A_record_the_file_did_not_keep_refuses_the_pairing()
+        {
+            // The read-back above this one is of the store, which is memory. KeePass clears
+            // `Modified` as soon as it has committed the bytes and only then hashes the file back,
+            // and when that disagrees it warns the operator and changes nothing. A record that may
+            // not be on the disk is the one thing this class exists to prevent: the certificate
+            // would go out and the record would not be there for anybody to see or to revoke.
+            using (var certificate = IssueClient())
+            {
+                // After the certificate, so that nothing issuing did is what this is measuring:
+                // the file is written and the database says it has nothing unsaved.
+                _database.Save();
+                var theCopyAsItWas = System.IO.File.ReadAllBytes(_database.Path);
+
+                var writer = new DatabaseWriter(
+                    CurrentThread.Instance,
+                    database =>
+                    {
+                        Save(database);
+
+                        // A sync client putting its own copy back between the write and the
+                        // verification. Failing storage has the same shape.
+                        System.IO.File.WriteAllBytes(_database.Path, theCopyAsItWas);
+                    },
+                    null,
+                    _dialogs,
+                    _log);
+
+                var record = Record(certificate, "ops");
+                var result = writer.WriteAdmission(_database.Database, record);
+
+                Assert.That(result.Ok, Is.False, "or a certificate goes out for a record nobody can see");
+                Assert.That(new CustomDataStore(_database.Database).Get(record.StorageKey), Is.Null,
+                    "and the record is taken back out of the database in memory as well");
+                Assert.That(_database.Database.Modified, Is.True,
+                    "which leaves KeePass asking before it discards the copy that holds the truth");
+            }
+        }
+
+        [Test]
+        public void A_save_that_wrote_the_record_and_then_threw_still_admits_the_client()
+        {
+            // `MainForm.SaveDatabase` raises `FileSaved` to every other plugin after the file has
+            // been written and outside the try that wraps the save, so an exception from there
+            // arrives here over a record that is already on the disk. Undoing it would refuse the
+            // client its certificate while the file keeps the record: a client on the clients page
+            // that never existed, admitted by a certificate nobody holds, which is the outcome
+            // `Undo` exists to prevent, arriving by the other road.
+            var writer = new DatabaseWriter(
+                CurrentThread.Instance,
+                database =>
+                {
+                    Save(database);
+                    throw new System.IO.IOException("a FileSaved handler failed after the write");
+                },
+                null,
+                _dialogs,
+                _log);
+
+            using (var certificate = IssueClient())
+            {
+                var record = Record(certificate, "ops");
+                var result = writer.WriteAdmission(_database.Database, record);
+
+                Assert.That(result.Ok, Is.True, result.Reason);
+
+                _database.CloseAndReopenWithoutSaving();
+                Assert.That(new CustomDataStore(_database.Database).Get(record.StorageKey), Is.Not.Null,
+                    "and the record the client was admitted by is the one on the disk");
+            }
+        }
+
+        [Test]
         public void A_save_that_does_not_happen_is_reported_rather_than_believed()
         {
-            var writer = new DatabaseWriter(CurrentThread.Instance, database => { }, _dialogs, _log);
+            var writer = new DatabaseWriter(CurrentThread.Instance, database => { }, null, _dialogs, _log);
 
             using (var certificate = IssueClient())
             {
@@ -291,7 +516,7 @@ namespace KeePassGate.Host.Tests
             // certificate is destroyed unsent, and then whatever the operator saves next writes an
             // admission record for a certificate nobody was ever issued: a client on the tab that
             // cannot be accounted for and was never handed anything.
-            var writer = new DatabaseWriter(CurrentThread.Instance, database => { }, _dialogs, _log);
+            var writer = new DatabaseWriter(CurrentThread.Instance, database => { }, null, _dialogs, _log);
 
             using (var certificate = IssueClient())
             {
@@ -320,7 +545,7 @@ namespace KeePassGate.Host.Tests
             // save. The next unrelated edit commits it. What is then on the profiles page is
             // a name no record holds and nobody can account for, and removing it walks every rule
             // in the database for a profile that never granted anything.
-            var writer = new DatabaseWriter(CurrentThread.Instance, database => { }, _dialogs, _log);
+            var writer = new DatabaseWriter(CurrentThread.Instance, database => { }, null, _dialogs, _log);
 
             using (var certificate = IssueClient())
             {
@@ -344,6 +569,7 @@ namespace KeePassGate.Host.Tests
             var writer = new DatabaseWriter(
                 CurrentThread.Instance,
                 database => { throw new InvalidOperationException("the disk went away"); },
+                null,
                 _dialogs,
                 _log);
 
@@ -364,6 +590,7 @@ namespace KeePassGate.Host.Tests
             var writer = new DatabaseWriter(
                 CurrentThread.Instance,
                 database => { throw new InvalidOperationException("the disk went away"); },
+                null,
                 _dialogs,
                 _log);
 
@@ -378,9 +605,35 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void A_handler_refused_its_file_before_the_save_leaves_no_record_behind()
+        {
+            // Another plugin's `FileSavingPre` handler refused access to a path of its own, which
+            // `MainForm.SaveDatabase` does not catch. Read by its type, that escaped with the
+            // record still in the database for the next save to make permanent: a client on the
+            // clients page that was never handed its certificate.
+            var writer = new DatabaseWriter(
+                CurrentThread.Instance,
+                database => { throw new UnauthorizedAccessException("another plugin was refused its own folder"); },
+                null,
+                _dialogs,
+                _log);
+
+            using (var certificate = IssueClient())
+            {
+                var record = Record(certificate, "ops");
+                var store = new CustomDataStore(_database.Database);
+
+                var result = writer.WriteAdmission(_database.Database, record);
+
+                Assert.That(result.Ok, Is.False);
+                Assert.That(store.Get(record.StorageKey), Is.Null);
+            }
+        }
+
+        [Test]
         public void A_user_interface_that_never_answers_fails_the_pairing_rather_than_holding_it()
         {
-            var writer = new DatabaseWriter(new NeverRuns(), Save, _dialogs, _log);
+            var writer = new DatabaseWriter(new NeverRuns(), Save, null, _dialogs, _log);
 
             using (var certificate = IssueClient())
             {
@@ -401,6 +654,26 @@ namespace KeePassGate.Host.Tests
 
                 Assert.That(_writer.Blocked(_database.Database), Is.Not.Null);
                 Assert.That(_writer.WriteAdmission(_database.Database, record).Ok, Is.False);
+            }
+        }
+
+        [Test]
+        public void A_database_that_closed_while_the_record_waited_is_not_called_busy()
+        {
+            // The same database closing on KeePass's thread ahead of the marshaled write. The
+            // pairing is abandoned either way, and what the log says it might have been worth is
+            // the difference: a database that has gone is not one that would have worked a moment
+            // later.
+            var writer = new DatabaseWriter(new ClosesFirst(_database.Database), Save, null, _dialogs, _log);
+
+            using (var certificate = IssueClient())
+            {
+                var result = writer.WriteAdmission(_database.Database, Record(certificate, "ops"));
+
+                Assert.That(result.Ok, Is.False);
+                Assert.That(result.IsBusy, Is.False, result.Reason);
+                Assert.That(result.Reason, Does.Contain("closed"));
+                Assert.That(_saves, Is.Zero);
             }
         }
 
@@ -427,6 +700,7 @@ namespace KeePassGate.Host.Tests
                         Interlocked.Decrement(ref inside);
                         Save(database);
                     },
+                    null,
                     _dialogs,
                     _log);
 
@@ -492,6 +766,16 @@ namespace KeePassGate.Host.Tests
                 var admissions = new AdmissionStore(new CustomDataStore(_database.Database), null);
                 Assume.That(admissions.Remove(CertificateDigest.Of(revoked)), Is.True);
 
+                // And a holder whose certificate has expired, which regains nothing.
+                using (var key = ECDsa.Create())
+                {
+                    var request = new CertificateRequest("CN=agent-expired", key, HashAlgorithmName.SHA256);
+                    using (var ended = request.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-30), DateTimeOffset.UtcNow.AddDays(-1)))
+                    {
+                        admissions.Write(AdmissionRecord.For(ended, DateTimeOffset.UtcNow.AddDays(-30), new[] { "ops" }));
+                    }
+                }
+
                 // "ops" taken off the list, as the Profiles page does, so that its holders would
                 // regain it; "audit" left on it.
                 var names = ProfileNames.Read(null);
@@ -521,7 +805,7 @@ namespace KeePassGate.Host.Tests
                     Assert.That(asked, Is.Not.Null);
 
                     Assert.That(asked.Returning("ops").Select(r => r.Subject), Is.EqualTo(new[] { "CN=agent-kept" }),
-                        "the live holder of a removed name, and not the revoked one");
+                        "the live holder of a removed name, and neither the revoked one nor the expired one");
                     Assert.That(asked.Returning("audit"), Is.Empty, "a listed name gives nothing back");
                     Assert.That(asked.IsNew("fresh"), Is.True);
                     Assert.That(asked.IsNew("ops"), Is.False, "held, so removed rather than new");
@@ -530,17 +814,18 @@ namespace KeePassGate.Host.Tests
                     Assert.That(shown, Does.Contain(PairingApprovalForm.Regaining(asked)));
                     Assert.That(shown, Does.Contain("agent-kept"));
                     Assert.That(shown, Does.Not.Contain("agent-revoked"));
+                    Assert.That(shown, Does.Not.Contain("agent-expired"));
                     Assert.That(shown, Does.Contain(PairingApprovalForm.NewProfilesAsked));
                 }
             }
         }
 
         [Test]
-        public void A_group_dialog_open_on_the_root_group_refuses_the_pairing_and_keeps_the_invitation()
+        public void The_maintenance_dialog_refuses_the_pairing_and_keeps_the_invitation()
         {
             using (var book = new InvitationBook(TimeSpan.FromMinutes(10), null, _log))
             using (var targets = Targets())
-            using (var form = GroupDialogOnTheRoot())
+            using (var form = MaintenanceDialog())
             {
                 var target = targets.Current().Single();
                 var invitation = book.Invite(target.DatabaseId);
@@ -655,6 +940,51 @@ namespace KeePassGate.Host.Tests
                 CertificateBlob.SigningFlags);
         }
 
+        [Test]
+        public void A_record_whose_save_failed_over_a_file_that_cannot_be_read_back_says_so_and_stays_unsaved()
+        {
+            // Something holding the file open is all it takes: the file is intact, only
+            // unreadable, and the undo leaves the database marked unsaved since nothing shows the
+            // file intact. That used to happen without a word on this path, and the change path's
+            // line called it damage.
+            _database.Save();
+            _database.Database.Modified = false;
+            System.IO.FileStream held = null;
+
+            var writer = new DatabaseWriter(
+                CurrentThread.Instance,
+                database =>
+                {
+                    held = new System.IO.FileStream(
+                        _database.Path, System.IO.FileMode.Open, System.IO.FileAccess.Read, System.IO.FileShare.None);
+                    throw new System.IO.IOException("another program is holding the file");
+                },
+                null,
+                _dialogs,
+                _log);
+
+            try
+            {
+                using (var certificate = IssueClient())
+                {
+                    var result = writer.WriteAdmission(_database.Database, Record(certificate, "ops"));
+
+                    Assume.That(result.Ok, Is.False);
+                    Assert.That(_database.Database.Modified, Is.True);
+                    Assert.That(_log.Errors, Has.Some.Contains("could not be read back"));
+                    Assert.That(_log.Errors, Has.None.Contains("neither what it was nor what was written"),
+                        "an unreadable file is not called damaged");
+                }
+            }
+            finally
+            {
+                if (held != null)
+                {
+                    held.Dispose();
+                }
+            }
+        }
+
         private X509Certificate2 IssueClient()
         {
             using (var reading = new AuthorityService(new CustomDataStore(_database.Database), null).Read())
@@ -673,6 +1003,37 @@ namespace KeePassGate.Host.Tests
         {
             var form = new GroupForm();
             form.InitEx(_database.RootGroup, false, null, _database.Database);
+            return form;
+        }
+
+        /// <summary>
+        /// A retired authority's document back beside its retirement, which is what a stale copy
+        /// merged in leaves, answering with its digest.
+        /// </summary>
+        private string PlantRetiredDocument()
+        {
+            var retired = new string('e', 64);
+            _database.Database.CustomData.Set(AuthorityKeys.AuthorityKey(retired), "a document from a stale copy");
+            _database.Database.CustomData.Set(AuthorityKeys.RetirementKey(retired), AuthorityKeys.RetiredValue);
+            return retired;
+        }
+
+        /// <summary>
+        /// What a stale copy merged in after a revocation leaves: the record back beside the
+        /// revocation that refuses it.
+        /// </summary>
+        private string PlantCameBackRecord()
+        {
+            var revoked = new string('d', 64);
+            _database.Database.CustomData.Set(AuthorityKeys.ClientRecordKey(revoked), "a record that came back");
+            _database.Database.CustomData.Set(AuthorityKeys.RevocationKey(revoked), "2999-01-01T00:00:00Z");
+            return revoked;
+        }
+
+        private DatabaseOperationsForm MaintenanceDialog()
+        {
+            var form = new DatabaseOperationsForm();
+            form.InitEx(_database.Database);
             return form;
         }
 
@@ -729,6 +1090,27 @@ namespace KeePassGate.Host.Tests
             using (var reading = new AuthorityService(new CustomDataStore(_database.Database), null).Read())
             {
                 return new AuthorityIssuer().IssueClient(reading.Material.Authority, name, profiles);
+            }
+        }
+
+        /// <summary>
+        /// Closes the database before it runs the write, which is a lock or a File > Close that
+        /// KeePass's thread took first.
+        /// </summary>
+        private sealed class ClosesFirst : IUiThread
+        {
+            private readonly PwDatabase _closing;
+
+            public ClosesFirst(PwDatabase closing)
+            {
+                _closing = closing;
+            }
+
+            public bool Run(Action work, TimeSpan timeout)
+            {
+                _closing.Close();
+                work();
+                return true;
             }
         }
 

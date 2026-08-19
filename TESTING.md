@@ -43,7 +43,8 @@ Two jobs.
 **It pins the names.** `KeePassContractTests` asserts every name the plugin reaches for inside
 KeePass: the dialog type, the tab control called `m_tabMain`, the window manager's events, the
 plugin base class. A KeePass upgrade that moves one of these is caught here, before anybody runs it.
-At run time the plugin notices some of them itself and refuses rather than guessing: a field a tab
+At run time the plugin notices some of them itself and refuses rather than guessing: a dialog the
+watch cannot find stops every write and every pairing and the log names it, and a field a tab
 reads on a dialog it decorates leaves that tab read only with a sentence saying why. The rest would
 break it quietly.
 
