@@ -1344,9 +1344,16 @@ Each step is refusable, and each ends with something that runs.
     granted nothing and looked exactly like the one that was meant. The editor stops accepting typed
     names once there is a list to choose from, and pairing marks a name this database has never seen
     so that approving it is visibly two decisions rather than one.
-
 18. **The plugin's own window**: one item under KeePass's Tools menu, opening a window that says
-    where the gate is listening and sets the port it listens on.
+    where the gate is listening and sets the port it listens on. **Done.** That answer was on the
+    KPG tab, which was the wrong place for it twice over: it is the same whichever database is open, and
+    it is wanted when none is, which is exactly when a tab inside a database's settings cannot be
+    reached. Moving it also gives the tab back the lines it was spending on a question it was not
+    about. The version is not repeated here at all, because KeePass's own plugins dialog lists every
+    plugin with its version and that is where somebody checking one looks. Through
+    `Plugin.GetMenuItem`, because that is the seam KeePass offers and it removes the item itself
+    when the plugin is unloaded.
+
 19. **The documentation for whoever runs it**: `docs/`, in the order an operator meets the plugin,
     with the screens.
 
