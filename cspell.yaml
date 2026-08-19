@@ -104,6 +104,9 @@ words:
   - Kdbx
   - plgx
 
+  # write the audit under an append-only ACL, which its tests set exactly
+  - SDDL
+
   # Cryptography and the transport
   - DPAPI
   - HMAC
@@ -179,3 +182,282 @@ words:
   - unparseable
   - unpayable
   - unshown
+
+# **The British spelling of a word, refused wherever it is written.** This repository writes American
+# English, and choosing the language catches only part of that: the American dictionary accepts
+# much of the British doubled L, and a language's own dictionary accepts more of the rest. These are
+# refused whichever dictionary knows them, in prose, in comments and in every identifier cspell
+# reads, which it splits into its words. A name belonging to somebody else keeps its own spelling,
+# with a `cspell:ignore` beside it naming the word, rather than a hole in this list.
+#
+# The list is the one place such a word belongs, so the check is off from here to its end and on
+# again after it.
+# cspell:disable
+flagWords:
+  # a doubled L where American English keeps one
+  - cancelled
+  - cancelling
+  - canceller
+  - dialled
+  - dialling
+  - dialler
+  - labelled
+  - labelling
+  - modelled
+  - modelling
+  - modeller
+  - travelled
+  - travelling
+  - traveller
+  - signalled
+  - signalling
+  - levelled
+  - levelling
+  - fuelled
+  - fuelling
+  - totalled
+  - totalling
+  - channelled
+  - channelling
+  - counselled
+  - counselling
+  - tunnelled
+  - tunnelling
+  - marshalled
+  - marshalling
+  - unravelled
+  - unravelling
+  - equalled
+  - equalling
+  - funnelled
+  - funnelling
+  - panelled
+  - panelling
+  - quarrelled
+  - jewellery
+  - focussed
+  - focussing
+  - benefitted
+  - benefitting
+  - fulfil
+  - fulfils
+  - fulfilment
+  - enrol
+  - enrols
+  - enrolment
+  - instalment
+  - skilful
+  - wilful
+
+  # -our where American English writes -or
+  - behaviour
+  - behaviours
+  - behavioural
+  - colour
+  - colours
+  - coloured
+  - colouring
+  - favour
+  - favours
+  - favoured
+  - favouring
+  - favourite
+  - favourable
+  - honour
+  - honours
+  - honoured
+  - honouring
+  - labour
+  - neighbour
+  - neighbours
+  - neighbouring
+  - rumour
+  - flavour
+  - harbour
+  - humour
+  - vapour
+  - armour
+  - endeavour
+  - odour
+  - savour
+  - vigour
+  - rigour
+  - clamour
+  - candour
+  - demeanour
+
+  # -ise and -yse where American English writes -ize and -yze
+  - organise
+  - organised
+  - organises
+  - organising
+  - organisation
+  - organisations
+  - organiser
+  - recognise
+  - recognised
+  - recognises
+  - recognising
+  - recognisable
+  - unrecognised
+  - realise
+  - realised
+  - realises
+  - realising
+  - analyse
+  - analysed
+  - analysing
+  - analyser
+  - paralyse
+  - paralysed
+  - catalyse
+  - prioritise
+  - prioritised
+  - summarise
+  - summarised
+  - summarises
+  - emphasise
+  - emphasised
+  - emphasises
+  - minimise
+  - minimised
+  - minimises
+  - maximise
+  - maximised
+  - optimise
+  - optimised
+  - optimisation
+  - optimiser
+  - normalise
+  - normalised
+  - normalises
+  - normalising
+  - normalisation
+  - serialise
+  - serialised
+  - serialises
+  - serialising
+  - serialisation
+  - serialiser
+  - deserialise
+  - deserialised
+  - deserialisation
+  - initialise
+  - initialised
+  - initialises
+  - initialising
+  - initialisation
+  - initialiser
+  - finalise
+  - finalised
+  - synchronise
+  - synchronised
+  - synchronises
+  - synchronising
+  - synchronisation
+  - authorise
+  - authorised
+  - authorises
+  - authorising
+  - authorisation
+  - unauthorised
+  - customise
+  - customised
+  - utilise
+  - utilised
+  - apologise
+  - criticise
+  - criticised
+  - specialise
+  - specialised
+  - standardise
+  - standardised
+  - categorise
+  - categorised
+  - characterise
+  - characterised
+  - visualise
+  - sanitise
+  - sanitised
+  - tokenise
+  - tokeniser
+  - capitalise
+  - capitalised
+  - localise
+  - localised
+  - localisation
+  - materialise
+  - penalise
+  - stabilise
+  - generalise
+  - generalised
+  - centralise
+  - centralised
+  - neutralise
+  - jeopardise
+  - scrutinise
+  - itemise
+  - harmonise
+  - formalise
+  - formalised
+  - parameterise
+  - parameterised
+  - randomise
+  - randomised
+  - virtualise
+  - canonicalise
+  - canonicalised
+  - canonicalisation
+  - personalise
+  - anonymise
+  - anonymised
+
+  # a noun that ends the British way, and the words that differ some other way
+  - licence
+  - licences
+  - defence
+  - defences
+  - offence
+  - offences
+  - pretence
+  - centre
+  - centres
+  - centred
+  - metre
+  - metres
+  - litre
+  - theatre
+  - fibre
+  - calibre
+  - spectre
+  - lustre
+  - meagre
+  - catalogue
+  - catalogues
+  - grey
+  - greyed
+  - greying
+  - programme
+  - programmes
+  - aluminium
+  - sceptical
+  - sceptic
+  - manoeuvre
+  - artefact
+  - artefacts
+  - enquire
+  - enquiry
+  - enquiries
+  - judgement
+  - judgements
+  - acknowledgement
+  - acknowledgements
+  - ageing
+  - practise
+  - practised
+  - practising
+  - learnt
+  - spelt
+  - whilst
+  - aeroplane
+# cspell:enable

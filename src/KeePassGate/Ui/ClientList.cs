@@ -79,10 +79,40 @@ namespace KeePassGate.Ui
         /// so a certificate that chains somewhere else is refused whatever its own dates say. A
         /// row reading `2034-01-01` there is a row promising access nobody has.
         ///
-        /// The row stays, for the reason an unreadable certificate's row stays: it is still a
-        /// record, and taking it away is still the operator's to do.
+        /// The row stays: it is still a record, and taking it away is still the operator's to do.
         /// </remarks>
         public const string StrangerText = "not this authority";
+
+        /// <summary>
+        /// Said beside a certificate this authority issued for something other than a client.
+        /// </summary>
+        /// <remarks>
+        /// In place of the date, for the reason <see cref="StrangerText"/> is: the gate asks for
+        /// client authentication before it looks at the dates, and refuses a certificate issued
+        /// for the host whatever they say. Only a file written by hand or merged from another
+        /// copy holds such a record, since pairing records only the client certificates it issues.
+        /// </remarks>
+        public const string NotForClientsText = "not for client use";
+
+        /// <summary>Said beside a certificate whose first valid moment has not come yet.</summary>
+        /// <remarks>
+        /// The gate honors `notBefore` exactly and refuses the certificate until then, so a date a
+        /// year away beside it read as a client that works. Reached by a clock that is wrong on
+        /// the machine that issued it or on the one reading the file now.
+        /// </remarks>
+        public const string NotYetValidText = "not yet valid";
+
+        /// <summary>
+        /// Said where the date would be beside a stored record that will not read.
+        /// </summary>
+        /// <remarks>
+        /// Such a record has nothing else to say: no subject, no profiles, no admission time. It
+        /// admits nobody, and it is listed all the same, by its key, because this page is the one
+        /// place its X can take it away; otherwise the only way to be rid of it was to recreate the
+        /// authority, which makes every client pair again, or to reach into the database's plugin
+        /// data by hand.
+        /// </remarks>
+        public const string UnreadableRecordText = "cannot be read";
 
         /// <summary>What the last column says, and what pressing it means.</summary>
         public const string RevokeMark = "X";
@@ -104,7 +134,7 @@ namespace KeePassGate.Ui
         private const int UntilColumn = 3;
         private const int RevokeColumn = 4;
 
-        private readonly Func<AdmissionRecord, string> _revoke;
+        private readonly Func<string, string> _revoke;
         private readonly DataGridView _grid;
         private readonly Label _note;
 
@@ -114,6 +144,9 @@ namespace KeePassGate.Ui
         /// <summary>What the last gesture said, kept because the label also says other things.</summary>
         private string _said = string.Empty;
         private readonly List<AdmissionRecord> _records = new List<AdmissionRecord>();
+
+        /// <summary>The admission keys of the stored records that would not read, listed after the rest.</summary>
+        private readonly List<string> _unreadable = new List<string>();
 
         private bool _filling;
 
@@ -127,10 +160,11 @@ namespace KeePassGate.Ui
         private int _cameBack;
 
         /// <param name="revoke">
-        /// Takes an admission away and answers with why it could not, or null when it did. The list
-        /// does not write to a database itself: it is a list.
+        /// Takes an admission away, by its key, and answers with why it could not, or null when it
+        /// did. By key, because a record that will not read has nothing else to be named by. The
+        /// list does not write to a database itself: it is a list.
         /// </param>
-        public ClientList(Func<AdmissionRecord, string> revoke)
+        public ClientList(Func<string, string> revoke)
         {
             if (revoke == null)
             {
@@ -267,10 +301,22 @@ namespace KeePassGate.Ui
             get { return _cameBack > 0 ? _reappeared.Text : null; }
         }
 
-        /// <summary>What the list is showing, in order. The test seam, and the tab's seam.</summary>
+        /// <summary>
+        /// The clients the list is showing, in order: every row but those of records that will not
+        /// read, which follow them. The test seam, and the tab's seam.
+        /// </summary>
         public IReadOnlyList<AdmissionRecord> Clients
         {
             get { return _records; }
+        }
+
+        /// <summary>
+        /// The admission keys of the stored records that will not read, in the order their rows
+        /// follow the clients.
+        /// </summary>
+        public IReadOnlyList<string> Unreadable
+        {
+            get { return _unreadable; }
         }
 
         /// <summary>What the last gesture said, or null when it has said nothing.</summary>
@@ -289,13 +335,18 @@ namespace KeePassGate.Ui
         /// </remarks>
         public string Revoke(int index)
         {
+            if (index >= _records.Count && index < _records.Count + _unreadable.Count)
+            {
+                return RevokeUnreadable(_unreadable[index - _records.Count]);
+            }
+
             if (index < 0 || index >= _records.Count)
             {
                 return Said("There is no such client.");
             }
 
             var record = _records[index];
-            var refused = _revoke(record);
+            var refused = _revoke(record.AdmissionKey);
 
             if (refused != null)
             {
@@ -321,15 +372,43 @@ namespace KeePassGate.Ui
             return Said(Describe(record) + " can no longer reach this database.");
         }
 
+        /// <summary>Takes away a record that will not read, which admitted nobody.</summary>
+        private string RevokeUnreadable(string admissionKey)
+        {
+            var refused = _revoke(admissionKey);
+
+            if (refused != null)
+            {
+                return Said("That record is still there: " + refused);
+            }
+
+            // Found again, for the reason a client's row is.
+            var at = _unreadable.IndexOf(admissionKey);
+            if (at >= 0)
+            {
+                _unreadable.RemoveAt(at);
+
+                var row = _records.Count + at;
+                if (row < _grid.Rows.Count)
+                {
+                    _grid.Rows.RemoveAt(row);
+                }
+            }
+
+            UpdateEmptiness();
+
+            return Said("The record that could not be read is taken away.");
+        }
+
         /// <summary>
         /// Show a set of records, replacing whatever is there. Named so as not to overload
         /// `Control.Show`, which does something else entirely and would be reached by accident.
         /// </summary>
-        /// <param name="strangers">
-        /// The admission keys of the records this database's authority did not issue, or null
-        /// when nothing here is one. Decided by the caller rather than here, because answering it
-        /// means reading the authority out of the database and this control reads nothing: it is
-        /// a list.
+        /// <param name="reaches">
+        /// How far each record's certificate gets with the gate before its record is looked at, by
+        /// admission key, or null when nothing is known about that. Decided by the caller rather
+        /// than here, because answering it means reading the authority out of the database and
+        /// this control reads nothing: it is a list.
         /// </param>
         /// <param name="named">
         /// The profiles the database names, so that one a client holds and the database no longer
@@ -337,7 +416,8 @@ namespace KeePassGate.Ui
         /// as an empty list: a database whose list names nothing marks every profile any client
         /// holds, as the gate grants none of them.
         /// </param>
-        public void Fill(AdmissionListing listing, ICollection<string> strangers, ICollection<string> named)
+        public void Fill(
+            AdmissionListing listing, IDictionary<string, ClientReach> reaches, ICollection<string> named)
         {
             _filling = true;
 
@@ -345,6 +425,7 @@ namespace KeePassGate.Ui
             {
                 _named = named;
                 _records.Clear();
+                _unreadable.Clear();
                 _grid.Rows.Clear();
 
                 // Taken as a listing rather than as records, because the difference between a
@@ -370,8 +451,19 @@ namespace KeePassGate.Ui
                                 ? "nothing"
                                 : string.Join(Environment.NewLine, Profiles(record)),
                             Stamp(record.Admitted),
-                            Reach(record, strangers, DateTimeOffset.UtcNow),
+                            Reach(record, reaches, DateTimeOffset.UtcNow),
                             RevokeMark);
+                    }
+
+                    // **One row per stored record, including those that will not read**, after the
+                    // clients. Such a record admits nobody and has nothing to show but its key,
+                    // which is the start of the name it is stored under; it is listed because its
+                    // X is the one way to take it away that does not make every client pair again.
+                    foreach (var key in listing.Unreadable)
+                    {
+                        _unreadable.Add(key);
+                        _grid.Rows.Add(
+                            CertificateDigest.Shorten(key), string.Empty, string.Empty, UnreadableRecordText, RevokeMark);
                     }
                 }
             }
@@ -622,7 +714,9 @@ namespace KeePassGate.Ui
         /// </summary>
         /// <remarks>
         /// Internal, because the warnings that name clients, on the Profiles page and on the
-        /// approval dialog, have to call each one what this page calls it.
+        /// approval dialog, and the chooser listing each authority's clients, have to call each
+        /// one what this page calls it. One method rather than a copy in each, because two copies
+        /// of a rule are two places for it to change in.
         /// </remarks>
         internal static string Describe(AdmissionRecord record)
         {
@@ -634,16 +728,28 @@ namespace KeePassGate.Ui
         /// How long this record still reaches the database, or why it does not reach it at all.
         /// </summary>
         /// <remarks>
-        /// The anchor is asked before the dates, because that is the order the gate asks in and
-        /// because an answer about the dates of a certificate this authority never issued is an
-        /// answer about the wrong thing. `AnchorPin` refuses first, so the record is inert
-        /// whatever its `notAfter` says.
+        /// What the gate asks before the dates is answered before them, because that is the order
+        /// the gate asks in and because an answer about the dates of a certificate it refuses
+        /// anyway is an answer about the wrong thing: the anchor, then the usage, then whether the
+        /// certificate has begun. Its end is the date itself.
         /// </remarks>
-        private static string Reach(AdmissionRecord record, ICollection<string> strangers, DateTimeOffset now)
+        private static string Reach(
+            AdmissionRecord record, IDictionary<string, ClientReach> reaches, DateTimeOffset now)
         {
-            if (strangers != null && strangers.Contains(record.AdmissionKey))
+            ClientReach reach;
+            if (reaches != null && reaches.TryGetValue(record.AdmissionKey, out reach))
             {
-                return StrangerText;
+                switch (reach)
+                {
+                    case ClientReach.Stranger:
+                        return StrangerText;
+
+                    case ClientReach.NotForClients:
+                        return NotForClientsText;
+
+                    case ClientReach.NotYetValid:
+                        return NotYetValidText;
+                }
             }
 
             return Until(record, now);
@@ -699,11 +805,19 @@ namespace KeePassGate.Ui
             return Moments.OnScreen(moment);
         }
 
+        /// <summary>
+        /// Puts one line under the list, cut to what the page can hold, and answers with it.
+        /// </summary>
+        /// <remarks>
+        /// Cut here rather than by whoever composed it, for the reason `Clipped` gives: a refused
+        /// revocation carries whatever the store said, which is not this plugin's to choose the
+        /// length of, and nothing on the page scrolls.
+        /// </remarks>
         private string Said(string what)
         {
-            _said = what ?? string.Empty;
+            _said = Clipped.Message(what);
             Note();
-            return what;
+            return _said;
         }
 
         private void UpdateEmptiness()
@@ -724,7 +838,7 @@ namespace KeePassGate.Ui
                 ? UnreadableText
                 : _said.Length > 0
                     ? _said
-                    : _records.Count == 0 ? NobodyText : string.Empty;
+                    : _records.Count + _unreadable.Count == 0 ? NobodyText : string.Empty;
 
             _note.Text = text;
             _note.Visible = text.Length > 0;
@@ -732,5 +846,34 @@ namespace KeePassGate.Ui
             _reappeared.Text = _cameBack > 0 ? ReappearedText(_cameBack) : string.Empty;
             _reappeared.Visible = _cameBack > 0;
         }
+    }
+
+    /// <summary>
+    /// How far a record's certificate gets with the gate before the gate looks at the record,
+    /// asked in the order the gate asks it.
+    /// </summary>
+    /// <remarks>
+    /// `ClientCredentials` pins the anchor, then asks for client authentication, then the dates,
+    /// and only then the record. The pages of the KPG tab ask the same questions in the same
+    /// order, through the same methods, so that neither of them lists as admitted a client the
+    /// gate refuses on every connection. The last question, whether the certificate has ended, is
+    /// left to the date the clients page shows.
+    /// </remarks>
+    public enum ClientReach
+    {
+        /// <summary>Nothing before the record refuses it, and its date says for how long.</summary>
+        Reaches,
+
+        /// <summary>
+        /// This database's authority did not issue it, or the database has no authority that
+        /// could have.
+        /// </summary>
+        Stranger,
+
+        /// <summary>This authority issued it, but not for a client to present.</summary>
+        NotForClients,
+
+        /// <summary>Its first valid moment has not come yet.</summary>
+        NotYetValid
     }
 }

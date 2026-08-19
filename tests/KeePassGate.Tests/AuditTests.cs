@@ -1,5 +1,8 @@
 using System;
 using System.IO;
+using System.Security.AccessControl;
+using System.Security.Principal;
+using System.Text;
 using KeePassGate.Audit;
 using KeePassGate.Transport;
 using NUnit.Framework;
@@ -146,11 +149,175 @@ namespace KeePassGate.Tests
             {
                 if (Directory.Exists(_directory))
                 {
+                    Unseal();
                     Directory.Delete(_directory, true);
                 }
             }
             catch (IOException)
             {
+            }
+        }
+
+        [Test]
+        public void A_file_that_allows_only_appending_refuses_AppendAllText_and_takes_the_append_right_alone()
+        {
+            // The measurement #18 asked for before anything changed, kept because it is a fact about
+            // .NET Framework and Windows that the audit's way of opening its file rests on. An
+            // administrator who wants a record that grows and cannot be rewritten gives the account
+            // the right to append, beside the synchronize right Windows asks for on every open, and
+            // nothing else. `File.AppendAllText` opens with `FileAccess.Write`, which is every write
+            // right at once, so it is refused outright; a `FileStream` asking for
+            // `FileSystemRights.AppendData` alone is let in, and adds to the end.
+            Directory.CreateDirectory(_directory);
+            var path = Path.Combine(_directory, "audit.jsonl");
+            File.WriteAllText(path, "first\n");
+            Allow(path, AppendOnly);
+
+            Assert.Throws<UnauthorizedAccessException>(() => File.AppendAllText(path, "refused\n"));
+
+            Append(path, "appended\n");
+
+            Assert.Throws<UnauthorizedAccessException>(() => File.ReadAllText(path),
+                "and the account cannot read back what it wrote, which is what such a file is for");
+
+            // The synchronize right is not optional. Without it even the append right alone is
+            // refused, which is what an administrator writing the ACL by hand has to know.
+            Allow(path, FileSystemRights.AppendData);
+            Assert.Throws<UnauthorizedAccessException>(() => Append(path, "refused too\n"));
+
+            Allow(path, FileSystemRights.FullControl);
+            Assert.That(File.ReadAllText(path), Is.EqualTo("first\nappended\n"));
+        }
+
+        [Test]
+        public void Decisions_are_recorded_to_a_file_that_allows_only_appending()
+        {
+            // What the measurement above is for. The audit used `File.AppendAllText`, so on a file
+            // an administrator had made append only it recorded nothing at all, and said so once.
+            Directory.CreateDirectory(_directory);
+            var path = Path.Combine(_directory, "audit.jsonl");
+            File.WriteAllText(path, string.Empty);
+            Allow(path, AppendOnly);
+
+            var log = new Fakes.RecordingGateLog();
+            var audit = new JsonLinesAudit(path, log);
+
+            audit.Record(Entry("readEntry", true));
+            audit.Record(Entry("deleteEntry", false));
+
+            Assert.That(audit.Lost, Is.Zero);
+            Assert.That(System.Linq.Enumerable.Any(log.Errors), Is.False);
+
+            Allow(path, FileSystemRights.FullControl);
+            var lines = File.ReadAllLines(path);
+
+            Assert.That(lines.Length, Is.EqualTo(2));
+            Assert.That(lines[0], Does.Contain("readEntry"));
+            Assert.That(lines[1], Does.Contain("deleteEntry"));
+        }
+
+        [Test]
+        public void A_file_that_allows_only_appending_is_written_to_when_it_cannot_be_set_aside()
+        {
+            // A file the account can rename away is not append only, so an administrator who means
+            // it takes away removing and renaming in the directory as well. Setting the file aside
+            // then fails, which the audit already survived: it goes on writing past its bound, and
+            // says once that it is doing so.
+            Directory.CreateDirectory(_directory);
+            var path = Path.Combine(_directory, "audit.jsonl");
+            Grow(path, JsonLinesAudit.RollAt + 1);
+            File.WriteAllText(path + ".1", "older\n");
+            Allow(path, AppendOnly);
+            Allow(path + ".1", AppendOnly);
+            Seal(_directory);
+
+            var log = new Fakes.RecordingGateLog();
+            var audit = new JsonLinesAudit(path, log);
+
+            audit.Record(Entry("readEntry", true));
+
+            Assert.That(audit.Lost, Is.Zero, "the decision was recorded");
+            Assert.That(System.Linq.Enumerable.Single(log.Errors).Message, Does.Contain("could not be set aside"),
+                "and the operator is told once that the file is growing past its bound");
+
+            Unseal();
+
+            Assert.That(new FileInfo(path).Length, Is.GreaterThan(JsonLinesAudit.RollAt + 1), "on the end of the file");
+            Assert.That(File.ReadAllText(path + ".1"), Is.EqualTo("older\n"), "and the previous one as it was");
+        }
+
+        /// <summary>The account these tests run as, which is the one an ACL here grants or refuses.</summary>
+        private static readonly SecurityIdentifier Me = WindowsIdentity.GetCurrent().User;
+
+        /// <summary>
+        /// What an administrator's append only ACL gives the account: the right to append, and the
+        /// synchronize right Windows asks for on every open. Read attributes, which it asks for as
+        /// well, comes from the directory here, since the account may list it.
+        /// </summary>
+        private const FileSystemRights AppendOnly = FileSystemRights.AppendData | FileSystemRights.Synchronize;
+
+        /// <summary>
+        /// Gives the current account exactly these rights on a file and nothing inherited.
+        /// </summary>
+        /// <remarks>
+        /// Written as SDDL rather than as a `FileSystemAccessRule`, which adds the synchronize right
+        /// to every rule that allows anything: a rule for the append right alone is stored as
+        /// append and synchronize, and hides the very thing an ACL written by hand gets wrong.
+        /// </remarks>
+        private static void Allow(string path, FileSystemRights rights)
+        {
+            var security = new FileSecurity();
+            security.SetSecurityDescriptorSddlForm(
+                string.Format(
+                    System.Globalization.CultureInfo.InvariantCulture, "D:P(A;;0x{0:X};;;{1})", (int)rights, Me.Value),
+                AccessControlSections.Access);
+            File.SetAccessControl(path, security);
+        }
+
+        /// <summary>Appends the way the audit does, asking for the right to append and no other.</summary>
+        private static void Append(string path, string text)
+        {
+            using (var stream = new FileStream(
+                       path, FileMode.Append, FileSystemRights.AppendData, FileShare.Read, 4096, FileOptions.None))
+            {
+                var bytes = Encoding.UTF8.GetBytes(text);
+                stream.Write(bytes, 0, bytes.Length);
+            }
+        }
+
+        /// <summary>
+        /// Leaves the current account able to list a directory and open what is in it, and not to
+        /// add, remove or rename anything there.
+        /// </summary>
+        private static void Seal(string directory)
+        {
+            var security = new DirectorySecurity();
+            security.SetAccessRuleProtection(true, false);
+            security.AddAccessRule(new FileSystemAccessRule(
+                Me,
+                FileSystemRights.ListDirectory | FileSystemRights.ReadAttributes | FileSystemRights.Traverse
+                    | FileSystemRights.Synchronize,
+                AccessControlType.Allow));
+            Directory.SetAccessControl(directory, security);
+        }
+
+        /// <summary>
+        /// Gives the current account everything back on the directory and on whatever is in it, so
+        /// that it can be deleted. The account owns all of it, which is what lets it do this after
+        /// granting itself so little.
+        /// </summary>
+        private void Unseal()
+        {
+            var security = new DirectorySecurity();
+            security.SetAccessRuleProtection(true, false);
+            security.AddAccessRule(new FileSystemAccessRule(
+                Me, FileSystemRights.FullControl, InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit,
+                PropagationFlags.None, AccessControlType.Allow));
+            Directory.SetAccessControl(_directory, security);
+
+            foreach (var file in Directory.GetFiles(_directory))
+            {
+                Allow(file, FileSystemRights.FullControl);
             }
         }
 
@@ -415,6 +582,52 @@ namespace KeePassGate.Tests
             Assert.That(path, Is.Not.Null);
             Assert.That(path, Does.EndWith(JsonLinesAudit.DefaultFileName));
             Assert.That(path, Does.Contain("KeePassGate"));
+        }
+
+        [Test]
+        public void When_a_client_was_last_written_down_is_read_from_both_files()
+        {
+            // The one reader of the file, for the authority chooser: the newest line for each
+            // client asked about, whether it is in the file or in the one set aside before it.
+            var path = Path.Combine(_directory, "audit.jsonl");
+            Directory.CreateDirectory(_directory);
+            var older = new DateTimeOffset(2026, 9, 1, 8, 0, 0, TimeSpan.Zero);
+            var newer = new DateTimeOffset(2026, 9, 20, 10, 30, 0, TimeSpan.Zero);
+
+            File.WriteAllText(path + ".1", Line(older, "aaaa") + "\n" + Line(newer, "bbbb") + "\n");
+
+            var audit = new JsonLinesAudit(path, null);
+            audit.Record(new AuditEntry(newer, "d1e2f3", "aaaa", "getEntry", null, null, true, "why"));
+            audit.Record(new AuditEntry(older, "d1e2f3", "bbbb", "getEntry", null, null, false, "why"));
+            audit.Record(new AuditEntry(newer, "d1e2f3", "cccc", "getEntry", null, null, true, "why"));
+
+            var seen = JsonLinesAudit.LastSeen(path, new[] { "aaaa", "bbbb", "dddd" });
+
+            Assert.That(seen["aaaa"], Is.EqualTo(newer), "the newer line is in the current file");
+            Assert.That(seen["bbbb"], Is.EqualTo(newer), "and here it is in the one set aside");
+            Assert.That(seen.ContainsKey("cccc"), Is.False, "a client nobody asked about is not reported");
+            Assert.That(seen.ContainsKey("dddd"), Is.False, "and one with no line is absent rather than invented");
+        }
+
+        [Test]
+        public void An_audit_with_no_file_at_all_is_no_answer_rather_than_nobody()
+        {
+            Assert.That(JsonLinesAudit.LastSeen(Path.Combine(_directory, "nothing.jsonl"), new[] { "aaaa" }), Is.Null);
+        }
+
+        [Test]
+        public void A_line_that_is_not_one_of_ours_is_passed_over()
+        {
+            var path = Path.Combine(_directory, "audit.jsonl");
+            Directory.CreateDirectory(_directory);
+            File.WriteAllText(path, "not json at all\n{\"at\":\"yesterday\",\"client\":\"aaaa\"}\n{\"at\":\"2026-09-01T08:00:00Z\"\n");
+
+            Assert.That(JsonLinesAudit.LastSeen(path, new[] { "aaaa" }), Is.Empty);
+        }
+
+        private static string Line(DateTimeOffset at, string client)
+        {
+            return new AuditEntry(at, "d1e2f3", client, "getEntry", null, null, true, "why").Line();
         }
 
         /// <summary>

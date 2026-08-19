@@ -71,7 +71,7 @@ namespace KeePassGate.Authority
                 // Which authority there is can only be answered by listing, and a listing that
                 // failed is not a database with none: absence invites Create.
                 return AuthorityReading.Damaged(
-                    new[] { "The authority could not be read: " + error.Message }, records, listed);
+                    new[] { CouldNotReadProblem + error.Message }, records, listed);
             }
 
             if (live.Count == 0)
@@ -400,7 +400,7 @@ namespace KeePassGate.Authority
                 {
                     // The key is what a retirement names, so an authority filed under some other
                     // digest is one that retiring could never reach.
-                    problems.Add("The authority is filed under a digest that is not its own.");
+                    problems.Add(MisfiledProblem);
                 }
 
                 if (authority != null && host != null)
@@ -414,9 +414,7 @@ namespace KeePassGate.Authority
                         // throw away a healthy authority and every admission record with it.
                         problems.Add(evaluated
                             ? "The host certificate was not issued by this authority."
-                            : "The host certificate could not be checked against this authority on " +
-                              "this machine. Nothing here says the authority is wrong; recreating it " +
-                              "would not help.");
+                            : HostUncheckedProblem);
                     }
                 }
 
@@ -434,7 +432,7 @@ namespace KeePassGate.Authority
             }
             catch (Exception error) when (Expected.OfCryptography(error) || Expected.OfCustomData(error))
             {
-                problems.Add("The authority could not be read: " + error.Message);
+                problems.Add(CouldNotReadProblem + error.Message);
                 return null;
             }
             finally
@@ -485,12 +483,50 @@ namespace KeePassGate.Authority
 
             if (bytes.Length != AuthorityMaterial.SniKeyLength)
             {
-                problems.Add("The gate key is " + bytes.Length + " bytes rather than " +
-                             AuthorityMaterial.SniKeyLength + ".");
+                problems.Add(WrongLengthProblem(bytes.Length));
                 return new byte[AuthorityMaterial.SniKeyLength];
             }
 
             return bytes;
+        }
+
+        /// <summary>What a gate key of the wrong length is reported as.</summary>
+        private static string WrongLengthProblem(int length)
+        {
+            return "The gate key is " + length + " bytes rather than " + AuthorityMaterial.SniKeyLength + ".";
+        }
+
+        /// <summary>What an authority filed under a digest that is not its own is reported as.</summary>
+        internal const string MisfiledProblem = "The authority is filed under a digest that is not its own.";
+
+        /// <summary>What a host certificate the chain engine could not judge is reported as.</summary>
+        internal const string HostUncheckedProblem =
+            "The host certificate could not be checked against this authority on this machine. " +
+            "Nothing here says the authority is wrong; recreating it would not help.";
+
+        /// <summary>What begins a problem that is an exception, before the exception's own message.</summary>
+        internal const string CouldNotReadProblem = "The authority could not be read: ";
+
+        /// <summary>
+        /// The most one authority can be reported with at once, each at its longest, in the order
+        /// <see cref="ReadOne"/> reports them, with `thrown` where an exception's message would be.
+        /// </summary>
+        /// <remarks>
+        /// For the KPG tab, which is measured against the longest detail a damaged reading can
+        /// produce. Here, beside `ReadOne`, because which problems can arrive together is decided
+        /// by the order it asks in, and that is the one part of the measurement nothing can
+        /// derive: a certificate that will not load stops every check that needs it, and an
+        /// exception stops every check after it. So the gate key, at a length ten digits wide;
+        /// then the digest the authority is filed under, which needs the authority; then one about
+        /// the host, which needs both certificates: its chain could not be judged, or judging it
+        /// threw. The second is the one given, because the tab cuts a problem at `Clipped.Limit`
+        /// and a thrown message long enough to be cut is never shorter than the sentence it stands
+        /// in for. A document with parts missing, or one that will not read at all, stops at
+        /// shorter sentences than these.
+        /// </remarks>
+        internal static IReadOnlyList<string> LongestProblems(string thrown)
+        {
+            return new[] { WrongLengthProblem(int.MaxValue), MisfiledProblem, CouldNotReadProblem + thrown };
         }
     }
 }

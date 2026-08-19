@@ -478,6 +478,58 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_code_that_runs_out_with_the_page_open_leaves_it_on_the_clock()
+        {
+            // H089: the line, the box and the copy button were worked out when the page was drawn
+            // and at no other time, so at minute eleven the page still said the code was good for
+            // ten, with the code in the box: the gate had swept it and dropped every connection
+            // presenting it. The panel's timer calls this when the line next has to change.
+            var clock = DateTimeOffset.UtcNow;
+
+            using (var book = new InvitationBook(TimeSpan.FromMinutes(10), () => clock, _log))
+            using (var panel = new AuthorityPanel(_database, new FakePrompt(true), _log, book))
+            {
+                panel.CreateAuthority();
+                panel.InviteClient();
+                Assume.That(Box(panel, GateTab.InvitationBoxName).Text, Is.Not.Empty);
+
+                clock = clock.AddMinutes(11);
+                panel.Tick();
+
+                Assert.That(Label(panel, GateTab.InvitationLabelName).Text, Is.EqualTo(InvitationText.None));
+                Assert.That(Box(panel, GateTab.InvitationBoxName).Text, Is.Empty, "the code that no longer works is gone");
+                Assert.That(Button(panel, GateTab.CopyButtonName).Enabled, Is.False, "and there is nothing to copy");
+                Assert.That(Button(panel, GateTab.InviteButtonName).Text, Is.EqualTo(GateTab.InviteButtonText),
+                    "and nothing to renew");
+            }
+        }
+
+        [Test]
+        public void Copying_a_code_that_ran_out_copies_nothing_and_says_so()
+        {
+            // The other half of H089: a press of the copy button between two ticks, which copied
+            // whatever was in the box.
+            var clock = DateTimeOffset.UtcNow;
+
+            using (var book = new InvitationBook(TimeSpan.FromMinutes(10), () => clock, _log))
+            using (var panel = new AuthorityPanel(_database, new FakePrompt(true), _log, book))
+            {
+                var clipboard = new FakeClipboard();
+                panel.Clipboard = clipboard;
+
+                panel.CreateAuthority();
+                panel.InviteClient();
+
+                clock = clock.AddMinutes(11);
+                panel.CopyInvitation();
+
+                Assert.That(clipboard.Copied, Is.Empty, "a code the gate drops was handed to the clipboard");
+                Assert.That(Label(panel, GateTab.ResultLabelName).Text, Is.EqualTo(InvitationText.NotCopied));
+                Assert.That(Box(panel, GateTab.InvitationBoxName).Text, Is.Empty);
+            }
+        }
+
+        [Test]
         public void Copying_nothing_touches_nothing()
         {
             using (var panel = NewPanel())
@@ -586,6 +638,29 @@ namespace KeePassGate.Tests
 
                 Assert.That(Label(panel, GateTab.InvitationLabelName).Text, Is.EqualTo(InvitationText.None));
                 Assert.That(Box(panel, GateTab.InvitationBoxName).Text, Is.Empty);
+            }
+        }
+
+        [Test]
+        public void The_invitation_box_follows_the_font_the_panel_is_given()
+        {
+            // K087: the box's monospaced font was built once, at the size the panel had in its
+            // constructor, and a font set on a control is not inherited, so the box stayed small
+            // while the panel was given a larger one: which a dialog with a font of its own does
+            // as the page is attached, and which the scaled fit test does to every panel.
+            using (var panel = NewPanel())
+            using (var larger = new System.Drawing.Font(
+                panel.Font.FontFamily, panel.Font.Size * 1.5f, panel.Font.Style))
+            {
+                panel.Font = larger;
+
+                var box = Box(panel, GateTab.InvitationBoxName);
+
+                Assert.That(box.Font.SizeInPoints, Is.EqualTo(larger.SizeInPoints).Within(0.01f));
+                Assert.That(
+                    TextRenderer.MeasureText(new string('i', PairingToken.TextLength), box.Font).Width,
+                    Is.EqualTo(TextRenderer.MeasureText(new string('W', PairingToken.TextLength), box.Font).Width),
+                    "and it is still monospaced, which is why it has a font of its own");
             }
         }
 

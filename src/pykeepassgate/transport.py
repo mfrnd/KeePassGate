@@ -32,13 +32,21 @@ import ssl
 import time
 from collections.abc import Iterator
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 from cryptography import x509
 
-from .errors import DatabaseLocked, GateBusy, ProtocolError, StorageError, TransportError
+from .errors import (
+    AuthorityUndecided,
+    DatabaseLocked,
+    GateBusy,
+    GateUnavailable,
+    ProtocolError,
+    StorageError,
+    TransportError,
+)
 
 #: Where the gate binds, and therefore where a client dials unless it is told otherwise. Reaching
 #: a gate from another machine is a tunnel's job, and a tunnel puts its own end somewhere: that is
@@ -65,7 +73,7 @@ RESPONDER_CLAIM = "kpg://host/responder"
 #: the dial, the handshake, and each read of the answer, each on its own. So it ends a wait on a
 #: peer that has stopped sending, and not a connection to one that goes on sending, however
 #: slowly; a caller that needs a bound on a whole call puts one around the call. It says nothing
-#: about waiting out a refusal, which is what the two budgets below are for.
+#: about waiting out a refusal, which is what the three budgets below are for.
 DEFAULT_CONNECTION_TIMEOUT = 120.0
 
 #: What a pairing's socket gets instead, which is the one exchange that waits on a person. It has
@@ -80,15 +88,22 @@ PAIRING_CONNECTION_TIMEOUT = 360.0
 
 #: How long to go on waiting out a `503 busy`, in seconds, and `None` for not waiting at all, which
 #: is what a client does unless it is told otherwise: the refusal is raised, and what to do about it
-#: is the caller's. Busy is KeePass in the middle of something of its own, so it ends by itself.
+#: is the caller's. There is one budget for each word a `503` is known to carry, because the three
+#: end differently and an agent willing to wait out one is not necessarily willing to wait out
+#: another, which one number could not say. Busy is KeePass in the middle of something of its own,
+#: so it ends by itself.
 DEFAULT_RETRY_BUSY_TIMEOUT: float | None = None
 
-#: The same for a `503 locked`, and separate from the one above because the two end differently. A
-#: busy KeePass finishes what it is doing; a locked one waits for a person to come back to their
-#: desk, and a lock can arrive on its own from an idle timeout, a minimize, a Windows lock or a
-#: suspend. An agent willing to wait out one is not necessarily willing to wait out the other, and
-#: one number could not say so.
+#: The same for a `503 locked`. A locked KeePass waits for a person to come back to their desk, and
+#: a lock can arrive on its own from an idle timeout, a minimize, a Windows lock or a suspend, so it
+#: can last an hour as easily as a minute.
 DEFAULT_RETRY_LOCKED_TIMEOUT: float | None = None
+
+#: The same for a `503 undecided`: a database holding two authorities that nobody has chosen
+#: between yet. It is rare, it lasts until somebody chooses at KeePass, and it can end with the
+#: authority this client belongs to not kept, which no amount of waiting mends. A `503` whose word
+#: this client does not know is waited out by none of the three.
+DEFAULT_RETRY_UNDECIDED_TIMEOUT: float | None = None
 
 #: What to wait when the gate refused without saying when to come back. The gate sends
 #: `Retry-After: 2` on every `503`, so what is left is an older gate, a refusal that reached no
@@ -221,20 +236,40 @@ class Budget:
 
 
 class Retry:
-    """The two budgets, one per kind of `503`, spent by one call and not reused."""
+    """The three budgets, one per word a `503` is known to carry, spent by one call only."""
 
-    def __init__(self, busy: float | None = None, locked: float | None = None) -> None:
+    def __init__(
+        self,
+        busy: float | None = None,
+        locked: float | None = None,
+        undecided: float | None = None,
+    ) -> None:
         """Take what each kind of refusal is worth waiting out."""
         self.busy = Budget(busy, "retry_busy_timeout")
         self.locked = Budget(locked, "retry_locked_timeout")
+        self.undecided = Budget(undecided, "retry_undecided_timeout")
 
-    def waited(self, refusal: GateBusy | DatabaseLocked) -> bool:
-        """Wait this refusal out, if the budget for its kind still allows it.
+    def waited(self, refusal: GateUnavailable) -> bool:
+        """Wait this refusal out, if the budget for its word still allows it.
+
+        **The budget is picked by the refusal's class**, so the word is read in one place,
+        `unavailable`, and a pairing that met a `503` is waited out exactly as a read is. A
+        refusal whose word this client does not know has no budget and is never waited out:
+        nothing here knows what ends it, and a caller who gave thirty seconds for a busy KeePass
+        gave them for that and nothing else.
 
         The refusal carries what the gate said about coming back, so nothing here has to invent a
         delay or reach for a response that is no longer in hand.
         """
-        budget = self.busy if isinstance(refusal, GateBusy) else self.locked
+        if isinstance(refusal, GateBusy):
+            budget = self.busy
+        elif isinstance(refusal, DatabaseLocked):
+            budget = self.locked
+        elif isinstance(refusal, AuthorityUndecided):
+            budget = self.undecided
+        else:
+            return False
+
         return budget.wait(refusal.retry_after)
 
 
@@ -262,10 +297,14 @@ def given(value: Given, fallback: float | None) -> float | None:
 
 @dataclass(frozen=True)
 class Response:
-    """What came back from one request."""
+    """What came back from one request.
+
+    Printed with its status and its delay and without its body, which is the entry, the field or
+    the attachment that was asked for: a repr is what a log line or a traceback carries.
+    """
 
     status: int
-    body: str
+    body: str = field(repr=False)
 
     #: When the gate said to come back, in seconds, if it said. Only a `503` carries it.
     retry_after: float | None = None
@@ -292,6 +331,38 @@ class Response:
             return ""
 
         return named if isinstance(named, str) else ""
+
+
+def unavailable(reply: Response, *, busy: str, locked: str, undecided: str) -> GateUnavailable:
+    """The refusal a `503` is, by the gate's word, saying what each means where it was met.
+
+    **The word is read here and nowhere else**, for every route and for pairing alike, so a word
+    the gate learns is one class and one line here rather than a branch on every path, and
+    `Retry` picks a budget by the class this hands back. The messages are the caller's, because
+    what to do next differs: a busy pairing starts again from a hello, where a busy write is
+    asked again as it was.
+
+    A word this client does not know, or a `503` that names none, is `GateUnavailable` itself,
+    which no budget waits out.
+    """
+    word = reply.error()
+
+    if word == DatabaseLocked.word:
+        return DatabaseLocked(locked, reply.retry_after)
+
+    if word == GateBusy.word:
+        return GateBusy(busy, reply.retry_after)
+
+    if word == AuthorityUndecided.word:
+        return AuthorityUndecided(undecided, reply.retry_after)
+
+    said = f"with {word!r}, a word this client does not know" if word else "and named no word"
+    return GateUnavailable(
+        f"the gate cannot serve this right now: it answered 503 {said}, so nothing here knows "
+        "what ends it, and nothing waits it out",
+        word,
+        reply.retry_after,
+    )
 
 
 def unpaired_context() -> ssl.SSLContext:

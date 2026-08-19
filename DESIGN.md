@@ -838,9 +838,9 @@ So the rules here:
   either**: an API write still saves what is in memory, the operator's own edits included, which is
   a documented consequence rather than something to guard against.
 - **Every `503` this gate sends carries `Retry-After: 2`**, the new one and the ones that were
-  always there: `busy`, `locked` and pairing's own. One number for all of them, written by the
-  response writer rather than by the four places that answer, so a refusal added later cannot be
-  the one that forgets. Which refusal it was is in the body, where a client that treats a lock
+  always there: `busy`, `locked`, `undecided` and pairing's own. One number for all of them,
+  written by the response writer rather than by the four places that answer, so a refusal added
+  later cannot be the one that forgets. Which refusal it was is in the body, where a client that treats a lock
   differently from a busy window reads it; the delay is the same because how long any of these
   lasts is a person's business rather than this gate's, and two numbers would invite reading a
   meaning into the difference that nothing here measured.
@@ -872,13 +872,24 @@ So the rules here:
   operator at a time and a second waits as long again just to get in front of them, then the dialog,
   the grace on it, the turn at the writer and the write.
 
-  **And the ordinary budget has a floor of the same kind**, which is the half that was missed while
-  pairing was being counted. Every route that changes the database waits for the single writer and
-  then for the marshaled write and save, and nothing extends a deadline for those, because nothing
-  about them is a person. A budget under `DatabaseWriter.LockTimeout + DatabaseWriter.WriteTimeout`
-  closes the socket while a write that is still going to land is landing, leaving a client unable to
-  tell a create that happened from one that did not and holding no identifier either way. That is
-  the same loss pairing is protected from, arriving on every other route.
+  **And the ordinary budget stops at the end of the request**, which is the half that was got wrong
+  while pairing was being counted. A connection's deadline is dropped the moment the whole request
+  is off the wire, because that is where the peer stops being able to make the connection take any
+  longer: what is left is this plugin's own write and save, and closing the socket under one frees
+  neither the thread, which runs on to the end of the save, nor the connection slot, which is given
+  back when that thread finishes. All it destroys is the answer to a write that lands anyway,
+  leaving a client unable to tell a create that happened from one that did not and holding no
+  identifier either way. That is the same loss pairing is protected from, arriving on every other
+  route.
+
+  **This section used to claim a floor instead**, `DatabaseWriter.LockTimeout +
+  DatabaseWriter.WriteTimeout`, and say that a budget above the sum prevented the loss. It does
+  not, and the paragraph above this one says why: `WriteTimeout` bounds the wait for the marshaled
+  call to start, and a call that has started is waited out with no clock on it. No sum of this
+  plugin's timeouts bounds a save, so no budget could be chosen that outlasts one; raising it from
+  thirty seconds to ninety made the loss rarer and nothing else. **Pairing keeps its deadline
+  through all of this**, because a pairing is the one connection whose remaining work is a sum
+  somebody can write down, and `PairingBudget` is what it is added up against.
 
 - **A write that landed is told to the window as well as to the client.** KeePass's save ends in
   `MainForm.UpdateUIState`, which redraws the title bar and the menus and rebuilds neither the
@@ -886,7 +897,10 @@ So the rules here:
   before the request: an entry created through the API is not listed, one deleted is still listed,
   and one renamed still reads as it did. `DatabaseWriter` therefore calls
   `MainForm.UpdateUI(false, null, true, null, true, null, false)` after a change that was made and
-  saved, on the thread it made it on and inside its own lock.
+  saved, on the thread it made it on and inside its own lock, when the database it changed is the
+  one in front. For one in another tab it makes the same call with both lists left alone, since
+  the tree and the list show the active document only and KeePass rebuilds them when another is
+  brought forward.
 
   **Those seven arguments are `UpdateUISyncPost`'s**, which is the call KeePass makes to itself
   after a synchronize: the same situation, a database changed by something other than somebody
@@ -898,14 +912,20 @@ So the rules here:
 
   **Two costs, stated rather than denied.** A rebuild replaces whatever the entry list is showing
   with the selected group's entries, so an operator looking at search results when a write lands
-  loses them; KeePass accepts that for a synchronize, and there is no cheaper call that would show
-  an entry that was created or deleted. And it resets the inactivity timer, which changes nothing,
-  because `UpdateUIState` inside the save already does. **A redraw that fails never fails the
-  request**: by then the change is on disk, and a client told its create failed creates a second
-  one under an identifier it was never given.
+  in that database loses them; KeePass accepts that for a synchronize, and there is no cheaper call
+  that would show an entry that was created or deleted. And it resets the inactivity timer, which
+  changes nothing, because `UpdateUIState` inside the save already does. **A redraw that fails
+  never fails the request**: by then the change is on disk, and a client told its create failed
+  creates a second one under an identifier it was never given.
+
+  **A change taken back out is told as well, and only as far as it needs to be.** The save that
+  failed ended in `UpdateUIState` while the change was still in, so the title bar and the save
+  button say there is something to save; taking the change out clears the flag, and the window is
+  given the call with both lists left alone, which is all that is wrong on it.
 
   **Not for an admission record.** A record is in the database's own custom data, which the main
-  window has no view of, so pairing saves and redraws nothing.
+  window has no view of, so a pairing that lands redraws nothing, and one taken back out redraws
+  the title bar and the menus for the reason a change does.
 - **Nothing throws to the transport.** A handler failure becomes `500 internal error` and an
   incident, counted on the plugin's window under Tools and logged at `UNEXPECTED`, because an
   unhandled exception in this process takes KeePass with it. It is not audited, which this bullet
@@ -949,8 +969,20 @@ with the reader it already has, and it cannot: that reader takes strings and arr
 the lines it refuses are precisely the interesting ones, a question that never reached a node, which
 every refused certificate is. A line with no client is written only by a defect, since a caller that
 proved nothing to this authority is not written down at all. The shape is kept on its first reason
-alone. Nothing in the plugin
-reads the audit back, and the reader it is written for is whatever the operator already greps with.
+alone. The plugin reads the audit back for one thing only, when each client last made a request,
+which the window asking which authority to keep shows, and it finds those two members by position
+rather than with `JsonBody`; the reader the file is written for is whatever the operator already
+greps with.
+
+**The file is opened with the right to append and no other**, so that an administrator can make it
+append only and every decision is still written. That was measured rather than assumed: on .NET
+Framework 4.8, `File.AppendAllText`, which the audit used, asks for every write right at once and is
+refused by such a file, so nothing was recorded at all, while a `FileStream` asking for
+`FileSystemRights.AppendData` alone is let in, provided the ACL also grants the synchronize and read
+attributes rights Windows asks for on every open. Setting the file aside then fails, as the
+administrator meant it to, which is the failure the next paragraph already survives. The ACL is
+something the plugin works under and not a control it provides: code running as the user is
+conceded, and what keeps the file append only is an owner that is not the account.
 
 **Rolling is a bound on the file and not permission to write to it.** A roll fails when the
 previous copy is held open by whatever is tailing the audit, and what that costs is the bound rather

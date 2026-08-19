@@ -96,11 +96,14 @@ designing around them.
   `KPG.Revoked.<key>` beside the emptied record, never changed and pruned once the certificate has
   expired; an authority is one key per authority, `KPG.Authority.<fp>`, written once, and one
   recreated or deleted gets `KPG.RetiredAuthority.<fp>` beside it, so which one is served is decided
-  by the retirements and never by counting documents. **This reverses two rules**: a revocation used
-  to be written empty rather than removed and the only authority lived under one key, both resting
-  on a merge carrying the newer value, which a dropped time, a slow clock or an import defeats. A
-  record that comes back beside its revocation is deleted by the plugin's next write, and recreating
-  or deleting the authority removes every record and every revocation with it. See CA.md §204.
+  by the retirements and never by counting documents. More than one authority with no retirement
+  serves nothing: every connection is answered `503 undecided`, and KeePass asks the operator which
+  to keep in a dialog over its main window, never raised from a connection. **This reverses two
+  rules**: a revocation used to be written empty rather than removed and the only authority lived
+  under one key, both resting on a merge carrying the newer value, which a dropped time, a slow
+  clock or an import defeats. A record that comes back beside its revocation is deleted by the
+  plugin's next write of its own, and recreating or deleting the authority removes every record
+  and every revocation with it. See CA.md §204.
 - **The authority takes the file to KDBX 4.1**, because a per-key modification time is a 4.1
   field. A database saved with an authority in it is a 4.1 file before anything has paired with
   it, and a record keeps it there. That is a format and not a gate: KeePass 2.47
@@ -391,6 +394,24 @@ a database's custom data. Each gathers what it settled in its own `RESULTS.md`. 
   `ChannelBindingKind.Unique` returns something under TLS 1.3 where tls-unique is undefined; ignore
   it. `BindingProbe`.
 - **The SNI needs two labels.** 64 hex characters exceed the 63-octet DNS label limit.
+- **Bouncy Castle turns whatever a server callback throws into a fatal alert.** Its record layer
+  catches every exception on the way through and raises a `TlsFatalAlert` made from it, so a defect
+  in the plugin's own handshake code reaches the connection thread looking exactly like a peer
+  whose handshake failed, and was logged at `Info` as one. `GateTlsServer` keeps the first
+  exception its callbacks throw, in `Failure`, and the listener counts a handshake that failed with
+  one as an incident.
+  `GateListenerTests.A_handshake_this_side_fails_is_counted_rather_than_put_down_to_the_peer`.
+- **A `TcpClient` closed before its stream is taken answers `Client` with null.** `Dispose` clears
+  it on .NET Framework 4.8, so the timeout setters then throw `NullReferenceException` and
+  `GetStream` reads `Client` again: a lock closing an accepted connection before its thread's first
+  line was counted as a defect. `GateListener.Opened` reads the socket once, and null is a
+  connection that ended.
+  `GateListenerTests.A_connection_closed_before_its_thread_starts_is_one_that_ended`.
+- **Under TLS 1.3 a refused handshake's alert can lose the race to the reset behind it.** The gate
+  refuses and closes with the client's request unread, so the client's first read after the
+  handshake meets either the alert or the reset: a client half a second late to read lost the
+  alert five times in five. A test that asks why a handshake was refused reads the gate's log,
+  never what the client read, which is how the tests over `BouncyCastleGateClient` ask it.
 - **A locked document's close carries no path, and the document is what still knows it.** The lock
   ran `PwDatabase.Close` already, which resets the connection, so both `FileClosingPre` and
   `FileClosed` announce that document with an empty path. `PwDocument.LockedIoc` is where KeePass
@@ -462,6 +483,25 @@ a database's custom data. Each gathers what it settled in its own `RESULTS.md`. 
 - **`Button.PerformClick()` does nothing on a form that was never shown**, silently. What a button
   does is public on the form, as it is on the tab, so tests reach the decision rather than the
   control.
+- **A control made visible before its parent has a window gets a window of its own at once**, and
+  when the parent's arrives WinForms moves the control in `Controls` to where its window lands,
+  straight after the last sibling that already had one. Docking and flow order read `Controls`, so
+  they change with nothing in the code having asked: the two lines under the clients list swapped
+  places that way. `ClientList.OnLayout` puts its children back before docking reads them.
+- **GDI+ answers a font family it does not have with Microsoft Sans Serif**, and says nothing. A
+  font asked for by name is checked by name afterwards, which is how `AuthorityPanel.CodeFont`
+  settles on Consolas where it is installed and a monospaced family where it is not.
+- **`ToolTip` reads a tip right to left whenever the top-level form does**, whatever the control
+  under the pointer says, so a tip on a panel pinned left to right is still drawn right to left
+  under a right-to-left translation. `Tooltips.Wrapped` marks both ends of every line left to
+  right, and `TooltipsTests` pins the flag and the drawing.
+- **`dotnet test` with a filter that matches nothing exits 0**, having run nothing, and its trx
+  counts nothing. A gate that believes the exit code is green over an empty run, so `build.ps1`
+  reads each tier's trx and refuses one in which nothing executed, `Assert-Executed`.
+- **Windows PowerShell 5.1 passes an argument ending in a backslash so that the backslash escapes
+  the closing quote.** `-p:KeePassDevDir=C:\Program Files\KeePass\` reaches `dotnet` as one
+  argument that swallows the `--nologo` after it. `Resolve-KeePass` trims a trailing separator for
+  that reason, keeping it only on a drive root.
 - **C# 7.3 is available, and the packaging is why.** A `.plgx` would be recompiled by KeePass's
   in-box CodeDOM provider, which caps the language at C# 5. This ships a plain DLL and escapes that
   entirely; the probes are conservative only because `Add-Type` compiles them.
@@ -612,6 +652,11 @@ the tools this branch carries.
   file at a time under other work.
 - **Docs stay with code.** A behavior or architecture change updates the design documents in the
   same pass, and reversals are recorded rather than edited away.
+- **American English is checked, not only asked for.** cspell's own `en_US` dictionary accepts the
+  British doubled L, the past tense of cancel or dial spelled with two, and its language
+  dictionaries accept a British spelling or two in code, so `cspell.yaml` refuses about 250 British
+  spellings by name, in `flagWords`. A name that is somebody else's keeps its own spelling behind a
+  `cspell:ignore` where it is quoted.
 
 ## Security posture
 
@@ -762,6 +807,26 @@ where step 11 began.
 ordinary budget is what stops a peer holding a thread by feeding it slowly, and phase 4 exceeds it
 on purpose, because it is blocked on a person. Closing the socket there cancels nothing: the
 invitation is still spent and the record still saved, and only the answer is lost.
+
+**The ordinary budget ends with the request, and only pairing's is a sum.** A connection's deadline
+is dropped once the whole request is off the wire, because that is where the peer stops being able
+to make the connection take longer: what is left is this plugin's own write and save. Pairing keeps
+its deadline, and that asymmetry is the argument rather than an exception to it, since a pairing's
+remaining work is a list of waits somebody wrote down: the screen, because one pairing at a time is
+put to the operator and a second waits as long again just to get in front of them, then the dialog
+and the grace on it, then the turn at the writer. `PairingBudget` is what those are added up
+against. `GateOptionsTests` still pins that one.
+
+**This used to claim a floor for both**, `DatabaseWriter.LockTimeout + DatabaseWriter.WriteTimeout`,
+and it was wrong: `WriteTimeout` bounds the wait for the marshaled call to *start*, and a call that
+has started is waited out with no clock on it. No sum of this plugin's timeouts bounds a save, which
+is a whole-database write of whatever size the database is on whatever storage it sits on: 201 MiB
+of attachments measured 80.6 seconds here, and a heavy KDF adds eight seconds a save. What the
+deadline destroyed was never the peer's grip on the thread but the answer to a write that landed
+anyway, leaving an agent to retry and make a second entry under an identifier it never saw. The test
+that pinned the floor is gone rather than rewritten, because what it asserted was a relation between
+two constants that bounded nothing; `GateListenerTests.A_write_that_outlasts_the_budget_is_still_answered`
+replaced it, over a real socket. See DESIGN.md §119.
 
 **Two things about records that cost time to learn.** They are read from the live database on every
 connection and never cached, so a record that lands takes effect with nothing having to be reloaded

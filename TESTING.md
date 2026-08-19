@@ -130,6 +130,14 @@ longer the only one that does. It is also the only one that moves the pointer, b
 column on that table can be typed into and a list is not something the accessibility tree can be
 asked to operate.
 
+**The authority chooser**, in `LiveAuthorityChooserTests`: two copies of one database each replace
+the authority they share and admit a client of their own, the copy KeePass opens is merged with the
+other through File, Synchronize, and the dialog that raises is answered through its own buttons. It
+is the one test that runs what the chooser's timing was read off KeePass to be: that a synchronize
+announces itself only by the save it ends with. While the dialog is open both clients are told
+`503 undecided`; once one authority is kept it serves at once, the other copy's client reaches
+nothing, and the database is marked changed and left unsaved until the test saves it.
+
 The client half of pairing lives in `tests/Shared/PairingClient.cs` and is compiled into **both**
 test assemblies. That is deliberate: if the loopback tests and the end to end test each had their
 own client, either could pass against a protocol only it knew.

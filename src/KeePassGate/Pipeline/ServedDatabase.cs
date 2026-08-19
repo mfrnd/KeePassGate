@@ -98,7 +98,7 @@ namespace KeePassGate.Pipeline
                 return false;
             }
 
-            context.Respond(503, HttpResponse.ErrorBody(GateConversation.LockedError));
+            context.Respond(503, HttpResponse.ErrorBody(LockedTarget.Error));
             return true;
         }
     }

@@ -39,6 +39,7 @@ namespace KeePassGate
         private GroupDialogs _groupDialogs;
         private MainWindowDatabases _databases;
         private LockWatch _locks;
+        private AuthorityChooser _chooser;
         private InvitationBook _invitations;
 
         /// <summary>
@@ -90,37 +91,46 @@ namespace KeePassGate
         }
 
         /// <summary>
-        /// Opens the socket. Answers with why it could not, or null when it did.
+        /// Opens the socket on the port `Wanted` names. Answers with why it could not, or null
+        /// when it did.
         /// </summary>
         /// <remarks>
         /// Called once, from `Initialize`. A port is bound once and never rebound, which is what
         /// `ChangePort` explains: an operator's new port is saved and taken at the next start, so
         /// there is never a second listener and never an old one to close first.
         /// </remarks>
-        private string Listen(int port, GateResolver resolver, IGateHandler router)
+        private string Listen(GateResolver resolver, IGateHandler router)
         {
             // No old listener to close. This runs once, from `Initialize`, because a port is bound
             // once and never rebound, which is what `ChangePort` explains.
-            var options = new GateOptions { Port = port };
+            string refused;
+            var port = Wanted(out refused);
+
+            _listener = new GateListener(
+                new GateOptions { Port = port }, resolver, router, _incidents, _log);
 
             // **A variable naming something that is not a port stops the gate** rather than the
-            // default being bound in its place, and the log says so in the words the variable is
-            // refused in. The listener is built and never started, so everything that asks it
-            // hears that nothing is listening.
-            string refused;
-            Wanted(out refused);
+            // default being bound in its place. The listener keeps the reason and is never
+            // started, so the plugin's window says why nothing is listening in the words the log
+            // and the box at startup use.
             if (refused != null)
             {
                 _log.Error(refused, null);
-                _listener = new GateListener(options, resolver, router, _incidents, _log);
+                _listener.Refuse(refused);
                 return refused;
             }
 
-            _listener = new GateListener(options, resolver, router, _incidents, _log);
+            if (_listener.Start())
+            {
+                return null;
+            }
 
-            return _listener.Start()
-                ? null
-                : "nothing is listening on 127.0.0.1:" + port + ". The log says why.";
+            // What the listener kept, which is the whole point of its having kept it. Sending the
+            // operator to the log here would be this commit building a surface to reach them with
+            // and then using it to say the answer is somewhere else. The fallback is for a later
+            // refusal that forgets to record one: an empty box says even less than the log line.
+            return _listener.Refusal
+                ?? "nothing is listening on 127.0.0.1:" + port + ". The log says why.";
         }
 
         /// <summary>
@@ -230,9 +240,27 @@ namespace KeePassGate
         {
             try
             {
+                string said = null;
+
                 using (var window = new GateStatusForm(_listener, _incidents, ChangePort, Wanted()))
                 {
                     window.ShowDialog();
+
+                    // What OK answered, taken before the window goes. A button carrying
+                    // `DialogResult.OK` has already set it by the time its `Click` runs, so the
+                    // sentence the handler writes onto the window is painted onto a form the modal
+                    // loop is closing: nobody has ever read it. It matters because it is not a
+                    // receipt. It says the port waits for the next start, and that every client
+                    // paired against the old one has to be told the new one.
+                    if (window.Changed)
+                    {
+                        said = window.Result;
+                    }
+                }
+
+                if (said != null)
+                {
+                    new MessageBoxPrompt().Tell(GateName.Full, said);
                 }
             }
             catch (Exception error)
@@ -271,7 +299,7 @@ namespace KeePassGate
 
         /// <summary>
         /// Rebuild the group tree and the entry list, after a write through the API changed what
-        /// they are showing.
+        /// they are showing, or redraw only the title bar and the menus when they are not.
         /// </summary>
         /// <remarks>
         /// **These are `MainForm.UpdateUISyncPost`'s seven arguments**, which is the call KeePass
@@ -288,20 +316,29 @@ namespace KeePassGate
         /// `DatabaseWriter` has saved already and saying otherwise would put the title bar back to
         /// claiming there is something to save.
         ///
+        /// **Only for the database in front.** The tree and the list show the active document and
+        /// nothing else, and KeePass rebuilds both when another one is brought forward, so a write
+        /// to a database in another tab rebuilds nothing: it would replace what the operator is
+        /// looking at in one database for a change made to a different one. That write, and a
+        /// change taken back out, redraw the title bar, the menus and the tabs alone, which is the
+        /// same call with both lists left as they are.
+        ///
         /// **What it costs, said rather than denied.** A rebuild replaces whatever the entry list
         /// is showing with the selected group's entries, so an operator looking at search results
-        /// when a write lands loses them. KeePass accepts that for a synchronize; there is no
-        /// cheaper call that would show a created or deleted entry, and the alternative is a window
-        /// that goes on showing a database that is no longer there. It resets the inactivity timer
-        /// through `NotifyUserActivity`, which changes nothing: `SaveDatabase` ends in
-        /// `UpdateUIState`, which already does that, so every write already postponed the lock.
+        /// when a write lands in that database loses them. KeePass accepts that for a synchronize;
+        /// there is no cheaper call that would show a created or deleted entry, and the alternative
+        /// is a window that goes on showing a database that is no longer there. It resets the
+        /// inactivity timer through `NotifyUserActivity`, which changes nothing: `SaveDatabase`
+        /// ends in `UpdateUIState`, which already does that, so every write already postponed the
+        /// lock.
         ///
         /// Not wrapped here. `DatabaseWriter.Redraw` catches, because it is the one that knows the
         /// write has landed and must not report otherwise.
         /// </remarks>
-        private static void Redrawn(KeePass.Forms.MainForm main)
+        private static void Redrawn(KeePass.Forms.MainForm main, KeePassLib.PwDatabase database, bool lists)
         {
-            main.UpdateUI(false, null, true, null, true, null, false);
+            var rebuild = lists && ReferenceEquals(main.ActiveDatabase, database);
+            main.UpdateUI(false, null, rebuild, null, rebuild, null, false);
         }
 
         /// <summary>
@@ -533,6 +570,19 @@ namespace KeePassGate
 
             try
             {
+                if (_chooser != null)
+                {
+                    _chooser.Dispose();
+                    _chooser = null;
+                }
+            }
+            catch (Exception error)
+            {
+                Report("failed to stop the authority chooser", error);
+            }
+
+            try
+            {
                 if (_databases != null)
                 {
                     _databases.Dispose();
@@ -655,17 +705,19 @@ namespace KeePassGate
             // KeePass's: `SaveDatabase` ends by assigning `Enabled = true` to the main window,
             // which is harmless for KeePass, whose own callers never save inside a modal loop,
             // and is this plugin re-enabling the window behind an operator's open dialog.
+            var writer = new DatabaseWriter(
+                ui,
+                database => WindowEnabling.Preserve(
+                    mainWindow, () => mainWindow.SaveDatabase(database, null)),
+                () => Interrupting(mainWindow),
+                (database, lists) => Redrawn(mainWindow, database, lists),
+                _admissions.Raise,
+                _groupDialogs,
+                _log);
+
             _targets = new OpenDatabaseTargets(
                 delegate { return mainWindow.DocumentManager.GetOpenDatabases(); },
-                new DatabaseWriter(
-                    ui,
-                    database => WindowEnabling.Preserve(
-                        mainWindow, () => mainWindow.SaveDatabase(database, null)),
-                    () => Interrupting(mainWindow),
-                    () => Redrawn(mainWindow),
-                    _admissions.Raise,
-                    _groupDialogs,
-                    _log),
+                writer,
                 _log);
 
             _settings = new KeePassSettings(_log);
@@ -683,7 +735,21 @@ namespace KeePassGate
 
             var resolver = new GateResolver(_targets, _invitations, _log);
 
-            Listen(Wanted(), resolver, router);
+            // **A gate that cannot bind says so once, and stays down for the session**, and so does
+            // one given no port it may take, because `KEEPASSGATE_PORT` names something else.
+            // Nothing rebinds after this: the port is taken here or it is not taken at all. So the
+            // reason has to reach the person in front of the screen rather than only the log,
+            // because otherwise the first they hear of it is a client that will not connect, and
+            // nothing they can do inside KeePass would have told them.
+            //
+            // Shown once the window is, rather than from here. A modal box raised from `Initialize`
+            // holds up the load of every plugin after this one and of the window itself, and one
+            // posted from here does not wait long enough: `Announce` says what it met instead.
+            var refused = Listen(resolver, router);
+            if (refused != null)
+            {
+                Announce(mainWindow, refused);
+            }
 
             // Locking has to be watched from here rather than from the tab, because it happens
             // whether or not anybody has the settings dialog open, and because both transitions
@@ -697,6 +763,98 @@ namespace KeePassGate
             // window under Tools is where the count is read.
             _locks = new LockWatch(_databases, _targets, () => _listener, _log, _incidents);
             _locks.Start();
+
+            // After the lock watch, so that an unlock has been read by the time the question is
+            // posted; and through the one writer, whose guard is what a choice has to pass. The
+            // audit is asked for where it is writing each time, for the last request of each
+            // client the dialog lists.
+            _chooser = new AuthorityChooser(
+                _databases,
+                _targets,
+                writer,
+                mainWindow,
+                () => Interrupting(mainWindow),
+                () => _audit == null ? null : _audit.Path,
+                new MessageBoxPrompt(),
+                _incidents,
+                _log);
+            _chooser.Start();
+        }
+
+        /// <summary>
+        /// Puts one sentence in front of the operator, once KeePass has a window to put it over.
+        /// </summary>
+        /// <remarks>
+        /// The plugin is still loaded and everything on its window still works. What is gone until
+        /// the next start is the socket, and saying only that half would read as the plugin having
+        /// failed altogether.
+        ///
+        /// **Once the main window has been shown, and not before.** `Initialize` runs inside
+        /// `MainForm.OnFormLoad`, which goes on from loading the plugins to opening the database
+        /// named on the command line or the one last used, and KeePass opens the last one unless
+        /// the operator has told it not to. The master key prompt that asks for it is a modal loop,
+        /// and a modal loop pumps whatever was posted: a box posted from here arrived over that
+        /// prompt, before the main window existed, and took the keyboard, so an Enter meant for
+        /// the prompt dismissed it unread. The window's `Shown` comes after all of that, so the box
+        /// is posted from there, once. A KeePass that starts in the tray shows it when the window
+        /// is first brought up, which is when the operator is there to read it.
+        ///
+        /// **The box is raised on the other side of a post, which is where the guard has to be.**
+        /// A `try` around `BeginInvoke` covers the posting and nothing else: the work runs later,
+        /// on the user interface thread, with this method long since returned. `Unattended.Post`
+        /// is what carries the catch across, and its remark says why the marshaling
+        /// `ControlUiThread` already owns is the wrong machinery for a caller that is not waiting.
+        /// </remarks>
+        private void Announce(Form mainWindow, string refused)
+        {
+            EventHandler shown = null;
+            shown = delegate
+            {
+                mainWindow.Shown -= shown;
+
+                // A plugin that was let go before the window came up has nothing to announce: its
+                // load was refused, and the sentence below would say everything else works.
+                if (_pluginHost != null)
+                {
+                    PostRefusal(mainWindow, refused);
+                }
+            };
+
+            mainWindow.Shown += shown;
+        }
+
+        private void PostRefusal(Control mainWindow, string refused)
+        {
+            // One sentence for both halves, because they are one fact: whichever way it failed,
+            // the operator has not been told. Which route reported it says which half.
+            const string unsaid = "the operator could not be told that the gate is not listening";
+
+            try
+            {
+                Unattended.Post(
+                    mainWindow,
+                    delegate
+                    {
+                        new MessageBoxPrompt().Tell(
+                            GateName.Full,
+                            refused + Environment.NewLine + Environment.NewLine
+                            + "No client can connect until KeePass is started again. Everything else "
+                            + "works as usual: settings, authorities and profiles can all be changed, "
+                            + "and the gate takes the port it is set to at the next start.");
+                    },
+                    error => Report(unsaid, error));
+            }
+            catch (Exception error) when (Expected.OfUserInterface(error))
+            {
+                // A window that has gone, or never had a handle. Foreseen, so it stays a log line
+                // rather than an incident: nothing here is a defect in this plugin. Read into a
+                // local first, the way `Report` does, since `Terminate` sets the field to null.
+                var log = _log;
+                if (log != null)
+                {
+                    log.Error(unsaid, error);
+                }
+            }
         }
 
         /// <summary>

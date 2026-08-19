@@ -41,8 +41,9 @@ namespace KeePassGate.Audit
     /// arrays of strings and nothing else. It is a real cost and it is paid deliberately: the lines
     /// it refuses are exactly the interesting ones, a question that never reached a node, which is
     /// every certificate this authority issued and the gate refused, and nothing in the plugin
-    /// reads the audit back anyway. A line with no client is written only by a defect: a caller
-    /// that proved nothing to this authority is not written down at all. The reader this file is
+    /// parses a line back: the one reader, `JsonLinesAudit.LastSeen`, finds `at` and `client` by
+    /// position for the authority chooser. A line with no client is written only by a defect:
+    /// a caller that proved nothing to this authority is not written down at all. The reader this file is
     /// written for is whatever the operator already greps with.
     /// </remarks>
     public sealed class AuditEntry

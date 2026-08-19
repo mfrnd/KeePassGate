@@ -514,6 +514,7 @@ def test_naming_the_identity_twice_is_an_argument_error(tmp_path: Path) -> None:
         "--connection-timeout",
         "--retry-busy-timeout",
         "--retry-locked-timeout",
+        "--retry-undecided-timeout",
         "--max-response-bytes",
     ],
 )

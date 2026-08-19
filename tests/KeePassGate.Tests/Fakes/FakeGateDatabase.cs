@@ -91,11 +91,19 @@ namespace KeePassGate.Tests.Fakes
 
         public string LastQuestion { get; private set; }
 
+        /// <summary>What the last <see cref="Tell"/> said, or null when nothing has been said.</summary>
+        public string LastNews { get; private set; }
+
         public bool Confirm(string title, string question)
         {
             Asked++;
             LastQuestion = question;
             return _answer;
+        }
+
+        public void Tell(string title, string news)
+        {
+            LastNews = news;
         }
     }
 }

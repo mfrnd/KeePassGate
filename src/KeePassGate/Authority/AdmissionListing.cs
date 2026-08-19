@@ -27,6 +27,7 @@ namespace KeePassGate.Authority
     public sealed class AdmissionListing
     {
         private readonly IReadOnlyList<AdmissionRecord> _records;
+        private readonly IReadOnlyList<string> _unreadable;
         private readonly int _cameBack;
         private readonly bool _complete;
 
@@ -36,8 +37,15 @@ namespace KeePassGate.Authority
         }
 
         public AdmissionListing(IReadOnlyList<AdmissionRecord> records, int cameBack, bool complete)
+            : this(records, null, cameBack, complete)
+        {
+        }
+
+        public AdmissionListing(
+            IReadOnlyList<AdmissionRecord> records, IReadOnlyList<string> unreadable, int cameBack, bool complete)
         {
             _records = records ?? Array.Empty<AdmissionRecord>();
+            _unreadable = unreadable ?? Array.Empty<string>();
             _cameBack = Math.Max(0, cameBack);
             _complete = complete;
         }
@@ -46,6 +54,22 @@ namespace KeePassGate.Authority
         public IReadOnlyList<AdmissionRecord> Records
         {
             get { return _records; }
+        }
+
+        /// <summary>
+        /// The admission keys of the records that were listed and would not read, which admit
+        /// nobody.
+        /// </summary>
+        /// <remarks>
+        /// Keys rather than records, because a record that will not read has nothing else to say:
+        /// no subject, no profiles, no certificate. They are kept because the clients page lists
+        /// them, which is the one place the operator can take them away short of recreating the
+        /// authority, and because the authority's count includes them and the page has to be able
+        /// to say which ones those are.
+        /// </remarks>
+        public IReadOnlyList<string> Unreadable
+        {
+            get { return _unreadable; }
         }
 
         /// <summary>

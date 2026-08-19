@@ -216,11 +216,10 @@ namespace KeePassGate.Ui
             facts.Controls.Add(addressName, 0, rows.Count);
             facts.Controls.Add(_addresses, 1, rows.Count);
 
-            // Whatever the operator last chose, or what the gate actually ended up on, so that
-            // pressing OK without touching it changes nothing. `_opened` is what makes the second
-            // half true: the two differ for the whole of the session after a port is written down,
-            // because the box then shows the socket the gate is still on rather than the port that
-            // is waiting for the next start.
+            // What the next start takes, so that pressing OK without touching it changes nothing:
+            // `_opened` is what an untouched OK is measured against. The socket the gate is on now
+            // is the row above, and after a port is written down the two differ for the rest of
+            // the session.
             _opened = Starting(gate, chosen);
             _port = new NumericUpDown
             {
@@ -268,10 +267,14 @@ namespace KeePassGate.Ui
 
             layout.Controls.Add(_result);
 
+            // A port waiting for the next start first, because it is the one thing on the window
+            // that is about to change and the box showing it is the only other place it appears.
+            var waiting = Waiting(gate, chosen);
+
             layout.Controls.Add(new TextLabel
             {
                 Name = GateTab.StatusAdviceName,
-                Text = Advice(gate),
+                Text = waiting == null ? Advice(gate) : waiting + " " + Advice(gate),
                 AutoSize = true,
                 MaximumSize = new Size(LogicalToDeviceUnits(390), 0),
                 Margin = new Padding(0, 0, 0, LogicalToDeviceUnits(Spacing.Gap))
@@ -350,6 +353,14 @@ namespace KeePassGate.Ui
         /// <summary>Whether the last press of OK took the port it was given.</summary>
         public bool Applied { get; private set; }
 
+        /// <summary>Whether a port was actually written down, rather than merely accepted.</summary>
+        /// <remarks>
+        /// Separate from `Applied`, which is also true of an OK on a box nobody moved. That one is
+        /// the question "was the operator refused"; this one is "is there anything to tell them",
+        /// and there is nothing to tell somebody about a port that is where it already was.
+        /// </remarks>
+        public bool Changed { get; private set; }
+
         /// <summary>What the last press of OK said, or null when it has said nothing.</summary>
         public string Result
         {
@@ -383,6 +394,7 @@ namespace KeePassGate.Ui
         public string Keep()
         {
             Applied = false;
+            Changed = false;
 
             if (_apply == null)
             {
@@ -393,10 +405,9 @@ namespace KeePassGate.Ui
 
             if (wanted == _opened)
             {
-                // Untouched, so there is nothing to write and writing anyway would undo something.
-                // The box shows the port the gate is on, which after a change is not the port that
-                // was chosen: writing this back would answer an operator who opened the window to
-                // check their change by silently taking it away.
+                // Untouched, so there is nothing to write. The box opened on what the next start
+                // takes, so writing it again would change nothing and would still write KeePass's
+                // configuration for it.
                 Applied = true;
                 return Said(Untouched(wanted));
             }
@@ -414,6 +425,7 @@ namespace KeePassGate.Ui
             }
 
             Applied = true;
+            Changed = true;
 
             return Said(Kept(wanted));
         }
@@ -433,8 +445,19 @@ namespace KeePassGate.Ui
         }
 
         /// <summary>What OK says once the port has been written down.</summary>
-        private static string Kept(int wanted)
+        /// <remarks>
+        /// Typing the port the gate is listening on is how a port waiting for the next start is
+        /// taken back, and it says so, rather than telling the operator to reconfigure clients
+        /// that are already on the right port.
+        /// </remarks>
+        private string Kept(int wanted)
         {
+            if (_where == wanted)
+            {
+                return "Saved. The gate stays on 127.0.0.1:" + wanted + " when KeePass next starts, "
+                    + "where it is listening now, so no client has anything to change.";
+            }
+
             return "Saved. The gate takes 127.0.0.1:" + wanted + " the next time KeePass starts, "
                 + "and clients paired against the old port have to be told the new one.";
         }
@@ -446,19 +469,48 @@ namespace KeePassGate.Ui
         }
 
         /// <summary>
-        /// What the box starts on: what the gate is actually using, or what was chosen when it is
-        /// using nothing, or the default when neither says anything.
+        /// What the box starts on: what the next start takes, which is what was chosen, or the
+        /// port the gate is on when nothing was, or the default when neither says anything.
         /// </summary>
+        /// <remarks>
+        /// **The choice rather than the socket**, and it used to be the socket. The two differ for
+        /// the whole of the session after a port is written down, since nothing rebinds, and a box
+        /// showing the socket then left the port waiting for the next start shown nowhere at all,
+        /// under a label saying the box is the port to listen on. Typing the socket's port back
+        /// was an untouched OK and wrote nothing, so a waiting port could be moved but never taken
+        /// back from here. The socket is the row above the box, and the box is the setting.
+        /// </remarks>
         private static decimal Starting(IGateStatus gate, int chosen)
         {
-            if (gate != null && gate.IsListening && gate.Port >= GatePort.Lowest && gate.Port <= GatePort.Highest)
+            if (chosen >= GatePort.Lowest && chosen <= GatePort.Highest)
             {
-                return gate.Port;
+                return chosen;
             }
 
-            return chosen >= GatePort.Lowest && chosen <= GatePort.Highest
-                ? chosen
-                : Transport.GateOptions.DefaultPort;
+            var listening = gate != null && gate.IsListening
+                            && gate.Port >= GatePort.Lowest && gate.Port <= GatePort.Highest;
+
+            return listening ? gate.Port : Transport.GateOptions.DefaultPort;
+        }
+
+        /// <summary>
+        /// Where the gate moves at the next start, when that is not where it is listening now, or
+        /// null.
+        /// </summary>
+        /// <remarks>
+        /// Said in words as well as shown in the box, because the box alone is a number beside a
+        /// row naming another one, and which of the two is waiting is the thing to be sure of.
+        /// </remarks>
+        public static string Waiting(IGateStatus gate, int chosen)
+        {
+            if (gate == null || !gate.IsListening
+                || chosen < GatePort.Lowest || chosen > GatePort.Highest || chosen == gate.Port)
+            {
+                return null;
+            }
+
+            var port = chosen.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            return "The gate moves to 127.0.0.1:" + port + " the next time KeePass starts.";
         }
 
         /// <summary>
@@ -500,16 +552,55 @@ namespace KeePassGate.Ui
                 : "no, nothing can reach any database";
         }
 
-        /// <summary>What to do about it, which differs only by whether anything is listening.</summary>
-        private static string Advice(IGateStatus gate)
+        /// <summary>
+        /// What to do about what the table says.
+        /// </summary>
+        /// <remarks>
+        /// **A gate that is down is down for the session**, because the port is bound once at
+        /// startup and never rebound, so this is the sentence that has to carry both halves: what
+        /// went wrong, and that only starting KeePass again will change it. The other half matters
+        /// as much: nothing else about the plugin has stopped, and an operator who reads "not
+        /// listening" and closes the window would never find out that everything on it still works.
+        /// </remarks>
+        public static string Advice(IGateStatus gate)
         {
             if (gate != null && !gate.IsListening)
             {
-                return "The log says why. Nothing reaches any database until the gate is listening.";
+                var why = string.IsNullOrEmpty(gate.Refusal)
+                    ? "The gate is not listening. The log says why."
+                    : Sentence(gate.Refusal);
+
+                return why
+                    + " Nothing reaches any database until KeePass is started again. Everything else "
+                    + "here still works: settings, authorities and profiles can all be changed, and "
+                    + "they are waiting for the next start too.";
             }
 
             return "A database is served only once it has an authority, which is set up on the "
                 + GateName.OnATab + " tab of that database's settings.";
+        }
+
+        /// <summary>
+        /// Ends a fragment so the next sentence can follow it.
+        /// </summary>
+        /// <remarks>
+        /// What goes in front is a reason from somewhere else, and Windows's own socket messages
+        /// end without a stop: without this, "Only one usage of each socket address is normally
+        /// permitted Nothing reaches any database" is one run-on line and reads as one sentence
+        /// nobody finished writing.
+        /// </remarks>
+        private static string Sentence(string fragment)
+        {
+            var trimmed = fragment.TrimEnd();
+
+            if (trimmed.Length == 0)
+            {
+                return trimmed;
+            }
+
+            var last = trimmed[trimmed.Length - 1];
+
+            return last == '.' || last == '!' || last == '?' ? trimmed : trimmed + ".";
         }
 
         /// <summary>

@@ -101,6 +101,17 @@ namespace KeePassGate.Ui
             get { return _details; }
         }
 
+        /// <summary>The details as the page shows them: a line each.</summary>
+        /// <remarks>
+        /// Joined here rather than where they are drawn, so that what the tab is measured against
+        /// is joined the same way. It was not: the longest detail was one paragraph joined with
+        /// spaces, and a paragraph wraps to fewer rows than the same sentences a line each.
+        /// </remarks>
+        public string DetailText
+        {
+            get { return string.Join(Environment.NewLine, _details); }
+        }
+
         public bool CanCreate
         {
             get { return _canCreate; }
@@ -115,6 +126,12 @@ namespace KeePassGate.Ui
         {
             get { return _canDelete; }
         }
+
+        /// <summary>
+        /// Whether there are several authorities to choose between, which is the one state the
+        /// page offers the chooser in, in the place Create has.
+        /// </summary>
+        public bool CanChoose { get; private set; }
 
         /// <summary>
         /// Whether the authority's own dates have passed, which is a state an operator can only
@@ -168,17 +185,26 @@ namespace KeePassGate.Ui
         }
 
         /// <summary>
-        /// What to say about this authority, given the records it admits.
+        /// What to say about this authority, given the records it admits and how far each gets
+        /// with the gate before its dates.
         /// </summary>
         /// <remarks>
         /// The records are a parameter rather than an overload that defaults them away. One existed
         /// and every caller that took it silently lost the client expiry warnings, which is the
         /// failure this class was given records to prevent: a client stops being admitted one
         /// morning with nothing having said so. Null still means "not asked for", and now a caller
-        /// has to write it down.
+        /// has to write it down. The same goes for the reaches, where null counts every record.
         /// </remarks>
+        /// <param name="reaches">
+        /// What the gate asks before a record's dates, by admission key, as the clients page is
+        /// told it: a record the gate refuses before its dates is left out of the expiry
+        /// warnings, which exist to say that a client is about to stop being admitted.
+        /// </param>
         public static AuthorityDescription Of(
-            AuthorityReading reading, AdmissionListing clients, DateTimeOffset now)
+            AuthorityReading reading,
+            AdmissionListing clients,
+            IDictionary<string, ClientReach> reaches,
+            DateTimeOffset now)
         {
             if (reading == null)
             {
@@ -205,11 +231,14 @@ namespace KeePassGate.Ui
                     // candidates is retired either way, so both are offered. Creating is not,
                     // because there is no absence to fill.
                     return new AuthorityDescription(
-                        UndecidedHeadline, null, Undecided(reading), false, true, true);
+                        UndecidedHeadline, null, Undecided(reading), false, true, true)
+                    {
+                        CanChoose = true
+                    };
 
                 default:
                     return new AuthorityDescription(
-                        PresentHeadline, FactsOf(reading), Warnings(reading, clients, now),
+                        PresentHeadline, FactsOf(reading), Warnings(reading, clients, reaches, now),
                         false, true, true, true,
                         CertificateValidity.HasExpired(reading.Material.Authority, now),
                         CertificateValidity.HasExpired(reading.Material.Host, now));
@@ -227,12 +256,14 @@ namespace KeePassGate.Ui
         /// </remarks>
         private static IEnumerable<string> Undecided(AuthorityReading reading)
         {
-            return new List<string>
-            {
-                reading.Candidates.Count.ToString(CultureInfo.InvariantCulture) +
-                " authorities were made separately in copies of this database that were later " +
-                "merged. Nothing is served until one of them is kept."
-            };
+            return new List<string> { UndecidedLine(reading.Candidates.Count) };
+        }
+
+        private static string UndecidedLine(int candidates)
+        {
+            return candidates.ToString(CultureInfo.InvariantCulture) +
+                   " authorities were made separately in copies of this database that were later " +
+                   "merged. Nothing is served until one of them is kept: choose it below.";
         }
 
         private static IEnumerable<string> RecordsOnly(AuthorityReading reading)
@@ -240,11 +271,16 @@ namespace KeePassGate.Ui
             var lines = new List<string>();
             if (reading.ClientRecordCount > 0)
             {
-                lines.Add(Records(reading.ClientRecordCount) +
-                          " left without an authority to make sense of them, so every one of them is inert.");
+                lines.Add(RecordsOnlyLine(reading.ClientRecordCount));
             }
 
             return lines;
+        }
+
+        private static string RecordsOnlyLine(int records)
+        {
+            return Records(records) +
+                   " left without an authority to make sense of them, so every one of them is inert.";
         }
 
         /// <summary>
@@ -259,7 +295,8 @@ namespace KeePassGate.Ui
         /// out of reach with no way to scroll to them. The whole message is in the log.
         ///
         /// The two lines added under them are this plugin's own words at a length it chose, so
-        /// they are not cut. <see cref="LongestDetail"/> does not include them.
+        /// they are not cut, and <see cref="LongestDescriptions"/> holds them whole by asking this
+        /// for them.
         /// </remarks>
         private static IEnumerable<string> Damage(AuthorityReading reading)
         {
@@ -301,23 +338,33 @@ namespace KeePassGate.Ui
         }
 
         private static IEnumerable<string> Warnings(
-            AuthorityReading reading, AdmissionListing clients, DateTimeOffset now)
+            AuthorityReading reading,
+            AdmissionListing clients,
+            IDictionary<string, ClientReach> reaches,
+            DateTimeOffset now)
         {
             var material = reading.Material;
 
             var warnings = new List<string>();
             Expiry(warnings, "Authority", material.Authority.NotAfter, now);
             Expiry(warnings, "Host certificate", material.Host.NotAfter, now);
-            Clients(warnings, clients == null ? null : clients.Records, now);
+            Clients(warnings, clients == null ? null : clients.Records, reaches, now);
             Unreadable(warnings, clients, reading.ClientRecordCount);
 
+            return OneLine(warnings);
+        }
+
+        /// <summary>
+        /// One line however many there are, because this is the line that has to be read and
+        /// separate sentences are a paragraph nobody reads.
+        /// </summary>
+        private static List<string> OneLine(List<string> warnings)
+        {
             if (warnings.Count == 0)
             {
                 return warnings;
             }
 
-            // One line however many there are, because this is the line that has to be read and
-            // separate sentences are a paragraph nobody reads.
             return new List<string> { string.Join(" ", warnings.ToArray()) };
         }
 
@@ -339,47 +386,84 @@ namespace KeePassGate.Ui
         }
 
         /// <summary>
-        /// The longest this line can be, so that the tab is measured against what it will ever
-        /// have to show rather than against what it happens to show today.
+        /// The longest the page can be under each headline, so that the tab is measured against
+        /// what it will ever have to show rather than against what it happens to show today.
         /// </summary>
         /// <remarks>
-        /// A damaged reading, not an expiring one. The expiry warnings are one sentence and
-        /// this used to return them, which measured the tab against a state strictly shorter
-        /// than the one it actually has to survive: `AuthorityStore` reports damage a problem
-        /// at a time, and they are shown joined.
+        /// **Composed by what composes the page, and joined the way the page joins it.** This was
+        /// one paragraph written out by hand, with a remark saying `GateTabFitsTests` kept it in
+        /// step, which that test cannot do: it measures what it is given, and cut to six characters
+        /// every test stayed green. It held neither of the two lines `Damage` adds, mixed damage
+        /// with warnings that are never on screen with it, and was joined with spaces where the
+        /// page puts each detail on a line of its own. Now each is what the page's own composer
+        /// says for the longest input it can be given, and <see cref="DetailText"/> joins it.
         ///
-        /// Kept in step by hand, because the problems are composed where they are found. If a
-        /// longer one is added there, it belongs here too, and no test notices when it is not.
+        /// **What is still written down is which inputs can arrive together**, each beside the
+        /// code that decides it: `AuthorityStore.LongestProblems` for the problems one authority
+        /// can be reported with at once, and here for the warnings, where a listing that could
+        /// not be made is said in place of the records it could not read, so the longer of those
+        /// two is taken rather than both.
         ///
-        /// **The first line is a cut one**, which is what bounds this at all. Two of the problems
-        /// a reading can carry end in whatever an exception said, so before `Damage` cut them
-        /// there was no longest detail to measure: the line was as long as somebody else's message
-        /// and the tab was measured against a state strictly shorter than one it has to survive.
+        /// **The problem that ends in an exception's message is a cut one**, which is what bounds
+        /// a damaged page at all: `Damage` cuts it at `Clipped.Limit`, and the message given here
+        /// is long enough to be cut, in words of ordinary length so that it wraps the way a real
+        /// one does.
         /// </remarks>
-        public static string LongestDetail()
+        public static IReadOnlyList<AuthorityDescription> LongestDescriptions()
         {
-            return string.Join(" ", new[]
+            var most = Counts.Max();
+
+            List<string> damage;
+            using (var damaged = AuthorityReading.Damaged(AuthorityStore.LongestProblems(Thrown), most, true))
             {
-                Clipped.Message(
-                    "The authority could not be read: the key set for this certificate is not " +
-                    "available on this machine, and the profile it would have been read from " +
-                    "could not be loaded either. Ask whoever administers this computer."),
-                "The host certificate could not be checked against this authority on this " +
-                "machine. Nothing here says the authority is wrong; recreating it would not help.",
-                "Authority expired on 2036-08-12 09:41:07.",
-                "Host certificate expires in 88 days.",
-                Longest(Expired),
-                Longest(Expiring),
-                Longest(Unreadable),
-                CouldNotList
-            });
+                damage = Damage(damaged).ToList();
+            }
+
+            // Expired rather than expiring, because a date is wider than a count of days, and
+            // every date is written as wide as every other.
+            var date = new DateTime(2036, 8, 12, 9, 41, 7, DateTimeKind.Utc);
+            var after = new DateTimeOffset(date).AddSeconds(1);
+
+            var warnings = new List<string>();
+            Expiry(warnings, "Authority", date, after);
+            Expiry(warnings, "Host certificate", date, after);
+            warnings.Add(Longest(Expired));
+            warnings.Add(Longest(Expiring));
+            warnings.Add(new[] { Longest(Unreadable), CouldNotList }.OrderByDescending(line => line.Length).First());
+
+            return new List<AuthorityDescription>
+            {
+                new AuthorityDescription(DamagedHeadline, null, damage, false, true, true),
+                new AuthorityDescription(PresentHeadline, LongestFacts(), OneLine(warnings), false, true, true),
+                new AuthorityDescription(UndecidedHeadline, null, new[] { Longest(UndecidedLine) }, false, true, true)
+                {
+                    CanChoose = true
+                },
+                new AuthorityDescription(AbsentHeadline, null, new[] { Longest(RecordsOnlyLine) }, true, false, true)
+            };
         }
+
+        /// <summary>What stands in for an exception's message where the longest page is composed.</summary>
+        private const string Thrown =
+            "the key set for this certificate is not available on this machine, and the profile it " +
+            "would have been read from could not be loaded either. Ask whoever administers this computer.";
 
         /// <summary>
         /// What is about to stop working. A client that expires is not a failure anybody sees
         /// coming otherwise: it simply stops being admitted one morning.
         /// </summary>
-        private static void Clients(ICollection<string> lines, IReadOnlyList<AdmissionRecord> records, DateTimeOffset now)
+        /// <remarks>
+        /// **Only records the gate would get as far as the dates of.** One from another
+        /// authority, one issued for something other than a client, and one not valid yet are
+        /// refused before their end matters, and the clients page names them so; warning that one
+        /// of them expires within the month had the operator looking to pair again a program the
+        /// other page said had never reached the database at all.
+        /// </remarks>
+        private static void Clients(
+            ICollection<string> lines,
+            IReadOnlyList<AdmissionRecord> records,
+            IDictionary<string, ClientReach> reaches,
+            DateTimeOffset now)
         {
             if (records == null || records.Count == 0)
             {
@@ -391,6 +475,13 @@ namespace KeePassGate.Ui
 
             foreach (var record in records)
             {
+                ClientReach reach;
+                if (reaches != null && reaches.TryGetValue(record.AdmissionKey, out reach)
+                    && reach != ClientReach.Reaches)
+                {
+                    continue;
+                }
+
                 using (var certificate = record.Certificate())
                 {
                     // Through `CertificateValidity`, so the tab cannot call a client expired at an
@@ -427,7 +518,10 @@ namespace KeePassGate.Ui
         /// Without this the tab counts one thing and warns about another: the fact is every stored
         /// key, and only the readable ones can be checked for expiry, so a damaged record made the
         /// two numbers disagree with nothing on screen to explain it. The client it belonged to is
-        /// refused, which is the safe half, and this is the half an operator can act on.
+        /// refused, which is the safe half, and this is the half an operator can act on: the
+        /// sentence says where, because the clients page lists such a record by its key, with an
+        /// X that takes it away, where it used to be listed nowhere and the one way to be rid of it
+        /// on this tab was to recreate the authority and have every client pair again.
         /// </remarks>
         private static void Unreadable(
             ICollection<string> lines, AdmissionListing clients, int stored)
@@ -487,7 +581,9 @@ namespace KeePassGate.Ui
 
         private static string Unreadable(int records)
         {
-            return Records(records) + " cannot be read, so nobody they admitted is served.";
+            return records == 1
+                ? Records(records) + " cannot be read and admits nobody. The Clients page lists it."
+                : Records(records) + " cannot be read and admit nobody. The Clients page lists them.";
         }
 
         /// <summary>The widest the table can be, for the same reason.</summary>

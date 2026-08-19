@@ -28,7 +28,7 @@ from . import proofs, sni, transport
 from . import token as token_text
 from .errors import (
     DatabaseLocked,
-    GateBusy,
+    GateUnavailable,
     PairingError,
     PairingRefused,
     PairingUnanswered,
@@ -100,6 +100,7 @@ class Pairing:
         host: str = transport.LOOPBACK,
         retry_busy_timeout: float | None = transport.DEFAULT_RETRY_BUSY_TIMEOUT,
         retry_locked_timeout: float | None = transport.DEFAULT_RETRY_LOCKED_TIMEOUT,
+        retry_undecided_timeout: float | None = transport.DEFAULT_RETRY_UNDECIDED_TIMEOUT,
         max_response_bytes: int = transport.MAX_RESPONSE_BYTES,
     ) -> None:
         """Take the port the operator gave, the token from the tab, and where to dial.
@@ -108,12 +109,12 @@ class Pairing:
         conversation with one KeePass. The proofs are over the certificate the gate serves and the
         token the operator handed out, so nothing about them depends on the address.
 
-        The two retry budgets are spent by `hello` and nowhere else, for the reason on the class.
-        There is no per-call override here as there is on `GateClient`: one `Pairing` is one
-        invitation used once, so there is no second call for a different number to apply to.
+        The three retry budgets are spent by `hello` and nowhere else, for the reason on the
+        class. There is no per-call override here as there is on `GateClient`: one `Pairing` is
+        one invitation used once, so there is no second call for a different number to apply to.
 
         `max_response_bytes` caps each answer as it does on `GateClient`, and it, the port, the
-        socket timeout and the two budgets are refused the same way, here and before any hello.
+        socket timeout and the three budgets are refused the same way, here and before any hello.
         """
         self._port = transport.port_number(port)
         # Stripped here rather than in `token.decode`, which refuses anything that is not
@@ -127,6 +128,9 @@ class Pairing:
         self._retry_locked_timeout = transport.retry_limit(
             "retry_locked_timeout", retry_locked_timeout
         )
+        self._retry_undecided_timeout = transport.retry_limit(
+            "retry_undecided_timeout", retry_undecided_timeout
+        )
         self._max_response_bytes = transport.response_limit(max_response_bytes)
 
     def hello(self) -> Exchange:
@@ -139,13 +143,17 @@ class Pairing:
         fresh challenge, so a retry is a new phase 3 rather than the same one sent twice: there
         is no message being replayed and nothing carried over from the attempt that was refused.
         """
-        retry = transport.Retry(busy=self._retry_busy_timeout, locked=self._retry_locked_timeout)
+        retry = transport.Retry(
+            busy=self._retry_busy_timeout,
+            locked=self._retry_locked_timeout,
+            undecided=self._retry_undecided_timeout,
+        )
 
         while True:
             try:
                 bound, nonce, reply = self._hello_once()
                 _refuse(reply)
-            except (GateBusy, DatabaseLocked) as refusal:
+            except GateUnavailable as refusal:
                 if retry.waited(refusal):
                     continue
 
@@ -294,29 +302,40 @@ def _refuse(reply: transport.Response) -> None:
     if reply.status == 200:
         return
 
-    error = reply.error()
-
-    if reply.status == 503 and error == "locked":
-        raise DatabaseLocked(
-            "the database is locked, so pairing has nothing to issue from", reply.retry_after
-        )
-
     if reply.status == 503:
         # The invitation survives, and that is a property of the gate rather than a hope.
-        # `PairingHandler.Approve` answers `503` in three places and every one of them is before
-        # the invitation is burned: the blocked check, a dialog that could not be shown, and a
-        # dialog that never reached the screen. After the burn it answers `500` instead, in as
-        # many words, because a client told to come back would be turned away at the name. So a
-        # `503` from this route means no certificate was issued and no record was written.
+        # `PairingHandler.Approve` answers `503` in four places and every one of them is before
+        # the invitation is burned: the blocked check before the dialog and again after it, a
+        # dialog that could not be shown, and one that never reached the screen. After the burn
+        # it answers `500` instead, in as many words, because a client told to come back would be
+        # turned away at the name. So a `503` from this route means no certificate was issued and
+        # no record was written, and `locked` and `undecided` are answered before the request is
+        # read at all.
+        #
+        # What `busy` asks about is the writer's `Blocked`, which looks at no group dialog, and
+        # the screen: so the message names those rather than guessing at a dialog the gate never
+        # asked about.
         #
         # The challenge does not survive, so retrying this half alone earns `409 no exchange`.
         # What can be tried again is the whole pairing, which is what `api.pair` is.
-        raise GateBusy(
-            "the gate cannot write a record right now, most likely because a group "
-            "dialog is open. The invitation is still good, but this exchange is not: "
-            "say hello again.",
-            reply.retry_after,
+        raise transport.unavailable(
+            reply,
+            locked="the database is locked, so pairing has nothing to issue from",
+            busy=(
+                "the gate cannot put this pairing to the operator right now: KeePass is part way "
+                "through something of its own, Database Maintenance is open, saving the database "
+                "would stop to ask the operator something, another pairing is in front of them, "
+                "or there is no screen to ask on. The invitation is still good, but this exchange "
+                "is not: start again from a hello"
+            ),
+            undecided=(
+                "the database holds more than one certificate authority and the operator has "
+                "not kept one, so there is nothing to issue from until they do. The invitation "
+                "is still good"
+            ),
         )
+
+    error = reply.error()
 
     if reply.status == 504:
         raise PairingUnanswered("nobody answered the dialog, and the invitation is not spent")

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Windows.Forms;
@@ -398,6 +399,116 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_tab_that_failed_to_be_built_is_not_told_about_the_next_pairing()
+        {
+            // H086: the tab subscribed before it built anything, so a constructor that failed left
+            // a panel nobody would dispose listening for the life of the plugin, and the next
+            // pairing drew into controls that were never made, after its record was saved.
+            var notice = new AdmissionNotice();
+
+            Assert.Throws<InvalidOperationException>(
+                () => new AuthorityPanel(new UnreadableDatabase(), new FakePrompt(true), _log, null, null, notice));
+
+            Assert.DoesNotThrow(() => notice.Raise(), "a tab that was never built was told about a pairing");
+        }
+
+        [Test]
+        public void The_profiles_page_is_counted_as_it_is_built_and_again_only_when_in_front()
+        {
+            // J036: the page walks every rule in the tree and every record, the slowest thing on
+            // the tab on a large database, and it was counted twice as the dialog was built and
+            // again for every button on the other two pages.
+            var profiles = new CountedProfiles();
+
+            using (var panel = new AuthorityPanel(_database, new FakePrompt(true), _log, null, profiles))
+            {
+                Assert.That(profiles.Counted, Is.EqualTo(1), "once, by the page itself, as the tab was built");
+
+                panel.CreateAuthority();
+                panel.Describe();
+                Assert.That(profiles.Counted, Is.EqualTo(1), "a button on the first page counts nothing on the second");
+
+                panel.CreateControl();
+                var tabs = ControlTree.FindByName<TabControl>(panel, GateTab.SubTabsName);
+                tabs.SelectedTab = ControlTree.FindByName<TabPage>(panel, GateTab.ProfilesPageName);
+                Assert.That(profiles.Counted, Is.EqualTo(2), "bringing the page forward counts it again");
+
+                panel.Describe();
+                Assert.That(profiles.Counted, Is.EqualTo(3), "and so does a redraw while it is in front");
+            }
+        }
+
+        /// <summary>Profiles that count how often the page asked for its counts, and name none.</summary>
+        private sealed class CountedProfiles : IProfiles
+        {
+            public int Counted { get; private set; }
+
+            public string LastRemoval
+            {
+                get { return null; }
+            }
+
+            public IReadOnlyList<string> Names()
+            {
+                return Array.Empty<string>();
+            }
+
+            public IReadOnlyDictionary<string, int> Rules()
+            {
+                Counted++;
+                return new Dictionary<string, int>();
+            }
+
+            public IReadOnlyDictionary<string, int> Clients()
+            {
+                return new Dictionary<string, int>();
+            }
+
+            public string Add(string name)
+            {
+                return null;
+            }
+
+            public string Returning(string name)
+            {
+                return null;
+            }
+
+            public string Remove(string name)
+            {
+                return null;
+            }
+        }
+
+        /// <summary>A database whose custom data cannot even be asked for, which stops a tab being built.</summary>
+        private sealed class UnreadableDatabase : IGateDatabase
+        {
+            public bool IsOpen
+            {
+                get { return true; }
+            }
+
+            public string Name
+            {
+                get { return "Invented Vault"; }
+            }
+
+            public IKeyValueStore PluginCustomData
+            {
+                get { throw new InvalidOperationException("invented for the test"); }
+            }
+
+            public IRuledNodes Nodes
+            {
+                get { return null; }
+            }
+
+            public void MarkModified()
+            {
+            }
+        }
+
+        [Test]
         public void A_tab_that_was_given_no_notice_still_works()
         {
             // Every other test here builds one that way, and so does anything embedding this
@@ -522,7 +633,7 @@ namespace KeePassGate.Tests
                 var record = Admit("agent-fictitious", DateTimeOffset.UtcNow);
                 var before = _database.MarkedModifiedCount;
 
-                var refused = panel.Revoke(record);
+                var refused = panel.Revoke(record.AdmissionKey);
 
                 Assert.That(refused, Is.Null);
                 Assert.That(panel.AdmittedClients().Records, Is.Empty);
@@ -539,7 +650,7 @@ namespace KeePassGate.Tests
                 var going = Admit("agent-fictitious", DateTimeOffset.UtcNow);
                 Admit("agent-invented", DateTimeOffset.UtcNow);
 
-                Assume.That(panel.Revoke(going), Is.Null);
+                Assume.That(panel.Revoke(going.AdmissionKey), Is.Null);
 
                 var left = panel.AdmittedClients().Records;
                 Assert.That(left.Count, Is.EqualTo(1));
@@ -561,12 +672,71 @@ namespace KeePassGate.Tests
                 var record = Admit("agent-fictitious", DateTimeOffset.UtcNow);
                 _database.Store.SwallowWrites = true;
 
-                var refused = panel.Revoke(record);
+                var refused = panel.Revoke(record.AdmissionKey);
 
                 Assert.That(refused, Is.Not.Null,
                     "a removal that did not land must not be reported as one that did");
                 Assert.That(panel.AdmittedClients().Records, Is.Not.Empty,
                     "and the client is still admitted");
+            }
+        }
+
+        [Test]
+        public void A_record_that_will_not_read_is_listed_and_its_X_takes_it_away_at_OK()
+        {
+            // K024: such a record admits nobody, the first page counted it and warned about it, and
+            // nothing on the tab could take it away short of recreating the authority, which makes
+            // every client pair again.
+            new AuthorityService(_database.Store, null).Create();
+            Admit("agent-fictitious", DateTimeOffset.UtcNow);
+            var damaged = new string('d', 64);
+            var stored = AuthorityKeys.ClientRecordKey(damaged);
+            _database.Store.Plant(stored, "v=1\nsubject=x\n");
+
+            var pending = new PendingDatabase(_database, _log);
+
+            using (var panel = new AuthorityPanel(pending, new FakePrompt(true), _log))
+            {
+                var list = ControlTree.FindByName<ClientList>(panel, ClientList.ControlName);
+
+                Assert.That(list.Unreadable, Is.EqualTo(new[] { damaged }), "listed, by its key");
+                Assert.That(Label(panel, GateTab.DetailLabelName).Text,
+                    Does.Contain("cannot be read and admits nobody. The Clients page lists it."));
+                Assert.That(Fact(panel, "Admission records"), Is.EqualTo("2"));
+
+                Assert.That(list.Revoke(list.Clients.Count), Does.Contain("taken away"));
+
+                Assert.That(list.Unreadable, Is.Empty);
+                Assert.That(Label(panel, GateTab.DetailLabelName).Text, Does.Not.Contain("cannot be read"));
+                Assert.That(Fact(panel, "Admission records"), Is.EqualTo("1"));
+                Assert.That(_database.Store.Get(stored), Is.Not.Empty, "nothing lands before OK");
+            }
+
+            pending.Apply();
+
+            Assert.That(_database.Store.Get(stored), Is.Empty);
+            Assert.That(_database.Store.Get(AuthorityKeys.RevocationKey(damaged)), Is.Empty,
+                "revoked with the empty value a record with no date is given");
+
+            var left = new AdmissionStore(_database.Store, null).All();
+            Assert.That(left.Unreadable, Is.Empty);
+            Assert.That(left.Records.Count, Is.EqualTo(1), "and the client beside it is still admitted");
+        }
+
+        [Test]
+        public void A_removal_of_a_record_that_will_not_read_the_store_swallows_is_reported()
+        {
+            // `Find` answers null for such a record, so a read back asking only it would call a
+            // removal that did not land one that did, and the row would go while the record stayed.
+            var damaged = new string('d', 64);
+            _database.Store.Plant(AuthorityKeys.ClientRecordKey(damaged), "v=1\nsubject=x\n");
+
+            using (var panel = NewPanel(true))
+            {
+                _database.Store.SwallowWrites = true;
+
+                Assert.That(panel.Revoke(damaged), Is.EqualTo("the record is still in the database"));
+                Assert.That(panel.AdmittedClients().Unreadable, Is.EqualTo(new[] { damaged }));
             }
         }
 
@@ -579,9 +749,9 @@ namespace KeePassGate.Tests
             using (var panel = NewPanel(true))
             {
                 var record = Admit("agent-fictitious", DateTimeOffset.UtcNow);
-                Assume.That(panel.Revoke(record), Is.Null);
+                Assume.That(panel.Revoke(record.AdmissionKey), Is.Null);
 
-                Assert.That(panel.Revoke(record), Is.Null);
+                Assert.That(panel.Revoke(record.AdmissionKey), Is.Null);
             }
         }
 
@@ -670,7 +840,7 @@ namespace KeePassGate.Tests
             {
                 var record = Admit("agent-fictitious", DateTimeOffset.UtcNow);
                 Admit("agent-invented", DateTimeOffset.UtcNow);
-                Assume.That(panel.Revoke(record), Is.Null);
+                Assume.That(panel.Revoke(record.AdmissionKey), Is.Null);
 
                 // What a stale copy merged in does.
                 _database.Store.Plant(record.StorageKey, record.Save());
@@ -747,12 +917,100 @@ namespace KeePassGate.Tests
                     }
                 }
 
-                var strangers = panel.Strangers(panel.AdmittedClients());
+                var reaches = panel.Reaches(panel.AdmittedClients());
 
                 Assert.That(panel.AdmittedClients().Records, Has.Count.EqualTo(2));
-                Assert.That(strangers, Has.Count.EqualTo(1));
-                Assert.That(strangers, Does.Contain(stranger.AdmissionKey));
+                Assert.That(reaches.Values.Count(reach => reach == ClientReach.Stranger), Is.EqualTo(1));
+                Assert.That(reaches[stranger.AdmissionKey], Is.EqualTo(ClientReach.Stranger));
             }
+        }
+
+        [Test]
+        public void A_record_the_gate_refuses_before_its_dates_is_named_for_what_refuses_it()
+        {
+            // H055 and J064: `ClientCredentials` asks for client authentication and for a
+            // certificate that has begun before it looks at the record, and the page asked only
+            // where the certificate came from. A record carrying this authority's own host
+            // certificate, which only a crafted or merged file holds, and one whose certificate
+            // begins in ten days, which a wrong clock produces, were both listed as clients that
+            // work until next year.
+            using (var panel = NewPanel(true))
+            {
+                panel.CreateAuthority();
+
+                AdmissionRecord host;
+                AdmissionRecord early;
+                AdmissionRecord ordinary;
+                var now = DateTimeOffset.UtcNow;
+
+                using (var reading = new AuthorityService(_database.Store, null).Read())
+                {
+                    Assume.That(reading.IsPresent, Is.True);
+                    var authority = reading.Material.Authority;
+
+                    host = AdmissionRecord.For(reading.Material.Host, now, new[] { "ops" });
+
+                    using (var issued = new AuthorityIssuer(() => now.AddDays(10)).IssueClient(
+                        authority, "agent-early", new[] { "ops" }))
+                    {
+                        early = AdmissionRecord.For(issued, now, new[] { "ops" });
+                    }
+
+                    using (var issued = new AuthorityIssuer().IssueClient(authority, "agent-invented", new[] { "ops" }))
+                    {
+                        ordinary = AdmissionRecord.For(issued, now, new[] { "ops" });
+                    }
+                }
+
+                var store = new AdmissionStore(_database.Store, null);
+                store.Write(host);
+                store.Write(early);
+                store.Write(ordinary);
+
+                var reaches = panel.Reaches(panel.AdmittedClients());
+
+                Assert.That(reaches[host.AdmissionKey], Is.EqualTo(ClientReach.NotForClients));
+                Assert.That(reaches[early.AdmissionKey], Is.EqualTo(ClientReach.NotYetValid));
+                Assert.That(reaches[ordinary.AdmissionKey], Is.EqualTo(ClientReach.Reaches),
+                    "and one this authority issued to a client, inside its dates, reaches");
+
+                panel.Describe();
+                var list = ControlTree.FindByName<ClientList>(panel, ClientList.ControlName);
+                var shown = Enumerable.Range(0, list.Clients.Count)
+                    .ToDictionary(at => list.Clients[at].AdmissionKey, at => UntilOf(list, at));
+
+                Assert.That(shown[host.AdmissionKey], Is.EqualTo(ClientList.NotForClientsText));
+                Assert.That(shown[early.AdmissionKey], Is.EqualTo(ClientList.NotYetValidText));
+            }
+        }
+
+        [Test]
+        public void A_record_from_another_authority_draws_no_expiry_warning_on_the_first_page()
+        {
+            // J065: one record, two answers on one tab. The clients page said "not this authority"
+            // beside it, and the first page said a client expires within 30 days, which sends the
+            // operator to pair again a program that never reached the database.
+            using (var panel = NewPanel(true))
+            {
+                panel.CreateAuthority();
+
+                // Signed by nobody this database knows, and ending within the month.
+                var stranger = Admit("agent-fictitious", DateTimeOffset.UtcNow);
+                panel.Describe();
+
+                var list = ControlTree.FindByName<ClientList>(panel, ClientList.ControlName);
+                Assume.That(list.Clients.Single().AdmissionKey, Is.EqualTo(stranger.AdmissionKey));
+
+                Assert.That(UntilOf(list, 0), Is.EqualTo(ClientList.StrangerText));
+                Assert.That(Label(panel, GateTab.DetailLabelName).Text, Does.Not.Contain("expire"));
+            }
+        }
+
+        /// <summary>What a row of the clients page says in the column that says how long.</summary>
+        private static string UntilOf(ClientList list, int row)
+        {
+            var grid = ControlTree.FindByName<DataGridView>(list, ClientList.ListName);
+            return Convert.ToString(grid.Rows[row].Cells[3].Value, System.Globalization.CultureInfo.InvariantCulture);
         }
 
         [Test]
@@ -767,8 +1025,57 @@ namespace KeePassGate.Tests
 
                 Assume.That(panel.AdmittedClients().Records, Has.Count.EqualTo(1));
 
-                Assert.That(panel.Strangers(panel.AdmittedClients()),
-                    Does.Contain(record.AdmissionKey));
+                Assert.That(panel.Reaches(panel.AdmittedClients())[record.AdmissionKey],
+                    Is.EqualTo(ClientReach.Stranger));
+            }
+        }
+
+        [TestCase(true)]
+        [TestCase(false)]
+        public void A_pairing_that_lands_while_a_recreate_or_delete_waits_is_kept_and_named_a_stranger(bool recreating)
+        {
+            // The one case the key by key replay leaves behind on purpose, run whole rather than
+            // in its parts. The tab buffers the recreate or the delete, which lists the records
+            // there are as it is pressed; a pairing then lands on the live database, a record under
+            // the authority the gate still serves and the profile it approved named in the same
+            // write; and OK replays only what was buffered.
+            Assume.That(new AuthorityService(_database.Store, null).Create().Succeeded, Is.True);
+            var before = IssuedAndAdmitted("agent-before");
+
+            var pending = new PendingDatabase(_database, null);
+            var held = new AuthorityService(pending.PluginCustomData, null);
+            Assume.That((recreating ? held.Recreate() : held.Delete()).Succeeded, Is.True);
+
+            var landed = IssuedAndAdmitted("agent-landed");
+            var names = ProfileNames.Read(_database.Store.Get(ProfileNames.CustomDataKey));
+            Assume.That(names.Add("reader"), Is.Null);
+            _database.Store.Set(ProfileNames.CustomDataKey, names.Write());
+
+            pending.Apply();
+
+            var admissions = new AdmissionStore(_database.Store, null);
+            Assert.That(admissions.Find(before.AdmissionKey), Is.Null, "the records it listed went with it");
+            Assert.That(admissions.Find(landed.AdmissionKey), Is.Not.Null, "the one that landed meanwhile is kept");
+            Assert.That(ProfileNames.Read(_database.Store.Get(ProfileNames.CustomDataKey)).Names,
+                Does.Contain("reader"), "and so is the name it brought");
+
+            using (var panel = NewPanel(true))
+            {
+                Assert.That(panel.Reaches(panel.AdmittedClients())[landed.AdmissionKey],
+                    Is.EqualTo(ClientReach.Stranger),
+                    "its certificate chains to an authority that is gone, which the clients page says on its row");
+            }
+        }
+
+        /// <summary>A client of the authority the database holds now, admitted in the live store.</summary>
+        private AdmissionRecord IssuedAndAdmitted(string name)
+        {
+            using (var reading = new AuthorityService(_database.Store, null).Read())
+            using (var issued = new AuthorityIssuer().IssueClient(reading.Material.Authority, name, new[] { "ops" }))
+            {
+                var record = AdmissionRecord.For(issued, DateTimeOffset.UtcNow, new[] { "ops" });
+                new AdmissionStore(_database.Store, null).Write(record);
+                return record;
             }
         }
 
@@ -793,6 +1100,17 @@ namespace KeePassGate.Tests
                 Assert.That(said.Length, Is.LessThanOrEqualTo(Clipped.Limit + 3),
                     "which is the bound `GateTabFitsTests` measures the band against");
             }
+        }
+
+        [Test]
+        public void The_band_is_measured_against_a_line_as_long_as_it_can_hold()
+        {
+            // J031: the line the tab is measured against is only the longest there is while it is
+            // long enough to be cut, and nothing said so. Shortened, every test stayed green.
+            var longest = AuthorityPanel.LongestResult();
+
+            Assert.That(longest.Length, Is.EqualTo(Clipped.Limit + 3));
+            Assert.That(longest, Does.EndWith("..."));
         }
 
         [Test]
@@ -838,6 +1156,7 @@ namespace KeePassGate.Tests
             using (var panel = new AuthorityPanel(null, new FakePrompt(true), _log))
             {
                 Assert.That(panel.AdmittedClients().Records, Is.Empty);
+                Assert.That(panel.Revoke(new string('a', 64)), Is.EqualTo("the database is not open"));
                 Assert.That(panel.Revoke(null), Is.Not.Null);
             }
         }
@@ -1060,6 +1379,119 @@ namespace KeePassGate.Tests
                 Assert.That(profiles.AccessibleName, Is.Not.EqualTo(profiles.Name),
                     "a table announcing its own lookup name tells a listener nothing");
             }
+        }
+
+        [Test]
+        public void Several_authorities_offer_the_chooser_in_the_place_create_has()
+        {
+            TwoAuthorities();
+
+            using (var panel = NewPanel(true))
+            {
+                Assert.That(Label(panel, GateTab.StatusLabelName).Text, Is.EqualTo(AuthorityDescription.UndecidedHeadline));
+                Assert.That(Shown(panel, Button(panel, GateTab.ChooseButtonName)), Is.True);
+                Assert.That(Shown(panel, Button(panel, GateTab.CreateButtonName)), Is.False,
+                    "there is nothing to create, and four buttons do not fit the row");
+                Assert.That(Button(panel, GateTab.RecreateButtonName).Enabled, Is.True);
+                Assert.That(Button(panel, GateTab.InviteButtonName).Enabled, Is.False);
+            }
+        }
+
+        [Test]
+        public void One_authority_puts_create_back_where_the_chooser_was()
+        {
+            using (var panel = NewPanel(true))
+            {
+                Assert.That(Shown(panel, Button(panel, GateTab.ChooseButtonName)), Is.False);
+                Assert.That(Shown(panel, Button(panel, GateTab.CreateButtonName)), Is.True);
+            }
+        }
+
+        /// <summary>
+        /// Whether a control on the authority page is one an operator would see, for the reason
+        /// `InvitationPanelTests.OnScreen` gives: `Visible` answers for the whole chain above it,
+        /// and a page no window has drawn answers no whatever it was told.
+        /// </summary>
+        private static bool Shown(AuthorityPanel panel, Control control)
+        {
+            panel.CreateControl();
+
+            var tabs = ControlTree.FindByName<TabControl>(panel, GateTab.SubTabsName);
+            tabs.SelectedTab = ControlTree.FindByName<TabPage>(panel, GateTab.AuthorityPageName);
+            panel.PerformLayout();
+
+            return control.Visible;
+        }
+
+        [Test]
+        public void Choosing_from_the_tab_waits_for_the_dialog_s_OK_like_everything_else_on_it()
+        {
+            var candidates = TwoAuthorities();
+
+            foreach (var accepted in new[] { false, true })
+            {
+                var pending = new PendingDatabase(_database, null);
+                using (var panel = new AuthorityPanel(pending, new FakePrompt(true), _log))
+                {
+                    panel.AskWhichToKeep = (choice, name) =>
+                    {
+                        Assert.That(choice.Options.Select(o => o.Fingerprint), Is.EquivalentTo(candidates));
+                        return candidates[1];
+                    };
+
+                    panel.ChooseAuthority();
+
+                    Assert.That(Label(panel, GateTab.StatusLabelName).Text, Is.EqualTo(AuthorityDescription.PresentHeadline),
+                        "the page reads what it is holding");
+                    Assert.That(Digest(), Is.Null, "nothing lands before OK");
+
+                    if (accepted)
+                    {
+                        pending.Apply();
+                        Assert.That(Digest(), Is.EqualTo(candidates[1]));
+                    }
+                    else
+                    {
+                        pending.Discard();
+                        Assert.That(Digest(), Is.Null, "Cancel means Cancel");
+                    }
+                }
+            }
+        }
+
+        [Test]
+        public void Choosing_nothing_changes_nothing()
+        {
+            TwoAuthorities();
+
+            using (var panel = NewPanel(true))
+            {
+                panel.AskWhichToKeep = (choice, name) => null;
+
+                panel.ChooseAuthority();
+
+                Assert.That(Label(panel, GateTab.StatusLabelName).Text, Is.EqualTo(AuthorityDescription.UndecidedHeadline));
+                Assert.That(Label(panel, GateTab.ResultLabelName).Text, Is.Empty);
+            }
+        }
+
+        /// <summary>
+        /// Two authorities side by side and neither retired, which is what two copies each
+        /// recreating and then being merged leave behind.
+        /// </summary>
+        private string[] TwoAuthorities()
+        {
+            var service = new AuthorityService(_database.Store, null);
+            Assume.That(service.Create().Succeeded, Is.True);
+            var first = _database.Store.Keys.Single(k => AuthorityKeys.FingerprintInAuthority(k) != null);
+            var document = _database.Store.Get(first);
+            _database.Store.Remove(first);
+
+            Assume.That(service.Create().Succeeded, Is.True);
+            var second = _database.Store.Keys.Single(k => AuthorityKeys.FingerprintInAuthority(k) != null);
+            _database.Store.Plant(first, document);
+
+            return new[] { AuthorityKeys.FingerprintInAuthority(first), AuthorityKeys.FingerprintInAuthority(second) };
         }
 
         private AuthorityPanel NewPanel(bool confirm)

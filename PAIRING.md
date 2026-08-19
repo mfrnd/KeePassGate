@@ -119,17 +119,26 @@ sequenceDiagram
 ```
 
 **A pairing connection is measured against a budget of its own.** Every other connection has a
-fixed span from accept to answer, which is what stops a peer holding a thread by feeding it a byte
-at a time. It is not free to be as short as that purpose alone would make it: a route that changes
-the database waits for its turn at the single writer and then for the write and the save, and a
-budget under those closes the socket while a write that is still going to land is landing.
+fixed span from accept to the end of its request, which is what stops a peer holding a thread by
+feeding it a byte at a time, and no deadline at all after that: what is left there is a write and a
+save that no number bounds, so a deadline could only ever close the socket while a write that is
+still going to land is landing.
 
 Phase 4 blows through it on purpose, and by more than one wait. The operator is given two minutes to
 read the dialog; a second pairing waits that long again just to get in front of them, since only one
 is put to the operator at a time; the prompt waits a little longer than the dialog does; and the
-write and save that follow have timeouts of their own. So the moment the name resolves to an
-invitation, the connection's deadline is set again to `GateOptions.PairingBudget`, which outlasts
-all of them together.
+write and save that follow have timeouts of their own. So the moment the request is off the wire,
+the connection's deadline is set again to `GateOptions.PairingBudget`, which outlasts all of them
+together: where every other connection's deadline is dropped at that point, a pairing's is raised.
+**That is the whole of the difference**: a pairing's remaining work is a list of waits somebody
+wrote down, so a number for it means something, where an ordinary write's remaining work is a save
+of unknown length.
+
+**Not when the name resolves**, which is earlier and asks for less. The reason for the longer
+budget is that the connection is about to wait on a person, and a connection that has named an
+invitation and sent nothing waits on nobody: granted there, one invitation would buy thirty-two
+silent connections six minutes of the gate each, which is the harm the locked case is guarded
+against, reachable all along against a database that was open.
 
 Closing the socket underneath phase 4 does not stop the pairing, which is what makes this worth
 saying. Everything after the dialog still happens: the certificate is issued, the invitation is
@@ -433,13 +442,14 @@ What a refusal says, and deliberately no more:
 | `400 name` / `400 profile` / `400 malformed` | it could never have been issued as asked |
 | `403 refused` | the operator said no, and the invitation is spent |
 | `504 unanswered` | nobody was at the screen. **Nothing is spent** |
-| `503 busy` | a dialog is open that would take the record back, KeePass is part way through a save, an import, a synchronize, an export or a message box of its own, or shows its progress window for one such as XML Replace, another pairing is already in front of the operator, or there is no screen to ask. **Nothing is spent**, and the client is never told which |
+| `503 busy` | a dialog is open that would take the record back, KeePass is part way through a save, an import, a synchronize, an export or a message box of its own, or shows its progress window for one such as XML Replace, saving the database would stop to ask the operator something, such as what to do about a file on disk that is not the one KeePass read, another pairing is already in front of the operator, or there is no screen to ask. **Nothing is spent**, and the client is never told which |
 | `500 not recorded` | the operator approved and the record did not reach the disk. **The invitation is spent** |
 | `500 internal error` | the operator approved and no certificate could be issued: the authority ran out while the dialog was open, or its key would not sign. **The invitation is not spent**, and the client starts again from a hello |
 | `500 expired host` | the host certificate this database answers with has run out, so no client paired now could connect. **Nothing is spent**, and no dialog was raised |
 | `500 expired authority` | this database's authority has run out, so it can sign nothing valid. **Nothing is spent**, and no dialog was raised |
+| `503 undecided` | the database holds more than one authority and the operator has not kept one. Answered before the request is read, as `503 locked` is, so **nothing is spent** |
 
-The `503` row is the one to be careful with. A caller learns that it should try later and nothing
+The `503 busy` row is the one to be careful with. A caller learns that it should try later and nothing
 about what is open on somebody's desk.
 
 **Every `503` is raised before the invitation is spent, and that is what makes it honest.** The

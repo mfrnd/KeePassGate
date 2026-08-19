@@ -21,8 +21,10 @@ from cryptography import x509
 from conftest import RESPONDER_CLAIM, Authority, FakeGate, Issued
 from pykeepassgate import transport
 from pykeepassgate.errors import (
+    AuthorityUndecided,
     DatabaseLocked,
     GateBusy,
+    GateUnavailable,
     ProtocolError,
     StorageError,
     TransportError,
@@ -48,6 +50,45 @@ class TestResponse:
         # whatever else answered the socket.
         assert transport.Response(500, "").error() == ""
         assert transport.Response(500, '{"ok":true}').error() == ""
+
+
+class TestWhatA503Is:
+    """One place reads a `503`'s word, and hands back the class that names it."""
+
+    @staticmethod
+    def _read(body: str) -> GateUnavailable:
+        return transport.unavailable(
+            transport.Response(503, body, retry_after=2.0),
+            busy="said busy",
+            locked="said locked",
+            undecided="said undecided",
+        )
+
+    @pytest.mark.parametrize(
+        ("word", "kind"),
+        [("busy", GateBusy), ("locked", DatabaseLocked), ("undecided", AuthorityUndecided)],
+    )
+    def test_each_word_the_gate_sends_is_a_class_of_its_own(
+        self, word: str, kind: type[GateUnavailable]
+    ) -> None:
+        refused = self._read('{"error":"' + word + '"}')
+
+        assert type(refused) is kind
+        assert (str(refused), refused.error, refused.retry_after) == (f"said {word}", word, 2.0)
+
+    def test_a_word_this_client_does_not_know_is_the_family_itself(self) -> None:
+        # Kept, because it is the whole of what such a refusal says.
+        refused = self._read('{"error":"teapot"}')
+
+        assert type(refused) is GateUnavailable
+        assert (refused.error, refused.retry_after) == ("teapot", 2.0)
+        assert "'teapot'" in str(refused)
+
+    def test_a_503_naming_no_word_is_the_family_itself(self) -> None:
+        refused = self._read("{}")
+
+        assert type(refused) is GateUnavailable
+        assert refused.error == ""
 
 
 class TestParsing:
@@ -258,10 +299,11 @@ class TestTheResponder:
 
         with transport.connect(
             gate.port, context, "abc.def.kpg", connection_timeout=10.0
-        ) as connection, pytest.raises(DatabaseLocked, match="responder identity"):
+        ) as connection, pytest.raises(DatabaseLocked, match="responder identity") as refused:
             connection.send("PUT", "/entries/abc/fields/Password", '{"value":"secret"}')
 
         assert gate.requests == [], "nothing reached the gate at all"
+        assert refused.value.error == "locked", "the word a `503 locked` carries, read off nothing"
 
 
 class TestWhatThisClientWillNotSend:
@@ -521,8 +563,8 @@ class TestABudget:
         assert waited == [transport.FALLBACK_RETRY_AFTER]
 
 
-class TestTheTwoBudgets:
-    """Which refusal spends which, because a lock and a busy user interface end differently."""
+class TestTheThreeBudgets:
+    """Which refusal spends which, because a lock, a busy KeePass and two authorities end apart."""
 
     @pytest.fixture
     def waited(self, monkeypatch: pytest.MonkeyPatch) -> list[float]:
@@ -531,24 +573,42 @@ class TestTheTwoBudgets:
         return recorded
 
     def test_a_busy_gate_spends_the_busy_budget(self, waited: list[float]) -> None:
-        retry = transport.Retry(busy=10.0, locked=None)
+        retry = transport.Retry(busy=10.0)
 
         assert retry.waited(GateBusy("busy", 3.0)) is True
         assert retry.waited(DatabaseLocked("locked", 3.0)) is False
+        assert retry.waited(AuthorityUndecided("undecided", 3.0)) is False
         assert waited == [3.0]
 
     def test_a_locked_database_spends_the_locked_one(self, waited: list[float]) -> None:
-        retry = transport.Retry(busy=None, locked=10.0)
+        retry = transport.Retry(locked=10.0)
 
         assert retry.waited(DatabaseLocked("locked", 4.0)) is True
         assert retry.waited(GateBusy("busy", 4.0)) is False
+        assert retry.waited(AuthorityUndecided("undecided", 4.0)) is False
         assert waited == [4.0]
 
-    def test_neither_is_spent_by_default(self, waited: list[float]) -> None:
+    def test_an_undecided_database_spends_the_undecided_one(self, waited: list[float]) -> None:
+        retry = transport.Retry(undecided=10.0)
+
+        assert retry.waited(AuthorityUndecided("undecided", 5.0)) is True
+        assert retry.waited(GateBusy("busy", 5.0)) is False
+        assert retry.waited(DatabaseLocked("locked", 5.0)) is False
+        assert waited == [5.0]
+
+    def test_none_is_spent_by_default(self, waited: list[float]) -> None:
         retry = transport.Retry()
 
         assert retry.waited(GateBusy("busy", 1.0)) is False
         assert retry.waited(DatabaseLocked("locked", 1.0)) is False
+        assert retry.waited(AuthorityUndecided("undecided", 1.0)) is False
+        assert waited == []
+
+    def test_a_word_none_of_them_names_spends_nothing(self, waited: list[float]) -> None:
+        retry = transport.Retry(busy=10.0, locked=10.0, undecided=10.0)
+
+        assert retry.waited(GateUnavailable("teapot", "teapot", 1.0)) is False
+        assert retry.waited(GateUnavailable("no word")) is False
         assert waited == []
 
 
@@ -580,6 +640,8 @@ class TestASettingThatCannotWork:
             transport.Retry(busy=seconds)
         with pytest.raises(ValueError, match="retry_locked_timeout"):
             transport.Retry(locked=seconds)
+        with pytest.raises(ValueError, match="retry_undecided_timeout"):
+            transport.Retry(undecided=seconds)
 
     @pytest.mark.parametrize("cap", [1.5, math.nan, True])
     def test_a_cap_that_is_not_a_whole_number_of_bytes(self, cap: Any) -> None:
@@ -595,6 +657,7 @@ class TestASettingThatCannotWork:
         assert transport.retry_limit("retry_busy_timeout", None) is None
         assert transport.retry_limit("retry_busy_timeout", 0.0) == 0.0
         assert transport.retry_limit("retry_locked_timeout", 3600.0) == 3600.0
+        assert transport.retry_limit("retry_undecided_timeout", 86400.0) == 86400.0
         assert transport.response_limit(1) == 1
 
     def test_nothing_is_dialed_on_a_setting_that_cannot_work(

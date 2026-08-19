@@ -21,5 +21,10 @@ namespace KeePassGate.Host.Tests
                 "This fixture does not expect a confirmation, and was asked: " + title);
         }
 
+        public void Tell(string title, string news)
+        {
+            throw new InvalidOperationException(
+                "This fixture does not expect to be told anything, and was told: " + title);
+        }
     }
 }

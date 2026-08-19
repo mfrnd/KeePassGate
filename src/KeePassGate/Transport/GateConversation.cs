@@ -23,7 +23,7 @@ namespace KeePassGate.Transport
         /// What a locked database answers, on every path there is. One word, so that a client
         /// library can match on it and wait rather than parse a sentence.
         /// </summary>
-        public const string LockedError = "locked";
+        public const string LockedError = Gate.LockedTarget.Error;
 
         /// <summary>
         /// Answers a connection to a locked database, having decided before it asked.
@@ -57,9 +57,28 @@ namespace KeePassGate.Transport
         /// </remarks>
         public static void Locked(Stream stream, GateOptions options, IGateLog log)
         {
+            Unavailable(stream, LockedError, options, log);
+        }
+
+        /// <summary>
+        /// Answers a connection to a database that is served by nobody for now, with the one word
+        /// that says why, having decided before it asked.
+        /// </summary>
+        /// <remarks>
+        /// Everything <see cref="Locked"/> says holds for every such word. The other one is
+        /// `undecided`, a database holding more than one authority while the operator has not
+        /// chosen: the same answer for every path, method and body, and a client that can wait.
+        /// </remarks>
+        public static void Unavailable(Stream stream, string error, GateOptions options, IGateLog log)
+        {
             if (stream == null)
             {
                 throw new ArgumentNullException(nameof(stream));
+            }
+
+            if (string.IsNullOrEmpty(error))
+            {
+                throw new ArgumentException("An unavailable database says why.", nameof(error));
             }
 
             var logger = log ?? NullGateLog.Instance;
@@ -70,7 +89,7 @@ namespace KeePassGate.Transport
                 return;
             }
 
-            Answer(stream, 503, HttpResponse.ErrorBody(LockedError), logger, IsHead(read.Method));
+            Answer(stream, 503, HttpResponse.ErrorBody(error), logger, IsHead(read.Method));
 
             HttpRequestReader.Discard(stream, read.Announced);
         }
@@ -104,6 +123,12 @@ namespace KeePassGate.Transport
         /// reason: the transport knows which database a name resolved to and the handlers need it,
         /// and neither has to learn anything about the other.
         /// </remarks>
+        /// <param name="arrived">
+        /// Told that the whole request is off the wire, which is the instant the peer stops having
+        /// anything to do with how long the rest takes. The listener hangs its connection deadline
+        /// on it: see `GateListener.Deadline.Disarm`. Null where nothing is counting, which is
+        /// every test of this over a pair of memory streams.
+        /// </param>
         public static void Serve(
             Stream stream,
             ClientIdentity client,
@@ -112,7 +137,8 @@ namespace KeePassGate.Transport
             IGateLog log,
             PairingConnection pairing,
             GateIncidents incidents,
-            Vault.IVault vault)
+            Vault.IVault vault,
+            Action arrived = null)
         {
             if (stream == null)
             {
@@ -172,6 +198,15 @@ namespace KeePassGate.Transport
                 logger.Warn("refused a request: " + refusal);
                 Answer(stream, 400, HttpResponse.ErrorBody(refusal), logger, IsHead(head.Method));
                 return;
+            }
+
+            if (arrived != null)
+            {
+                // Here rather than after the handler, because here is where the peer stops being
+                // able to make this connection take any longer. Everything below is this plugin's
+                // own work and the write of the answer, and neither is something to close a socket
+                // over: the one bound that matters to the answer is the socket's `SendTimeout`.
+                arrived();
             }
 
             var context = new GateContext(head, body, client);
@@ -287,17 +322,36 @@ namespace KeePassGate.Transport
             {
                 HttpResponse.Write(stream, status, json, head, headers);
             }
-            catch (IOException)
+            catch (IOException error)
             {
-                // The client went away mid-answer. Nothing to do and nothing to say about it.
+                // The client went away mid-answer, and there is nothing to be done about it. There
+                // is something to say, though, and this used to say nothing: a change that was
+                // made and saved and then not reported is the one case where the audit has a
+                // `permitted` line, the database has the change, and the client has neither the
+                // answer nor the identifier. Without a line here an operator finding the duplicate
+                // a retry made has no way to tell it from a refusal.
+                Lost(log, status, error);
             }
-            catch (ObjectDisposedException)
+            catch (ObjectDisposedException error)
             {
+                Lost(log, status, error);
             }
             catch (Exception error) when (Expected.OfConnection(error))
             {
                 log.Error("a response could not be written", error);
             }
+        }
+
+        /// <summary>Says that an answer was decided and never reached the client.</summary>
+        /// <remarks>
+        /// A warning rather than an error, because nothing here failed: a peer is allowed to stop
+        /// reading. What it is worth is the status, which is what says whether anything happened
+        /// to the database before the socket went.
+        /// </remarks>
+        private static void Lost(IGateLog log, int status, Exception error)
+        {
+            log.Warn("a " + status + " was decided and could not be written, so the client has no " +
+                     "answer: " + error.Message);
         }
     }
 }

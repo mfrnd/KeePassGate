@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
@@ -10,6 +11,7 @@ using KeePassGate.Authority;
 using KeePassGate.Diagnostics;
 using KeePassGate.Vault;
 using KeePassGate.Gate;
+using KeePassGate.Ui;
 
 namespace KeePassGate.Bridge
 {
@@ -132,14 +134,14 @@ namespace KeePassGate.Bridge
                 {
                     foreach (var database in open)
                     {
-                        var target = TargetFor(database);
-                        if (target != null)
+                        var cached = TargetFor(database);
+                        if (cached != null)
                         {
                             // One reference per caller, taken while the cache still holds its own,
                             // so that nothing can release the material between here and the
-                            // connection.
-                            target.Retain();
-                            targets.Add(target);
+                            // connection. A database holding several authorities hands out one
+                            // target per candidate, each answering that nothing is served.
+                            targets.AddRange(cached.Hand());
                         }
                     }
 
@@ -316,6 +318,14 @@ namespace KeePassGate.Bridge
         /// </remarks>
         private LockedTarget Answering(CachedTarget cached)
         {
+            if (cached.Target == null)
+            {
+                // Several authorities and none chosen, so no responder was minted: minting one
+                // would be choosing. A lock answers nothing, which `CA.md` §207 accepts for a
+                // database with no responder.
+                return null;
+            }
+
             var responder = Responder(cached.Target.Reading);
             if (responder == null && cached.Responder != null && StillCurrent(cached.Responder))
             {
@@ -458,6 +468,43 @@ namespace KeePassGate.Bridge
         }
 
         /// <summary>
+        /// The open databases that hold several authorities and whose operator has not been asked
+        /// about them yet, each marked as asked by being answered here.
+        /// </summary>
+        /// <remarks>
+        /// **Read afresh first**, so that what a merge or an unlock brought in is found now rather
+        /// than on the next connection. And **once per state**: the mark lives on the cache entry,
+        /// and an entry is rebuilt whenever what decides the authority changes, so a different set
+        /// of authorities is asked about again, the same one is not, and a lock and an unlock, which
+        /// rebuild it, ask again as the design says they should.
+        ///
+        /// Called on the user interface thread, from the events that say a database may have
+        /// changed under the plugin, and never from a connection: a connection noticing the state
+        /// answers `503` and raises nothing.
+        /// </remarks>
+        public IReadOnlyList<PwDatabase> Unasked()
+        {
+            Refresh();
+
+            var unasked = new List<PwDatabase>();
+            lock (_cacheLock)
+            {
+                foreach (var pair in _cache)
+                {
+                    if (!pair.Value.IsUndecided || pair.Value.Asked)
+                    {
+                        continue;
+                    }
+
+                    pair.Value.Asked = true;
+                    unasked.Add(pair.Key);
+                }
+            }
+
+            return unasked;
+        }
+
+        /// <summary>
         /// A database was closed for real. Nothing is kept, and nothing answers for it. True when
         /// anything was held for it, which is when a connection may still be reading it: what it
         /// was served with, what a lock would have answered with, or what a lock was answering with.
@@ -595,7 +642,7 @@ namespace KeePassGate.Bridge
             }
         }
 
-        private MaterialTarget TargetFor(PwDatabase database)
+        private CachedTarget TargetFor(PwDatabase database)
         {
             // Read once and held. `Current` checked this a moment ago, but locking a database sets
             // it to null on the user interface thread, and a null reference raised here matches no
@@ -622,32 +669,173 @@ namespace KeePassGate.Bridge
             }
 
             CachedTarget cached;
+            string served = null;
             if (_cache.TryGetValue(database, out cached))
             {
                 if (cached.Matches(stored))
                 {
                     cached.Follow(PathOf(database));
-                    return cached.Target;
+                    return cached;
                 }
 
+                served = cached.IsUndecided
+                    ? "a database that held several authorities"
+                    : "the database with authority " + CertificateDigest.Shorten(cached.Target.DatabaseId);
                 cached.Dispose();
                 _cache.Remove(database);
             }
 
             var reading = new AuthorityStore(new CustomDataStore(database), _log).Read();
+            if (reading.Presence == AuthorityPresence.Undecided)
+            {
+                return Undecided(database, stored, reading);
+            }
+
             if (!reading.IsPresent)
             {
-                // No authority, or one that cannot be read. Either way there is nothing to serve
-                // and nothing to say: the tab is where an operator is told about it.
+                // No authority, or one that cannot be read, and nothing to serve either way. The
+                // tab is where an operator is told why, and a database that was never served is
+                // left at that. One that was being served until this reading is said here too,
+                // once, because every client of it is about to be dropped and the log is where an
+                // operator looks for why: a synchronize that brought an authority this cannot read,
+                // or somebody else's edit of the key.
+                if (served != null)
+                {
+                    _log.Warn("stopped serving " + served + ": " + (reading.Presence == AuthorityPresence.None
+                        ? "it holds no authority now"
+                        : "its authority cannot be read now, " + string.Join("; ", reading.Problems)));
+                }
+
                 reading.Dispose();
                 return null;
             }
 
+            var host = HostFor(reading.Material);
+            if (host == null)
+            {
+                reading.Dispose();
+                return null;
+            }
+
+            var target = new MaterialTarget(
+                database, reading, host, _writer, _log);
+            var path = PathOf(database);
+
+            // Open again, which is the other answer to what was kept when it went away. Without
+            // this a database that came back with no unlock being announced would leave a gate key
+            // held until KeePass exits.
+            Discard(path);
+
+            var entry = new CachedTarget(stored, path, Responder(reading), target, null);
+            _cache[database] = entry;
+            _log.Info("serving a database with authority " + CertificateDigest.Shorten(target.DatabaseId));
+            WarnIfRunningOut(reading.Material.Host, target.DatabaseId);
+            return entry;
+        }
+
+        /// <summary>
+        /// Says in the log when the host certificate about to be served has run out, or soon will.
+        /// </summary>
+        /// <remarks>
+        /// **Served all the same**, because what a client does with an expired host certificate is
+        /// for the client to decide, and `PAIRING.md` §304 has it refuse. What an operator got
+        /// instead of a reason was this plugin saying it was serving the database, followed by one
+        /// line per client that tried, each reading as the peer resetting its connection. Said
+        /// once per reading, as the database is served, and within the same window the
+        /// Certificate Authority page warns in.
+        /// </remarks>
+        private void WarnIfRunningOut(X509Certificate2 host, string databaseId)
+        {
+            var now = DateTimeOffset.UtcNow;
+            var ends = host.NotAfter.ToUniversalTime().ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+            var whose = "the host certificate of the database with authority " + CertificateDigest.Shorten(databaseId);
+
+            if (CertificateValidity.HasExpired(host, now))
+            {
+                _log.Warn(whose + " ran out on " + ends +
+                          ", so every client refuses it until the authority is recreated on the KPG tab");
+            }
+            else if (CertificateValidity.RemainingOn(host, now) <= AuthorityDescription.WarningWindow)
+            {
+                _log.Warn(whose + " runs out on " + ends +
+                          ", and every client will refuse it from then until the authority is recreated on the KPG tab");
+            }
+        }
+
+        /// <summary>
+        /// A database holding several authorities and no decision between them: nothing is served,
+        /// no responder is minted, and each candidate that reads answers `503 undecided` under its
+        /// own gate key and host certificate. Called with the lock held; takes the reading.
+        /// </summary>
+        /// <remarks>
+        /// **Cached like any other state**, so the log line and the parsing happen once per change
+        /// rather than once per connection, and so that the chooser can ask which databases are in
+        /// this state without reading any of them again.
+        /// </remarks>
+        private CachedTarget Undecided(PwDatabase database, string stored, AuthorityReading reading)
+        {
+            var targets = new List<UndecidedTarget>();
+
+            try
+            {
+                foreach (var candidate in reading.Candidates)
+                {
+                    if (!candidate.IsWhole)
+                    {
+                        continue;
+                    }
+
+                    var host = HostFor(candidate.Material);
+                    if (host == null)
+                    {
+                        continue;
+                    }
+
+                    // Into a local and zeroed afterwards, for the reason `Answering` gives.
+                    var gateKey = candidate.Material.SniKey;
+                    try
+                    {
+                        targets.Add(new UndecidedTarget(candidate.Fingerprint, gateKey, host));
+                    }
+                    finally
+                    {
+                        Array.Clear(gateKey, 0, gateKey.Length);
+                    }
+                }
+
+                var shorts = new List<string>();
+                foreach (var candidate in reading.Candidates)
+                {
+                    shorts.Add(CertificateDigest.Shorten(candidate.Fingerprint));
+                }
+
+                _log.Warn("not serving a database that holds " + reading.Candidates.Count +
+                          " authorities until the operator keeps one: " + string.Join(", ", shorts));
+            }
+            finally
+            {
+                reading.Dispose();
+            }
+
+            var path = PathOf(database);
+            Discard(path);
+
+            var entry = new CachedTarget(stored, path, null, null, targets);
+            _cache[database] = entry;
+            return entry;
+        }
+
+        /// <summary>
+        /// The host certificate and key as the TLS server will present them, or null, said in the
+        /// log, when they cannot be served.
+        /// </summary>
+        private HostKeyMaterial HostFor(AuthorityMaterial material)
+        {
             // Into a local and zeroed afterwards. The property hands out a fresh copy of the host's
             // key each time it is read, and a copy nobody clears is the one thing a dump would find
             // that `AuthorityMaterial.Dispose` went to the trouble of wiping.
             HostKeyMaterial host;
-            var pkcs12 = reading.Material.HostPkcs12;
+            var pkcs12 = material.HostPkcs12;
             try
             {
                 host = HostKeyMaterial.From(pkcs12);
@@ -663,7 +851,6 @@ namespace KeePassGate.Bridge
             if (host == null)
             {
                 _log.Warn("a database's host certificate could not be read, so it is not served");
-                reading.Dispose();
                 return null;
             }
 
@@ -671,26 +858,14 @@ namespace KeePassGate.Bridge
             // authority. They are two readings of the same stored bytes by two different parsers,
             // and a PKCS#12 carrying more than one key entry is a thing a `.kdbx` can be crafted to
             // hold, so the one served has to be the one that was believed.
-            if (!FixedTime.Equals(host.CertificateDer, reading.Material.Host.RawData))
+            if (!FixedTime.Equals(host.CertificateDer, material.Host.RawData))
             {
                 _log.Warn("a database's host certificate is not the one its authority vouched for, " +
                           "so it is not served");
-                reading.Dispose();
                 return null;
             }
 
-            var target = new MaterialTarget(
-                database, reading, host, _writer, _log);
-            var path = PathOf(database);
-
-            // Open again, which is the other answer to what was kept when it went away. Without
-            // this a database that came back with no unlock being announced would leave a gate key
-            // held until KeePass exits.
-            Discard(path);
-
-            _cache[database] = new CachedTarget(stored, path, Responder(reading), target);
-            _log.Info("serving a database with authority " + CertificateDigest.Shorten(target.DatabaseId));
-            return target;
+            return host;
         }
 
         /// <summary>
@@ -737,18 +912,60 @@ namespace KeePassGate.Bridge
             private string _path;
             private readonly HostKeyMaterial _responder;
             private readonly MaterialTarget _target;
+            private readonly List<UndecidedTarget> _undecided;
 
-            public CachedTarget(string stored, string path, HostKeyMaterial responder, MaterialTarget target)
+            public CachedTarget(
+                string stored,
+                string path,
+                HostKeyMaterial responder,
+                MaterialTarget target,
+                List<UndecidedTarget> undecided)
             {
                 _stored = stored;
                 _path = path;
                 _responder = responder;
                 _target = target;
+                _undecided = undecided ?? new List<UndecidedTarget>();
             }
 
+            /// <summary>What is served, or null while the database holds several authorities.</summary>
             public MaterialTarget Target
             {
                 get { return _target; }
+            }
+
+            /// <summary>Whether this database holds several authorities and none is chosen.</summary>
+            public bool IsUndecided
+            {
+                get { return _target == null; }
+            }
+
+            /// <summary>
+            /// Whether the operator has been asked about this state already. A new state is a new
+            /// entry, so a different set of authorities is asked about again.
+            /// </summary>
+            public bool Asked { get; set; }
+
+            /// <summary>
+            /// Every target this database answers with, each with a reference taken for the caller.
+            /// Called with the lock held, so nothing can release one before it is taken.
+            /// </summary>
+            public IEnumerable<IGateTarget> Hand()
+            {
+                var handed = new List<IGateTarget>();
+                if (_target != null)
+                {
+                    _target.Retain();
+                    handed.Add(_target);
+                }
+
+                foreach (var candidate in _undecided)
+                {
+                    candidate.Retain();
+                    handed.Add(candidate);
+                }
+
+                return handed;
             }
 
             /// <summary>
@@ -792,7 +1009,15 @@ namespace KeePassGate.Bridge
 
             public void Dispose()
             {
-                _target.Dispose();
+                if (_target != null)
+                {
+                    _target.Dispose();
+                }
+
+                foreach (var candidate in _undecided)
+                {
+                    candidate.Dispose();
+                }
             }
         }
 
@@ -1015,6 +1240,12 @@ namespace KeePassGate.Bridge
             public bool IsLocked
             {
                 get { return false; }
+            }
+
+            /// <summary>Never: this is the database being served.</summary>
+            public string Unavailable
+            {
+                get { return null; }
             }
 
             /// <summary>

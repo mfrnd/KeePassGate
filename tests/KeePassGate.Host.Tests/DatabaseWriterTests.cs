@@ -132,7 +132,7 @@ namespace KeePassGate.Host.Tests
                     db.Save(null);
                     System.IO.File.WriteAllBytes(_database.Path, theCopyAsItWas);
                 },
-                () => redraws++);
+                (db, lists) => redraws++);
 
             var outcome = writer.Change(
                 _database.Database,
@@ -275,35 +275,120 @@ namespace KeePassGate.Host.Tests
             // entry created through the API is not in the list, one deleted is still in it, and one
             // renamed still reads as it did, until something they do rebuilds the window.
             var redraws = 0;
-            var writer = Writer(new RunsUiThread(), db => db.Modified = false, () => redraws++);
+            PwDatabase told = null;
+            var rebuilt = false;
+            var writer = Writer(
+                new RunsUiThread(),
+                db => db.Modified = false,
+                (db, lists) =>
+                {
+                    redraws++;
+                    told = db;
+                    rebuilt = lists;
+                });
 
             var outcome = writer.Change(_database.Database, () => VaultWrite.Created("abcd"));
 
             Assert.That(outcome.Ok, Is.True);
             Assert.That(redraws, Is.EqualTo(1));
+            Assert.That(rebuilt, Is.True, "the tree and the list are what changed");
+            Assert.That(told, Is.SameAs(_database.Database),
+                "and the window is told which database, since it rebuilds only the one in front: a " +
+                "write to a database in another tab would take the operator's search results away " +
+                "in one they are looking at");
         }
 
         [Test]
-        public void A_change_that_never_happened_leaves_the_window_alone()
+        public void A_change_that_never_happened_rebuilds_nothing()
         {
             // Two ways for nothing to have happened, and neither is worth a rebuild: a change the
             // vault refused, and one whose save did not land and was taken back out. In both the
-            // window is already showing the database as it now is, and redrawing would cost an
-            // operator their entry list for a request that changed nothing.
+            // tree and the list already show the database as it now is, and rebuilding would cost
+            // an operator their entry list for a request that changed nothing.
             var redraws = 0;
+            var rebuilds = 0;
+            Action<PwDatabase, bool> window = (db, lists) =>
+            {
+                redraws++;
+                rebuilds += lists ? 1 : 0;
+            };
 
-            var refused = Writer(new RunsUiThread(), db => db.Modified = false, () => redraws++);
+            var refused = Writer(new RunsUiThread(), db => db.Modified = false, window);
             Assert.That(
                 refused.Change(_database.Database, () => VaultWrite.Conflict("no")).Ok, Is.False);
+            Assert.That(redraws, Is.Zero, "a refusal touched nothing, so nothing on screen is wrong");
 
-            var unsaved = Writer(new RunsUiThread(), db => { }, () => redraws++);
+            var unsaved = Writer(new RunsUiThread(), db => { }, window);
             Assert.That(
                 unsaved.Change(
                     _database.Database,
                     () => new VaultChange(VaultWrite.Created("abcd"), () => { })).IsUnsaved,
                 Is.True);
 
-            Assert.That(redraws, Is.Zero);
+            Assert.That(rebuilds, Is.Zero);
+        }
+
+        [Test]
+        public void A_change_that_found_nothing_to_change_is_answered_without_a_save()
+        {
+            // An update naming only what the node already holds. Unlike a refusal it is answered as
+            // having worked, so the writer cannot tell from the outcome that there is nothing to
+            // save, and `VaultChange.Unchanged` is how it is told.
+            var saves = 0;
+            var redraws = 0;
+            var writer = Writer(
+                new RunsUiThread(),
+                db =>
+                {
+                    saves++;
+                    db.Modified = false;
+                },
+                (db, lists) => redraws++);
+
+            _database.Database.Modified = false;
+            var clean = writer.Change(_database.Database, () => VaultChange.Unchanged(VaultWrite.Done()));
+
+            Assert.That(clean.Ok, Is.True);
+            Assert.That(_database.Database.Modified, Is.False, "nothing is waiting to be saved");
+
+            // A database holding an edit of the operator's own, which a write that landed would have
+            // saved along with it because KeePass saves the whole database.
+            _database.Database.Modified = true;
+            var dirty = writer.Change(_database.Database, () => VaultChange.Unchanged(VaultWrite.Done()));
+
+            Assert.That(dirty.Ok, Is.True);
+            Assert.That(_database.Database.Modified, Is.True, "the operator's edit is still theirs to save");
+            Assert.That(saves, Is.Zero);
+            Assert.That(redraws, Is.Zero, "and nothing on screen is out of date");
+        }
+
+        [Test]
+        public void A_change_taken_back_out_redraws_the_mark_saying_there_is_something_to_save()
+        {
+            // `MainForm.SaveDatabase` ends a failed save in `UpdateUIState` while the change is
+            // still in, so its title bar and save button say the database has something to save.
+            // The put back then clears the flag, and a window left as it was keeps an asterisk for
+            // a change the client was told did not happen, until something else redraws it.
+            _database.Database.Modified = false;
+
+            var redraws = 0;
+            var rebuilt = true;
+            var writer = Writer(
+                new RunsUiThread(),
+                db => { },
+                (db, lists) =>
+                {
+                    redraws++;
+                    rebuilt = lists;
+                });
+
+            var outcome = writer.Change(
+                _database.Database, () => new VaultChange(VaultWrite.Created("abcd"), () => { }));
+
+            Assume.That(outcome.IsUnsaved, Is.True);
+            Assume.That(_database.Database.Modified, Is.False);
+            Assert.That(redraws, Is.EqualTo(1), "the flag went back, so the window is told");
+            Assert.That(rebuilt, Is.False, "and only that: the tree and the list never showed the change");
         }
 
         [Test]
@@ -316,7 +401,7 @@ namespace KeePassGate.Host.Tests
             var writer = Writer(
                 new RunsUiThread(),
                 db => db.Modified = false,
-                () => { throw new ObjectDisposedException("the window went away"); });
+                (db, lists) => { throw new ObjectDisposedException("the window went away"); });
 
             var outcome = writer.Change(_database.Database, () => VaultWrite.Created("abcd"));
 
@@ -644,7 +729,7 @@ namespace KeePassGate.Host.Tests
             return Writer(ui, save, null);
         }
 
-        private DatabaseWriter Writer(IUiThread ui, Action<PwDatabase> save, Action redraw)
+        private DatabaseWriter Writer(IUiThread ui, Action<PwDatabase> save, Action<PwDatabase, bool> redraw)
         {
             return new DatabaseWriter(ui, save, redraw, null, NullGateLog.Instance);
         }

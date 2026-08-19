@@ -64,14 +64,21 @@ namespace KeePassGate.Transport
         /// finishes, which is a thread held for as long as the caps allow rather than for ten
         /// seconds.
         ///
-        /// **It has a floor as well as a purpose**, and the floor is what a request that writes can
-        /// legitimately spend waiting: `DatabaseWriter.LockTimeout` for its turn at the single
-        /// writer, then `DatabaseWriter.WriteTimeout` for the marshaled write and save. Below that
-        /// sum the socket is closed while a write that is still going to land is going to land,
-        /// which leaves a client that has to guess whether its create happened, holding no
-        /// identifier for the entry if it did. Thirty seconds was under it.
-        /// `GateOptionsTests.The_ordinary_budget_outlasts_a_write_that_is_not_a_pairing` is what
-        /// keeps the three numbers together.
+        /// **It bounds what the peer controls and stops there.** The connection's deadline is
+        /// dropped the moment the whole request is off the wire, because after that the thread is
+        /// blocked on this plugin rather than on the socket and closing the socket frees neither
+        /// the thread nor the connection slot: all it does is destroy the answer to a write that
+        /// lands anyway, leaving a client that has to guess whether its create happened and holds
+        /// no identifier for the entry if it did. `GateListener.Deadline.Disarm` is where that is,
+        /// with the argument.
+        ///
+        /// **It used to be said to have a floor**, and the floor was `DatabaseWriter.LockTimeout`
+        /// plus `DatabaseWriter.WriteTimeout`, on the ground that the second of those bounds the
+        /// marshaled write and save. It does not: it bounds the wait for that call to *start*, and
+        /// a call that has started is waited out with no clock on it at all. So the sum was not an
+        /// upper bound on anything a writing request can spend, and no number is: a save is a
+        /// whole-database write of whatever size the database is, over whatever storage it is on.
+        /// A raised budget made the loss rarer and nothing more.
         /// </remarks>
         public TimeSpan Budget { get; set; }
 
@@ -93,6 +100,14 @@ namespace KeePassGate.Transport
         /// second one waits for the screen for as long as it was going to give the operator anyway
         /// before it can start giving it. So a pairing that takes the screen just inside that wait
         /// still has the whole of the dialog ahead of it.
+        ///
+        /// **And this is the one connection that keeps a deadline after its request is read**,
+        /// where <see cref="Budget"/> drops it. The difference is that the rest of a pairing is a
+        /// sum somebody can write down, so a number for it means something; the rest of an
+        /// ordinary write is a save of unknown length, so a number for it can only cut a landing
+        /// write off from its answer. The last of the waits added up below is the same
+        /// `DatabaseWriter.WriteTimeout` that does not bound a started save, and it is kept here
+        /// because this budget only has to outlast the waits, not bound them.
         ///
         /// So it has to exceed `ApprovalTimeout` for the screen, then `ApprovalTimeout +
         /// PairingApprovalPrompt.Grace` for the dialog, then `DatabaseWriter.LockTimeout +

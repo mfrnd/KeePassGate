@@ -65,6 +65,13 @@ namespace KeePassGate.Pipeline
                 return ClientIdentity.Locked(databaseId);
             }
 
+            if (target.Unavailable != null)
+            {
+                // The same for a database holding several authorities: none is loaded to judge a
+                // certificate with, because loading one would be choosing between them.
+                return ClientIdentity.Unavailable(databaseId, target.Unavailable);
+            }
+
             if (presented == null)
             {
                 return ClientIdentity.Stranger(databaseId);

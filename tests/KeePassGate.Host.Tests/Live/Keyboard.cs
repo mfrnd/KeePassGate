@@ -233,12 +233,14 @@ namespace KeePassGate.Host.Tests.Live
         }
 
         /// <summary>
-        /// Enter, which is how a dropdown is accepted.
+        /// Enter, which is how a dropdown is accepted, and how a file dialog opens what its name box
+        /// holds.
         /// </summary>
         /// <remarks>
-        /// Only ever with one of the plugin's own pickers open. On a dialog with nothing open it is
-        /// that dialog's OK, which is the whole reason the picker takes the key away while it is
-        /// showing.
+        /// Only ever with one of the plugin's own pickers open, or with the platform's file dialog
+        /// in front. On a dialog with nothing open it is that dialog's OK, which is the whole reason
+        /// the picker takes the key away while it is showing, and is exactly what the file dialog
+        /// is pressed for.
         /// </remarks>
         public static void SendEnter()
         {

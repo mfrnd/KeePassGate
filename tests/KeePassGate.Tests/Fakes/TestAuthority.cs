@@ -180,6 +180,12 @@ namespace KeePassGate.Tests.Fakes
             get { return false; }
         }
 
+        /// <summary>Never: this one is always served.</summary>
+        public string Unavailable
+        {
+            get { return null; }
+        }
+
         /// <summary>Set to fail the write after it was allowed to start.</summary>
         public AdmissionWrite AdmitAnswers { get; set; }
 
@@ -369,6 +375,12 @@ namespace KeePassGate.Tests.Fakes
                 if (locked != null)
                 {
                     locked.Retain();
+                }
+
+                var undecided = target as UndecidedTarget;
+                if (undecided != null)
+                {
+                    undecided.Retain();
                 }
             }
 

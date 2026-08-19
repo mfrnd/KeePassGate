@@ -18,9 +18,11 @@ from pathlib import Path
 from .client import ROOT, GateClient, Status
 from .credentials import Credentials, Prepared, default_directory, load, prepare, save
 from .errors import (
+    AuthorityUndecided,
     DatabaseLocked,
     GateBusy,
     GateError,
+    GateUnavailable,
     MalformedToken,
     NotAdmitted,
     NotPaired,
@@ -40,6 +42,7 @@ from .transport import (
     DEFAULT_CONNECTION_TIMEOUT,
     DEFAULT_RETRY_BUSY_TIMEOUT,
     DEFAULT_RETRY_LOCKED_TIMEOUT,
+    DEFAULT_RETRY_UNDECIDED_TIMEOUT,
     LOOPBACK,
     MAX_RESPONSE_BYTES,
     PAIRING_CONNECTION_TIMEOUT,
@@ -54,11 +57,13 @@ __all__ = [
     "DEFAULT_PORT",
     "DEFAULT_RETRY_BUSY_TIMEOUT",
     "DEFAULT_RETRY_LOCKED_TIMEOUT",
+    "DEFAULT_RETRY_UNDECIDED_TIMEOUT",
     "LOOPBACK",
     "MAX_RESPONSE_BYTES",
     "PAIRING_CONNECTION_TIMEOUT",
     "ROOT",
     "Attachment",
+    "AuthorityUndecided",
     "Credentials",
     "DatabaseLocked",
     "Entry",
@@ -68,6 +73,7 @@ __all__ = [
     "GateBusy",
     "GateClient",
     "GateError",
+    "GateUnavailable",
     "Group",
     "MalformedToken",
     "NotAdmitted",
@@ -112,6 +118,7 @@ def pair(
     host: str = LOOPBACK,
     retry_busy_timeout: float | None = DEFAULT_RETRY_BUSY_TIMEOUT,
     retry_locked_timeout: float | None = DEFAULT_RETRY_LOCKED_TIMEOUT,
+    retry_undecided_timeout: float | None = DEFAULT_RETRY_UNDECIDED_TIMEOUT,
     allow_shared_directory: bool = False,
     max_response_bytes: int = MAX_RESPONSE_BYTES,
 ) -> Credentials:
@@ -143,7 +150,9 @@ def pair(
     connection_limit(connection_timeout)
     response_limit(max_response_bytes)
     where = directory or default_directory(profile)
-    retry = Retry(busy=retry_busy_timeout, locked=retry_locked_timeout)
+    retry = Retry(
+        busy=retry_busy_timeout, locked=retry_locked_timeout, undecided=retry_undecided_timeout
+    )
 
     with prepare(where, allow_shared_directory=allow_shared_directory) as prepared:
         while True:
@@ -161,7 +170,7 @@ def pair(
             try:
                 started = exchange.hello()
                 bundle = exchange.request(started, name, profiles or [])
-            except (GateBusy, DatabaseLocked) as refusal:
+            except GateUnavailable as refusal:
                 if retry.waited(refusal):
                     continue
 

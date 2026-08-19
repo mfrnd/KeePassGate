@@ -409,7 +409,7 @@ namespace KeePassGate.Host.Tests
             // somebody paired.
             var redraws = 0;
             var writer = new DatabaseWriter(
-                CurrentThread.Instance, Save, () => redraws++, _dialogs, _log);
+                CurrentThread.Instance, Save, (database, lists) => redraws++, _dialogs, _log);
 
             using (var certificate = IssueClient())
             {
@@ -417,6 +417,38 @@ namespace KeePassGate.Host.Tests
 
                 Assert.That(result.Ok, Is.True, result.Reason);
                 Assert.That(redraws, Is.Zero);
+            }
+        }
+
+        [Test]
+        public void A_record_taken_back_out_redraws_the_title_bar_alone()
+        {
+            // A save that failed ended in `UpdateUIState` with the record still in, so the title
+            // bar says the database has something to save; the record then goes back out and the
+            // flag with it. What is left wrong on screen is that mark, and nothing else.
+            _database.Database.Modified = false;
+
+            var redraws = 0;
+            var rebuilt = true;
+            var writer = new DatabaseWriter(
+                CurrentThread.Instance,
+                database => { },
+                (database, lists) =>
+                {
+                    redraws++;
+                    rebuilt = lists;
+                },
+                _dialogs,
+                _log);
+
+            using (var certificate = IssueClient())
+            {
+                var result = writer.WriteAdmission(_database.Database, Record(certificate, "ops"));
+
+                Assume.That(result.Ok, Is.False);
+                Assume.That(_database.Database.Modified, Is.False);
+                Assert.That(redraws, Is.EqualTo(1));
+                Assert.That(rebuilt, Is.False);
             }
         }
 

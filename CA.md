@@ -192,6 +192,22 @@ authority with no retirement serves nothing**: that is two copies that each crea
 one, meeting in a synchronize, and choosing between them is the operator's decision rather than
 this plugin's.
 
+**So the plugin asks, and answers `503 undecided` until somebody has.** A connection to such a
+database is answered before a request is read, with each authority's own host certificate and no
+responder. KeePass asks the operator which authority to keep in a dialog over its main window, the
+first time the plugin sees the state: when the database is opened or unlocked, or at the save that
+ends a synchronize, and never from a connection. For each authority it shows the fingerprint, when
+it was made, until when it and its host certificate are valid, and every client chaining to it with
+its profiles, when it was admitted and when it last made a request where the audit says so.
+Keeping one retires every other, through the single writer's guard, and marks the database
+modified without saving it; the records of the authorities not kept stay, admitting nobody, and
+the clients page names them for what they are. Cancel serves nothing, and the KPG tab's authority
+page asks again, waiting for the settings dialog's OK like everything else there. **A choice the
+writer refuses is tried again for a few seconds** before the operator is told to choose again,
+which is the operator's ruling of 2026-10-14: another client's write holding the writer, or KeePass
+part way through a save, is over in a moment, and only a refusal that outlasts that, Database
+Maintenance left open among them, is put back in front of the operator.
+
 **Recreating and deleting both remove every admission record, and every revocation with the records
 it emptied.** Each certificate they name chains to the authority just retired, and the retirement
 refuses it whatever a stale copy brings back, so a revocation beside it would refuse nothing more.
@@ -204,6 +220,16 @@ the database, and saving or merging in one can quietly bring back a revoked clie
 authority or a removed profile, because their merges replace or drop keys: KeePassXC 2.7.12, the
 one read from source, replaces the whole dictionary. Nothing here detects that. After any change
 made outside KeePass, the clients page and the authority are where to look.
+
+**KeePass's own Database Maintenance dialog lists every one of these keys on its Plugin Data tab,
+and deletes any of them on request.** None of that is a way to manage what this plugin keeps.
+Deleting an emptied record there changes nothing, since the revocation beside it still refuses the
+certificate. Deleting a revocation leaves the client refused only by its emptied record, which a
+stale copy merged in afterwards can beat, the way a dropped time, a slow clock or an import beat it
+before revocations had keys of their own. Deleting a retirement lets a stale copy's old authority
+back in beside the one in use, and the save that ends that synchronize asks the operator to choose
+between them again. Revoking, recreating and deleting are done on the KPG tab, which writes each of
+them the way this section says.
 
 ### How each value is written §222
 
@@ -622,7 +648,9 @@ third-party grammar underneath it.
 Storing the certificate rather than only its digest is what makes any of this possible.
 
 - **The plugin knows every expiry** and warns on the Certificate Authority page: 30 days for a client, 90
-  for a host or the authority.
+  for a host or the authority. A host certificate is warned about in the plugin's log as well, when
+  the database is served within those 90 days or after them, since every client of it goes dark at
+  once and the log is where an operator looks for why.
 - **A host certificate expiring is a total outage**, and it happens while nobody is looking.
   Reissuing would be cheap and clients would never notice, because they trust the authority rather
   than the leaf. **Not built:** there is no reissue dialog, and recreating the authority is what

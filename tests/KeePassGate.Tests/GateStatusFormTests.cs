@@ -104,14 +104,87 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void The_box_starts_on_the_port_the_gate_is_actually_using()
+        public void A_gate_that_could_not_bind_says_why_and_that_only_a_restart_changes_it()
         {
-            // Rather than on what was chosen, because those differ exactly when something went
-            // wrong, and the one worth showing is the one clients can reach.
+            // The port is taken once, at startup, so a refusal lasts the whole session. A line
+            // saying the log knows why is a line asking somebody to go and look for something they
+            // can do nothing about.
+            var down = new Gate(false, 0) { Refusal = "127.0.0.1:51100 could not be taken: in use" };
+
+            Assert.That(GateStatusForm.Advice(down), Does.Contain("could not be taken"));
+            Assert.That(GateStatusForm.Advice(down), Does.Contain("started again"));
+        }
+
+        [Test]
+        public void A_variable_that_names_no_port_is_the_reason_given_and_a_restart_is_still_needed()
+        {
+            // The operator's ruling on K004: a `KEEPASSGATE_PORT` that is not a port stops the gate,
+            // and the window says which variable, what it holds, what it may hold, and that nothing
+            // is listening, in the sentence the log and the box at startup carry.
+            string refused;
+            Transport.GateOptions.PortToTake(0, "80", out refused);
+            var down = new Gate(false, 0) { Refusal = refused };
+
+            var advice = GateStatusForm.Advice(down);
+
+            Assert.That(advice, Does.StartWith(refused));
+            Assert.That(advice, Does.Contain("KEEPASSGATE_PORT").And.Contain("\"80\""));
+            Assert.That(advice, Does.Contain("1024").And.Contain("65535"));
+            Assert.That(advice, Does.Contain("started again"));
+            Assert.That(GateStatusForm.Facts(down, null)[0].Value, Does.StartWith("no"));
+        }
+
+        [Test]
+        public void A_gate_that_is_down_still_says_the_rest_of_the_plugin_works()
+        {
+            // The half that is easy to leave out and expensive to leave out. Nothing else has
+            // stopped, and an operator who reads "not listening" and closes the window would never
+            // find out that every setting on it still does what it says.
+            var down = new Gate(false, 0) { Refusal = "127.0.0.1:51100 could not be taken: in use" };
+
+            var advice = GateStatusForm.Advice(down);
+
+            Assert.That(advice, Does.Contain("settings"));
+            Assert.That(advice, Does.Contain("still works"));
+        }
+
+        [Test]
+        public void The_box_starts_on_the_port_the_next_start_takes()
+        {
+            // The choice rather than the socket. The two differ after a port is written down, for
+            // the rest of the session, and a box showing the socket then showed the waiting port
+            // nowhere and could not take it back (H106). The socket is the row above.
             using (var window = new GateStatusForm(Listening(45678), null, Takes, 51776))
+            {
+                Assert.That(window.ChosenPort, Is.EqualTo(51776));
+            }
+        }
+
+        [Test]
+        public void With_nothing_chosen_the_box_starts_on_the_port_the_gate_is_using()
+        {
+            using (var window = new GateStatusForm(Listening(45678), null, Takes, 0))
             {
                 Assert.That(window.ChosenPort, Is.EqualTo(45678));
             }
+        }
+
+        [Test]
+        public void A_port_waiting_for_the_next_start_is_said_in_words_before_the_advice()
+        {
+            var waiting = GateStatusForm.Waiting(Listening(51776), 52000);
+
+            Assert.That(waiting, Does.Contain("127.0.0.1:52000").And.Contain("next time KeePass starts"));
+
+            using (var window = new GateStatusForm(Listening(51776), null, Takes, 52000))
+            {
+                Assert.That(Advice(window), Does.StartWith(waiting));
+            }
+
+            Assert.That(GateStatusForm.Waiting(Listening(51776), 51776), Is.Null, "nothing is waiting");
+            Assert.That(GateStatusForm.Waiting(Listening(51776), 0), Is.Null, "nothing was chosen");
+            Assert.That(GateStatusForm.Waiting(new Gate(false, 0), 52000), Is.Null,
+                "a gate on nothing moves nowhere, and says why it is on nothing instead");
         }
 
         [Test]
@@ -180,23 +253,22 @@ namespace KeePassGate.Tests
         public void An_untouched_OK_does_not_write_over_a_port_that_is_already_waiting()
         {
             // **The state every successful change leaves behind, and it lasts the session.** The
-            // port is written down and the socket is not rebound, so from then on the box shows the
-            // socket while the setting says something else. An operator who reopens the window to
-            // check the change, and answers the dialog the way a dialog is answered, was writing
-            // the old port back over the new one. The result line then told them the gate was
-            // already listening there, which was true and was not what they had asked about.
+            // port is written down and the socket is not rebound. An operator who reopens the
+            // window to check the change, and answers the dialog the way a dialog is answered,
+            // once wrote the old port back over the new one; the box now opens on the waiting
+            // port, and an OK that did not move it writes nothing.
             var written = new List<int>();
 
             using (var window = new GateStatusForm(
                 Listening(51776), null, port => { written.Add(port); return null; }, 52000))
             {
-                Assume.That(window.ChosenPort, Is.EqualTo(51776), "the socket, not the choice");
+                Assume.That(window.ChosenPort, Is.EqualTo(52000), "the choice, not the socket");
 
                 var said = window.Keep();
 
                 Assert.That(written, Is.Empty, "nothing was typed here, so nothing may be written");
                 Assert.That(window.Applied, Is.True, "and OK is not reported as having failed");
-                Assert.That(said, Does.Contain("51776"));
+                Assert.That(said, Is.EqualTo("Nothing was changed."));
             }
         }
 
@@ -222,20 +294,52 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void A_port_that_was_typed_is_written_even_where_the_gate_is_already_on_one()
+        public void Typing_the_port_the_gate_is_on_takes_a_waiting_one_back()
         {
             // The other half, and the one that says the check above is about the box not moving
-            // rather than about the gate.
+            // rather than about the gate: the socket's own port, typed over a waiting one, is
+            // written, which is how a change is taken back from this window (H106).
             var written = new List<int>();
 
             using (var window = new GateStatusForm(
                 Listening(51776), null, port => { written.Add(port); return null; }, 52000))
             {
-                window.ChosenPort = 52000;
+                window.ChosenPort = 51776;
+
+                var said = window.Keep();
+
+                Assert.That(written, Is.EqualTo(new[] { 51776 }));
+                Assert.That(window.Changed, Is.True);
+                Assert.That(said, Does.Contain("stays on 127.0.0.1:51776"));
+                Assert.That(said, Does.Not.Contain("told the new one"),
+                    "the clients are on this port already, and have nothing to be told");
+            }
+        }
+
+        [Test]
+        public void Only_a_port_that_actually_moved_is_worth_telling_the_operator_about()
+        {
+            // `Changed` is what decides whether anything is said once the window has gone, and the
+            // sentence it carries is not a receipt: it says the port waits for the next start, and
+            // that every client paired against the old one has to be told the new one. Saying that
+            // about a port nobody moved would train somebody to dismiss it.
+            using (var window = new GateStatusForm(Listening(51776), null, Takes, 52000))
+            {
+                window.Keep();
+
+                Assert.That(window.Applied, Is.True, "the operator was not refused");
+                Assert.That(window.Changed, Is.False, "and nothing moved, so there is nothing to say");
+            }
+
+            using (var window = new GateStatusForm(Listening(51776), null, Takes, 52000))
+            {
+                window.ChosenPort = 53000;
 
                 window.Keep();
 
-                Assert.That(written, Is.EqualTo(new[] { 52000 }));
+                Assert.That(window.Changed, Is.True);
+                Assert.That(window.Result, Does.Contain("53000"),
+                    "and what is said is what the window answered");
             }
         }
 
@@ -408,6 +512,8 @@ namespace KeePassGate.Tests
             public bool IsListening { get; private set; }
 
             public int Port { get; private set; }
+
+            public string Refusal { get; set; }
         }
 
         private static IEnumerable<string> Names(IReadOnlyList<Fact> facts)

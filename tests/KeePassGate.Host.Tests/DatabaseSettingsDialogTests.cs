@@ -296,6 +296,10 @@ namespace KeePassGate.Host.Tests
             {
                 return true;
             }
+
+            public void Tell(string title, string news)
+            {
+            }
         }
     }
 }

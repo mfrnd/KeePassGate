@@ -335,5 +335,38 @@ namespace KeePassGate.Ui
         public const string ApproveButtonText = "Approve";
 
         public const string RefuseButtonText = "Refuse";
+
+        /// <summary>
+        /// The authority page's button for a database holding several authorities, in the place
+        /// Create has, since that one has nothing to do in that state.
+        /// </summary>
+        public const string ChooseButtonName = "KpgChooseButton";
+
+        public const string ChooseButtonText = "Choose authority";
+
+        /// <summary>The dialog that asks which of several authorities to keep.</summary>
+        public const string ChooserFormName = "KpgChooserForm";
+
+        public const string ChooserAuthorityListName = "KpgChooserAuthorityList";
+
+        public const string ChooserAuthorityListLabel = "Authorities this database holds";
+
+        public const string ChooserFingerprintBoxName = "KpgChooserFingerprintBox";
+
+        public const string ChooserFingerprintBoxLabel = "Full fingerprint of the selected authority";
+
+        public const string ChooserDetailLabelName = "KpgChooserDetailLabel";
+
+        public const string ChooserClientListName = "KpgChooserClientList";
+
+        public const string ChooserClientListLabel = "Clients the selected authority admitted";
+
+        public const string KeepButtonName = "KpgKeepButton";
+
+        public const string KeepButtonText = "Keep this one";
+
+        public const string ChooserCancelButtonName = "KpgChooserCancelButton";
+
+        public const string ChooserCancelButtonText = "Cancel";
     }
 }

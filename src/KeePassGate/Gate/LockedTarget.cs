@@ -34,11 +34,16 @@ namespace KeePassGate.Gate
         /// Why this target refuses, for the log and for the write it turns away.
         /// </summary>
         /// <remarks>
-        /// Not what the gate answers with. That is `GateConversation.LockedError`, which is the
-        /// one word `locked` and is written before a request is read; this is the sentence a
-        /// person reads.
+        /// Not what the gate answers with. That is <see cref="Error"/>, which is the one word
+        /// `locked` and is written before a request is read; this is the sentence a person reads.
         /// </remarks>
         public const string Reason = "the database is locked";
+
+        /// <summary>
+        /// What every connection to a locked database is answered with, under `503`: one word, so
+        /// that a client library can match on it and wait rather than parse a sentence.
+        /// </summary>
+        public const string Error = "locked";
 
         private readonly string _databaseId;
         private readonly byte[] _gateKey;
@@ -152,6 +157,11 @@ namespace KeePassGate.Gate
         public bool IsLocked
         {
             get { return true; }
+        }
+
+        public string Unavailable
+        {
+            get { return Error; }
         }
 
         /// <summary>

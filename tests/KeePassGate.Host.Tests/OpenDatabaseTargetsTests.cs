@@ -179,6 +179,54 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void A_database_being_served_that_loses_its_authority_is_said_to_be_dropped()
+        {
+            // Every other refusal on this path says something, and this one was silent: the
+            // database left the answer set, and each of its clients got a dropped connection with
+            // nothing in the log to say why. Said once, when it stops being served, and not again
+            // on every connection that finds it has nothing to serve.
+            CreateAuthorityIn(_first);
+            CreateAuthorityIn(_second);
+            var first = CertificateDigest.Shorten(DigestOf(_first));
+            var second = CertificateDigest.Shorten(DigestOf(_second));
+            Assume.That(_targets.Current(), Has.Count.EqualTo(2));
+
+            // One the way a synchronize can bring it, a value under the key this cannot read, and
+            // one the way the tab takes it away.
+            _first.Database.CustomData.Set(AuthorityKeys.AuthorityKey(DigestOf(_first)), "rubbish");
+            ServiceFor(_second).Delete();
+
+            Assert.That(_targets.Current(), Is.Empty);
+            _targets.Current();
+
+            Assert.That(_log.Warnings, Has.Count.EqualTo(2), string.Join("\n", _log.Warnings));
+            Assert.That(_log.Warnings, Has.Some.Contains(first).And.Contains("cannot be read"));
+            Assert.That(_log.Warnings, Has.Some.Contains(second).And.Contains("holds no authority"));
+        }
+
+        [Test]
+        public void A_host_certificate_that_has_run_out_or_soon_will_is_said_to_as_it_is_served()
+        {
+            // Served all the same, since what a client does with it is the client's to decide. What
+            // the log said was that the database was served, and then a connection reset for every
+            // client that refused the certificate.
+            var sixYearsAgo = new AuthorityIssuer(() => DateTimeOffset.UtcNow.AddYears(-6));
+            var created = new AuthorityService(new CustomDataStore(_first.Database), sixYearsAgo, NullGateLog.Instance)
+                .Create();
+            Assume.That(created.Succeeded, Is.True, created.Message);
+
+            var nearlyFive = new AuthorityIssuer(() => DateTimeOffset.UtcNow.AddYears(-5).AddDays(30));
+            created = new AuthorityService(new CustomDataStore(_second.Database), nearlyFive, NullGateLog.Instance)
+                .Create();
+            Assume.That(created.Succeeded, Is.True, created.Message);
+
+            Assert.That(_targets.Current(), Has.Count.EqualTo(2), "both are served");
+            Assert.That(_log.Warnings, Has.Some.Contains(CertificateDigest.Shorten(DigestOf(_first))).And.Contains("ran out on"));
+            Assert.That(_log.Warnings, Has.Some.Contains(CertificateDigest.Shorten(DigestOf(_second))).And.Contains("runs out on"));
+            Assert.That(_log.Warnings, Has.Count.EqualTo(2));
+        }
+
+        [Test]
         public void A_database_that_is_no_longer_open_stops_being_served()
         {
             CreateAuthorityIn(_first);
@@ -398,6 +446,8 @@ namespace KeePassGate.Host.Tests
 
             public List<string> Infos { get; } = new List<string>();
 
+            public List<string> Warnings { get; } = new List<string>();
+
             public void Info(string message)
             {
                 Infos.Add(message);
@@ -405,6 +455,7 @@ namespace KeePassGate.Host.Tests
 
             public void Warn(string message)
             {
+                Warnings.Add(message);
             }
 
             public void Error(string message, Exception error)

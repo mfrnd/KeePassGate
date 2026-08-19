@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using KeePassGate.Authority;
 using KeePassGate.Tests.Fakes;
@@ -48,7 +49,7 @@ namespace KeePassGate.Tests
         {
             using (var reading = _service.Read())
             {
-                var description = AuthorityDescription.Of(reading, null, Now);
+                var description = AuthorityDescription.Of(reading, null, null, Now);
 
                 Assert.That(description.Headline, Is.EqualTo(AuthorityDescription.AbsentHeadline));
                 Assert.That(description.CanCreate, Is.True);
@@ -64,7 +65,7 @@ namespace KeePassGate.Tests
 
             using (var reading = _service.Read())
             {
-                var description = AuthorityDescription.Of(reading, null, Now);
+                var description = AuthorityDescription.Of(reading, null, null, Now);
 
                 Assert.That(string.Join(" ", description.Details), Does.Contain("inert"));
             }
@@ -77,7 +78,7 @@ namespace KeePassGate.Tests
 
             using (var reading = _service.Read())
             {
-                var description = AuthorityDescription.Of(reading, null, Now);
+                var description = AuthorityDescription.Of(reading, null, null, Now);
 
                 Assert.That(description.Headline, Is.EqualTo(AuthorityDescription.PresentHeadline));
                 Assert.That(description.CanCreate, Is.False);
@@ -93,7 +94,7 @@ namespace KeePassGate.Tests
 
             using (var reading = _service.Read())
             {
-                var description = AuthorityDescription.Of(reading, null, DateTimeOffset.UtcNow);
+                var description = AuthorityDescription.Of(reading, null, null, DateTimeOffset.UtcNow);
 
                 Assert.That(Named(description, "Fingerprint"),
                     Is.EqualTo(CertificateDigest.Shorten(reading.Material.AuthorityDigest)));
@@ -118,7 +119,7 @@ namespace KeePassGate.Tests
 
             using (var reading = _service.Read())
             {
-                foreach (var fact in AuthorityDescription.Of(reading, null, DateTimeOffset.UtcNow).Facts)
+                foreach (var fact in AuthorityDescription.Of(reading, null, null, DateTimeOffset.UtcNow).Facts)
                 {
                     Assert.That(fact.Name, Is.Not.Empty);
                     Assert.That(fact.Value, Is.Not.Empty);
@@ -153,7 +154,7 @@ namespace KeePassGate.Tests
                 System.Threading.Thread.CurrentThread.CurrentCulture = new System.Globalization.CultureInfo("de-DE");
                 using (var reading = _service.Read())
                 {
-                    var description = AuthorityDescription.Of(reading, null, DateTimeOffset.UtcNow);
+                    var description = AuthorityDescription.Of(reading, null, null, DateTimeOffset.UtcNow);
                     Assert.That(Named(description, "Authority valid until"), Does.Match(@"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$"));
                 }
             }
@@ -173,7 +174,7 @@ namespace KeePassGate.Tests
 
             using (var reading = service.Read())
             {
-                var text = string.Join(" ", AuthorityDescription.Of(reading, null, soon).Details);
+                var text = string.Join(" ", AuthorityDescription.Of(reading, null, null, soon).Details);
 
                 Assert.That(text, Does.Contain("Authority expires in"));
             }
@@ -186,7 +187,7 @@ namespace KeePassGate.Tests
 
             using (var reading = _service.Read())
             {
-                var text = string.Join(" ", AuthorityDescription.Of(reading, null, DateTimeOffset.UtcNow).Details);
+                var text = string.Join(" ", AuthorityDescription.Of(reading, null, null, DateTimeOffset.UtcNow).Details);
 
                 Assert.That(text, Does.Not.Contain("expires in"));
             }
@@ -201,9 +202,45 @@ namespace KeePassGate.Tests
 
             using (var reading = service.Read())
             {
-                var text = string.Join(" ", AuthorityDescription.Of(reading, null, DateTimeOffset.UtcNow).Details);
+                var text = string.Join(" ", AuthorityDescription.Of(reading, null, null, DateTimeOffset.UtcNow).Details);
 
                 Assert.That(text, Does.Contain("Authority expired on"));
+            }
+        }
+
+        [Test]
+        public void A_host_certificate_inside_its_warning_window_is_mentioned()
+        {
+            // Ten days before the host runs out, with years left on the authority, so the one
+            // sentence about an end that is near can only be the host's. The tests above leave the
+            // host long expired beside an authority that is not, and asserted the authority alone.
+            var soon = DateTimeOffset.UtcNow;
+            var service = new AuthorityService(
+                _values, new AuthorityIssuer(() => soon - AuthorityIssuer.HostLifetime + TimeSpan.FromDays(10)), null);
+            service.Create();
+
+            using (var reading = service.Read())
+            {
+                var text = string.Join(" ", AuthorityDescription.Of(reading, null, null, soon).Details);
+
+                Assert.That(text, Does.Contain("Host certificate expires in"));
+                Assert.That(text, Does.Not.Contain("Authority expires"));
+            }
+        }
+
+        [Test]
+        public void A_host_certificate_that_has_expired_under_a_live_authority_says_so()
+        {
+            var hostAgo = DateTimeOffset.UtcNow - AuthorityIssuer.HostLifetime - TimeSpan.FromDays(1);
+            var service = new AuthorityService(_values, new AuthorityIssuer(() => hostAgo), null);
+            service.Create();
+
+            using (var reading = service.Read())
+            {
+                var text = string.Join(" ", AuthorityDescription.Of(reading, null, null, DateTimeOffset.UtcNow).Details);
+
+                Assert.That(text, Does.Contain("Host certificate expired on"));
+                Assert.That(text, Does.Not.Contain("Authority expired"));
             }
         }
 
@@ -220,7 +257,7 @@ namespace KeePassGate.Tests
 
             using (var reading = service.Read())
             {
-                var description = AuthorityDescription.Of(reading, null, DateTimeOffset.UtcNow);
+                var description = AuthorityDescription.Of(reading, null, null, DateTimeOffset.UtcNow);
 
                 Assert.That(description.HasExpired, Is.True);
                 Assert.That(description.CanInvite, Is.False);
@@ -240,7 +277,7 @@ namespace KeePassGate.Tests
 
             using (var reading = service.Read())
             {
-                var description = AuthorityDescription.Of(reading, null, DateTimeOffset.UtcNow);
+                var description = AuthorityDescription.Of(reading, null, null, DateTimeOffset.UtcNow);
 
                 Assert.That(description.HasExpired, Is.False, "the authority has years left");
                 Assert.That(description.HostHasExpired, Is.True);
@@ -256,7 +293,7 @@ namespace KeePassGate.Tests
 
             using (var reading = _service.Read())
             {
-                var description = AuthorityDescription.Of(reading, null, DateTimeOffset.UtcNow);
+                var description = AuthorityDescription.Of(reading, null, null, DateTimeOffset.UtcNow);
 
                 Assert.That(description.HasExpired, Is.False);
                 Assert.That(description.CanInvite, Is.True);
@@ -271,7 +308,7 @@ namespace KeePassGate.Tests
 
             using (var reading = _service.Read())
             {
-                var description = AuthorityDescription.Of(reading, null, Now);
+                var description = AuthorityDescription.Of(reading, null, null, Now);
                 var text = string.Join(Environment.NewLine, description.Details);
 
                 Assert.That(description.Headline, Is.EqualTo(AuthorityDescription.DamagedHeadline));
@@ -304,7 +341,7 @@ namespace KeePassGate.Tests
 
             using (var reading = _service.Read())
             {
-                var description = AuthorityDescription.Of(reading, null, Now);
+                var description = AuthorityDescription.Of(reading, null, null, Now);
 
                 Assert.That(description.Headline, Is.EqualTo(AuthorityDescription.UndecidedHeadline));
                 Assert.That(description.Facts, Is.Empty, "there is no one authority to describe");
@@ -323,7 +360,7 @@ namespace KeePassGate.Tests
 
             using (var reading = _service.Read())
             {
-                var description = AuthorityDescription.Of(reading, null, Now);
+                var description = AuthorityDescription.Of(reading, null, null, Now);
 
                 Assert.That(description.Headline, Is.Not.Empty);
                 Assert.That(description.Details.All(d => !string.IsNullOrWhiteSpace(d)), Is.True);
@@ -347,9 +384,46 @@ namespace KeePassGate.Tests
                 using (var reading = _service.Read())
                 {
                     var text = string.Join(" ",
-                        AuthorityDescription.Of(reading, Listed(record), almostExpired).Details);
+                        AuthorityDescription.Of(reading, Listed(record), null, almostExpired).Details);
 
                     Assert.That(text, Does.Contain("One client expires within 30 days"));
+                }
+            }
+        }
+
+        [TestCase(ClientReach.Stranger)]
+        [TestCase(ClientReach.NotForClients)]
+        [TestCase(ClientReach.NotYetValid)]
+        public void A_record_the_gate_refuses_before_its_dates_is_not_warned_about(ClientReach reach)
+        {
+            // J065: the warning says a client is about to stop being admitted, and a record from
+            // another authority never was: the clients page says "not this authority" beside it
+            // while this page told the operator to expect it to expire.
+            _service.Create();
+
+            using (var authority = TestAuthority.New())
+            using (var certificate = authority.IssueClient("agent-fictitious"))
+            {
+                var record = AdmissionRecord.For(certificate, DateTimeOffset.UtcNow, null);
+                var almostExpired = new DateTimeOffset(certificate.NotAfter.ToUniversalTime(), TimeSpan.Zero)
+                    .AddDays(-10);
+                var afterwards = almostExpired.AddDays(11);
+                var reaches = new Dictionary<string, ClientReach> { { record.AdmissionKey, reach } };
+
+                using (var reading = _service.Read())
+                {
+                    Assert.That(string.Join(" ",
+                            AuthorityDescription.Of(reading, Listed(record), reaches, almostExpired).Details),
+                        Does.Not.Contain("expire"));
+                    Assert.That(string.Join(" ",
+                            AuthorityDescription.Of(reading, Listed(record), reaches, afterwards).Details),
+                        Does.Not.Contain("expire"));
+
+                    reaches[record.AdmissionKey] = ClientReach.Reaches;
+                    Assert.That(string.Join(" ",
+                            AuthorityDescription.Of(reading, Listed(record), reaches, almostExpired).Details),
+                        Does.Contain("One client expires within 30 days"),
+                        "one the gate gets as far as the dates of is still warned about");
                 }
             }
         }
@@ -368,7 +442,7 @@ namespace KeePassGate.Tests
 
                 using (var reading = _service.Read())
                 {
-                    var text = string.Join(" ", AuthorityDescription.Of(reading, Listed(record), afterwards).Details);
+                    var text = string.Join(" ", AuthorityDescription.Of(reading, Listed(record), null, afterwards).Details);
 
                     Assert.That(text, Does.Contain("One client has expired"));
                 }
@@ -388,7 +462,7 @@ namespace KeePassGate.Tests
                 using (var reading = _service.Read())
                 {
                     var text = string.Join(" ",
-                        AuthorityDescription.Of(reading, Listed(record), DateTimeOffset.UtcNow).Details);
+                        AuthorityDescription.Of(reading, Listed(record), null, DateTimeOffset.UtcNow).Details);
 
                     // On what the description can actually say. "admitted client" is not a phrase
                     // it produces in any state, so asserting its absence passed whatever the text
@@ -410,9 +484,23 @@ namespace KeePassGate.Tests
             using (var reading = _service.Read())
             {
                 var text = string.Join(" ", AuthorityDescription.Of(
-                    reading, Listed(), DateTimeOffset.UtcNow).Details);
+                    reading, Listed(), null, DateTimeOffset.UtcNow).Details);
 
-                Assert.That(text, Does.Contain("One admission record cannot be read"));
+                Assert.That(text, Does.Contain(
+                    "One admission record cannot be read and admits nobody. The Clients page lists it."));
+            }
+
+            // K024: the sentence says where the operator can act, which is the clients page and
+            // its X, and says it in the plural once there is more than one.
+            _values.Plant(AuthorityKeys.ClientPrefix + new string('b', 64), "not a record either");
+
+            using (var reading = _service.Read())
+            {
+                var text = string.Join(" ", AuthorityDescription.Of(
+                    reading, Listed(), null, DateTimeOffset.UtcNow).Details);
+
+                Assert.That(text, Does.Contain(
+                    "2 admission records cannot be read and admit nobody. The Clients page lists them."));
             }
         }
 
@@ -427,7 +515,7 @@ namespace KeePassGate.Tests
             using (var reading = _service.Read())
             {
                 var unread = new AdmissionListing(Array.Empty<AdmissionRecord>(), false);
-                var text = string.Join(" ", AuthorityDescription.Of(reading, unread, DateTimeOffset.UtcNow).Details);
+                var text = string.Join(" ", AuthorityDescription.Of(reading, unread, null, DateTimeOffset.UtcNow).Details);
 
                 Assert.That(text, Does.Not.Contain("cannot be read"),
                     "a listing that was never made is not a count of damaged records");
@@ -437,9 +525,44 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void The_longest_pages_are_composed_by_what_composes_the_page_a_line_each()
+        {
+            // J031: the tab was measured against one paragraph written out by hand, which held
+            // neither of the lines `Damage` adds, mixed damage with warnings never shown beside it,
+            // and was joined with spaces; cut to six characters, it failed nothing.
+            var longest = AuthorityDescription.LongestDescriptions();
+
+            Assert.That(longest.Select(description => description.Headline), Is.EquivalentTo(new[]
+            {
+                AuthorityDescription.DamagedHeadline,
+                AuthorityDescription.PresentHeadline,
+                AuthorityDescription.UndecidedHeadline,
+                AuthorityDescription.AbsentHeadline
+            }), "every headline, since which is tallest is not something to assume");
+
+            var damaged = longest.Single(description => description.Headline == AuthorityDescription.DamagedHeadline);
+            var lines = damaged.DetailText.Split(new[] { Environment.NewLine }, StringSplitOptions.None);
+            var problems = AuthorityStore.LongestProblems(string.Empty);
+
+            Assert.That(lines.Length, Is.EqualTo(problems.Count + 2), "every problem, then the two lines under them");
+            Assert.That(lines[0], Is.EqualTo(problems[0]));
+            Assert.That(lines[1], Is.EqualTo(problems[1]));
+            Assert.That(lines[2], Does.StartWith(problems[2]));
+            Assert.That(lines[2].Length, Is.EqualTo(Clipped.Limit + 3), "a message long enough to be cut");
+            Assert.That(lines[3], Does.StartWith("Nothing is served while this is true."));
+            Assert.That(lines[4], Is.EqualTo("9999 admission records would be removed with it."));
+
+            var whole = longest.Single(description => description.Headline == AuthorityDescription.PresentHeadline);
+            Assert.That(whole.Details.Count, Is.EqualTo(1), "the warnings are one line, as they are drawn");
+            Assert.That(whole.DetailText, Does.Contain("Authority expired on"));
+            Assert.That(whole.DetailText, Does.Contain("Host certificate expired on"));
+            Assert.That(whole.Facts, Is.Not.Empty);
+        }
+
+        [Test]
         public void A_missing_reading_is_refused()
         {
-            Assert.Throws<ArgumentNullException>(() => AuthorityDescription.Of(null, null, Now));
+            Assert.Throws<ArgumentNullException>(() => AuthorityDescription.Of(null, null, null, Now));
         }
     }
 }

@@ -89,10 +89,9 @@ def test_what_a_caller_does_next_is_one_class_each_under_the_one_root() -> None:
     # Each of these is its own row in the tables a caller acts on, and each says something
     # different to do next. One moved under another is caught by the wrong handler: a revoked
     # client under `TransportError` would be retried by code that retries a connection that
-    # failed, and a lock under `GateBusy` would spend the budget for a busy KeePass.
+    # failed, and a refused route under `GateUnavailable` would be waited out as a `503`.
     separate = (
-        errors.DatabaseLocked,
-        errors.GateBusy,
+        errors.GateUnavailable,
         errors.NotAdmitted,
         errors.Withheld,
         errors.RouteRefused,
@@ -105,6 +104,22 @@ def test_what_a_caller_does_next_is_one_class_each_under_the_one_root() -> None:
 
     for kind in separate:
         assert kind.__bases__ == (errors.GateError,), f"{kind.__name__} is under something else"
+
+
+def test_every_503_is_one_family_with_one_class_per_word() -> None:
+    # A caller that waits out any `503` catches the base; one that waits out a lock and not a
+    # busy KeePass catches the one it means. None of the three sits under another, or a lock
+    # caught as `GateBusy` would spend the budget for a busy KeePass.
+    for kind, word in (
+        (errors.GateBusy, "busy"),
+        (errors.DatabaseLocked, "locked"),
+        (errors.AuthorityUndecided, "undecided"),
+    ):
+        assert kind.__bases__ == (errors.GateUnavailable,), f"{kind.__name__} is elsewhere"
+        assert kind.word == word
+
+        refused = kind("not now", 2.0)
+        assert (refused.error, refused.retry_after) == (word, 2.0)
 
 
 def test_nothing_paired_is_a_storage_error_and_only_that() -> None:
@@ -128,3 +143,10 @@ def test_a_withheld_value_names_the_field_and_what_would_open_it() -> None:
     assert "the rule that lets this client read the entry does not grant `P`" in str(refused)
     assert "operator can add" in str(refused)
     assert "list the entry" in str(errors.Withheld("Title", listed=True))
+
+
+def test_a_503_with_a_word_nobody_knows_keeps_it() -> None:
+    refused = errors.GateUnavailable("not now", "teapot", 2.0)
+
+    assert (refused.error, refused.retry_after) == ("teapot", 2.0)
+    assert errors.GateUnavailable("not now").error == ""

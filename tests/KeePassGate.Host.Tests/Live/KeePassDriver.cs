@@ -27,14 +27,34 @@ namespace KeePassGate.Host.Tests.Live
         private static readonly TimeSpan StartTimeout = TimeSpan.FromSeconds(60);
         private static readonly TimeSpan ShutdownTimeout = TimeSpan.FromSeconds(30);
 
+        /// <summary>
+        /// What Windows' own file dialog calls its file name box. The platform's identifier, not
+        /// KeePass's and not ours, and the same since the dialog was redesigned for Vista.
+        /// </summary>
+        private const string FileNameBox = "1148";
+
+        /// <summary>
+        /// What KeePass names its main form, which WinForms reports to UI automation as the
+        /// window's identifier. KeePass's own name, set by its designer.
+        /// </summary>
+        /// <remarks>
+        /// **By identifier rather than by title**, because a title is a sentence for the operator
+        /// and more than one window of this process carries the product's name in it: the box
+        /// the plugin raises when the gate cannot take its port is titled `KeePassGate (KPG)` and
+        /// sits on top of the main window, and the authority chooser's title names the product
+        /// as well. Taken for the main window, either one was sent every menu key that followed,
+        /// and the fixture failed later on a menu or a dialog rather than on what the box said.
+        /// </remarks>
+        private const string MainFormName = "MainForm";
+
         private readonly Process _process;
         private readonly AutomationElement _mainWindow;
         private readonly StringBuilder _diagnostics = new StringBuilder();
 
         // Access keys belong to the KeePass build rather than to the moment, so they are learned
         // once. See `KeysFor`, which is where the cost of learning them is explained.
-        private readonly Dictionary<string, Tuple<Keyboard.Stroke, Keyboard.Stroke>> _menuKeys =
-            new Dictionary<string, Tuple<Keyboard.Stroke, Keyboard.Stroke>>(StringComparer.Ordinal);
+        private readonly Dictionary<string, Keyboard.Stroke[]> _menuKeys =
+            new Dictionary<string, Keyboard.Stroke[]>(StringComparer.Ordinal);
 
         private KeePassDriver(Process process, AutomationElement mainWindow)
         {
@@ -47,14 +67,21 @@ namespace KeePassGate.Host.Tests.Live
             get { return _diagnostics.ToString(); }
         }
 
+        /// <summary>
+        /// What KeePass's main window says in its title bar, which is where it marks a database
+        /// holding changes nobody has saved.
+        /// </summary>
+        public string MainWindowTitle
+        {
+            get { return Uia.Name(_mainWindow); }
+        }
+
         /// <summary>Starts KeePass and waits for the main window. Fails the test if it never comes.</summary>
         public static KeePassDriver Start(ThrowawayKeePass keePass)
         {
             var process = keePass.Start();
 
-            var mainWindow = Uia.WaitForOrNull(
-                () => Window(process, title => title.IndexOf("KeePass", StringComparison.OrdinalIgnoreCase) >= 0),
-                StartTimeout);
+            var mainWindow = Uia.WaitForOrNull(() => WindowById(process, MainFormName), StartTimeout);
 
             if (mainWindow == null)
             {
@@ -72,6 +99,62 @@ namespace KeePassGate.Host.Tests.Live
         public AutomationElement OpenDatabaseSettings()
         {
             return OpenFromMenu("File", "Database Settings", "Database Settings");
+        }
+
+        /// <summary>
+        /// File, Synchronize, Synchronize with File, and another copy of the database named in the
+        /// dialog that opens, which is how an operator merges two copies of one database.
+        /// </summary>
+        /// <remarks>
+        /// **The dialog is the platform's rather than KeePass's**, so its file name box is found by
+        /// the identifier Windows gives it, and the path is put there through the box's value
+        /// pattern: an edit control reads its own window text, so what is written there is what
+        /// the dialog opens. Enter is then its Open, pressed as a keystroke for the reason every
+        /// menu here is chosen by one.
+        ///
+        /// **Answers once the dialog has gone**, which is when KeePass has the file and is merging
+        /// it. The merge and the save it ends with run on KeePass's own thread, so whatever that
+        /// save raises arrives after this returns, and a caller waits for it.
+        /// </remarks>
+        public void Synchronize(string path)
+        {
+            // What KeePass titles the dialog, which is the name of the command.
+            const string title = "Synchronize";
+
+            var dialog = OpenWith(title, KeysFor("File", "Synchronize", "Synchronize with File"));
+
+            var box = Uia.WaitForOrNull(
+                () => Uia.ById(dialog, ControlType.Edit, FileNameBox),
+                TimeSpan.FromSeconds(10));
+            if (box == null)
+            {
+                throw new TimeoutException(
+                    "The Synchronize dialog shows no file name box. Boxes: " + Uia.Describe(dialog, ControlType.Edit));
+            }
+
+            object pattern;
+            if (!box.TryGetCurrentPattern(ValuePattern.Pattern, out pattern))
+            {
+                throw new InvalidOperationException("The Synchronize dialog's file name box takes no text.");
+            }
+
+            ((ValuePattern)pattern).SetValue(path);
+
+            Keyboard.Front(dialog);
+            Keyboard.SendEnter();
+
+            var closed = Uia.WaitForOrNull(
+                () => NativeWindows.Find(_process, shown => shown.IndexOf(title, StringComparison.OrdinalIgnoreCase) >= 0) == null
+                    ? path
+                    : null,
+                TimeSpan.FromSeconds(15));
+            if (closed == null)
+            {
+                throw new TimeoutException(
+                    "The Synchronize dialog was still open after Enter. Windows: " + NativeWindows.Titles(_process));
+            }
+
+            _diagnostics.AppendLine("synchronized with " + System.IO.Path.GetFileName(path));
         }
 
         /// <summary>Tools, and the plugin's own item, which opens the status window.</summary>
@@ -93,16 +176,24 @@ namespace KeePassGate.Host.Tests.Live
 
         private AutomationElement OpenFromMenu(string menuName, string itemPrefix, string windowTitlePart)
         {
-            var keys = KeysFor(menuName, itemPrefix);
-            var openMenu = keys.Item1;
-            var chooseItem = keys.Item2;
+            return OpenWith(windowTitlePart, KeysFor(menuName, itemPrefix));
+        }
 
+        /// <summary>
+        /// Sends the keys that reach a menu item, one after the other, and waits for the window the
+        /// item opens.
+        /// </summary>
+        private AutomationElement OpenWith(string windowTitlePart, Keyboard.Stroke[] keys)
+        {
             for (var attempt = 1; attempt <= 2; attempt++)
             {
-                _diagnostics.AppendLine("attempt " + attempt + ": KeePass in front: " + Keyboard.BringToFront(_mainWindow));
+                Keyboard.Front(_mainWindow);
+                _diagnostics.AppendLine("attempt " + attempt + ": KeePass in front");
 
-                Keyboard.Send(openMenu);
-                Keyboard.Send(chooseItem);
+                foreach (var key in keys)
+                {
+                    Keyboard.Send(key);
+                }
 
                 var dialog = Uia.WaitForOrNull(
                     () => Window(_process, title =>
@@ -123,7 +214,8 @@ namespace KeePassGate.Host.Tests.Live
         }
 
         /// <summary>
-        /// The two access keys that reach a menu item, discovered once per item and remembered.
+        /// The access keys that reach a menu item, one for each menu on the way down to it,
+        /// discovered once per item and remembered.
         /// </summary>
         /// <remarks>
         /// **This is why a menu appears to open twice**, and it opens twice for a reason rather than
@@ -134,39 +226,63 @@ namespace KeePassGate.Host.Tests.Live
         /// opened again by keystroke with nothing watching, which is the only order that both
         /// discovers and works.
         ///
+        /// **An item inside a submenu is read a level at a time**, File then Synchronize then the
+        /// item, because the items of a submenu are only in the tree while it is open too. Each
+        /// menu on the way down is opened through the tree before the level below it is looked
+        /// for, and all of them are closed again, innermost first, before anything is sent.
+        ///
         /// What was wasteful was doing it on every call, since the keys belong to the KeePass build
         /// rather than to the moment. Remembered here, an item costs its double open once per
         /// session and every later call opens the menu exactly once, which is also what somebody
         /// watching the desktop expects to see.
         /// </remarks>
-        private Tuple<Keyboard.Stroke, Keyboard.Stroke> KeysFor(string menuName, string itemPrefix)
+        private Keyboard.Stroke[] KeysFor(params string[] path)
         {
-            var remembered = menuName + "\0" + itemPrefix;
+            var remembered = string.Join("\0", path);
 
-            Tuple<Keyboard.Stroke, Keyboard.Stroke> keys;
+            Keyboard.Stroke[] keys;
             if (_menuKeys.TryGetValue(remembered, out keys))
             {
                 return keys;
             }
 
+            var menuName = path[0];
             var menu = Uia.WaitFor(
                 "the " + menuName + " menu",
                 () => Uia.Descendant(_mainWindow, ControlType.MenuItem, name => Strip(name) == menuName));
 
-            var openMenu = Keyboard.ParseAccessKey(AccessKeyOf(menu));
-            Assert.That(openMenu, Is.Not.Null, "The " + menuName + " menu reports no access key.");
+            var found = new Keyboard.Stroke?[path.Length];
+            found[0] = Keyboard.ParseAccessKey(AccessKeyOf(menu));
+            Assert.That(found[0], Is.Not.Null, "The " + menuName + " menu reports no access key.");
 
-            Uia.Expand(menu);
-            var item = Uia.WaitFor(
-                "the " + itemPrefix + " menu item",
-                () => MenuItemStartingWith(itemPrefix));
-            var chooseItem = Keyboard.ParseAccessKey(AccessKeyOf(item));
-            Uia.Collapse(menu);
+            var opened = new List<AutomationElement>();
+            var current = menu;
+            for (var level = 1; level < path.Length; level++)
+            {
+                Uia.Expand(current);
+                opened.Add(current);
 
-            Assert.That(chooseItem, Is.Not.Null, "The " + itemPrefix + " item reports no access key.");
-            _diagnostics.AppendLine("keys for " + menuName + " / " + itemPrefix + ": " + openMenu + " then " + chooseItem);
+                var itemPrefix = path[level];
+                current = Uia.WaitFor(
+                    "the " + itemPrefix + " menu item",
+                    () => MenuItemStartingWith(itemPrefix));
+                found[level] = Keyboard.ParseAccessKey(AccessKeyOf(current));
+            }
 
-            keys = Tuple.Create(openMenu.Value, chooseItem.Value);
+            for (var level = opened.Count - 1; level >= 0; level--)
+            {
+                Uia.Collapse(opened[level]);
+            }
+
+            keys = new Keyboard.Stroke[path.Length];
+            keys[0] = found[0].Value;
+            for (var level = 1; level < path.Length; level++)
+            {
+                Assert.That(found[level], Is.Not.Null, "The " + path[level] + " item reports no access key.");
+                keys[level] = found[level].Value;
+            }
+
+            _diagnostics.AppendLine("keys for " + string.Join(" / ", path) + ": " + string.Join(" then ", keys));
             _menuKeys[remembered] = keys;
             return keys;
         }
@@ -275,6 +391,83 @@ namespace KeePassGate.Host.Tests.Live
         }
 
         /// <summary>
+        /// A window of this KeePass by the identifier its form carries, or null if none appears in
+        /// time. The authority chooser arrives on its own, posted after whatever raised it.
+        /// </summary>
+        /// <remarks>
+        /// By identifier rather than by title, because a title is a sentence for the operator: the
+        /// chooser's names the product, and so does the main window's.
+        /// </remarks>
+        public AutomationElement WaitForWindowById(string automationId, TimeSpan timeout)
+        {
+            return Uia.WaitForOrNull(() => WindowById(_process, automationId), timeout);
+        }
+
+        /// <summary>Whether the window with this identifier has gone within the time given.</summary>
+        public bool WaitForWindowToClose(string automationId, TimeSpan timeout)
+        {
+            return Uia.WaitForOrNull(
+                () => WindowById(_process, automationId) == null ? automationId : null,
+                timeout) != null;
+        }
+
+        /// <summary>
+        /// Selects an authority in the chooser by the short fingerprint its row shows, as a click on
+        /// the row does, and answers with the full fingerprint the dialog then describes.
+        /// </summary>
+        /// <remarks>
+        /// **The list is found by its identifier alone**, because what it reports itself as is the
+        /// provider's business: a `ListView` in details view is a `DataGrid`, with `Selection`,
+        /// `Grid` and `Table` patterns, and looked for as a `List` it was not found at all. That was
+        /// measured on this dialog, shown off screen and read by a .NET Framework client, after the
+        /// first live run stopped here.
+        ///
+        /// The row is looked for as more than one control type for the same reason: under that
+        /// provider a row is a `DataItem` named by its first column, and under another it is a
+        /// `ListItem`. What comes back is read off the box below the list rather than trusted from
+        /// the selection, because that box is what an operator reads before pressing Keep, and Keep
+        /// keeps what it describes.
+        /// </remarks>
+        public string SelectAuthority(AutomationElement chooser, string shortFingerprint)
+        {
+            var list = Uia.WaitForOrNull(
+                () => Uia.ById(chooser, GateTab.ChooserAuthorityListName),
+                TimeSpan.FromSeconds(10));
+            if (list == null)
+            {
+                throw new TimeoutException(
+                    "The chooser shows no list of authorities. What it shows: " + Uia.Inventory(chooser));
+            }
+
+            AutomationElement row = null;
+            foreach (var type in new[] { ControlType.DataItem, ControlType.ListItem })
+            {
+                row = Uia.Descendant(list, type, name => name == shortFingerprint);
+                if (row != null)
+                {
+                    break;
+                }
+            }
+
+            if (row == null)
+            {
+                throw new InvalidOperationException(
+                    "The chooser lists no authority " + shortFingerprint + ". What the list holds: " +
+                    Uia.Inventory(list));
+            }
+
+            object pattern;
+            if (row.TryGetCurrentPattern(SelectionItemPattern.Pattern, out pattern))
+            {
+                ((SelectionItemPattern)pattern).Select();
+                System.Threading.Thread.Sleep(400);
+            }
+
+            _diagnostics.AppendLine("selected the authority " + shortFingerprint);
+            return ValueOf(chooser, GateTab.ChooserFingerprintBoxName);
+        }
+
+        /// <summary>
         /// Presses a button by its caption. Safe through the accessibility tree because these
         /// buttons open no modal dialog of their own.
         /// </summary>
@@ -374,6 +567,29 @@ namespace KeePassGate.Host.Tests.Live
             {
                 return null;
             }
+        }
+
+        private static AutomationElement WindowById(Process process, string automationId)
+        {
+            foreach (var window in NativeWindows.Visible(process))
+            {
+                AutomationElement element;
+                try
+                {
+                    element = AutomationElement.FromHandle(window.Handle);
+                }
+                catch (ElementNotAvailableException)
+                {
+                    continue;
+                }
+
+                if (string.Equals(Uia.Identifier(element), automationId, StringComparison.Ordinal))
+                {
+                    return element;
+                }
+            }
+
+            return null;
         }
 
         private AutomationElement MenuItemStartingWith(string prefix)

@@ -10,6 +10,16 @@ namespace KeePassGate.Tests
     /// <summary>
     /// The numbers that have to agree with each other, pinned so they cannot drift apart.
     /// </summary>
+    /// <remarks>
+    /// **The ordinary budget is not one of them**, and a test here used to say it was: it added
+    /// `DatabaseWriter.LockTimeout` to `DatabaseWriter.WriteTimeout` and asserted that `Budget`
+    /// exceeded the sum, as though that sum bounded a writing request. It does not, because the
+    /// second of those bounds the wait for the marshaled call to start rather than the call. The
+    /// relation that replaced it is not between two constants at all: the deadline is dropped once
+    /// the request is read, and
+    /// `GateListenerTests.A_write_that_outlasts_the_budget_is_still_answered` is where that is
+    /// measured over a real socket.
+    /// </remarks>
     [TestFixture]
     public sealed class GateOptionsTests
     {
@@ -34,23 +44,6 @@ namespace KeePassGate.Tests
                 "the connection budget closes the socket while the operator is still reading, and " +
                 "everything after that point still happens: the invitation is spent and the record " +
                 "is saved, with nothing left to hand the certificate back on.");
-        }
-
-        [Test]
-        public void The_ordinary_budget_outlasts_a_write_that_is_not_a_pairing()
-        {
-            var options = new GateOptions();
-
-            // Every route that changes the database waits the same two waits a pairing does for its
-            // record: a turn at the single writer, then the marshaled write and save. Nothing
-            // extends the deadline for those, because nothing about them is a person, so the
-            // ordinary budget is the whole of what they have.
-            var waits = DatabaseWriter.LockTimeout + DatabaseWriter.WriteTimeout;
-
-            Assert.That(options.Budget, Is.GreaterThan(waits),
-                "the socket is closed while a write that is still going to land is landing, so the " +
-                "client is left unable to tell a create that happened from one that did not, and " +
-                "holding no identifier for the entry either way.");
         }
 
         [Test]

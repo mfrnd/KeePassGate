@@ -257,7 +257,7 @@ def _dialed(parser: argparse.ArgumentParser) -> None:
         ),
     )
 
-    # The socket's own timeout, and the two budgets for waiting out a refusal, all belong to a
+    # The socket's own timeout, and the three budgets for waiting out a refusal, all belong to a
     # command that opens a socket and asks for an answer, which `whoami` does not. The same rule
     # as `--host` above them.
     parser.add_argument(
@@ -287,6 +287,17 @@ def _dialed(parser: argparse.ArgumentParser) -> None:
         help=(
             "the same for a locked database. Separate, because a lock waits for a person to come "
             "back and being busy does not."
+        ),
+    )
+
+    parser.add_argument(
+        "--retry-undecided-timeout",
+        type=_budget,
+        default=None,
+        help=(
+            "the same for a database holding two authorities, until the operator keeps one at "
+            "KeePass. Separate again, because that waits for a person to choose, and the one "
+            "kept may not be this client's."
         ),
     )
 
@@ -449,6 +460,7 @@ class _Dialing(TypedDict, total=False):
     connection_timeout: float
     retry_busy_timeout: float
     retry_locked_timeout: float
+    retry_undecided_timeout: float
     max_response_bytes: int
 
 
@@ -458,7 +470,7 @@ def _dialing(arguments: argparse.Namespace) -> _Dialing:
     Passing nothing is what lets each caller keep its own default: a pairing waits on a
     person and gets `transport.PAIRING_CONNECTION_TIMEOUT`, and everything else gets the
     ordinary one. Passing `None` through would flatten both into whatever this file decided,
-    and for the two retry budgets `None` is a decision in its own right: do not retry.
+    and for the three retry budgets `None` is a decision in its own right: do not retry.
 
     Only the commands that connect are asked, which is every command `_dialed` reaches.
     """
@@ -470,6 +482,8 @@ def _dialing(arguments: argparse.Namespace) -> _Dialing:
         given["retry_busy_timeout"] = arguments.retry_busy_timeout
     if arguments.retry_locked_timeout is not None:
         given["retry_locked_timeout"] = arguments.retry_locked_timeout
+    if arguments.retry_undecided_timeout is not None:
+        given["retry_undecided_timeout"] = arguments.retry_undecided_timeout
     if arguments.max_response_bytes is not None:
         given["max_response_bytes"] = arguments.max_response_bytes
 

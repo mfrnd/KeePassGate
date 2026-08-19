@@ -557,7 +557,9 @@ class Attachment:
 
     name: str
     size: int
-    content: bytes | None = None
+    #: Left out of the repr, which prints the name and the size: an attachment is a key or a
+    #: recovery file as often as anything, and a repr is what a log line or a traceback carries.
+    content: bytes | None = field(default=None, repr=False)
 
     @property
     def is_read(self) -> bool:

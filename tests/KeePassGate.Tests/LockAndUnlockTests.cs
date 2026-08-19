@@ -381,6 +381,13 @@ namespace KeePassGate.Tests
 
             public event EventHandler<GateDatabaseEventArgs> Closed;
 
+            /// <summary>Never raised: the lock watch has nothing to do with a save.</summary>
+            public event EventHandler Saved
+            {
+                add { }
+                remove { }
+            }
+
             public void RaiseClosing()
             {
                 var handler = Closing;
