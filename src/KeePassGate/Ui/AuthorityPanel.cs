@@ -36,16 +36,10 @@ namespace KeePassGate.Ui
             "Changes apply on OK; the database must then be saved.";
 
         /// <summary>
-        /// How much of somebody else's exception text this page will show. Two lines at the
-        /// width the tab allows; the rest is in the log.
+        /// How much of somebody else's exception text this page will show. Two lines at the width
+        /// the tab allows; the rest is in the log.
         /// </summary>
         private const int MessageLimit = 160;
-
-        /// <summary>The panel's own inset. Small, because the tab it sits on is 449 by 314.</summary>
-        private const int Gutter = 8;
-
-        /// <summary>The space between one thing on the tab and the next.</summary>
-        private const int Gap = 6;
 
         private readonly IGateDatabase _database;
         private readonly IOperatorPrompt _prompt;
@@ -82,7 +76,7 @@ namespace KeePassGate.Ui
 
             Name = GateTab.PanelControlName;
             Dock = DockStyle.Fill;
-            Padding = new Padding(Gutter);
+            Padding = new Padding(Spacing.Gap);
 
             // Neither axis scrolls. KeePass gives a settings tab a fixed area and the content has
             // to fit it: a scroll bar here would hide the half of the tab that says what the
@@ -105,14 +99,14 @@ namespace KeePassGate.Ui
             _valueFont = new Font(Font, FontStyle.Bold);
 
             // The name and the version share a line rather than taking two.
-            var heading = NewRow(new Padding(0, 0, 0, Gap));
+            var heading = NewRow(new Padding(0, 0, 0, Spacing.Gap));
             heading.Controls.Add(new TextLabel
             {
                 Name = GateTab.TitleLabelName,
                 Text = "KeePassGate",
                 Font = _titleFont,
                 AutoSize = true,
-                Margin = new Padding(0, 0, 8, 0)
+                Margin = new Padding(0, 0, Spacing.Gap, 0)
             });
 
             heading.Controls.Add(new TextLabel
@@ -129,7 +123,7 @@ namespace KeePassGate.Ui
             // actually about and the heading over it is not. The same amount on both sides is
             // what makes it read as an opening sentence rather than as a caption on the row
             // above or a label on the table below.
-            _status = NewTextLabel(GateTab.StatusLabelName, new Padding(0, 8, 0, 8));
+            _status = NewTextLabel(GateTab.StatusLabelName, new Padding(0, Spacing.Gap, 0, Spacing.Gap));
 
             // A table rather than sentences, because these are scanned rather than read. Two
             // columns that size themselves: the names are known and short, and the values are what
@@ -141,13 +135,13 @@ namespace KeePassGate.Ui
                 AutoSize = true,
                 AutoSizeMode = AutoSizeMode.GrowAndShrink,
                 GrowStyle = TableLayoutPanelGrowStyle.AddRows,
-                Margin = new Padding(0, 0, 0, 2)
+                Margin = new Padding(0, 0, 0, Spacing.Tight)
             };
 
             _facts.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
             _facts.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
 
-            _detail = NewTextLabel(GateTab.DetailLabelName, new Padding(0, 0, 0, Gap));
+            _detail = NewTextLabel(GateTab.DetailLabelName, new Padding(0, 0, 0, Spacing.Gap));
             _layout.Controls.Add(_status);
             _layout.Controls.Add(_facts);
             _layout.Controls.Add(_detail);
@@ -157,7 +151,7 @@ namespace KeePassGate.Ui
                 FlowDirection = FlowDirection.LeftToRight,
                 AutoSize = true,
                 WrapContents = false,
-                Margin = new Padding(0, 0, 0, 2)
+                Margin = new Padding(0, 0, 0, Spacing.Tight)
             };
 
             _create = NewButton(GateTab.CreateButtonName, GateTab.CreateButtonText, OnCreate);
@@ -170,7 +164,7 @@ namespace KeePassGate.Ui
 
             // Air over it, because it is about the buttons above rather than part of them.
             _layout.Controls.Add(
-                NewTextLabel(GateTab.NoticeLabelName, new Padding(0, 8, 0, 0), ImmediateNotice));
+                NewTextLabel(GateTab.NoticeLabelName, new Padding(0, Spacing.Gap, 0, 0), ImmediateNotice));
             _result = NewTextLabel(GateTab.ResultLabelName, new Padding(0));
             _layout.Controls.Add(_result);
 
@@ -345,7 +339,7 @@ namespace KeePassGate.Ui
                 Text = text,
                 AutoSize = true,
                 AutoSizeMode = AutoSizeMode.GrowAndShrink,
-                Margin = new Padding(0, 0, 8, 0)
+                Margin = new Padding(0, 0, Spacing.Gap, 0)
             };
 
             button.Click += onClick;
@@ -427,7 +421,12 @@ namespace KeePassGate.Ui
                 // Enough of a gap between the columns to read as two, and none above or below: the
                 // rows are one line each, and leading between them costs height the tab does not
                 // have to spare.
-                Margin = value ? new Padding(0) : new Padding(0, 0, 12, 0)
+                //
+                // The panel's own inset, which `Spacing` makes the same amount, rather than the
+                // constant: this row is built on every reading, after the page was scaled to its
+                // dialog, and a scaling reaches only the controls that are already there. The inset
+                // was one of those.
+                Margin = value ? new Padding(0) : new Padding(0, 0, Padding.Left, 0)
             };
         }
 
