@@ -205,28 +205,6 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
-        public void A_host_certificate_that_has_run_out_or_soon_will_is_said_to_as_it_is_served()
-        {
-            // Served all the same, since what a client does with it is the client's to decide. What
-            // the log said was that the database was served, and then a connection reset for every
-            // client that refused the certificate.
-            var sixYearsAgo = new AuthorityIssuer(() => DateTimeOffset.UtcNow.AddYears(-6));
-            var created = new AuthorityService(new CustomDataStore(_first.Database), sixYearsAgo, NullGateLog.Instance)
-                .Create();
-            Assume.That(created.Succeeded, Is.True, created.Message);
-
-            var nearlyFive = new AuthorityIssuer(() => DateTimeOffset.UtcNow.AddYears(-5).AddDays(30));
-            created = new AuthorityService(new CustomDataStore(_second.Database), nearlyFive, NullGateLog.Instance)
-                .Create();
-            Assume.That(created.Succeeded, Is.True, created.Message);
-
-            Assert.That(_targets.Current(), Has.Count.EqualTo(2), "both are served");
-            Assert.That(_log.Warnings, Has.Some.Contains(CertificateDigest.Shorten(DigestOf(_first))).And.Contains("ran out on"));
-            Assert.That(_log.Warnings, Has.Some.Contains(CertificateDigest.Shorten(DigestOf(_second))).And.Contains("runs out on"));
-            Assert.That(_log.Warnings, Has.Count.EqualTo(2));
-        }
-
-        [Test]
         public void A_database_that_is_no_longer_open_stops_being_served()
         {
             CreateAuthorityIn(_first);

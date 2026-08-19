@@ -347,47 +347,6 @@ namespace KeePassGate.Pairing
                 return;
             }
 
-            // Before the operator is disturbed as well, and for the same reason. An authority past
-            // its ten years signs nothing that is valid, so a dialog here would spend somebody's
-            // attention on a pairing that cannot end in a certificate.
-            //
-            // **Named on the wire rather than answered as an internal error.** An authority that
-            // has run out is the ordinary state of an old database, and this client is one step
-            // away from being handed that authority to pin, so its dates are nothing it is being
-            // told for the first time. `CA.md` §219: there is no reissue, so what fixes it is
-            // "Recreate authority" on the Certificate Authority page, which revokes every client
-            // already admitted.
-            //
-            // **A `500` even though nothing is spent.** `PAIRING.md` §311 makes `503` the answer a
-            // caller is invited to try again, and no retry issues anything until the operator has
-            // acted, so an invitation that survives is worth less here than an answer that does not
-            // send a client round a loop it cannot leave.
-            if (Expired(target))
-            {
-                _log.Warn("pairing refused on invitation " + invitation.Id +
-                          ": this database's authority has expired, so it can issue nothing that is" +
-                          " valid until \"Recreate authority\" on the Certificate Authority page" +
-                          " replaces it");
-                context.Respond(500, HttpResponse.ErrorBody("expired authority"));
-                return;
-            }
-
-            // And the host certificate, which runs out five years in where the authority runs ten.
-            // Every connection a paired client makes afterwards checks it, so a pairing completed
-            // over one saved a record the operator had just approved and handed over a bundle no
-            // connection could ever use. `CA.md` §219 has no reissue for it either, so it is
-            // refused the way an expired authority is and for the same reasons, under a word of
-            // its own.
-            if (HostExpired(target))
-            {
-                _log.Warn("pairing refused on invitation " + invitation.Id +
-                          ": this database's host certificate has expired, so no client paired now" +
-                          " could connect until \"Recreate authority\" on the Certificate Authority" +
-                          " page replaces it");
-                context.Respond(500, HttpResponse.ErrorBody("expired host"));
-                return;
-            }
-
             // Named as well as fingerprinted. The operator is being asked to let a stranger into
             // one of possibly several open databases, and sixteen hexadecimal characters is not
             // something anybody recognizes under time pressure.
@@ -476,11 +435,11 @@ namespace KeePassGate.Pairing
             catch (Exception error) when (Expected.OfIssuance(error))
             {
                 // `OfIssuance` rather than `OfCryptography`, which does not name the
-                // `InvalidOperationException` an expired authority is refused with. The check
-                // before the dialog answers that case with the authority named, and this is the
-                // same refusal arriving from a clock that moved in between; left unnamed it
-                // escaped the handler to the catch-all on the connection thread, which counts
-                // anything a handler throws as a defect in this plugin.
+                // `InvalidOperationException` an expired authority is refused with. An authority
+                // is issued for a hundred years and nothing refuses ahead of that, so this is where
+                // a database that outlived its own runs out, as well as a key that would not sign;
+                // left unnamed it escaped the handler to the catch-all on the connection thread,
+                // which counts anything a handler throws as a defect in this plugin.
                 _log.Error("a client certificate could not be issued", error);
                 context.Respond(500, HttpResponse.ErrorBody("internal error"));
                 return;
@@ -677,35 +636,6 @@ namespace KeePassGate.Pairing
             return returning;
         }
 
-        /// <summary>
-        /// Whether the authority behind this database has run out, in which case pairing has
-        /// nothing valid to hand over however the operator answers.
-        /// </summary>
-        /// <remarks>
-        /// The certificate is already in memory, so this reads a date rather than the database and
-        /// cannot fail the way <see cref="Blocked"/> can. `CertificateValidity` is asked instead of
-        /// comparing here, so the gate, the tab and the issuer all draw the boundary in one place.
-        /// </remarks>
-        private bool Expired(IGateTarget target)
-        {
-            return CertificateValidity.HasExpired(target.Authority, _clock());
-        }
-
-        /// <summary>
-        /// Whether the host certificate this database answers with has run out, which leaves a
-        /// pairing nothing a client could use however the operator answers.
-        /// </summary>
-        /// <remarks>
-        /// Read off the bytes this connection was served with, which is what every later connection
-        /// will be served with too.
-        /// </remarks>
-        private bool HostExpired(IGateTarget target)
-        {
-            using (var host = new X509Certificate2(target.Host.CertificateDer))
-            {
-                return CertificateValidity.HasExpired(host, _clock());
-            }
-        }
 
         private string Blocked(IGateTarget target)
         {

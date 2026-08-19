@@ -15,9 +15,10 @@ namespace KeePassGate.Ui
     ///
     /// - **One list of authorities and the details of the selected one**, rather than a section
     ///   per authority, because there may be more than two and nothing here scrolls but a list.
-    ///   Each authority is named by its short fingerprint, the one the tab shows, with its dates
-    ///   and how many clients it admitted; the full fingerprint, the host certificate's expiry and
-    ///   those clients follow for whichever one is selected.
+    ///   Each authority is named by its short fingerprint, the one the tab shows, with when it was
+    ///   made and how many clients it admitted; the full fingerprint and those clients follow for
+    ///   whichever one is selected. Until when each is valid is not shown, because an authority
+    ///   and its host certificate are issued for a hundred years.
     /// - **Which clients an authority admitted is the evidence**, so each one is listed with its
     ///   profiles, when it was admitted, and the last request the audit holds for it. The copy
     ///   that everything still uses is usually the one to keep.
@@ -44,8 +45,8 @@ namespace KeePassGate.Ui
         private const int FewestClientRows = 3;
         private const int MostClientRows = 8;
 
-        private static readonly string[] AuthorityColumns = { "Fingerprint", "Created", "Valid until", "Clients" };
-        private static readonly int[] AuthorityShares = { 3, 4, 4, 2 };
+        private static readonly string[] AuthorityColumns = { "Fingerprint", "Created", "Clients" };
+        private static readonly int[] AuthorityShares = { 3, 4, 2 };
         private static readonly string[] ClientColumns = { "Client", "Profiles", "Admitted", "Last request" };
         private static readonly int[] ClientShares = { 3, 3, 4, 4 };
 
@@ -143,7 +144,6 @@ namespace KeePassGate.Ui
             {
                 var row = new ListViewItem(option.ShortFingerprint) { Tag = option };
                 row.SubItems.Add(Stamp(option.Created));
-                row.SubItems.Add(Stamp(option.Expires));
                 row.SubItems.Add(option.CanKeep
                     ? option.Clients.Count.ToString(CultureInfo.InvariantCulture)
                     : "unreadable");
@@ -394,8 +394,8 @@ namespace KeePassGate.Ui
             _fingerprint.Text = option == null ? string.Empty : option.Fingerprint;
             _keep.Enabled = option != null && option.CanKeep;
 
-            // One line for either, so that selecting a row does not make the dialog jump: what the
-            // host certificate is good for, or why this one cannot be kept at all.
+            // Why this one cannot be kept, when it cannot, and nothing otherwise. The line is
+            // there either way, so that selecting a row does not make the dialog jump.
             if (option != null && !option.CanKeep)
             {
                 _detail.Text = "This one cannot be read, so it cannot be kept: " + option.Problem;
@@ -403,9 +403,7 @@ namespace KeePassGate.Ui
             }
             else
             {
-                _detail.Text = option == null
-                    ? string.Empty
-                    : "Its host certificate is valid until " + Stamp(option.HostExpires) + ".";
+                _detail.Text = string.Empty;
                 _detail.ForeColor = ForeColor;
             }
 

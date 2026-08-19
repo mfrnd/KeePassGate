@@ -124,6 +124,20 @@ namespace KeePassGate.Ui
         public const string ProfileIsSettled =
             "A rule's profile cannot be changed, only removed and recreated.";
 
+        /// <summary>
+        /// What the mask of a rule for a profile the database no longer names says, which is why
+        /// it is struck through.
+        /// </summary>
+        /// <remarks>
+        /// A client holds only the names its record carries that the database still names, so a
+        /// rule for any other name reaches nobody. It stays on the node, and on the table, because
+        /// adding the name again puts it back in force, and that is worth seeing before doing it.
+        /// </remarks>
+        public const string ProfileNotNamed =
+            "This database no longer names this profile, so this rule grants nothing. Adding the "
+            + "profile again on the " + GateName.OnATab + " tab of the database settings puts it "
+            + "back in force.";
+
         public const string MaskColumnName = "KpgGrantMaskColumn";
 
         /// <summary>

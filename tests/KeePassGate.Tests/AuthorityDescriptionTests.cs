@@ -88,7 +88,7 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void A_healthy_authority_shows_its_fingerprint_dates_and_record_count()
+        public void A_healthy_authority_shows_its_fingerprint_and_record_count()
         {
             _service.Create();
 
@@ -98,14 +98,13 @@ namespace KeePassGate.Tests
 
                 Assert.That(Named(description, "Fingerprint"),
                     Is.EqualTo(CertificateDigest.Shorten(reading.Material.AuthorityDigest)));
-                Assert.That(Named(description, "Authority valid until"), Does.Match(@"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$"));
-                Assert.That(Named(description, "Host valid until"), Does.Match(@"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$"));
                 Assert.That(Named(description, "Admission records"), Is.EqualTo("0"));
 
-                // A table of four, and nothing else unless something is wrong. The tab has to fit
+                // A table of two, and nothing else unless something is wrong. The tab has to fit
                 // without scrolling, every row costs the same height, and the sentences are the
-                // part of it that grows.
-                Assert.That(description.Facts.Count, Is.EqualTo(4));
+                // part of it that grows. Until when the authority and its host certificate are
+                // valid is not a row: they are issued for a hundred years.
+                Assert.That(description.Facts.Count, Is.EqualTo(2));
                 Assert.That(description.Details, Is.Empty);
             }
         }
@@ -144,150 +143,33 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void Timestamps_are_written_the_same_way_in_every_language()
+        public void The_authority_and_its_host_are_never_warned_about_or_refused_on_their_dates()
         {
+            // `CA.md` §219: issued for a hundred years, so nothing on the page counts down to their
+            // end and nothing refuses an invitation ahead of it. Ten days before the end and a day
+            // after it read the same as a fresh authority, which is what a database a century old
+            // gets: `PAIRING.md` §311 answers the pairing itself, once the issuer refuses to sign.
+            //
+            // Asked of a clock a century on rather than of an authority made a century ago, because
+            // `CertificateRequest` refuses to write a date before 1950 at all.
             _service.Create();
 
-            var culture = System.Threading.Thread.CurrentThread.CurrentCulture;
-            try
+            using (var reading = _service.Read())
             {
-                System.Threading.Thread.CurrentThread.CurrentCulture = new System.Globalization.CultureInfo("de-DE");
-                using (var reading = _service.Read())
+                var end = new DateTimeOffset(reading.Material.Authority.NotAfter.ToUniversalTime(), TimeSpan.Zero);
+
+                foreach (var at in new[] { end - TimeSpan.FromDays(10), end + TimeSpan.FromDays(1) })
                 {
-                    var description = AuthorityDescription.Of(reading, null, null, DateTimeOffset.UtcNow);
-                    Assert.That(Named(description, "Authority valid until"), Does.Match(@"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$"));
+                    var description = AuthorityDescription.Of(reading, null, null, at);
+
+                    Assert.That(description.Details, Is.Empty, "at " + Moments.Wire(at));
+                    Assert.That(description.CanInvite, Is.True, "at " + Moments.Wire(at));
                 }
             }
-            finally
-            {
-                System.Threading.Thread.CurrentThread.CurrentCulture = culture;
-            }
         }
 
         [Test]
-        public void An_expiry_inside_the_warning_window_is_mentioned()
-        {
-            var soon = DateTimeOffset.UtcNow;
-            var service = new AuthorityService(
-                _values, new AuthorityIssuer(() => soon - AuthorityIssuer.AuthorityLifetime + TimeSpan.FromDays(10)), null);
-            service.Create();
-
-            using (var reading = service.Read())
-            {
-                var text = string.Join(" ", AuthorityDescription.Of(reading, null, null, soon).Details);
-
-                Assert.That(text, Does.Contain("Authority expires in"));
-            }
-        }
-
-        [Test]
-        public void An_expiry_far_away_is_not_mentioned()
-        {
-            _service.Create();
-
-            using (var reading = _service.Read())
-            {
-                var text = string.Join(" ", AuthorityDescription.Of(reading, null, null, DateTimeOffset.UtcNow).Details);
-
-                Assert.That(text, Does.Not.Contain("expires in"));
-            }
-        }
-
-        [Test]
-        public void An_authority_that_has_expired_says_so()
-        {
-            var longAgo = DateTimeOffset.UtcNow - TimeSpan.FromDays(4000);
-            var service = new AuthorityService(_values, new AuthorityIssuer(() => longAgo), null);
-            service.Create();
-
-            using (var reading = service.Read())
-            {
-                var text = string.Join(" ", AuthorityDescription.Of(reading, null, null, DateTimeOffset.UtcNow).Details);
-
-                Assert.That(text, Does.Contain("Authority expired on"));
-            }
-        }
-
-        [Test]
-        public void A_host_certificate_inside_its_warning_window_is_mentioned()
-        {
-            // Ten days before the host runs out, with years left on the authority, so the one
-            // sentence about an end that is near can only be the host's. The tests above leave the
-            // host long expired beside an authority that is not, and asserted the authority alone.
-            var soon = DateTimeOffset.UtcNow;
-            var service = new AuthorityService(
-                _values, new AuthorityIssuer(() => soon - AuthorityIssuer.HostLifetime + TimeSpan.FromDays(10)), null);
-            service.Create();
-
-            using (var reading = service.Read())
-            {
-                var text = string.Join(" ", AuthorityDescription.Of(reading, null, null, soon).Details);
-
-                Assert.That(text, Does.Contain("Host certificate expires in"));
-                Assert.That(text, Does.Not.Contain("Authority expires"));
-            }
-        }
-
-        [Test]
-        public void A_host_certificate_that_has_expired_under_a_live_authority_says_so()
-        {
-            var hostAgo = DateTimeOffset.UtcNow - AuthorityIssuer.HostLifetime - TimeSpan.FromDays(1);
-            var service = new AuthorityService(_values, new AuthorityIssuer(() => hostAgo), null);
-            service.Create();
-
-            using (var reading = service.Read())
-            {
-                var text = string.Join(" ", AuthorityDescription.Of(reading, null, null, DateTimeOffset.UtcNow).Details);
-
-                Assert.That(text, Does.Contain("Host certificate expired on"));
-                Assert.That(text, Does.Not.Contain("Authority expired"));
-            }
-        }
-
-        [Test]
-        public void An_authority_that_has_expired_is_one_nobody_can_be_invited_to()
-        {
-            // A narrower question than the three buttons on the first page answer. Recreating and
-            // deleting are both offered here, because recreating is the remedy; what cannot be
-            // offered is a code, since `PAIRING.md` §311 refuses a request on this authority
-            // before anybody is asked anything.
-            var longAgo = DateTimeOffset.UtcNow - TimeSpan.FromDays(4000);
-            var service = new AuthorityService(_values, new AuthorityIssuer(() => longAgo), null);
-            service.Create();
-
-            using (var reading = service.Read())
-            {
-                var description = AuthorityDescription.Of(reading, null, null, DateTimeOffset.UtcNow);
-
-                Assert.That(description.HasExpired, Is.True);
-                Assert.That(description.CanInvite, Is.False);
-                Assert.That(description.CanRecreate, Is.True, "recreating is the way out of it");
-            }
-        }
-
-        [Test]
-        public void A_host_certificate_that_has_expired_is_one_nobody_can_be_invited_to_either()
-        {
-            // Five years into the authority's ten. The authority still signs, but every connection
-            // is served with the host certificate, so a program paired now could never connect,
-            // and `PAIRING.md` §311 refuses the request before anybody is asked.
-            var hostAgo = DateTimeOffset.UtcNow - AuthorityIssuer.HostLifetime - TimeSpan.FromDays(1);
-            var service = new AuthorityService(_values, new AuthorityIssuer(() => hostAgo), null);
-            service.Create();
-
-            using (var reading = service.Read())
-            {
-                var description = AuthorityDescription.Of(reading, null, null, DateTimeOffset.UtcNow);
-
-                Assert.That(description.HasExpired, Is.False, "the authority has years left");
-                Assert.That(description.HostHasExpired, Is.True);
-                Assert.That(description.CanInvite, Is.False);
-                Assert.That(description.CanRecreate, Is.True, "recreating is the way out of this too");
-            }
-        }
-
-        [Test]
-        public void An_authority_inside_its_dates_is_one_anybody_can_be_invited_to()
+        public void A_readable_authority_is_one_anybody_can_be_invited_to()
         {
             _service.Create();
 
@@ -295,7 +177,6 @@ namespace KeePassGate.Tests
             {
                 var description = AuthorityDescription.Of(reading, null, null, DateTimeOffset.UtcNow);
 
-                Assert.That(description.HasExpired, Is.False);
                 Assert.That(description.CanInvite, Is.True);
             }
         }
@@ -319,8 +200,6 @@ namespace KeePassGate.Tests
                 Assert.That(description.CanDelete, Is.True);
                 Assert.That(description.CanInvite, Is.False,
                     "an authority that cannot be read cannot issue either");
-                Assert.That(description.HasExpired, Is.False,
-                    "and its dates are not what is wrong with it");
             }
         }
 
@@ -386,9 +265,110 @@ namespace KeePassGate.Tests
                     var text = string.Join(" ",
                         AuthorityDescription.Of(reading, Listed(record), null, almostExpired).Details);
 
-                    Assert.That(text, Does.Contain("One client expires within 30 days"));
+                    Assert.That(text, Does.Contain("One client expires within 10 days."));
                 }
             }
+        }
+
+        [TestCase(1, 8)]
+        [TestCase(7, 56)]
+        [TestCase(30, 240)]
+        [TestCase(90, 720)]
+        [TestCase(365, 720)]
+        public void A_client_is_warned_about_in_the_last_third_of_its_own_life_and_thirty_days_at_most(
+            int days, int hours)
+        {
+            // A fixed thirty days would warn about a week-long certificate from the moment it was
+            // issued. The five minutes the issuer backdates by count as part of the life, which
+            // moves each uncapped third by a hundred seconds.
+            using (var authority = TestAuthority.New())
+            using (var certificate = authority.IssueClient("agent-fictitious", TimeSpan.FromDays(days)))
+            {
+                var warning = AuthorityDescription.ClientWarning(certificate);
+                var expected = TimeSpan.FromHours(hours);
+
+                Assert.That(warning, Is.EqualTo(expected).Within(TimeSpan.FromMinutes(2)));
+            }
+        }
+
+        [TestCase(7)]
+        [TestCase(30)]
+        [TestCase(365)]
+        public void A_client_is_warned_about_from_where_its_warning_starts_and_not_before(int days)
+        {
+            _service.Create();
+
+            using (var authority = TestAuthority.New())
+            using (var certificate = authority.IssueClient("agent-fictitious", TimeSpan.FromDays(days)))
+            {
+                var record = AdmissionRecord.For(certificate, DateTimeOffset.UtcNow, null);
+                var end = new DateTimeOffset(certificate.NotAfter.ToUniversalTime(), TimeSpan.Zero);
+                var starts = end - AuthorityDescription.ClientWarning(certificate);
+
+                using (var reading = _service.Read())
+                {
+                    Assert.That(Said(reading, record, starts.AddMinutes(-1)), Does.Not.Contain("expire"));
+                    Assert.That(Said(reading, record, starts.AddMinutes(1)), Does.Contain("One client expires within"));
+                }
+            }
+        }
+
+        [Test]
+        public void A_week_long_client_is_not_expiring_on_the_day_it_was_issued()
+        {
+            _service.Create();
+
+            using (var authority = TestAuthority.New())
+            using (var certificate = authority.IssueClient("agent-fictitious", TimeSpan.FromDays(7)))
+            {
+                var record = AdmissionRecord.For(certificate, DateTimeOffset.UtcNow, null);
+
+                using (var reading = _service.Read())
+                {
+                    Assert.That(Said(reading, record, DateTimeOffset.UtcNow.AddHours(1)), Does.Not.Contain("expire"));
+                }
+            }
+        }
+
+        [Test]
+        public void The_days_said_are_those_the_last_client_warned_about_expires_within()
+        {
+            _service.Create();
+
+            using (var authority = TestAuthority.New())
+            using (var day = authority.IssueClient("agent-fictitious", TimeSpan.FromDays(1)))
+            using (var week = authority.IssueClient("agent-invented", TimeSpan.FromDays(7)))
+            {
+                var records = new[]
+                {
+                    AdmissionRecord.For(day, DateTimeOffset.UtcNow, null),
+                    AdmissionRecord.For(week, DateTimeOffset.UtcNow, null)
+                };
+
+                var dayEnd = new DateTimeOffset(day.NotAfter.ToUniversalTime(), TimeSpan.Zero);
+                var weekEnd = new DateTimeOffset(week.NotAfter.ToUniversalTime(), TimeSpan.Zero);
+
+                using (var reading = _service.Read())
+                {
+                    // An hour before the day ends, only the day-long one is in its last third, and
+                    // what it expires within is one day rather than one days.
+                    Assert.That(
+                        string.Join(" ", AuthorityDescription.Of(reading, Listed(records), null, dayEnd.AddHours(-1)).Details),
+                        Does.Contain("One client expires within 1 day."));
+
+                    // Two days before the week ends the day-long one has expired, and the week is
+                    // in its last third.
+                    var text = string.Join(" ",
+                        AuthorityDescription.Of(reading, Listed(records), null, weekEnd.AddDays(-2)).Details);
+                    Assert.That(text, Does.Contain("One client has expired."));
+                    Assert.That(text, Does.Contain("One client expires within 2 days."));
+                }
+            }
+        }
+
+        private static string Said(AuthorityReading reading, AdmissionRecord record, DateTimeOffset now)
+        {
+            return string.Join(" ", AuthorityDescription.Of(reading, Listed(record), null, now).Details);
         }
 
         [TestCase(ClientReach.Stranger)]
@@ -422,7 +402,7 @@ namespace KeePassGate.Tests
                     reaches[record.AdmissionKey] = ClientReach.Reaches;
                     Assert.That(string.Join(" ",
                             AuthorityDescription.Of(reading, Listed(record), reaches, almostExpired).Details),
-                        Does.Contain("One client expires within 30 days"),
+                        Does.Contain("One client expires within 10 days."),
                         "one the gate gets as far as the dates of is still warned about");
                 }
             }
@@ -554,8 +534,9 @@ namespace KeePassGate.Tests
 
             var whole = longest.Single(description => description.Headline == AuthorityDescription.PresentHeadline);
             Assert.That(whole.Details.Count, Is.EqualTo(1), "the warnings are one line, as they are drawn");
-            Assert.That(whole.DetailText, Does.Contain("Authority expired on"));
-            Assert.That(whole.DetailText, Does.Contain("Host certificate expired on"));
+            Assert.That(whole.DetailText, Does.Contain("clients have expired"));
+            Assert.That(whole.DetailText, Does.Not.Contain("Authority"),
+                "the authority and its host certificate are not warned about, CA.md §219");
             Assert.That(whole.Facts, Is.Not.Empty);
         }
 

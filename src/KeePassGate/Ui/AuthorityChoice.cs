@@ -132,12 +132,7 @@ namespace KeePassGate.Ui
 
             admitted.Sort((left, right) => right.Admitted.CompareTo(left.Admitted));
 
-            return AuthorityOption.Whole(
-                candidate.Fingerprint,
-                material.Authority.NotBefore,
-                material.Authority.NotAfter,
-                material.Host.NotAfter,
-                admitted);
+            return AuthorityOption.Whole(candidate.Fingerprint, material.Authority.NotBefore, admitted);
         }
     }
 
@@ -149,16 +144,12 @@ namespace KeePassGate.Ui
             bool canKeep,
             string problem,
             DateTime? created,
-            DateTime? expires,
-            DateTime? hostExpires,
             IReadOnlyList<ChoiceClient> clients)
         {
             Fingerprint = fingerprint;
             CanKeep = canKeep;
             Problem = problem;
             Created = created;
-            Expires = expires;
-            HostExpires = hostExpires;
             Clients = clients ?? Array.Empty<ChoiceClient>();
         }
 
@@ -177,28 +168,25 @@ namespace KeePassGate.Ui
         /// <summary>What is wrong with it, cut to fit, or null when nothing is.</summary>
         public string Problem { get; }
 
+        /// <summary>
+        /// When it was made, which is what tells two copies' authorities apart to somebody who
+        /// remembers making one. Until when it is valid is not shown: an authority and its host
+        /// certificate are issued for a hundred years.
+        /// </summary>
         public DateTime? Created { get; }
-
-        public DateTime? Expires { get; }
-
-        public DateTime? HostExpires { get; }
 
         /// <summary>The admitted clients whose certificates chain to it, newest first.</summary>
         public IReadOnlyList<ChoiceClient> Clients { get; }
 
         public static AuthorityOption Whole(
-            string fingerprint,
-            DateTime created,
-            DateTime expires,
-            DateTime hostExpires,
-            IReadOnlyList<ChoiceClient> clients)
+            string fingerprint, DateTime created, IReadOnlyList<ChoiceClient> clients)
         {
-            return new AuthorityOption(fingerprint, true, null, created, expires, hostExpires, clients);
+            return new AuthorityOption(fingerprint, true, null, created, clients);
         }
 
         public static AuthorityOption Unreadable(string fingerprint, string problem)
         {
-            return new AuthorityOption(fingerprint, false, problem, null, null, null, null);
+            return new AuthorityOption(fingerprint, false, problem, null, null);
         }
     }
 

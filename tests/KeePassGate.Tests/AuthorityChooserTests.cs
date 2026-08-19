@@ -40,7 +40,7 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void Each_candidate_is_an_option_with_its_dates_and_the_clients_it_admitted()
+        public void Each_candidate_is_an_option_with_when_it_was_made_and_the_clients_it_admitted()
         {
             var choice = Choice(null);
 
@@ -49,8 +49,6 @@ namespace KeePassGate.Tests
             var first = choice.Options.Single(o => o.Fingerprint == _candidates[0]);
             Assert.That(first.CanKeep, Is.True);
             Assert.That(first.Created, Is.Not.Null);
-            Assert.That(first.Expires, Is.GreaterThan(first.Created));
-            Assert.That(first.HostExpires, Is.Not.Null);
             Assert.That(first.Clients.Single().Name, Is.EqualTo("agent-fictitious"), "without the CN= every row would carry");
             Assert.That(first.Clients.Single().Profiles, Is.EqualTo(new[] { "ops", "reader" }));
             Assert.That(first.Clients.Single().Admitted, Is.EqualTo(Admitted));
@@ -108,14 +106,15 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void The_selected_authority_shows_its_full_fingerprint_its_host_and_its_clients()
+        public void The_selected_authority_shows_its_full_fingerprint_and_its_clients()
         {
             using (var dialog = new AuthorityChooserForm(Choice(null), null))
             {
                 dialog.Select(_candidates[0]);
 
                 Assert.That(Box(dialog, GateTab.ChooserFingerprintBoxName).Text, Is.EqualTo(_candidates[0]));
-                Assert.That(Label(dialog, GateTab.ChooserDetailLabelName).Text, Does.StartWith("Its host certificate is valid until"));
+                Assert.That(Label(dialog, GateTab.ChooserDetailLabelName).Text, Is.Empty,
+                    "a readable authority has nothing wrong to say, and no date worth one: CA.md §219");
 
                 var clients = List(dialog, GateTab.ChooserClientListName);
                 Assert.That(clients.Items.Count, Is.EqualTo(1));

@@ -362,14 +362,20 @@ namespace KeePassGate.Tests
         [Test]
         public void A_database_whose_authority_has_run_out_refuses_and_reports_no_defect()
         {
-            // What an old kdbx looks like from the outside: the authority is read, the database is
-            // served, the handshake succeeds and the proofs verify, and the pairing reaches the one
-            // thing an expired authority cannot do. The client is told which, and the plugin does
-            // not report itself as broken for the age of somebody's database.
+            // What a kdbx a century old looks like from the outside: the authority is read, the
+            // database is served, the handshake succeeds and the proofs verify, and the pairing
+            // reaches the one thing an expired authority cannot do. Nothing refuses ahead of that,
+            // `CA.md` §219, so the operator is asked, and the plugin does not report itself as
+            // broken for the age of somebody's database.
+            //
+            // The century is the issuer's clock rather than the authority's age, because
+            // `CertificateRequest` refuses to write a date before 1950 at all.
             var incidents = new GateIncidents(_log);
+            var aCenturyOn = new AuthorityIssuer(
+                () => DateTimeOffset.UtcNow + AuthorityIssuer.AuthorityLifetime + TimeSpan.FromDays(1));
 
-            using (var old = TestAuthority.New(() => DateTimeOffset.UtcNow - TimeSpan.FromDays(4000)))
-            using (var listener = Listening(new FakeGateTargets(old), incidents))
+            using (var old = TestAuthority.New())
+            using (var listener = Listening(new FakeGateTargets(old), incidents, aCenturyOn))
             {
                 var invitation = _book.Invite(old.DatabaseId);
                 var client = new PairingClient(listener.Port, invitation.Text);
@@ -378,12 +384,11 @@ namespace KeePassGate.Tests
                 var reply = client.Request("agent-fictitious");
 
                 Assert.That(reply.Status, Is.EqualTo(500), reply.ToString());
-                Assert.That(reply.Body, Does.Contain("expired authority"));
+                Assert.That(reply.Body, Does.Contain("internal error"));
                 Assert.That(client.Identity, Is.Null, "and nothing was issued from it");
                 Assert.That(incidents.Count, Is.Zero,
                     "an incident is this plugin doing something wrong, which the age of a database is not");
-                Assert.That(_operator.Asked, Is.Zero,
-                    "nobody was asked to approve a pairing that could not have ended in a certificate");
+                Assert.That(_operator.Asked, Is.EqualTo(1), "nothing refused the request before the dialog");
             }
         }
 
@@ -459,15 +464,17 @@ namespace KeePassGate.Tests
         }
 
         /// <summary>
-        /// The same gate over other databases, counting what escapes a handler, which is the only
-        /// place a test can see a refusal being reported as a defect in this plugin.
+        /// The same gate over other databases, issuing on a clock of the test's choosing and
+        /// counting what escapes a handler, which is the only place a test can see a refusal being
+        /// reported as a defect in this plugin.
         /// </summary>
-        private GateListener Listening(FakeGateTargets targets, GateIncidents incidents)
+        private GateListener Listening(FakeGateTargets targets, GateIncidents incidents, AuthorityIssuer issuer)
         {
             var listener = new GateListener(
                 new GateOptions { Port = 0 },
                 new GateResolver(targets, _book, _log),
-                GateOperations.Router("9.9.9", new PairingHandler(_book, _operator, _log)),
+                GateOperations.Router(
+                    "9.9.9", new PairingHandler(_book, _operator, new PairingOptions(), issuer, null, _log)),
                 incidents,
                 _log);
 

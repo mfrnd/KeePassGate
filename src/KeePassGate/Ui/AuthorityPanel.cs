@@ -104,8 +104,11 @@ namespace KeePassGate.Ui
         /// <summary>The digest of the authority <see cref="_judged"/> answers for, or null for none.</summary>
         private string _judgedBy;
 
-        /// <summary>What the invitation band was last drawn against, or null for no authority.</summary>
-        private Offer _offer;
+        /// <summary>
+        /// The digest of the authority the invitation band was last drawn against, or null for
+        /// none, kept so that the band can follow the clock without reading the database again.
+        /// </summary>
+        private string _offered;
 
         /// <summary>Wakes the invitation band when its line next changes, while a code is out.</summary>
         private readonly Timer _ticking = new Timer();
@@ -559,7 +562,6 @@ namespace KeePassGate.Ui
             try
             {
                 string databaseId;
-                bool ended;
                 using (var reading = _service.Read())
                 {
                     if (!reading.IsPresent)
@@ -568,31 +570,7 @@ namespace KeePassGate.Ui
                         return;
                     }
 
-                    // **Nor against an authority that has run out.** `PAIRING.md` §311 refuses a
-                    // request on one before the operator is disturbed, so a code minted here is a
-                    // code its holder is told to throw away, and the operator finds that out from
-                    // whoever was setting the program up rather than from the page they made it
-                    // on. The button is dead in this state; this is what answers a clock that
-                    // crossed the expiry after the page was last drawn.
-                    //
-                    // Nor against a host certificate that has, for the same reason: the request is
-                    // refused before the dialog, and no client paired over it could connect.
-                    var now = DateTimeOffset.UtcNow;
-                    ended = CertificateValidity.HasExpired(reading.Material.Authority, now)
-                            || CertificateValidity.HasExpired(reading.Material.Host, now);
                     databaseId = reading.Material.AuthorityDigest;
-                }
-
-                // **Answered by the notice over the button, and by nothing under the pages.**
-                // Drawing the page again puts the notice up and kills the button, and the notice
-                // says which date passed, what fixes it and what that costs. The line under the
-                // pages used to say the same sentence, and from the next redraw it sat under the
-                // notice saying it again.
-                if (ended)
-                {
-                    Said(string.Empty);
-                    Describe();
-                    return;
                 }
 
                 var invitation = _invitations.Invite(databaseId);
@@ -678,13 +656,6 @@ namespace KeePassGate.Ui
         /// <summary>Reads the database again and redraws. Safe to call at any time.</summary>
         public void Describe()
         {
-            // Settled where the database can be read and used where the page is drawn, which are
-            // two blocks with two different sets of failures. A describe that threw leaves this
-            // false and the notice hidden, which is the honest answer: an authority nobody could
-            // read is not an authority anybody can say has expired.
-            var expired = false;
-            var hostExpired = false;
-
             // **Read once for the whole redraw**: the authority, the records, and how far each
             // record gets with the gate. The page reads again every time it is asked to, because
             // the database changes while this dialog is open; what it stopped doing is reading the
@@ -697,8 +668,8 @@ namespace KeePassGate.Ui
                 var admitted = AdmittedClients();
                 var reaches = Reaches(admitted, reading, DateTimeOffset.UtcNow);
 
-                DescribeAuthority(reading, admitted, reaches, ref expired, ref hostExpired);
-                DescribeClients(admitted, reaches, expired, hostExpired);
+                DescribeAuthority(reading, admitted, reaches);
+                DescribeClients(admitted, reaches);
             }
         }
 
@@ -720,9 +691,7 @@ namespace KeePassGate.Ui
         private void DescribeAuthority(
             AuthorityReading reading,
             AdmissionListing admitted,
-            IDictionary<string, ClientReach> reaches,
-            ref bool expired,
-            ref bool hostExpired)
+            IDictionary<string, ClientReach> reaches)
         {
             try
             {
@@ -737,16 +706,10 @@ namespace KeePassGate.Ui
                 _choose.Visible = description.CanChoose;
                 _create.Visible = !description.CanChoose;
 
-                // Carried out of this block, because what explains a dead invite button is drawn
-                // in the next one.
-                expired = description.HasExpired;
-                hostExpired = description.HostHasExpired;
-
-                // Inviting needs an authority that can still issue, which is narrower than
-                // what recreating and deleting need: `CanRecreate` is true of a damaged
-                // authority and of one past its own dates, and a code handed out in either is
-                // a code whose redemption answers with a failure about a state only the
-                // operator can do anything about.
+                // Inviting needs an authority that can issue, which is narrower than what
+                // recreating and deleting need: `CanRecreate` is true of a damaged authority, and
+                // a code handed out for one is a code whose redemption answers with a failure
+                // about a state only the operator can do anything about.
                 //
                 // And an authority the gate can see. One that is still waiting for this dialog's
                 // OK would hand out a code that cannot be spent, or worse, on a recreate, one that
@@ -766,7 +729,7 @@ namespace KeePassGate.Ui
                 // against one of the things it can say missed the other two, and the case it missed
                 // by name was a deleted authority, where the box kept a code for something that no
                 // longer exists.
-                _offer = reading != null && reading.IsPresent ? new Offer(reading.Material) : null;
+                _offered = reading != null && reading.IsPresent ? reading.Material.AuthorityDigest : null;
                 ShowOutstanding(OutstandingCodes(DateTimeOffset.UtcNow));
             }
             catch (Exception error) when (Expected.OfCustomData(error)
@@ -787,8 +750,7 @@ namespace KeePassGate.Ui
         }
 
         /// <summary>The clients page, the profiles page and the notice, from the same reading.</summary>
-        private void DescribeClients(
-            AdmissionListing admitted, IDictionary<string, ClientReach> reaches, bool expired, bool hostExpired)
+        private void DescribeClients(AdmissionListing admitted, IDictionary<string, ClientReach> reaches)
         {
             // Apart from the first page's catch, because a tab that failed to describe its
             // authority and went on showing the clients it listed a minute ago would be lying about
@@ -813,7 +775,7 @@ namespace KeePassGate.Ui
                     _profiles.Describe();
                 }
 
-                _notice.Text = InviteNotice(expired, hostExpired);
+                _notice.Text = InviteNotice();
                 _notice.Visible = _notice.Text.Length > 0;
             }
             catch (Exception error) when (Expected.OfUserInterface(error) || Expected.OfCustomData(error))
@@ -827,37 +789,20 @@ namespace KeePassGate.Ui
         /// </summary>
         /// <remarks>
         /// **One band, whichever reason applies**, because they answer one question and the page
-        /// is 449 by 314. Four of them share it: an authority waiting for this dialog's OK, a
-        /// profile list waiting for the same, an authority that has run out, and a host
-        /// certificate that has. All four are said, because a dead button with no sentence
-        /// anywhere on the tab about it leaves the operator nothing to act on.
+        /// is 449 by 314. Two of them share it: an authority waiting for this dialog's OK, and a
+        /// profile list waiting for the same. Both are said, because a dead button with no
+        /// sentence anywhere on the tab about it leaves the operator nothing to act on.
         ///
-        /// The two that are waiting come first, because they are the reasons that go away by
-        /// pressing OK, and the authority before the profiles because it is the one that stops a
-        /// code resolving at all. Waiting and expiry cannot both be true anyway: this page reads
-        /// its own unapplied writes, so an authority recreated a moment ago is current here while
-        /// it waits, and one waiting to be deleted is absent here rather than expired. When both
-        /// dates have passed the authority's is the one said, since the remedy is the same and
-        /// its date is the one the first page puts first.
+        /// The authority comes first, because it is the one that stops a code resolving at all.
         /// </remarks>
-        private string InviteNotice(bool expired, bool hostExpired)
+        private string InviteNotice()
         {
             if (AuthorityIsWaiting)
             {
                 return GateTab.PendingAuthorityNotice;
             }
 
-            if (ProfilesAreWaiting)
-            {
-                return GateTab.PendingProfilesNotice;
-            }
-
-            if (expired)
-            {
-                return GateTab.ExpiredAuthorityNotice;
-            }
-
-            return hostExpired ? GateTab.ExpiredHostNotice : string.Empty;
+            return ProfilesAreWaiting ? GateTab.PendingProfilesNotice : string.Empty;
         }
 
         /// <summary>Whether a profile edit is buffered and the list is about to change under a client.</summary>
@@ -1001,9 +946,7 @@ namespace KeePassGate.Ui
         /// </summary>
         /// <remarks>
         /// Asks the invitations again, which is memory, and not the database: the authority's
-        /// digest and dates are kept from the last reading. Once either of those dates has
-        /// passed, the whole tab is read again instead, because the first page and the notice
-        /// then say something new as well.
+        /// digest is kept from the last reading.
         /// </remarks>
         public void Tick()
         {
@@ -1011,12 +954,6 @@ namespace KeePassGate.Ui
 
             if (IsDisposed || Disposing)
             {
-                return;
-            }
-
-            if (_offer != null && _offer.HasEnded(DateTimeOffset.UtcNow))
-            {
-                Describe();
                 return;
             }
 
@@ -1042,7 +979,7 @@ namespace KeePassGate.Ui
         /// Two answers rather than one sentence, because the caller has to decide whether the box
         /// may go on showing a code and cannot work that out by reading the sentence: three
         /// different ones mean "nothing is outstanding", and testing for one of them missed the
-        /// other two. Against what the last reading found, kept in <see cref="_offer"/>.
+        /// other two. Against what the last reading found, kept in <see cref="_offered"/>.
         /// </remarks>
         private Outstanding OutstandingCodes(DateTimeOffset now)
         {
@@ -1051,29 +988,12 @@ namespace KeePassGate.Ui
                 return new Outstanding(string.Empty, false, null);
             }
 
-            if (_offer == null)
+            if (_offered == null)
             {
                 return new Outstanding(InvitationText.NoAuthority, false, null);
             }
 
-            // **An authority that has run out is the same answer as one that is gone.** The
-            // invitation is still in the book and still live by its own clock, so a page that
-            // asked the book alone would count a code down with the copy button alive beside
-            // it; `PAIRING.md` §311 refuses the redemption, so what an operator copied and
-            // handed over would be answered with `500 expired authority`, and a host
-            // certificate that has run out is the same answer under `500 expired host`.
-            // Nothing burns it here, because a recreated authority has a different digest and
-            // this one is swept on its own expiry: what changes is only what the page offers.
-            //
-            // Said as nothing outstanding rather than as a reason. This line is about what is
-            // on offer, and an authority that cannot issue is what the button under it
-            // already refuses.
-            if (_offer.HasEnded(now))
-            {
-                return new Outstanding(InvitationText.None, false, null);
-            }
-
-            var live = _invitations.For(_offer.Digest);
+            var live = _invitations.For(_offered);
             if (live == null || live.Count == 0)
             {
                 return new Outstanding(InvitationText.For(live, now), false, null);
@@ -1117,35 +1037,6 @@ namespace KeePassGate.Ui
             }
         }
 
-        /// <summary>
-        /// What the invitation band was last drawn against: the authority a code would be for, and
-        /// the two dates past which none can be redeemed.
-        /// </summary>
-        /// <remarks>
-        /// Kept from the redraw's reading so that the band can follow the clock without reading
-        /// the database again. Null when there is no authority to invite anybody to.
-        /// </remarks>
-        private sealed class Offer
-        {
-            public Offer(AuthorityMaterial material)
-            {
-                Digest = material.AuthorityDigest;
-                AuthorityEnds = new DateTimeOffset(material.Authority.NotAfter.ToUniversalTime(), TimeSpan.Zero);
-                HostEnds = new DateTimeOffset(material.Host.NotAfter.ToUniversalTime(), TimeSpan.Zero);
-            }
-
-            public string Digest { get; }
-
-            public DateTimeOffset AuthorityEnds { get; }
-
-            public DateTimeOffset HostEnds { get; }
-
-            /// <summary>Whether the authority or the host certificate has run out, on the gate's boundary.</summary>
-            public bool HasEnded(DateTimeOffset now)
-            {
-                return CertificateValidity.HasExpired(AuthorityEnds, now) || CertificateValidity.HasExpired(HostEnds, now);
-            }
-        }
 
         /// <summary>
         /// A record landed in some database, so what this tab draws from the records is stale.

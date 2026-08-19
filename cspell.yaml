@@ -98,7 +98,12 @@ words:
   - kdbx
   - keepass
 
+  # taking a picture of a window, in the tenses the prose uses
+  - screenshotted
+  - screenshotting
 
+  # a window drawn with no border at all, which is what a cropped picture looks like
+  - frameless
 
   # KeePass's own names, which are spelled the way KeePass spells them
   - Kdbx

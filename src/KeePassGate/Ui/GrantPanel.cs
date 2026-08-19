@@ -16,9 +16,10 @@ namespace KeePassGate.Ui
     /// no grant can be made at all and the whole access control model is inert.
     ///
     /// **The table is the tab.** One row per profile, its rule as a `CRUSDLAP` mask in a monospaced
-    /// column, and the rules inherited from above shown among the local ones in gray. Everything
-    /// the panel decides is in `GrantSheet`, which is tested without a message pump; what is left
-    /// here is drawing it and turning clicks into calls.
+    /// column, the rules inherited from above shown among the local ones in gray, and any of those
+    /// this node's own seal refuses struck through. Everything the panel decides is in
+    /// `GrantSheet`, which is tested without a message pump; what is left here is drawing it and
+    /// turning clicks into calls.
     ///
     /// **It writes on every commit, and only when something changed.** A dialog's OK is what makes
     /// the write durable, because what this edits is the dialog's own copy of the node's custom
@@ -46,6 +47,16 @@ namespace KeePassGate.Ui
         private readonly Button _discard;
         private readonly ToolTip _tips;
         private readonly Font _monospace;
+
+        /// <summary>
+        /// The same font with a line through it, for a mask that no longer arrives.
+        /// </summary>
+        /// <remarks>
+        /// Derived from the monospaced one rather than built beside it, so that a refused mask is
+        /// the same eight characters in the same places as every other mask in the column, with
+        /// one thing added.
+        /// </remarks>
+        private readonly Font _refusedMask;
 
         private bool _populating;
 
@@ -78,6 +89,7 @@ namespace KeePassGate.Ui
             Padding = new Padding(Spacing.Gap);
 
             _monospace = new Font(FontFamily.GenericMonospace, Font.Size + 1f, FontStyle.Regular);
+            _refusedMask = new Font(_monospace, FontStyle.Strikeout);
             _tips = new ToolTip { AutoPopDelay = 32000, InitialDelay = 300, ReshowDelay = 100 };
 
             // **Both of these are as tall as what is in them.** They were written down as 32 and
@@ -377,17 +389,28 @@ namespace KeePassGate.Ui
             // Escape means "as it was", so the closing handler has to know which way it was closed.
             var discarded = false;
 
+            // And Enter means "this", which on a row the seal refuses is not the same as leaving it.
+            var confirmed = false;
+
             // What it looked like when it opened. Clicking away is how a dropdown is usually
             // left, and on an inherited row every box is already checked from the rule above, so
             // without this a glance at one writes a local rule nobody asked for. That rule
             // shadows the parent for good, so narrowing the parent later leaves this node wide.
             var before = VerbMask.Of(held);
 
+            // **Except where the rule above stops here.** On a row this node's seal refuses, the
+            // same check marks written here are not a copy of the rule above but the only way to
+            // let it through, which is what the row's own tooltip tells the operator to do. So
+            // Enter writes them. Clicking away still does not: that is how a dropdown is left
+            // after a glance, and a glance must not undo a seal.
+            var refused = Refused(profile);
+
             var drop = new Picker(key =>
             {
                 if (key == Keys.Enter || key == Keys.Escape)
                 {
                     discarded = key == Keys.Escape;
+                    confirmed = key == Keys.Enter;
                     return true;
                 }
 
@@ -425,7 +448,7 @@ namespace KeePassGate.Ui
                 }
 
                 var mask = VerbMask.Of(chosen);
-                if (string.Equals(mask, before, StringComparison.Ordinal))
+                if (string.Equals(mask, before, StringComparison.Ordinal) && !(refused && confirmed))
                 {
                     // Nothing was checked or cleared, so nothing is written. On a local rule
                     // that saves a change nobody made; on an inherited one it is the whole
@@ -581,6 +604,7 @@ namespace KeePassGate.Ui
             {
                 _tips.Dispose();
                 _monospace.Dispose();
+                _refusedMask.Dispose();
             }
 
             base.Dispose(disposing);
@@ -711,6 +735,22 @@ namespace KeePassGate.Ui
         {
             var exact = row.Cells[ProfileColumn].Tag as string;
             return exact ?? TextOf(row, ProfileColumn);
+        }
+
+        /// <summary>
+        /// Whether this profile's row is a rule from a group above that stops at this node.
+        /// </summary>
+        private bool Refused(string profile)
+        {
+            foreach (var row in _sheet.Rows)
+            {
+                if (string.Equals(row.Profile, profile, StringComparison.Ordinal))
+                {
+                    return !row.Local && !row.Reaches;
+                }
+            }
+
+            return false;
         }
 
         /// <summary>
@@ -1385,6 +1425,32 @@ namespace KeePassGate.Ui
             Apply();
         }
 
+        /// <summary>
+        /// Marks a row whose profile the database no longer names, answering with whether it did.
+        /// </summary>
+        /// <remarks>
+        /// Struck through on the mask, which is where the eye already is and what a seal's refusal
+        /// looks like too: in both the rule is there and grants nothing here. The sentence replaces
+        /// whatever the row said before, because narrowing or letting through a rule that reaches
+        /// nobody is not what the operator needs to hear about it. Local and inherited alike, since
+        /// a removed name is inert wherever its rule was written.
+        /// </remarks>
+        private bool Inert(GrantRow row, DataGridViewRow added)
+        {
+            if (row.Named)
+            {
+                return false;
+            }
+
+            added.Cells[MaskColumn].Style.Font = _refusedMask;
+
+            // A rule stored for no profile at all is inert too, and not because a name went: no
+            // name can be added to put it back in force, so it says what it is instead.
+            added.Cells[MaskColumn].ToolTipText = Tooltips.Wrapped(
+                string.IsNullOrEmpty(row.Profile) ? GrantTab.RuleWithoutProfile : GrantTab.ProfileNotNamed);
+            return true;
+        }
+
         private void Warn(string text)
         {
             _warning.Text = text ?? string.Empty;
@@ -1446,6 +1512,7 @@ namespace KeePassGate.Ui
                                 + ", inherited from a group above.");
                         }
 
+                        Inert(row, added);
                         continue;
                     }
 
@@ -1459,8 +1526,39 @@ namespace KeePassGate.Ui
                     added.DefaultCellStyle.SelectionForeColor = SystemColors.GrayText;
                     added.DefaultCellStyle.SelectionBackColor = _grid.DefaultCellStyle.BackColor;
 
-                    added.Cells[MaskColumn].ToolTipText = Tooltips.Wrapped(
-                        "Inherited from a group above. Choose a rule here to narrow it.");
+                    if (Inert(row, added))
+                    {
+                        continue;
+                    }
+
+                    if (row.Reaches)
+                    {
+                        // Replace rather than narrow, because a rule chosen here replaces this one in
+                        // full for this node and everything under it, whether it grants less or
+                        // more.
+                        added.Cells[MaskColumn].ToolTipText = Tooltips.Wrapped(
+                            "Inherited from a group above. Choose a rule here to replace it.");
+                        continue;
+                    }
+
+                    // Struck through, because this node refuses every profile it does not name and
+                    // that includes this one: the rule is still above and it stops here. Kept on
+                    // the table rather than dropped, since seeing what the seal refuses is what an
+                    // operator turned it on for, and marked on the mask because a mask is where
+                    // the eye already is. Gray alone said only that the rule came from elsewhere,
+                    // which was as true before the seal as after it.
+                    added.Cells[MaskColumn].Style.Font = _refusedMask;
+
+                    // And the sentence is replaced rather than added to. What the other one offers
+                    // is to replace a rule that arrives here, and on this row nothing arrives to be
+                    // replaced: `deny` refuses what this node does not name, so naming the profile
+                    // is what lets it through again. Under rules here that will not read, nothing
+                    // can be chosen until they are discarded, so that is what it says instead.
+                    added.Cells[MaskColumn].ToolTipText = Tooltips.Wrapped(_sheet.Unreadable
+                        ? "The rules here cannot be read, so what a group above grants this one "
+                          + "no longer arrives. Discard them to let it through."
+                        : "This node refuses every profile it does not name, so what a group above "
+                          + "grants this one no longer arrives. Choose a rule here to let it through.");
                 }
 
                 ScrollTo(top);

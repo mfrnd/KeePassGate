@@ -660,6 +660,63 @@ namespace KeePassGate.Tests
             });
         }
 
+        [Test]
+        public void A_grant_the_seal_refuses_is_not_drawn_like_one_in_force()
+        {
+            // Off the pixels, because the difference has to be on the screen rather than in a
+            // style nobody looks at. Both tables hold the same row, the same text and the same
+            // gray, and the only rule on either comes from the group above; what the seal adds is
+            // the line drawn through the mask that no longer arrives.
+            var arriving = Ink(null);
+            var refused = Ink("{\"default\":\"deny\"}");
+
+            Assert.That(refused, Is.GreaterThan(arriving),
+                "a grant the seal is refusing is drawn exactly like one in force");
+        }
+
+        [Test]
+        public void Confirming_a_grant_the_seal_refuses_lets_it_through_as_it_is()
+        {
+            // The struck row's tooltip says to choose a rule here to let it through, and the
+            // picker opens with the rule above already checked. Pressing Enter on those check
+            // marks wrote nothing, because they matched what the picker opened with, so the one
+            // thing the row offered did nothing and said nothing.
+            Sealed(
+                (form, panel, grid) =>
+                {
+                    panel.Press(0, MaskColumn);
+                    OffScreenForm.Pump();
+
+                    Assert.That(panel.Type(Keys.Enter), Is.True);
+                    OffScreenForm.Pump();
+
+                    Assert.That(panel.Writes, Is.EqualTo(1), "the rule is this node's own now");
+                    Assert.That(panel.Lines, Is.EqualTo(new[] { "reader .R...L.." }));
+
+                    var font = grid.Rows[0].Cells[MaskColumn].Style.Font;
+                    Assert.That(font == null || !font.Strikeout, Is.True, "and no longer refused");
+                });
+        }
+
+        [Test]
+        public void Glancing_at_a_grant_the_seal_refuses_and_clicking_away_writes_nothing()
+        {
+            // The other half: clicking away is how a dropdown is left after a glance, and a
+            // glance must not undo a seal.
+            Sealed(
+                (form, panel, grid) =>
+                {
+                    panel.Press(0, MaskColumn);
+                    OffScreenForm.Pump();
+
+                    panel.ClosePicker();
+                    OffScreenForm.Pump();
+
+                    Assert.That(panel.Writes, Is.Zero);
+                    Assert.That(grid.Rows[0].Cells[MaskColumn].Style.Font.Strikeout, Is.True);
+                });
+        }
+
         private const int ProfileColumn = GrantTab.ProfileColumn;
         private const int MaskColumn = GrantTab.MaskColumn;
         private const int ForgetColumn = GrantTab.ForgetColumn;
@@ -713,6 +770,15 @@ namespace KeePassGate.Tests
         private static void Inheriting(Action<Form, GrantPanel, DataGridView> work)
         {
             Using(null, TestNode.Root("a group above").Granting("reader", AclVerb.Read, AclVerb.List), work);
+        }
+
+        /// <summary>A sealed node under a group granting one profile, which the seal refuses.</summary>
+        private static void Sealed(Action<Form, GrantPanel, DataGridView> work)
+        {
+            Using(
+                "{\"default\":\"deny\"}",
+                TestNode.Root("a group above").Granting("reader", AclVerb.Read, AclVerb.List),
+                work);
         }
 
         private static void Using(string stored, Action<Form, GrantPanel, DataGridView> work)
@@ -798,6 +864,50 @@ namespace KeePassGate.Tests
                     form.Close();
                     OffScreenForm.Pump();
                 }
+            }
+        }
+
+        /// <summary>
+        /// How much is drawn in the mask of a node's one inherited rule, with the node as given.
+        /// </summary>
+        private static int Ink(string stored)
+        {
+            var drawn = 0;
+
+            Using(
+                stored,
+                TestNode.Root("a group above").Granting("reader", AclVerb.Read, AclVerb.List),
+                (form, panel, grid) => drawn = Marks(grid, MaskColumn, 0));
+
+            return drawn;
+        }
+
+        /// <summary>How many pixels in a cell are darker than the paper under them.</summary>
+        private static int Marks(DataGridView grid, int column, int rowIndex)
+        {
+            var area = grid.GetCellDisplayRectangle(column, rowIndex, false);
+            area.Inflate(-1, -1);
+
+            Assert.That(area.Width, Is.GreaterThan(0), "the cell was never laid out");
+
+            using (var picture = new Bitmap(grid.Width, grid.Height))
+            {
+                grid.DrawToBitmap(picture, new Rectangle(0, 0, grid.Width, grid.Height));
+
+                var marks = 0;
+                for (var x = area.Left; x < area.Right; x++)
+                {
+                    for (var y = area.Top; y < area.Bottom; y++)
+                    {
+                        var pixel = picture.GetPixel(x, y);
+                        if (((pixel.R + pixel.G + pixel.B) / 3) < 224)
+                        {
+                            marks++;
+                        }
+                    }
+                }
+
+                return marks;
             }
         }
 

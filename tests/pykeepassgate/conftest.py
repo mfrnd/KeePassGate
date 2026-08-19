@@ -64,8 +64,11 @@ class Issued:
 class Authority:
     """One database's certificate authority, near enough for the client to be tested against."""
 
-    def __init__(self, directory: Path) -> None:
-        """Mint the authority and write it where a trust store can load it."""
+    def __init__(self, directory: Path, lifetime: dt.timedelta = dt.timedelta(days=1)) -> None:
+        """Mint the authority and write it where a trust store can load it.
+
+        A day unless a test asks for longer, which is all most tests need of it.
+        """
         directory.mkdir(parents=True, exist_ok=True)
         self._directory = directory
         self._key = ec.generate_private_key(CURVE)
@@ -80,7 +83,7 @@ class Authority:
             .public_key(self._key.public_key())
             .serial_number(x509.random_serial_number())
             .not_valid_before(now - dt.timedelta(minutes=5))
-            .not_valid_after(now + dt.timedelta(days=1))
+            .not_valid_after(now + lifetime)
             .add_extension(x509.BasicConstraints(ca=True, path_length=0), critical=True)
             .sign(self._key, hashes.SHA256())
         )

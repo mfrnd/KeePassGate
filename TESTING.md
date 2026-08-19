@@ -16,6 +16,14 @@ fails in a way that names its own cause.
 .\build.ps1 -Task All      # everything
 ```
 
+**One category inside the unit tier draws rather than asserts.** `Gallery` builds each surface at
+the states that change its shape and writes a picture of it, into `.gallery` beside the solution or
+wherever `KPG_GALLERY_DIR` says. It runs with the ordinary tests, because it needs no KeePass, no
+desktop and no network, and because a picture nobody generates is a picture nobody looks at. Two
+things follow from its writing files: the directory is gitignored, and everything in it is rewritten
+on every run, so nothing meant to be kept belongs there. `docs/images` is the set that is committed,
+and a task of its own draws those.
+
 ## Why the unit tier does not reference KeePass
 
 Everything above the KeePass boundary is written against small interfaces: `IWindowEventSource`

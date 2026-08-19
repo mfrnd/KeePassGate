@@ -66,10 +66,25 @@ namespace KeePassGate.Authority
         /// <summary>`id-ce-authorityKeyIdentifier`, RFC 5280 section 4.2.1.1.</summary>
         private const string AuthorityKeyIdentifierOid = "2.5.29.35";
 
-        /// <summary>Ten years for the authority, five for a host, as the design specifies.</summary>
-        public static readonly TimeSpan AuthorityLifetime = TimeSpan.FromDays(3652);
-
-        public static readonly TimeSpan HostLifetime = TimeSpan.FromDays(1826);
+        /// <summary>
+        /// A hundred years for the authority, and so for the host certificate issued with it.
+        /// </summary>
+        /// <remarks>
+        /// In days, as every lifetime here is counted, and from any date this century these land
+        /// on the same date a hundred years on: 2100 is no leap year.
+        ///
+        /// **The fallback the operator named, because the end of year 9999 cannot be read back.**
+        /// What was asked for was no expiry at all, RFC 5280's `99991231235959Z`. The builder
+        /// writes that as the RFC asks, and `X509Certificate2.NotAfter` answers an earlier moment
+        /// for it in any time zone ahead of UTC without saying so; a hundred years is read exactly
+        /// by everything on the path. `LongLivedCertificateTests` is the measurement.
+        ///
+        /// Nothing warns as the end approaches and nothing refuses ahead of it, which is the rest
+        /// of the same decision, `CA.md` §207: a shorter life protects nothing here, since the
+        /// host key cannot leak without the authority's beside it, and a leaked authority is
+        /// answered by recreating it whatever its dates say.
+        /// </remarks>
+        public static readonly TimeSpan AuthorityLifetime = TimeSpan.FromDays(36524);
 
         /// <summary>One year for a client, as `CA.md` §207 specifies.</summary>
         public static readonly TimeSpan ClientLifetime = TimeSpan.FromDays(365);
@@ -89,7 +104,7 @@ namespace KeePassGate.Authority
         /// accepted, and that key can do one thing: claim a database is locked. `CA.md` §208 is
         /// where the marker stops a client acting on anything else it says, and the marker is what
         /// carries that argument, not the dates. Ninety days is longer than any lock this should
-        /// fail on and a twentieth of the host certificate it stands in for.
+        /// fail on.
         /// </remarks>
         public static readonly TimeSpan ResponderLifetime = TimeSpan.FromDays(90);
 
@@ -152,9 +167,16 @@ namespace KeePassGate.Authority
         }
 
         /// <summary>
-        /// A host certificate under that authority: `serverAuth`, and never outliving the authority
-        /// that vouches for it.
+        /// A host certificate under that authority: `serverAuth`, and ending exactly when the
+        /// authority that vouches for it ends.
         /// </summary>
+        /// <remarks>
+        /// **Issued together, so it lives as long.** It had a life of its own, half the authority's,
+        /// and every client went dark at once when it ran out while the authority still had years
+        /// left, with nothing to reissue it: the remedy was recreating the authority, which revokes
+        /// every client. A host life shorter than the authority's protects nothing either, because
+        /// the host key is kept in the same document as the authority's and cannot leak without it.
+        /// </remarks>
         public X509Certificate2 IssueHost(X509Certificate2 authority)
         {
             if (authority == null)
@@ -182,7 +204,7 @@ namespace KeePassGate.Authority
 
                 var now = _clock();
                 var notBefore = now - Backdate;
-                var notAfter = Clamp(now + HostLifetime, authority.NotAfter);
+                var notAfter = EndOf(authority);
 
                 // Against `now`, not `notBefore`. Comparing with the backdated start let an authority
                 // that expired within the last five minutes past this guard and mint a host that was
@@ -255,7 +277,7 @@ namespace KeePassGate.Authority
 
                 var now = _clock();
                 var notBefore = now - Backdate;
-                var notAfter = Clamp(now + ResponderLifetime, authority.NotAfter);
+                var notAfter = Clamp(now + ResponderLifetime, authority);
 
                 // Against `now`, as in `IssueHost`. This method was written from that one before its
                 // guard was corrected, and comparing with the backdated start let an authority that
@@ -326,7 +348,7 @@ namespace KeePassGate.Authority
 
                 var now = _clock();
                 var notBefore = now - Backdate;
-                var notAfter = Clamp(now + ClientLifetime, authority.NotAfter);
+                var notAfter = Clamp(now + ClientLifetime, authority);
 
                 // Against `now`, not `notBefore`, for the reason `IssueHost` records: comparing
                 // with the backdated start lets an authority that expired within the last five
@@ -492,9 +514,17 @@ namespace KeePassGate.Authority
             return new X509Extension(AuthorityKeyIdentifierOid, encoded, false);
         }
 
-        private static DateTimeOffset Clamp(DateTimeOffset wanted, DateTime authorityNotAfter)
+        /// <summary>
+        /// The moment the authority stops vouching for anything, which no leaf may outlast.
+        /// </summary>
+        private static DateTimeOffset EndOf(X509Certificate2 authority)
         {
-            var ceiling = new DateTimeOffset(authorityNotAfter.ToUniversalTime(), TimeSpan.Zero);
+            return new DateTimeOffset(authority.NotAfter.ToUniversalTime(), TimeSpan.Zero);
+        }
+
+        private static DateTimeOffset Clamp(DateTimeOffset wanted, X509Certificate2 authority)
+        {
+            var ceiling = EndOf(authority);
             return wanted > ceiling ? ceiling : wanted;
         }
 

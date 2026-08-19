@@ -563,11 +563,16 @@ def connect(
         raw.close()
         # The reason is the TLS library's, and it stays in the message because the causes want
         # different things done. Against a paired context: a certificate that does not chain to
-        # the authority pinned at pairing, which is an authority recreated since or something else
-        # on the port; one that has expired, the gate's host certificate or its authority, which
-        # only recreating the authority mends, and then this client pairs again; or a peer that
-        # will not speak TLS 1.3. The gate also drops a connection before any TLS when no open
-        # database answers to the name it carries, and that ends the handshake here as well.
+        # the authority pinned at pairing, which is something other than the gate on the port,
+        # since the gate answers a client only under the authority it paired with; one that has
+        # expired, which is the certificate a locked database answers with once the lock has
+        # outlasted its ninety days, and unlocking mends; or a peer that will not speak TLS 1.3.
+        #
+        # The gate also drops a connection before any TLS when nothing it serves answers to the
+        # name it carries, and that ends the handshake here as an EOF. That is every such state:
+        # a database not open, or not unlocked since KeePass started; two copies of one open at
+        # once; and an authority recreated or deleted since this client paired, which takes away
+        # the key every name this client sends is built from, so pairing again is what mends it.
         raise TransportError(f"the handshake failed: {error}") from error
 
     connection = Connection(wrapped, max_response_bytes)

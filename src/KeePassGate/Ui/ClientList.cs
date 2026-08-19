@@ -797,8 +797,8 @@ namespace KeePassGate.Ui
         }
 
         /// <summary>
-        /// A moment, to the second, in UTC. The same shape the authority's own dates are written
-        /// in, because these sit on two pages of one tab and reading two formats is reading twice.
+        /// A moment, to the second, in UTC: the one shape `Moments.OnScreen` gives every moment the
+        /// plugin shows, because reading two formats is reading twice.
         /// </summary>
         private static string Stamp(DateTimeOffset moment)
         {

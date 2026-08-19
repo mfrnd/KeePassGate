@@ -264,6 +264,42 @@ class TestPinning:
         ):
             pass  # pragma: no cover, the handshake is what raises
 
+    def test_an_authority_and_a_host_good_for_a_hundred_years_are_accepted(
+        self, tmp_path: Path, answers: Answers
+    ) -> None:
+        # A hundred years is the end the operator named for an authority and its host if the end
+        # of year 9999 could not be read back, and on .NET Framework it cannot:
+        # `LongLivedCertificateTests` on the plugin's side. OpenSSL holds the host to its dates
+        # here, so this is what would notice it refusing so late a one, and `cryptography` has to
+        # read the end exactly, in a zone ahead of UTC as well.
+        century = dt.timedelta(days=36524)
+        lasting = Authority(tmp_path / "century", lifetime=century)
+        host = lasting.issue(
+            "host",
+            x509.oid.ExtendedKeyUsageOID.SERVER_AUTH,
+            "host.pem",
+            valid=(dt.timedelta(minutes=-5), century),
+        )
+        client = lasting.issue(
+            "agent-invented", x509.oid.ExtendedKeyUsageOID.CLIENT_AUTH, "client.pem"
+        )
+
+        gate = FakeGate(host, lasting.pem)
+        try:
+            gate.handler = answers(200, {"ok": True})
+            context = transport.paired_context(lasting.pem, client.pem)
+
+            with transport.connect(
+                gate.port, context, "abc.def.kpg", connection_timeout=10.0
+            ) as connection:
+                assert connection.send("GET", "/gate/status").status == 200
+        finally:
+            gate.close()
+
+        end = host.certificate.not_valid_after_utc
+        assert end.year - dt.datetime.now(dt.UTC).year in (99, 100)
+        assert end.astimezone(dt.timezone(dt.timedelta(hours=14))) == end
+
 
 class TestTheResponder:
     """The identity a locked database answers with, and what this client will do with it."""

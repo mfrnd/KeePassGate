@@ -586,7 +586,7 @@ copy merged in, which brings the old rule back with the node's own time.
 
 **The intersection closes all of them at once**, because a rule for a name off the list grants
 nothing wherever it comes from: kept by a dialog's OK, restored from a revision, or merged in from
-an older copy. The grant editor marks such a rule not named rather than hiding it, removal needs no
+an older copy. The grant editor strikes such a rule through rather than hiding it, removal needs no
 walk and is refused under no node dialog, and the page counts the live tree's rules only, since a
 revision's rule is in force for nobody. **Adding the name back is a full undo**, rules and clients
 alike, so the page asks first, saying how many rules come back into force and naming every client

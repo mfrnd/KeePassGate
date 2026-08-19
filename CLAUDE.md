@@ -369,6 +369,16 @@ a database's custom data. Each gathers what it settled in its own `RESULTS.md`. 
   disagreement, or a record admits a certificate whose stored bytes nobody ever checked and quietly
   carries a private key besides. `AdmissionRecord` does exactly that; measured by feeding a PFX to
   the byte constructor on .NET Framework 4.8 and printing all three numbers.
+- **`X509Certificate2.NotAfter` cannot hold a certificate that never expires.** RFC 5280 writes
+  "no well-defined expiration" as `99991231235959Z`, and `CertificateRequest` encodes it exactly
+  so. Read back, `NotAfter` converts to local time, and ahead of UTC that moment falls in the year
+  10000, which no `DateTime` holds: what comes back is `DateTime.MaxValue`, which converted back to
+  UTC is up to fourteen hours early, and nothing throws. Measured in this machine's own zone as
+  well as in simulated ones. The client's half is the same fact: `cryptography` reads the value
+  exactly, and moving that `datetime` into a zone ahead of UTC raises `OverflowError`. A hundred
+  years, the fallback the operator named, is read exactly by every reader on the path in every
+  zone tried. `LongLivedCertificateTests` on this side, and
+  `test_an_authority_and_a_host_good_for_a_hundred_years_are_accepted` on the client's.
 - **A KeePass merge of `PwDatabase.CustomData` visits the source's keys and no others, and never
   reads a value.** `PwDatabase.MergeInDbProperties` is the whole of it, run at the end of every
   `MergeIn`, which is File then Synchronize and File then Import alike. So no method removes a key
@@ -710,11 +720,12 @@ one is done on the row that is already there.
 
 **And the list decides what a client holds.** A client is given the profiles its record holds less
 every name not on the list, read beside the record on every request, so removing a profile touches
-the list and nothing else: a rule still naming it grants nothing, and adding the name back restores
-every rule and every client holding it, which the Profiles page and the approval dialog both say
-before it happens. This reverses a purge that took a removed name out of every rule, revisions
-included, and still lost to a stale copy merged in; see DESIGN.md §139. An unreadable list is an
-empty one, so every client stays admitted and reaches nothing.
+the list and nothing else: a rule still naming it grants nothing and the grant editor strikes it
+through, and adding the name back restores every rule and every client holding it, which the
+Profiles page and the approval dialog both say before it happens. This reverses a purge that took a
+removed name out of every rule, revisions included, and still lost to a stale copy merged in; see
+DESIGN.md §139. An unreadable list is an empty one, so every client stays admitted and reaches
+nothing.
 
 **What step 13 settled about the editor.** The tab is captioned `KPG` with the plugin's icon, and
 not "Access control", because another plugin may well put an access control page on the same dialogs
@@ -730,10 +741,16 @@ verb presses OK on the group dialog and closes it with the rule half made.
 A rule is a `CRUSDLAP` mask in a monospaced column rather than a row of check boxes, so two rules
 differ in the place the eye is already looking. Inherited rules are shown among the local ones in
 gray, because a table listing only what this node grants reports nothing for
-an entry that a group above already opens wide. And the editor never writes the same rules in other
-words. A node's custom data keeps no modification time, but the entry dialog compares the entry it
-hands back with the one it was given, so a rule respelled by a byte is a changed entry, with a
-revision in its history and the database marked modified, for having been looked at.
+an entry that a group above already opens wide. **A third state was missing and is now drawn**: a
+seal does not take away what a group above grants, it stops it arriving, so an inherited row the
+seal refuses keeps its place and carries a line through the mask. Gray was already spent saying the
+rule comes from elsewhere, which stays true either way, and the mask is where the eye already is.
+Its tooltip is replaced rather than extended, because the inherited one offers to replace a rule
+that arrives, and on that row nothing arrives: naming the profile is what lets the grant through
+again. And the editor never writes the same rules in other words. A node's custom data keeps no
+modification time, but the entry dialog compares the entry it hands back with the one it was
+given, so a rule respelled by a byte is a changed entry, with a revision in its history and the
+database marked modified, for having been looked at.
 
 **What step 14 settled about authorization.** The intersection is structural: the profiles handed to
 the resolver are the ones the admission record carries, less any the database's list no longer

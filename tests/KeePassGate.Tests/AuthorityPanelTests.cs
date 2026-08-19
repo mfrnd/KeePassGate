@@ -994,7 +994,8 @@ namespace KeePassGate.Tests
             {
                 panel.CreateAuthority();
 
-                // Signed by nobody this database knows, and ending within the month.
+                // Signed by nobody this database knows, and in the last third of its life, where
+                // one of this database's own clients would be warned about.
                 var stranger = Admit("agent-fictitious", DateTimeOffset.UtcNow);
                 panel.Describe();
 
@@ -1206,7 +1207,7 @@ namespace KeePassGate.Tests
                     System.Security.Cryptography.RSASignaturePadding.Pkcs1);
 
                 return request.CreateSelfSigned(
-                    DateTimeOffset.UtcNow.AddMinutes(-5), DateTimeOffset.UtcNow.AddDays(30));
+                    DateTimeOffset.UtcNow.AddDays(-25), DateTimeOffset.UtcNow.AddDays(5));
             }
         }
 

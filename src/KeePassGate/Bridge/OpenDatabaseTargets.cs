@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
@@ -11,7 +10,6 @@ using KeePassGate.Authority;
 using KeePassGate.Diagnostics;
 using KeePassGate.Vault;
 using KeePassGate.Gate;
-using KeePassGate.Ui;
 
 namespace KeePassGate.Bridge
 {
@@ -729,37 +727,7 @@ namespace KeePassGate.Bridge
             var entry = new CachedTarget(stored, path, Responder(reading), target, null);
             _cache[database] = entry;
             _log.Info("serving a database with authority " + CertificateDigest.Shorten(target.DatabaseId));
-            WarnIfRunningOut(reading.Material.Host, target.DatabaseId);
             return entry;
-        }
-
-        /// <summary>
-        /// Says in the log when the host certificate about to be served has run out, or soon will.
-        /// </summary>
-        /// <remarks>
-        /// **Served all the same**, because what a client does with an expired host certificate is
-        /// for the client to decide, and `PAIRING.md` §304 has it refuse. What an operator got
-        /// instead of a reason was this plugin saying it was serving the database, followed by one
-        /// line per client that tried, each reading as the peer resetting its connection. Said
-        /// once per reading, as the database is served, and within the same window the
-        /// Certificate Authority page warns in.
-        /// </remarks>
-        private void WarnIfRunningOut(X509Certificate2 host, string databaseId)
-        {
-            var now = DateTimeOffset.UtcNow;
-            var ends = host.NotAfter.ToUniversalTime().ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
-            var whose = "the host certificate of the database with authority " + CertificateDigest.Shorten(databaseId);
-
-            if (CertificateValidity.HasExpired(host, now))
-            {
-                _log.Warn(whose + " ran out on " + ends +
-                          ", so every client refuses it until the authority is recreated on the KPG tab");
-            }
-            else if (CertificateValidity.RemainingOn(host, now) <= AuthorityDescription.WarningWindow)
-            {
-                _log.Warn(whose + " runs out on " + ends +
-                          ", and every client will refuse it from then until the authority is recreated on the KPG tab");
-            }
         }
 
         /// <summary>

@@ -217,7 +217,7 @@ namespace KeePassGate.Ui
         /// <remarks>
         /// One band for every such reason rather than one band each, because they answer the same
         /// question and the page is 449 by 314. It was named for the only reason it had, which
-        /// stopped being true when an expired authority became a second one.
+        /// stopped being true when a second one arrived.
         ///
         /// **Every reason is one line**, and that is a measurement. The band sits over the client
         /// list, which takes whatever the band leaves, and on the most crowded page the longest
@@ -250,8 +250,7 @@ namespace KeePassGate.Ui
         /// `KPG.Profiles` is the one key this tab and pairing both write, and they write it
         /// differently: the tab holds its version until OK, pairing writes live and saves. A
         /// client approved while an edit is buffered is approved against a list that is about to
-        /// change under it, so the invite button is dead for that span, and this is the third
-        /// reason it can be dead and the last one that said nothing.
+        /// change under it, so the invite button is dead for that span, and this is what says so.
         ///
         /// The remedy is the remedy above, because the state is the same state: something on this
         /// tab has not reached the database, and OK is what puts it there.
@@ -260,45 +259,17 @@ namespace KeePassGate.Ui
             "The profile change is not applied yet. Press OK and reopen this dialog to pair.";
 
         /// <summary>
-        /// What it says when this database's authority has run out.
-        /// </summary>
-        /// <remarks>
-        /// The remedy is named because there is only one and it is not on this page, and what the
-        /// remedy costs is named with it because "Recreate authority" reads like a repair and is
-        /// not: `CA.md` §219 has no reissue, so a new authority invalidates every certificate the
-        /// old one signed and takes every admission record with it. An operator who reads this,
-        /// presses that, and finds the clients list empty afterwards was told the wrong thing.
-        ///
-        /// It says nothing about pressing OK, because a recreate on the first page raises the
-        /// waiting notice above and that one says it.
-        /// </remarks>
-        public const string ExpiredAuthorityNotice =
-            "This authority has expired. Recreate it on the first page; every client pairs again.";
-
-        /// <summary>
-        /// What it says when the host certificate has run out and the authority has not.
-        /// </summary>
-        /// <remarks>
-        /// The same remedy at the same cost, for the reason the notice above gives: `CA.md` §219
-        /// has no reissue for a host certificate either. Its own sentence rather than the one
-        /// above, because an operator told the authority had expired would look at the wrong date
-        /// on the first page and find it years away.
-        /// </remarks>
-        public const string ExpiredHostNotice =
-            "The host certificate has expired. Recreate the authority; every client pairs again.";
-
-        /// <summary>
         /// The longest of them, which is what the tab has to be measured against.
         /// </summary>
         /// <remarks>
         /// Here rather than in the test that measures it, so that a further reason to say
         /// something above the invite button is measured by adding it to this rather than by
-        /// somebody remembering to. `GateTabFitsTests` is what reads it. It went from two
-        /// candidates to three the first time that happened, which is why the comparison is over a
-        /// list rather than written out.
+        /// somebody remembering to. `GateTabFitsTests` is what reads it. How many reasons there are
+        /// has changed more than once, which is why the comparison is over a list rather than
+        /// written out.
         /// </remarks>
         public static readonly string LongestInviteNotice = Longest(
-            PendingAuthorityNotice, PendingProfilesNotice, ExpiredAuthorityNotice, ExpiredHostNotice);
+            PendingAuthorityNotice, PendingProfilesNotice);
 
         private static string Longest(params string[] candidates)
         {

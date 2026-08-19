@@ -453,23 +453,14 @@ namespace KeePassGate.Host.Tests
             // really be on: beside the longest line it can share the band with, over the two lines
             // a merge adds under the list, and above the longest answer the footer holds.
             //
-            // The two waiting for OK can sit beside a code still counting down, handed out before
-            // the change was made. An authority or a host certificate that has run out offers no
-            // code, so theirs only ever sit beside the line saying there is none.
+            // Both reasons are a change waiting for OK, and either can sit beside a code still
+            // counting down, handed out before the change was made.
             using (var scaled = scaling > 1.00f ? ScaledDialog(scaling) : null)
             {
                 var area = scaled == null ? _page.DisplayRectangle.Size : PageOf(scaled.Dialog);
                 var where = " at " + scaling.ToString("0.00", CultureInfo.InvariantCulture) + " scaling";
 
-                var besideACountdown = new Dictionary<string, bool>
-                {
-                    { GateTab.PendingAuthorityNotice, true },
-                    { GateTab.PendingProfilesNotice, true },
-                    { GateTab.ExpiredAuthorityNotice, false },
-                    { GateTab.ExpiredHostNotice, false }
-                };
-
-                foreach (var notice in besideACountdown)
+                foreach (var notice in new[] { GateTab.PendingAuthorityNotice, GateTab.PendingProfilesNotice })
                 {
                     using (var panel = NewPanel(true, true))
                     {
@@ -487,9 +478,8 @@ namespace KeePassGate.Host.Tests
                         Assert.That(clients, Is.Not.Null);
                         Show(clients);
 
-                        var line = notice.Value ? LongestInvitationLine(panel) : InvitationText.None;
-                        Set(panel, GateTab.InvitationLabelName, line);
-                        Show(panel, GateTab.InviteNoticeName, notice.Key);
+                        Set(panel, GateTab.InvitationLabelName, LongestInvitationLine(panel));
+                        Show(panel, GateTab.InviteNoticeName, notice);
                         Set(panel, GateTab.ResultLabelName, AuthorityPanel.LongestResult());
                         clients.Fill(new AdmissionListing(Array.Empty<AdmissionRecord>(), 9999, false), null, null);
 
@@ -500,13 +490,13 @@ namespace KeePassGate.Host.Tests
                         var shown = ControlTree.FindByName<Label>(panel, GateTab.InviteNoticeName);
                         var grid = ControlTree.FindFirst<DataGridView>(clients);
 
-                        TestContext.Out.WriteLine("\"" + notice.Key + "\"" + where + ": the notice is " +
+                        TestContext.Out.WriteLine("\"" + notice + "\"" + where + ": the notice is " +
                                                   shown.Size + ", the list has " + grid.Height);
 
                         Assert.That(shown.Visible, Is.True, "the notice is not on screen, so nothing here measures it");
                         Assert.That(clients.Reappeared, Is.Not.Null, "and neither is the line a merge adds");
                         Assert.That(grid.Height, Is.GreaterThanOrEqualTo(MinimumListHeight),
-                            "\"" + notice.Key + "\"" + where + " leaves the list " + grid.Height +
+                            "\"" + notice + "\"" + where + " leaves the list " + grid.Height +
                             " pixels, which is not a list.");
                     }
                 }

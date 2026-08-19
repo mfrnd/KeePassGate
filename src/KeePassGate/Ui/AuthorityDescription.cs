@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Security.Cryptography.X509Certificates;
 using KeePassGate.Authority;
 
 namespace KeePassGate.Ui
@@ -13,13 +14,10 @@ namespace KeePassGate.Ui
     public sealed class AuthorityDescription
     {
         /// <summary>
-        /// How long before an expiry is worth mentioning. `CA.md` §219: ninety days for a
-        /// host or the authority, thirty for a client.
+        /// The furthest ahead of its end a client is warned about, `CA.md` §219. The authority and
+        /// its host certificate are not warned about: they are issued for a hundred years.
         /// </summary>
-        public static readonly TimeSpan WarningWindow = TimeSpan.FromDays(90);
-
-        /// <summary>A client is a smaller thing to reissue, so it is mentioned later.</summary>
-        public static readonly TimeSpan ClientWarningWindow = TimeSpan.FromDays(30);
+        public static readonly TimeSpan LongestClientWarning = TimeSpan.FromDays(30);
 
         public const string NoDatabaseHeadline = "No database is open on this dialog.";
 
@@ -42,8 +40,6 @@ namespace KeePassGate.Ui
         private readonly bool _canRecreate;
         private readonly bool _canDelete;
         private readonly bool _isServed;
-        private readonly bool _hasExpired;
-        private readonly bool _hostHasExpired;
 
         private AuthorityDescription(
             string headline,
@@ -52,7 +48,7 @@ namespace KeePassGate.Ui
             bool canCreate,
             bool canRecreate,
             bool canDelete)
-            : this(headline, facts, details, canCreate, canRecreate, canDelete, false, false, false)
+            : this(headline, facts, details, canCreate, canRecreate, canDelete, false)
         {
         }
 
@@ -63,9 +59,7 @@ namespace KeePassGate.Ui
             bool canCreate,
             bool canRecreate,
             bool canDelete,
-            bool isServed,
-            bool hasExpired,
-            bool hostHasExpired)
+            bool isServed)
         {
             _headline = headline;
             _facts = facts == null ? new List<Fact>() : new List<Fact>(facts);
@@ -74,8 +68,6 @@ namespace KeePassGate.Ui
             _canRecreate = canRecreate;
             _canDelete = canDelete;
             _isServed = isServed;
-            _hasExpired = hasExpired;
-            _hostHasExpired = hostHasExpired;
         }
 
         public string Headline
@@ -134,49 +126,19 @@ namespace KeePassGate.Ui
         public bool CanChoose { get; private set; }
 
         /// <summary>
-        /// Whether the authority's own dates have passed, which is a state an operator can only
-        /// leave by replacing it.
-        /// </summary>
-        /// <remarks>
-        /// False where there is nothing to ask about, so this is never the reason an absent or a
-        /// damaged authority cannot be invited to. Those two have reasons of their own and the
-        /// page already gives them.
-        /// </remarks>
-        public bool HasExpired
-        {
-            get { return _hasExpired; }
-        }
-
-        /// <summary>
-        /// Whether the host certificate this database answers with has run out, which it does
-        /// five years into the authority's ten.
-        /// </summary>
-        /// <remarks>
-        /// Apart from <see cref="HasExpired"/> because it is a different date, and the page says
-        /// which one passed. What it costs is the same: every connection is served with this
-        /// certificate, so a client paired now could never connect, and `CA.md` §219 has no
-        /// reissue, so recreating the authority is the way out here too.
-        /// </remarks>
-        public bool HostHasExpired
-        {
-            get { return _hostHasExpired; }
-        }
-
-        /// <summary>
         /// Whether a code minted now could ever be redeemed, which is a narrower question than
         /// any of the three buttons on the first page answer.
         /// </summary>
         /// <remarks>
-        /// Narrower in both directions that matter. A damaged authority and one past its own
-        /// dates are both authorities recreating is the answer to, and neither can sign anything,
-        /// so the button that offers to recreate has to be alive in exactly the two states where
-        /// the button that hands out a code must not be. A host certificate past its dates is a
-        /// third such state. `PAIRING.md` §311 refuses a pairing request on an expired authority
-        /// or host certificate before the operator is disturbed.
+        /// Narrower where it matters: a damaged authority is one recreating is the answer to, and
+        /// it can sign nothing, so the button that offers to recreate is alive in exactly the
+        /// state where the button that hands out a code must not be. Dates are not asked about,
+        /// because the authority and its host certificate are issued for a hundred years and
+        /// `CA.md` §219 refuses nothing ahead of that.
         /// </remarks>
         public bool CanInvite
         {
-            get { return _isServed && !_hasExpired && !_hostHasExpired; }
+            get { return _isServed; }
         }
 
         public static AuthorityDescription NoDatabase()
@@ -239,9 +201,7 @@ namespace KeePassGate.Ui
                 default:
                     return new AuthorityDescription(
                         PresentHeadline, FactsOf(reading), Warnings(reading, clients, reaches, now),
-                        false, true, true, true,
-                        CertificateValidity.HasExpired(reading.Material.Authority, now),
-                        CertificateValidity.HasExpired(reading.Material.Host, now));
+                        false, true, true, true);
             }
         }
 
@@ -321,18 +281,14 @@ namespace KeePassGate.Ui
         /// </summary>
         private static IEnumerable<Fact> FactsOf(AuthorityReading reading)
         {
-            var material = reading.Material;
-
-            // Four rows rather than five. The tab is 449 by 314 and every row costs the same
-            // seventeen pixels, so the table has to say which facts are worth one. The date the
-            // authority was created is the one that is not: it answers no question an operator
-            // opens this tab with, while the fingerprint says which authority this is and the two
-            // expiry dates say how long it keeps working.
+            // Two rows. The tab is 449 by 314 and every row costs the same seventeen pixels, so
+            // the table holds what an operator opens this tab to ask: which authority this is, and
+            // how many programs it has let in. No date is among them. When the authority was
+            // created answers nothing anybody asks here, and the authority and its host certificate
+            // are good for a hundred years, so until when says nothing either, `CA.md` §219.
             return new List<Fact>
             {
-                new Fact("Fingerprint", CertificateDigest.Shorten(material.AuthorityDigest)),
-                new Fact("Authority valid until", Stamp(material.Authority.NotAfter)),
-                new Fact("Host valid until", Stamp(material.Host.NotAfter)),
+                new Fact("Fingerprint", CertificateDigest.Shorten(reading.Material.AuthorityDigest)),
                 new Fact("Admission records", Count(reading.ClientRecordCount))
             };
         }
@@ -343,11 +299,7 @@ namespace KeePassGate.Ui
             IDictionary<string, ClientReach> reaches,
             DateTimeOffset now)
         {
-            var material = reading.Material;
-
             var warnings = new List<string>();
-            Expiry(warnings, "Authority", material.Authority.NotAfter, now);
-            Expiry(warnings, "Host certificate", material.Host.NotAfter, now);
             Clients(warnings, clients == null ? null : clients.Records, reaches, now);
             Unreadable(warnings, clients, reading.ClientRecordCount);
 
@@ -368,22 +320,6 @@ namespace KeePassGate.Ui
             return new List<string> { string.Join(" ", warnings.ToArray()) };
         }
 
-        private static void Expiry(ICollection<string> lines, string what, DateTime notAfter, DateTimeOffset now)
-        {
-            var expires = new DateTimeOffset(notAfter.ToUniversalTime(), TimeSpan.Zero);
-            if (CertificateValidity.HasExpired(expires, now))
-            {
-                lines.Add(what + " expired on " + Stamp(notAfter) + ".");
-                return;
-            }
-
-            var left = expires - now;
-            if (left <= WarningWindow)
-            {
-                var days = (int)Math.Ceiling(left.TotalDays);
-                lines.Add(what + " expires in " + days + (days == 1 ? " day." : " days."));
-            }
-        }
 
         /// <summary>
         /// The longest the page can be under each headline, so that the tab is measured against
@@ -419,16 +355,9 @@ namespace KeePassGate.Ui
                 damage = Damage(damaged).ToList();
             }
 
-            // Expired rather than expiring, because a date is wider than a count of days, and
-            // every date is written as wide as every other.
-            var date = new DateTime(2036, 8, 12, 9, 41, 7, DateTimeKind.Utc);
-            var after = new DateTimeOffset(date).AddSeconds(1);
-
             var warnings = new List<string>();
-            Expiry(warnings, "Authority", date, after);
-            Expiry(warnings, "Host certificate", date, after);
             warnings.Add(Longest(Expired));
-            warnings.Add(Longest(Expiring));
+            warnings.Add(Longest(clients => Expiring(clients, (int)LongestClientWarning.TotalDays)));
             warnings.Add(new[] { Longest(Unreadable), CouldNotList }.OrderByDescending(line => line.Length).First());
 
             return new List<AuthorityDescription>
@@ -472,6 +401,7 @@ namespace KeePassGate.Ui
 
             var expired = 0;
             var soon = 0;
+            var latest = TimeSpan.Zero;
 
             foreach (var record in records)
             {
@@ -489,17 +419,21 @@ namespace KeePassGate.Ui
                     if (CertificateValidity.HasExpired(certificate, now))
                     {
                         expired++;
+                        continue;
                     }
-                    else if (CertificateValidity.RemainingOn(certificate, now) <= ClientWarningWindow)
+
+                    var left = CertificateValidity.RemainingOn(certificate, now);
+                    if (left <= ClientWarning(certificate))
                     {
                         soon++;
+                        latest = left > latest ? left : latest;
                     }
                 }
             }
 
-            // Short, because these share one line with the authority's own expiries and that line
-            // is the tallest thing the tab ever has to fit. An expired client is refused, which is
-            // what expired means here and does not need saying twice.
+            // Short, because these share one line with each other and with the records that cannot
+            // be read, and that line is the tallest thing the tab ever has to fit. An expired client
+            // is refused, which is what expired means here and does not need saying twice.
             if (expired > 0)
             {
                 lines.Add(Expired(expired));
@@ -507,8 +441,43 @@ namespace KeePassGate.Ui
 
             if (soon > 0)
             {
-                lines.Add(Expiring(soon));
+                lines.Add(Expiring(soon, WholeDays(latest)));
             }
+        }
+
+        /// <summary>
+        /// How far ahead of this certificate's end it is warned about: the last third of its own
+        /// life, and never more than <see cref="LongestClientWarning"/>.
+        /// </summary>
+        /// <remarks>
+        /// **Scaled to the certificate rather than fixed at thirty days**, so that a short one is
+        /// not warned about from the moment it was issued, since a warning that is always there
+        /// says nothing. A third is when ACME clients usually renew a ninety-day certificate,
+        /// thirty days before its end, which is long enough to act on without being most of the
+        /// certificate's life; the cap keeps the year every client is issued for warned about
+        /// thirty days ahead, as it was while the window was fixed.
+        ///
+        /// Over its life as issued, `notBefore` to `notAfter`, so the five minutes the issuer
+        /// backdates by count too, and a certificate cut short at its authority's end is warned
+        /// about over the life it has rather than the year it was issued for.
+        /// </remarks>
+        public static TimeSpan ClientWarning(X509Certificate2 certificate)
+        {
+            if (certificate == null)
+            {
+                throw new ArgumentNullException(nameof(certificate));
+            }
+
+            var life = certificate.NotAfter.ToUniversalTime() - certificate.NotBefore.ToUniversalTime();
+            var third = TimeSpan.FromTicks(life.Ticks / 3);
+
+            return third < LongestClientWarning ? third : LongestClientWarning;
+        }
+
+        /// <summary>A stretch of time as the days it falls within, and at least one.</summary>
+        private static int WholeDays(TimeSpan left)
+        {
+            return Math.Max(1, (int)Math.Ceiling(left.TotalDays));
         }
 
         /// <summary>
@@ -559,17 +528,20 @@ namespace KeePassGate.Ui
             return clients == 1 ? "One client has expired." : clients + " clients have expired.";
         }
 
-        private static string Expiring(int clients)
+        /// <summary>
+        /// The clients warned about, and the days within which the last of them expires, which is
+        /// never more than the thirty <see cref="LongestClientWarning"/> allows.
+        /// </summary>
+        private static string Expiring(int clients, int days)
         {
-            var days = ((int)ClientWarningWindow.TotalDays).ToString(CultureInfo.InvariantCulture);
             return (clients == 1 ? "One client expires within " : clients + " clients expire within ")
-                   + days + " days.";
+                   + days.ToString(CultureInfo.InvariantCulture) + (days == 1 ? " day." : " days.");
         }
 
         /// <summary>
         /// The longest a counted line can be, which is not the line for any one count.
-        /// `Expiring(1)` spells "One client" and is a character longer than `Expiring(16)`; a
-        /// fourth digit is longer again. Measuring one representative count therefore
+        /// `Expiring(1, 30)` spells "One client" and is a character longer than `Expiring(16, 30)`;
+        /// a fourth digit is longer again. Measuring one representative count therefore
         /// under-measures twice, on a tab whose whole contract is that it never scrolls.
         /// </summary>
         private static readonly int[] Counts = { 1, 16, 9999 };
@@ -592,8 +564,6 @@ namespace KeePassGate.Ui
             return new List<Fact>
             {
                 new Fact("Fingerprint", "0123456789abcdef"),
-                new Fact("Authority valid until", "2036-08-12 09:41:07"),
-                new Fact("Host valid until", "2031-08-14 09:41:07"),
                 new Fact("Admission records", "16")
             };
         }
@@ -610,19 +580,5 @@ namespace KeePassGate.Ui
             return count == 1 ? "One admission record" : count + " admission records";
         }
 
-        /// <summary>
-        /// A moment, to the second, in UTC.
-        /// </summary>
-        /// <remarks>
-        /// The time is there because a date on its own is ambiguous about the thing an operator
-        /// uses these for: a certificate that expires today has either already stopped working or
-        /// has hours left, and the date cannot say which. Written the same way in every language,
-        /// which a test pins by switching culture, and in UTC because these are certificate dates
-        /// and a certificate has no local time.
-        /// </remarks>
-        private static string Stamp(DateTime moment)
-        {
-            return Moments.OnScreen(moment);
-        }
     }
 }

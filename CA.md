@@ -197,8 +197,8 @@ database is answered before a request is read, with each authority's own host ce
 responder. KeePass asks the operator which authority to keep in a dialog over its main window, the
 first time the plugin sees the state: when the database is opened or unlocked, or at the save that
 ends a synchronize, and never from a connection. For each authority it shows the fingerprint, when
-it was made, until when it and its host certificate are valid, and every client chaining to it with
-its profiles, when it was admitted and when it last made a request where the audit says so.
+it was made, and every client chaining to it with its profiles, when it was admitted and when it
+last made a request where the audit says so.
 Keeping one retires every other, through the single writer's guard, and marks the database
 modified without saving it; the records of the authorities not kept stay, admitting nobody, and
 the clients page names them for what they are. Cancel serves nothing, and the KPG tab's authority
@@ -310,8 +310,8 @@ fail-open in a design that fails closed everywhere else.
 
 | | Life | `basicConstraints` | `keyUsage` (critical) | EKU |
 | --- | --- | --- | --- | --- |
-| Authority | 10 years | CA true, **pathLen 0** | keyCertSign, cRLSign | **none** |
-| Host, normal | 5 years | CA false | digitalSignature, keyAgreement | serverAuth |
+| Authority | 100 years | CA true, **pathLen 0** | keyCertSign, cRLSign | **none** |
+| Host, normal | as long as the authority, issued with it | CA false | digitalSignature, keyAgreement | serverAuth |
 | Host, responder | 90 days, re-minted at every unlock and at every lock | CA false | digitalSignature | serverAuth, plus a KPG marker |
 | Client | 1 year | CA false | digitalSignature | clientAuth |
 
@@ -320,6 +320,19 @@ identifier**, so the authority can be renewed later without invalidating what it
 0`** so it cannot mint a subordinate. **No EKU on the authority**, because one there constrains
 everything beneath it and buys nothing. **A leaf's `notAfter` is clamped to the authority's**, so
 nothing outlives what vouches for it.
+
+**A hundred years for the authority and its host certificate, and nothing counts down to it.** What
+was asked for was no expiry at all, RFC 5280's `99991231235959Z`, with a hundred years if that
+turned out not to be fully supported, and it is not: `CertificateRequest` writes the end of year
+9999 as the RFC asks, and `X509Certificate2.NotAfter` reads it back as an earlier moment in any time
+zone ahead of UTC, without saying so. A hundred years is read exactly everywhere it is read,
+`LongLivedCertificateTests`. The two are issued together and end together, because a host
+certificate that ran out first, five years into an authority's ten, was an outage every client met
+at once with nothing to reissue it. A shorter life protects nothing here: the host key is kept in
+the same document as the authority's and cannot leak without it, and a client pins the authority
+rather than the leaf. So nothing warns as either end approaches, nothing refuses a pairing ahead of
+it, and neither is reissued or renewed. A leaked key is answered by recreating the authority,
+whatever its dates say. The responder keeps its ninety days, §208.
 
 ### Why there are two host certificates §208
 
@@ -647,14 +660,26 @@ third-party grammar underneath it.
 
 Storing the certificate rather than only its digest is what makes any of this possible.
 
-- **The plugin knows every expiry** and warns on the Certificate Authority page: 30 days for a client, 90
-  for a host or the authority. A host certificate is warned about in the plugin's log as well, when
-  the database is served within those 90 days or after them, since every client of it goes dark at
-  once and the log is where an operator looks for why.
-- **A host certificate expiring is a total outage**, and it happens while nobody is looking.
-  Reissuing would be cheap and clients would never notice, because they trust the authority rather
-  than the leaf. **Not built:** there is no reissue dialog, and recreating the authority is what
-  replaces a host certificate today, at the cost of revoking every client.
+- **The plugin knows every client's expiry** and warns on the Certificate Authority page in the
+  last third of each certificate's own life, and never more than thirty days ahead: thirty days for
+  a year, ten for a month, a little over two for a week, eight hours for a day. A fixed thirty days
+  would warn about a week-long certificate from the moment it was issued, which is a warning that
+  is always there and so says nothing. A third is when ACME clients usually renew a ninety-day
+  certificate, thirty days before its end, and the cap keeps the year every client is issued for
+  warned about thirty days ahead, as it was while the window was fixed. The page says how many
+  clients that is and the days within which the last of them expires. **The authority and its host
+  certificate are not warned about**: issued together for a hundred years, §207, neither runs out
+  while anybody is minding the database. This reverses ninety days of warning for both, on the page
+  and in the plugin's log.
+- **A host certificate no longer runs out under its authority.** It lived five years to the
+  authority's ten, and its end was a total outage that happened while nobody was looking, with
+  nothing to reissue it but recreating the authority. Issued together, it ends when the authority
+  does.
+- **Nothing refuses a pairing ahead of the end either.** A database a century old raises the
+  dialog like any other, and the issuer refuses to sign from an authority past its end, which
+  pairing answers with `500 internal error`, `PAIRING.md` §311. The two refusals made before the
+  dialog, for an authority or a host certificate that had run out, went with the warnings, and so
+  did the invite button's refusal that matched them.
 - **Recreating the authority revokes every client at once.** It asks first, and it states the count.
 - **Renewal would be re-issuance**: same profiles, new key, new certificate, new record, old record
   removed. **Not built:** a client that is about to expire pairs again.
@@ -705,3 +730,5 @@ Recorded because a reader seeing only this version will not know which parts wer
 | A revocation written as an empty record | a revocation key of its own beside the emptied record, only ever added | measured: a KeePass merge never removes a key and never reads a value, while the empty record lost to a dropped time, a slow clock and an import |
 | One `KPG.Authority` key for the only authority | one key per authority, filed under its digest, with a retirement beside every one replaced | a recreation written over the old key lost to a later time, so a stale copy could put a replaced authority back |
 | Recreating emptied the records | recreating and deleting remove them, and the revocations | the retirement refuses every old certificate, so the emptied records refused nothing more |
+| Ten years for the authority and five for its host, each warned about ninety days ahead and refused at pairing once past | a hundred years for both, issued together, warned about and refused at no point | no expiry was asked for, and `X509Certificate2.NotAfter` misreads `99991231235959Z` ahead of UTC, measured; a shorter host life protects nothing, since its key cannot leak without the authority's |
+| A client warned about thirty days before its end, whatever its life | in the last third of its life, and thirty days at most | a fixed thirty days would warn about a week-long certificate from the day it was issued |

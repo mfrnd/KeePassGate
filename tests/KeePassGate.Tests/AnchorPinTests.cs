@@ -214,14 +214,17 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void An_expired_host_is_refused_unless_expiry_is_being_ignored()
+        public void An_expired_leaf_is_refused_unless_expiry_is_being_ignored()
         {
+            // A client certificate issued eleven years ago, under an authority made the same day
+            // and still current: its one year is long gone. A host is no good for this any more,
+            // since it ends with its authority, a century on.
             var longAgo = DateTimeOffset.UtcNow - TimeSpan.FromDays(4000);
             using (var oldAuthority = new AuthorityIssuer(() => longAgo).CreateAuthority())
-            using (var oldHost = new AuthorityIssuer(() => longAgo).IssueHost(oldAuthority))
+            using (var oldClient = new AuthorityIssuer(() => longAgo).IssueClient(oldAuthority, "agent-fictitious", null))
             {
-                Assert.That(AnchorPin.Chains(oldHost, oldAuthority, false), Is.False);
-                Assert.That(AnchorPin.Chains(oldHost, oldAuthority, true), Is.True);
+                Assert.That(AnchorPin.Chains(oldClient, oldAuthority, false), Is.False);
+                Assert.That(AnchorPin.Chains(oldClient, oldAuthority, true), Is.True);
             }
         }
 

@@ -375,13 +375,10 @@ paths:
           $ref: "#/components/responses/UnsupportedMediaType"
         "500":
           description: |
-            One of four, and the body names which. `not recorded`: the record did not land, so
-            nothing was handed over and the invitation is spent. `expired authority`: this
-            database's authority has expired, which is refused before anybody is asked and spends
-            nothing. `expired host`: the host certificate this database answers with has expired,
-            so no client paired now could connect, refused the same way. `internal error`: the
-            operator approved and no certificate could be issued, because the authority ran out
-            while the dialog was open or its key would not sign; the invitation is not spent, and
+            One of two, and the body names which. `not recorded`: the record did not land, so
+            nothing was handed over and the invitation is spent. `internal error`: the operator
+            approved and no certificate could be issued, because the authority's key would not
+            sign or the authority has outlived its hundred years; the invitation is not spent, and
             the client starts again from a hello.
           content:
             application/json:

@@ -11,7 +11,7 @@ namespace KeePassGate.Tests
 {
     /// <summary>
     /// The shapes `CA.md` §207 specifies, asserted rather than trusted to a comment. A
-    /// certificate that is wrong here is wrong for ten years.
+    /// certificate that is wrong here is wrong for a hundred years.
     /// </summary>
     [TestFixture]
     public sealed class AuthorityIssuerTests
@@ -74,7 +74,7 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void The_authority_lasts_ten_years_and_starts_slightly_in_the_past()
+        public void The_authority_lasts_a_hundred_years_and_starts_slightly_in_the_past()
         {
             Assert.That(_authority.NotBefore.ToUniversalTime(),
                 Is.EqualTo((Now - AuthorityIssuer.Backdate).UtcDateTime).Within(TimeSpan.FromSeconds(1)));
@@ -161,25 +161,25 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void A_host_lasts_five_years()
+        public void A_host_ends_exactly_when_its_authority_does()
         {
+            // Issued together, so that the one cannot run out while the other has years left:
+            // to the second, which is all either keeps.
             using (var host = _issuer.IssueHost(_authority))
             {
-                Assert.That(host.NotAfter.ToUniversalTime(),
-                    Is.EqualTo((Now + AuthorityIssuer.HostLifetime).UtcDateTime).Within(TimeSpan.FromSeconds(1)));
+                Assert.That(host.NotAfter.ToUniversalTime(), Is.EqualTo(_authority.NotAfter.ToUniversalTime()));
             }
         }
 
         [Test]
-        public void A_host_never_outlives_the_authority_that_vouches_for_it()
+        public void A_host_issued_later_still_ends_with_its_authority()
         {
             var later = Now + AuthorityIssuer.AuthorityLifetime - TimeSpan.FromDays(30);
             var issuer = new AuthorityIssuer(() => later);
 
             using (var host = issuer.IssueHost(_authority))
             {
-                Assert.That(host.NotAfter.ToUniversalTime(),
-                    Is.EqualTo(_authority.NotAfter.ToUniversalTime()).Within(TimeSpan.FromSeconds(1)));
+                Assert.That(host.NotAfter.ToUniversalTime(), Is.EqualTo(_authority.NotAfter.ToUniversalTime()));
             }
         }
 

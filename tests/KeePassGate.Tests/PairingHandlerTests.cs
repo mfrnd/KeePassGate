@@ -37,9 +37,6 @@ namespace KeePassGate.Tests
         private PairingConnection _connection;
         private AuthorityIssuer _issuer;
 
-        /// <summary>The invitation the last <see cref="RequestAgainst"/> was made on.</summary>
-        private Invitation _against;
-
         [SetUp]
         public void SetUp()
         {
@@ -467,68 +464,23 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void An_authority_that_has_run_out_refuses_before_anybody_is_disturbed_either()
+        public void An_authority_that_has_run_out_is_answered_once_the_issuer_refuses()
         {
-            // Ten years, or a clock that jumped. The database is still served, because
-            // `AuthorityStore.Read` ignores expiry on purpose, so the refusal has to happen here.
-            // Left to the issuance below, it arrived as an exception nothing named, escaped the
-            // handler, and was counted on the operator's window as a defect in this plugin.
-            using (var old = TestAuthority.New(Aged))
-            {
-                var approval = Approving();
-
-                var context = RequestAgainst(old, approval);
-
-                Assert.That(context.Status, Is.EqualTo(500), context.Json);
-                Assert.That(context.Json, Does.Contain("expired authority"),
-                    "an old database is named as one rather than answered as an internal error");
-                Assert.That(approval.Asked, Is.Zero,
-                    "nobody is asked to approve a pairing that can end in no valid certificate");
-                Assert.That(_log.Warnings.Any(w => w.Message.Contains("Recreate authority")), Is.True,
-                    "the operator's log names the one thing that fixes it");
-                Assert.That(_book.Outstanding().Any(i => i.Id == _against.Id), Is.True,
-                    "and the invitation is not spent, since nothing was issued against it");
-                Assert.That(_log.Surprises, Is.Empty, "and none of it is this plugin misbehaving");
-            }
-        }
-
-        [Test]
-        public void A_host_certificate_that_has_run_out_refuses_before_anybody_is_disturbed_too()
-        {
-            // Six years back: the authority has four of its ten left and the host certificate ran
-            // out a year ago. Every connection a paired client made afterwards would fail on it, so
-            // completing the pairing saved a record and handed over a bundle nobody could use.
-            using (var old = TestAuthority.New(() => DateTimeOffset.UtcNow - TimeSpan.FromDays(6 * 366)))
-            {
-                var approval = Approving();
-
-                var context = RequestAgainst(old, approval);
-
-                Assert.That(context.Status, Is.EqualTo(500), context.Json);
-                Assert.That(context.Json, Does.Contain("expired host"));
-                Assert.That(approval.Asked, Is.Zero, "nobody is asked to approve a pairing no client could use");
-                Assert.That(old.Admitted, Is.Null, "and nothing is recorded");
-                Assert.That(_book.Outstanding().Any(i => i.Id == _against.Id), Is.True,
-                    "and the invitation is not spent");
-                Assert.That(_log.Warnings.Any(w => w.Message.Contains("Recreate authority")), Is.True);
-                Assert.That(_log.Surprises, Is.Empty);
-            }
-        }
-
-        [Test]
-        public void An_authority_that_runs_out_between_the_check_and_the_issuance_is_still_an_answer()
-        {
-            // The check above reads the clock once and the issuer reads it again, so a clock that
-            // moves in between is the one way that refusal still arrives as an exception. It is
-            // answered rather than allowed to escape, because everything a handler throws is
-            // counted against the plugin.
-            _issuer = new AuthorityIssuer(() => DateTimeOffset.UtcNow + TimeSpan.FromDays(4000));
+            // `CA.md` §219: an authority is issued for a hundred years and nothing refuses ahead of
+            // that, so a database that outlives its own raises the dialog like any other and the
+            // issuer is where it stops. That arrives as an exception, which is answered rather than
+            // allowed to escape, because everything a handler throws is counted against the plugin.
+            _issuer = new AuthorityIssuer(
+                () => DateTimeOffset.UtcNow + AuthorityIssuer.AuthorityLifetime + TimeSpan.FromDays(1));
             Hello(ClientProof());
 
             var context = Request("agent-fictitious", Array.Empty<string>(), Approving());
 
             Assert.That(context.Status, Is.EqualTo(500));
+            Assert.That(context.Json, Does.Contain("internal error"));
             Assert.That(context.Json, Does.Not.Contain("identity"));
+            Assert.That(_book.Outstanding().Count, Is.EqualTo(1),
+                "nothing was issued against the invitation, so it is not spent");
             Assert.That(_log.Errors.Any(e => e.Message.Contains("could not be issued")), Is.True);
             Assert.That(_log.Surprises, Is.Empty);
         }
@@ -739,15 +691,6 @@ namespace KeePassGate.Tests
             Assert.That(GateOperations.PathOf(GateOperations.PairRequest), Is.EqualTo(PairingHandler.RequestPath));
         }
 
-        /// <summary>
-        /// Eleven years back, which puts an authority's ten a year behind and leaves everything it
-        /// signed behind with it.
-        /// </summary>
-        private static DateTimeOffset Aged()
-        {
-            return DateTimeOffset.UtcNow - TimeSpan.FromDays(4000);
-        }
-
         private PairingHandler Handler(IPairingApproval approval)
         {
             // The default issuer unless a test named one, which is how a clock that moves between
@@ -755,35 +698,6 @@ namespace KeePassGate.Tests
             return _issuer == null
                 ? new PairingHandler(_book, approval, _log)
                 : new PairingHandler(_book, approval, new PairingOptions(), _issuer, null, _log);
-        }
-
-        /// <summary>
-        /// A hello and a request against another database, proved with its own invitation and its
-        /// own certificate, for the states the fixture's database cannot be put into.
-        /// </summary>
-        private GateContext RequestAgainst(TestAuthority database, IPairingApproval approval)
-        {
-            var name = "agent-fictitious";
-            var profiles = Array.Empty<string>();
-
-            _against = _book.Invite(database.DatabaseId);
-            var invitation = _against;
-            var token = invitation.Token;
-            var binding = PairingProof.Binding(database.Host.CertificateDer);
-            var connection = new PairingConnection(invitation, database, binding, _nonce, "127.0.0.1:60002");
-
-            Send(
-                "POST",
-                PairingHandler.HelloPath,
-                "{\"proof\":\"" + Convert.ToBase64String(PairingProof.Client(token, binding, _nonce)) + "\"}",
-                connection,
-                approval);
-
-            var proof = PairingProof.Request(
-                token, binding, _nonce, _lastChallenge, PairingProof.Asked(name, profiles));
-
-            return Send(
-                "POST", PairingHandler.RequestPath, RequestBody(name, profiles, proof), connection, approval);
         }
 
         private static FakePairingApproval Approving(params string[] profiles)

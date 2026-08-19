@@ -444,9 +444,7 @@ What a refusal says, and deliberately no more:
 | `504 unanswered` | nobody was at the screen. **Nothing is spent** |
 | `503 busy` | a dialog is open that would take the record back, KeePass is part way through a save, an import, a synchronize, an export or a message box of its own, or shows its progress window for one such as XML Replace, saving the database would stop to ask the operator something, such as what to do about a file on disk that is not the one KeePass read, another pairing is already in front of the operator, or there is no screen to ask. **Nothing is spent**, and the client is never told which |
 | `500 not recorded` | the operator approved and the record did not reach the disk. **The invitation is spent** |
-| `500 internal error` | the operator approved and no certificate could be issued: the authority ran out while the dialog was open, or its key would not sign. **The invitation is not spent**, and the client starts again from a hello |
-| `500 expired host` | the host certificate this database answers with has run out, so no client paired now could connect. **Nothing is spent**, and no dialog was raised |
-| `500 expired authority` | this database's authority has run out, so it can sign nothing valid. **Nothing is spent**, and no dialog was raised |
+| `500 internal error` | the operator approved and no certificate could be issued: the authority's key would not sign, or the authority has outlived its hundred years. **The invitation is not spent**, and the client starts again from a hello |
 | `503 undecided` | the database holds more than one authority and the operator has not kept one. Answered before the request is read, as `503 locked` is, so **nothing is spent** |
 
 The `503 busy` row is the one to be careful with. A caller learns that it should try later and nothing
@@ -460,18 +458,17 @@ the same code will be turned away at the name on its next connection and dropped
 at all. Whether it was worth retrying goes to the operator's log, which is where somebody can act on
 it.
 
-**The `500`s are not the same kind of thing, and only the status they share is.** A record that
-did not land is this plugin failing partway through something it had started, and the invitation is
-gone with it. An authority that has run out is the ordinary state of a database nobody has touched
-for ten years, and it is refused where the other retryable conditions are, before the operator is
-disturbed and before anything is spent: an authority that signs nothing valid cannot end in a
-certificate, so raising a dialog would spend somebody's attention on an outcome already decided. It
-is not a `503` because retrying changes nothing until a person has acted, and what they have to do
-is recreate the authority, which is not something a client can wait out. A host certificate that has
-run out is the same state five years in, since it lives half as long, and is refused the same way:
-every later connection is served with it, and `CA.md` §219 has no reissue. `internal error` is that
-same check arriving late: the authority ran out, or would not sign, after the operator approved and
-before anything was issued, so the approval is lost and the invitation is not.
+**The two `500`s are not the same kind of thing, and only the status they share is.** A record
+that did not land is this plugin failing partway through something it had started, and the
+invitation is gone with it. `internal error` is a certificate that could not be issued once the
+operator had approved: the authority's key would not sign, or the authority has outlived its hundred
+years, which nothing refuses ahead of because nothing warns ahead of it either, `CA.md` §219.
+Nothing was issued, so the approval is lost and the invitation is not.
+
+**This replaces two refusals made before the dialog**, `500 expired authority` and
+`500 expired host`, which answered a ten-year authority and a five-year host certificate running
+out before anybody was disturbed. Issued together for a century, neither is a state a database
+reaches while anybody is minding it, and a check for it would be code that never runs.
 
 ## 10. What this deliberately does not defend §310
 
