@@ -106,6 +106,20 @@ one waiting for the answer; the certificate that comes back is then used on the 
 connection; and the record is looked for in the `.kdbx` after KeePass has exited. A refusal is
 driven the same way, and leaves nothing behind.
 
+**The API**, in `LiveApiTests`: a real client with a certificate the database's own authority issued
+creates an entry through the gate, adds a field, reads it back, lists it, and the entry is read out
+of the `.kdbx` after KeePass has exited. A second client, whose record names a profile no rule
+mentions, is answered exactly as a missing entry would be. The grant and both admission records are
+written before KeePass starts, because a running KeePass would overwrite anything put into the file
+underneath it.
+
+**The reference client**, in `LiveReferenceClientTests`: PyKeePassGate itself, run through `uv` from
+the repository as the client tier runs it, pairs with a real KeePass through an invitation read off
+the real tab and approved on the real dialog, then asks for the status, creates an entry, lists it
+and reads it back. It is the one test in which the plugin's own PKCS#12 export meets `cryptography`,
+Bouncy Castle's TLS meets Python's `ssl`, and the plugin's framing meets the client's reader. Without
+`uv` it is ignored, as the tier is without a KeePass.
+
 **Step 13**, in `LiveGrantEditorTests`: a rule made on the KPG tab of a real KeePass, kept by the
 group dialog's **OK**, and read out of the `.kdbx` after the process has gone. Pressing OK rather
 than Escape is what it is for: the dialog writes its own copy of the group's settings back over the

@@ -8,7 +8,7 @@ Guidance for anyone, human or AI assistant, working in this repository.
 mutual TLS, so that automation and AI agents can each be given a narrow, revocable, audited slice of
 a database.
 
-**Status: the design is settled and steps 1 to 14 of the build order are done.** The plugin loads
+**Status: steps 1 to 15 of the build order are done and the API is served.** The plugin loads
 into KeePass, the KPG tab creates, recreates and deletes the database's own certificate authority,
 the gate listens on loopback and answers over mutual TLS 1.3, a client is served only if
 the database holds an admission record for its certificate, and **a stranger can now become one**:
@@ -506,18 +506,16 @@ here can hang or crash the password manager.
 
 ## Where to start
 
-[`DESIGN.md`](DESIGN.md) §132 ends with a multi-step build order. **Steps 1 to 14 are done.** The skeleton
+[`DESIGN.md`](DESIGN.md) §132 ends with a multi-step build order. **Steps 1 to 15 are done.** The skeleton
 loads and shows a KPG tab, that tab creates, recreates and deletes the authority, the gate serves
 the document's routes over mutual TLS to a client the authority issued and the database holds a
 record for, a stranger can pair, a locked database answers `503 locked`, a grant means something
 definite, an operator can write one from the group and entry dialogs, and the router refuses
 anything the record and the rules do not both allow, recording every decision either way.
 
-**The API is under way**: twenty-two routes read and change groups, entries, fields and
-attachments, and each met the assertion the arrangement is for, declaring a verb and naming the
-node it is about, or the plugin would not have loaded. After it come two launchers that start the
-pinned KeePass with the plugin in it, a profile's own home beside the authority, the plugin's own
-window under the Tools menu, and the documentation for whoever runs it.
+**What is left**: two launchers that start the pinned KeePass with the plugin in it, a profile's
+own home beside the authority, the plugin's own window under the Tools menu, and the documentation
+for whoever runs it.
 
 **The storage decision survived the thing most likely to invalidate it.** The `GroupForm` snapshot
 hazard is real and now measured rather than remembered: `SnapshotHazardTests` reads the mechanism off

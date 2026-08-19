@@ -1137,8 +1137,8 @@ Each step is refusable, and each ends with something that runs.
     Nothing this build declares needs any of it, because nothing it declares touches the database:
     what step 14 leaves is the place where the first route that does will be asked.
 15. **The database API**: the routes that read and change groups, entries, fields and attachments.
-    They arrive with no new machinery, which is the point of everything under them: a verb in the
-    document, a node selector beside the handler, and the router does the rest.
+    **Done.** They arrive with no new machinery, which is the point of everything under them: a
+    verb in the document, a node selector beside the handler, and the router does the rest.
     [`API.md`](API.md) is the account of them, and `openapi.yaml` is the contract.
 16. **Running it**: two launchers that build, deploy and start the pinned KeePass with the plugin in
     it, one per configuration.
