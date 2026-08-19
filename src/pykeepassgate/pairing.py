@@ -83,40 +83,110 @@ class Pairing:
     profiles before it takes the challenge, and `_usable` refuses those here
     first. So recovery from a refusal that spares the invitation is a fresh
     `hello`, never a second `request`.
+
+    **Only `hello` waits out a `503`, and that asymmetry is the whole of what the
+    retry budgets mean here.** Phase 3 spends nothing and carries nothing forward,
+    so repeating it is starting it; phase 4 carries a challenge the gate spends when
+    it reads it, and is the message that puts a pairing in front of a person. What
+    is repeatable after a refused `request` is the exchange, not the request, and
+    `api.pair` is where that is done.
     """
 
     def __init__(
-        self, port: int, invitation: str, timeout: float = transport.PAIRING_TIMEOUT
+        self,
+        port: int,
+        invitation: str,
+        connection_timeout: float = transport.PAIRING_CONNECTION_TIMEOUT,
+        host: str = transport.LOOPBACK,
+        retry_busy_timeout: float | None = transport.DEFAULT_RETRY_BUSY_TIMEOUT,
+        retry_locked_timeout: float | None = transport.DEFAULT_RETRY_LOCKED_TIMEOUT,
+        max_response_bytes: int = transport.MAX_RESPONSE_BYTES,
     ) -> None:
-        """Take the port the operator gave and the token from the tab."""
-        self._port = port
-        self._token = token_text.decode(invitation)
-        self._timeout = timeout
+        """Take the port the operator gave, the token from the tab, and where to dial.
+
+        Both connections of the exchange go to the same host, because they are two halves of one
+        conversation with one KeePass. The proofs are over the certificate the gate serves and the
+        token the operator handed out, so nothing about them depends on the address.
+
+        The two retry budgets are spent by `hello` and nowhere else, for the reason on the class.
+        There is no per-call override here as there is on `GateClient`: one `Pairing` is one
+        invitation used once, so there is no second call for a different number to apply to.
+
+        `max_response_bytes` caps each answer as it does on `GateClient`, and it, the port, the
+        socket timeout and the two budgets are refused the same way, here and before any hello.
+        """
+        self._port = transport.port_number(port)
+        # Stripped here rather than in `token.decode`, which refuses anything that is not
+        # exactly a token as the plugin's decoder does. What arrives here is pasted text, which
+        # brings a line break or a space with it as often as not, and a program handed the same
+        # paste as the command line is not refused what the command line accepts.
+        self._token = token_text.decode(invitation.strip())
+        self._connection_timeout = transport.connection_limit(connection_timeout)
+        self._host = host
+        self._retry_busy_timeout = transport.retry_limit("retry_busy_timeout", retry_busy_timeout)
+        self._retry_locked_timeout = transport.retry_limit(
+            "retry_locked_timeout", retry_locked_timeout
+        )
+        self._max_response_bytes = transport.response_limit(max_response_bytes)
 
     def hello(self) -> Exchange:
-        """Phase 3: prove the token, then check that the answer proves it too."""
+        """Phase 3: prove the token, then check that the answer proves it too.
+
+        **This phase is safe to repeat, which is why it is the one that waits out a `503`.**
+        A hello spends nothing on either side: `PAIRING.md` §306 burns the token on an approval
+        or a refusal and on nothing else, and the gate's own answer here reaches no dialog, no
+        issuance and no write. Each attempt mints a fresh nonce and a fresh name and takes a
+        fresh challenge, so a retry is a new phase 3 rather than the same one sent twice: there
+        is no message being replayed and nothing carried over from the attempt that was refused.
+        """
+        retry = transport.Retry(busy=self._retry_busy_timeout, locked=self._retry_locked_timeout)
+
+        while True:
+            try:
+                bound, nonce, reply = self._hello_once()
+                _refuse(reply)
+            except (GateBusy, DatabaseLocked) as refusal:
+                if retry.waited(refusal):
+                    continue
+
+                raise
+
+            body = reply.json()
+            challenge = _bytes(body, "challenge")
+            answered = _bytes(body, "proof")
+
+            expected = proofs.server(self._token, bound, nonce, challenge)
+            if not proofs.matches(expected, answered):
+                # Whatever answered is not holding this token. A client with no anchor has nothing
+                # else to check, so this is where it stops rather than where it warns.
+                raise ProofRefused(
+                    "the gate's proof did not verify, so this is not the right KeePass"
+                )
+
+            return Exchange(challenge=challenge, binding=bound, nonce=nonce)
+
+    def _hello_once(self) -> tuple[bytes, bytes, transport.Response]:
+        """One attempt at phase 3, and the binding and nonce it was made under.
+
+        Those two come back with the answer because they are what the challenge was issued
+        against. A retry makes new ones, so reading them off anything but the attempt that was
+        answered is the mistake that makes a request fail to follow its own hello.
+        """
         name, nonce = sni.new_name(self._token)
         context = transport.unpaired_context()
 
-        with transport.connect(self._port, context, name, timeout=self._timeout) as connection:
+        with transport.connect(
+            self._port, context, name, host=self._host,
+            connection_timeout=self._connection_timeout,
+            max_response_bytes=self._max_response_bytes,
+        ) as connection:
             bound = proofs.binding(connection.server_certificate)
             offered = proofs.client(self._token, bound, nonce)
             reply = connection.send(
                 "POST", HELLO_PATH, _json({"proof": _b64(offered)})
             )
 
-        _refuse(reply)
-        body = reply.json()
-        challenge = _bytes(body, "challenge")
-        answered = _bytes(body, "proof")
-
-        expected = proofs.server(self._token, bound, nonce, challenge)
-        if not proofs.matches(expected, answered):
-            # Whatever answered is not holding this token. A client with no anchor has nothing else
-            # to check, so this is where it stops rather than where it warns.
-            raise ProofRefused("the gate's proof did not verify, so this is not the right KeePass")
-
-        return Exchange(challenge=challenge, binding=bound, nonce=nonce)
+        return bound, nonce, reply
 
     def request(self, exchange: Exchange, name: str, profiles: list[str]) -> dict[str, Any]:
         """Phases 4 and 5: ask, wait for the operator, and take the bundle if there is one.
@@ -124,6 +194,14 @@ class Pairing:
         The profiles asked for are a ceiling rather than a grant. The operator can take any of them
         away in the dialog, and what comes back says what was actually approved, which is not
         always what was asked for.
+
+        **Nothing here is ever sent twice, whatever budget the caller gave.** Two separate reasons,
+        and either one alone would be enough. The challenge is spent by the gate as it reads this,
+        so a second send earns `409 no exchange` and has told the operator nothing. And this is the
+        message that can end with an invitation spent: everything after the dialog still happens
+        even if this client hangs up, so a client that resent it could not know whether what it was
+        repeating had already issued a certificate and written a record. A refusal here is reported
+        rather than retried, and what may be tried again is the whole exchange, which is `api.pair`.
         """
         _usable(name, profiles)
 
@@ -141,7 +219,9 @@ class Pairing:
         body = _json({"name": name, "profiles": profiles, "proof": _b64(proof)})
 
         with transport.connect(
-            self._port, context, server_name, timeout=self._timeout
+            self._port, context, server_name, host=self._host,
+            connection_timeout=self._connection_timeout,
+            max_response_bytes=self._max_response_bytes,
         ) as connection:
             # The hello's proof was over the certificate the *hello* was served with,
             # and this is a different connection: an unpaired client has no anchor, so
@@ -217,17 +297,25 @@ def _refuse(reply: transport.Response) -> None:
     error = reply.error()
 
     if reply.status == 503 and error == "locked":
-        raise DatabaseLocked("the database is locked, so pairing has nothing to issue from")
+        raise DatabaseLocked(
+            "the database is locked, so pairing has nothing to issue from", reply.retry_after
+        )
 
     if reply.status == 503:
-        # The invitation survives, because the gate takes the challenge before it reaches
-        # the check that answers this and burns the invitation nowhere on this path. The
-        # challenge does not survive, so retrying this half alone earns `409 no exchange`.
+        # The invitation survives, and that is a property of the gate rather than a hope.
+        # `PairingHandler.Approve` answers `503` in three places and every one of them is before
+        # the invitation is burned: the blocked check, a dialog that could not be shown, and a
+        # dialog that never reached the screen. After the burn it answers `500` instead, in as
+        # many words, because a client told to come back would be turned away at the name. So a
+        # `503` from this route means no certificate was issued and no record was written.
+        #
+        # The challenge does not survive, so retrying this half alone earns `409 no exchange`.
         # What can be tried again is the whole pairing, which is what `api.pair` is.
         raise GateBusy(
             "the gate cannot write a record right now, most likely because a group "
             "dialog is open. The invitation is still good, but this exchange is not: "
-            "say hello again."
+            "say hello again.",
+            reply.retry_after,
         )
 
     if reply.status == 504:

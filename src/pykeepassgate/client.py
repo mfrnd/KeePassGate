@@ -24,7 +24,7 @@ from urllib.parse import quote
 
 from . import credentials as credentials_module
 from . import sni, transport
-from .errors import DatabaseLocked, GateBusy, NotAdmitted, RouteRefused
+from .errors import DatabaseLocked, GateBusy, NotAdmitted, ProtocolError, RouteRefused
 from .model import EXPIRES, Attachment, Entry, Field, Group, made
 
 STATUS_PATH = "/gate/status"
@@ -63,11 +63,50 @@ class GateClient:
     def __init__(
         self,
         credentials: credentials_module.Credentials,
-        timeout: float = transport.DEFAULT_TIMEOUT,
+        connection_timeout: float = transport.DEFAULT_CONNECTION_TIMEOUT,
+        host: str = transport.LOOPBACK,
+        retry_busy_timeout: float | None = transport.DEFAULT_RETRY_BUSY_TIMEOUT,
+        retry_locked_timeout: float | None = transport.DEFAULT_RETRY_LOCKED_TIMEOUT,
+        max_response_bytes: int = transport.MAX_RESPONSE_BYTES,
     ) -> None:
-        """Take a paired identity and the port it was paired against."""
+        """Take a paired identity, how long to wait on its socket, and where to dial it.
+
+        The two retry budgets are how long this client will go on waiting out a `503`, one per
+        kind, and both are `None` here: nothing retries unless a caller says so, and the refusal
+        is raised exactly as it was before there was anything to say. They are separate because a
+        busy KeePass is in the middle of something and a locked one is waiting for a person.
+        Either can be overridden on one call, which `send` takes.
+
+        `max_response_bytes` is how much of one answer this client will read, and an answer over
+        it fails whole with `ProtocolError` naming the setting, rather than arriving cut short.
+        The plugin does not page, so a listing grows with the database, and a database large
+        enough to outgrow the default is one whose caller raises this.
+
+        **A setting that could not work is refused here**, with a `ValueError` naming it, before
+        anything is dialed, and the command line refuses the same ones: a cap that is not a
+        positive whole number of bytes, a socket timeout that is not a finite number of seconds
+        above zero, a budget that is neither `None` nor a finite number of seconds from zero, and
+        a port in the credentials that TCP does not have.
+
+        The host is where the socket goes and nothing else. It is not part of the identity and is
+        not stored with it: the same paired client reaches the same KeePass through a tunnel or
+        directly, and which of those is happening is a property of the caller's machine rather than
+        of the pairing. So it is given here rather than read back from the credentials, and it
+        defaults to loopback, which is where the gate itself binds.
+
+        It does not reach the name in the ClientHello either. That is minted per connection from
+        the gate's key and is what the gate resolves this client by; a tunnel changes the address
+        the bytes travel to and changes nothing the gate sees.
+        """
+        transport.port_number(credentials.port)
         self._credentials = credentials
-        self._timeout = timeout
+        self._connection_timeout = transport.connection_limit(connection_timeout)
+        self._host = host
+        self._retry_busy_timeout = transport.retry_limit("retry_busy_timeout", retry_busy_timeout)
+        self._retry_locked_timeout = transport.retry_limit(
+            "retry_locked_timeout", retry_locked_timeout
+        )
+        self._max_response_bytes = transport.response_limit(max_response_bytes)
         self._context = transport.paired_context(credentials.authority, credentials.identity)
 
         # Read once, beside the context, because the two are one identity. `gate_key` is a
@@ -82,15 +121,33 @@ class GateClient:
         cls,
         directory: Path | None = None,
         profile: str = "default",
-        timeout: float = transport.DEFAULT_TIMEOUT,
+        host: str = transport.LOOPBACK,
+        connection_timeout: float = transport.DEFAULT_CONNECTION_TIMEOUT,
+        retry_busy_timeout: float | None = transport.DEFAULT_RETRY_BUSY_TIMEOUT,
+        retry_locked_timeout: float | None = transport.DEFAULT_RETRY_LOCKED_TIMEOUT,
+        max_response_bytes: int = transport.MAX_RESPONSE_BYTES,
     ) -> GateClient:
         """Load a paired identity from where `pair` put it.
 
-        The timeout is here as well as on the constructor because this is the way a caller
-        is meant to build one, and a setting nothing can reach is a setting nobody has.
+        Everything that is not the identity is given here rather than read back with it, and for
+        the same reason: where to dial, how long to wait on the socket and how long to wait out a
+        refusal are the caller's, not the pairing's. This is the way a caller is meant to build
+        one, so a setting it cannot reach is a setting nobody has.
         """
         where = directory or credentials_module.default_directory(profile)
-        return cls(credentials_module.load(where), timeout=timeout)
+        return cls(
+            credentials_module.load(where),
+            connection_timeout=connection_timeout,
+            host=host,
+            retry_busy_timeout=retry_busy_timeout,
+            retry_locked_timeout=retry_locked_timeout,
+            max_response_bytes=max_response_bytes,
+        )
+
+    @property
+    def host(self) -> str:
+        """Where this client dials, which is loopback unless something is tunneling."""
+        return self._host
 
     @property
     def credentials(self) -> credentials_module.Credentials:
@@ -107,13 +164,16 @@ class GateClient:
 
         A client can use it to answer three questions at once: whether the gate is listening,
         whether this certificate is still admitted, and whether the database is unlocked.
+
+        The three members are read as the document declares them, as every other answer's are:
+        `bool` would read the text "false" as true, and `str` a `null` as the word "None".
         """
         body = self.get(STATUS_PATH)
-        return Status(
-            ok=bool(body.get("ok")),
-            database=str(body.get("database", "")),
-            version=str(body.get("version", "")),
-        )
+        ok, database, version = body.get("ok"), body.get("database"), body.get("version")
+        if not isinstance(ok, bool) or not (isinstance(database, str) and isinstance(version, str)):
+            raise ProtocolError("the gate answered its status in a form this client cannot read")
+
+        return Status(ok=ok, database=database, version=version)
 
     # Groups
 
@@ -329,7 +389,13 @@ class GateClient:
 
         return {name: value for name, value in named.items() if value is not None}
 
-    def head(self, path: str) -> None:
+    def head(
+        self,
+        path: str,
+        *,
+        retry_busy_timeout: transport.Given = transport.KEEP,
+        retry_locked_timeout: transport.Given = transport.KEEP,
+    ) -> None:
         """Whether a route answers, and whether this client may reach it, without the answer.
 
         One method for every `head` the document declares, because a `head` is generic in a way
@@ -343,33 +409,109 @@ class GateClient:
         these, which RFC 9110 section 9.3.2 permits for a value determined only while
         generating content, so this one reads to the close the gate sends anyway.
         """
-        self.send("HEAD", path)
+        self.send(
+            "HEAD",
+            path,
+            retry_busy_timeout=retry_busy_timeout,
+            retry_locked_timeout=retry_locked_timeout,
+        )
 
-    def get(self, path: str) -> dict[str, Any]:
+    def get(
+        self,
+        path: str,
+        *,
+        retry_busy_timeout: transport.Given = transport.KEEP,
+        retry_locked_timeout: transport.Given = transport.KEEP,
+    ) -> dict[str, Any]:
         """One GET, on its own connection, under a name built for it."""
-        return self.send("GET", path)
+        return self.send(
+            "GET",
+            path,
+            retry_busy_timeout=retry_busy_timeout,
+            retry_locked_timeout=retry_locked_timeout,
+        )
 
-    def send(self, method: str, path: str, body: dict[str, Any] | None = None) -> dict[str, Any]:
-        """One request, on its own connection.
+    def send(
+        self,
+        method: str,
+        path: str,
+        body: dict[str, Any] | None = None,
+        *,
+        retry_busy_timeout: transport.Given = transport.KEEP,
+        retry_locked_timeout: transport.Given = transport.KEEP,
+    ) -> dict[str, Any]:
+        """One request, on its own connection, retried for as long as a budget allows.
 
         Public because the gate is a specification-defined API and a client that could only call
         the methods this class happens to name would be a worse reference than one that can reach
         anything the document declares.
+
+        **This is also where a retry budget is overridden for one call**, and the reason it is
+        here rather than on each of the twenty-two methods above is that a call to the gate is a
+        request: every one of those methods is one call to this, so `send` is where a caller can
+        say that this request in particular is worth waiting for. Two more arguments on each of
+        them would say the same thing twenty-two times over and turn the file that is meant to
+        read as the list of what the gate serves into a file about timeouts.
+
+        Nothing but a `503` is retried. A refusal a client cannot fix by waiting must not be sent
+        round a loop, and a write that failed for any other reason may well have landed. A budget
+        given for one call is refused as the client's own are, before anything is dialed.
         """
-        name, _ = sni.new_name(self._gate_key)
+        retry = transport.Retry(
+            busy=transport.given(retry_busy_timeout, self._retry_busy_timeout),
+            locked=transport.given(retry_locked_timeout, self._retry_locked_timeout),
+        )
+
         payload = "" if body is None else json.dumps(body, separators=(",", ":"))
 
+        while True:
+            try:
+                reply = self._once(method, path, payload)
+                _refuse(reply)
+            except (GateBusy, DatabaseLocked) as refusal:
+                # Safe to repeat whichever of the two it was: the gate refuses before it acts, so
+                # a `503` is the one refusal that says nothing happened. A `DatabaseLocked` read
+                # off the certificate is safer still, since the request was never sent.
+                if retry.waited(refusal):
+                    continue
+
+                raise
+
+            if not reply.body:
+                return {}
+
+            return reply.json()
+
+    def _once(self, method: str, path: str, payload: str) -> transport.Response:
+        """One attempt, on a connection of its own and under a name of its own.
+
+        A retry is a new connection because the gate serves one request per connection, and a new
+        name because the name is minted per connection: an observer watching a client wait out a
+        busy KeePass sees a different name each time rather than one repeated.
+
+        **A certificate that has expired is refused here, before anything is dialed.** The gate
+        refuses one as it refuses a stranger, `401` with nothing to say why, and this client
+        would then report the missing record its `401` usually means, when the record is there
+        and the certificate is what ran out. Pairing stored when it expires, so this says so by
+        name, and spends no connection learning what it already knows.
+        """
+        if self._credentials.expired:
+            raise NotAdmitted(
+                f"this client's certificate expired at {self._credentials.expires}, so the gate "
+                "refuses it: pair again"
+            )
+
+        name, _ = sni.new_name(self._gate_key)
+
         with transport.connect(
-            self._credentials.port, self._context, name, timeout=self._timeout
+            self._credentials.port,
+            self._context,
+            name,
+            host=self._host,
+            connection_timeout=self._connection_timeout,
+            max_response_bytes=self._max_response_bytes,
         ) as connection:
-            reply = connection.send(method, path, payload)
-
-        _refuse(reply)
-
-        if not reply.body:
-            return {}
-
-        return reply.json()
+            return connection.send(method, path, payload)
 
 
 def _expiry(value: object, *, creating: bool) -> str:
@@ -407,15 +549,23 @@ def _refuse(reply: transport.Response) -> None:
     error = reply.error()
 
     if reply.status == 503 and error == "locked":
-        raise DatabaseLocked("the database is locked, so every route answers this until it is not")
+        raise DatabaseLocked(
+            "the database is locked, so every route answers this until it is not",
+            reply.retry_after,
+        )
 
     if reply.status == 503:
-        raise GateBusy("the gate cannot serve this right now")
+        raise GateBusy("the gate cannot serve this right now", reply.retry_after)
 
     if reply.status == 401:
         # The record is read from the live database on every connection and never cached, so this
         # is also what revocation looks like: immediate, and from the client's side no different
-        # from never having been admitted, which is the point.
-        raise NotAdmitted("this database holds no admission record for this certificate")
+        # from never having been admitted, which is the point. A certificate that has expired is
+        # refused the same way, and is named before dialing when this client knows it has; one
+        # whose expiry passed by the gate's clock and not yet by this machine's arrives here.
+        raise NotAdmitted(
+            "the gate does not admit this certificate: it was never admitted, it was revoked, or "
+            "it has expired. Pair again"
+        )
 
     raise RouteRefused(reply.status, error)

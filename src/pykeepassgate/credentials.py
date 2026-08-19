@@ -36,6 +36,7 @@ import json
 import os
 import stat
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from pathlib import Path
 from types import TracebackType
 from typing import Any
@@ -44,8 +45,8 @@ from cryptography import x509
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.serialization import pkcs12
 
-from . import sni
-from .errors import ProtocolError, StorageError
+from . import sni, transport
+from .errors import NotPaired, ProtocolError, StorageError
 
 IDENTITY_FILE = "identity.pem"
 AUTHORITY_FILE = "authority.pem"
@@ -137,11 +138,27 @@ class Credentials:
         try:
             return (self.directory / GATE_KEY_FILE).read_bytes()
         except OSError as error:
-            # `FileNotFoundError` is one of these and the command line catches it by
-            # name. The rest would otherwise reach the caller mid request as a bare
-            # `OSError`: a file locked by a backup agent, a directory locked down
-            # after this client opened.
+            # Every one of them, a file that has gone among them, which is damage here rather
+            # than a client that never paired: `load` found `client.json` beside it. Left
+            # alone they reach the caller mid request as a bare `OSError`: a file locked by a
+            # backup agent, a directory locked down after this client opened.
             raise StorageError(f"the gate key in {self.directory} will not read") from error
+
+    @property
+    def expired(self) -> bool:
+        """Whether the certificate has expired, by `expires` and this machine's clock.
+
+        The gate refuses an expired certificate as it refuses a stranger, with nothing to say
+        why, so a client that knows it has expired says so itself. False for an `expires` this
+        cannot read as well, which leaves the gate to say: a client refused on a guess would be
+        one refused for nothing.
+        """
+        try:
+            ends = datetime.strptime(self.expires, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=UTC)
+        except ValueError:
+            return False
+
+        return ends < datetime.now(UTC)
 
 
 def save(
@@ -269,6 +286,10 @@ class Prepared:
 
 def _contents(port: int, bundle: dict[str, Any]) -> dict[str, bytes]:
     """All four files' contents, read out of the bundle before any of them is touched."""
+    # The port as well, which is not the bundle's: one TCP does not have would be written into
+    # `client.json`, and `load` would then refuse the identity stored beside it.
+    transport.port_number(port)
+
     return {
         IDENTITY_FILE: _identity(_text(bundle, "identity")),
         AUTHORITY_FILE: _anchor(_text(bundle, "authority")),
@@ -287,13 +308,20 @@ def load(directory: Path) -> Credentials:
     number as `ValueError`. That is four ways past a caller who was promised one root to catch,
     and four tracebacks out of a command line that documents an exit code instead.
 
+    **No `client.json` at all is `NotPaired`**, a `StorageError` rather than a
+    `FileNotFoundError`: nothing is stored here, which is a state and not damage, and it is the
+    one a caller meets first, so it is this library's to name like every other.
+
     **Every member is held to what `save` writes**, and the text ones and the profiles are not
     converted into it: `str` makes a `null` the four letters `None`, and `tuple` spells a string
     out one character at a time, which `whoami` would then show as that many profiles approved.
     """
     details_path = directory / DETAILS_FILE
     if not details_path.exists():
-        raise FileNotFoundError(f"no paired client in {directory}")
+        raise NotPaired(
+            f"no paired client in {directory}: pair first, or name the profile or the directory "
+            "the pairing used"
+        )
 
     try:
         details = json.loads(details_path.read_text("utf-8"))
@@ -451,7 +479,7 @@ def prepare(directory: Path, allow_shared_directory: bool = False) -> Prepared:
         if reason:
             raise StorageError(
                 f"{directory} cannot hold credentials: {reason}. If that is intended, "
-                "allow_shared_directory accepts it"
+                "allow_shared_directory, or --allow-shared-directory on pair, accepts it"
             )
 
     for name in _FILES:

@@ -248,7 +248,9 @@ designing around them.
   **The read model that replaces it has two rules**: no `save`, because a method that looks like
   theirs and does something else is worse than no method, and absent rather than empty, so a
   missing feature is an attribute that is not there rather than a blank value. `model.py` follows
-  both.
+  both, and a third that comes of the second: **withheld is not empty either**, so a protected value
+  the caller's rule does not open raises `Withheld` from every way of reading it, never `None` or
+  an empty string, while its name stays where the gate put it.
 
   Measured on `spikes/pykeepass-compatibility`, taken from `master` and never merged: of the 56 public
   members on `PyKeePass`, 23 are servable over the routes the gate already has, 6 would need routes

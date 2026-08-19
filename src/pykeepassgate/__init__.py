@@ -20,6 +20,7 @@ from .api import (
     GateError,
     MalformedToken,
     NotAdmitted,
+    NotPaired,
     Pairing,
     PairingError,
     PairingRefused,
@@ -30,6 +31,7 @@ from .api import (
     Status,
     StorageError,
     TransportError,
+    Withheld,
     pair,
 )
 
@@ -44,6 +46,7 @@ __all__ = [
     "GateError",
     "MalformedToken",
     "NotAdmitted",
+    "NotPaired",
     "Pairing",
     "PairingError",
     "PairingRefused",
@@ -54,6 +57,7 @@ __all__ = [
     "Status",
     "StorageError",
     "TransportError",
+    "Withheld",
     "__version__",
     "pair",
 ]

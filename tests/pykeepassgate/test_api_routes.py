@@ -21,8 +21,8 @@ import pytest
 from conftest import FakeGate
 from pykeepassgate import credentials as credentials_module
 from pykeepassgate.client import ROOT, GateClient
-from pykeepassgate.errors import ProtocolError
-from pykeepassgate.model import Attachment, Entry, Field, Group
+from pykeepassgate.errors import ProtocolError, Withheld
+from pykeepassgate.model import Attachment, Entry, Field, Fields, Group
 from test_reference import operations, routing_table
 
 UUID = "7b1c" * 8
@@ -33,7 +33,7 @@ OTHER = "9f86" * 8
 def paired(tmp_path: Path, bundle: dict[str, Any], gate: FakeGate) -> GateClient:
     """A client that has been through pairing with this gate."""
     stored = credentials_module.save(tmp_path / "kept", gate.port, bundle)
-    return GateClient(stored, timeout=10.0)
+    return GateClient(stored, connection_timeout=10.0)
 
 
 def answering(gate: FakeGate, body: dict[str, Any], status: int = 200) -> None:
@@ -145,6 +145,7 @@ def test_a_read_entry_carries_its_fields_and_says_which_are_protected(
                 "Title": "an invented service",
                 "UserName": "agent-fictitious",
                 "Password": "not-a-real-password",
+                "Notes": "invented notes",
                 "Invented": "a custom one",
             },
             "protected": ["Password"],
@@ -156,6 +157,8 @@ def test_a_read_entry_carries_its_fields_and_says_which_are_protected(
     assert entry.is_read
     assert entry.username == "agent-fictitious"
     assert entry.password == "not-a-real-password"
+    assert entry.notes == "invented notes"
+    assert entry.withheld == ()
     assert entry.custom() == {"Invented": "a custom one"}
     assert entry.protected == ("Password",)
     assert entry.created is not None and entry.created.year == 2026
@@ -181,12 +184,150 @@ def test_a_withheld_protected_value_stays_withheld(
 
     entry = paired.entry(UUID)
 
-    assert entry.fields is not None
-    assert entry.fields["Password"] is None
     assert entry.username == "agent-fictitious"
+    assert entry.withheld == ("Password",)
 
-    with pytest.raises(AttributeError, match="may not read protected values"):
+    # The message names the field and says what would open it, which is the operator adding
+    # `P` to the rule that already lets this client read the entry rather than a new pairing.
+    with pytest.raises(Withheld, match=r"'Password' is withheld.*rule that lets this client read"):
         _ = entry.password
+
+
+#: A read answer holding a withheld value among each kind of string: a standard one, a custom
+#: one, and readable ones of both kinds beside them.
+WITHHOLDING = {
+    "uuid": UUID,
+    "group": OTHER,
+    "fields": {
+        "Title": "an invented service",
+        "UserName": "agent-fictitious",
+        "Password": None,
+        "Invented": "a custom one",
+        "Deploy key": None,
+    },
+    "protected": ["Password", "Deploy key"],
+}
+
+#: Every path a caller has to a withheld value, each of which has to raise rather than hand back
+#: anything at all. `getattr` with a default and `hasattr` are here because they swallow an
+#: `AttributeError`, which is why `Withheld` is not one.
+WITHHELD_PATHS: list[tuple[str, Callable[[Entry], object]]] = [
+    ("the attribute", lambda entry: entry.password),
+    ("getattr with a default", lambda entry: getattr(entry, "password", "")),
+    ("hasattr", lambda entry: hasattr(entry, "password")),
+    ("by name", lambda entry: entry.fields["Password"] if entry.fields is not None else None),
+    ("get", lambda entry: entry.fields.get("Password") if entry.fields is not None else None),
+    (
+        "get with a default",
+        lambda entry: entry.fields.get("Password", "") if entry.fields is not None else None,
+    ),
+    ("values", lambda entry: list(entry.fields.values()) if entry.fields is not None else None),
+    ("items", lambda entry: list(entry.fields.items()) if entry.fields is not None else None),
+    ("dict", lambda entry: dict(entry.fields) if entry.fields is not None else None),
+    ("a custom one by name", lambda entry: entry.custom()["Deploy key"]),
+    ("a custom one by get", lambda entry: entry.custom().get("Deploy key", "")),
+    ("the custom values", lambda entry: list(entry.custom().values())),
+]
+
+
+class TestAWithheldValueIsNeverAValue:
+    """`Withheld` from every way of reading one, and the names still told truthfully."""
+
+    @pytest.fixture
+    def entry(self, gate: FakeGate, paired: GateClient) -> Entry:
+        answering(gate, WITHHOLDING)
+        return paired.entry(UUID)
+
+    @pytest.mark.parametrize(
+        "read", [case[1] for case in WITHHELD_PATHS], ids=[case[0] for case in WITHHELD_PATHS]
+    )
+    def test_every_way_of_reading_one_raises(
+        self, entry: Entry, read: Callable[[Entry], object]
+    ) -> None:
+        with pytest.raises(Withheld):
+            read(entry)
+
+    def test_the_names_say_what_the_entry_holds_withheld_ones_included(self, entry: Entry) -> None:
+        assert entry.fields is not None
+        assert list(entry.fields) == ["Title", "UserName", "Password", "Invented", "Deploy key"]
+        assert len(entry.fields) == 5
+        assert "Password" in entry.fields
+        assert "Absent" not in entry.fields
+        assert entry.fields.withheld == ("Password", "Deploy key")
+        assert entry.withheld == ("Password", "Deploy key")
+        assert list(entry.custom()) == ["Invented", "Deploy key"]
+        assert entry.custom().withheld == ("Deploy key",)
+
+    def test_every_value_this_client_may_read_is_read_by_asking_first(self, entry: Entry) -> None:
+        # What the documentation shows: ask, rather than catch, and nothing withheld is touched.
+        assert entry.fields is not None
+        readable = {name: entry.fields[name] for name in entry.fields if name not in entry.withheld}
+
+        assert readable == {
+            "Title": "an invented service",
+            "UserName": "agent-fictitious",
+            "Invented": "a custom one",
+        }
+
+    def test_a_name_the_entry_does_not_hold_is_a_key_error_as_in_any_mapping(
+        self, entry: Entry
+    ) -> None:
+        assert entry.fields is not None
+        assert entry.fields.get("Absent") is None
+        assert entry.fields.get("Absent", "fallback") == "fallback"
+
+        with pytest.raises(KeyError):
+            _ = entry.fields["Absent"]
+
+    def test_entries_holding_a_withheld_value_compare_and_hash_without_reading_it(
+        self, entry: Entry
+    ) -> None:
+        # A mapping compares by reading its items, which here would raise out of `==`.
+        again = Entry.read(WITHHOLDING)
+
+        assert entry == again
+        assert hash(entry.fields) == hash(again.fields)
+        assert entry.fields != {"Title": "an invented service"}, "a dict holds no withheld value"
+
+    def test_with_nothing_withheld_the_strings_compare_to_a_plain_mapping(self) -> None:
+        assert Fields({"Title": "x", "URL": ""}) == {"URL": "", "Title": "x"}
+        assert Fields({"Title": "x"}) != {"Title": "y"}
+        assert Fields({"Title": "x"}) != "x", "and to nothing that is not a mapping"
+
+    def test_the_strings_print_their_names_and_no_value(self, entry: Entry) -> None:
+        # A repr is what a log line or a traceback carries, so it names what is there and which
+        # of it is withheld, and shows none of what is readable either.
+        printed = repr(entry.fields)
+
+        assert "'Password'" in printed and "'Invented'" in printed
+        assert "a custom one" not in printed
+        assert "agent-fictitious" not in printed
+
+    def test_a_withheld_value_is_withheld_on_its_own_route_too(
+        self, gate: FakeGate, paired: GateClient
+    ) -> None:
+        answering(gate, {"name": "Password", "protected": True, "value": None})
+
+        read = paired.field(UUID, "Password")
+
+        assert read.withheld
+        assert read.is_read, "it was read, and refused"
+        with pytest.raises(Withheld, match="'Password' is withheld") as refused:
+            _ = read.value
+        assert refused.value.name == "Password"
+
+    def test_a_listed_field_has_no_value_rather_than_a_withheld_one(
+        self, gate: FakeGate, paired: GateClient
+    ) -> None:
+        # Never asked for, which is absence, `AttributeError`, as for a listed entry's password.
+        answering(gate, {"fields": [{"name": "Password", "protected": True}]})
+
+        listed = paired.fields(UUID)[0]
+
+        assert not listed.withheld
+        assert not listed.is_read
+        with pytest.raises(AttributeError, match="listed rather than read"):
+            _ = listed.value
 
 
 def test_an_entry_is_made_changed_and_removed(gate: FakeGate, paired: GateClient) -> None:
@@ -229,10 +370,12 @@ def test_every_create_takes_the_201_the_document_declares(
     paired.create_attachment(UUID, "invented.txt", b"nothing real")
 
 
-def test_a_withheld_title_is_none_rather_than_the_word(
+def test_a_title_a_listing_withholds_raises_rather_than_reading_as_none(
     gate: FakeGate, paired: GateClient
 ) -> None:
-    """A listing withholds a protected title, and `None` is what that looks like."""
+    """A listing withholds a protected title, and reading it says so rather than answer `None`."""
+    # The message names the rule that let this client list the entry, which is the one a
+    # listing answers to.
     answering(
         gate,
         {
@@ -252,18 +395,38 @@ def test_a_withheld_title_is_none_rather_than_the_word(
 
     listed = paired.entries()[0]
 
-    assert listed.title is None
-    assert listed.url is None
+    assert listed.withheld == ("Title", "URL")
+    with pytest.raises(Withheld, match="rule that lets this client list the entry"):
+        _ = listed.title
+    with pytest.raises(Withheld, match="'URL' is withheld"):
+        _ = listed.url
 
 
-def test_a_withheld_field_value_stays_none(gate: FakeGate, paired: GateClient) -> None:
+@pytest.mark.parametrize("member", ["title", "url"])
+def test_a_listing_that_does_not_say_a_title_or_a_url_is_not_read_as_either(
+    gate: FakeGate, paired: GateClient, member: str
+) -> None:
+    # The document requires both on every listed entry, `null` when withheld. One that is missing
+    # is not withheld and not empty either: it is an answer this client cannot read.
+    summary = {"uuid": UUID, "group": OTHER, "title": "x", "url": ""}
+    del summary[member]
+    answering(gate, {"entries": [summary], "count": 1})
+
+    with pytest.raises(ProtocolError, match=member):
+        paired.entries()
+
+
+def test_a_withheld_field_value_is_withheld_rather_than_none(
+    gate: FakeGate, paired: GateClient
+) -> None:
     """Reading one protected field without the switch answers `null`, not the word "None"."""
     answering(gate, {"name": "Password", "protected": True, "value": None})
 
     read = paired.field(UUID, "Password")
 
-    assert read.value is None
-    assert not read.is_read, "a value that was refused was not read"
+    assert read.withheld
+    with pytest.raises(Withheld):
+        _ = read.value
 
 
 def test_fields_are_listed_read_added_changed_and_removed(
@@ -804,6 +967,13 @@ UNREADABLE: list[tuple[str, dict[str, Any], Callable[[GateClient], object]]] = [
      lambda c: c.fields(UUID)),
     ("a field whose value is a number", {"name": "x", "value": 7, "protected": False},
      lambda c: c.field(UUID, "x")),
+    ("a field read with no value at all", {"name": "x", "protected": False},
+     lambda c: c.field(UUID, "x")),
+    (
+        "a listed title that is a number",
+        {"entries": [{"uuid": UUID, "group": OTHER, "title": 7, "url": ""}]},
+        lambda c: c.entries(),
+    ),
     ("a size that is a word", {"attachments": [{"name": "a.txt", "size": "big"}]},
      lambda c: c.attachments(UUID)),
     ("content cut short", {"name": "a.txt", "size": 3, "content": "abc"},
@@ -873,22 +1043,29 @@ def test_a_listed_entry_holds_no_custom_fields_rather_than_none(
 def test_a_value_withheld_on_its_own_still_says_it_is_protected(
     gate: FakeGate, paired: GateClient
 ) -> None:
-    # `is_read` cannot tell a withheld value from a name that was only listed: both are `None`.
-    # `protected` is what does, so it has to arrive as the gate said it.
+    # Withheld and protected are two answers, and both arrive as the gate said them: a protected
+    # value the rule opens is protected and not withheld.
     answering(gate, {"name": "Password", "protected": True, "value": None})
 
     read = paired.field(UUID, "Password")
 
-    assert read.protected
-    assert read.value is None
+    assert (read.protected, read.withheld) == (True, True)
+
+    answering(gate, {"name": "Password", "protected": True, "value": "not-a-real-password"})
+
+    opened = paired.field(UUID, "Password")
+
+    assert (opened.protected, opened.withheld, opened.value) == (
+        True, False, "not-a-real-password"
+    )
 
 
-def test_a_title_a_read_withholds_is_none_and_one_it_does_not_carry_is_empty(
+def test_a_title_a_read_withholds_raises_and_one_it_does_not_carry_is_empty(
     gate: FakeGate, paired: GateClient
 ) -> None:
-    # `None` is withheld wherever this client says it, and a read carries every string the entry
-    # holds, so a title it does not carry is one the entry does not have: empty, as KeePass shows
-    # it and as a listing of the same entry says.
+    # A read carries every string the entry holds, so a title it does not carry is one the entry
+    # does not have: empty, as KeePass shows it and as a listing of the same entry says. One it
+    # carries as `null` is withheld, which is never empty.
     answering(
         gate,
         {
@@ -902,11 +1079,15 @@ def test_a_title_a_read_withholds_is_none_and_one_it_does_not_carry_is_empty(
 
     withheld = paired.entry(UUID)
 
-    assert (withheld.title, withheld.url) == (None, None)
+    assert withheld.withheld == ("Title", "URL")
+    with pytest.raises(Withheld, match="rule that lets this client read the entry"):
+        _ = withheld.title
+    with pytest.raises(Withheld):
+        _ = withheld.url
     assert withheld.created == datetime(2026, 3, 4, 5, 6, 7, tzinfo=UTC), "in UTC, and aware"
 
     answering(gate, {"uuid": UUID, "group": OTHER, "fields": {}, "protected": []})
 
     bare = paired.entry(UUID)
 
-    assert (bare.title, bare.url) == ("", "")
+    assert (bare.title, bare.url, bare.withheld) == ("", "", ())

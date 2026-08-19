@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import dataclasses
 import json
+import math
+import re
 from pathlib import Path
 from typing import Any
 
@@ -10,16 +13,24 @@ import pytest
 
 from conftest import FakeGate, Issued
 from pykeepassgate import credentials as credentials_module
-from pykeepassgate import sni
+from pykeepassgate import sni, transport
 from pykeepassgate.client import GateClient
-from pykeepassgate.errors import DatabaseLocked, GateBusy, NotAdmitted, RouteRefused
+from pykeepassgate.errors import (
+    DatabaseLocked,
+    GateBusy,
+    NotAdmitted,
+    ProtocolError,
+    RouteRefused,
+    StorageError,
+    TransportError,
+)
 
 
 @pytest.fixture
 def paired(tmp_path: Path, bundle: dict[str, Any], gate: FakeGate) -> GateClient:
     """A client that has been through pairing with this gate."""
     stored = credentials_module.save(tmp_path / "kept", gate.port, bundle)
-    return GateClient(stored, timeout=10.0)
+    return GateClient(stored, connection_timeout=10.0)
 
 
 def test_the_status_route_says_what_the_gate_and_the_database_are(
@@ -146,8 +157,36 @@ def test_a_revoked_client_and_one_that_never_paired_look_the_same(
     # point rather than an omission.
     gate.handler = lambda path, body, client: (401, json.dumps({"error": "unpaired"}))
 
-    with pytest.raises(NotAdmitted, match="no admission record"):
+    with pytest.raises(NotAdmitted, match="never admitted, it was revoked, or it has expired"):
         paired.status()
+
+
+def test_a_certificate_that_has_expired_is_named_as_expired_before_anything_is_dialed(
+    tmp_path: Path, bundle: dict[str, Any], gate: FakeGate
+) -> None:
+    # The gate refuses one as it refuses a stranger, so the `401` would read as a missing record
+    # while the record is there. Pairing stored when it expires, which says it by name.
+    stored = credentials_module.save(
+        tmp_path / "kept", gate.port, {**bundle, "expires": "2001-02-03T04:05:06Z"}
+    )
+
+    with pytest.raises(NotAdmitted, match=r"expired at 2001-02-03T04:05:06Z.*pair again"):
+        GateClient(stored, connection_timeout=10.0).status()
+
+    assert gate.names == [], "nothing was dialed to learn it"
+
+
+@pytest.mark.parametrize("expires", ["", "whenever", "2001-02-03"], ids=["none", "a word", "a day"])
+def test_an_expiry_this_client_cannot_read_leaves_the_gate_to_say(
+    expires: str, tmp_path: Path, bundle: dict[str, Any], gate: FakeGate
+) -> None:
+    # Refusing on a guess would refuse for nothing: the gate decides, as it always did.
+    stored = credentials_module.save(tmp_path / "kept", gate.port, {**bundle, "expires": expires})
+    gate.handler = lambda path, body, client: (200, "{}")
+
+    GateClient(stored, connection_timeout=10.0).get("/gate/status")
+
+    assert gate.requests == [("GET", "/gate/status")]
 
 
 def test_a_refusal_carries_the_status_and_the_word_the_gate_used(
@@ -179,8 +218,11 @@ def test_a_client_is_one_identity_for_as_long_as_it_lives(
     # connections from the new key while still presenting the old certificate.
     stored = credentials_module.save(tmp_path / "kept", gate.port, bundle)
     paired_with = stored.gate_key
-    client = GateClient(stored, timeout=10.0)
-    gate.handler = lambda path, body, certificate: (200, json.dumps({"ok": True}))
+    client = GateClient(stored, connection_timeout=10.0)
+    gate.handler = lambda path, body, certificate: (
+        200,
+        json.dumps({"ok": True, "database": "abcdef01", "version": "0.1.0"}),
+    )
 
     client.status()
 
@@ -202,7 +244,93 @@ def test_opening_a_client_can_say_how_long_to_wait(
     # build one, and it used to take the default and offer no way past it.
     credentials_module.save(tmp_path / "kept", gate.port, bundle)
 
-    assert GateClient.open(tmp_path / "kept", timeout=3.5)._timeout == 3.5
+    assert GateClient.open(tmp_path / "kept", connection_timeout=3.5)._connection_timeout == 3.5
+
+
+def test_a_client_dials_loopback_unless_it_is_told_otherwise(
+    tmp_path: Path, bundle: dict[str, Any], gate: FakeGate
+) -> None:
+    stored = credentials_module.save(tmp_path / "kept", gate.port, bundle)
+
+    assert GateClient(stored).host == transport.LOOPBACK
+
+
+def test_a_client_dials_the_host_it_was_given(
+    tmp_path: Path, bundle: dict[str, Any], gate: FakeGate
+) -> None:
+    # The gate binds to loopback, so a tunnel is what puts it anywhere else, and the tunnel's own
+    # end is an address like any other. `localhost` resolves to the same socket here, which is what
+    # makes this provable without one: the string travels the whole way down or the connection is
+    # made to the default instead and this passes for the wrong reason. So the name is different
+    # from the default and the request still arrives.
+    stored = credentials_module.save(tmp_path / "kept", gate.port, bundle)
+    client = GateClient(stored, connection_timeout=10.0, host="localhost")
+    gate.handler = lambda path, body, client: (200, "{}")
+
+    client.get("/gate/status")
+
+    assert client.host == "localhost"
+    assert gate.requests == [("GET", "/gate/status")]
+
+
+def test_a_client_that_dials_nowhere_says_where_it_tried(
+    tmp_path: Path, bundle: dict[str, Any], gate: FakeGate
+) -> None:
+    stored = credentials_module.save(tmp_path / "kept", gate.port, bundle)
+    client = GateClient(stored, connection_timeout=10.0, host="127.0.0.2")
+
+    with pytest.raises(TransportError, match=re.escape("127.0.0.2")):
+        client.status()
+
+
+def test_a_client_opened_from_disk_takes_a_host_too(
+    tmp_path: Path, bundle: dict[str, Any], gate: FakeGate
+) -> None:
+    credentials_module.save(tmp_path / "kept", gate.port, bundle)
+
+    client = GateClient.open(tmp_path / "kept", host="localhost")
+
+    assert client.host == "localhost", "the identity says which gate, the caller says where it is"
+
+
+def test_an_answer_over_the_client_s_cap_fails_whole(
+    tmp_path: Path, bundle: dict[str, Any], gate: FakeGate
+) -> None:
+    # The cap a client was built with is the one its connections read under, rather than the
+    # module's default: the answer here is far under 4 MiB and over the number given.
+    stored = credentials_module.save(tmp_path / "kept", gate.port, bundle)
+    gate.handler = lambda path, body, client: (200, json.dumps({"groups": ["x" * 4096]}))
+
+    # Not a connection that failed, which is what `TransportError` says and what a caller retries:
+    # the same answer would meet the same cap. The message names what raises it.
+    with pytest.raises(ProtocolError, match=r"over 1024 bytes.*max_response_bytes"):
+        GateClient(stored, connection_timeout=10.0, max_response_bytes=1024).groups()
+
+
+def test_a_cap_raised_past_an_answer_takes_it(
+    tmp_path: Path, bundle: dict[str, Any], gate: FakeGate
+) -> None:
+    # What a caller with a database too large for the default does, since the gate does not page.
+    credentials_module.save(tmp_path / "kept", gate.port, bundle)
+    gate.handler = lambda path, body, client: (200, json.dumps({"ok": True, "pad": "x" * 4096}))
+
+    client = GateClient.open(
+        tmp_path / "kept", connection_timeout=10.0, max_response_bytes=8192
+    )
+
+    assert client.get("/gate/status")["ok"] is True
+
+
+@pytest.mark.parametrize("cap", [0, -1])
+def test_a_cap_nothing_fits_under_is_refused_before_anything_is_dialed(
+    cap: int, tmp_path: Path, bundle: dict[str, Any], gate: FakeGate
+) -> None:
+    stored = credentials_module.save(tmp_path / "kept", gate.port, bundle)
+
+    with pytest.raises(ValueError, match="positive number of bytes"):
+        GateClient(stored, max_response_bytes=cap)
+
+    assert gate.requests == []
 
 
 def test_a_head_asks_whether_a_route_answers_without_taking_the_answer(
@@ -237,3 +365,242 @@ def test_a_head_this_client_may_not_reach_is_refused_like_any_other(
 
     with pytest.raises(NotAdmitted):
         paired.head("/gate/status")
+
+
+class TestWaitingOutARefusal:
+    """The two retry budgets, which are `None` unless a caller says otherwise."""
+
+    @pytest.fixture
+    def waited(self, monkeypatch: pytest.MonkeyPatch) -> list[float]:
+        """Every delay that would have been slept, without sleeping any of them."""
+        recorded: list[float] = []
+        monkeypatch.setattr(transport, "pause", recorded.append)
+        return recorded
+
+    @staticmethod
+    def _refusing(gate: FakeGate, times: int, error: str = "busy") -> None:
+        """Refuse that many requests with that `503`, then answer the next one."""
+        left = [times]
+
+        def answer(path: str, body: str, client: bytes | None) -> tuple[int, str]:
+            if left[0] > 0:
+                left[0] -= 1
+                return 503, json.dumps({"error": error})
+
+            return 200, json.dumps({"ok": True, "database": "abcdef01", "version": "0.1.0"})
+
+        gate.handler = answer
+        gate.retry_after = "2"
+
+    @staticmethod
+    def _client(
+        stored: credentials_module.Credentials,
+        retry_busy_timeout: float | None = None,
+        retry_locked_timeout: float | None = None,
+    ) -> GateClient:
+        return GateClient(
+            stored,
+            connection_timeout=10.0,
+            retry_busy_timeout=retry_busy_timeout,
+            retry_locked_timeout=retry_locked_timeout,
+        )
+
+    def test_a_client_with_no_budget_raises_the_refusal_exactly_as_it_always_did(
+        self, gate: FakeGate, paired: GateClient, waited: list[float]
+    ) -> None:
+        self._refusing(gate, 1)
+
+        with pytest.raises(GateBusy):
+            paired.status()
+
+        assert len(gate.requests) == 1, "it asked once and reported what it was told"
+        assert waited == []
+
+    def test_a_busy_budget_asks_again_until_the_gate_stops_refusing(
+        self, tmp_path: Path, bundle: dict[str, Any], gate: FakeGate, waited: list[float]
+    ) -> None:
+        stored = credentials_module.save(tmp_path / "kept", gate.port, bundle)
+        self._refusing(gate, 2)
+
+        assert self._client(stored, retry_busy_timeout=30.0).status().ok
+        assert len(gate.requests) == 3
+        assert waited == [2.0, 2.0], "it waited what the gate asked for, twice"
+
+    def test_the_delay_is_the_gate_s_rather_than_one_this_client_invented(
+        self, tmp_path: Path, bundle: dict[str, Any], gate: FakeGate, waited: list[float]
+    ) -> None:
+        stored = credentials_module.save(tmp_path / "kept", gate.port, bundle)
+        self._refusing(gate, 1)
+        gate.retry_after = "5"
+
+        assert self._client(stored, retry_busy_timeout=30.0).status().ok
+        assert waited == [5.0]
+
+    def test_a_retry_is_a_new_connection_under_a_new_name(
+        self, tmp_path: Path, bundle: dict[str, Any], gate: FakeGate, waited: list[float]
+    ) -> None:
+        # The gate serves one request per connection, so a retry has to be a new one; the name is
+        # minted per connection, so an observer watching a client wait out a busy KeePass sees
+        # three different names rather than one repeated.
+        stored = credentials_module.save(tmp_path / "kept", gate.port, bundle)
+        self._refusing(gate, 2)
+
+        assert self._client(stored, retry_busy_timeout=30.0).status().ok
+        assert len(gate.names) == 3
+        assert len(set(gate.names)) == 3
+
+    def test_a_busy_budget_does_not_wait_out_a_lock(
+        self, tmp_path: Path, bundle: dict[str, Any], gate: FakeGate, waited: list[float]
+    ) -> None:
+        # The point of there being two. A lock waits for a person to come back to their desk and
+        # can arrive on its own; a busy KeePass is in the middle of something and will finish.
+        stored = credentials_module.save(tmp_path / "kept", gate.port, bundle)
+        self._refusing(gate, 1, "locked")
+
+        with pytest.raises(DatabaseLocked):
+            self._client(stored, retry_busy_timeout=30.0).status()
+
+        assert len(gate.requests) == 1
+        assert waited == []
+
+    def test_a_locked_budget_waits_out_a_lock_and_not_a_busy_gate(
+        self, tmp_path: Path, bundle: dict[str, Any], gate: FakeGate, waited: list[float]
+    ) -> None:
+        stored = credentials_module.save(tmp_path / "kept", gate.port, bundle)
+        self._refusing(gate, 1, "locked")
+
+        assert self._client(stored, retry_locked_timeout=30.0).status().ok
+        assert waited == [2.0]
+
+    def test_a_locked_budget_waits_out_the_identity_a_locked_database_answers_with(
+        self, tmp_path: Path, bundle: dict[str, Any], gate: FakeGate, responder: Issued,
+        waited: list[float],
+    ) -> None:
+        # The safest refusal there is to repeat: nothing was sent, because a responder is refused
+        # before the request. Nothing says when to come back either, so the fallback covers it.
+        stored = credentials_module.save(tmp_path / "kept", gate.port, bundle)
+        gate.serve_with(responder)
+
+        with pytest.raises(DatabaseLocked):
+            self._client(stored, retry_locked_timeout=5.0).status()
+
+        assert waited == [transport.FALLBACK_RETRY_AFTER, transport.FALLBACK_RETRY_AFTER]
+
+    def test_a_refusal_waiting_cannot_fix_is_not_sent_round_a_loop(
+        self, tmp_path: Path, bundle: dict[str, Any], gate: FakeGate, waited: list[float]
+    ) -> None:
+        stored = credentials_module.save(tmp_path / "kept", gate.port, bundle)
+        gate.handler = lambda path, body, client: (500, json.dumps({"error": "internal error"}))
+        gate.retry_after = "2"
+
+        with pytest.raises(RouteRefused):
+            self._client(stored, retry_busy_timeout=30.0, retry_locked_timeout=30.0).status()
+
+        assert len(gate.requests) == 1
+        assert waited == []
+
+    def test_one_call_can_ask_for_a_budget_the_client_was_not_built_with(
+        self, gate: FakeGate, paired: GateClient, waited: list[float]
+    ) -> None:
+        self._refusing(gate, 1)
+
+        assert paired.get("/gate/status", retry_busy_timeout=30.0)["ok"] is True
+        assert waited == [2.0]
+
+    def test_one_call_can_take_away_a_budget_the_client_was_built_with(
+        self, tmp_path: Path, bundle: dict[str, Any], gate: FakeGate, waited: list[float]
+    ) -> None:
+        # Which is why "not given" cannot be `None`: `None` is a decision, and a call has to be
+        # able to make it against a client that was built to wait.
+        stored = credentials_module.save(tmp_path / "kept", gate.port, bundle)
+        self._refusing(gate, 1)
+        client = self._client(stored, retry_busy_timeout=30.0)
+
+        with pytest.raises(GateBusy):
+            client.get("/gate/status", retry_busy_timeout=None)
+
+        assert waited == []
+
+
+@pytest.mark.parametrize(
+    ("setting", "value"),
+    [
+        ("connection_timeout", 0.0),
+        ("connection_timeout", math.nan),
+        ("connection_timeout", -1.0),
+        ("retry_busy_timeout", math.nan),
+        ("retry_locked_timeout", -1.0),
+        ("retry_locked_timeout", math.inf),
+        ("max_response_bytes", 1.5),
+    ],
+)
+def test_a_client_given_a_setting_that_cannot_work_is_refused_before_anything_is_dialed(
+    setting: str, value: float, tmp_path: Path, bundle: dict[str, Any], gate: FakeGate
+) -> None:
+    # The command line refuses each of these as an argument, and a program has to meet the same
+    # refusal: a NaN budget used to wait out a `503` forever, and a bad socket timeout left the
+    # first call as a `ValueError` or an `OverflowError` from inside `socket`.
+    stored = credentials_module.save(tmp_path / "kept", gate.port, bundle)
+    given: dict[str, Any] = {setting: value}
+
+    with pytest.raises(ValueError, match=setting):
+        GateClient(stored, **given)
+
+    with pytest.raises(ValueError, match=setting):
+        GateClient.open(tmp_path / "kept", **given)
+
+    assert gate.names == []
+
+
+def test_a_budget_given_for_one_call_is_held_to_the_same_rule(
+    gate: FakeGate, paired: GateClient
+) -> None:
+    with pytest.raises(ValueError, match="retry_busy_timeout"):
+        paired.get("/gate/status", retry_busy_timeout=math.nan)
+
+    with pytest.raises(ValueError, match="retry_locked_timeout"):
+        paired.head("/gate/status", retry_locked_timeout=-1.0)
+
+    assert gate.names == []
+
+
+def test_credentials_naming_a_port_tcp_does_not_have_make_no_client(
+    tmp_path: Path, bundle: dict[str, Any], gate: FakeGate
+) -> None:
+    # `load` refuses such a file; this is a `Credentials` a program built for itself.
+    stored = credentials_module.save(tmp_path / "kept", gate.port, bundle)
+
+    with pytest.raises(ValueError, match="port"):
+        GateClient(dataclasses.replace(stored, port=70000))
+
+
+def test_an_identity_cut_short_opens_no_client_and_says_which_file(
+    tmp_path: Path, bundle: dict[str, Any], gate: FakeGate
+) -> None:
+    # `client.json` reads and names its port, so `load` finds nothing wrong: the key beside it is
+    # read first by `ssl`, as the client is built, and used to leave as an `SSLError`.
+    stored = credentials_module.save(tmp_path / "kept", gate.port, bundle)
+    stored.identity.write_bytes(stored.identity.read_bytes()[:300])
+
+    with pytest.raises(StorageError, match=r"identity\.pem"):
+        GateClient.open(tmp_path / "kept")
+
+
+@pytest.mark.parametrize(
+    "answer",
+    [
+        {"ok": "false", "database": "abcdef01", "version": "0.1.0"},
+        {"ok": True, "database": None, "version": "0.1.0"},
+        {"ok": True, "database": "abcdef01"},
+    ],
+    ids=["ok as text", "a null database", "no version"],
+)
+def test_a_status_this_client_cannot_read_is_a_protocol_error(
+    answer: dict[str, Any], gate: FakeGate, paired: GateClient
+) -> None:
+    # `bool` read the text "false" as true, so a script reading the exit code was told the gate
+    # was serving, and `str` made a `null` database the word "None".
+    gate.handler = lambda path, body, client: (200, json.dumps(answer))
+
+    with pytest.raises(ProtocolError, match="status"):
+        paired.status()

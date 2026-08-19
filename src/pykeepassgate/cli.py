@@ -16,11 +16,17 @@ reached, `2` the arguments were wrong. A script can branch on that without readi
 from __future__ import annotations
 
 import argparse
+import getpass
+import math
 import sys
+import unicodedata
+from datetime import datetime
 from pathlib import Path
+from typing import Literal, TypedDict
 
 from . import api
-from .errors import GateError
+from .errors import GateError, ProtocolError
+from .model import TITLE
 
 #: Everything went wrong that this program knows how to be wrong about.
 FAILED = 1
@@ -38,11 +44,9 @@ def main(argv: list[str] | None = None) -> int:
         return int(arguments.run(arguments))
     except GateError as error:
         # The exception hierarchy already says what happened in a sentence a person can act on, so
-        # the command line adds nothing to it beyond the class name for anybody grepping.
+        # the command line adds nothing to it beyond the class name for anybody grepping. That
+        # covers a profile nothing has paired under, which is `NotPaired`.
         print(f"{type(error).__name__}: {error}", file=sys.stderr)
-        return FAILED
-    except FileNotFoundError as error:
-        print(str(error), file=sys.stderr)
         return FAILED
 
 
@@ -65,7 +69,7 @@ def _parser() -> argparse.ArgumentParser:
 
     pairing.add_argument(
         "--port",
-        type=int,
+        type=_port,
         default=DEFAULT_PORT,
         help=f"the port the gate is listening on, {DEFAULT_PORT} unless its operator chose another",
     )
@@ -81,10 +85,22 @@ def _parser() -> argparse.ArgumentParser:
 
     pairing.add_argument(
         "--invitation",
-        help="the invitation from the tab. Omit it and it is read from standard input instead.",
+        help=(
+            "the invitation from the tab. Omit it and it is read from standard input instead, "
+            "asked for at a terminal, showing a * for each character."
+        ),
+    )
+    pairing.add_argument(
+        "--allow-shared-directory",
+        action="store_true",
+        help=(
+            "keep the identity in a directory another account owns or may write to, which is "
+            "otherwise refused; every other check on the directory still applies"
+        ),
     )
 
     _shared(pairing)
+    _dialed(pairing)
     pairing.set_defaults(run=_pair)
 
     status = commands.add_parser(
@@ -93,6 +109,7 @@ def _parser() -> argparse.ArgumentParser:
     )
 
     _shared(status)
+    _dialed(status)
     status.set_defaults(run=_status)
 
     who = commands.add_parser("whoami", help="say what this client is, without connecting")
@@ -110,6 +127,7 @@ def _parser() -> argparse.ArgumentParser:
 
     groups.add_argument("--under", help="a group identifier, or root, to list one level below")
     _shared(groups)
+    _dialed(groups)
     groups.set_defaults(run=_groups)
 
     entries = commands.add_parser(
@@ -121,21 +139,33 @@ def _parser() -> argparse.ArgumentParser:
         "--group",
         help="a group identifier, or root, for that group's own entries",
     )
+    entries.add_argument(
+        "--include-expired",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help=(
+            "list the entries that have expired along with the rest, which is the default; "
+            "--no-include-expired leaves them out, judged by the gate as KeePass judges one"
+        ),
+    )
     _shared(entries)
+    _dialed(entries)
     entries.set_defaults(run=_entries)
 
     show = commands.add_parser(
         "show",
         help="read one entry, secrets included",
         description=(
-            "Prints every string the entry holds. A protected one arrives only when the rule "
-            "grants `protected`. Redirect it or read it directly: this is the one command "
-            "that puts a password on a terminal."
+            "Prints every string the entry holds, one to a line, with a line break inside one "
+            "written as \\n. A protected one arrives only when the rule grants `protected`. "
+            "Redirect it or read it directly: this is the one command that puts a password on "
+            "a terminal."
         ),
     )
 
     show.add_argument("uuid", help="the entry's identifier")
     _shared(show)
+    _dialed(show)
     show.set_defaults(run=_show)
 
     add = commands.add_parser("add", help="create an entry in a group")
@@ -145,22 +175,36 @@ def _parser() -> argparse.ArgumentParser:
     add.add_argument("--url", help="the address")
     add.add_argument("--notes", help="the notes")
     add.add_argument(
+        "--expires",
+        type=_expiry,
+        help=(
+            "when it expires: a moment with its time zone, such as 2031-02-03T04:05:06Z, or auto "
+            "for whatever KeePass's options give a new entry. Left off, it does not expire."
+        ),
+    )
+    add.add_argument(
         "--password",
         action="store_true",
-        help="read the password from standard input, so it stays out of the process list",
+        help=(
+            "read the password from standard input, so it stays out of the process list; at a "
+            "terminal it is asked for, showing a * for each character"
+        ),
     )
 
     _shared(add)
+    _dialed(add)
     add.set_defaults(run=_add)
 
     remove = commands.add_parser("remove", help="delete an entry")
     remove.add_argument("uuid", help="the entry's identifier")
     _shared(remove)
+    _dialed(remove)
     remove.set_defaults(run=_remove)
 
     files = commands.add_parser("attachments", help="list an entry's attachments")
     files.add_argument("uuid", help="the entry's identifier")
     _shared(files)
+    _dialed(files)
     files.set_defaults(run=_attachments)
 
     fetch = commands.add_parser("fetch", help="write one attachment to a file")
@@ -168,6 +212,7 @@ def _parser() -> argparse.ArgumentParser:
     fetch.add_argument("name", help="the attachment's name")
     fetch.add_argument("--to", type=Path, required=True, help="where to write it")
     _shared(fetch)
+    _dialed(fetch)
     fetch.set_defaults(run=_fetch)
 
     return parser
@@ -182,8 +227,12 @@ def _shared(parser: argparse.ArgumentParser) -> None:
     where = parser.add_mutually_exclusive_group()
     where.add_argument(
         "--profile",
+        type=_profile,
         default="default",
-        help="which stored identity to use, since a client can pair with more than one database",
+        help=(
+            "which stored identity to use, by name, since a client can pair with more than one "
+            "database; a path is --directory"
+        ),
     )
 
     where.add_argument(
@@ -192,34 +241,274 @@ def _shared(parser: argparse.ArgumentParser) -> None:
         help="where the identity is stored, if not the usual place for this platform",
     )
 
+
+def _dialed(parser: argparse.ArgumentParser) -> None:
+    """Where to open the socket, for the commands that open one.
+
+    Not on `whoami`, which answers out of the stored identity and never connects: an option that
+    cannot change what a command does is an option that misleads whoever reads `--help`.
+    """
     parser.add_argument(
-        "--timeout",
-        type=float,
+        "--host",
+        default=api.LOOPBACK,
+        help=(
+            "where to dial, if the gate is not reachable on loopback. It binds to loopback, so "
+            "anything else is the local end of a tunnel somebody put in front of it."
+        ),
+    )
+
+    # The socket's own timeout, and the two budgets for waiting out a refusal, all belong to a
+    # command that opens a socket and asks for an answer, which `whoami` does not. The same rule
+    # as `--host` above them.
+    parser.add_argument(
+        "--connection-timeout",
+        type=_seconds,
         default=None,
-        help="seconds to wait for the gate, if not the default for what is being done",
+        help=(
+            "seconds any one wait on the socket may last, the dial, the handshake or a read, if "
+            "not the default for what is being done"
+        ),
+    )
+
+    parser.add_argument(
+        "--retry-busy-timeout",
+        type=_budget,
+        default=None,
+        help=(
+            "seconds to go on waiting out a KeePass that is busy, asking again for as long as "
+            "that allows. Without it a refusal is reported at once, which is the default."
+        ),
+    )
+
+    parser.add_argument(
+        "--retry-locked-timeout",
+        type=_budget,
+        default=None,
+        help=(
+            "the same for a locked database. Separate, because a lock waits for a person to come "
+            "back and being busy does not."
+        ),
+    )
+
+    # How much of one answer to read, beside the socket's timeout because it too bounds what one
+    # connection may cost. The plugin does not page, so a listing grows with the database.
+    parser.add_argument(
+        "--max-response-bytes",
+        type=_byte_count,
+        default=None,
+        metavar="BYTES",
+        help=(
+            f"the most of one answer to read, {api.MAX_RESPONSE_BYTES} unless this says "
+            "otherwise. The gate does not page, so a very large database may need it raised; an "
+            "answer over it fails whole rather than arriving cut short."
+        ),
     )
 
 
-def _waiting(arguments: argparse.Namespace) -> dict[str, float]:
-    """What `--timeout` asked for, or nothing so each call keeps its own default.
+def _byte_count(text: str) -> int:
+    """A cap on an answer, refused here as an argument rather than later as a failed call."""
+    try:
+        value = int(text)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"{text!r} is not a whole number of bytes") from None
 
-    Named rather than written out at each call because it was written out at one: every command
-    took the flag and only pairing read it, so `--timeout` on a read was accepted, ignored, and
-    reported nowhere.
+    if value <= 0:
+        raise argparse.ArgumentTypeError(f"an answer is capped at a positive number, not {value}")
+
+    return value
+
+
+def _port(text: str) -> int:
+    """A TCP port, refused here as an argument rather than reported later as nothing listening.
+
+    Passed on, a number outside what TCP has would reach the socket and come back as a
+    connection that failed, exit code 1, which a script cannot tell from a gate that is not there.
     """
-    return {} if arguments.timeout is None else {"timeout": arguments.timeout}
+    try:
+        value = int(text)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"{text!r} is not a port number") from None
+
+    if not 0 < value <= 65535:
+        raise argparse.ArgumentTypeError(f"a port is from 1 to 65535, not {value}")
+
+    return value
+
+
+def _seconds(text: str) -> float:
+    """How long the socket waits, which has to be a finite number of seconds above zero.
+
+    Zero would make the socket non-blocking, so the dial would fail at once and read as nothing
+    listening. A negative number, NaN or infinity is refused by `socket` itself with a
+    `ValueError` or an `OverflowError`, neither of which is a `GateError`, so it would leave
+    `main` as a traceback rather than as an exit code.
+    """
+    value = _finite(text)
+    if value <= 0:
+        raise argparse.ArgumentTypeError(f"a timeout is more than zero seconds, not {text}")
+
+    return value
+
+
+def _budget(text: str) -> float:
+    """How long a refusal may be waited out: a finite number of seconds, where zero waits none.
+
+    NaN compares false with every delay, so a budget of NaN would never be spent and a refusal
+    would be asked again forever; a negative one would read as a decision it is not.
+    """
+    value = _finite(text)
+    if value < 0:
+        raise argparse.ArgumentTypeError(f"a budget is zero or more seconds, not {text}")
+
+    return value
+
+
+def _finite(text: str) -> float:
+    """A number of seconds that is a number, before either kind of timeout asks anything more."""
+    try:
+        value = float(text)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"{text!r} is not a number of seconds") from None
+
+    if not math.isfinite(value):
+        raise argparse.ArgumentTypeError(f"{text!r} is not a finite number of seconds")
+
+    return value
+
+
+def _profile(text: str) -> str:
+    """A stored identity's name, refused here as an argument rather than joined as a path.
+
+    The library says what a profile's name is, and this asks it rather than keeping a copy of the
+    rule: a separator or `..` stored the identity beside the others, and an absolute path
+    somewhere else altogether, where `whoami` read it back as though it were a profile.
+    """
+    try:
+        api.default_directory(text)
+    except ValueError as error:
+        raise argparse.ArgumentTypeError(str(error)) from None
+
+    return text
+
+
+def _expiry(text: str) -> datetime | Literal["auto"]:
+    """When a new entry expires, refused here as an argument rather than later as a failed call.
+
+    A moment with no time zone is refused rather than taken for local time or for UTC, because
+    which instant it names would be a guess, and an expiry a guess moved by an hour is wrong.
+    """
+    if text == "auto":
+        return "auto"
+
+    try:
+        when = datetime.fromisoformat(text)
+    except ValueError:
+        raise argparse.ArgumentTypeError(
+            f"{text!r} is neither auto nor a moment such as 2031-02-03T04:05:06Z"
+        ) from None
+
+    if when.utcoffset() is None:
+        raise argparse.ArgumentTypeError(f"{text!r} names no time zone; end it with Z for UTC")
+
+    return when
+
+
+def _shown(when: datetime | None, expired: bool) -> str:
+    """An expiry as `show` prints it: the moment in UTC, and whether it has passed."""
+    if when is None:
+        return "never"
+
+    return f"{when:%Y-%m-%dT%H:%M:%SZ}" + (" (expired)" if expired else "")
+
+
+#: What ends a line, or moves back along one, wherever it is printed: every control character,
+#: and the separators Unicode keeps for lines and paragraphs, which `str.splitlines` breaks on.
+_LINE_BREAKING = frozenset(("Cc", "Zl", "Zp"))
+
+
+def _printable(text: str) -> str:
+    """A name or a value somebody chose, kept on the one line it is printed on.
+
+    The gate accepts a line feed, a carriage return, a tab and every C1 control in a name, and a
+    read hands back whatever any writer put in the file. Printed as they are, a line feed makes a
+    listing show a row that is not there and a carriage return hides one, and people and scripts
+    both read this output a line at a time. So each is written as its escape, the way Python
+    writes it in a literal; text holding none of them is printed exactly as it is.
+    """
+    return "".join(
+        character.encode("unicode_escape").decode("ascii")
+        if unicodedata.category(character) in _LINE_BREAKING
+        else character
+        for character in text
+    )
+
+
+class _Dialing(TypedDict, total=False):
+    """What a command that dials may pass on, each key only when the command line gave it."""
+
+    connection_timeout: float
+    retry_busy_timeout: float
+    retry_locked_timeout: float
+    max_response_bytes: int
+
+
+def _dialing(arguments: argparse.Namespace) -> _Dialing:
+    """What the command line asked of a connection, and nothing at all for what it did not.
+
+    Passing nothing is what lets each caller keep its own default: a pairing waits on a
+    person and gets `transport.PAIRING_CONNECTION_TIMEOUT`, and everything else gets the
+    ordinary one. Passing `None` through would flatten both into whatever this file decided,
+    and for the two retry budgets `None` is a decision in its own right: do not retry.
+
+    Only the commands that connect are asked, which is every command `_dialed` reaches.
+    """
+    given = _Dialing()
+
+    if arguments.connection_timeout is not None:
+        given["connection_timeout"] = arguments.connection_timeout
+    if arguments.retry_busy_timeout is not None:
+        given["retry_busy_timeout"] = arguments.retry_busy_timeout
+    if arguments.retry_locked_timeout is not None:
+        given["retry_locked_timeout"] = arguments.retry_locked_timeout
+    if arguments.max_response_bytes is not None:
+        given["max_response_bytes"] = arguments.max_response_bytes
+
+    return given
+
+
+def _secret(prompt: str) -> str:
+    """One line of standard input, asked for with a `*` per character when a person is typing it.
+
+    Piped in, it is the line as it was sent. At a terminal a bare read would print nothing, so
+    the command would look hung, and would echo what was typed onto the screen, into scrollback
+    and into any recording of the session, which is what reading it rather than taking it as an
+    argument is meant to avoid. `getpass` asks on the terminal itself, so the prompt reaches
+    neither of the two streams a script reads.
+
+    A `*` stands in for each character because a value is pasted as often as typed, and a prompt
+    that stays blank after a paste looks as if the paste did not land. That says how long the
+    value is, which is the price of it.
+    """
+    if not sys.stdin.isatty():
+        return sys.stdin.readline()
+
+    try:
+        return getpass.getpass(prompt, echo_char="*")
+    except EOFError:
+        # Input ended at the prompt, which a pipe would have given as an empty line.
+        return ""
 
 
 def _pair(arguments: argparse.Namespace) -> int:
-    invitation = arguments.invitation
+    # Stripped whichever way it arrives. A paste brings a space or a line break with it as often
+    # as not, and the token's alphabet holds neither, so taking them off loses nothing and the
+    # argument accepts what standard input does. One of nothing but white space is no invitation,
+    # and is asked for as an empty one is.
+    invitation = (arguments.invitation or "").strip()
     if not invitation:
         # Read rather than argued, so the token does not end up in a shell history or in the
         # process list, where anything running as this user can read it.
-        invitation = sys.stdin.readline().strip()
-
-    # A pairing waits on a person, so it keeps its own longer default unless the caller
-    # says otherwise: see `transport.PAIRING_TIMEOUT`.
-    waiting = _waiting(arguments)
+        invitation = _secret("Invitation: ").strip()
 
     credentials = api.pair(
         port=arguments.port,
@@ -228,7 +517,9 @@ def _pair(arguments: argparse.Namespace) -> int:
         profiles=list(arguments.profiles),
         directory=arguments.directory,
         profile=arguments.profile,
-        **waiting,
+        host=arguments.host,
+        allow_shared_directory=arguments.allow_shared_directory,
+        **_dialing(arguments),
     )
 
     print(f"paired as {credentials.subject} with database {credentials.database}")
@@ -239,7 +530,7 @@ def _pair(arguments: argparse.Namespace) -> int:
 
 def _status(arguments: argparse.Namespace) -> int:
     client = api.GateClient.open(
-        arguments.directory, arguments.profile, **_waiting(arguments)
+        arguments.directory, arguments.profile, arguments.host, **_dialing(arguments)
     )
     status = client.status()
     print(f"gate {status.version} serving database {status.database}")
@@ -260,57 +551,68 @@ def _whoami(arguments: argparse.Namespace) -> int:
 
 def _groups(arguments: argparse.Namespace) -> int:
     client = api.GateClient.open(
-        arguments.directory, arguments.profile, **_waiting(arguments)
+        arguments.directory, arguments.profile, arguments.host, **_dialing(arguments)
     )
     found = client.subgroups(arguments.under) if arguments.under else client.groups()
 
     for group in found:
-        print(f"{group.uuid}  {group.name}")
+        print(f"{group.uuid}  {_printable(group.name)}")
 
     return 0
 
 
 def _entries(arguments: argparse.Namespace) -> int:
     client = api.GateClient.open(
-        arguments.directory, arguments.profile, **_waiting(arguments)
+        arguments.directory, arguments.profile, arguments.host, **_dialing(arguments)
     )
 
-    for entry in client.entries(arguments.group):
-        # A withheld title is not a title. Saying so beats printing the word "None".
-        print(f"{entry.uuid}  {entry.title if entry.title is not None else '(withheld)'}")
+    for entry in client.entries(arguments.group, include_expired=arguments.include_expired):
+        # A withheld title is not a title, and reading one raises. Asked first rather than
+        # caught, so one withheld title does not end the listing.
+        title = "(withheld)" if TITLE in entry.withheld else _printable(entry.title)
+        print(f"{entry.uuid}  {title}")
 
     return 0
 
 
 def _show(arguments: argparse.Namespace) -> int:
     client = api.GateClient.open(
-        arguments.directory, arguments.profile, **_waiting(arguments)
+        arguments.directory, arguments.profile, arguments.host, **_dialing(arguments)
     )
     entry = client.entry(arguments.uuid)
 
     print(f"uuid:  {entry.uuid}")
     print(f"group: {entry.group}")
 
-    for name, value in sorted((entry.fields or {}).items()):
+    # `hasattr` is how the read model says whether the gate said anything at all, and a gate that
+    # said nothing about an expiry has not said the entry never expires.
+    if hasattr(entry, "expires"):
+        print(f"expires: {_shown(entry.expires, entry.expired)}")
+
+    strings = entry.fields if entry.fields is not None else api.Fields()
+    for name in sorted(strings):
         guarded = " (protected)" if name in entry.protected else ""
-        # A withheld value is not a value. Printing it as one would put the word "None" where a
-        # password goes, which reads exactly like a password somebody chose badly.
-        shown = "(withheld)" if value is None else value
-        print(f"{name}: {shown}{guarded}")
+        # A withheld value is not a value, and reading one raises, so it is asked about by name
+        # rather than read. A value is escaped as a name is, since one line per field is what
+        # this output promises: a line feed in the notes would otherwise print a `Password:` row
+        # of its own, above the real one, written by whoever may change the notes and not the
+        # password.
+        shown = "(withheld)" if name in entry.withheld else _printable(strings[name])
+        print(f"{_printable(name)}: {shown}{guarded}")
 
     return 0
 
 
 def _add(arguments: argparse.Namespace) -> int:
     client = api.GateClient.open(
-        arguments.directory, arguments.profile, **_waiting(arguments)
+        arguments.directory, arguments.profile, arguments.host, **_dialing(arguments)
     )
 
     password = None
     if arguments.password:
         # Read rather than argued, for the same reason the invitation is: an argument is in the
         # process list, where anything running as this user can read it.
-        password = sys.stdin.readline().rstrip("\n")
+        password = _secret("Password for the new entry: ").rstrip("\n")
 
     uuid = client.create_entry(
         group=arguments.group,
@@ -319,6 +621,7 @@ def _add(arguments: argparse.Namespace) -> int:
         password=password,
         url=arguments.url,
         notes=arguments.notes,
+        expires=arguments.expires,
     )
 
     print(uuid)
@@ -327,7 +630,7 @@ def _add(arguments: argparse.Namespace) -> int:
 
 def _remove(arguments: argparse.Namespace) -> int:
     client = api.GateClient.open(
-        arguments.directory, arguments.profile, **_waiting(arguments)
+        arguments.directory, arguments.profile, arguments.host, **_dialing(arguments)
     )
     client.delete_entry(arguments.uuid)
     print(f"removed {arguments.uuid}")
@@ -336,23 +639,40 @@ def _remove(arguments: argparse.Namespace) -> int:
 
 def _attachments(arguments: argparse.Namespace) -> int:
     client = api.GateClient.open(
-        arguments.directory, arguments.profile, **_waiting(arguments)
+        arguments.directory, arguments.profile, arguments.host, **_dialing(arguments)
     )
 
     for attachment in client.attachments(arguments.uuid):
-        print(f"{attachment.size:>10}  {attachment.name}")
+        print(f"{attachment.size:>10}  {_printable(attachment.name)}")
 
     return 0
 
 
 def _fetch(arguments: argparse.Namespace) -> int:
     client = api.GateClient.open(
-        arguments.directory, arguments.profile, **_waiting(arguments)
+        arguments.directory, arguments.profile, arguments.host, **_dialing(arguments)
     )
     attachment = client.attachment(arguments.uuid, arguments.name)
 
-    arguments.to.write_bytes(attachment.content or b"")
-    print(f"wrote {len(attachment.content or b'')} bytes to {arguments.to}")
+    # `GateClient.attachment` never answers without the bytes: `Attachment.read` refuses such an
+    # answer rather than guess at one. Narrowed here the same way, because a fallback to no bytes
+    # would write an empty file and report it written, which is the guess refused there.
+    content = attachment.content
+    if content is None:
+        raise ProtocolError("the gate sent an attachment with no content")
+
+    try:
+        arguments.to.write_bytes(content)
+    except OSError as error:
+        # The gate has answered by now. What failed is the place the file was to go: a
+        # directory, a file that may not be replaced, a folder that is not there. That is an
+        # argument that cannot be done as given, which is what exit code 2 says, where the
+        # exception escaping `main` would read as a gate failure after a traceback. The
+        # operating system's sentence names the path.
+        print(str(error), file=sys.stderr)
+        return 2
+
+    print(f"wrote {len(content)} bytes to {arguments.to}")
     return 0
 
 

@@ -33,7 +33,10 @@ class TransportError(GateError):
 class ProtocolError(GateError):
     """Something on this wire is not what the protocol allows.
 
-    Either direction: an answer this client cannot read, or a request it will not send.
+    Either direction: an answer this client cannot read, or a request it will not send. An answer
+    longer than `max_response_bytes` is one this client will not read, and it is here rather than
+    under `TransportError` because the connection worked: asking again reads the same answer to
+    the same cap, and what changes it is raising the setting, which the message names.
     """
 
 
@@ -45,6 +48,16 @@ class StorageError(GateError):
     are ordinary states, reached by a partial write, a full disk or an edit by hand. Every one of
     them would otherwise leave the standard library's own exception where a caller is promised
     this hierarchy.
+    """
+
+
+class NotPaired(StorageError):
+    """Nothing is stored for a paired client where this looked.
+
+    The one state of the four files that is not damage: this client has not paired there yet, or
+    was told to look in the wrong place. A `StorageError` and nothing else, not a
+    `FileNotFoundError` as well, so `except GateError` catches it with everything else this
+    client raises and nothing outside this hierarchy is ever needed to catch it.
     """
 
 
@@ -76,6 +89,16 @@ class GateBusy(GateError):
     refuses a write that the dialog would take straight back off again when it is accepted.
     """
 
+    def __init__(self, message: str, retry_after: float | None = None) -> None:
+        """Keep what the gate said about coming back, when it said it.
+
+        On the exception rather than only on the response, because the response is gone by the
+        time a caller sees this and because a retry loop that had to reach for it would be
+        inventing a delay instead. `None` is a refusal that said nothing readable.
+        """
+        super().__init__(message)
+        self.retry_after = retry_after
+
 
 class DatabaseLocked(GateError):
     """Every route answers this while the database is locked.
@@ -85,13 +108,50 @@ class DatabaseLocked(GateError):
     act on.
     """
 
+    def __init__(self, message: str, retry_after: float | None = None) -> None:
+        """Keep what the gate said about coming back, when it said it.
+
+        Often nothing: a locked database answers the handshake with a responder certificate, and
+        that is refused before a request is sent, so there is no response to have read a delay
+        off at all.
+        """
+        super().__init__(message)
+        self.retry_after = retry_after
+
 
 class NotAdmitted(GateError):
-    """The certificate is not one this database holds a record for.
+    """The gate does not admit this certificate: no record, a revoked one, or an expired one.
 
     Every connection is checked against the record, not against the certificate alone, so this is
-    also what a revoked client sees, immediately.
+    also what a revoked client sees, immediately. A certificate that has expired is refused as one
+    with no record, and this client names it as expired, with the moment, before it dials, when
+    the expiry pairing stored has passed. Pairing again is the way back from all three.
     """
+
+
+class Withheld(GateError):
+    """A protected value this client may not read: the gate answered it with `null`.
+
+    The database protects the value, and the rule that let this client reach the entry does not
+    grant `P`. The gate says so with `null` rather than by leaving the field out, so a value being
+    withheld is a different answer from a field that is not there, and this is that answer, raised
+    by every way of reading one. Not `None` and not an empty string, because either reads as a
+    value: a caller printing, comparing or storing it carries on with something the database
+    does not hold. And not an `AttributeError`, because `getattr(entry, "password", "")` and
+    `hasattr` swallow that and turn a withheld secret into a default without a word.
+
+    `Entry.withheld` and `Field.withheld` say which values are withheld, for a caller that would
+    rather ask than catch.
+    """
+
+    def __init__(self, name: str, listed: bool = False) -> None:
+        """Name the field, and say whose rule would have to change for it to be read."""
+        reached = "list" if listed else "read"
+        super().__init__(
+            f"{name!r} is withheld: the database protects it, and the rule that lets this client "
+            f"{reached} the entry does not grant `P`, which the operator can add to that rule"
+        )
+        self.name = name
 
 
 class RouteRefused(GateError):

@@ -94,6 +94,7 @@ def test_what_a_caller_does_next_is_one_class_each_under_the_one_root() -> None:
         errors.DatabaseLocked,
         errors.GateBusy,
         errors.NotAdmitted,
+        errors.Withheld,
         errors.RouteRefused,
         errors.PairingError,
         errors.MalformedToken,
@@ -104,3 +105,26 @@ def test_what_a_caller_does_next_is_one_class_each_under_the_one_root() -> None:
 
     for kind in separate:
         assert kind.__bases__ == (errors.GateError,), f"{kind.__name__} is under something else"
+
+
+def test_nothing_paired_is_a_storage_error_and_only_that() -> None:
+    # The command line used to catch the standard library's `FileNotFoundError` by name for it.
+    # Under `StorageError` it is caught with the rest, and by nothing outside this tree.
+    assert errors.NotPaired.__bases__ == (errors.StorageError,)
+    assert not issubclass(errors.NotPaired, OSError)
+
+
+def test_a_withheld_value_is_not_an_attribute_error() -> None:
+    # `getattr(entry, "password", "")` and `hasattr` catch `AttributeError`, so a withheld secret
+    # raised as one would become a default without a word. That is kept for what was never read.
+    assert not issubclass(errors.Withheld, AttributeError)
+
+
+def test_a_withheld_value_names_the_field_and_what_would_open_it() -> None:
+    refused = errors.Withheld("Password")
+
+    assert refused.name == "Password"
+    assert "'Password'" in str(refused)
+    assert "the rule that lets this client read the entry does not grant `P`" in str(refused)
+    assert "operator can add" in str(refused)
+    assert "list the entry" in str(errors.Withheld("Title", listed=True))
