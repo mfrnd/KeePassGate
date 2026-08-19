@@ -258,6 +258,15 @@ namespace KeePassGate.Ui
 
                 try
                 {
+                    // Spaced as the dialog around it is. KeePass scaled that dialog's own pages by
+                    // its font as it built them, before this page existed, so its pass never
+                    // reaches this one: `Spacing.ScaleOf` is that same factor, applied here once.
+                    var scale = Spacing.ScaleOf(form);
+                    if (scale != Spacing.AsDesigned)
+                    {
+                        panel.Scale(scale);
+                    }
+
                     panel.Dock = DockStyle.Fill;
                     page.Controls.Add(panel);
                 }

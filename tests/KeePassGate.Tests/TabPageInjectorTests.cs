@@ -181,6 +181,46 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_page_is_scaled_as_the_dialog_it_lands_on_was()
+        {
+            // KeePass's dialogs scale by their font as they are built, before this page exists, so
+            // that pass never reaches it. Left alone, it sat eight pixels in from its edge on a
+            // dialog at 200 percent whose own pages sat twice as far in.
+            var panels = new InsetPanelFactory();
+            var injector = new TabPageInjector(panels, _log);
+
+            using (var form = Dialogs.WithNestedTabControl("General"))
+            using (var twice = new System.Drawing.Font(form.Font.FontFamily, form.Font.Size * 2))
+            {
+                form.AutoScaleMode = AutoScaleMode.Font;
+                form.Font = twice;
+
+                var scale = Spacing.ScaleOf(form);
+                Assume.That(scale.Width, Is.GreaterThan(1.5F), "the dialog was not drawn larger");
+
+                Assert.That(injector.Attach(form), Is.True);
+
+                Assert.That(panels.Last.Padding.Left, Is.EqualTo((int)System.Math.Round(Spacing.Gap * scale.Width)));
+                Assert.That(panels.Last.Padding.Top, Is.EqualTo((int)System.Math.Round(Spacing.Gap * scale.Height)));
+            }
+        }
+
+        [Test]
+        public void A_page_on_a_dialog_drawn_as_designed_is_left_as_it_was_built()
+        {
+            var panels = new InsetPanelFactory();
+            var injector = new TabPageInjector(panels, _log);
+
+            using (var form = Dialogs.WithNestedTabControl("General"))
+            {
+                Assert.That(Spacing.ScaleOf(form), Is.EqualTo(Spacing.AsDesigned));
+                Assert.That(injector.Attach(form), Is.True);
+
+                Assert.That(panels.Last.Padding, Is.EqualTo(new Padding(Spacing.Gap)));
+            }
+        }
+
+        [Test]
         public void Detaching_removes_the_page_and_leaves_the_hosts_own_tabs_in_order()
         {
             using (var form = Dialogs.WithNestedTabControl("General", "Security", "Advanced"))
@@ -389,6 +429,18 @@ namespace KeePassGate.Tests
             {
                 get { return base.Dock; }
                 set { throw new System.InvalidOperationException("this panel cannot be docked"); }
+            }
+        }
+
+        /// <summary>A factory whose panel is inset as the plugin's pages are, so a scaling shows.</summary>
+        private sealed class InsetPanelFactory : IGatePanelFactory
+        {
+            public Control Last { get; private set; }
+
+            public Control CreatePanel(Form dialog)
+            {
+                Last = new Panel { Padding = new Padding(Spacing.Gap) };
+                return Last;
             }
         }
     }
