@@ -562,8 +562,8 @@ Each step is refusable, and each ends with something that runs.
    one of them, including the end to end tier that drives a real KeePass across a desktop, is
    measured on `spikes/hosted-runner-desktop` rather than assumed.
 
-3. **Provided KeePass**: the version everything is built and tested against, fetched and verified
-   rather than found on the machine. `keepass.version` pins the release and `keepass.sha256` pins the
+3. **Provided KeePass**: the version everything is built and tested against, fetched and
+   verified rather than found on the machine. **Done.** `keepass.version` pins the release and `keepass.sha256` pins the
    archive, the directory is named after the version so changing the pin cannot silently reuse the old
    one, and the executable inside is checked for a valid signature from KeePass's author, which is the
    check that does not depend on where the bytes came from.
