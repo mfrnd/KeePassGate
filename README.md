@@ -44,6 +44,18 @@ KeePassGate is sound under the strict reading of the linking question as well as
 - **A plain DLL on .NET Framework 4.8**, not a `.plgx`, because the packaging format is what forces
   C# 5.
 
+## Building it
+
+**The KeePass to build against is provided rather than found.** `keepass.version` says which one,
+and `tools/KeePass.ps1` fetches that exact release as a portable install into `.keepass\<version>\`,
+which is gitignored. Changing the pin provides the new version rather than reusing whatever was
+there, because the directory is named after it.
+
+Nothing is trusted on the way. The archive is checked against a SHA-256 pinned in
+`keepass.sha256`, and the `KeePass.exe` inside it has to say it is KeePass, be the version asked
+for, and carry a valid Authenticode signature from KeePass's author. That last check is the one
+that does not depend on where the bytes came from.
+
 ## The measurements
 
 The design rests on what the platform actually does rather than on what its documentation suggests,
