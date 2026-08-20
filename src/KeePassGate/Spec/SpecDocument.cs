@@ -101,6 +101,9 @@ namespace KeePassGate.Spec
         /// <summary>What the router answers a body sent under any other media type with.</summary>
         public const string UnsupportedMediaTypeStatus = "415";
 
+        /// <summary>What a change that was made and not saved is answered with.</summary>
+        public const string NotSavedStatus = "500";
+
         private const string ResourceName = "KeePassGate.Spec.openapi.yaml";
 
         private readonly IReadOnlyList<SpecOperation> _operations;
@@ -346,6 +349,19 @@ namespace KeePassGate.Spec
                         throw new InvalidOperationException(
                             operation.OperationId + " is a " + method +
                             " and declares no requestBody, so nothing would check one.");
+                    }
+
+                    if (AclVerbs.Changes(verb.Value) && !Answers(operation, NotSavedStatus))
+                    {
+                        // Every one of these goes through `VaultHandlers.Answer`, which answers
+                        // `500 not saved` for a change that was made in the database KeePass is
+                        // holding and did not reach the disk. A route that changes something and
+                        // does not declare that answer is a client generated from this document
+                        // treating the one outcome it must not retry as an unknown.
+                        throw new InvalidOperationException(
+                            operation.OperationId + " changes the database and declares no " +
+                            NotSavedStatus + ", so the document does not say what a change that" +
+                            " was not saved is answered with.");
                     }
 
                     foreach (var name in template.Parameters)

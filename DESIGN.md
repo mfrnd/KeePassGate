@@ -557,20 +557,21 @@ The OpenAPI document is the routing table, and it ships as an embedded resource.
 - Handlers bind to **`operationId`**, never to a path.
 - At startup, every declared operation must have a handler and every handler must answer to a
   declared operation. A mismatch is a **startup failure**, not a 404 discovered later.
-- Path templates capture parameters. Bodies are checked against the declared schema **before a
+- Path templates capture parameters. Bodies are validated against the declared schema **before a
   handler runs**.
-- **No schema library does that checking.** Every candidate costs more than the subset this wire
-  carries is worth: fourteen assemblies, twenty, or a license an MIT plugin cannot hold. What checks
-  a body instead is a checker over that subset, one flat object of strings and arrays of strings,
-  plus a **startup refusal of any schema it does not implement**. That is what keeps a subset from
-  becoming a gap: a construct nobody implemented stops the plugin loading, and can never be a body
-  that went unchecked because the checker did not recognize its schema.
+- **No schema library validates the body**, because every candidate costs more than the subset
+  this wire carries is worth: fourteen assemblies, twenty, or a license an MIT plugin cannot take.
+  What checks a body instead is a checker over that subset, one flat object of strings and arrays
+  of strings, plus a **startup refusal of any schema it does not implement**. That is what keeps a
+  subset from becoming a gap: a construct nobody implemented stops the plugin loading, and can
+  never be a body that went unchecked because the checker did not recognize its schema.
 - **The grammar is `Newtonsoft.Json`'s and the policy is ours**, which is the split worth keeping.
   Parsing JSON correctly is solved better elsewhere than it would ever be solved here, and one
-  assembly against nine decides which. Deciding what this wire may carry is a decision and stays
-  where it can be argued with. The trap worth naming: refusing a schema library is a decision about
-  validation, and letting it become a decision to own a grammar is a much worse trade on the wire an
-  unauthenticated caller reaches first. The counts are on `spikes/json-reading`.
+  assembly against nine decides which. Deciding what this wire may carry is a decision, and stays
+  where it can be argued with. The trap named on the branch that measured this: refusing a schema
+  library is a decision about validation, and letting it become a decision to own a grammar is a
+  much worse trade on the wire an unauthenticated caller reaches first. The counts are on
+  `spikes/json-reading`.
 - An undeclared path has no handler to reach, so **spec-first routing is default deny** by
   construction, which is the same posture as the ACL.
 
@@ -650,16 +651,57 @@ So the rules here:
   rather than to the clock, because releasing the writer's lock while its own write is still going
   on is the race the single writer exists to prevent. That half is bounded by the work instead,
   which for almost every write is a file save and a dialog that closes itself. **Two saves that
-  have already gone wrong are the exception**: both put a message box on the screen and both wait
-  on a person, so a request that provokes one holds its thread and the writer's lock until
-  somebody presses OK. Nothing here bounds that, and pretending otherwise is what this paragraph
-  used to do.
+  have already gone wrong are the exception**, and they are named under the next rule rather than
+  hidden here: both put a message box on the screen and both wait on a person, so a request that
+  provokes one holds its thread and the writer's lock until somebody presses OK. Nothing here
+  bounds that, and pretending otherwise is what this paragraph used to do.
 - **A plugin-wide write lock.** It closes the one race this design can close cheaply: two requests
   mutating the same entry at once. It does nothing about a user editing in the UI at the same
   moment, which stays exactly as unprotected as it is today.
-- **No API request ever raises a dialog.** An unattended agent must not be able to prompt somebody's
-  screen, so anything behind the spec router that would need a human answer is refused with a
-  distinct status instead.
+- **No API request raises a dialog of KeePass's own that could have been foreseen.** An
+  unattended agent must not be able to prompt somebody's screen, so anything behind the spec
+  router that would need a human answer is refused with a distinct status instead.
+  `MainForm.SaveDatabase` asks three questions that can be seen coming, and a write that would
+  meet any of them is to be refused `503 busy` before the save is attempted: saving disallowed by
+  policy, a database with no file yet, and a file on disk that is not the one KeePass read. The
+  third is the one an ordinary client provokes, because a database on a shared or synced path
+  meets it without anybody having misconfigured anything. **It is to be refused whether KeePass
+  would ask or merge.** With `SaveForceSync` on, KeePass asks nothing and synchronizes, and that
+  merge still runs inside the request and underneath the write, and can still stop for the other
+  file's key or to warn about what it found.
+
+  **Two remain, and both are a save that has already failed.** `MessageService.ShowSaveWarning`
+  when `PwDatabase.Save` throws, and the verification warning when the bytes on disk are not the
+  bytes written. Neither can be known before the save, and both report damage the operator has to
+  be told about, so neither is a dialog worth suppressing even if it could be. What they cost is
+  stated rather than denied: the request that provoked one waits on a person, and the earlier
+  claim that no request ever raises a dialog was false for exactly these two.
+
+  **And the second cost is that KeePass does not lock while one of them is up**, which is worth
+  writing down because it is the one that runs against the operator's own settings rather than
+  against a request. `MainForm.SaveDatabase` brackets everything from `PreSaveValidate` to those
+  two warnings in `UIBlockInteraction`, and while interaction is blocked the main timer
+  restarts the inactivity countdown on every tick instead of locking, and `LockAllDocuments`
+  returns without locking and without recording that a lock was wanted. That call is what a
+  Windows lock, a user switch, a suspend and a remote-control change all reach, so each of those
+  is dropped rather than deferred: after the box is answered, the lock that was asked for is not
+  applied and the countdown starts again from zero. No lock means no `FileClosed`, so the gate is
+  never told, and every admitted client goes on reading the unlocked database on its own
+  connection thread for as long as the box stands. **This is KeePass's behavior for any failed
+  save, and what this plugin adds is that an unattended agent can provoke one with nobody at the
+  desk.** It cannot be closed from here: nothing in a plugin can make KeePass lock while KeePass
+  is refusing to. What is to narrow it is forestalling the failures that can be seen coming, which
+  is what the three refusals above are for, and the writer's own guard, which is to refuse a second
+  write for as long as the box is counted.
+
+  **And the operator's own triggers run inside the save**, which makes them the one dialog a
+  request can raise that somebody asked for. `SaveDatabase` raises KeePass's Saving database file
+  and Saved database file events, so a trigger the operator set on either runs inside an agent's
+  write exactly as it does inside their own save: one that shows a message puts a box on the
+  screen that the request waits on, and one that uploads, synchronizes or runs a command holds
+  KeePass's thread and the writer's lock for as long as it works. That is the operator's
+  configuration doing what it was set up to do, so it is run rather than refused, and it is said
+  here so that the list of what a write can wait on is not read as closed.
 - **Pairing is the one deliberate exception, and it is a real one.** `/pair/request` exists to ask
   the operator, and issuance writes the admission record and saves it before the certificate is
   handed over, because a certificate must not leave here until its record is on disk.
@@ -883,9 +925,10 @@ and returns no name rather than throwing; `SniProbe.cs` is the evidence it works
 
 ### C6. "Spec-first routing is slower than a switch statement" §128
 
-It is, and the API has fewer than a dozen operations. The property being bought, that an undeclared
-path has nowhere to go and that the document cannot disagree with the implementation, is worth more
-than the microseconds.
+It is, and the document declares thirty-six operations over thirteen paths, eleven of them the
+`HEAD` that answers for a `GET`. The property being bought, that an undeclared path has nowhere to
+go and that the document cannot disagree with the implementation, is worth more than the
+microseconds.
 
 ### C7. "The ceiling in the certificate is redundant if the ACL decides anyway" §129
 

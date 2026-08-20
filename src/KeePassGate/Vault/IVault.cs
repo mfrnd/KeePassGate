@@ -73,8 +73,18 @@ namespace KeePassGate.Vault
         /// <summary>The names and sizes of an entry's attachments, never their contents.</summary>
         IReadOnlyList<VaultAttachment> Attachments(string entryUuid);
 
-        /// <summary>One attachment's contents, or null when the entry or the name is not there.</summary>
-        byte[] Attachment(string entryUuid, string name);
+        /// <summary>
+        /// One attachment, with its contents when it is no larger than <paramref name="most"/>
+        /// bytes, or null when the entry or the name is not there.
+        /// </summary>
+        /// <remarks>
+        /// **The size is asked before anything is decrypted, in the same read.** KeePass keeps an
+        /// attachment's length beside its encrypted bytes, so one over the ceiling comes back with
+        /// its size and no contents, and a caller refusing it never pays for the plaintext. Two
+        /// reads, a listing and then the contents, let an attachment replaced in between be
+        /// decrypted whole, at whatever size it had become, before anything could refuse it.
+        /// </remarks>
+        VaultAttachment Attachment(string entryUuid, string name, int most);
 
         /// <summary>
         /// Why a change cannot be made right now, or null when one can.
@@ -90,6 +100,10 @@ namespace KeePassGate.Vault
         /// </remarks>
         string WriteBlocked { get; }
 
+        /// <param name="name">
+        /// Not empty. The routing table's lengths keep an empty one from every client, and a vault
+        /// answers one as a failure on this side rather than make a group nobody can name.
+        /// </param>
         VaultWrite CreateGroup(string parentUuid, string name, string notes);
 
         VaultWrite UpdateGroup(string uuid, string name, string notes);
@@ -108,6 +122,7 @@ namespace KeePassGate.Vault
         VaultWrite DeleteEntry(string uuid);
 
         /// <summary>Adds a string that is not there, and refuses one that is.</summary>
+        /// <param name="name">Not empty, for the reason <see cref="CreateGroup"/> gives.</param>
         VaultWrite CreateField(string entryUuid, string name, string value, bool isProtected);
 
         /// <summary>Changes a string that is there, and refuses one that is not.</summary>
@@ -115,6 +130,7 @@ namespace KeePassGate.Vault
 
         VaultWrite DeleteField(string entryUuid, string name);
 
+        /// <param name="name">Not empty, for the reason <see cref="CreateGroup"/> gives.</param>
         VaultWrite CreateAttachment(string entryUuid, string name, byte[] content);
 
         VaultWrite UpdateAttachment(string entryUuid, string name, byte[] content);

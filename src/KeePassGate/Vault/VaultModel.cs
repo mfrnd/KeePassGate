@@ -133,14 +133,26 @@ namespace KeePassGate.Vault
     public sealed class VaultAttachment
     {
         public VaultAttachment(string name, int size)
+            : this(name, size, null)
+        {
+        }
+
+        public VaultAttachment(string name, int size, byte[] content)
         {
             Name = name;
             Size = size;
+            Content = content;
         }
 
         public string Name { get; private set; }
 
         public int Size { get; private set; }
+
+        /// <summary>
+        /// What it holds, or null when that was not read: a listing reads none, and a read leaves
+        /// out one larger than it was allowed to hand over.
+        /// </summary>
+        public byte[] Content { get; private set; }
     }
 
     /// <summary>What happened to a change, and whether it is worth trying again.</summary>
@@ -150,6 +162,10 @@ namespace KeePassGate.Vault
     /// there. `Busy` is told apart from
     /// a failure because a dialog open on the node will not be open forever, and a client that
     /// knows the difference can wait instead of giving up.
+    ///
+    /// **The refusals are told apart from this plugin failing**, which is what `IsFailed` and
+    /// `IsUnsaved` are for. Everything else here is an answer about the request; those two are an
+    /// answer about the gate, and a caller acts on them differently.
     /// </remarks>
     public sealed class VaultWrite
     {
@@ -182,6 +198,25 @@ namespace KeePassGate.Vault
         /// </remarks>
         public bool IsUnsaved { get; private set; }
 
+        /// <summary>
+        /// The change could not be attempted, and not because of anything the client sent.
+        /// </summary>
+        /// <remarks>
+        /// Its own state for the reason <see cref="IsUnsaved"/> has one, and it is the other half
+        /// of the same mistake: `Failed` and `Missing` were the same triple, so a database that
+        /// closed under a request, a change KeePass answered with an error, and a vault that
+        /// decided nothing all came back as `404 no such route`. That answer says the request had
+        /// nowhere to go. A node the rules refuse and a node that is not there do say that, and
+        /// say it alike on purpose; a failure here is neither of them, and reporting it as one
+        /// sent a caller looking at its own identifiers for a fault that was on this side.
+        ///
+        /// **A call breaking what `IVault` asks of its caller is answered this way as well**, which
+        /// is an empty name for a new group, field or attachment. The routing table's lengths keep
+        /// one from every client, so only a defect above the vault can send one, and a failure on
+        /// this side is exactly what that is.
+        /// </remarks>
+        public bool IsFailed { get; private set; }
+
         /// <summary>What was created, when something was.</summary>
         public string Uuid { get; private set; }
 
@@ -210,9 +245,10 @@ namespace KeePassGate.Vault
             return new VaultWrite(false, false, true, null, reason);
         }
 
+        /// <summary>Nothing was attempted, because this plugin could not attempt it.</summary>
         public static VaultWrite Failed(string reason)
         {
-            return new VaultWrite(false, false, false, null, reason);
+            return new VaultWrite(false, false, false, null, reason) { IsFailed = true };
         }
 
         /// <summary>Made, and not on the disk. The database is holding an unsaved change.</summary>

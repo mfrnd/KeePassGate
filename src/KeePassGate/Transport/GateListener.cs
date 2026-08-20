@@ -693,16 +693,26 @@ namespace KeePassGate.Transport
                     return;
                 }
 
+                // The invitation first, and both facts when both hold. A client can arrive holding
+                // an admitted certificate on an invitation's name, and that connection reaches
+                // nothing at all: the router counts it as admitted only while no invitation
+                // brought it, and the pairing routes are for clients that are not paired. Saying
+                // only "from <key>" was true and left out the one fact that explained the
+                // refusals, so the operator read an ordinary admitted connection being refused
+                // everywhere and had nothing to go on.
+                var who = client.IsPaired
+                    ? " from " + CertificateDigest.Shorten(client.AdmissionKey)
+                    : " from an unpaired client";
+
                 _log.Info("connection to " + CertificateDigest.Shorten(target.DatabaseId) +
-                          (client.IsPaired
-                              ? " from " + CertificateDigest.Shorten(client.AdmissionKey)
-                              : resolution.IsPairing
-                                  ? " on invitation " + resolution.Invitation.Id
-                                  : " from an unpaired client"));
+                          (resolution.IsPairing
+                              ? " on invitation " + resolution.Invitation.Id +
+                                (client.IsPaired ? who + ", which is admitted and so reaches neither" : string.Empty)
+                              : who));
 
                 GateConversation.Serve(
                     protocol.Stream, client, _handler, _options, _log,
-                    Pairing(resolution, peek, target, peer), _incidents);
+                    Pairing(resolution, peek, target, peer), _incidents, target.Vault);
             }
             finally
             {

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Security.Cryptography.X509Certificates;
 using KeePassGate.Authority;
+using KeePassGate.Vault;
 
 namespace KeePassGate.Gate
 {
@@ -79,6 +80,16 @@ namespace KeePassGate.Gate
         /// to fail rather than hand over a certificate nobody can see.
         /// </remarks>
         AdmissionWrite Admit(AdmissionRecord record);
+
+        /// <summary>
+        /// What the API reads and changes, or null when there is nothing to reach.
+        /// </summary>
+        /// <remarks>
+        /// The transport still has no business with entries: it carries this to the handlers and
+        /// never asks it anything. Null on a locked database, which answers every route with the
+        /// lock and nothing else.
+        /// </remarks>
+        IVault Vault { get; }
 
         /// <summary>
         /// Whether this database is locked, in which case it can answer a connection and do

@@ -154,10 +154,11 @@ namespace KeePassGate
 
                 if (!_groupDialogs.Start())
                 {
-                    // Reported rather than ignored, and the plugin still loads: everything except
-                    // pairing works without this. What a watch that never started means is that
-                    // `GroupDialogs.Blocking` refuses every write from here on, so the gate serves
-                    // and reads and admits nobody, which is the safe half of being wrong.
+                    // Reported rather than ignored, and the plugin still loads: everything but
+                    // pairing and the API's writes works without this. What a watch that never
+                    // started means is that `GroupDialogs.Blocking` refuses every write from here
+                    // on, so the gate serves and reads and admits nobody, which is the safe half of
+                    // being wrong.
                     _log.Error(
                         "the group dialogs could not be watched, so no client can be paired with " +
                         "this session", null);

@@ -2,7 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography.X509Certificates;
+using KeePassGate.Acl;
 using KeePassGate.Authority;
+using KeePassGate.Diagnostics;
+using KeePassGate.Gate;
+using KeePassGate.Pairing;
 using KeePassGate.Pipeline;
 using KeePassGate.Spec;
 using KeePassGate.Tests.Fakes;
@@ -136,17 +140,62 @@ namespace KeePassGate.Tests
             Assert.That(context.Status, Is.EqualTo(405));
         }
 
+        [TestCase("POST", "/gate/status")]
+        [TestCase("PUT", "/gate/status")]
+        [TestCase("DELETE", "/gate/status")]
+        [TestCase("PATCH", "/gate/status")]
+        [TestCase("POST", "/entries/7b1c")]
+        [TestCase("PATCH", "/entries/7b1c")]
+        [TestCase("DELETE", "/entries/7b1c/fields")]
+        public void A_method_a_private_path_does_not_serve_tells_a_stranger_no_more_than_any_other(
+            string method, string path)
+        {
+            // The other half of the refusal every path gives a caller with no certificate. A 405
+            // here would name the methods the path does serve, which is the path answering that it
+            // is there: the identity refusal has to come first for a method the document does not
+            // declare, exactly as it does for one it does.
+            var stranger = Request(method, path, ClientIdentity.Stranger("db"));
+
+            _router.Handle(stranger);
+
+            Assert.That(stranger.Status, Is.EqualTo(401), "on " + method + " " + path);
+            Assert.That(stranger.Json, Does.Contain("unpaired"));
+            Assert.That(stranger.Headers, Is.Null, "an Allow field is a list of what the path serves");
+
+            // The same request from a client the database admitted, so that what is pinned is the
+            // order the two refusals come in rather than the 405 having gone away everywhere.
+            var admitted = Request(method, path, Paired("db"));
+
+            _router.Handle(admitted);
+
+            Assert.That(admitted.Status, Is.EqualTo(405), "on " + method + " " + path);
+            Assert.That(admitted.Headers["Allow"], Is.Not.Null.And.Not.Empty);
+        }
+
         [Test]
         public void An_operation_reaches_the_handler_bound_to_its_name_and_nothing_else_does()
         {
             var reached = new RecordingHandler();
-            var router = new SpecRouter(GateOperations.Document, new Dictionary<string, OperationHandler>
+
+            // Every operation the document declares, with the two this test watches replaced.
+            // Naming only those would fail the startup assertion, which is the assertion working.
+            var handlers = new Dictionary<string, OperationHandler>(
+                GateOperations.Handlers("9.9.9", null).ToDictionary(p => p.Key, p => p.Value),
+                StringComparer.Ordinal)
             {
-                { GateOperations.Status, reached.Handle },
-                { GateOperations.HeadStatus, reached.Handle },
-                { GateOperations.PairHello, reached.Handle },
-                { GateOperations.PairRequest, Nothing },
-            });
+                [GateOperations.Status] = reached.Handle,
+                [GateOperations.HeadStatus] = reached.Handle,
+                [GateOperations.PairHello] = reached.Handle,
+            };
+
+            // No guards, because this is about which handler a name reaches. With them, a build
+            // assembled without pairing answers before the handler, which is a different test.
+            var router = new SpecRouter(
+                GateOperations.Document,
+                handlers,
+                null,
+                GateOperations.Nodes(),
+                new AccessCheck(null));
 
             router.Handle(Request("POST", "/pair/hello", ClientIdentity.Stranger("db"), Hello));
 
@@ -241,6 +290,49 @@ namespace KeePassGate.Tests
         private static void Nothing(IGateContext context)
         {
             context.Respond(200, "{}");
+        }
+
+        [Test]
+        public void A_connection_that_arrived_on_an_invitation_reaches_nothing_but_pairing()
+        {
+            // `PAIRING.md` §302: the pairing path serves the pairing routes and nothing else. A
+            // client the database already admits can compute the name from an invitation it also
+            // holds, and its certificate is judged there the way it is judged anywhere, so every
+            // ordinary route used to answer on a connection whose deadline is the pairing budget.
+            // It gains no permission by that, because the same certificate reaches the same routes
+            // on its own name. What it gains is the six minutes on the thread that only a
+            // connection waiting on a person is supposed to have.
+            using (var target = TestAuthority.New())
+            using (var book = new InvitationBook(TimeSpan.FromMinutes(10), null, NullGateLog.Instance))
+            {
+                var invitation = book.Invite(target.DatabaseId);
+                var context = Request("GET", GateOperations.StatusPath, Paired(target.DatabaseId));
+
+                new PairingConnection(
+                    invitation,
+                    target,
+                    PairingProof.Binding(target.Host.CertificateDer),
+                    new byte[SniName.NonceLength],
+                    "127.0.0.1:60001").PutOn(context);
+
+                _router.Handle(context);
+
+                // The 404 an admitted client gets for anything it may not have, which is what it
+                // gets for a route that is not there. It is admitted, so it is told the difference:
+                // nothing is withheld from it that asking on its own name would not answer.
+                Assert.That(context.Status, Is.EqualTo(404));
+            }
+        }
+
+        [Test]
+        public void The_same_client_on_its_own_name_still_gets_the_status()
+        {
+            // The other half of the test above: what is refused is the connection, not the client.
+            var context = Request("GET", GateOperations.StatusPath, Paired("db-digest"));
+
+            _router.Handle(context);
+
+            Assert.That(context.Status, Is.EqualTo(200));
         }
 
         [Test]
@@ -351,6 +443,46 @@ namespace KeePassGate.Tests
             _router.Handle(context);
 
             Assert.That(context.Status, Is.EqualTo(405));
+        }
+
+        [Test]
+        public void The_methods_a_405_lists_are_in_the_order_the_document_declares_them()
+        {
+            // Every other list asserted here is alphabetical as well, so sorting it would have
+            // passed. This path serves four, and the document declares them get, head, put, delete.
+            var context = Request("PATCH", "/groups/root", Paired("db"));
+
+            _router.Handle(context);
+
+            Assert.That(context.Status, Is.EqualTo(405));
+            Assert.That(context.Headers["Allow"], Is.EqualTo("GET, HEAD, PUT, DELETE"));
+        }
+
+        [Test]
+        public void A_wrong_method_on_a_private_path_over_an_invitation_is_refused_as_undeclared()
+        {
+            // A connection that arrived on an invitation reaches the pairing routes and nothing
+            // else, and that holds for a method the path does not serve as much as for one it
+            // does: the certificate is admitted, and on this connection it is still told only
+            // what an undeclared path tells it, not the methods the path would have served.
+            using (var target = TestAuthority.New())
+            using (var book = new InvitationBook(TimeSpan.FromMinutes(10), null, NullGateLog.Instance))
+            {
+                var invitation = book.Invite(target.DatabaseId);
+                var context = Request("DELETE", GateOperations.StatusPath, Paired(target.DatabaseId));
+
+                new PairingConnection(
+                    invitation,
+                    target,
+                    PairingProof.Binding(target.Host.CertificateDer),
+                    new byte[SniName.NonceLength],
+                    "127.0.0.1:60001").PutOn(context);
+
+                _router.Handle(context);
+
+                Assert.That(context.Status, Is.EqualTo(404));
+                Assert.That(context.Headers, Is.Null, "an Allow field is a list of what the path serves");
+            }
         }
 
         [Test]

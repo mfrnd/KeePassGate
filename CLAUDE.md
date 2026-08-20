@@ -23,8 +23,9 @@ write one**: the KPG tab on the group and entry dialogs edits the rules as a `CR
 writing into the copy the dialog puts back on OK. **And the two halves are combined**: the router
 intersects the admission record with the rules before any handler runs, and writes every decision
 the rules make, and every certificate the database issued that an operation turns away, to a JSON Lines file
-outside the database. **Step 15, the API itself, is under way**: nothing this build
-declares touches an entry yet.
+outside the database. **And there is an API**: twenty-two routes over groups,
+entries, fields and attachments, every one declaring the verb it needs and the node it is about, with
+`PyKeePassGate` covering all of them.
 
 ## Read these before proposing anything
 
@@ -175,9 +176,15 @@ designing around them.
   subset becoming a gap. Re-proposing one means arguing with the counts on `spikes/json-reading`.
 - **The JSON grammar is `Newtonsoft.Json`'s and the policy is ours**, which is the split worth
   keeping. `JsonBody` decides what this wire may carry, which is one flat object of strings and
-  arrays of strings, and parses none of it. Three alternatives were measured and refused, on
-  assembly count and on license. The counts are on `spikes/json-reading`, and re-proposing one means
-  arguing with them.
+  arrays of strings, and `JsonWriter` shapes what a handler writes; neither owns a parser. Three
+  alternatives were measured and refused, on assembly count and on license. The counts are on
+  `spikes/json-reading`, and re-proposing one means arguing with them.
+
+  **And nothing here escapes a JSON string.** A response, an audit line, an ACL document, a
+  profile list, a pairing bundle: every value this plugin writes as one goes out through that
+  library, because two implementations of escaping can only ever be found to disagree by
+  something a caller sent. There was a second one, forty lines on `HttpResponse`, written
+  before anything referenced could do it and deleted the moment something could.
 - **Every GET declares the HEAD that answers for it**, bound to the same handler and carrying
   the same `x-kpg-verb`. Declared rather than derived, so the document stays the whole account
   of what the API answers; one handler, so the two cannot come to disagree about whether
@@ -219,12 +226,13 @@ designing around them.
 
   **The read model that replaces it has two rules**: no `save`, because a method that looks like
   theirs and does something else is worse than no method, and absent rather than empty, so a
-  missing feature is an attribute that is not there rather than a blank value.
+  missing feature is an attribute that is not there rather than a blank value. `model.py` follows
+  both.
 
   Measured on `spikes/pykeepass-compatibility`, taken from `master` and never merged: of the 56 public
-  members on `PyKeePass`, 23 are servable over the routes the API is to have, 6 would need routes
+  members on `PyKeePass`, 23 are servable over the routes the gate already has, 6 would need routes
   nothing forbids, and 27 cannot exist here. Its `RESULTS.md` has the per member table and what
-  would have to change on each side. TODO(step 15): those routes arrive with this step.
+  would have to change on each side.
 
 ## Measured facts that cost time if rediscovered
 
@@ -482,9 +490,11 @@ record for, a stranger can pair, a locked database answers `503 locked`, a grant
 definite, an operator can write one from the group and entry dialogs, and the router refuses
 anything the record and the rules do not both allow, recording every decision either way.
 
-**The API is under way**: the routes that read and change entries. Everything they need is in
-place, and the assertion that greets the first one is the point of the arrangement: declare a verb,
-name the node it is about, or the plugin does not load.
+**The API is under way**: twenty-two routes read and change groups, entries, fields and
+attachments, and each met the assertion the arrangement is for, declaring a verb and naming the
+node it is about, or the plugin would not have loaded. After it come two launchers that start the
+pinned KeePass with the plugin in it, a profile's own home beside the authority, the plugin's own
+window under the Tools menu, and the documentation for whoever runs it.
 
 **The storage decision survived the thing most likely to invalidate it.** The `GroupForm` snapshot
 hazard is real and now measured rather than remembered: `SnapshotHazardTests` reads the mechanism off
@@ -549,7 +559,7 @@ two cannot disagree, and `none` is a decision written down rather than a field l
 status route reads nothing, and pairing is authorized by a person reading a dialog rather than by a
 grant, because a client that is pairing holds no profiles yet.
 
-**Three things about the router that are decisions rather than details.** A caller with no
+**Four things about the router that are decisions rather than details.** A caller with no
 certificate is refused the same way everywhere, so an undeclared path and one it may not use answer
 alike and only an admitted client is told which it was. That is about the *refusal*, not about
 whether a route exists: the routes are declared in a document that ships inside the plugin, so a
@@ -557,8 +567,14 @@ whether a route exists: the routes are declared in a document that ships inside 
 says, and `GET /pair/hello` answers exactly that. An operation may carry a guard for a
 precondition the document cannot state, which is how pairing keeps its routes to connections that
 arrived on an invitation, and a guard runs **before** the body is checked so that nothing is
-reported about a body on a route the caller may not reach. And `PairingHandler` is two operations
-now rather than one dispatcher: which path is which is the document's answer.
+reported about a body on a route the caller may not reach. **And the reverse of that guard is the
+router's**: a connection that arrived on an invitation reaches the pairing routes and nothing else,
+which `PAIRING.md` §302 has always said and nothing enforced. A client the database already admits
+can hold an invitation too, and its certificate was judged on the pairing path the way it is judged
+anywhere, so it reached every ordinary route there. That grants it nothing extra, since the same
+certificate reaches the same routes on its own name, and it did buy the pairing budget on a
+connection with no person in it. And `PairingHandler` is two operations now rather than one
+dispatcher: which path is which is the document's answer.
 
 What steps 8 and 9 leave it. `DatabaseWriter` is the single writer, and the only place a request
 writes to a database. `GroupDialogs` watches for the dialog that would take a write back, tracking

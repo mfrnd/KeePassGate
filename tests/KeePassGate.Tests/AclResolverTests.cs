@@ -371,5 +371,49 @@ namespace KeePassGate.Tests
             Assert.That(decision.DecidedAt, Is.EqualTo("root"));
             Assert.That(decision.Reason, Does.Contain("does not name"), "which is what reader was refused for");
         }
+
+        [Test]
+        public void Documents_a_listing_has_already_read_answer_as_they_would_have_and_are_read_once()
+        {
+            // A listing asks about every entry it walks, and every walk read each document on its
+            // way to the root afresh: one rule at the root was parsed once per entry. Remembering
+            // them by their text changes nothing about the answers.
+            var read = new AclDocuments();
+            var root = TestNode.Root("root").Granting("reader", AclVerb.List);
+            var open = root.Child("open").Child("an entry");
+            var closed = root.Child("closed").Sealing("editor", AclVerb.List).Child("an entry");
+
+            foreach (var node in new IAclNode[] { open, closed, open, closed })
+            {
+                Assert.That(
+                    AclResolver.Permits(node, Reader, AclVerb.List, AclReach.Fields, read),
+                    Is.EqualTo(AclResolver.Permits(node, Reader, AclVerb.List, AclReach.Fields)),
+                    node.Name);
+            }
+
+            Assert.That(read.Read(root.Document), Is.SameAs(read.Read(root.Document)));
+        }
+
+        [Test]
+        public void A_document_changed_since_it_was_read_is_read_again()
+        {
+            // Keyed by the text, so a rule rewritten while a listing is being written is a new
+            // document and not the one remembered, and one that will not read refuses however
+            // often it is met.
+            var read = new AclDocuments();
+            var root = TestNode.Root("root").Granting("reader", AclVerb.List);
+            var entry = root.Child("an entry");
+
+            Assume.That(AclResolver.Permits(entry, Reader, AclVerb.List, AclReach.Fields, read), Is.True);
+
+            root.Granting("reader", AclVerb.Read);
+            Assert.That(AclResolver.Permits(entry, Reader, AclVerb.List, AclReach.Fields, read), Is.False,
+                "the rule as it is now, not as it was first read");
+
+            root.Holding("{\"reader\":");
+            Assert.That(AclResolver.Permits(entry, Reader, AclVerb.List, AclReach.Fields, read), Is.False);
+            Assert.That(AclResolver.Permits(entry, Reader, AclVerb.List, AclReach.Fields, read), Is.False,
+                "and again, from what was remembered");
+        }
     }
 }

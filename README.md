@@ -13,8 +13,10 @@ the tab hands out an invitation, the two sides prove they hold it, the operator 
 reach, and the record is saved before the certificate is handed over. A locked KeePass answers
 `503 locked` rather than failing at the transport. **Routing is the OpenAPI document**, embedded in the
 plugin: handlers bind to `operationId`, bodies are checked against the declared schema before a
-handler runs, and a path the document does not declare has nowhere to go. Beyond pairing one route
-exists, and it reads nothing out of the database. **And what a grant means is settled**: rules live
+handler runs, and a path the document does not declare has nowhere to go. **Twenty-two routes read
+and change groups, entries, fields and attachments**, each answered for by the nearest addressable
+node, so a field or an attachment is answered for by the entry holding it. **And what a grant means
+is settled**: rules live
 in group and entry `CustomData`, the nearest one to a node wins per profile, and every operation
 declares the verb it needs or the plugin does not load. **And the two halves are combined**: the
 router intersects the admission record with those rules before any handler runs, and every decision
@@ -104,8 +106,7 @@ uv run pykeepassgate status
 The question a `pykeepass` user asks first is answered on `spikes/pykeepass-compatibility`, taken from
 `master` and never merged. Short version: not as a `PyKeePass` object, because that is a decrypted
 `.kdbx` and this side has neither the file nor the password, but 23 of its 56 public members are
-servable over the routes the API is to have. That branch's `RESULTS.md` has the table.
-TODO(step 15): those routes arrive with this step.
+servable over the routes the gate already has. That branch's `RESULTS.md` has the table.
 
 ## The measurements
 

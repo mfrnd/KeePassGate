@@ -265,7 +265,7 @@ namespace KeePassGate.Bridge
             return found;
         }
 
-        private byte[] AttachmentInside(string entryUuid, string name)
+        private VaultAttachment AttachmentInside(string entryUuid, string name, int most)
         {
             var entry = FindEntry(entryUuid);
             if (!Keeps(entry, name))
@@ -274,7 +274,14 @@ namespace KeePassGate.Bridge
             }
 
             var binary = entry.Binaries.Get(name);
-            return binary == null ? null : binary.ReadData();
+            if (binary == null)
+            {
+                return null;
+            }
+
+            // `Length` is kept beside the encrypted bytes, so asking it decrypts nothing.
+            var size = (int)binary.Length;
+            return new VaultAttachment(name, size, size > most ? null : binary.ReadData());
         }
 
         public VaultWrite CreateGroup(string parentUuid, string name, string notes)
@@ -847,9 +854,9 @@ namespace KeePassGate.Bridge
             return Reading(() => AttachmentsInside(entryUuid));
         }
 
-        public byte[] Attachment(string entryUuid, string name)
+        public VaultAttachment Attachment(string entryUuid, string name, int most)
         {
-            return Reading(() => AttachmentInside(entryUuid, name));
+            return Reading(() => AttachmentInside(entryUuid, name, most));
         }
 
         /// <summary>How many times a read is taken before the tree is called unsettled.</summary>

@@ -15,9 +15,9 @@ from typing import Any
 
 import pytest
 
-from conftest import Authority, FakeGate, Issued
+from conftest import RESPONDER_CLAIM, Authority, FakeGate, Issued
 from pykeepassgate import transport
-from pykeepassgate.errors import ProtocolError, TransportError
+from pykeepassgate.errors import DatabaseLocked, ProtocolError, TransportError
 
 Answers = Callable[[int, "dict[str, Any] | str"], Any]
 
@@ -154,6 +154,46 @@ class TestPinning:
 
         with transport.connect(gate.port, context, "nothing.like.it.kpg", timeout=10.0) as open_:
             assert open_.send("GET", "/gate/status").status == 200
+
+
+class TestTheResponder:
+    """The identity a locked database answers with, and what this client will do with it."""
+
+    def test_the_marker_is_the_one_the_plugin_writes(self) -> None:
+        # Written down on both sides rather than shared, because a client reading a different
+        # string reads no marker at all and finds every certificate innocent. The value comes
+        # from `AuthorityIssuer.ResponderClaim`; regenerate it from there and never from here.
+        assert transport.RESPONDER_CLAIM == RESPONDER_CLAIM
+
+    def test_a_marked_certificate_is_recognized(self, responder: Issued) -> None:
+        assert transport._responder(responder.der)
+
+    def test_the_certificate_an_open_database_answers_with_is_not(self, host: Issued) -> None:
+        # It carries no subject alternative name at all, which is the ordinary case and has to
+        # cost nothing: a client that took this for a responder would refuse every honest gate.
+        assert not transport._responder(host.der)
+
+    def test_bytes_that_are_not_a_certificate_are_not_one(self) -> None:
+        # Unreachable through a handshake, since the peer's certificate parsed to get there.
+        # The answer still has to be a `bool` rather than whatever `x509` raises.
+        assert not transport._responder(b"not a certificate at all")
+
+    def test_no_request_is_sent_over_a_responder(
+        self, gate: FakeGate, responder: Issued, authority: Authority, client_certificate: Issued
+    ) -> None:
+        # `CA.md` 208: the marker is there so a client can refuse to send real requests over an
+        # identity that can only say the database is locked. Refusing after the answer would
+        # have handed over the request first, and a request body is what it was going to store.
+        gate.serve_with(responder)
+        gate.handler = lambda path, body, client: (200, '{"password": "fabricated"}')
+        context = transport.paired_context(authority.pem, client_certificate.pem)
+
+        with transport.connect(
+            gate.port, context, "abc.def.kpg", timeout=10.0
+        ) as connection, pytest.raises(DatabaseLocked, match="responder identity"):
+            connection.send("PUT", "/entries/abc/fields/Password", '{"value":"secret"}')
+
+        assert gate.requests == [], "nothing reached the gate at all"
 
 
 class TestWhatThisClientWillNotSend:

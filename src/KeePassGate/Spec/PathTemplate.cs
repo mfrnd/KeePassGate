@@ -214,9 +214,8 @@ namespace KeePassGate.Spec
             // The reader refused a segment that *is* `..`; it cannot refuse one that decodes into
             // a path containing it, because it decodes after splitting so that an escaped
             // separator stays inside a name. So the check belongs where the name becomes a value
-            // somebody will use. Nothing reads a capture yet, which is exactly why this is here
-            // now: the first handler that does would inherit an invariant this class states and
-            // did not hold.
+            // somebody will use. Every handler that reads a capture relies on this rather than
+            // asking again, which is why it is stated here and not in them.
             return !PercentEncoding.Navigates(value);
         }
 
@@ -233,8 +232,8 @@ namespace KeePassGate.Spec
         /// <summary>Whether some request could match both this template and another.</summary>
         /// <remarks>
         /// Two templates overlap when they have the same number of segments and every position
-        /// is a capture on one side or the other, or the same literal on both. `/a/{x}` and `/a/b`
-        /// overlap; `/a/{x}` and `/c/{x}` do not.
+        /// is a capture on one side or the other, or the same literal on both. `/entries/{uuid}`
+        /// and `/entries/search` overlap; `/entries/{uuid}` and `/groups/{uuid}` do not.
         /// </remarks>
         public bool Overlaps(PathTemplate other)
         {

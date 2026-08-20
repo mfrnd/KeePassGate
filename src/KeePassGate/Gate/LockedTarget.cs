@@ -128,6 +128,15 @@ namespace KeePassGate.Gate
             return AdmissionWrite.Busy(Reason);
         }
 
+        /// <summary>
+        /// Nothing. A locked database has no tree to read: the key that would decrypt it is gone,
+        /// which is what being locked is, and every route answers the lock and nothing else.
+        /// </summary>
+        public Vault.IVault Vault
+        {
+            get { return null; }
+        }
+
         public bool IsLocked
         {
             get { return true; }

@@ -38,6 +38,12 @@ from cryptography.x509.oid import NameOID
 #: shape: ECDSA on P-256, signed with SHA-256, which is also why the channel binding is SHA-256.
 CURVE = ec.SECP256R1()
 
+#: What the plugin writes into a responder certificate, copied from `AuthorityIssuer.ResponderClaim`
+#: rather than read from the client, so that the client's own constant is compared with something.
+#: `CA.md` 208 is why the marker is a URI with a path: `System.Uri` normalizes `kpg://responder` to
+#: `kpg://responder/` on the way in, and a client then reads back something else than was written.
+RESPONDER_CLAIM = "kpg://host/responder"
+
 #: Answers a request: the path, the body, and the client certificate if one was offered.
 Handler = Callable[[str, str, bytes | None], tuple[int, str]]
 
@@ -82,12 +88,22 @@ class Authority:
         self.pem = directory / "authority.pem"
         self.pem.write_bytes(self.certificate.public_bytes(serialization.Encoding.PEM))
 
-    def issue(self, name: str, purpose: x509.ObjectIdentifier, filename: str) -> Issued:
-        """Issue a leaf under this authority and write the certificate and key as one PEM."""
+    def issue(
+        self,
+        name: str,
+        purpose: x509.ObjectIdentifier,
+        filename: str,
+        uri: str | None = None,
+    ) -> Issued:
+        """Issue a leaf under this authority and write the certificate and key as one PEM.
+
+        A `uri` goes into the subject alternative name, which is where the plugin puts the one
+        marker a leaf of this authority ever carries: the responder's.
+        """
         key = ec.generate_private_key(CURVE)
         now = dt.datetime.now(dt.UTC)
 
-        certificate = (
+        builder = (
             x509.CertificateBuilder()
             .subject_name(x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, name)]))
             .issuer_name(self.certificate.subject)
@@ -97,8 +113,14 @@ class Authority:
             .not_valid_after(now + dt.timedelta(hours=12))
             .add_extension(x509.BasicConstraints(ca=False, path_length=None), critical=True)
             .add_extension(x509.ExtendedKeyUsage([purpose]), critical=False)
-            .sign(self._key, hashes.SHA256())
         )
+
+        if uri is not None:
+            builder = builder.add_extension(
+                x509.SubjectAlternativeName([x509.UniformResourceIdentifier(uri)]), critical=False
+            )
+
+        certificate = builder.sign(self._key, hashes.SHA256())
 
         path = self._directory / filename
         path.write_bytes(
@@ -312,6 +334,17 @@ def authority(tmp_path: Path) -> Authority:
 def host(authority: Authority) -> Issued:
     """The certificate the gate serves with."""
     return authority.issue("host", x509.oid.ExtendedKeyUsageOID.SERVER_AUTH, "host.pem")
+
+
+@pytest.fixture
+def responder(authority: Authority) -> Issued:
+    """What a locked database answers with: the same authority, and the marker that says so."""
+    return authority.issue(
+        "KeePassGate responder",
+        x509.oid.ExtendedKeyUsageOID.SERVER_AUTH,
+        "responder.pem",
+        uri=RESPONDER_CLAIM,
+    )
 
 
 @pytest.fixture

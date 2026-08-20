@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from .client import GateClient, Status
+from .client import ROOT, GateClient, Status
 from .credentials import Credentials, default_directory, load, save
 from .errors import (
     DatabaseLocked,
@@ -32,6 +32,7 @@ from .errors import (
     StorageError,
     TransportError,
 )
+from .model import Attachment, Entry, Field, Group
 from .pairing import Exchange, Pairing
 from .transport import DEFAULT_TIMEOUT, PAIRING_TIMEOUT
 
@@ -39,12 +40,17 @@ __all__ = [
     "DEFAULT_PORT",
     "DEFAULT_TIMEOUT",
     "PAIRING_TIMEOUT",
+    "ROOT",
+    "Attachment",
     "Credentials",
     "DatabaseLocked",
+    "Entry",
     "Exchange",
+    "Field",
     "GateBusy",
     "GateClient",
     "GateError",
+    "Group",
     "MalformedToken",
     "NotAdmitted",
     "Pairing",

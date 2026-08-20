@@ -14,6 +14,11 @@ and a header block.
 body carries a proof over ``tls-server-end-point``, which is a hash of the certificate the server
 is serving with. So the handshake has to have happened, and its certificate has to be readable,
 while the body is still being built.
+
+**Why one identity is refused before a request reaches it.** A locked database answers with a
+responder certificate, and `CA.md` 208 marks that certificate so a client can refuse to send real
+requests over it. Refusing has to happen before the write rather than after the answer, because a
+request body carries whatever it was going to store.
 """
 
 from __future__ import annotations
@@ -28,16 +33,27 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from .errors import ProtocolError, TransportError
+from cryptography import x509
+
+from .errors import DatabaseLocked, ProtocolError, TransportError
 
 #: Loopback, because that is the only place the gate binds. Reaching it from elsewhere is a
 #: tunnel's job and not this client's business.
 LOOPBACK = "127.0.0.1"
 
-#: How much of an answer to read before giving up on it. The gate bounds its own responses; this
-#: bound exists so that a client cannot be made to hold an unbounded amount of somebody else's
-#: bytes by whatever answered the socket.
+#: How much of an answer to read before giving up on it, so that no answer can make this client
+#: hold as much memory as it likes. An attachment is not what decides it: the gate hands out at
+#: most 512 KiB of one (`VaultHandlers.MaxAttachmentBytes`), under 700 KiB once it is base64 inside
+#: a JSON answer. What can outgrow it is a listing, since the API does not page, and one that does
+#: fails here rather than being truncated.
 MAX_RESPONSE_BYTES = 4 * 1024 * 1024
+
+#: What marks the certificate a locked database answers with, and the whole of what tells one
+#: apart: `AuthorityIssuer.ResponderClaim` on the plugin's side, written into the subject
+#: alternative name as a URI. A responder is minted at unlock and again at the lock it answers, and
+#: held only in memory, and it can say nothing but that the database is locked, so a request is
+#: never sent over one.
+RESPONDER_CLAIM = "kpg://host/responder"
 
 #: How long to wait, in seconds, for anything that is not a pairing.
 DEFAULT_TIMEOUT = 120.0
@@ -123,7 +139,8 @@ class Connection:
     def __init__(self, wrapped: ssl.SSLSocket) -> None:
         """Take a socket that has already shaken hands.
 
-        Keeps the certificate it was served with, which the proofs are computed over.
+        Keeps the certificate it was served with, which the proofs are computed over, and reads
+        off it whether the identity that answered is the one a locked database has.
         """
         self._socket = wrapped
         der = wrapped.getpeercert(binary_form=True)
@@ -131,9 +148,24 @@ class Connection:
             raise TransportError("the server sent no certificate")
 
         self.server_certificate = der
+        self.responder = _responder(der)
 
     def send(self, method: str, path: str, body: str = "") -> Response:
-        """Write one request and read the whole answer."""
+        """Write one request and read the whole answer, unless a responder answered the handshake.
+
+        Nothing is written to a responder. What a locked database answers is `503 locked` on
+        every path and method, decided before it reads anything, so there is no request this
+        could carry that would be answered; and an impostor that came by the responder key while
+        the database was locked reads nothing but could answer with a fabricated secret. Waiting
+        for the answer to decide that has already handed over the request, which on a write is
+        the value being stored.
+        """
+        if self.responder:
+            raise DatabaseLocked(
+                "the connection was served with the responder identity, which only a locked "
+                "database has, so no request was sent over it"
+            )
+
         _check(method, path)
         payload = body.encode("utf-8")
         head = (
@@ -232,6 +264,34 @@ def connect(
         yield connection
     finally:
         connection.close()
+
+
+def _responder(der: bytes) -> bool:
+    """Whether this certificate is the one a locked database answers with.
+
+    Read off the marker rather than off the subject name, because the subject is a convention and
+    `CA.md` 208 asks for something a client can decide on. The marker cannot be put on a certificate
+    or taken off one either: what the authority signed is what arrives, and a paired client accepts
+    nothing the authority did not sign.
+
+    An encoding this cannot read is not a responder, which is the direction that keeps an honest
+    connection working: a certificate the authority issued is one this reads, and one it did not
+    issue never gets past the pin.
+    """
+    try:
+        certificate = x509.load_der_x509_certificate(der)
+        names = certificate.extensions.get_extension_for_class(x509.SubjectAlternativeName)
+    # Everything reading a certificate can refuse with: bytes that are not one, no subject
+    # alternative name at all, two of them, and a name of a kind this library will not decode.
+    except (
+        ValueError,
+        x509.ExtensionNotFound,
+        x509.DuplicateExtension,
+        x509.UnsupportedGeneralNameType,
+    ):
+        return False
+
+    return RESPONDER_CLAIM in names.value.get_values_for_type(x509.UniformResourceIdentifier)
 
 
 def _pin_to_tls13(context: ssl.SSLContext) -> None:

@@ -187,7 +187,24 @@ namespace KeePassGate.Host.Tests
 
             Assert.That(listed.Name, Is.EqualTo("notes..txt"));
             Assert.That(listed.Size, Is.EqualTo(content.Length));
-            Assert.That(_vault.Attachment(uuid, "notes..txt"), Is.EqualTo(content));
+            Assert.That(Stored(uuid, "notes..txt"), Is.EqualTo(content));
+        }
+
+        [Test]
+        public void An_attachment_larger_than_asked_for_comes_back_measured_and_not_read()
+        {
+            // KeePass keeps an attachment's length beside its encrypted bytes, so the size is
+            // answered without the plaintext, which is the copy a refusal for size is there to
+            // avoid, and in the same read, so nothing can replace it in between.
+            var uuid = Created(_vault.CreateEntry(_vault.RootAlias, Named("an invented service")));
+            Assume.That(_vault.CreateAttachment(uuid, "big.bin", new byte[] { 1, 2, 3, 4 }).Ok, Is.True);
+
+            var measured = _vault.Attachment(uuid, "big.bin", 3);
+
+            Assert.That(measured.Size, Is.EqualTo(4));
+            Assert.That(measured.Content, Is.Null);
+            Assert.That(_vault.Attachment(uuid, "big.bin", 4).Content, Is.EqualTo(new byte[] { 1, 2, 3, 4 }),
+                "and one no larger than that is read");
         }
 
         [Test]
@@ -199,7 +216,7 @@ namespace KeePassGate.Host.Tests
             Assert.That(_vault.CreateAttachment(uuid, "one", new byte[] { 2 }).IsConflict, Is.True);
 
             Assert.That(_vault.UpdateAttachment(uuid, "one", new byte[] { 3, 4 }).Ok, Is.True);
-            Assert.That(_vault.Attachment(uuid, "one"), Is.EqualTo(new byte[] { 3, 4 }));
+            Assert.That(Stored(uuid, "one"), Is.EqualTo(new byte[] { 3, 4 }));
 
             Assert.That(_vault.DeleteAttachment(uuid, "one").Ok, Is.True);
             Assert.That(_vault.Attachments(uuid), Is.Empty);
@@ -251,12 +268,12 @@ namespace KeePassGate.Host.Tests
             var alias = "notes\u00AD.txt";
             Assume.That(Entry(uuid).Binaries.Get(alias), Is.Not.Null, "the same collation, on the other dictionary");
 
-            Assert.That(_vault.Attachment(uuid, alias), Is.Null);
+            Assert.That(_vault.Attachment(uuid, alias, int.MaxValue), Is.Null);
             Assert.That(_vault.UpdateAttachment(uuid, alias, new byte[] { 9 }).Ok, Is.False);
             Assert.That(_vault.DeleteAttachment(uuid, alias).Ok, Is.False);
             Assert.That(_vault.CreateAttachment(uuid, alias, new byte[] { 9 }).IsConflict, Is.True);
 
-            Assert.That(_vault.Attachment(uuid, "notes.txt"), Is.EqualTo(new byte[] { 1, 2, 3 }));
+            Assert.That(Stored(uuid, "notes.txt"), Is.EqualTo(new byte[] { 1, 2, 3 }));
         }
 
         [Test]
@@ -300,7 +317,7 @@ namespace KeePassGate.Host.Tests
             var uuid = Created(_vault.CreateEntry(_vault.RootAlias, Named("an invented service")));
 
             Assert.That(_vault.CreateAttachment(uuid, "a/b", new byte[] { 1 }).Ok, Is.True);
-            Assert.That(_vault.Attachment(uuid, "a/b"), Is.Not.Null);
+            Assert.That(Stored(uuid, "a/b"), Is.Not.Null);
         }
 
         [Test]
@@ -705,6 +722,25 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void A_node_with_no_name_is_refused_as_a_failure_on_this_side()
+        {
+            // The routing table's lengths keep an empty name from ever reaching here from a client,
+            // so only a defect above the vault could send one. It is refused rather than handed to
+            // KeePass, and refused as this side's failure, since the client did nothing wrong.
+            var uuid = Created(_vault.CreateEntry(_vault.RootAlias, Named("an invented service")));
+
+            Assert.That(_vault.CreateGroup(_vault.RootAlias, string.Empty, null).IsFailed, Is.True, "a group");
+            Assert.That(_vault.CreateField(uuid, string.Empty, "a value", false).IsFailed, Is.True, "a field");
+            Assert.That(_vault.CreateAttachment(uuid, string.Empty, new byte[] { 1 }).IsFailed, Is.True,
+                "an attachment");
+
+            Assert.That(_vault.Groups(), Has.Count.EqualTo(1), "no group was made");
+            Assert.That(_vault.Fields(uuid).Select(f => f.Name), Has.No.Member(string.Empty));
+            Assert.That(_vault.Attachments(uuid), Is.Empty);
+            Assert.That(_saves, Is.EqualTo(1), "and nothing but the entry was saved");
+        }
+
+        [Test]
         public void A_change_whose_save_never_lands_leaves_the_database_as_it_was()
         {
             // The whole point of taking a change back out. A caller told the write did not land
@@ -845,6 +881,13 @@ namespace KeePassGate.Host.Tests
             Assert.That(write.Ok, Is.True, write.Reason);
             Assert.That(write.Uuid, Is.Not.Null.And.Not.Empty);
             return write.Uuid;
+        }
+
+        /// <summary>What an attachment holds, read with no ceiling, or null when it is not there.</summary>
+        private byte[] Stored(string uuid, string name)
+        {
+            var read = _vault.Attachment(uuid, name, int.MaxValue);
+            return read == null ? null : read.Content;
         }
     }
 }

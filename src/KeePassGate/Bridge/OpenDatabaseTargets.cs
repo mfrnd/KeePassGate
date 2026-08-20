@@ -6,6 +6,7 @@ using KeePassLib;
 using KeePassLib.Utility;
 using KeePassGate.Authority;
 using KeePassGate.Diagnostics;
+using KeePassGate.Vault;
 using KeePassGate.Gate;
 
 namespace KeePassGate.Bridge
@@ -802,6 +803,7 @@ namespace KeePassGate.Bridge
             private PwDatabase _database;
             private readonly DatabaseWriter _writer;
             private readonly IGateLog _log;
+            private readonly KdbxVault _vault;
 
             // The cache holds the first of these; `Current` takes one more per caller.
             private int _holders = 1;
@@ -823,6 +825,20 @@ namespace KeePassGate.Bridge
                 // a certificate export for an answer that was already known.
                 _databaseId = reading.Material.AuthorityDigest;
                 _writer = writer;
+                _vault = new KdbxVault(database, writer, log);
+            }
+
+            /// <summary>
+            /// What the API reads and changes. One per served database rather than one per
+            /// request, because it holds nothing but the database and the writer, both of which
+            /// outlive any connection.
+            /// </summary>
+            public IVault Vault
+            {
+                // Null once released, for the reason `Dispose` gives about the rest of this: a
+                // target nobody holds should answer nothing rather than answer out of a database
+                // whose certificates have already been reset. `LockedTarget` answers null here too.
+                get { return _database == null ? null : _vault; }
             }
 
             public string DatabaseId

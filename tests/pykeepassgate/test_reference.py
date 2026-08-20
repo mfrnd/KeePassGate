@@ -25,28 +25,83 @@ from pykeepassgate.pairing import Pairing
 
 #: `operationId` to what a caller uses to reach it. Written here rather than in the package because
 #: it is an assertion about the package rather than something the package needs.
+#:
+#: One name appears against two operations twice over. `head()` answers for every `head` the
+#: document declares, because a `head` carries no content and so has nothing to shape per route.
+#: And `entries()` asks the flat sweep with no group and the group's own listing with one,
+#: because they are two questions rather than one narrowed, and a caller says which by naming a
+#: group or not.
 COVERED = {
     "getStatus": (GateClient, "status"),
     "headStatus": (GateClient, "head"),
     "pairHello": (Pairing, "hello"),
     "pairRequest": (Pairing, "request"),
+
+    "listGroups": (GateClient, "groups"),
+    "headGroups": (GateClient, "head"),
+    "readGroup": (GateClient, "group"),
+    "headGroup": (GateClient, "head"),
+    "listSubgroups": (GateClient, "subgroups"),
+    "headSubgroups": (GateClient, "head"),
+    "createGroup": (GateClient, "create_group"),
+    "updateGroup": (GateClient, "update_group"),
+    "deleteGroup": (GateClient, "delete_group"),
+
+    "listEntries": (GateClient, "entries"),
+    "headEntries": (GateClient, "head"),
+    "listGroupEntries": (GateClient, "entries"),
+    "headGroupEntries": (GateClient, "head"),
+    "readEntry": (GateClient, "entry"),
+    "headEntry": (GateClient, "head"),
+    "createEntry": (GateClient, "create_entry"),
+    "updateEntry": (GateClient, "update_entry"),
+    "deleteEntry": (GateClient, "delete_entry"),
+
+    "listFields": (GateClient, "fields"),
+    "headFields": (GateClient, "head"),
+    "readField": (GateClient, "field"),
+    "headField": (GateClient, "head"),
+    "createField": (GateClient, "create_field"),
+    "updateField": (GateClient, "update_field"),
+    "stripField": (GateClient, "strip_field"),
+
+    "listAttachments": (GateClient, "attachments"),
+    "headAttachments": (GateClient, "head"),
+    "readAttachment": (GateClient, "attachment"),
+    "headAttachment": (GateClient, "head"),
+    "createAttachment": (GateClient, "create_attachment"),
+    "updateAttachment": (GateClient, "update_attachment"),
+    "stripAttachment": (GateClient, "strip_attachment"),
 }
 
-#: What a path item may carry beside its methods. Read as methods, these would be indexed for
-#: an `operationId` they do not have.
-NOT_METHODS = {"summary", "description", "parameters", "servers", "$ref"}
+#: Where the repository is, if these tests are in one: its `pyproject.toml` is what says so.
+REPOSITORY = Path(__file__).resolve().parents[2]
 
-DOCUMENT = Path(__file__).resolve().parents[2] / "src" / "KeePassGate" / "Spec" / "openapi.yaml"
+DOCUMENT = REPOSITORY / "src" / "KeePassGate" / "Spec" / "openapi.yaml"
+
+
+def routing_table() -> dict[str, Any]:
+    """The routing table the plugin embeds, or a failure that names where it was looked for.
+
+    Skipped only where these tests are not in the repository, which leaves nothing to hold the
+    client to. Inside it, a document that is not at its path fails rather than skips: the plugin
+    embeds it by path, so moving it is one edit on that side, and a skip here would turn the
+    check that this client covers every route the gate serves into a row of green skips.
+    """
+    if not (REPOSITORY / "pyproject.toml").exists():  # pragma: no cover, only outside it
+        pytest.skip(f"no repository at {REPOSITORY}, so no routing table to hold the client to")
+
+    if not DOCUMENT.exists():
+        pytest.fail(f"no routing table at {DOCUMENT}, which is where the plugin embeds it from")
+
+    parsed: dict[str, Any] = yaml.safe_load(DOCUMENT.read_text("utf-8"))
+    return parsed
 
 
 @pytest.fixture(scope="module")
 def document() -> dict[str, Any]:
     """The routing table the plugin embeds, read from the same file it embeds."""
-    if not DOCUMENT.exists():  # pragma: no cover, only when the tree is not the repository
-        pytest.skip(f"no routing table at {DOCUMENT}")
-
-    parsed: dict[str, Any] = yaml.safe_load(DOCUMENT.read_text("utf-8"))
-    return parsed
+    return routing_table()
 
 
 #: What a key under a path item has to be to be an operation. OpenAPI 3.0.3 also allows `summary`,
@@ -123,12 +178,21 @@ def test_a_head_is_governed_exactly_as_its_own_get_is(document: dict[str, Any]) 
     """A `head` is governed by whatever its own `get` is governed by.
 
     One carrying a different verb would answer whether a node is there to a caller its `get`
-    would have refused, which is an oracle rather than a route.
+    would have refused, which is an oracle rather than a route. The same goes for everything else
+    that decides who may ask and what is reached, and the plugin refuses to load a pair that
+    differs in any of it: whether it reaches attachments, whether it needs a certificate, and
+    whether it carries a body.
     """
     for path, methods in document["paths"].items():
         if "get" in methods and "head" in methods:
-            assert methods["head"].get("x-kpg-verb") == methods["get"].get("x-kpg-verb"), (
-                f"{path} declares a head governed differently from its own get"
+            head, get = methods["head"], methods["get"]
+            for rule in ("x-kpg-verb", "x-kpg-attachments", "x-kpg-unauthenticated"):
+                assert head.get(rule) == get.get(rule), (
+                    f"{path} declares a head whose {rule} is not its own get's"
+                )
+
+            assert ("requestBody" in head) == ("requestBody" in get), (
+                f"{path} declares a body on one of its head and its get and not on the other"
             )
 
 

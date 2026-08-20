@@ -23,6 +23,7 @@ from cryptography.x509.oid import ExtendedKeyUsageOID
 
 from conftest import Authority, FakeGate, Issued
 from pykeepassgate import api, proofs, sni, transport
+from pykeepassgate import pairing as pairing_module
 from pykeepassgate import token as token_module
 from pykeepassgate.errors import (
     DatabaseLocked,
@@ -35,6 +36,8 @@ from pykeepassgate.errors import (
     RouteRefused,
 )
 from pykeepassgate.pairing import Pairing
+from test_api_routes import resolved
+from test_reference import operations, routing_table
 
 TOKEN = bytes(range(32))
 INVITATION = token_module.encode(TOKEN)
@@ -170,6 +173,36 @@ def test_the_name_the_hello_arrives_on_is_built_from_the_token(
     assert name is not None
     nonce = bytes.fromhex(name.split(".")[0])
     assert name == sni.name_for(TOKEN, nonce), "the gate would not have resolved this"
+
+
+def test_a_hello_to_a_locked_database_spends_nothing(
+    gate: FakeGate, pairing_gate: Gate, responder: Issued
+) -> None:
+    # Pairing needs the authority key and an admission write, and a locked database has
+    # neither, so it refuses this as it refuses everything else. Reading that off the
+    # certificate keeps the proof over the token off the wire, and the invitation whole.
+    gate.serve_with(responder)
+
+    with pytest.raises(DatabaseLocked, match="responder identity"):
+        Pairing(gate.port, INVITATION, timeout=10.0).hello()
+
+    assert gate.requests == [], "nothing reached the gate at all"
+
+
+def test_a_database_locked_between_hello_and_request_is_a_lock_rather_than_an_impostor(
+    gate: FakeGate, pairing_gate: Gate, responder: Issued
+) -> None:
+    # KeePass locks after the hello, and the request's connection is served with the responder,
+    # which is not the certificate the hello proved. Reported as `ProofRefused` that would be
+    # "stop, this is not the right KeePass"; what it is, is a lock to wait out.
+    pairing = Pairing(gate.port, INVITATION, 10.0)
+    exchange = pairing.hello()
+    gate.serve_with(responder)
+
+    with pytest.raises(DatabaseLocked, match="responder identity"):
+        pairing.request(exchange, "agent-invented", ["reader"])
+
+    assert [path for _, path in gate.requests] == ["/pair/hello"], "the request was never sent"
 
 
 def test_a_wrong_token_is_refused_at_the_first_route(gate: FakeGate, pairing_gate: Gate) -> None:
@@ -352,6 +385,7 @@ def test_a_pairing_waits_longer_than_the_gate_may_take(gate: FakeGate) -> None:
         ("agent", ["Default"]),
         ("agent", ["DEFAULT"]),
         ("agent", ["b" * 65]),
+        ("agent", [f"profile-{number}" for number in range(33)]),
     ],
 )
 def test_a_name_the_gate_would_refuse_never_reaches_it(
@@ -370,6 +404,16 @@ def test_a_name_the_gate_would_refuse_never_reaches_it(
         pairing.request(exchange, name, profiles)
 
     assert len(gate.requests) == before, "nothing was asked of the gate at all"
+
+
+def test_the_profile_ceiling_is_the_routing_document_s() -> None:
+    # Mirrored rather than read, as the name rules are, so held to the document here.
+    declared = operations(routing_table())["pairRequest"]["requestBody"]["content"][
+        "application/json"
+    ]["schema"]
+    profiles = resolved(declared, routing_table())["properties"]["profiles"]
+
+    assert resolved(profiles, routing_table())["maxItems"] == pairing_module.MAX_PROFILES
 
 
 def test_the_names_the_gate_does_allow_are_sent(gate: FakeGate, pairing_gate: Gate) -> None:

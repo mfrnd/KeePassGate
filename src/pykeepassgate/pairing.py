@@ -50,6 +50,10 @@ SUBJECT_CHARACTERS = frozenset("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuv
 PROFILE_CHARACTERS = frozenset("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-")
 NAME_LENGTH = 64
 
+#: The most profiles one pairing may ask for: the routing document's `maxItems` on `profiles`,
+#: which the gate holds a pairing's body to before it takes the challenge, as it does the names.
+MAX_PROFILES = 32
+
 
 @dataclass(frozen=True)
 class Exchange:
@@ -146,6 +150,17 @@ class Pairing:
             # comparison and answers `409 no exchange` (`PairingHandler.Request`);
             # this is the half that protects the client, which is the party being
             # handed something to trust.
+            #
+            # The responder is told apart first, because it too is a certificate the
+            # hello never proved, and what it means is a database locked since the
+            # hello rather than something else on the port: a lock to wait out, as
+            # `send` reports one, not a reason to stop. Nothing is sent either way.
+            if connection.responder:
+                raise DatabaseLocked(
+                    "the database locked after the hello, so the request was served with the "
+                    "responder identity and nothing was sent over it"
+                )
+
             if not proofs.matches(
                 proofs.binding(connection.server_certificate), exchange.binding
             ):
@@ -162,7 +177,8 @@ class Pairing:
 def _usable(name: str, profiles: Iterable[str]) -> None:
     """Refuse what the gate would refuse, without spending a connection to be told.
 
-    `PairingHandler.Request` checks the name and the profiles before it takes the challenge, so
+    `PairingHandler.Request` checks the name and the profiles before it takes the challenge, and
+    the gate holds the body to the document's ceiling on how many profiles before that, so
     `400 name` and `400 profile` cost nothing on the gate's side: the exchange survives, and the
     same hello can be followed by a corrected request. What this saves is the round trip and a
     message that names the rule that was broken rather than the field it was broken in.
@@ -175,7 +191,13 @@ def _usable(name: str, profiles: Iterable[str]) -> None:
         # so two names that differ only there become one identity in a record and in a log.
         raise PairingError("a name cannot begin or end with a space")
 
-    for profile in profiles:
+    asked = list(profiles)
+    if len(asked) > MAX_PROFILES:
+        raise PairingError(
+            f"at most {MAX_PROFILES} profiles can be asked for at once, not {len(asked)}"
+        )
+
+    for profile in asked:
         if not 0 < len(profile) <= NAME_LENGTH or not PROFILE_CHARACTERS.issuperset(profile):
             raise PairingError(f"that is not a profile name: {profile!r}")
 

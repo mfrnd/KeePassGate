@@ -93,6 +93,27 @@ namespace KeePassGate.Transport
             PairingConnection pairing,
             GateIncidents incidents)
         {
+            Serve(stream, client, handler, options, log, pairing, incidents, null);
+        }
+
+        /// <summary>
+        /// The same, for a connection that reached a database the API can read and change.
+        /// </summary>
+        /// <remarks>
+        /// The vault travels in the context's items beside the pairing connection, for the same
+        /// reason: the transport knows which database a name resolved to and the handlers need it,
+        /// and neither has to learn anything about the other.
+        /// </remarks>
+        public static void Serve(
+            Stream stream,
+            ClientIdentity client,
+            IGateHandler handler,
+            GateOptions options,
+            IGateLog log,
+            PairingConnection pairing,
+            GateIncidents incidents,
+            Vault.IVault vault)
+        {
             if (stream == null)
             {
                 throw new ArgumentNullException(nameof(stream));
@@ -157,6 +178,11 @@ namespace KeePassGate.Transport
             if (pairing != null)
             {
                 pairing.PutOn(context);
+            }
+
+            if (vault != null)
+            {
+                new ServedDatabase(vault).PutOn(context);
             }
 
             try

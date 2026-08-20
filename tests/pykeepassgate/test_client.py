@@ -8,7 +8,7 @@ from typing import Any
 
 import pytest
 
-from conftest import FakeGate
+from conftest import FakeGate, Issued
 from pykeepassgate import credentials as credentials_module
 from pykeepassgate import sni
 from pykeepassgate.client import GateClient
@@ -117,6 +117,25 @@ def test_every_refusal_becomes_something_a_caller_can_act_on(
 
     if isinstance(raised.value, RouteRefused):
         assert (raised.value.status, raised.value.error) == (status, error)
+
+
+def test_nothing_is_asked_of_the_identity_a_locked_database_answers_with(
+    gate: FakeGate, paired: GateClient, responder: Issued
+) -> None:
+    # `CA.md` 208 is what the marker is for. A responder chains to the same authority, so the
+    # pin admits it and an impostor holding its key could answer a route with a fabricated
+    # password that an agent would then act on. The refusal comes before the request, so this
+    # costs the caller a `DatabaseLocked` rather than a secret somebody made up.
+    gate.serve_with(responder)
+    gate.handler = lambda path, body, client: (
+        200,
+        json.dumps({"uuid": "abc", "title": "invented", "password": "fabricated"}),
+    )
+
+    with pytest.raises(DatabaseLocked, match="responder identity"):
+        paired.entry("abc")
+
+    assert gate.requests == [], "nothing reached the gate at all"
 
 
 def test_a_revoked_client_and_one_that_never_paired_look_the_same(
