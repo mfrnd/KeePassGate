@@ -190,10 +190,19 @@ $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.e
 $msbuild = & $vswhere -latest -requires Microsoft.Component.MSBuild -find "MSBuild\**\Bin\MSBuild.exe"
 ```
 
-**`%USERPROFILE%\KeePassDEV\` must exist and contain `KeePass.exe`.** Everything here references
-KeePass through that path. It is not in any repo and nothing creates it; populate it by
-copying an installed KeePass. A KeePass launched from there writes its own `KeePass.config.xml` next
-to the exe, which is why testing there cannot damage the real configuration.
+**KeePass is provided, not found.** `keepass.version` at the root pins the release, `keepass.sha256`
+pins the archive it must arrive as, and `tools/KeePass.ps1` fetches it into `.keepass\<version>\`,
+which is gitignored. Dot-source it and call `Install-KeePass`.
+
+Three things about it that are decisions rather than details. The directory is **named after the
+version**, so changing the pin cannot silently reuse the old one. The archive is verified twice,
+once against the pinned hash and once by checking that `KeePass.exe` carries a valid Authenticode
+signature from KeePass's author, which is the check that does not depend on where the bytes came
+from. And a version with no line in `keepass.sha256` is **refused**, with the hash that arrived
+printed so it can be pinned deliberately.
+
+A KeePass launched from there writes its own `KeePass.config.xml` next to the exe, which is why
+testing there cannot damage the real configuration.
 
 **There is CI, and there is no branch protection.** The workflow runs every gate on every pull
 request and on every push to `master`, and no check is required before a merge. A red check
