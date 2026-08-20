@@ -496,10 +496,10 @@ hands back with the one it was given, so a rule respelled by a byte is a changed
 revision in its history and the database marked modified, for having been looked at.
 
 **Step 14 is the intersection and the audit**: the profiles from the admission record and the answer
-from the ACL, combined, and every decision recorded. Both halves are built and neither is wired to
-the other, which is the whole of what step 14 is. `AclDecision` already carries why as well as
-whether, and it names the node that decided by its UUID rather than by its title, because that is
-what a log can safely hold.
+from the ACL, combined, and every decision recorded. `AccessCheck` now combines them and writes
+every decision to the audit, and nothing asks it yet. `AclDecision` carries why as well as whether,
+and it names the node that decided by its UUID rather than by its title, because that is what a
+log can safely hold.
 
 **What step 12 settled about verbs.** A rule holds **six verbs and two switches**, which is
 `CRUSDLAP` and is the order they are declared, written and shown in. The verbs are create, read,

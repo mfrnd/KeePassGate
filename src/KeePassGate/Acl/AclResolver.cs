@@ -104,9 +104,8 @@ namespace KeePassGate.Acl
     /// those denies. There is no permissive default here and there is not one anywhere else either.
     ///
     /// **This is half of the answer.** `DESIGN.md` §114 intersects it with the admission
-    /// record. TODO(step 14): `AccessCheck` is where the two are put together, before any handler
-    /// runs. On its own this says what the database permits a profile, not what a particular client
-    /// holds.
+    /// record, and `AccessCheck` is where the two are put together, before any handler runs. On its
+    /// own this says what the database permits a profile, not what a particular client holds.
     ///
     /// Static because it holds nothing and decides nothing on its own account: the tree is the
     /// argument and the answer is a function of it. `JsonLinesAudit` records what came back

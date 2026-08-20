@@ -33,7 +33,9 @@ namespace KeePassGate.Audit
     /// **It rolls at a size rather than growing without end.** One previous file is kept, which is
     /// the smallest thing that stops an unbounded file on somebody's disk while leaving the recent
     /// past readable. Anybody who needs more than that is shipping the lines somewhere else, and
-    /// this is a line-per-decision format precisely so that they can.
+    /// this is a line-per-decision format precisely so that they can. A bound by size is one the
+    /// caller can spend, so how fast one client's lines arrive is held down before they get here:
+    /// see `DecisionPace`.
     ///
     /// **Where it is writing is said as it opens**, and so is having nowhere to write. See the
     /// constructor.
