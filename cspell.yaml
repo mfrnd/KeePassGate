@@ -48,34 +48,16 @@ ignoreRegExpList:
   - "/https?:\\/\\/[^\\s)\"'`]+/g"
 
 words:
-
-
-
-
-
-
-
-
-
-
   # This project
-  - KeePassGate
   - kdbx
-  - keepass
-
-
 
   # KeePass's own names, which are spelled the way KeePass spells them
   - Kdbx
-
-
 
   # Tooling
   - LASTEXITCODE
   - noresult
 
-
-
-  # More of the platform, and of the wire
-  - Ecas
+  # What this branch's own sources and prose need, over what the mainline already knows.
+  - keybd
 

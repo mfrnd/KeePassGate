@@ -1,0 +1,31 @@
+# Runs the desktop probe on a hosted runner, which is the whole of this spike.
+#
+# Dispatched rather than pushed, like everything in `probes/`: a proof is run by somebody who wants
+# the answer, and a spike that re-ran itself on every push would spend Windows minutes re-measuring
+# what `RESULTS.md` already records. Windows bills at twice the rate and this repository is private.
+#
+# The probe's exit code is the verdict, so a red job here means a machine that cannot drive a GUI
+# rather than a job that failed to run one.
+
+name: hosted runner desktop
+
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    name: can a GUI be driven here
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: what the image is
+        shell: powershell
+        run: |
+          Write-Host ("image=" + $env:ImageOS + " " + $env:ImageVersion)
+          Write-Host ("os=" + [Environment]::OSVersion.VersionString)
+
+      - name: probe
+        shell: powershell
+        run: .\.github\desktop-probe.ps1
