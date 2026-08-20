@@ -156,6 +156,37 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void The_entry_dialog_still_says_when_it_is_about_several_entries()
+        {
+            // Without this the tab reads a merged selection's cue string as a document, calls the
+            // rules unreadable, and offers a button that removes the key from every entry chosen.
+            var type = KeePassAssembly.GetType(KeePassContract.EntryFormTypeName, false);
+            var field = type.GetField(
+                KeePassContract.EntryFormMultipleField, BindingFlags.NonPublic | BindingFlags.Instance);
+
+            Assert.That(field, Is.Not.Null,
+                KeePassContract.EntryFormMultipleField + " is gone, so a multiple selection would "
+                + "look like one entry and its rules would be written over all of them.");
+        }
+
+        [Test]
+        public void The_entry_dialog_still_says_when_it_is_only_being_read()
+        {
+            // A history revision. KeePass keeps nothing typed on that dialog, so an editable tab
+            // there is one that throws the operator's work away and shows an old revision's rules
+            // as though they were in force.
+            var type = KeePassAssembly.GetType(KeePassContract.EntryFormTypeName, false);
+            var field = type.GetField(
+                KeePassContract.EntryFormEditModeField, BindingFlags.NonPublic | BindingFlags.Instance);
+
+            Assert.That(field, Is.Not.Null,
+                KeePassContract.EntryFormEditModeField + " is gone, so a revision opened for reading "
+                + "would take edits nothing keeps.");
+            Assert.That(Enum.GetNames(field.FieldType), Contains.Item(KeePassContract.EntryFormReadOnlyMode),
+                "the mode is compared by name, so the name has to be one this enum still has");
+        }
+
+        [Test]
         public void The_entry_dialog_still_has_the_name_the_editor_mounts_on()
         {
             var type = KeePassAssembly.GetType(KeePassContract.EntryFormTypeName, false);
@@ -213,8 +244,7 @@ namespace KeePassGate.Host.Tests
         public void Both_node_dialogs_still_carry_the_database_they_belong_to(string typeName)
         {
             // What `NodeDialog` reads a node's database out of, which is how the grant editor knows
-            // which profile list to offer. TODO(step 13): `NodeDialog` arrives with the grant tab.
-            // A KeePass that renames it leaves the editor with no
+            // which profile list to offer. A KeePass that renames it leaves the editor with no
             // database and nothing to offer, so it is pinned like the rest of them.
             var type = KeePassAssembly.GetType(typeName, false);
             var field = type.GetField(

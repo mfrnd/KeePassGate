@@ -42,6 +42,29 @@ namespace KeePassGate
         public const string EntryFormEntryField = "m_pwEntry";
 
         /// <summary>
+        /// The merged-selection context, present only while several entries are edited at once.
+        /// </summary>
+        /// <remarks>
+        /// Present means the entry behind the dialog is a synthetic one KeePass built by merging
+        /// the selection, and every value the selection disagrees about has been replaced by a
+        /// cue string. Its `CustomData` is therefore not a document, and what is written back is
+        /// applied to every selected entry. For a key the merged copy no longer carries, that
+        /// means deleting it from all of them.
+        /// </remarks>
+        public const string EntryFormMultipleField = "m_mvec";
+
+        /// <summary>Which of the four things the entry dialog is doing, `PwEditMode`.</summary>
+        /// <remarks>
+        /// `ViewReadOnlyEntry` is a history revision opened for reading. `SaveEntry` returns on
+        /// its first instruction in that mode, so nothing typed anywhere on the dialog is kept,
+        /// and the entry behind it is the old revision rather than the one in force.
+        /// </remarks>
+        public const string EntryFormEditModeField = "m_pwEditMode";
+
+        /// <summary>The `PwEditMode` value that means a history revision opened for reading.</summary>
+        public const string EntryFormReadOnlyMode = "ViewReadOnlyEntry";
+
+        /// <summary>
         /// The tab strip on the group and entry dialogs, which both call it what the database
         /// settings dialog does.
         /// </summary>
@@ -66,7 +89,8 @@ namespace KeePassGate
 
         /// <summary>
         /// The database behind a group or entry dialog, which is what says which profiles are worth
-        /// offering. Absent, the editor offers none and still lets a rule be written.
+        /// offering. Absent, the editor has no profile to offer, and a rule is started by choosing
+        /// one, so it shows the rules, changes none of them, and says why.
         /// </summary>
         public const string NodeFormDatabaseField = "m_pwDatabase";
 

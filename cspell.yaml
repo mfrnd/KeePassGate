@@ -85,6 +85,8 @@ words:
   # keep the gate working on a machine that also has PowerShell 7
   - PSHOME
 
+  # write a grant into the dialog's own copy, and refuse the two dialogs that are not one node
+  - mvec
 
   # This project
   - CRUSDLAP
