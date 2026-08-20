@@ -1,8 +1,14 @@
 # Runs the desktop probe on a hosted runner, which is the whole of this spike.
 #
-# Dispatched rather than pushed, like everything in `probes/`: a proof is run by somebody who wants
-# the answer, and a spike that re-ran itself on every push would spend Windows minutes re-measuring
-# what `RESULTS.md` already records. Windows bills at twice the rate and this repository is private.
+# Triggered by a push to this branch, which is not the preference but is the only thing that works.
+# GitHub offers `workflow_dispatch` only for workflows that are on the **default branch**, and a
+# spike is deliberately not on it, so dispatching this one is refused with "could not find any
+# workflows named". The dispatch trigger is kept anyway, for whoever puts a workflow on `master`
+# later and can then use it.
+#
+# The cost is that a push re-measures rather than reading `RESULTS.md`. This branch is pushed
+# rarely and the job is about a minute, so that is cheaper than it would be anywhere else in this
+# repository, where Windows bills at twice the rate.
 #
 # The probe's exit code is the verdict, so a red job here means a machine that cannot drive a GUI
 # rather than a job that failed to run one.
@@ -10,6 +16,8 @@
 name: hosted runner desktop
 
 on:
+  push:
+    branches: [spikes/hosted-runner-desktop]
   workflow_dispatch:
 
 jobs:
