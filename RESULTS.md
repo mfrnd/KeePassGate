@@ -27,20 +27,30 @@ to run one.
 
 ## What a hosted runner answered
 
-| | Local, for comparison | `windows-latest` |
-| --- | --- | --- |
-| session | 1, interactive | 2, interactive |
-| window station and desktop | `WinSta0` `Default` | `WinSta0` `Default` |
-| screen | 1920x1200, two | **1024x768, one** |
-| a window from another process is visible | yes | yes |
-| the foreground can be taken | yes | yes |
-| synthesized keystrokes arrive | yes | yes |
-| a synthesized click arrives | yes | yes |
-| the accessibility tree crosses processes | yes | yes |
-| the screen reads back something other than black | yes | yes |
+`windows-latest` was `win25-vs2026` image `20260818.207.1`, Windows NT 10.0.26100. Run
+[32422918510](https://github.com/mfrnd/KeePassGate/actions/runs/32422918510). The local column is
+the same script on a developer machine, for comparison.
 
-The one difference that matters is the screen: **1024x768 and a single monitor**. Nothing in the end
-to end tier needs more, and the measurement below says so rather than assuming it.
+| | local | `windows-latest` |
+| --- | --- | --- |
+| `session.id`, interactive | 1, True | 2, True |
+| `station.name`, `desktop.name` | `WinSta0`, `Default` | `WinSta0`, `Default` |
+| `screen.bounds`, `screen.count` | 1920x1200, two | **1024x768, one** |
+| `uia.windowFound`, `uia.otherProcess` | True, True | True, True |
+| `window.visible`, `window.foreground` | True, True | True, True |
+| `keyboard.readBack` | `'kpg'` | `'kpg'` |
+| `uia.controlFound` | True | True |
+| `mouse.readBack` | `'kpg!'` | `'kpg!'` |
+| `capture.notBlank` | True | True |
+| `verdict` | a GUI can be driven | a GUI can be driven |
+
+Every row that has to work does, and the only difference is the screen: **1024x768 and a single
+monitor**. Nothing in the end to end tier needs more, and the measurement below says so rather than
+assuming it.
+
+`menu.items` reads zero on both machines and is reported rather than required, because that is
+WinForms describing its own strip to UI Automation and not the machine answering anything. That
+menus can be driven is settled below, by a tier that drives KeePass's own.
 
 ## What the product itself answered
 
