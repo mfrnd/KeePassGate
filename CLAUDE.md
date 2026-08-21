@@ -29,7 +29,7 @@ these false, and the fixes on the mainline would then be guarding against nothin
 
 ## The rule that matters
 
-**Do not improve this account.** Every number recorded on the mainline was produced by running exactly
+**Do not improve this code.** Every number recorded on the mainline was produced by running exactly
 what is here, so an edit that makes the probe nicer makes those numbers a claim about something
 that no longer exists.
 
