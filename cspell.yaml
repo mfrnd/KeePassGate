@@ -101,6 +101,7 @@ words:
 
   # More of the platform, and of the wire
   - Ecas
+  - keybd
   - nameof
   - netsh
   - OCSP
