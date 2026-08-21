@@ -67,4 +67,6 @@ words:
   - oids
   - pscustomobject
   - PSHOME
+  - sendall
+  - splitlines
 
