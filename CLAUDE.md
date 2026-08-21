@@ -24,7 +24,7 @@ The build environment is a different subject and is on `spikes/build-environment
 
 ## The rule that matters
 
-**Do not improve this account.** Every number recorded on the mainline was produced by running exactly
+**Do not improve this code.** Every number recorded on the mainline was produced by running exactly
 what is here, so an edit that makes a probe nicer makes those numbers a claim about something that
 no longer exists. Fixing a typo in a comment is the sort of change that costs nothing and buys
 nothing.
@@ -42,7 +42,7 @@ If a **new** question needs measuring, it gets its own branch from `master`, nam
 
 ## Working here
 
-- One file per question, `probes/<Name>Probe.cs`, compiled by `Add-Type` and run by hand.
+- One file per question, `spikes/<Name>Probe.cs`, compiled by `Add-Type` and run by hand.
 - **Windows PowerShell, not PowerShell 7**, which is .NET Core and answers a different question.
 - Every probe mints its certificates in memory and serves on loopback, so running one arranges
   nothing and leaves nothing behind.
