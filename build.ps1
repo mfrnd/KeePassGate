@@ -11,14 +11,14 @@
       Lint     check the prose: markdown rules, spelling, markers and anchors (the default)
 
     There is one task today because there is one thing to check. The list grows with the
-    repository, and a task added to it is to be checked by CI without anybody editing a workflow:
-    see `-ListGates` below.
+    repository, and a task added to it is checked by CI without anybody editing a workflow: see
+    `-ListGates` below.
 
 .PARAMETER Task
     What to do. Defaults to Lint.
 
 .PARAMETER ListGates
-    Print the tasks that are checks, one per line, and exit. This is the list CI is to ask for,
+    Print the tasks that are checks, one per line, and exit. This is what the workflow asks for,
     and it is derived from `Task`'s own declaration rather than written down a second time, so a
     task cannot exist without CI knowing about it and the two cannot disagree.
 

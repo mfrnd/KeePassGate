@@ -57,7 +57,7 @@ foreach ($file in $files) {
 
     # Read as UTF-8, which every file here is. Windows PowerShell reads a file without a byte order
     # mark in the ANSI code page otherwise, where a Unicode dash arrives as three other characters
-    # and the check passes whatever it is shown.
+    # and the check passes whatever it is shown; CI runs this under Windows PowerShell.
     $lines = Get-Content -Path $file.FullName -Encoding UTF8
     $mermaid = $false
     $number = 0
