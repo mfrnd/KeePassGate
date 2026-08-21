@@ -1,7 +1,6 @@
 {
   "name": "keepassgate-docs-tooling",
   "private": true,
-  "description": "Node tooling for this repository's prose only: markdownlint and cspell. Nothing here ships or runs in the plugin, which is C# on .NET Framework. It lives at the root and is pinned with a lockfile so that every machine, `build.ps1 -Task Lint` (TODO(step 2): added with step 2) and the editor hooks all see the same rules: an unpinned linter silently changes what 'clean' means.",
   "scripts": {
     "lint:md": "markdownlint-cli2",
     "fix:md": "markdownlint-cli2 --fix",

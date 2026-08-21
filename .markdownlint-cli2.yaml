@@ -4,7 +4,6 @@
 # extend a shared set. This one holds one plugin and one client, so there is nothing to extend and
 # nothing to resolve upwards: one static config, at the root, is the whole of it. Run it with
 # `npm run lint:md`, or through `build.ps1 -Task Lint`, which is the gate.
-# TODO(step 2): that script arrives with step 2.
 #
 # markdownlint's defaults are the baseline. Only the deviations are written down, and each says why.
 

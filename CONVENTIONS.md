@@ -120,8 +120,7 @@ button, a third-party option.
   does not exist yet and say nothing about it. Anywhere else, a reference to something a later step
   brings carries `TODO(step N)` at the reference itself, naming the step that makes it true. A bare
   `TODO` names nobody and expires never, which is why the form is fixed and why `build.ps1` fails
-  when a marker names a step the build order already marks done. TODO(step 2): that script arrives
-  with step 2.
+  when a marker names a step the build order already marks done.
 - **A step named in a sentence is a reference like any other.** "Step 14 is where the two are put
   together", in a comment describing a class, claims behavior nothing has yet; the shape of the
   sentence is what hides that, not the reference. One thing outside the design documents is exempt,
