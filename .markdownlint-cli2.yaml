@@ -59,6 +59,9 @@ globs:
 gitignore: true
 
 ignores:
+  # Somebody else's document, kept as it arrived. Reflowing it to this project's width would make
+  # every later comparison with the original a diff about wrapping.
+  - "capture-methods.md"
   - "node_modules/**"
   - ".tmp/**"
   - "**/bin/**"

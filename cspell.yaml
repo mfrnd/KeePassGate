@@ -26,6 +26,8 @@ files:
 useGitignore: true
 
 ignorePaths:
+  # Somebody else's document, kept as it arrived, and full of API names this project never writes.
+  - capture-methods.md
   # Somebody else's source, vendored or generated. Not ours to spell, and a checker that reports it
   # is a checker whose findings nobody reads. The spike branches vendor whole libraries under
   # `vendor/`, which is what that first line is for.
