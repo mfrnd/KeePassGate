@@ -17,6 +17,11 @@ code that establishes it.
 | [`spikes/uhttpsharp/`](spikes/uhttpsharp/) | uHttpSharp | 0 |
 | [`spikes/wssharp/`](spikes/wssharp/) | websocket-sharp | 10 |
 
+Beside them, [`spikes/BclReuseProbe.cs`](spikes/) is not a candidate and vendors nothing: it
+measures which pieces of a transport this project writes itself are already in an assembly the
+plugin loads anyway. It is the question left over once the three above settled that the
+transport is ours.
+
 All three serve. **[`RESULTS.md`](RESULTS.md) is what they settled**: the numbers, what each library
 needed, the two verdicts that were corrected along the way, and what the mainline eventually did
 with the answer.

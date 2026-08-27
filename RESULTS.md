@@ -125,3 +125,76 @@ kind of answer. What survived onto the mainline:
 - **Spec-first routing**, proven twice here, is how the mainline routes.
 - **The transport is ours**, which is the shape the first proof was already testing when it drove a
   vendored parser from a stream it had authenticated itself.
+
+## What the framework already does
+
+The three proofs above settled that the transport is ours. That leaves a smaller question, and
+answering it by reading documentation produces an opinion, so `spikes/BclReuseProbe.cs` runs it:
+which pieces of a hand-written transport are already in an assembly the plugin loads anyway?
+
+`WebHeaderCollection`, `ContentType` and `Uri` all ship in `System`, which is already referenced for
+the sockets. Nothing below is a dependency question. Each one is a question about which behavior is
+wanted.
+
+### Take: the media type parser
+
+```text
+application/json; charset=utf-8  -> application/json
+APPLICATION/JSON                 -> APPLICATION/JSON
+nonsense                         -> REFUSED FormatException
+application/json;;;              -> REFUSED FormatException
+```
+
+`System.Net.Mime.ContentType` strips parameters correctly and, more usefully, refuses a value that
+is not a media type at all. Splitting on `;` by hand gets the first line right and reports the last
+two as an ordinary wrong type, so a malformed header and a merely unsupported one become the same
+answer. It does not fold case, which is right: a comparison still has to be case insensitive,
+because RFC 9110 says media types are.
+
+### Take: the header collection, for writing
+
+```text
+Bad Name             -> REFUSED ArgumentException
+value carrying CRLF  -> REFUSED ArgumentException
+```
+
+It refuses a malformed name and a value carrying a line break, which is the grammar. It accepts
+`Content-Length`, `Transfer-Encoding` and `Connection` without complaint, which is the policy, and
+the policy has to be ours: the transport owns framing, so a caller that could set those could put
+a stream it does not know exists out of step with itself. Same split as the JSON reading, where the grammar is
+somebody else's and what this wire may carry is not.
+
+### Leave: the header collection, for reading
+
+```text
+Add("A: b")       -> b
+Add("A: c") again -> b,c
+Add(" folded")    -> REFUSED ArgumentException
+Add("no-colon")   -> REFUSED ArgumentException
+```
+
+It refuses the two malformed lines the reader here refuses, and then merges a repeated header into
+one comma separated value. A repeated header is refused rather than merged on purpose, because
+merging is how two intermediaries come to disagree about where a request ends. This does the one
+thing the reader exists to prevent, so it stays on the writing side.
+
+### Leave: the URI parser, and this is the sharpest of the three
+
+```text
+/entries/a%2Fb  AbsolutePath -> /entries/a%2Fb    LocalPath -> /entries/a/b
+/entries/../x   AbsolutePath -> /x                LocalPath -> /x
+/entries/%2E%2E AbsolutePath -> /entries/%2E%2E   LocalPath -> /entries/..
+```
+
+Two behaviors, each disqualifying. `LocalPath` decodes `%2F` into a separator, so one segment
+becomes two and an attachment named `a/b` stops being addressable, which is the whole reason the
+path is split before it is decoded. And `/entries/../x` normalizes to `/x` in both: the climb a
+reader is written to refuse simply disappears, and the path a router matched is no longer the path
+the caller sent. A refusal that cannot fire is worse than no refusal, because the tests pass.
+
+### What the mainline took
+
+`ContentType`, for the one place a request's media type is checked. The header collection for
+responses, with an allow list of the names this API may vary, so that framing stays where the
+framing is written. Nothing else: the percent decoding, the request reader and the path matching
+stay hand written, and each now has a measurement behind why rather than an assertion.
