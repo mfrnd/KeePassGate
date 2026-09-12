@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
 using System.Windows.Automation;
+using KeePassGate;
 using KeePassGate.Ui;
 using NUnit.Framework;
 
@@ -172,6 +173,66 @@ namespace KeePassGate.Host.Tests.Live
         public AutomationElement OpenGroupDialog()
         {
             return OpenFromMenu("Group", "Edit Group", "Edit Group");
+        }
+
+        /// <summary>Entry, Edit Entry, after selecting the first entry the list is showing.</summary>
+        /// <remarks>
+        /// The selection is made through the accessibility tree rather than by keystroke, because
+        /// which control has the focus after a database opens is KeePass's business and reaching
+        /// the list by tabbing would depend on it. The menu item is disabled while nothing is
+        /// selected, so this would otherwise open a menu and choose nothing.
+        /// </remarks>
+        public AutomationElement OpenEntryDialog()
+        {
+            SelectFirstEntry();
+            return OpenFromMenu("Entry", "Edit", "Edit Entry");
+        }
+
+        /// <summary>Selects the first row of the entry list, and says which entry that was.</summary>
+        /// <remarks>
+        /// The row is looked for by more than one control type because how a list reports itself is
+        /// the provider's business rather than KeePass's: the same list is a `DataItem` under one
+        /// and a `ListItem` under another, and a driver that knew only one would be reporting that
+        /// the database is empty.
+        /// </remarks>
+        public string SelectFirstEntry()
+        {
+            var row = Uia.WaitForOrNull(() => FirstEntryRow(), TimeSpan.FromSeconds(20));
+            if (row == null)
+            {
+                throw new TimeoutException(
+                    "No entry is listed, so there is nothing to open." + Environment.NewLine +
+                    "  lists: " + Uia.Describe(_mainWindow, ControlType.List) + Environment.NewLine +
+                    "  tables: " + Uia.Describe(_mainWindow, ControlType.Table) + Environment.NewLine +
+                    "  data items: " + Uia.Describe(_mainWindow, ControlType.DataItem) + Environment.NewLine +
+                    "  list items: " + Uia.Describe(_mainWindow, ControlType.ListItem));
+            }
+
+            object pattern;
+            if (row.TryGetCurrentPattern(SelectionItemPattern.Pattern, out pattern))
+            {
+                ((SelectionItemPattern)pattern).Select();
+                System.Threading.Thread.Sleep(400);
+            }
+
+            var chosen = Uia.Name(row);
+            _diagnostics.AppendLine("selected the entry " + chosen);
+            return chosen;
+        }
+
+        private AutomationElement FirstEntryRow()
+        {
+            var types = new[] { ControlType.DataItem, ControlType.ListItem };
+            foreach (var type in types)
+            {
+                var found = Uia.Descendant(_mainWindow, type, name => !string.IsNullOrEmpty(name));
+                if (found != null)
+                {
+                    return found;
+                }
+            }
+
+            return null;
         }
 
         private AutomationElement OpenFromMenu(string menuName, string itemPrefix, string windowTitlePart)

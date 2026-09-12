@@ -470,7 +470,7 @@ namespace KeePassGate.Ui
 
             _countdown = new TextLabel
             {
-                Name = "KpgApprovalCountdown",
+                Name = GateTab.ApprovalCountdownName,
                 Text = Remaining(timeout),
                 AutoSize = true,
                 MaximumSize = new Size(_wrap, 0),
@@ -668,11 +668,11 @@ namespace KeePassGate.Ui
             // shows the same identifier beside the code and this is what it is checked against. A
             // row saying "Invitation" reads as though it were the code, which is the one thing this
             // dialog does not show.
-            facts.Add(new Fact("Invitation id", request.InvitationId));
+            facts.Add(new Fact(GateTab.InvitationIdFactName, request.InvitationId));
 
             if (!string.IsNullOrEmpty(request.Peer))
             {
-                facts.Add(new Fact("Connected from", request.Peer));
+                facts.Add(new Fact(GateTab.PeerFactName, request.Peer));
             }
 
             return facts;
@@ -719,8 +719,8 @@ namespace KeePassGate.Ui
         {
             var seconds = (int)Math.Max(0, Math.Ceiling(left.TotalSeconds));
 
-            return "This pairing request times out in " + seconds.ToString(CultureInfo.InvariantCulture) +
-                   " seconds, and nothing is issued if it does.";
+            return string.Format(
+                CultureInfo.InvariantCulture, GateTab.ApprovalCountdownFormat, seconds);
         }
 
         /// <summary>

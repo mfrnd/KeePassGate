@@ -129,14 +129,22 @@ and reads it back. It is the one test in which the plugin's own PKCS#12 export m
 Bouncy Castle's TLS meets Python's `ssl`, and the plugin's framing meets the client's reader. Without
 `uv` it is ignored, as the tier is without a KeePass.
 
+It goes on to hold the client's answers against the plugin's own. Under a rule granting `P`, the
+password the client stored reads back through the field route, and a new one it sets reads back as
+the new one. A write made while the entry's dialog is open in KeePass is turned away as `GateBusy`
+and changes nothing, and once KeePass is locked the client meets `DatabaseLocked`. What the command
+line does not offer, one field on its own route and a changed password, goes through the library
+with `tests/pykeepassgate/live_calls.py`, which the client tier runs against its stand-in as well.
+
 **Step 13**, in `LiveGrantEditorTests`: a rule made on the KPG tab of a real KeePass, kept by the
 group dialog's **OK**, and read out of the `.kdbx` after the process has gone. Pressing OK rather
 than Escape is what it is for: the dialog writes its own copy of the group's settings back over the
 group at that moment, so a rule written anywhere else would be destroyed exactly there.
 `LiveAuthorityTests` presses OK too, for the reason the end of this document gives, so this is no
-longer the only one that does. It is also the only one that moves the pointer, because neither
-column on that table can be typed into and a list is not something the accessibility tree can be
-asked to operate.
+longer the only one that does. It is also the only test that clicks with the pointer, because
+neither column on that table can be typed into and a list is not something the accessibility tree
+can be asked to operate. The screenshots move it too, parking it clear of each window before the
+picture is taken, so that no tooltip covers what the picture shows.
 
 **The authority chooser**, in `LiveAuthorityChooserTests`: two copies of one database each replace
 the authority they share and admit a client of their own, the copy KeePass opens is merged with the
@@ -176,10 +184,13 @@ default run for that reason, not because it is optional. [`FINDINGS.md`](FINDING
 harder than it looks. Cited by its title rather than its number, because the numbering shifts
 as sections are added above it and a number here goes stale without anything noticing.
 
-**A failed run prints what it left behind**, because the console is often all that a run keeps:
-`build.ps1 -Task Live` writes out each failed test's name, message and stack from `live.trx`, and
-the end of any plugin log a session of that run did not delete, before failing as it would have
-anyway.
+**A failed run prints what it left behind**, because the console is often all that a run keeps.
+A session whose fixture failed keeps its directory rather than deleting it, plugin log and all, and
+a KeePass that had to be ended rather than closing leaves a line there saying which windows it was
+showing. `build.ps1 -Task Live` writes out each failed test's name, message and stack from
+`live.trx`, then the end of every plugin log and every such line a session of that run kept, before
+failing as it would have anyway. The next run of the same fixture deletes the directory as it
+begins.
 
 ## What the end to end tier builds against
 

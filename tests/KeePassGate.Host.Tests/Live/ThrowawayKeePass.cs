@@ -10,6 +10,7 @@ using System.Net.Sockets;
 using System.Security.Cryptography.X509Certificates;
 using KeePassLib;
 using KeePassLib.Keys;
+using KeePassLib.Security;
 using KeePassLib.Serialization;
 using KeePassGate.Acl;
 using KeePassGate.Authority;
@@ -102,6 +103,15 @@ namespace KeePassGate.Host.Tests.Live
         public string PluginLogPath
         {
             get { return Path.Combine(_root, "keepassgate.log"); }
+        }
+
+        /// <summary>
+        /// Where each KeePass of this installation that had to be ended rather than closing is
+        /// written down, with what it was showing then.
+        /// </summary>
+        public string EndedPath
+        {
+            get { return Path.Combine(_root, "ended.txt"); }
         }
 
         public Process Process
@@ -252,6 +262,7 @@ namespace KeePassGate.Host.Tests.Live
             {
                 if (_process != null && !_process.HasExited)
                 {
+                    WriteDownWhatItShows();
                     _process.Kill();
                     _process.WaitForExit(10000);
                 }
@@ -268,6 +279,38 @@ namespace KeePassGate.Host.Tests.Live
                     _process.Dispose();
                     _process = null;
                 }
+            }
+        }
+
+        /// <summary>
+        /// Writes down which windows a KeePass about to be ended is showing, and whether it still
+        /// answers, beside the plugin's log.
+        /// </summary>
+        /// <remarks>
+        /// **The last moment any of it can be seen.** A KeePass that did not exit when it was asked
+        /// to was showing something, a question, a message box or a locked workspace, and the kill
+        /// takes all of that with it. A run once saw three fixtures in a row time out that way and
+        /// nothing it kept said why. A fixture that failed keeps this file with its log, and
+        /// `build.ps1` prints both; a KeePass a fixture ends on purpose between two sessions is
+        /// written down too, which costs nothing when nothing failed.
+        /// </remarks>
+        private void WriteDownWhatItShows()
+        {
+            try
+            {
+                var answering = _process.Responding ? "answering" : "not answering";
+                File.AppendAllText(
+                    EndedPath,
+                    DateTime.UtcNow.ToString("u", System.Globalization.CultureInfo.InvariantCulture) +
+                    " ended while still running and " + answering + ", showing " +
+                    NativeWindows.Titles(_process) + Environment.NewLine);
+            }
+            catch (Exception error) when (
+                error is IOException || error is UnauthorizedAccessException ||
+                error is InvalidOperationException || error is Win32Exception)
+            {
+                // Evidence, and nothing waits on it. A KeePass that exits meanwhile answers no
+                // longer, and a file that cannot be written has nothing to add to the failure.
             }
         }
 
@@ -305,7 +348,6 @@ namespace KeePassGate.Host.Tests.Live
                     AuthorityKeys.AuthorityKey(fingerprint),
                     AuthorityDocument.Save(
                         SeededAuthority.Authority, SeededAuthority.Host, SeededAuthority.SniKey));
-                store.Set(SeededAuthority.ClientKey, SeededAuthority.ClientRecord);
 
                 database.Save(null);
             }
@@ -313,6 +355,115 @@ namespace KeePassGate.Host.Tests.Live
             {
                 database.Close();
             }
+        }
+
+        /// <summary>Writes the one admission record the pictures of the tab show, as its own step.</summary>
+        /// <remarks>
+        /// Separate from the authority, and written between two sessions rather than beside it,
+        /// because the two are true at different moments. A database whose authority has just been
+        /// made has admitted nobody, and the tab counts admission records: seeding both at once
+        /// put a one under a picture captioned as the tab the instant the authority exists.
+        ///
+        /// Written rather than paired for, for the same reason the authority is: a real pairing
+        /// stamps the moment it happened, and a picture of a date that moves is a picture that
+        /// changes on every regeneration.
+        ///
+        /// **Only before KeePass starts**, like everything else here.
+        /// </remarks>
+        public void SeedAdmittedClient()
+        {
+            SeedAdmittedClient(DatabasePath, SeededAuthority.ClientKey, SeededAuthority.ClientRecord);
+        }
+
+        /// <summary>The same for any written down record, into one copy of the database.</summary>
+        public void SeedAdmittedClient(string path, string key, string record)
+        {
+            var database = new PwDatabase();
+            try
+            {
+                database.Open(IOConnectionInfo.FromPath(path), NewKey(), null);
+
+                var store = new CustomDataStore(database);
+                store.Set(key, record);
+
+                database.Save(null);
+            }
+            finally
+            {
+                database.Close();
+            }
+        }
+
+        /// <summary>
+        /// Replaces the authority in one copy of the database with a written down one, as Recreate
+        /// would with one it had minted, and answers with its digest.
+        /// </summary>
+        /// <remarks>
+        /// Written rather than minted, for the reason <see cref="SeedAuthority"/> gives. What goes is
+        /// what Recreate takes: the old authority retired, its document removed, and every
+        /// admission record with it, through `AuthorityStore` so that the copy holds exactly what
+        /// the plugin would have left.
+        ///
+        /// **Only before KeePass starts.**
+        /// </remarks>
+        public string SeedRecreatedAuthority(string path, string authority, string host, string sniKey)
+        {
+            var database = new PwDatabase();
+            try
+            {
+                database.Open(IOConnectionInfo.FromPath(path), NewKey(), null);
+
+                var store = new CustomDataStore(database);
+                new AuthorityStore(store, NullGateLog.Instance).DeleteEverything();
+
+                string fingerprint;
+                using (var certificate = CertificateBlob.Load(authority))
+                {
+                    fingerprint = CertificateDigest.Of(certificate);
+                }
+
+                store.Set(AuthorityKeys.AuthorityKey(fingerprint), AuthorityDocument.Save(authority, host, sniKey));
+
+                database.Save(null);
+                return fingerprint;
+            }
+            finally
+            {
+                database.Close();
+            }
+        }
+
+        /// <summary>
+        /// Writes one decision into this installation's audit, at a moment that does not move, as
+        /// a request from the client with this admission key would have left it.
+        /// </summary>
+        /// <remarks>
+        /// The authority chooser shows, beside each client, when the audit last wrote it down, and
+        /// a real request writes the moment it happened: a picture of that is a picture that changes
+        /// on every regeneration. So the line is written instead, through `JsonLinesAudit` and
+        /// `AuditEntry`, which is how the gate writes one: a listing of the root group, permitted by
+        /// the rule on it.
+        ///
+        /// **Only before KeePass starts**, so that the plugin finds it there when it first reads the
+        /// file.
+        /// </remarks>
+        public void SeedLastRequest(string admissionKey, string databaseId, DateTimeOffset at)
+        {
+            string root;
+            var database = new PwDatabase();
+            try
+            {
+                database.Open(IOConnectionInfo.FromPath(DatabasePath), NewKey(), null);
+                root = database.RootGroup.Uuid.ToHexString();
+            }
+            finally
+            {
+                database.Close();
+            }
+
+            new KeePassGate.Audit.JsonLinesAudit(AuditPath, NullGateLog.Instance).Record(
+                new KeePassGate.Audit.AuditEntry(
+                    at, databaseId, admissionKey, "listEntries", root, root, true, "a rule here grants it"));
         }
 
         /// <summary>
@@ -329,10 +480,23 @@ namespace KeePassGate.Host.Tests.Live
             Release();
         }
 
-        public void Dispose()
+        /// <summary>
+        /// Ends this KeePass and gives the port back, and leaves every file where it is.
+        /// </summary>
+        /// <remarks>
+        /// What a session whose fixture failed ends with instead of <see cref="Dispose"/>: the
+        /// plugin's log, the database and the audit stay in the session directory for `build.ps1`
+        /// to report.
+        /// </remarks>
+        public void Keep()
         {
             DropReservation();
             Release();
+        }
+
+        public void Dispose()
+        {
+            Keep();
 
             try
             {
@@ -724,6 +888,54 @@ namespace KeePassGate.Host.Tests.Live
         }
 
         /// <summary>
+        /// Puts a small invented tree in the database: two groups and four entries.
+        /// </summary>
+        /// <remarks>
+        /// For the documentation, which screenshots these dialogs. An empty database makes a
+        /// picture that shows the plugin working on nothing, and the group and entry dialogs cannot
+        /// be reached at all without something to open them on.
+        ///
+        /// **Every name here is invented and has to stay that way.** These pictures are published,
+        /// so a title, a user name or a group taken from anywhere real would be published with
+        /// them. Nothing carries a password, because a screenshot of a password field is a habit
+        /// worth not starting.
+        /// </remarks>
+        public void FillWithInventedContent()
+        {
+            var database = new PwDatabase();
+            try
+            {
+                database.Open(IOConnectionInfo.FromPath(DatabasePath), NewKey(), null);
+
+                // Named for the pictures rather than for the tests, which is why this is a separate
+                // method: a screenshot of a group called "Throwaway" teaches the reader nothing
+                // about where their own rules would go.
+                database.RootGroup.Name = "Invented Vault";
+
+                var automation = new PwGroup(true, true, "Automation", PwIcon.Folder);
+                var services = new PwGroup(true, true, "Invented Services", PwIcon.Folder);
+                database.RootGroup.AddGroup(automation, true);
+                database.RootGroup.AddGroup(services, true);
+
+                // One in the root as well, because the entry list shows the selected group and the
+                // root is what a freshly opened KeePass selects. Without it the list is empty and
+                // there is no entry dialog to reach.
+                database.RootGroup.AddEntry(
+                    Entry("Shared Mailbox", "mail-invented", "https://mail.invalid"), true);
+
+                automation.AddEntry(Entry("Build agent", "agent-invented", "https://build.invalid"), true);
+                services.AddEntry(Entry("Fictitious API", "api-fictitious", "https://api.invalid"), true);
+                services.AddEntry(Entry("Nonexistent Mail", "mail-nonexistent", "https://mail.invalid"), true);
+
+                database.Save(null);
+            }
+            finally
+            {
+                database.Close();
+            }
+        }
+
+        /// <summary>
         /// Writes the profiles this database names, which is what the grant editor picks from.
         /// </summary>
         /// <remarks>
@@ -765,6 +977,15 @@ namespace KeePassGate.Host.Tests.Live
             {
                 database.Close();
             }
+        }
+
+        private static PwEntry Entry(string title, string user, string url)
+        {
+            var entry = new PwEntry(true, true);
+            entry.Strings.Set(PwDefs.TitleField, new ProtectedString(false, title));
+            entry.Strings.Set(PwDefs.UserNameField, new ProtectedString(false, user));
+            entry.Strings.Set(PwDefs.UrlField, new ProtectedString(false, url));
+            return entry;
         }
 
         /// <summary>Every entry in the file, read after KeePass has exited.</summary>
@@ -825,7 +1046,7 @@ namespace KeePassGate.Host.Tests.Live
         }
 
         /// <summary>The port examples and pictures use, or any free one.</summary>
-        private const int Documented = 45678;
+        public const int Documented = 45678;
 
         /// <summary>A port nothing is using, held until the moment KeePass is told to take it.</summary>
         /// <remarks>

@@ -48,6 +48,28 @@ namespace KeePassGate.Host.Tests.Live
             Click((int)(box.Left + (box.Width / 2)), (int)(box.Top + (box.Height / 2)));
         }
 
+        /// <summary>
+        /// Moves the pointer clear of a rectangle and waits for what was under it to settle.
+        /// </summary>
+        /// <remarks>
+        /// A pointer resting on the control it just clicked is a pointer hovering, and hovering
+        /// raises a tooltip. In a screenshot that tooltip covers whatever it is pointing at, which
+        /// on the access tab is the column the prose beside the picture is describing. Parking is
+        /// cheaper than teaching every caller to move afterwards, and it is the last thing done
+        /// before the shutter rather than the first thing after a click, because the tooltip
+        /// appears on its own schedule.
+        /// </remarks>
+        public static void Park(int left, int top, int right, int bottom)
+        {
+            var screen = System.Windows.Forms.Screen.PrimaryScreen.Bounds;
+
+            var x = right + 40 < screen.Right ? right + 40 : (left - 40 > screen.Left ? left - 40 : screen.Left + 2);
+            var y = bottom + 40 < screen.Bottom ? bottom + 40 : (top - 40 > screen.Top ? top - 40 : screen.Top + 2);
+
+            SetCursorPos(x, y);
+            Thread.Sleep(500);
+        }
+
         public static void Click(int x, int y)
         {
             SetCursorPos(x, y);

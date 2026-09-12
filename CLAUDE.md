@@ -51,6 +51,11 @@ from `master` and never merged, keeps the three vendored HTTP proofs and gathers
 in its own `RESULTS.md`. A spike lives on its own branch so that no mainline history has to carry it
 being added and deleted again.
 
+**How the screenshots are taken was worked out on a third.** `spikes/window-capture` holds the
+survey of what Windows offers for getting one window into a file, and what was measured on these
+dialogs: two methods were tried and found wrong before the one in use. What is on the mainline is
+the method and the reason; the alternatives are there.
+
 **The measurements the transport rests on are on two more.** `spikes/tls-and-certificates` holds
 what was measured about TLS and X.509 on .NET Framework, and `spikes/build-environment` whether the
 gate can fail while nothing is wrong. Both are kept runnable rather than retired, because each is a
@@ -217,6 +222,17 @@ designing around them.
   somebody checking one looks and where the answer is right for all of them at once. The menu item
   is given a mnemonic of its own: `K`, since KeePass spends g, l, t, d, a, r, p and o on that
   menu's own items.
+
+- **The screenshots in `docs/` are a build output.** `build.ps1 -Task Screenshots` drives a
+  throwaway KeePass through the whole operator flow and screenshots each step where it happens,
+  writing into `docs/images`. It is in the `Live` category so ordinary runs exclude it, and in a
+  `Screenshots` category so the end to end run excludes it too, because it writes into the working
+  tree. The output directory arrives in an environment variable, so a fixture nobody asked to run
+  rewrites nothing. **What is captured is the whole window**, frame, banner and buttons, because a
+  tab strip cut out of a dialog is a picture of a page with no edges: a reader cannot see what it
+  sits in, where the room runs out or which button ends it. What makes that publishable is the
+  session, not the crop: the database settings dialog carries the open database's path in its
+  banner, so `LiveSession` builds the session where that path names nobody.
 - **Nothing on a tab scrolls.** The content is held to 449 by 314 and has to fit it; horizontal
   scrolling is never acceptable. That is KeePass's own first page on the settings dialog, inside a
   padding of 3. The page this plugin adds has no padding and is laid out to the tab control's whole
@@ -472,6 +488,20 @@ a database's custom data. Each gathers what it settled in its own `RESULTS.md`. 
   from `Name` and is ours: with the lookup keyed on the identifier, `AccessibleName` is free to
   be the phrase a screen reader should say, and is set only where a control has no text of its
   own to say it. Keying the lookup on the name instead is what made the two collide.
+- **A caret cannot be hidden from another process, and both calls say nothing about it.**
+  `HideCaret` hides a caret only if a window in the **calling process** owns it, and `DestroyCaret`
+  destroys one only under the same condition; `AttachThreadInput` shares an input queue rather than
+  ownership, so it does not bridge that. Both return as though they had worked. What does work is
+  moving the focus to a control that draws no caret, which UI automation can do across the
+  boundary. Do not ask the window which control that is: a `NumericUpDown` publishes no editable
+  child, so its row answers as a focused `Pane`, while a grid cell does publish as a focused `Edit`
+  and would be moved off a picture that was already steady. The caller names the control.
+- **`WM_SETTEXT` reaches a `TextBox` and not a `Label`.** A label paints from its managed `Text` and
+  never reads the window's, so writing to one from outside changes nothing and reports success.
+  Three of `Steadied`'s four substitutions were labels and had never once taken effect; what kept
+  those pictures reproducible was the authority being written down rather than the writing. Settle
+  a value at its source, and where that is impossible cover it with `Redacted` rather than trying
+  to type over it.
 - **A single line `TextBox` never raises `KeyDown` for Enter on a form with an `AcceptButton`.**
   `IsInputKey` is false for it, so `PreProcessMessage` hands the key to `Form.ProcessDialogKey`,
   which clicks the accept button and swallows the message: the box's own handler never runs, and
