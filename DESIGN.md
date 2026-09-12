@@ -1353,9 +1353,14 @@ Each step is refusable, and each ends with something that runs.
     plugin with its version and that is where somebody checking one looks. Through
     `Plugin.GetMenuItem`, because that is the seam KeePass offers and it removes the item itself
     when the plugin is unloaded.
-
 19. **The documentation for whoever runs it**: `docs/`, in the order an operator meets the plugin,
-    with the screens.
+    with the screens. **Done.** Everything written before this is written for whoever builds it,
+    and the person the design defers to at every decision is the one answering a dialog. **The pictures are
+    generated**, by driving a throwaway KeePass through the whole operator flow and screenshotting
+    each step where it happens, so a change to a tab is a change to the documentation in the same
+    pass rather than a picture that quietly stops being true. A screenshot pasted in by hand is
+    correct on the day it is taken and wrong from the next change onwards, with nothing anywhere to
+    say which day that was.
 
 Steps 5 to 8 are the ones that prove the design. Step 5 is deliberately early, because the
 `CustomData` dialog hazard is the thing most likely to invalidate the storage decision, and finding
