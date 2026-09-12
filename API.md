@@ -10,6 +10,9 @@ beside it, where a section number in the 500 block marks whatever something cite
 holds what spans the API, which no one key could carry. Where the two disagree, the routing
 document is right and this is out of date.
 
+Calling it from a program is [`docs/pykeepassgate.md`](docs/pykeepassgate.md), and what decides
+whether a call is allowed is [`docs/access-control.md`](docs/access-control.md).
+
 ## Two rules generate the whole table §401
 
 **The verb is the operation's own name.** Create is `create`, read is `read`, update is `update`,

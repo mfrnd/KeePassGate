@@ -27,10 +27,20 @@ either way is written to a file outside the database.
 but the FSF's own requirement is a GPL-compatible license, and MIT is one, so a permissive
 KeePassGate is sound under the strict reading of the linking question as well as the loose one.
 
+## Using it
+
+**[`docs/`](docs/README.md) is the documentation for whoever runs this**: installing the plugin,
+giving a database an authority, letting a program in, deciding what it may reach, taking it back
+out again, and finding the record of what it did. It shows the real screens, screenshotted from a
+driven KeePass.
+
+Everything below is written for whoever builds it.
+
 ## The documents, in reading order
 
 | | |
 | --- | --- |
+| [`docs/`](docs/README.md) | how to run it, with the screens |
 | [`DESIGN.md`](DESIGN.md) | what to build, and a section attacking it |
 | [`API.md`](API.md) | the reasoning behind the routes and what is deliberately absent, with the per-route detail in [`openapi.yaml`](src/KeePassGate/Spec/openapi.yaml) |
 | [`CA.md`](CA.md) | the certificate authority in full: issuance, claims, validation, revocation |

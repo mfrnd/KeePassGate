@@ -1,7 +1,9 @@
 # Pairing
 
 How a stranger becomes a client. [`CA.md`](CA.md) covers the authority this flow issues from,
-[`DESIGN.md`](DESIGN.md) covers the transport it runs over.
+[`DESIGN.md`](DESIGN.md) covers the transport it runs over, and
+[`docs/pairing.md`](docs/pairing.md) is the same flow described to the person answering the dialog,
+with the screens.
 
 Every database carries its own certificate authority, so pairing is an act of **issuance** rather
 than a key exchange. The flow exists to answer one question safely: may this stranger ask, and is

@@ -35,6 +35,7 @@ menu, saying where the gate is listening and taking the port it should listen on
 | | |
 | --- | --- |
 | [`DESIGN.md`](DESIGN.md) | what to build, and a section attacking it. **The contract.** |
+| [`docs/`](docs/README.md) | the operator's documentation, and the screenshots it is written around |
 | [`API.md`](API.md) | the reasoning behind the routes and what is deliberately absent, with the per-route detail in [`openapi.yaml`](src/KeePassGate/Spec/openapi.yaml) |
 | [`CA.md`](CA.md) | the certificate authority: issuance, claims, validation, revocation |
 | [`PAIRING.md`](PAIRING.md) | how a stranger becomes a client, with the flow diagrams |

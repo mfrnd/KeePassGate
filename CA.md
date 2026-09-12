@@ -608,6 +608,8 @@ empties the record, §204, which takes effect on the next connection,
 offline and immediately: the record is read from the live database per connection and never cached
 beside the certificates, so nothing has to be reloaded for a revocation to bite.
 
+[`docs/clients.md`](docs/clients.md) is the same thing said to whoever presses the button.
+
 **The operator revokes from the KPG tab's clients page**, which lists every client the database has
 admitted with what each one may reach, and takes one away. It is a list rather than a bare set of
 names because revoking is a decision about access, and a name on its own does not say what is being

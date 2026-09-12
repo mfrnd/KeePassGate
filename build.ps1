@@ -37,6 +37,7 @@
 .EXAMPLE
     .\build.ps1
     .\build.ps1 -Task All
+    .\build.ps1 -Task Screenshots
     .\build.ps1 -Task Deploy -Configuration Release
 #>
 

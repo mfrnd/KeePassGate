@@ -32,8 +32,11 @@ the standard library.
 ## Pair
 
 The operator presses **Invite** on the **KPG** tab of the database's settings dialog and sends
-the invitation over a second channel. It is spent by the first client to use it and it does not
-survive KeePass closing.
+the invitation over a second channel. What they see while doing it is
+[`docs/pairing.md`](https://github.com/mfrnd/KeePassGate/blob/master/docs/pairing.md), and worked
+examples of everything below are
+[`docs/pykeepassgate.md`](https://github.com/mfrnd/KeePassGate/blob/master/docs/pykeepassgate.md).
+It is spent by the first client to use it and it does not survive KeePass closing.
 
 ```shell
 pykeepassgate pair --name agent-invented --profile-name reader

@@ -11,9 +11,10 @@ fails in a way that names its own cause.
 | **Client** | `tests/pykeepassgate` | Python, and `uv` to arrange it | a few seconds | PyKeePassGate against stand-ins, and its protocol code against vectors the plugin produced |
 
 ```powershell
-.\build.ps1                # the prose, the client tier, then the unit and host tiers
-.\build.ps1 -Task Live     # the end to end tier
-.\build.ps1 -Task All      # everything
+.\build.ps1                     # the prose, the client tier, then unit and host
+.\build.ps1 -Task Live          # the end to end tier
+.\build.ps1 -Task All           # everything
+.\build.ps1 -Task Screenshots   # retake the pictures in docs/
 ```
 
 **One category inside the unit tier draws rather than asserts.** `Gallery` builds each surface at
@@ -23,6 +24,13 @@ desktop and no network, and because a picture nobody generates is a picture nobo
 things follow from its writing files: the directory is gitignored, and everything in it is rewritten
 on every run, so nothing meant to be kept belongs there. `docs/images` is the set that is committed,
 and a task of its own draws those.
+
+**The screenshots are a fourth use of the end to end tier rather than a fourth tier.** Same
+throwaway KeePass, same driver, and it writes into `docs/images` instead of asserting: the
+documentation shows the real tab, so the pictures are generated the same way everything else
+about that tab is checked. It is excluded from `Live` because it writes into the working tree,
+and it is ignored entirely unless the build task asks for it. [`docs/`](docs/README.md) is what
+it feeds.
 
 ## Why the unit tier does not reference KeePass
 
