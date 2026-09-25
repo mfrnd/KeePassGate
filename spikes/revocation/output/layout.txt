@@ -1,0 +1,422 @@
+scenario	direction	method	condition	unretired after prune	decision	verdict	keys	detail
+a recreate on P	into P	Synchronize	kept	{Y}	serve Y	one, correct	2	docsAfterMerge={X,Y} pruned=1 ideal={Y}
+a recreate on P	into P	Synchronize	skew	{Y}	serve Y	one, correct	2	docsAfterMerge={X,Y} pruned=1 ideal={Y}
+a recreate on P	into P	Synchronize	stripP	{Y}	serve Y	one, correct	2	docsAfterMerge={X,Y} pruned=1 ideal={Y}
+a recreate on P	into P	Synchronize	stripQ	{Y}	serve Y	one, correct	2	docsAfterMerge={X,Y} pruned=1 ideal={Y}
+a recreate on P	into P	Synchronize	stripBoth	{Y}	serve Y	one, correct	2	docsAfterMerge={X,Y} pruned=1 ideal={Y}
+a recreate on P	into P	Synchronize	stripBoth+PsettingsNewer	{Y}	serve Y	one, correct	2	docsAfterMerge={X,Y} pruned=1 ideal={Y}
+a recreate on P	into P	Synchronize	stripBoth+QsettingsNewer	{Y}	serve Y	one, correct	2	docsAfterMerge={X,Y} pruned=1 ideal={Y}
+a recreate on P	into P	OverwriteIfNewer	kept	{Y}	serve Y	one, correct	2	docsAfterMerge={X,Y} pruned=1 ideal={Y}
+a recreate on P	into P	OverwriteIfNewer	skew	{Y}	serve Y	one, correct	2	docsAfterMerge={X,Y} pruned=1 ideal={Y}
+a recreate on P	into P	OverwriteIfNewer	stripP	{Y}	serve Y	one, correct	2	docsAfterMerge={X,Y} pruned=1 ideal={Y}
+a recreate on P	into P	OverwriteIfNewer	stripQ	{Y}	serve Y	one, correct	2	docsAfterMerge={X,Y} pruned=1 ideal={Y}
+a recreate on P	into P	OverwriteIfNewer	stripBoth	{Y}	serve Y	one, correct	2	docsAfterMerge={X,Y} pruned=1 ideal={Y}
+a recreate on P	into P	OverwriteIfNewer	stripBoth+PsettingsNewer	{Y}	serve Y	one, correct	2	docsAfterMerge={X,Y} pruned=1 ideal={Y}
+a recreate on P	into P	OverwriteIfNewer	stripBoth+QsettingsNewer	{Y}	serve Y	one, correct	2	docsAfterMerge={X,Y} pruned=1 ideal={Y}
+a recreate on P	into P	OverwriteExisting	kept	{Y}	serve Y	one, correct	2	docsAfterMerge={X,Y} pruned=1 ideal={Y}
+a recreate on P	into P	OverwriteExisting	skew	{Y}	serve Y	one, correct	2	docsAfterMerge={X,Y} pruned=1 ideal={Y}
+a recreate on P	into P	OverwriteExisting	stripP	{Y}	serve Y	one, correct	2	docsAfterMerge={X,Y} pruned=1 ideal={Y}
+a recreate on P	into P	OverwriteExisting	stripQ	{Y}	serve Y	one, correct	2	docsAfterMerge={X,Y} pruned=1 ideal={Y}
+a recreate on P	into P	OverwriteExisting	stripBoth	{Y}	serve Y	one, correct	2	docsAfterMerge={X,Y} pruned=1 ideal={Y}
+a recreate on P	into P	OverwriteExisting	stripBoth+PsettingsNewer	{Y}	serve Y	one, correct	2	docsAfterMerge={X,Y} pruned=1 ideal={Y}
+a recreate on P	into P	OverwriteExisting	stripBoth+QsettingsNewer	{Y}	serve Y	one, correct	2	docsAfterMerge={X,Y} pruned=1 ideal={Y}
+a recreate on P	into P	KeepExisting	kept	{Y}	serve Y	one, correct	2	docsAfterMerge={Y} pruned=0 ideal={Y}
+a recreate on P	into P	KeepExisting	skew	{Y}	serve Y	one, correct	2	docsAfterMerge={Y} pruned=0 ideal={Y}
+a recreate on P	into P	KeepExisting	stripP	{Y}	serve Y	one, correct	2	docsAfterMerge={Y} pruned=0 ideal={Y}
+a recreate on P	into P	KeepExisting	stripQ	{Y}	serve Y	one, correct	2	docsAfterMerge={Y} pruned=0 ideal={Y}
+a recreate on P	into P	KeepExisting	stripBoth	{Y}	serve Y	one, correct	2	docsAfterMerge={Y} pruned=0 ideal={Y}
+a recreate on P	into P	KeepExisting	stripBoth+PsettingsNewer	{Y}	serve Y	one, correct	2	docsAfterMerge={Y} pruned=0 ideal={Y}
+a recreate on P	into P	KeepExisting	stripBoth+QsettingsNewer	{Y}	serve Y	one, correct	2	docsAfterMerge={Y} pruned=0 ideal={Y}
+a recreate on P	into P	CreateNewUuids	kept	{Y}	serve Y	one, correct	2	docsAfterMerge={X,Y} pruned=1 ideal={Y}
+a recreate on P	into P	CreateNewUuids	skew	{Y}	serve Y	one, correct	2	docsAfterMerge={X,Y} pruned=1 ideal={Y}
+a recreate on P	into P	CreateNewUuids	stripP	{Y}	serve Y	one, correct	2	docsAfterMerge={X,Y} pruned=1 ideal={Y}
+a recreate on P	into P	CreateNewUuids	stripQ	{Y}	serve Y	one, correct	2	docsAfterMerge={X,Y} pruned=1 ideal={Y}
+a recreate on P	into P	CreateNewUuids	stripBoth	{Y}	serve Y	one, correct	2	docsAfterMerge={X,Y} pruned=1 ideal={Y}
+a recreate on P	into P	CreateNewUuids	stripBoth+PsettingsNewer	{Y}	serve Y	one, correct	2	docsAfterMerge={X,Y} pruned=1 ideal={Y}
+a recreate on P	into P	CreateNewUuids	stripBoth+QsettingsNewer	{Y}	serve Y	one, correct	2	docsAfterMerge={X,Y} pruned=1 ideal={Y}
+a recreate on P	into Q	Synchronize	kept	{Y}	serve Y	one, correct	2	docsAfterMerge={X,Y} pruned=1 ideal={Y}
+a recreate on P	into Q	Synchronize	skew	{Y}	serve Y	one, correct	2	docsAfterMerge={X,Y} pruned=1 ideal={Y}
+a recreate on P	into Q	Synchronize	stripP	{Y}	serve Y	one, correct	2	docsAfterMerge={X,Y} pruned=1 ideal={Y}
+a recreate on P	into Q	Synchronize	stripQ	{Y}	serve Y	one, correct	2	docsAfterMerge={X,Y} pruned=1 ideal={Y}
+a recreate on P	into Q	Synchronize	stripBoth	{Y}	serve Y	one, correct	2	docsAfterMerge={X,Y} pruned=1 ideal={Y}
+a recreate on P	into Q	Synchronize	stripBoth+PsettingsNewer	{Y}	serve Y	one, correct	2	docsAfterMerge={X,Y} pruned=1 ideal={Y}
+a recreate on P	into Q	Synchronize	stripBoth+QsettingsNewer	{Y}	serve Y	one, correct	2	docsAfterMerge={X,Y} pruned=1 ideal={Y}
+a recreate on P	into Q	OverwriteIfNewer	kept	{Y}	serve Y	one, correct	2	docsAfterMerge={X,Y} pruned=1 ideal={Y}
+a recreate on P	into Q	OverwriteIfNewer	skew	{Y}	serve Y	one, correct	2	docsAfterMerge={X,Y} pruned=1 ideal={Y}
+a recreate on P	into Q	OverwriteIfNewer	stripP	{Y}	serve Y	one, correct	2	docsAfterMerge={X,Y} pruned=1 ideal={Y}
+a recreate on P	into Q	OverwriteIfNewer	stripQ	{Y}	serve Y	one, correct	2	docsAfterMerge={X,Y} pruned=1 ideal={Y}
+a recreate on P	into Q	OverwriteIfNewer	stripBoth	{Y}	serve Y	one, correct	2	docsAfterMerge={X,Y} pruned=1 ideal={Y}
+a recreate on P	into Q	OverwriteIfNewer	stripBoth+PsettingsNewer	{Y}	serve Y	one, correct	2	docsAfterMerge={X,Y} pruned=1 ideal={Y}
+a recreate on P	into Q	OverwriteIfNewer	stripBoth+QsettingsNewer	{Y}	serve Y	one, correct	2	docsAfterMerge={X,Y} pruned=1 ideal={Y}
+a recreate on P	into Q	OverwriteExisting	kept	{Y}	serve Y	one, correct	2	docsAfterMerge={X,Y} pruned=1 ideal={Y}
+a recreate on P	into Q	OverwriteExisting	skew	{Y}	serve Y	one, correct	2	docsAfterMerge={X,Y} pruned=1 ideal={Y}
+a recreate on P	into Q	OverwriteExisting	stripP	{Y}	serve Y	one, correct	2	docsAfterMerge={X,Y} pruned=1 ideal={Y}
+a recreate on P	into Q	OverwriteExisting	stripQ	{Y}	serve Y	one, correct	2	docsAfterMerge={X,Y} pruned=1 ideal={Y}
+a recreate on P	into Q	OverwriteExisting	stripBoth	{Y}	serve Y	one, correct	2	docsAfterMerge={X,Y} pruned=1 ideal={Y}
+a recreate on P	into Q	OverwriteExisting	stripBoth+PsettingsNewer	{Y}	serve Y	one, correct	2	docsAfterMerge={X,Y} pruned=1 ideal={Y}
+a recreate on P	into Q	OverwriteExisting	stripBoth+QsettingsNewer	{Y}	serve Y	one, correct	2	docsAfterMerge={X,Y} pruned=1 ideal={Y}
+a recreate on P	into Q	KeepExisting	kept	{X}	serve X	not learned	1	docsAfterMerge={X} pruned=0 ideal={Y}
+a recreate on P	into Q	KeepExisting	skew	{X}	serve X	not learned	1	docsAfterMerge={X} pruned=0 ideal={Y}
+a recreate on P	into Q	KeepExisting	stripP	{X}	serve X	not learned	1	docsAfterMerge={X} pruned=0 ideal={Y}
+a recreate on P	into Q	KeepExisting	stripQ	{X}	serve X	not learned	1	docsAfterMerge={X} pruned=0 ideal={Y}
+a recreate on P	into Q	KeepExisting	stripBoth	{X}	serve X	not learned	1	docsAfterMerge={X} pruned=0 ideal={Y}
+a recreate on P	into Q	KeepExisting	stripBoth+PsettingsNewer	{X}	serve X	not learned	1	docsAfterMerge={X} pruned=0 ideal={Y}
+a recreate on P	into Q	KeepExisting	stripBoth+QsettingsNewer	{X}	serve X	not learned	1	docsAfterMerge={X} pruned=0 ideal={Y}
+a recreate on P	into Q	CreateNewUuids	kept	{Y}	serve Y	one, correct	2	docsAfterMerge={X,Y} pruned=1 ideal={Y}
+a recreate on P	into Q	CreateNewUuids	skew	{Y}	serve Y	one, correct	2	docsAfterMerge={X,Y} pruned=1 ideal={Y}
+a recreate on P	into Q	CreateNewUuids	stripP	{Y}	serve Y	one, correct	2	docsAfterMerge={X,Y} pruned=1 ideal={Y}
+a recreate on P	into Q	CreateNewUuids	stripQ	{Y}	serve Y	one, correct	2	docsAfterMerge={X,Y} pruned=1 ideal={Y}
+a recreate on P	into Q	CreateNewUuids	stripBoth	{Y}	serve Y	one, correct	2	docsAfterMerge={X,Y} pruned=1 ideal={Y}
+a recreate on P	into Q	CreateNewUuids	stripBoth+PsettingsNewer	{Y}	serve Y	one, correct	2	docsAfterMerge={X,Y} pruned=1 ideal={Y}
+a recreate on P	into Q	CreateNewUuids	stripBoth+QsettingsNewer	{Y}	serve Y	one, correct	2	docsAfterMerge={X,Y} pruned=1 ideal={Y}
+b both recreate	into P	Synchronize	kept	{Y,Z}	dialog(2)	more than one, dialog	3	docsAfterMerge={Y,Z} pruned=0 ideal={Y,Z}
+b both recreate	into P	Synchronize	skew	{Y,Z}	dialog(2)	more than one, dialog	3	docsAfterMerge={Y,Z} pruned=0 ideal={Y,Z}
+b both recreate	into P	Synchronize	stripP	{Y,Z}	dialog(2)	more than one, dialog	3	docsAfterMerge={Y,Z} pruned=0 ideal={Y,Z}
+b both recreate	into P	Synchronize	stripQ	{Y,Z}	dialog(2)	more than one, dialog	3	docsAfterMerge={Y,Z} pruned=0 ideal={Y,Z}
+b both recreate	into P	Synchronize	stripBoth	{Y,Z}	dialog(2)	more than one, dialog	3	docsAfterMerge={Y,Z} pruned=0 ideal={Y,Z}
+b both recreate	into P	Synchronize	stripBoth+PsettingsNewer	{Y,Z}	dialog(2)	more than one, dialog	3	docsAfterMerge={Y,Z} pruned=0 ideal={Y,Z}
+b both recreate	into P	Synchronize	stripBoth+QsettingsNewer	{Y,Z}	dialog(2)	more than one, dialog	3	docsAfterMerge={Y,Z} pruned=0 ideal={Y,Z}
+b both recreate	into P	OverwriteIfNewer	kept	{Y,Z}	dialog(2)	more than one, dialog	3	docsAfterMerge={Y,Z} pruned=0 ideal={Y,Z}
+b both recreate	into P	OverwriteIfNewer	skew	{Y,Z}	dialog(2)	more than one, dialog	3	docsAfterMerge={Y,Z} pruned=0 ideal={Y,Z}
+b both recreate	into P	OverwriteIfNewer	stripP	{Y,Z}	dialog(2)	more than one, dialog	3	docsAfterMerge={Y,Z} pruned=0 ideal={Y,Z}
+b both recreate	into P	OverwriteIfNewer	stripQ	{Y,Z}	dialog(2)	more than one, dialog	3	docsAfterMerge={Y,Z} pruned=0 ideal={Y,Z}
+b both recreate	into P	OverwriteIfNewer	stripBoth	{Y,Z}	dialog(2)	more than one, dialog	3	docsAfterMerge={Y,Z} pruned=0 ideal={Y,Z}
+b both recreate	into P	OverwriteIfNewer	stripBoth+PsettingsNewer	{Y,Z}	dialog(2)	more than one, dialog	3	docsAfterMerge={Y,Z} pruned=0 ideal={Y,Z}
+b both recreate	into P	OverwriteIfNewer	stripBoth+QsettingsNewer	{Y,Z}	dialog(2)	more than one, dialog	3	docsAfterMerge={Y,Z} pruned=0 ideal={Y,Z}
+b both recreate	into P	OverwriteExisting	kept	{Y,Z}	dialog(2)	more than one, dialog	3	docsAfterMerge={Y,Z} pruned=0 ideal={Y,Z}
+b both recreate	into P	OverwriteExisting	skew	{Y,Z}	dialog(2)	more than one, dialog	3	docsAfterMerge={Y,Z} pruned=0 ideal={Y,Z}
+b both recreate	into P	OverwriteExisting	stripP	{Y,Z}	dialog(2)	more than one, dialog	3	docsAfterMerge={Y,Z} pruned=0 ideal={Y,Z}
+b both recreate	into P	OverwriteExisting	stripQ	{Y,Z}	dialog(2)	more than one, dialog	3	docsAfterMerge={Y,Z} pruned=0 ideal={Y,Z}
+b both recreate	into P	OverwriteExisting	stripBoth	{Y,Z}	dialog(2)	more than one, dialog	3	docsAfterMerge={Y,Z} pruned=0 ideal={Y,Z}
+b both recreate	into P	OverwriteExisting	stripBoth+PsettingsNewer	{Y,Z}	dialog(2)	more than one, dialog	3	docsAfterMerge={Y,Z} pruned=0 ideal={Y,Z}
+b both recreate	into P	OverwriteExisting	stripBoth+QsettingsNewer	{Y,Z}	dialog(2)	more than one, dialog	3	docsAfterMerge={Y,Z} pruned=0 ideal={Y,Z}
+b both recreate	into P	KeepExisting	kept	{Y}	serve Y	not learned	2	docsAfterMerge={Y} pruned=0 ideal={Y,Z}
+b both recreate	into P	KeepExisting	skew	{Y}	serve Y	not learned	2	docsAfterMerge={Y} pruned=0 ideal={Y,Z}
+b both recreate	into P	KeepExisting	stripP	{Y}	serve Y	not learned	2	docsAfterMerge={Y} pruned=0 ideal={Y,Z}
+b both recreate	into P	KeepExisting	stripQ	{Y}	serve Y	not learned	2	docsAfterMerge={Y} pruned=0 ideal={Y,Z}
+b both recreate	into P	KeepExisting	stripBoth	{Y}	serve Y	not learned	2	docsAfterMerge={Y} pruned=0 ideal={Y,Z}
+b both recreate	into P	KeepExisting	stripBoth+PsettingsNewer	{Y}	serve Y	not learned	2	docsAfterMerge={Y} pruned=0 ideal={Y,Z}
+b both recreate	into P	KeepExisting	stripBoth+QsettingsNewer	{Y}	serve Y	not learned	2	docsAfterMerge={Y} pruned=0 ideal={Y,Z}
+b both recreate	into P	CreateNewUuids	kept	{Y,Z}	dialog(2)	more than one, dialog	3	docsAfterMerge={Y,Z} pruned=0 ideal={Y,Z}
+b both recreate	into P	CreateNewUuids	skew	{Y,Z}	dialog(2)	more than one, dialog	3	docsAfterMerge={Y,Z} pruned=0 ideal={Y,Z}
+b both recreate	into P	CreateNewUuids	stripP	{Y,Z}	dialog(2)	more than one, dialog	3	docsAfterMerge={Y,Z} pruned=0 ideal={Y,Z}
+b both recreate	into P	CreateNewUuids	stripQ	{Y,Z}	dialog(2)	more than one, dialog	3	docsAfterMerge={Y,Z} pruned=0 ideal={Y,Z}
+b both recreate	into P	CreateNewUuids	stripBoth	{Y,Z}	dialog(2)	more than one, dialog	3	docsAfterMerge={Y,Z} pruned=0 ideal={Y,Z}
+b both recreate	into P	CreateNewUuids	stripBoth+PsettingsNewer	{Y,Z}	dialog(2)	more than one, dialog	3	docsAfterMerge={Y,Z} pruned=0 ideal={Y,Z}
+b both recreate	into P	CreateNewUuids	stripBoth+QsettingsNewer	{Y,Z}	dialog(2)	more than one, dialog	3	docsAfterMerge={Y,Z} pruned=0 ideal={Y,Z}
+b both recreate	into Q	Synchronize	kept	{Y,Z}	dialog(2)	more than one, dialog	3	docsAfterMerge={Y,Z} pruned=0 ideal={Y,Z}
+b both recreate	into Q	Synchronize	skew	{Y,Z}	dialog(2)	more than one, dialog	3	docsAfterMerge={Y,Z} pruned=0 ideal={Y,Z}
+b both recreate	into Q	Synchronize	stripP	{Y,Z}	dialog(2)	more than one, dialog	3	docsAfterMerge={Y,Z} pruned=0 ideal={Y,Z}
+b both recreate	into Q	Synchronize	stripQ	{Y,Z}	dialog(2)	more than one, dialog	3	docsAfterMerge={Y,Z} pruned=0 ideal={Y,Z}
+b both recreate	into Q	Synchronize	stripBoth	{Y,Z}	dialog(2)	more than one, dialog	3	docsAfterMerge={Y,Z} pruned=0 ideal={Y,Z}
+b both recreate	into Q	Synchronize	stripBoth+PsettingsNewer	{Y,Z}	dialog(2)	more than one, dialog	3	docsAfterMerge={Y,Z} pruned=0 ideal={Y,Z}
+b both recreate	into Q	Synchronize	stripBoth+QsettingsNewer	{Y,Z}	dialog(2)	more than one, dialog	3	docsAfterMerge={Y,Z} pruned=0 ideal={Y,Z}
+b both recreate	into Q	OverwriteIfNewer	kept	{Y,Z}	dialog(2)	more than one, dialog	3	docsAfterMerge={Y,Z} pruned=0 ideal={Y,Z}
+b both recreate	into Q	OverwriteIfNewer	skew	{Y,Z}	dialog(2)	more than one, dialog	3	docsAfterMerge={Y,Z} pruned=0 ideal={Y,Z}
+b both recreate	into Q	OverwriteIfNewer	stripP	{Y,Z}	dialog(2)	more than one, dialog	3	docsAfterMerge={Y,Z} pruned=0 ideal={Y,Z}
+b both recreate	into Q	OverwriteIfNewer	stripQ	{Y,Z}	dialog(2)	more than one, dialog	3	docsAfterMerge={Y,Z} pruned=0 ideal={Y,Z}
+b both recreate	into Q	OverwriteIfNewer	stripBoth	{Y,Z}	dialog(2)	more than one, dialog	3	docsAfterMerge={Y,Z} pruned=0 ideal={Y,Z}
+b both recreate	into Q	OverwriteIfNewer	stripBoth+PsettingsNewer	{Y,Z}	dialog(2)	more than one, dialog	3	docsAfterMerge={Y,Z} pruned=0 ideal={Y,Z}
+b both recreate	into Q	OverwriteIfNewer	stripBoth+QsettingsNewer	{Y,Z}	dialog(2)	more than one, dialog	3	docsAfterMerge={Y,Z} pruned=0 ideal={Y,Z}
+b both recreate	into Q	OverwriteExisting	kept	{Y,Z}	dialog(2)	more than one, dialog	3	docsAfterMerge={Y,Z} pruned=0 ideal={Y,Z}
+b both recreate	into Q	OverwriteExisting	skew	{Y,Z}	dialog(2)	more than one, dialog	3	docsAfterMerge={Y,Z} pruned=0 ideal={Y,Z}
+b both recreate	into Q	OverwriteExisting	stripP	{Y,Z}	dialog(2)	more than one, dialog	3	docsAfterMerge={Y,Z} pruned=0 ideal={Y,Z}
+b both recreate	into Q	OverwriteExisting	stripQ	{Y,Z}	dialog(2)	more than one, dialog	3	docsAfterMerge={Y,Z} pruned=0 ideal={Y,Z}
+b both recreate	into Q	OverwriteExisting	stripBoth	{Y,Z}	dialog(2)	more than one, dialog	3	docsAfterMerge={Y,Z} pruned=0 ideal={Y,Z}
+b both recreate	into Q	OverwriteExisting	stripBoth+PsettingsNewer	{Y,Z}	dialog(2)	more than one, dialog	3	docsAfterMerge={Y,Z} pruned=0 ideal={Y,Z}
+b both recreate	into Q	OverwriteExisting	stripBoth+QsettingsNewer	{Y,Z}	dialog(2)	more than one, dialog	3	docsAfterMerge={Y,Z} pruned=0 ideal={Y,Z}
+b both recreate	into Q	KeepExisting	kept	{Z}	serve Z	not learned	2	docsAfterMerge={Z} pruned=0 ideal={Y,Z}
+b both recreate	into Q	KeepExisting	skew	{Z}	serve Z	not learned	2	docsAfterMerge={Z} pruned=0 ideal={Y,Z}
+b both recreate	into Q	KeepExisting	stripP	{Z}	serve Z	not learned	2	docsAfterMerge={Z} pruned=0 ideal={Y,Z}
+b both recreate	into Q	KeepExisting	stripQ	{Z}	serve Z	not learned	2	docsAfterMerge={Z} pruned=0 ideal={Y,Z}
+b both recreate	into Q	KeepExisting	stripBoth	{Z}	serve Z	not learned	2	docsAfterMerge={Z} pruned=0 ideal={Y,Z}
+b both recreate	into Q	KeepExisting	stripBoth+PsettingsNewer	{Z}	serve Z	not learned	2	docsAfterMerge={Z} pruned=0 ideal={Y,Z}
+b both recreate	into Q	KeepExisting	stripBoth+QsettingsNewer	{Z}	serve Z	not learned	2	docsAfterMerge={Z} pruned=0 ideal={Y,Z}
+b both recreate	into Q	CreateNewUuids	kept	{Y,Z}	dialog(2)	more than one, dialog	3	docsAfterMerge={Y,Z} pruned=0 ideal={Y,Z}
+b both recreate	into Q	CreateNewUuids	skew	{Y,Z}	dialog(2)	more than one, dialog	3	docsAfterMerge={Y,Z} pruned=0 ideal={Y,Z}
+b both recreate	into Q	CreateNewUuids	stripP	{Y,Z}	dialog(2)	more than one, dialog	3	docsAfterMerge={Y,Z} pruned=0 ideal={Y,Z}
+b both recreate	into Q	CreateNewUuids	stripQ	{Y,Z}	dialog(2)	more than one, dialog	3	docsAfterMerge={Y,Z} pruned=0 ideal={Y,Z}
+b both recreate	into Q	CreateNewUuids	stripBoth	{Y,Z}	dialog(2)	more than one, dialog	3	docsAfterMerge={Y,Z} pruned=0 ideal={Y,Z}
+b both recreate	into Q	CreateNewUuids	stripBoth+PsettingsNewer	{Y,Z}	dialog(2)	more than one, dialog	3	docsAfterMerge={Y,Z} pruned=0 ideal={Y,Z}
+b both recreate	into Q	CreateNewUuids	stripBoth+QsettingsNewer	{Y,Z}	dialog(2)	more than one, dialog	3	docsAfterMerge={Y,Z} pruned=0 ideal={Y,Z}
+d delete on P	into P	Synchronize	kept	{}	none	none, correct	1	docsAfterMerge={X} pruned=1 ideal={}
+d delete on P	into P	Synchronize	skew	{}	none	none, correct	1	docsAfterMerge={X} pruned=1 ideal={}
+d delete on P	into P	Synchronize	stripP	{}	none	none, correct	1	docsAfterMerge={X} pruned=1 ideal={}
+d delete on P	into P	Synchronize	stripQ	{}	none	none, correct	1	docsAfterMerge={X} pruned=1 ideal={}
+d delete on P	into P	Synchronize	stripBoth	{}	none	none, correct	1	docsAfterMerge={X} pruned=1 ideal={}
+d delete on P	into P	Synchronize	stripBoth+PsettingsNewer	{}	none	none, correct	1	docsAfterMerge={X} pruned=1 ideal={}
+d delete on P	into P	Synchronize	stripBoth+QsettingsNewer	{}	none	none, correct	1	docsAfterMerge={X} pruned=1 ideal={}
+d delete on P	into P	OverwriteIfNewer	kept	{}	none	none, correct	1	docsAfterMerge={X} pruned=1 ideal={}
+d delete on P	into P	OverwriteIfNewer	skew	{}	none	none, correct	1	docsAfterMerge={X} pruned=1 ideal={}
+d delete on P	into P	OverwriteIfNewer	stripP	{}	none	none, correct	1	docsAfterMerge={X} pruned=1 ideal={}
+d delete on P	into P	OverwriteIfNewer	stripQ	{}	none	none, correct	1	docsAfterMerge={X} pruned=1 ideal={}
+d delete on P	into P	OverwriteIfNewer	stripBoth	{}	none	none, correct	1	docsAfterMerge={X} pruned=1 ideal={}
+d delete on P	into P	OverwriteIfNewer	stripBoth+PsettingsNewer	{}	none	none, correct	1	docsAfterMerge={X} pruned=1 ideal={}
+d delete on P	into P	OverwriteIfNewer	stripBoth+QsettingsNewer	{}	none	none, correct	1	docsAfterMerge={X} pruned=1 ideal={}
+d delete on P	into P	OverwriteExisting	kept	{}	none	none, correct	1	docsAfterMerge={X} pruned=1 ideal={}
+d delete on P	into P	OverwriteExisting	skew	{}	none	none, correct	1	docsAfterMerge={X} pruned=1 ideal={}
+d delete on P	into P	OverwriteExisting	stripP	{}	none	none, correct	1	docsAfterMerge={X} pruned=1 ideal={}
+d delete on P	into P	OverwriteExisting	stripQ	{}	none	none, correct	1	docsAfterMerge={X} pruned=1 ideal={}
+d delete on P	into P	OverwriteExisting	stripBoth	{}	none	none, correct	1	docsAfterMerge={X} pruned=1 ideal={}
+d delete on P	into P	OverwriteExisting	stripBoth+PsettingsNewer	{}	none	none, correct	1	docsAfterMerge={X} pruned=1 ideal={}
+d delete on P	into P	OverwriteExisting	stripBoth+QsettingsNewer	{}	none	none, correct	1	docsAfterMerge={X} pruned=1 ideal={}
+d delete on P	into P	KeepExisting	kept	{}	none	none, correct	1	docsAfterMerge={} pruned=0 ideal={}
+d delete on P	into P	KeepExisting	skew	{}	none	none, correct	1	docsAfterMerge={} pruned=0 ideal={}
+d delete on P	into P	KeepExisting	stripP	{}	none	none, correct	1	docsAfterMerge={} pruned=0 ideal={}
+d delete on P	into P	KeepExisting	stripQ	{}	none	none, correct	1	docsAfterMerge={} pruned=0 ideal={}
+d delete on P	into P	KeepExisting	stripBoth	{}	none	none, correct	1	docsAfterMerge={} pruned=0 ideal={}
+d delete on P	into P	KeepExisting	stripBoth+PsettingsNewer	{}	none	none, correct	1	docsAfterMerge={} pruned=0 ideal={}
+d delete on P	into P	KeepExisting	stripBoth+QsettingsNewer	{}	none	none, correct	1	docsAfterMerge={} pruned=0 ideal={}
+d delete on P	into P	CreateNewUuids	kept	{}	none	none, correct	1	docsAfterMerge={X} pruned=1 ideal={}
+d delete on P	into P	CreateNewUuids	skew	{}	none	none, correct	1	docsAfterMerge={X} pruned=1 ideal={}
+d delete on P	into P	CreateNewUuids	stripP	{}	none	none, correct	1	docsAfterMerge={X} pruned=1 ideal={}
+d delete on P	into P	CreateNewUuids	stripQ	{}	none	none, correct	1	docsAfterMerge={X} pruned=1 ideal={}
+d delete on P	into P	CreateNewUuids	stripBoth	{}	none	none, correct	1	docsAfterMerge={X} pruned=1 ideal={}
+d delete on P	into P	CreateNewUuids	stripBoth+PsettingsNewer	{}	none	none, correct	1	docsAfterMerge={X} pruned=1 ideal={}
+d delete on P	into P	CreateNewUuids	stripBoth+QsettingsNewer	{}	none	none, correct	1	docsAfterMerge={X} pruned=1 ideal={}
+d delete on P	into Q	Synchronize	kept	{}	none	none, correct	1	docsAfterMerge={X} pruned=1 ideal={}
+d delete on P	into Q	Synchronize	skew	{}	none	none, correct	1	docsAfterMerge={X} pruned=1 ideal={}
+d delete on P	into Q	Synchronize	stripP	{}	none	none, correct	1	docsAfterMerge={X} pruned=1 ideal={}
+d delete on P	into Q	Synchronize	stripQ	{}	none	none, correct	1	docsAfterMerge={X} pruned=1 ideal={}
+d delete on P	into Q	Synchronize	stripBoth	{}	none	none, correct	1	docsAfterMerge={X} pruned=1 ideal={}
+d delete on P	into Q	Synchronize	stripBoth+PsettingsNewer	{}	none	none, correct	1	docsAfterMerge={X} pruned=1 ideal={}
+d delete on P	into Q	Synchronize	stripBoth+QsettingsNewer	{}	none	none, correct	1	docsAfterMerge={X} pruned=1 ideal={}
+d delete on P	into Q	OverwriteIfNewer	kept	{}	none	none, correct	1	docsAfterMerge={X} pruned=1 ideal={}
+d delete on P	into Q	OverwriteIfNewer	skew	{}	none	none, correct	1	docsAfterMerge={X} pruned=1 ideal={}
+d delete on P	into Q	OverwriteIfNewer	stripP	{}	none	none, correct	1	docsAfterMerge={X} pruned=1 ideal={}
+d delete on P	into Q	OverwriteIfNewer	stripQ	{}	none	none, correct	1	docsAfterMerge={X} pruned=1 ideal={}
+d delete on P	into Q	OverwriteIfNewer	stripBoth	{}	none	none, correct	1	docsAfterMerge={X} pruned=1 ideal={}
+d delete on P	into Q	OverwriteIfNewer	stripBoth+PsettingsNewer	{}	none	none, correct	1	docsAfterMerge={X} pruned=1 ideal={}
+d delete on P	into Q	OverwriteIfNewer	stripBoth+QsettingsNewer	{}	none	none, correct	1	docsAfterMerge={X} pruned=1 ideal={}
+d delete on P	into Q	OverwriteExisting	kept	{}	none	none, correct	1	docsAfterMerge={X} pruned=1 ideal={}
+d delete on P	into Q	OverwriteExisting	skew	{}	none	none, correct	1	docsAfterMerge={X} pruned=1 ideal={}
+d delete on P	into Q	OverwriteExisting	stripP	{}	none	none, correct	1	docsAfterMerge={X} pruned=1 ideal={}
+d delete on P	into Q	OverwriteExisting	stripQ	{}	none	none, correct	1	docsAfterMerge={X} pruned=1 ideal={}
+d delete on P	into Q	OverwriteExisting	stripBoth	{}	none	none, correct	1	docsAfterMerge={X} pruned=1 ideal={}
+d delete on P	into Q	OverwriteExisting	stripBoth+PsettingsNewer	{}	none	none, correct	1	docsAfterMerge={X} pruned=1 ideal={}
+d delete on P	into Q	OverwriteExisting	stripBoth+QsettingsNewer	{}	none	none, correct	1	docsAfterMerge={X} pruned=1 ideal={}
+d delete on P	into Q	KeepExisting	kept	{X}	serve X	not learned	1	docsAfterMerge={X} pruned=0 ideal={}
+d delete on P	into Q	KeepExisting	skew	{X}	serve X	not learned	1	docsAfterMerge={X} pruned=0 ideal={}
+d delete on P	into Q	KeepExisting	stripP	{X}	serve X	not learned	1	docsAfterMerge={X} pruned=0 ideal={}
+d delete on P	into Q	KeepExisting	stripQ	{X}	serve X	not learned	1	docsAfterMerge={X} pruned=0 ideal={}
+d delete on P	into Q	KeepExisting	stripBoth	{X}	serve X	not learned	1	docsAfterMerge={X} pruned=0 ideal={}
+d delete on P	into Q	KeepExisting	stripBoth+PsettingsNewer	{X}	serve X	not learned	1	docsAfterMerge={X} pruned=0 ideal={}
+d delete on P	into Q	KeepExisting	stripBoth+QsettingsNewer	{X}	serve X	not learned	1	docsAfterMerge={X} pruned=0 ideal={}
+d delete on P	into Q	CreateNewUuids	kept	{}	none	none, correct	1	docsAfterMerge={X} pruned=1 ideal={}
+d delete on P	into Q	CreateNewUuids	skew	{}	none	none, correct	1	docsAfterMerge={X} pruned=1 ideal={}
+d delete on P	into Q	CreateNewUuids	stripP	{}	none	none, correct	1	docsAfterMerge={X} pruned=1 ideal={}
+d delete on P	into Q	CreateNewUuids	stripQ	{}	none	none, correct	1	docsAfterMerge={X} pruned=1 ideal={}
+d delete on P	into Q	CreateNewUuids	stripBoth	{}	none	none, correct	1	docsAfterMerge={X} pruned=1 ideal={}
+d delete on P	into Q	CreateNewUuids	stripBoth+PsettingsNewer	{}	none	none, correct	1	docsAfterMerge={X} pruned=1 ideal={}
+d delete on P	into Q	CreateNewUuids	stripBoth+QsettingsNewer	{}	none	none, correct	1	docsAfterMerge={X} pruned=1 ideal={}
+e pick Y on P, loser Q	into P	Synchronize	kept	{Y}	serve Y	one, correct	3	docsAfterMerge={Y,Z} pruned=1 ideal={Y}
+e pick Y on P, loser Q	into P	Synchronize	skew	{Y}	serve Y	one, correct	3	docsAfterMerge={Y,Z} pruned=1 ideal={Y}
+e pick Y on P, loser Q	into P	Synchronize	stripP	{Y}	serve Y	one, correct	3	docsAfterMerge={Y,Z} pruned=1 ideal={Y}
+e pick Y on P, loser Q	into P	Synchronize	stripQ	{Y}	serve Y	one, correct	3	docsAfterMerge={Y,Z} pruned=1 ideal={Y}
+e pick Y on P, loser Q	into P	Synchronize	stripBoth	{Y}	serve Y	one, correct	3	docsAfterMerge={Y,Z} pruned=1 ideal={Y}
+e pick Y on P, loser Q	into P	Synchronize	stripBoth+PsettingsNewer	{Y}	serve Y	one, correct	3	docsAfterMerge={Y,Z} pruned=1 ideal={Y}
+e pick Y on P, loser Q	into P	Synchronize	stripBoth+QsettingsNewer	{Y}	serve Y	one, correct	3	docsAfterMerge={Y,Z} pruned=1 ideal={Y}
+e pick Y on P, loser Q	into P	OverwriteIfNewer	kept	{Y}	serve Y	one, correct	3	docsAfterMerge={Y,Z} pruned=1 ideal={Y}
+e pick Y on P, loser Q	into P	OverwriteIfNewer	skew	{Y}	serve Y	one, correct	3	docsAfterMerge={Y,Z} pruned=1 ideal={Y}
+e pick Y on P, loser Q	into P	OverwriteIfNewer	stripP	{Y}	serve Y	one, correct	3	docsAfterMerge={Y,Z} pruned=1 ideal={Y}
+e pick Y on P, loser Q	into P	OverwriteIfNewer	stripQ	{Y}	serve Y	one, correct	3	docsAfterMerge={Y,Z} pruned=1 ideal={Y}
+e pick Y on P, loser Q	into P	OverwriteIfNewer	stripBoth	{Y}	serve Y	one, correct	3	docsAfterMerge={Y,Z} pruned=1 ideal={Y}
+e pick Y on P, loser Q	into P	OverwriteIfNewer	stripBoth+PsettingsNewer	{Y}	serve Y	one, correct	3	docsAfterMerge={Y,Z} pruned=1 ideal={Y}
+e pick Y on P, loser Q	into P	OverwriteIfNewer	stripBoth+QsettingsNewer	{Y}	serve Y	one, correct	3	docsAfterMerge={Y,Z} pruned=1 ideal={Y}
+e pick Y on P, loser Q	into P	OverwriteExisting	kept	{Y}	serve Y	one, correct	3	docsAfterMerge={Y,Z} pruned=1 ideal={Y}
+e pick Y on P, loser Q	into P	OverwriteExisting	skew	{Y}	serve Y	one, correct	3	docsAfterMerge={Y,Z} pruned=1 ideal={Y}
+e pick Y on P, loser Q	into P	OverwriteExisting	stripP	{Y}	serve Y	one, correct	3	docsAfterMerge={Y,Z} pruned=1 ideal={Y}
+e pick Y on P, loser Q	into P	OverwriteExisting	stripQ	{Y}	serve Y	one, correct	3	docsAfterMerge={Y,Z} pruned=1 ideal={Y}
+e pick Y on P, loser Q	into P	OverwriteExisting	stripBoth	{Y}	serve Y	one, correct	3	docsAfterMerge={Y,Z} pruned=1 ideal={Y}
+e pick Y on P, loser Q	into P	OverwriteExisting	stripBoth+PsettingsNewer	{Y}	serve Y	one, correct	3	docsAfterMerge={Y,Z} pruned=1 ideal={Y}
+e pick Y on P, loser Q	into P	OverwriteExisting	stripBoth+QsettingsNewer	{Y}	serve Y	one, correct	3	docsAfterMerge={Y,Z} pruned=1 ideal={Y}
+e pick Y on P, loser Q	into P	KeepExisting	kept	{Y}	serve Y	one, correct	3	docsAfterMerge={Y} pruned=0 ideal={Y}
+e pick Y on P, loser Q	into P	KeepExisting	skew	{Y}	serve Y	one, correct	3	docsAfterMerge={Y} pruned=0 ideal={Y}
+e pick Y on P, loser Q	into P	KeepExisting	stripP	{Y}	serve Y	one, correct	3	docsAfterMerge={Y} pruned=0 ideal={Y}
+e pick Y on P, loser Q	into P	KeepExisting	stripQ	{Y}	serve Y	one, correct	3	docsAfterMerge={Y} pruned=0 ideal={Y}
+e pick Y on P, loser Q	into P	KeepExisting	stripBoth	{Y}	serve Y	one, correct	3	docsAfterMerge={Y} pruned=0 ideal={Y}
+e pick Y on P, loser Q	into P	KeepExisting	stripBoth+PsettingsNewer	{Y}	serve Y	one, correct	3	docsAfterMerge={Y} pruned=0 ideal={Y}
+e pick Y on P, loser Q	into P	KeepExisting	stripBoth+QsettingsNewer	{Y}	serve Y	one, correct	3	docsAfterMerge={Y} pruned=0 ideal={Y}
+e pick Y on P, loser Q	into P	CreateNewUuids	kept	{Y}	serve Y	one, correct	3	docsAfterMerge={Y,Z} pruned=1 ideal={Y}
+e pick Y on P, loser Q	into P	CreateNewUuids	skew	{Y}	serve Y	one, correct	3	docsAfterMerge={Y,Z} pruned=1 ideal={Y}
+e pick Y on P, loser Q	into P	CreateNewUuids	stripP	{Y}	serve Y	one, correct	3	docsAfterMerge={Y,Z} pruned=1 ideal={Y}
+e pick Y on P, loser Q	into P	CreateNewUuids	stripQ	{Y}	serve Y	one, correct	3	docsAfterMerge={Y,Z} pruned=1 ideal={Y}
+e pick Y on P, loser Q	into P	CreateNewUuids	stripBoth	{Y}	serve Y	one, correct	3	docsAfterMerge={Y,Z} pruned=1 ideal={Y}
+e pick Y on P, loser Q	into P	CreateNewUuids	stripBoth+PsettingsNewer	{Y}	serve Y	one, correct	3	docsAfterMerge={Y,Z} pruned=1 ideal={Y}
+e pick Y on P, loser Q	into P	CreateNewUuids	stripBoth+QsettingsNewer	{Y}	serve Y	one, correct	3	docsAfterMerge={Y,Z} pruned=1 ideal={Y}
+e pick Y on P, loser Q	into Q	Synchronize	kept	{Y}	serve Y	one, correct	3	docsAfterMerge={Y,Z} pruned=1 ideal={Y}
+e pick Y on P, loser Q	into Q	Synchronize	skew	{Y}	serve Y	one, correct	3	docsAfterMerge={Y,Z} pruned=1 ideal={Y}
+e pick Y on P, loser Q	into Q	Synchronize	stripP	{Y}	serve Y	one, correct	3	docsAfterMerge={Y,Z} pruned=1 ideal={Y}
+e pick Y on P, loser Q	into Q	Synchronize	stripQ	{Y}	serve Y	one, correct	3	docsAfterMerge={Y,Z} pruned=1 ideal={Y}
+e pick Y on P, loser Q	into Q	Synchronize	stripBoth	{Y}	serve Y	one, correct	3	docsAfterMerge={Y,Z} pruned=1 ideal={Y}
+e pick Y on P, loser Q	into Q	Synchronize	stripBoth+PsettingsNewer	{Y}	serve Y	one, correct	3	docsAfterMerge={Y,Z} pruned=1 ideal={Y}
+e pick Y on P, loser Q	into Q	Synchronize	stripBoth+QsettingsNewer	{Y}	serve Y	one, correct	3	docsAfterMerge={Y,Z} pruned=1 ideal={Y}
+e pick Y on P, loser Q	into Q	OverwriteIfNewer	kept	{Y}	serve Y	one, correct	3	docsAfterMerge={Y,Z} pruned=1 ideal={Y}
+e pick Y on P, loser Q	into Q	OverwriteIfNewer	skew	{Y}	serve Y	one, correct	3	docsAfterMerge={Y,Z} pruned=1 ideal={Y}
+e pick Y on P, loser Q	into Q	OverwriteIfNewer	stripP	{Y}	serve Y	one, correct	3	docsAfterMerge={Y,Z} pruned=1 ideal={Y}
+e pick Y on P, loser Q	into Q	OverwriteIfNewer	stripQ	{Y}	serve Y	one, correct	3	docsAfterMerge={Y,Z} pruned=1 ideal={Y}
+e pick Y on P, loser Q	into Q	OverwriteIfNewer	stripBoth	{Y}	serve Y	one, correct	3	docsAfterMerge={Y,Z} pruned=1 ideal={Y}
+e pick Y on P, loser Q	into Q	OverwriteIfNewer	stripBoth+PsettingsNewer	{Y}	serve Y	one, correct	3	docsAfterMerge={Y,Z} pruned=1 ideal={Y}
+e pick Y on P, loser Q	into Q	OverwriteIfNewer	stripBoth+QsettingsNewer	{Y}	serve Y	one, correct	3	docsAfterMerge={Y,Z} pruned=1 ideal={Y}
+e pick Y on P, loser Q	into Q	OverwriteExisting	kept	{Y}	serve Y	one, correct	3	docsAfterMerge={Y,Z} pruned=1 ideal={Y}
+e pick Y on P, loser Q	into Q	OverwriteExisting	skew	{Y}	serve Y	one, correct	3	docsAfterMerge={Y,Z} pruned=1 ideal={Y}
+e pick Y on P, loser Q	into Q	OverwriteExisting	stripP	{Y}	serve Y	one, correct	3	docsAfterMerge={Y,Z} pruned=1 ideal={Y}
+e pick Y on P, loser Q	into Q	OverwriteExisting	stripQ	{Y}	serve Y	one, correct	3	docsAfterMerge={Y,Z} pruned=1 ideal={Y}
+e pick Y on P, loser Q	into Q	OverwriteExisting	stripBoth	{Y}	serve Y	one, correct	3	docsAfterMerge={Y,Z} pruned=1 ideal={Y}
+e pick Y on P, loser Q	into Q	OverwriteExisting	stripBoth+PsettingsNewer	{Y}	serve Y	one, correct	3	docsAfterMerge={Y,Z} pruned=1 ideal={Y}
+e pick Y on P, loser Q	into Q	OverwriteExisting	stripBoth+QsettingsNewer	{Y}	serve Y	one, correct	3	docsAfterMerge={Y,Z} pruned=1 ideal={Y}
+e pick Y on P, loser Q	into Q	KeepExisting	kept	{Z}	serve Z	not learned	2	docsAfterMerge={Z} pruned=0 ideal={Y}
+e pick Y on P, loser Q	into Q	KeepExisting	skew	{Z}	serve Z	not learned	2	docsAfterMerge={Z} pruned=0 ideal={Y}
+e pick Y on P, loser Q	into Q	KeepExisting	stripP	{Z}	serve Z	not learned	2	docsAfterMerge={Z} pruned=0 ideal={Y}
+e pick Y on P, loser Q	into Q	KeepExisting	stripQ	{Z}	serve Z	not learned	2	docsAfterMerge={Z} pruned=0 ideal={Y}
+e pick Y on P, loser Q	into Q	KeepExisting	stripBoth	{Z}	serve Z	not learned	2	docsAfterMerge={Z} pruned=0 ideal={Y}
+e pick Y on P, loser Q	into Q	KeepExisting	stripBoth+PsettingsNewer	{Z}	serve Z	not learned	2	docsAfterMerge={Z} pruned=0 ideal={Y}
+e pick Y on P, loser Q	into Q	KeepExisting	stripBoth+QsettingsNewer	{Z}	serve Z	not learned	2	docsAfterMerge={Z} pruned=0 ideal={Y}
+e pick Y on P, loser Q	into Q	CreateNewUuids	kept	{Y}	serve Y	one, correct	3	docsAfterMerge={Y,Z} pruned=1 ideal={Y}
+e pick Y on P, loser Q	into Q	CreateNewUuids	skew	{Y}	serve Y	one, correct	3	docsAfterMerge={Y,Z} pruned=1 ideal={Y}
+e pick Y on P, loser Q	into Q	CreateNewUuids	stripP	{Y}	serve Y	one, correct	3	docsAfterMerge={Y,Z} pruned=1 ideal={Y}
+e pick Y on P, loser Q	into Q	CreateNewUuids	stripQ	{Y}	serve Y	one, correct	3	docsAfterMerge={Y,Z} pruned=1 ideal={Y}
+e pick Y on P, loser Q	into Q	CreateNewUuids	stripBoth	{Y}	serve Y	one, correct	3	docsAfterMerge={Y,Z} pruned=1 ideal={Y}
+e pick Y on P, loser Q	into Q	CreateNewUuids	stripBoth+PsettingsNewer	{Y}	serve Y	one, correct	3	docsAfterMerge={Y,Z} pruned=1 ideal={Y}
+e pick Y on P, loser Q	into Q	CreateNewUuids	stripBoth+QsettingsNewer	{Y}	serve Y	one, correct	3	docsAfterMerge={Y,Z} pruned=1 ideal={Y}
+f recreate twice on P, stale Q	into P	Synchronize	kept	{W}	serve W	one, correct	3	docsAfterMerge={W,X} pruned=1 ideal={W}
+f recreate twice on P, stale Q	into P	Synchronize	skew	{W}	serve W	one, correct	3	docsAfterMerge={W,X} pruned=1 ideal={W}
+f recreate twice on P, stale Q	into P	Synchronize	stripP	{W}	serve W	one, correct	3	docsAfterMerge={W,X} pruned=1 ideal={W}
+f recreate twice on P, stale Q	into P	Synchronize	stripQ	{W}	serve W	one, correct	3	docsAfterMerge={W,X} pruned=1 ideal={W}
+f recreate twice on P, stale Q	into P	Synchronize	stripBoth	{W}	serve W	one, correct	3	docsAfterMerge={W,X} pruned=1 ideal={W}
+f recreate twice on P, stale Q	into P	Synchronize	stripBoth+PsettingsNewer	{W}	serve W	one, correct	3	docsAfterMerge={W,X} pruned=1 ideal={W}
+f recreate twice on P, stale Q	into P	Synchronize	stripBoth+QsettingsNewer	{W}	serve W	one, correct	3	docsAfterMerge={W,X} pruned=1 ideal={W}
+f recreate twice on P, stale Q	into P	OverwriteIfNewer	kept	{W}	serve W	one, correct	3	docsAfterMerge={W,X} pruned=1 ideal={W}
+f recreate twice on P, stale Q	into P	OverwriteIfNewer	skew	{W}	serve W	one, correct	3	docsAfterMerge={W,X} pruned=1 ideal={W}
+f recreate twice on P, stale Q	into P	OverwriteIfNewer	stripP	{W}	serve W	one, correct	3	docsAfterMerge={W,X} pruned=1 ideal={W}
+f recreate twice on P, stale Q	into P	OverwriteIfNewer	stripQ	{W}	serve W	one, correct	3	docsAfterMerge={W,X} pruned=1 ideal={W}
+f recreate twice on P, stale Q	into P	OverwriteIfNewer	stripBoth	{W}	serve W	one, correct	3	docsAfterMerge={W,X} pruned=1 ideal={W}
+f recreate twice on P, stale Q	into P	OverwriteIfNewer	stripBoth+PsettingsNewer	{W}	serve W	one, correct	3	docsAfterMerge={W,X} pruned=1 ideal={W}
+f recreate twice on P, stale Q	into P	OverwriteIfNewer	stripBoth+QsettingsNewer	{W}	serve W	one, correct	3	docsAfterMerge={W,X} pruned=1 ideal={W}
+f recreate twice on P, stale Q	into P	OverwriteExisting	kept	{W}	serve W	one, correct	3	docsAfterMerge={W,X} pruned=1 ideal={W}
+f recreate twice on P, stale Q	into P	OverwriteExisting	skew	{W}	serve W	one, correct	3	docsAfterMerge={W,X} pruned=1 ideal={W}
+f recreate twice on P, stale Q	into P	OverwriteExisting	stripP	{W}	serve W	one, correct	3	docsAfterMerge={W,X} pruned=1 ideal={W}
+f recreate twice on P, stale Q	into P	OverwriteExisting	stripQ	{W}	serve W	one, correct	3	docsAfterMerge={W,X} pruned=1 ideal={W}
+f recreate twice on P, stale Q	into P	OverwriteExisting	stripBoth	{W}	serve W	one, correct	3	docsAfterMerge={W,X} pruned=1 ideal={W}
+f recreate twice on P, stale Q	into P	OverwriteExisting	stripBoth+PsettingsNewer	{W}	serve W	one, correct	3	docsAfterMerge={W,X} pruned=1 ideal={W}
+f recreate twice on P, stale Q	into P	OverwriteExisting	stripBoth+QsettingsNewer	{W}	serve W	one, correct	3	docsAfterMerge={W,X} pruned=1 ideal={W}
+f recreate twice on P, stale Q	into P	KeepExisting	kept	{W}	serve W	one, correct	3	docsAfterMerge={W} pruned=0 ideal={W}
+f recreate twice on P, stale Q	into P	KeepExisting	skew	{W}	serve W	one, correct	3	docsAfterMerge={W} pruned=0 ideal={W}
+f recreate twice on P, stale Q	into P	KeepExisting	stripP	{W}	serve W	one, correct	3	docsAfterMerge={W} pruned=0 ideal={W}
+f recreate twice on P, stale Q	into P	KeepExisting	stripQ	{W}	serve W	one, correct	3	docsAfterMerge={W} pruned=0 ideal={W}
+f recreate twice on P, stale Q	into P	KeepExisting	stripBoth	{W}	serve W	one, correct	3	docsAfterMerge={W} pruned=0 ideal={W}
+f recreate twice on P, stale Q	into P	KeepExisting	stripBoth+PsettingsNewer	{W}	serve W	one, correct	3	docsAfterMerge={W} pruned=0 ideal={W}
+f recreate twice on P, stale Q	into P	KeepExisting	stripBoth+QsettingsNewer	{W}	serve W	one, correct	3	docsAfterMerge={W} pruned=0 ideal={W}
+f recreate twice on P, stale Q	into P	CreateNewUuids	kept	{W}	serve W	one, correct	3	docsAfterMerge={W,X} pruned=1 ideal={W}
+f recreate twice on P, stale Q	into P	CreateNewUuids	skew	{W}	serve W	one, correct	3	docsAfterMerge={W,X} pruned=1 ideal={W}
+f recreate twice on P, stale Q	into P	CreateNewUuids	stripP	{W}	serve W	one, correct	3	docsAfterMerge={W,X} pruned=1 ideal={W}
+f recreate twice on P, stale Q	into P	CreateNewUuids	stripQ	{W}	serve W	one, correct	3	docsAfterMerge={W,X} pruned=1 ideal={W}
+f recreate twice on P, stale Q	into P	CreateNewUuids	stripBoth	{W}	serve W	one, correct	3	docsAfterMerge={W,X} pruned=1 ideal={W}
+f recreate twice on P, stale Q	into P	CreateNewUuids	stripBoth+PsettingsNewer	{W}	serve W	one, correct	3	docsAfterMerge={W,X} pruned=1 ideal={W}
+f recreate twice on P, stale Q	into P	CreateNewUuids	stripBoth+QsettingsNewer	{W}	serve W	one, correct	3	docsAfterMerge={W,X} pruned=1 ideal={W}
+f recreate twice on P, stale Q	into Q	Synchronize	kept	{W}	serve W	one, correct	3	docsAfterMerge={W,X} pruned=1 ideal={W}
+f recreate twice on P, stale Q	into Q	Synchronize	skew	{W}	serve W	one, correct	3	docsAfterMerge={W,X} pruned=1 ideal={W}
+f recreate twice on P, stale Q	into Q	Synchronize	stripP	{W}	serve W	one, correct	3	docsAfterMerge={W,X} pruned=1 ideal={W}
+f recreate twice on P, stale Q	into Q	Synchronize	stripQ	{W}	serve W	one, correct	3	docsAfterMerge={W,X} pruned=1 ideal={W}
+f recreate twice on P, stale Q	into Q	Synchronize	stripBoth	{W}	serve W	one, correct	3	docsAfterMerge={W,X} pruned=1 ideal={W}
+f recreate twice on P, stale Q	into Q	Synchronize	stripBoth+PsettingsNewer	{W}	serve W	one, correct	3	docsAfterMerge={W,X} pruned=1 ideal={W}
+f recreate twice on P, stale Q	into Q	Synchronize	stripBoth+QsettingsNewer	{W}	serve W	one, correct	3	docsAfterMerge={W,X} pruned=1 ideal={W}
+f recreate twice on P, stale Q	into Q	OverwriteIfNewer	kept	{W}	serve W	one, correct	3	docsAfterMerge={W,X} pruned=1 ideal={W}
+f recreate twice on P, stale Q	into Q	OverwriteIfNewer	skew	{W}	serve W	one, correct	3	docsAfterMerge={W,X} pruned=1 ideal={W}
+f recreate twice on P, stale Q	into Q	OverwriteIfNewer	stripP	{W}	serve W	one, correct	3	docsAfterMerge={W,X} pruned=1 ideal={W}
+f recreate twice on P, stale Q	into Q	OverwriteIfNewer	stripQ	{W}	serve W	one, correct	3	docsAfterMerge={W,X} pruned=1 ideal={W}
+f recreate twice on P, stale Q	into Q	OverwriteIfNewer	stripBoth	{W}	serve W	one, correct	3	docsAfterMerge={W,X} pruned=1 ideal={W}
+f recreate twice on P, stale Q	into Q	OverwriteIfNewer	stripBoth+PsettingsNewer	{W}	serve W	one, correct	3	docsAfterMerge={W,X} pruned=1 ideal={W}
+f recreate twice on P, stale Q	into Q	OverwriteIfNewer	stripBoth+QsettingsNewer	{W}	serve W	one, correct	3	docsAfterMerge={W,X} pruned=1 ideal={W}
+f recreate twice on P, stale Q	into Q	OverwriteExisting	kept	{W}	serve W	one, correct	3	docsAfterMerge={W,X} pruned=1 ideal={W}
+f recreate twice on P, stale Q	into Q	OverwriteExisting	skew	{W}	serve W	one, correct	3	docsAfterMerge={W,X} pruned=1 ideal={W}
+f recreate twice on P, stale Q	into Q	OverwriteExisting	stripP	{W}	serve W	one, correct	3	docsAfterMerge={W,X} pruned=1 ideal={W}
+f recreate twice on P, stale Q	into Q	OverwriteExisting	stripQ	{W}	serve W	one, correct	3	docsAfterMerge={W,X} pruned=1 ideal={W}
+f recreate twice on P, stale Q	into Q	OverwriteExisting	stripBoth	{W}	serve W	one, correct	3	docsAfterMerge={W,X} pruned=1 ideal={W}
+f recreate twice on P, stale Q	into Q	OverwriteExisting	stripBoth+PsettingsNewer	{W}	serve W	one, correct	3	docsAfterMerge={W,X} pruned=1 ideal={W}
+f recreate twice on P, stale Q	into Q	OverwriteExisting	stripBoth+QsettingsNewer	{W}	serve W	one, correct	3	docsAfterMerge={W,X} pruned=1 ideal={W}
+f recreate twice on P, stale Q	into Q	KeepExisting	kept	{X}	serve X	not learned	1	docsAfterMerge={X} pruned=0 ideal={W}
+f recreate twice on P, stale Q	into Q	KeepExisting	skew	{X}	serve X	not learned	1	docsAfterMerge={X} pruned=0 ideal={W}
+f recreate twice on P, stale Q	into Q	KeepExisting	stripP	{X}	serve X	not learned	1	docsAfterMerge={X} pruned=0 ideal={W}
+f recreate twice on P, stale Q	into Q	KeepExisting	stripQ	{X}	serve X	not learned	1	docsAfterMerge={X} pruned=0 ideal={W}
+f recreate twice on P, stale Q	into Q	KeepExisting	stripBoth	{X}	serve X	not learned	1	docsAfterMerge={X} pruned=0 ideal={W}
+f recreate twice on P, stale Q	into Q	KeepExisting	stripBoth+PsettingsNewer	{X}	serve X	not learned	1	docsAfterMerge={X} pruned=0 ideal={W}
+f recreate twice on P, stale Q	into Q	KeepExisting	stripBoth+QsettingsNewer	{X}	serve X	not learned	1	docsAfterMerge={X} pruned=0 ideal={W}
+f recreate twice on P, stale Q	into Q	CreateNewUuids	kept	{W}	serve W	one, correct	3	docsAfterMerge={W,X} pruned=1 ideal={W}
+f recreate twice on P, stale Q	into Q	CreateNewUuids	skew	{W}	serve W	one, correct	3	docsAfterMerge={W,X} pruned=1 ideal={W}
+f recreate twice on P, stale Q	into Q	CreateNewUuids	stripP	{W}	serve W	one, correct	3	docsAfterMerge={W,X} pruned=1 ideal={W}
+f recreate twice on P, stale Q	into Q	CreateNewUuids	stripQ	{W}	serve W	one, correct	3	docsAfterMerge={W,X} pruned=1 ideal={W}
+f recreate twice on P, stale Q	into Q	CreateNewUuids	stripBoth	{W}	serve W	one, correct	3	docsAfterMerge={W,X} pruned=1 ideal={W}
+f recreate twice on P, stale Q	into Q	CreateNewUuids	stripBoth+PsettingsNewer	{W}	serve W	one, correct	3	docsAfterMerge={W,X} pruned=1 ideal={W}
+f recreate twice on P, stale Q	into Q	CreateNewUuids	stripBoth+QsettingsNewer	{W}	serve W	one, correct	3	docsAfterMerge={W,X} pruned=1 ideal={W}
+
+c three copies	method	order	step1	step2	then pick + merge each loser both ways
+c	Synchronize	YZW p<-q, p<-r	{Y,Z} dialog(2) more than one, dialog 3	{W,Y,Z} dialog(3) more than one, dialog 4	pick=W; Y loser into pick: {W} one, correct keys=4; Y pick into loser: {W} one, correct keys=4; Z loser into pick: {W} one, correct keys=4; Z pick into loser: {W} one, correct keys=4
+c	Synchronize	YZW p<-q, r<-p	{Y,Z} dialog(2) more than one, dialog 3	{W,Y,Z} dialog(3) more than one, dialog 4	pick=W; Y loser into pick: {W} one, correct keys=4; Y pick into loser: {W} one, correct keys=4; Z loser into pick: {W} one, correct keys=4; Z pick into loser: {W} one, correct keys=4
+c	Synchronize	YWZ p<-q, p<-r	{W,Y} dialog(2) more than one, dialog 3	{W,Y,Z} dialog(3) more than one, dialog 4	pick=W; Y loser into pick: {W} one, correct keys=4; Y pick into loser: {W} one, correct keys=4; Z loser into pick: {W} one, correct keys=4; Z pick into loser: {W} one, correct keys=4
+c	Synchronize	YWZ p<-q, r<-p	{W,Y} dialog(2) more than one, dialog 3	{W,Y,Z} dialog(3) more than one, dialog 4	pick=W; Y loser into pick: {W} one, correct keys=4; Y pick into loser: {W} one, correct keys=4; Z loser into pick: {W} one, correct keys=4; Z pick into loser: {W} one, correct keys=4
+c	Synchronize	ZYW p<-q, p<-r	{Y,Z} dialog(2) more than one, dialog 3	{W,Y,Z} dialog(3) more than one, dialog 4	pick=W; Y loser into pick: {W} one, correct keys=4; Y pick into loser: {W} one, correct keys=4; Z loser into pick: {W} one, correct keys=4; Z pick into loser: {W} one, correct keys=4
+c	Synchronize	ZYW p<-q, r<-p	{Y,Z} dialog(2) more than one, dialog 3	{W,Y,Z} dialog(3) more than one, dialog 4	pick=W; Y loser into pick: {W} one, correct keys=4; Y pick into loser: {W} one, correct keys=4; Z loser into pick: {W} one, correct keys=4; Z pick into loser: {W} one, correct keys=4
+c	Synchronize	ZWY p<-q, p<-r	{W,Z} dialog(2) more than one, dialog 3	{W,Y,Z} dialog(3) more than one, dialog 4	pick=W; Y loser into pick: {W} one, correct keys=4; Y pick into loser: {W} one, correct keys=4; Z loser into pick: {W} one, correct keys=4; Z pick into loser: {W} one, correct keys=4
+c	Synchronize	ZWY p<-q, r<-p	{W,Z} dialog(2) more than one, dialog 3	{W,Y,Z} dialog(3) more than one, dialog 4	pick=W; Y loser into pick: {W} one, correct keys=4; Y pick into loser: {W} one, correct keys=4; Z loser into pick: {W} one, correct keys=4; Z pick into loser: {W} one, correct keys=4
+c	Synchronize	WYZ p<-q, p<-r	{W,Y} dialog(2) more than one, dialog 3	{W,Y,Z} dialog(3) more than one, dialog 4	pick=W; Y loser into pick: {W} one, correct keys=4; Y pick into loser: {W} one, correct keys=4; Z loser into pick: {W} one, correct keys=4; Z pick into loser: {W} one, correct keys=4
+c	Synchronize	WYZ p<-q, r<-p	{W,Y} dialog(2) more than one, dialog 3	{W,Y,Z} dialog(3) more than one, dialog 4	pick=W; Y loser into pick: {W} one, correct keys=4; Y pick into loser: {W} one, correct keys=4; Z loser into pick: {W} one, correct keys=4; Z pick into loser: {W} one, correct keys=4
+c	Synchronize	WZY p<-q, p<-r	{W,Z} dialog(2) more than one, dialog 3	{W,Y,Z} dialog(3) more than one, dialog 4	pick=W; Y loser into pick: {W} one, correct keys=4; Y pick into loser: {W} one, correct keys=4; Z loser into pick: {W} one, correct keys=4; Z pick into loser: {W} one, correct keys=4
+c	Synchronize	WZY p<-q, r<-p	{W,Z} dialog(2) more than one, dialog 3	{W,Y,Z} dialog(3) more than one, dialog 4	pick=W; Y loser into pick: {W} one, correct keys=4; Y pick into loser: {W} one, correct keys=4; Z loser into pick: {W} one, correct keys=4; Z pick into loser: {W} one, correct keys=4
+c	OverwriteIfNewer	YZW p<-q, p<-r	{Y,Z} dialog(2) more than one, dialog 3	{W,Y,Z} dialog(3) more than one, dialog 4	pick=W; Y loser into pick: {W} one, correct keys=4; Y pick into loser: {W} one, correct keys=4; Z loser into pick: {W} one, correct keys=4; Z pick into loser: {W} one, correct keys=4
+c	OverwriteIfNewer	YZW p<-q, r<-p	{Y,Z} dialog(2) more than one, dialog 3	{W,Y,Z} dialog(3) more than one, dialog 4	pick=W; Y loser into pick: {W} one, correct keys=4; Y pick into loser: {W} one, correct keys=4; Z loser into pick: {W} one, correct keys=4; Z pick into loser: {W} one, correct keys=4
+c	OverwriteIfNewer	YWZ p<-q, p<-r	{W,Y} dialog(2) more than one, dialog 3	{W,Y,Z} dialog(3) more than one, dialog 4	pick=W; Y loser into pick: {W} one, correct keys=4; Y pick into loser: {W} one, correct keys=4; Z loser into pick: {W} one, correct keys=4; Z pick into loser: {W} one, correct keys=4
+c	OverwriteIfNewer	YWZ p<-q, r<-p	{W,Y} dialog(2) more than one, dialog 3	{W,Y,Z} dialog(3) more than one, dialog 4	pick=W; Y loser into pick: {W} one, correct keys=4; Y pick into loser: {W} one, correct keys=4; Z loser into pick: {W} one, correct keys=4; Z pick into loser: {W} one, correct keys=4
+c	OverwriteIfNewer	ZYW p<-q, p<-r	{Y,Z} dialog(2) more than one, dialog 3	{W,Y,Z} dialog(3) more than one, dialog 4	pick=W; Y loser into pick: {W} one, correct keys=4; Y pick into loser: {W} one, correct keys=4; Z loser into pick: {W} one, correct keys=4; Z pick into loser: {W} one, correct keys=4
+c	OverwriteIfNewer	ZYW p<-q, r<-p	{Y,Z} dialog(2) more than one, dialog 3	{W,Y,Z} dialog(3) more than one, dialog 4	pick=W; Y loser into pick: {W} one, correct keys=4; Y pick into loser: {W} one, correct keys=4; Z loser into pick: {W} one, correct keys=4; Z pick into loser: {W} one, correct keys=4
+c	OverwriteIfNewer	ZWY p<-q, p<-r	{W,Z} dialog(2) more than one, dialog 3	{W,Y,Z} dialog(3) more than one, dialog 4	pick=W; Y loser into pick: {W} one, correct keys=4; Y pick into loser: {W} one, correct keys=4; Z loser into pick: {W} one, correct keys=4; Z pick into loser: {W} one, correct keys=4
+c	OverwriteIfNewer	ZWY p<-q, r<-p	{W,Z} dialog(2) more than one, dialog 3	{W,Y,Z} dialog(3) more than one, dialog 4	pick=W; Y loser into pick: {W} one, correct keys=4; Y pick into loser: {W} one, correct keys=4; Z loser into pick: {W} one, correct keys=4; Z pick into loser: {W} one, correct keys=4
+c	OverwriteIfNewer	WYZ p<-q, p<-r	{W,Y} dialog(2) more than one, dialog 3	{W,Y,Z} dialog(3) more than one, dialog 4	pick=W; Y loser into pick: {W} one, correct keys=4; Y pick into loser: {W} one, correct keys=4; Z loser into pick: {W} one, correct keys=4; Z pick into loser: {W} one, correct keys=4
+c	OverwriteIfNewer	WYZ p<-q, r<-p	{W,Y} dialog(2) more than one, dialog 3	{W,Y,Z} dialog(3) more than one, dialog 4	pick=W; Y loser into pick: {W} one, correct keys=4; Y pick into loser: {W} one, correct keys=4; Z loser into pick: {W} one, correct keys=4; Z pick into loser: {W} one, correct keys=4
+c	OverwriteIfNewer	WZY p<-q, p<-r	{W,Z} dialog(2) more than one, dialog 3	{W,Y,Z} dialog(3) more than one, dialog 4	pick=W; Y loser into pick: {W} one, correct keys=4; Y pick into loser: {W} one, correct keys=4; Z loser into pick: {W} one, correct keys=4; Z pick into loser: {W} one, correct keys=4
+c	OverwriteIfNewer	WZY p<-q, r<-p	{W,Z} dialog(2) more than one, dialog 3	{W,Y,Z} dialog(3) more than one, dialog 4	pick=W; Y loser into pick: {W} one, correct keys=4; Y pick into loser: {W} one, correct keys=4; Z loser into pick: {W} one, correct keys=4; Z pick into loser: {W} one, correct keys=4
+c	OverwriteExisting	YZW p<-q, p<-r	{Y,Z} dialog(2) more than one, dialog 3	{W,Y,Z} dialog(3) more than one, dialog 4	pick=W; Y loser into pick: {W} one, correct keys=4; Y pick into loser: {W} one, correct keys=4; Z loser into pick: {W} one, correct keys=4; Z pick into loser: {W} one, correct keys=4
+c	OverwriteExisting	YZW p<-q, r<-p	{Y,Z} dialog(2) more than one, dialog 3	{W,Y,Z} dialog(3) more than one, dialog 4	pick=W; Y loser into pick: {W} one, correct keys=4; Y pick into loser: {W} one, correct keys=4; Z loser into pick: {W} one, correct keys=4; Z pick into loser: {W} one, correct keys=4
+c	OverwriteExisting	YWZ p<-q, p<-r	{W,Y} dialog(2) more than one, dialog 3	{W,Y,Z} dialog(3) more than one, dialog 4	pick=W; Y loser into pick: {W} one, correct keys=4; Y pick into loser: {W} one, correct keys=4; Z loser into pick: {W} one, correct keys=4; Z pick into loser: {W} one, correct keys=4
+c	OverwriteExisting	YWZ p<-q, r<-p	{W,Y} dialog(2) more than one, dialog 3	{W,Y,Z} dialog(3) more than one, dialog 4	pick=W; Y loser into pick: {W} one, correct keys=4; Y pick into loser: {W} one, correct keys=4; Z loser into pick: {W} one, correct keys=4; Z pick into loser: {W} one, correct keys=4
+c	OverwriteExisting	ZYW p<-q, p<-r	{Y,Z} dialog(2) more than one, dialog 3	{W,Y,Z} dialog(3) more than one, dialog 4	pick=W; Y loser into pick: {W} one, correct keys=4; Y pick into loser: {W} one, correct keys=4; Z loser into pick: {W} one, correct keys=4; Z pick into loser: {W} one, correct keys=4
+c	OverwriteExisting	ZYW p<-q, r<-p	{Y,Z} dialog(2) more than one, dialog 3	{W,Y,Z} dialog(3) more than one, dialog 4	pick=W; Y loser into pick: {W} one, correct keys=4; Y pick into loser: {W} one, correct keys=4; Z loser into pick: {W} one, correct keys=4; Z pick into loser: {W} one, correct keys=4
+c	OverwriteExisting	ZWY p<-q, p<-r	{W,Z} dialog(2) more than one, dialog 3	{W,Y,Z} dialog(3) more than one, dialog 4	pick=W; Y loser into pick: {W} one, correct keys=4; Y pick into loser: {W} one, correct keys=4; Z loser into pick: {W} one, correct keys=4; Z pick into loser: {W} one, correct keys=4
+c	OverwriteExisting	ZWY p<-q, r<-p	{W,Z} dialog(2) more than one, dialog 3	{W,Y,Z} dialog(3) more than one, dialog 4	pick=W; Y loser into pick: {W} one, correct keys=4; Y pick into loser: {W} one, correct keys=4; Z loser into pick: {W} one, correct keys=4; Z pick into loser: {W} one, correct keys=4
+c	OverwriteExisting	WYZ p<-q, p<-r	{W,Y} dialog(2) more than one, dialog 3	{W,Y,Z} dialog(3) more than one, dialog 4	pick=W; Y loser into pick: {W} one, correct keys=4; Y pick into loser: {W} one, correct keys=4; Z loser into pick: {W} one, correct keys=4; Z pick into loser: {W} one, correct keys=4
+c	OverwriteExisting	WYZ p<-q, r<-p	{W,Y} dialog(2) more than one, dialog 3	{W,Y,Z} dialog(3) more than one, dialog 4	pick=W; Y loser into pick: {W} one, correct keys=4; Y pick into loser: {W} one, correct keys=4; Z loser into pick: {W} one, correct keys=4; Z pick into loser: {W} one, correct keys=4
+c	OverwriteExisting	WZY p<-q, p<-r	{W,Z} dialog(2) more than one, dialog 3	{W,Y,Z} dialog(3) more than one, dialog 4	pick=W; Y loser into pick: {W} one, correct keys=4; Y pick into loser: {W} one, correct keys=4; Z loser into pick: {W} one, correct keys=4; Z pick into loser: {W} one, correct keys=4
+c	OverwriteExisting	WZY p<-q, r<-p	{W,Z} dialog(2) more than one, dialog 3	{W,Y,Z} dialog(3) more than one, dialog 4	pick=W; Y loser into pick: {W} one, correct keys=4; Y pick into loser: {W} one, correct keys=4; Z loser into pick: {W} one, correct keys=4; Z pick into loser: {W} one, correct keys=4
+c	KeepExisting	YZW p<-q, p<-r	{Y} serve Y not learned 2	{Y} serve Y not learned 2	pick=-; 
+c	KeepExisting	YZW p<-q, r<-p	{Y} serve Y not learned 2	{W} serve W not learned 2	pick=-; 
+c	KeepExisting	YWZ p<-q, p<-r	{Y} serve Y not learned 2	{Y} serve Y not learned 2	pick=-; 
+c	KeepExisting	YWZ p<-q, r<-p	{Y} serve Y not learned 2	{Z} serve Z not learned 2	pick=-; 
+c	KeepExisting	ZYW p<-q, p<-r	{Z} serve Z not learned 2	{Z} serve Z not learned 2	pick=-; 
+c	KeepExisting	ZYW p<-q, r<-p	{Z} serve Z not learned 2	{W} serve W not learned 2	pick=-; 
+c	KeepExisting	ZWY p<-q, p<-r	{Z} serve Z not learned 2	{Z} serve Z not learned 2	pick=-; 
+c	KeepExisting	ZWY p<-q, r<-p	{Z} serve Z not learned 2	{Y} serve Y not learned 2	pick=-; 
+c	KeepExisting	WYZ p<-q, p<-r	{W} serve W not learned 2	{W} serve W not learned 2	pick=-; 
+c	KeepExisting	WYZ p<-q, r<-p	{W} serve W not learned 2	{Z} serve Z not learned 2	pick=-; 
+c	KeepExisting	WZY p<-q, p<-r	{W} serve W not learned 2	{W} serve W not learned 2	pick=-; 
+c	KeepExisting	WZY p<-q, r<-p	{W} serve W not learned 2	{Y} serve Y not learned 2	pick=-; 
+c	CreateNewUuids	YZW p<-q, p<-r	{Y,Z} dialog(2) more than one, dialog 3	{W,Y,Z} dialog(3) more than one, dialog 4	pick=W; Y loser into pick: {W} one, correct keys=4; Y pick into loser: {W} one, correct keys=4; Z loser into pick: {W} one, correct keys=4; Z pick into loser: {W} one, correct keys=4
+c	CreateNewUuids	YZW p<-q, r<-p	{Y,Z} dialog(2) more than one, dialog 3	{W,Y,Z} dialog(3) more than one, dialog 4	pick=W; Y loser into pick: {W} one, correct keys=4; Y pick into loser: {W} one, correct keys=4; Z loser into pick: {W} one, correct keys=4; Z pick into loser: {W} one, correct keys=4
+c	CreateNewUuids	YWZ p<-q, p<-r	{W,Y} dialog(2) more than one, dialog 3	{W,Y,Z} dialog(3) more than one, dialog 4	pick=W; Y loser into pick: {W} one, correct keys=4; Y pick into loser: {W} one, correct keys=4; Z loser into pick: {W} one, correct keys=4; Z pick into loser: {W} one, correct keys=4
+c	CreateNewUuids	YWZ p<-q, r<-p	{W,Y} dialog(2) more than one, dialog 3	{W,Y,Z} dialog(3) more than one, dialog 4	pick=W; Y loser into pick: {W} one, correct keys=4; Y pick into loser: {W} one, correct keys=4; Z loser into pick: {W} one, correct keys=4; Z pick into loser: {W} one, correct keys=4
+c	CreateNewUuids	ZYW p<-q, p<-r	{Y,Z} dialog(2) more than one, dialog 3	{W,Y,Z} dialog(3) more than one, dialog 4	pick=W; Y loser into pick: {W} one, correct keys=4; Y pick into loser: {W} one, correct keys=4; Z loser into pick: {W} one, correct keys=4; Z pick into loser: {W} one, correct keys=4
+c	CreateNewUuids	ZYW p<-q, r<-p	{Y,Z} dialog(2) more than one, dialog 3	{W,Y,Z} dialog(3) more than one, dialog 4	pick=W; Y loser into pick: {W} one, correct keys=4; Y pick into loser: {W} one, correct keys=4; Z loser into pick: {W} one, correct keys=4; Z pick into loser: {W} one, correct keys=4
+c	CreateNewUuids	ZWY p<-q, p<-r	{W,Z} dialog(2) more than one, dialog 3	{W,Y,Z} dialog(3) more than one, dialog 4	pick=W; Y loser into pick: {W} one, correct keys=4; Y pick into loser: {W} one, correct keys=4; Z loser into pick: {W} one, correct keys=4; Z pick into loser: {W} one, correct keys=4
+c	CreateNewUuids	ZWY p<-q, r<-p	{W,Z} dialog(2) more than one, dialog 3	{W,Y,Z} dialog(3) more than one, dialog 4	pick=W; Y loser into pick: {W} one, correct keys=4; Y pick into loser: {W} one, correct keys=4; Z loser into pick: {W} one, correct keys=4; Z pick into loser: {W} one, correct keys=4
+c	CreateNewUuids	WYZ p<-q, p<-r	{W,Y} dialog(2) more than one, dialog 3	{W,Y,Z} dialog(3) more than one, dialog 4	pick=W; Y loser into pick: {W} one, correct keys=4; Y pick into loser: {W} one, correct keys=4; Z loser into pick: {W} one, correct keys=4; Z pick into loser: {W} one, correct keys=4
+c	CreateNewUuids	WYZ p<-q, r<-p	{W,Y} dialog(2) more than one, dialog 3	{W,Y,Z} dialog(3) more than one, dialog 4	pick=W; Y loser into pick: {W} one, correct keys=4; Y pick into loser: {W} one, correct keys=4; Z loser into pick: {W} one, correct keys=4; Z pick into loser: {W} one, correct keys=4
+c	CreateNewUuids	WZY p<-q, p<-r	{W,Z} dialog(2) more than one, dialog 3	{W,Y,Z} dialog(3) more than one, dialog 4	pick=W; Y loser into pick: {W} one, correct keys=4; Y pick into loser: {W} one, correct keys=4; Z loser into pick: {W} one, correct keys=4; Z pick into loser: {W} one, correct keys=4
+c	CreateNewUuids	WZY p<-q, r<-p	{W,Z} dialog(2) more than one, dialog 3	{W,Y,Z} dialog(3) more than one, dialog 4	pick=W; Y loser into pick: {W} one, correct keys=4; Y pick into loser: {W} one, correct keys=4; Z loser into pick: {W} one, correct keys=4; Z pick into loser: {W} one, correct keys=4
+
+form case	snapshot at open	live before close	write-back	after close	after next prune
+prune while open (retirement already there)	{KPG.Authority.X,KPG.Authority.Y,KPG.RetiredAuthority.X}	{KPG.Authority.Y,KPG.RetiredAuthority.X}	YES	{KPG.Authority.X,KPG.Authority.Y,KPG.RetiredAuthority.X} -> serve Y	serve Y
+recreate while open (retire X, add Y)	{KPG.Authority.X}	{KPG.Authority.Y,KPG.RetiredAuthority.X}	YES	{KPG.Authority.X} -> serve X	serve X
+pick while open (dialog state {Y,Z})	{KPG.Authority.Y,KPG.Authority.Z,KPG.RetiredAuthority.X}	{KPG.Authority.Y,KPG.RetiredAuthority.X,KPG.RetiredAuthority.Z}	no	{KPG.Authority.Y,KPG.RetiredAuthority.X,KPG.RetiredAuthority.Z} -> serve Y	serve Y
+pick + prune while open ({X unpruned, Y, Z})	{KPG.Authority.X,KPG.Authority.Y,KPG.Authority.Z,KPG.RetiredAuthority.X}	{KPG.Authority.Y,KPG.RetiredAuthority.X,KPG.RetiredAuthority.Z}	YES	{KPG.Authority.X,KPG.Authority.Y,KPG.Authority.Z,KPG.RetiredAuthority.X} -> dialog(2)	dialog(2)
+operator deletes RetiredAuthority.X by hand (X unpruned)	{KPG.Authority.X,KPG.Authority.Y,KPG.RetiredAuthority.X}	{KPG.Authority.X,KPG.Authority.Y,KPG.RetiredAuthority.X}	YES	{KPG.Authority.X,KPG.Authority.Y} -> dialog(2)	dialog(2)
+operator deletes RetiredAuthority.X and Authority.Y by hand (X unpruned)	{KPG.Authority.X,KPG.Authority.Y,KPG.RetiredAuthority.X}	{KPG.Authority.X,KPG.Authority.Y,KPG.RetiredAuthority.X}	YES	{KPG.Authority.X} -> serve X	serve X
+operator deletes RetiredAuthority.X by hand (X pruned)	{KPG.Authority.Y,KPG.RetiredAuthority.X}	{KPG.Authority.Y,KPG.RetiredAuthority.X}	YES	{KPG.Authority.Y} -> serve Y	serve Y

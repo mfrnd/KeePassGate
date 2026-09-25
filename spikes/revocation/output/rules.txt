@@ -1,0 +1,11 @@
+case	Synchronize	OverwriteIfNewer	OverwriteExisting	KeepExisting	CreateNewUuids
+source only, stamped	S@new	S@new	S@new	absent	S@new
+source only, unstamped	S@none	S@none	S@none	absent	S@none
+target only, stamped	T@new	T@new	T@new	T@new	T@new
+both stamped, source newer	S@new	S@new	S@new	T@old	S@new
+both stamped, target newer	T@new	T@new	S@old	T@new	T@new
+both stamped, equal	T@new	T@new	S@new	T@new	T@new
+target stamped only (old)	T@old	T@old	S@none	T@old	T@old
+source stamped only (old)	S@old	S@old	S@old	T@none	S@old
+neither stamped, settings equal	T@none	T@none	S@none	T@none	T@none
+neither stamped, source settings newer	S@none	S@none	S@none	T@none	S@none

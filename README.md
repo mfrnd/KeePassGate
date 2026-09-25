@@ -7,8 +7,8 @@ authority survives that merge is therefore a question about KeePass rather than 
 and it was answered by running KeePass.
 
 This branch is taken from `master` and holds nothing else: no plugin, no tests, no design
-documents. Those are on the mainline branches, which carry what this probe established and not the
-code that established it.
+documents. What the probe settled is in [`RESULTS.md`](RESULTS.md), with the recorded output beside
+it under `spikes/revocation/output`.
 
 ## Running it
 
@@ -31,3 +31,9 @@ spikes\revocation\out\Probe.exe work\layout layout   > layout.txt   # authority 
 
 Every file it writes goes under that work directory, which is not committed either. Point `TMP` and
 `TEMP` somewhere disposable as well if the build should leave nothing behind in the profile.
+
+## Reading a re-run
+
+The output names times symbolically rather than printing them, so a re-run against the same KeePass
+is line for line the recorded output. A difference is a finding: record it in `RESULTS.md` beside
+what it contradicts.
