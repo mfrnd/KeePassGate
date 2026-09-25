@@ -7,3 +7,13 @@
 
 # Per machine, and not everybody's business: the checked-in `.claude/settings.json` is.
 /.claude/settings.local.json
+
+# What `tools/KeePass.ps1` fetches, named after the version so that changing the pin cannot quietly
+# reuse the last one. Provided rather than committed: it is somebody else's program.
+/.keepass/
+
+# The probe's build output, and the throwaway databases it writes when told to work here.
+/spikes/revocation/bin/
+/spikes/revocation/obj/
+/spikes/revocation/out/
+/work/

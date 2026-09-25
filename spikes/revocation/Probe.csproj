@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- A console probe against the KeePass this branch pins. The pin is read from `keepass.version`
+       rather than written down twice, and `tools/KeePass.ps1` provides that version into
+       `.keepass\<version>\`, which is not committed. Override with `-p:KeePassDevDir=...` for a
+       machine that keeps its own somewhere else. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>7.3</LangVersion>
+    <PlatformTarget>x64</PlatformTarget>
+    <KeePassPinnedVersion>$([System.IO.File]::ReadAllText('$(MSBuildThisFileDirectory)..\..\keepass.version').Trim())</KeePassPinnedVersion>
+    <KeePassDevDir Condition="'$(KeePassDevDir)' == ''">$(MSBuildThisFileDirectory)..\..\.keepass\$(KeePassPinnedVersion)\</KeePassDevDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="KeePass">
+      <HintPath>$([MSBuild]::EnsureTrailingSlash('$(KeePassDevDir)'))KeePass.exe</HintPath>
+    </Reference>
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+  </ItemGroup>
+
+</Project>

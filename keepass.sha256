@@ -1,0 +1,4 @@
+# The archive this branch's probe was measured against, in the format `sha256sum` writes and reads,
+# so that `sha256sum -c keepass.sha256` checks it too. Measuring another version adds a line rather
+# than replacing this one.
+3952354DB9B117E906F7CD4F9F5591065B95186472370DA47F46F3E246FEA864  KeePass-2.61.1.zip
