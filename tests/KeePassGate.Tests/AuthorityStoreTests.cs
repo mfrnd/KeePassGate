@@ -607,6 +607,24 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void Pruning_takes_the_record_of_an_expired_certificate_as_well()
+        {
+            // The same prune, so a pairing and keeping one authority take it with them too.
+            Write();
+
+            using (var ended = TestAuthority.IssueExpiredClient("agent-nonexistent", "ops"))
+            {
+                var expired = AdmissionRecord.For(ended, DateTimeOffset.UtcNow.AddDays(-7), new[] { "ops" });
+                _values.Plant(expired.StorageKey, expired.Save());
+
+                var pruned = _store.Prune();
+
+                Assert.That(pruned.Select(p => p.Key), Is.EqualTo(new[] { expired.StorageKey }));
+                Assert.That(pruned.Single().Value, Is.EqualTo(expired.Save()), "so that a write that fails can put it back");
+            }
+        }
+
+        [Test]
         public void A_document_is_never_written_twice()
         {
             using (var authority = _issuer.CreateAuthority())

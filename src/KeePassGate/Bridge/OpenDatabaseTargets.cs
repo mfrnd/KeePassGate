@@ -1094,7 +1094,7 @@ namespace KeePassGate.Bridge
                     foreach (var record in new AdmissionStore(new CustomDataStore(database), _log).All().Records)
                     {
                         // Not one whose certificate has expired: it regains nothing, being refused
-                        // before its record is read.
+                        // before its record is read, and the pairing's own write prunes it.
                         if (record != null && record.Profiles != null
                             && record.Profiles.Contains(profile, StringComparer.Ordinal)
                             && !record.HasExpired(now))

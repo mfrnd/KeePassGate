@@ -251,7 +251,8 @@ namespace KeePassGate.Ui
                 var now = DateTimeOffset.UtcNow;
                 foreach (var record in new AdmissionStore(_database.PluginCustomData, _log).All().Records)
                 {
-                    // Not one whose certificate has expired, which regains nothing.
+                    // Not one whose certificate has expired, which regains nothing and goes with
+                    // the plugin's next write.
                     if (record != null && record.Profiles != null
                         && record.Profiles.Contains(name, StringComparer.Ordinal)
                         && !record.HasExpired(now))

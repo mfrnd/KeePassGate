@@ -95,7 +95,7 @@ revocation paragraph below is about.
 | --- | --- | --- |
 | `KPG.Authority.<sha256>` | one authority, filed under the digest of its certificate: the authority, the host certificate and the gate key, all three in one document | once, at creation and on recreation, and never rewritten |
 | `KPG.RetiredAuthority.<sha256>` | the constant `retired`, for an authority recreated, deleted or not kept | once, and never changed or removed |
-| `KPG.Client.<sha256>` | one admission record per paired client | at every pairing, and written empty when the client is revoked |
+| `KPG.Client.<sha256>` | one admission record per paired client | at every pairing, and written empty when the client is revoked; removed once its certificate has expired, and an emptied one with its revocation |
 | `KPG.Revoked.<sha256>` | the revoked certificate's `notAfter` | once, when the client is revoked, and never changed; removed once that moment has passed |
 | `KPG.Profiles` | the set of profile names this database knows | when the Profiles page is accepted, and at a pairing that approves a name it does not hold, in the same write as the record |
 
@@ -163,9 +163,25 @@ anyway: a revocation, a pairing, keeping one authority, recreating or deleting i
 reading a database changes nothing in it.
 
 **A revocation goes once its certificate has expired**, during the next revocation, because past
-`notAfter` the gate refuses that certificate on its dates and the key has nothing left to refuse. A
-stale copy that brings a pruned one back does no harm, and it is pruned again. A record that cannot
-be read gives no date, and its revocation is written empty and kept.
+`notAfter` the gate refuses that certificate on its dates and the key has nothing left to refuse,
+and the emptied record beside it goes with it, having nothing left to refuse either. A stale copy
+that brings a pruned one back does no harm, and it is pruned again. A record that cannot be read
+gives no date, and its revocation is written empty and kept.
+
+**So does the record of a certificate that has expired**, by the same argument and on the same
+writes as a record that came back: a revocation, a pairing, keeping one authority, recreating or
+deleting it. Past its `notAfter` the record admits nobody, since the gate reads the certificate's
+dates, and kept it would be a key for every certificate the database ever issued, which a client
+given a week at a time, pairing again as each runs out, makes a number with no bound. A stale copy
+that brings one back brings back a record of a certificate the gate refuses, and the next write
+takes it away again. A record that cannot be read gives no date, and is kept, named on the clients
+page so that the operator can take it away. Until the next write, an expired record stays on the
+clients page, saying so.
+
+**Both are decided on this machine's clock, and each one taken away is said in the log**, with the
+moment its certificate ended and the moment the clock read. A clock that is wrong makes the gate
+refuse a client that setting the clock right admits again; a key taken out of the file is not
+put back by anything, so the log is where a client lost to a wrong clock is found.
 
 **Each authority is one key, and that is the same argument the other way.** A merge that took its
 parts separately could take the certificate from one replica and the private key from another, and
@@ -746,3 +762,4 @@ Recorded because a reader seeing only this version will not know which parts wer
 | Recreating emptied the records | recreating and deleting remove them, and the revocations | the retirement refuses every old certificate, so the emptied records refused nothing more |
 | Ten years for the authority and five for its host, each warned about ninety days ahead and refused at pairing once past | a hundred years for both, issued together, warned about and refused at no point | no expiry was asked for, and `X509Certificate2.NotAfter` misreads `99991231235959Z` ahead of UTC, measured; a shorter host life protects nothing, since its key cannot leak without the authority's |
 | A client warned about thirty days before its end, whatever its life | in the last third of its life, and thirty days at most | a client may ask for a week, which a fixed thirty days warned about from the day it was issued |
+| The record of an expired certificate kept until somebody removed it, and an emptied one kept for good | both taken away by the plugin's next write of its own, an emptied one with its revocation | a client may ask for a day, and pairing again leaves the old record behind, so kept they were a key for every certificate ever issued; past its end the gate refuses a certificate on its dates, so neither record had anything left to say |

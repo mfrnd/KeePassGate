@@ -239,6 +239,11 @@ namespace KeePassGate.Tests
             _values.Plant(cameBack, "2020-01-01T00:00:00Z");
             _values.Plant(AuthorityKeys.ClientRecordKey(new string('d', 64)), "a record that came back");
 
+            // The emptied records the three revocations were written beside.
+            _values.Plant(AuthorityKeys.ClientRecordKey(new string('a', 64)), string.Empty);
+            _values.Plant(AuthorityKeys.ClientRecordKey(new string('b', 64)), string.Empty);
+            _values.Plant(AuthorityKeys.ClientRecordKey(new string('c', 64)), string.Empty);
+
             using (var certificate = _authority.IssueClient("agent-fictitious"))
             {
                 // Reading and writing a record are not the write the prune rides on, so a database
@@ -258,6 +263,108 @@ namespace KeePassGate.Tests
                     "one whose record came back goes like any other, since its certificate is refused on its dates");
                 Assert.That(_values.Get(AuthorityKeys.ClientRecordKey(new string('d', 64))), Is.Null,
                     "and the record goes in the same write");
+
+                Assert.That(_values.Get(AuthorityKeys.ClientRecordKey(new string('a', 64))), Is.Null,
+                    "an emptied record goes with its revocation, since past that end it refuses nothing either");
+                Assert.That(_values.Get(AuthorityKeys.ClientRecordKey(new string('b', 64))), Is.Empty,
+                    "and stays while its revocation does");
+                Assert.That(_values.Get(AuthorityKeys.ClientRecordKey(new string('c', 64))), Is.Empty,
+                    "which for one with no date is always");
+            }
+        }
+
+        [Test]
+        public void The_record_of_an_expired_certificate_is_pruned_by_the_next_revocation_and_by_nothing_else()
+        {
+            using (var ended = TestAuthority.IssueExpiredClient("agent-nonexistent", "ops"))
+            using (var current = _authority.IssueClient("agent-invented", "ops"))
+            using (var revoked = _authority.IssueClient("agent-fictitious", "ops"))
+            {
+                var expired = AdmissionRecord.For(ended, DateTimeOffset.UtcNow.AddDays(-7), new[] { "ops" });
+                var kept = AdmissionRecord.For(current, DateTimeOffset.UtcNow, new[] { "ops" });
+                _store.Write(expired);
+                _store.Write(kept);
+                _store.Write(AdmissionRecord.For(revoked, DateTimeOffset.UtcNow, new[] { "ops" }));
+                var unreadable = AuthorityKeys.ClientRecordKey(new string('f', 64));
+                _values.Plant(unreadable, "a record nobody can read");
+
+                // Reading is not the write the prune rides on, and nor is a record being written:
+                // a database that is only opened, served from and paired with by hand is never
+                // changed by it.
+                _store.Find(expired.AdmissionKey);
+                _store.All();
+                _store.Count(out _);
+                Assume.That(_values.Get(expired.StorageKey), Is.Not.Null, "nothing but a write prunes");
+
+                Assert.That(_store.Remove(CertificateDigest.Of(revoked)), Is.True);
+
+                Assert.That(_values.Get(expired.StorageKey), Is.Null,
+                    "past its certificate's end the gate refuses it on its dates, so the record has nothing left to say");
+                Assert.That(_values.Get(kept.StorageKey), Is.Not.Null, "before that end it stays");
+                Assert.That(_values.Get(unreadable), Is.Not.Null,
+                    "and a record that cannot be read gives no date, so it stays too");
+            }
+        }
+
+        [Test]
+        public void Pruning_the_records_of_expired_certificates_says_what_it_took_and_leaves_the_rest()
+        {
+            using (var ended = TestAuthority.IssueExpiredClient("agent-nonexistent", "ops"))
+            using (var current = _authority.IssueClient("agent-invented", "ops"))
+            {
+                var expired = AdmissionRecord.For(ended, DateTimeOffset.UtcNow.AddDays(-7), new[] { "ops" });
+                var kept = AdmissionRecord.For(current, DateTimeOffset.UtcNow, new[] { "ops" });
+                _store.Write(expired);
+                _store.Write(kept);
+                _values.Plant(AuthorityKeys.ClientRecordKey(new string('e', 64)), string.Empty);
+
+                var pruned = _store.PruneExpired(DateTimeOffset.UtcNow);
+
+                Assert.That(pruned.Select(p => p.Key), Is.EqualTo(new[] { expired.StorageKey }));
+                Assert.That(pruned.Single().Value, Is.EqualTo(expired.Save()), "so that a write that fails can put it back");
+                Assert.That(_values.Get(kept.StorageKey), Is.Not.Null);
+                Assert.That(_values.Get(AuthorityKeys.ClientRecordKey(new string('e', 64))), Is.Empty,
+                    "an emptied record gives no date, and goes with its revocation instead");
+                Assert.That(_store.PruneExpired(DateTimeOffset.UtcNow), Is.Empty, "and a second prune finds nothing");
+            }
+        }
+
+        [Test]
+        public void What_a_prune_takes_on_this_machines_clock_is_named_in_the_log()
+        {
+            // A wrong clock refuses a client that setting it right admits again; a key taken out
+            // of the file comes back by nothing, so the log is where one lost that way is found.
+            using (var ended = TestAuthority.IssueExpiredClient("agent-nonexistent", "ops"))
+            {
+                var expired = AdmissionRecord.For(ended, DateTimeOffset.UtcNow.AddDays(-7), new[] { "ops" });
+                _store.Write(expired);
+
+                Assume.That(_store.PruneExpired(DateTimeOffset.UtcNow), Is.Not.Empty);
+
+                var line = _log.Entries.Single(entry => entry.Message.Contains("by this machine's clock"));
+                Assert.That(line.Level, Is.EqualTo("INFO").IgnoreCase);
+                Assert.That(line.Message, Does.Contain(CertificateDigest.Shorten(expired.AdmissionKey)));
+            }
+        }
+
+        [Test]
+        public void An_expired_record_a_stale_copy_brings_back_is_taken_away_again()
+        {
+            using (var ended = TestAuthority.IssueExpiredClient("agent-nonexistent", "ops"))
+            using (var revoked = _authority.IssueClient("agent-fictitious", "ops"))
+            {
+                var expired = AdmissionRecord.For(ended, DateTimeOffset.UtcNow.AddDays(-7), new[] { "ops" });
+                _store.Write(expired);
+                Assume.That(_store.PruneExpired(DateTimeOffset.UtcNow), Is.Not.Empty);
+
+                // What a merge with a copy from before the prune does: the key comes back as it
+                // was. It admits nobody meanwhile, because the gate reads its certificate's dates.
+                _values.Plant(expired.StorageKey, expired.Save());
+                _store.Write(AdmissionRecord.For(revoked, DateTimeOffset.UtcNow, new[] { "ops" }));
+
+                Assert.That(_store.Remove(CertificateDigest.Of(revoked)), Is.True);
+
+                Assert.That(_values.Get(expired.StorageKey), Is.Null, "the next write takes it away again");
             }
         }
 

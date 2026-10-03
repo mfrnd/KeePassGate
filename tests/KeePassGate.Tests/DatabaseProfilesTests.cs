@@ -264,8 +264,8 @@ namespace KeePassGate.Tests
         [Test]
         public void A_client_whose_certificate_has_expired_is_not_named_as_regaining_anything()
         {
-            // The gate refuses it before its record is read, so naming it said it would regain a
-            // name it never could.
+            // The gate refuses it before its record is read, and the next write the plugin makes
+            // prunes the record, so naming it said it would regain a name it never could.
             var database = new FakeGateDatabase { Nodes = new TestRuledNodes() };
             var profiles = new DatabaseProfiles(database, null);
             var store = new AdmissionStore(database.PluginCustomData, null);

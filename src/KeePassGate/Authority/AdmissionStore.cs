@@ -228,8 +228,9 @@ namespace KeePassGate.Authority
         /// **Pruning expired revocations rides on this write and on nothing else.** Revocations
         /// are only ever added here, so pruning here keeps their number at the unexpired ones and
         /// the one just written, and opening a database, or reading it, changes nothing in it.
-        /// Records that came back beside their revocations go in the same write: see
-        /// <see cref="PruneCameBack"/>.
+        /// Records that came back beside their revocations go in the same write, and so do the
+        /// records of expired certificates: see <see cref="PruneCameBack"/> and
+        /// <see cref="PruneExpired"/>.
         /// </remarks>
         public bool Remove(string admissionKey)
         {
@@ -266,6 +267,7 @@ namespace KeePassGate.Authority
             // it, and the prune after this can take an expired revocation away.
             PruneCameBack();
             Prune(now, revocation);
+            PruneExpired(now);
 
             // Read back rather than assumed, the way every other mutation here is believed. The
             // answer this returns is what the operator is shown, and telling somebody a client is
@@ -275,12 +277,18 @@ namespace KeePassGate.Authority
         }
 
         /// <summary>
-        /// Takes away every revocation whose certificate has expired, except the one named, and
-        /// leaves every other one where it is.
+        /// Takes away every revocation whose certificate has expired, except the one named, with
+        /// the emptied record beside it, and leaves every other one where it is.
         /// </summary>
         /// <remarks>
         /// One whose record has come back goes like any other: past its certificate's end the
         /// gate refuses that certificate on its dates, and the record goes in the same write.
+        ///
+        /// **The emptied record goes with it**, because past that end it has nothing left to
+        /// refuse either, and kept it would be a key for every client ever revoked: a client given
+        /// a week at a time, whose older row is revoked each time it pairs again, makes that a
+        /// number with no bound. A stale copy that brings it back brings back an empty value, or a
+        /// record of a certificate that has expired, which the next write takes away again.
         ///
         /// A failure here is logged and nothing else, because the revocation this rides on has
         /// already been written and is what the caller is answered about. A revocation left
@@ -311,9 +319,21 @@ namespace KeePassGate.Authority
                         continue;
                     }
 
-                    if (CertificateValidity.HasExpired(notAfter, now))
+                    if (!CertificateValidity.HasExpired(notAfter, now))
                     {
-                        _store.Remove(key);
+                        continue;
+                    }
+
+                    _store.Remove(key);
+                    Ended("the revocation", AuthorityKeys.AdmissionKeyInRevocation(key), notAfter, now);
+
+                    // Only an emptied one. A record that came back beside it went before this ran,
+                    // and anything else under the key is a record of an expired certificate, which
+                    // `PruneExpired` takes away when it can read it and keeps when it cannot.
+                    var record = AuthorityKeys.ClientRecordKey(AuthorityKeys.AdmissionKeyInRevocation(key));
+                    if (string.Equals(_store.Get(record), string.Empty, StringComparison.Ordinal))
+                    {
+                        _store.Remove(record);
                     }
                 }
             }
@@ -321,6 +341,99 @@ namespace KeePassGate.Authority
             {
                 _log.Warn("the revocations of expired certificates could not be pruned: " + error.Message);
             }
+        }
+
+        /// <summary>
+        /// Takes away every record whose certificate has expired, answering with what went so that
+        /// a write that does not land can put it back.
+        /// </summary>
+        /// <remarks>
+        /// **Only as part of a write this plugin makes anyway**, which is the rule every prune
+        /// here follows: a revocation, and every write <c>AuthorityStore.Prune</c> rides on, which
+        /// is pairing, keeping one authority, and recreating or deleting it. Opening or reading a
+        /// database changes nothing in it, so an expired record stays until then, and the clients
+        /// page shows it as expired meanwhile.
+        ///
+        /// Past its certificate's end the gate refuses that certificate on its dates, so the
+        /// record admits nobody and has nothing left to say. Kept, records of expired certificates
+        /// would be a key for every certificate ever issued, and a client given a week at a time,
+        /// pairing again as each runs out, makes that a number with no bound. A stale copy that
+        /// brings one back does no harm, since its certificate is refused on its dates, and the
+        /// next write takes it away again.
+        ///
+        /// **A record that cannot be read gives no date, and is kept**, named on the clients page
+        /// so that the operator can take it away. So is the emptied record of a revoked client,
+        /// which goes with its revocation instead, in <see cref="Prune"/>.
+        ///
+        /// A failure is logged and answered with what went before it, because the write this
+        /// rides on is what the caller is answered about, and an expired record admits nobody.
+        /// </remarks>
+        public IReadOnlyList<KeyValuePair<string, string>> PruneExpired(DateTimeOffset now)
+        {
+            var removed = new List<KeyValuePair<string, string>>();
+
+            try
+            {
+                var stored = Stored(out _);
+
+                foreach (var pair in stored.Where(pair => AuthorityKeys.IsClientRecord(pair.Key) && !Gone(pair.Value)))
+                {
+                    var record = AdmissionRecord.Load(AuthorityKeys.AdmissionKeyIn(pair.Key), pair.Value);
+                    DateTimeOffset ended;
+                    if (record == null || !HasExpired(record, now, out ended))
+                    {
+                        continue;
+                    }
+
+                    _store.Remove(pair.Key);
+                    removed.Add(pair);
+                    Ended("the record", record.AdmissionKey, ended, now);
+                }
+            }
+            catch (Exception error) when (Expected.OfCustomData(error))
+            {
+                _log.Warn("the records of expired certificates could not be taken away: " + error.Message);
+            }
+
+            return removed;
+        }
+
+        /// <summary>
+        /// Whether the certificate a readable record admits has expired, which a certificate that
+        /// will not decode answers no to, since it gives no date.
+        /// </summary>
+        private static bool HasExpired(AdmissionRecord record, DateTimeOffset now, out DateTimeOffset ended)
+        {
+            ended = default(DateTimeOffset);
+
+            try
+            {
+                using (var certificate = record.Certificate())
+                {
+                    ended = new DateTimeOffset(certificate.NotAfter.ToUniversalTime(), TimeSpan.Zero);
+                    return CertificateValidity.HasExpired(certificate, now);
+                }
+            }
+            catch (Exception error) when (Expected.OfCryptography(error))
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Says in the log that a prune took something away on this machine's clock, and when the
+        /// certificate it was about ended.
+        /// </summary>
+        /// <remarks>
+        /// A refusal on dates is undone by setting a wrong clock right; a key taken out of the
+        /// file is not, so each one is named, with both moments, for whoever finds a client gone
+        /// and a clock that was wrong when it went.
+        /// </remarks>
+        private void Ended(string what, string admissionKey, DateTimeOffset ended, DateTimeOffset now)
+        {
+            _log.Info(what + " of a certificate that ended at " + Moments.Wire(ended) + " goes with this write, " +
+                      "by this machine's clock, which reads " + Moments.Wire(now) + ": " +
+                      CertificateDigest.Shorten(admissionKey));
         }
 
         /// <summary>

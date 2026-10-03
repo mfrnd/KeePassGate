@@ -19,8 +19,12 @@ just approved.
 | **X** | takes this client's admission away |
 
 A client whose certificate has expired is refused like any other, and **Until** says `expired`
-instead of a date. It stays on the list because a row that has expired and a row somebody removed
-look the same once the row is gone, and only one of them needs doing anything about.
+instead of a date, by this computer's clock. The row goes with the next change the plugin itself
+makes to the database: revoking a client, pairing one, or keeping, recreating or deleting the
+authority. The plugin's log names each row that goes that way, because a clock set wrong can cost
+one that setting it right does not bring back. Until then it says `expired`, because a row that has
+expired and a row somebody removed look the same once the row is gone, and only one of them needs
+doing anything about.
 
 **Until** says `not this authority` for a record whose certificate this database's authority did not
 issue. The gate checks that before anything else, so such a record grants nothing whatever its dates
@@ -86,7 +90,7 @@ the line with them: revoking another client, pairing one, or keeping, recreating
 authority.
 
 The mark stays until the client's certificate expires. After that the certificate is refused on its
-dates anyway, and the next revocation takes the mark away.
+dates anyway, and the next revocation takes the mark away, and the emptied record with it.
 
 **All of that holds in KeePass 2.48 or later with the plugin in it, and only there.** Other programs
 can open the database, KeePassXC and KeePass before 2.48 among them, but saving or merging in one of

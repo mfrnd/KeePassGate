@@ -142,7 +142,7 @@ The table is the whole state of it:
 | | |
 | --- | --- |
 | **Fingerprint** | which authority this is. Written down somewhere, it is how a replaced authority is noticed: the one in the database is not the one that was made. |
-| **Admission records** | how many programs have been let in and not taken back out. One whose certificate has expired, or whose record cannot be read, is counted until it is removed: the [clients page](clients.md) lists every one and says which admit nobody. |
+| **Admission records** | how many programs have been let in and not taken back out. One whose certificate has expired is counted until the plugin's next change to the database takes it away, and one whose record cannot be read until it is removed: the [clients page](clients.md) lists every one and says which admit nobody. |
 
 No date is in it. The authority and the certificate KeePass answers with are made together and good
 for a hundred years, so there is nothing to count down to: see [`clients.md`](clients.md#expiry).

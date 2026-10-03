@@ -1056,9 +1056,9 @@ namespace KeePassGate.Bridge
         }
 
         /// <summary>
-        /// Takes away the documents of retired authorities, and the admission records that came
-        /// back beside their revocations, as part of a write this plugin is making anyway,
-        /// answering with what went.
+        /// Takes away the documents of retired authorities, the admission records that came back
+        /// beside their revocations and the records of expired certificates, as part of a write
+        /// this plugin is making anyway, answering with what went.
         /// </summary>
         /// <remarks>
         /// **Here, inside the guarded write, and never at open**, which is operator answer 3a:
@@ -1075,8 +1075,8 @@ namespace KeePassGate.Bridge
             }
             catch (Exception error) when (Expected.OfCustomData(error))
             {
-                _log.Warn("what retired authorities and revoked clients left behind could not be taken away: " +
-                          error.Message);
+                _log.Warn("what retired authorities, revoked clients and expired certificates left behind " +
+                          "could not be taken away: " + error.Message);
                 return Array.Empty<KeyValuePair<string, string>>();
             }
         }
@@ -1272,9 +1272,10 @@ namespace KeePassGate.Bridge
                     store.Set(record.StorageKey, before);
                 }
 
-                // What the prune took away: retired documents and records that came back beside
-                // their revocations. They serve and admit nothing either way, and put back they
-                // leave memory agreeing with the file this write never reached.
+                // What the prune took away: retired documents, records that came back beside
+                // their revocations and records of expired certificates. They serve and admit
+                // nothing either way, and put back they leave memory agreeing with the file this
+                // write never reached.
                 if (pruned != null)
                 {
                     foreach (var pair in pruned)

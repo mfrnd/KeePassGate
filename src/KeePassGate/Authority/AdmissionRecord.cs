@@ -128,7 +128,8 @@ namespace KeePassGate.Authority
         /// </summary>
         /// <remarks>
         /// For the screens that say who regains a removed profile: an expired certificate regains
-        /// nothing, since the gate refuses it before any record is read.
+        /// nothing, since the gate refuses it before any record is read, and the next write the
+        /// plugin makes prunes its record.
         /// </remarks>
         public bool HasExpired(DateTimeOffset now)
         {

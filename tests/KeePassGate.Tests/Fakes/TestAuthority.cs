@@ -256,6 +256,27 @@ namespace KeePassGate.Tests.Fakes
         }
 
         /// <summary>
+        /// A client certificate that ended days ago, from an authority of its own made a week ago,
+        /// for the caller to dispose.
+        /// </summary>
+        /// <remarks>
+        /// The one way to hold a certificate that has expired at the real moment rather than at a
+        /// moment a test passes in: nothing can be issued from before its authority began, so the
+        /// authority has to be older than the certificate. Whose authority it is does not matter
+        /// to anything that reads a record's dates.
+        /// </remarks>
+        public static X509Certificate2 IssueExpiredClient(string subject, params string[] profiles)
+        {
+            var then = DateTimeOffset.UtcNow.AddDays(-7);
+            var issuer = new AuthorityIssuer(() => then);
+
+            using (var authority = issuer.CreateAuthority())
+            {
+                return issuer.IssueClient(authority, subject, profiles, TimeSpan.FromDays(1));
+            }
+        }
+
+        /// <summary>
         /// The host certificate as something an SslStream client can actually present, which means
         /// a key with a container. It must still be refused, on its extended key usage rather than
         /// on anything about its key.
