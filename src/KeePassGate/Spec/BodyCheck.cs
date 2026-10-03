@@ -1,4 +1,7 @@
 using System;
+using System.Collections.Concurrent;
+using System.Text;
+using System.Text.RegularExpressions;
 using KeePassGate.Transport;
 using Microsoft.OpenApi.Models;
 
@@ -16,7 +19,8 @@ namespace KeePassGate.Spec
     ///
     /// What it understands is exactly what `JsonBody` can read and what this wire carries: one flat
     /// object whose values are strings or arrays of strings, `required`, `additionalProperties:
-    /// false`, lengths, and a cap on how many items an array may hold. No schema library does this
+    /// false`, lengths, a pattern a string is held to, and a cap on how many items an array may
+    /// hold. No schema library does this
     /// job. The cheapest brings two assemblies and a license an MIT plugin cannot take; the cheapest
     /// one it can take brings fourteen into the process that holds somebody's password database,
     /// against three for reading the document, and would validate constructs this document is not
@@ -30,6 +34,20 @@ namespace KeePassGate.Spec
     {
         /// <summary>What every refusal in here answers with.</summary>
         public const string Refusal = "malformed";
+
+        /// <summary>
+        /// How long a value may take to be held to a pattern before it is refused instead.
+        /// </summary>
+        /// <remarks>
+        /// A pattern is the document's, so whoever writes one can write one that backtracks
+        /// without end, and the value it is tried on is a stranger's. A value that takes longer
+        /// than this to decide is refused, which is the direction everything here fails in.
+        /// </remarks>
+        private static readonly TimeSpan PatternTimeout = TimeSpan.FromMilliseconds(100);
+
+        /// <summary>Every pattern the document holds, compiled once and kept, by what it says.</summary>
+        private static readonly ConcurrentDictionary<string, Regex> Patterns =
+            new ConcurrentDictionary<string, Regex>(StringComparer.Ordinal);
 
         /// <summary>
         /// Why this schema cannot be checked, or null when it can be.
@@ -172,9 +190,9 @@ namespace KeePassGate.Spec
         /// The first keyword this schema writes that its type may not, or null when there is none.
         /// </summary>
         /// <remarks>
-        /// **An allow list, per type, on keywords.** A string may say how long it is, an array how
-        /// many strings it holds, and the body itself which members it has, which of them it
-        /// requires and that it has no others. Every other keyword the reader models that says
+        /// **An allow list, per type, on keywords.** A string may say how long it is and what shape
+        /// it has, an array how many strings it holds, and the body itself which members it has,
+        /// which of them it requires and that it has no others. Every other keyword the reader models that says
         /// anything about a value is refused wherever it is written, so a constraint nothing
         /// enforces is a plugin that does not load: `pattern` on a uuid, `minItems` on a list of
         /// profiles, a whole `allOf`, and a keyword on a type it does not apply to, such as
@@ -258,7 +276,7 @@ namespace KeePassGate.Spec
 
             if (string.Equals(member.Type, "string", StringComparison.Ordinal))
             {
-                return Unimplemented(member, "minLength", "maxLength");
+                return Unimplemented(member, "minLength", "maxLength", "pattern") ?? Compiles(member.Pattern);
             }
 
             if (string.Equals(member.Type, "array", StringComparison.Ordinal))
@@ -324,7 +342,10 @@ namespace KeePassGate.Spec
             return text != null && Fits(declared, text);
         }
 
-        /// <summary>Whether a string is as long as the document allows, counted as it counts.</summary>
+        /// <summary>
+        /// Whether a string is as long as the document allows, counted as it counts, and has the
+        /// shape its pattern gives it.
+        /// </summary>
         /// <remarks>
         /// **In characters, not in the UTF-16 units `string.Length` counts.** JSON Schema measures
         /// `minLength` and `maxLength` in characters, and a character outside the Basic
@@ -341,7 +362,231 @@ namespace KeePassGate.Spec
                 return false;
             }
 
-            return !declared.MaxLength.HasValue || length <= declared.MaxLength.Value;
+            if (declared.MaxLength.HasValue && length > declared.MaxLength.Value)
+            {
+                return false;
+            }
+
+            return declared.Pattern == null || Matches(declared.Pattern, value);
+        }
+
+        /// <summary>Why a pattern cannot be held to, or null when it can be.</summary>
+        /// <remarks>
+        /// Compiled as the document is read, so that a pattern nothing could match against stops
+        /// the plugin loading rather than refusing every body sent to the route.
+        /// </remarks>
+        private static string Compiles(string pattern)
+        {
+            if (pattern == null)
+            {
+                return null;
+            }
+
+            var foreign = Portable(pattern);
+            if (foreign != null)
+            {
+                return "a pattern holding " + foreign + ", which ECMA-262 and .NET read differently or only one of them reads";
+            }
+
+            try
+            {
+                Pattern(pattern);
+                return null;
+            }
+            catch (ArgumentException error)
+            {
+                return "a pattern that does not compile: " + error.Message;
+            }
+        }
+
+        private static bool Matches(string pattern, string value)
+        {
+            try
+            {
+                return Pattern(pattern).IsMatch(value);
+            }
+            catch (RegexMatchTimeoutException)
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// A pattern compiled to mean what JSON Schema means by it.
+        /// </summary>
+        /// <remarks>
+        /// **JSON Schema's patterns are ECMA-262's**, and not anchored unless they say so.
+        /// `RegexOptions.ECMAScript` brings .NET's classes into line with that, `\d` among them,
+        /// within the subset <see cref="Portable"/> holds the document to, and leaves one
+        /// difference inside it that a pattern anchored at its end meets at once: .NET's `$` also
+        /// matches before a final line feed, so `^P30D$` accepted `"P30D\n"`. <see cref="Ecma"/>
+        /// writes that `$` as `\z`, which is what ECMA-262 means by it.
+        /// </remarks>
+        private static Regex Pattern(string pattern)
+        {
+            return Patterns.GetOrAdd(
+                pattern, written => new Regex(Ecma(written), RegexOptions.ECMAScript, PatternTimeout));
+        }
+
+        /// <summary>
+        /// The first construct in a pattern outside the subset both readers agree on, or null when
+        /// there is none.
+        /// </summary>
+        /// <remarks>
+        /// **The subset is enforced as the class enforces every other one**: a pattern stepping
+        /// outside it stops the plugin loading rather than meaning one thing in the document and
+        /// another here. Inside it: literals, `^` and `$`, alternation, groups that capture, `(?:`,
+        /// `(?=` and `(?!`, the quantifiers, classes with ranges and negation, and the escapes
+        /// `\d`, `\D`, `\w`, `\W`, `\b`, `\B`, `\n`, `\r`, `\t`, `\f`, `\v`, `\0`, `\x` and `\u` with
+        /// their digits, and an escaped syntax character. Outside it, because the two read them
+        /// differently: `.`, which .NET lets match a carriage return and the line and paragraph
+        /// separators; `\s` and `\S`, whose classes differ by the no-break space, the byte order
+        /// mark and the spaces of category Zs; `\a` and `\e`, which are control characters to
+        /// .NET and letters to ECMA-262; an empty class, `[]` or `[^]`. And because only .NET
+        /// reads them: `\A`, `\Z`, `\z`, `\G`, `\p`, `\P`, `\k`, every other `(?` group, which
+        /// covers atomic groups, comments, inline options and quoted names, and class subtraction.
+        /// </remarks>
+        internal static string Portable(string pattern)
+        {
+            // The class escapes, the word boundaries and the control escapes, one letter each.
+            var escapes = new[] { 'd', 'D', 'w', 'W', 'b', 'B', 'n', 'r', 't', 'f', 'v', '0' };
+            const string Syntax = "^$\\.*+?()[]{}|/-";
+            var inClass = false;
+            var classStart = -1;
+
+            for (var at = 0; at < pattern.Length; at++)
+            {
+                var character = pattern[at];
+
+                if (character == '\\')
+                {
+                    if (at + 1 >= pattern.Length)
+                    {
+                        return "a backslash with nothing after it";
+                    }
+
+                    var escaped = pattern[++at];
+                    if (Array.IndexOf(escapes, escaped) >= 0 || Syntax.IndexOf(escaped) >= 0)
+                    {
+                        continue;
+                    }
+
+                    var digits = escaped == 'x' ? 2 : escaped == 'u' ? 4 : 0;
+                    if (digits == 0 || !Hexadecimal(pattern, at + 1, digits))
+                    {
+                        return "\\" + escaped;
+                    }
+
+                    at += digits;
+                    continue;
+                }
+
+                if (inClass)
+                {
+                    if (character == ']' && at == classStart)
+                    {
+                        return "an empty class";
+                    }
+
+                    if (character == '-' && at + 1 < pattern.Length && pattern[at + 1] == '[')
+                    {
+                        return "class subtraction";
+                    }
+
+                    if (character == ']')
+                    {
+                        inClass = false;
+                    }
+
+                    continue;
+                }
+
+                if (character == '[')
+                {
+                    inClass = true;
+                    classStart = at + 1 < pattern.Length && pattern[at + 1] == '^' ? at + 2 : at + 1;
+                    if (classStart > at + 1)
+                    {
+                        at++;
+                    }
+
+                    continue;
+                }
+
+                if (character == '.')
+                {
+                    return "`.`";
+                }
+
+                if (character == '(' && at + 1 < pattern.Length && pattern[at + 1] == '?')
+                {
+                    var kind = at + 2 < pattern.Length ? pattern[at + 2] : '\0';
+                    if (kind != ':' && kind != '=' && kind != '!')
+                    {
+                        return "a `(?` group other than `(?:`, `(?=` and `(?!`";
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        private static bool Hexadecimal(string text, int from, int count)
+        {
+            if (from + count > text.Length)
+            {
+                return false;
+            }
+
+            for (var at = from; at < from + count; at++)
+            {
+                if (!Uri.IsHexDigit(text[at]))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// The pattern with every `$` outside a character class written as `\z`, and everything
+        /// else as it was written.
+        /// </summary>
+        internal static string Ecma(string pattern)
+        {
+            var text = new StringBuilder(pattern.Length + 4);
+            var inClass = false;
+
+            for (var at = 0; at < pattern.Length; at++)
+            {
+                var character = pattern[at];
+
+                if (character == '\\' && at + 1 < pattern.Length)
+                {
+                    // An escape is two characters, and the second is never a token of its own.
+                    text.Append(character).Append(pattern[++at]);
+                    continue;
+                }
+
+                if (character == '[')
+                {
+                    inClass = true;
+                }
+                else if (character == ']')
+                {
+                    inClass = false;
+                }
+                else if (character == '$' && !inClass)
+                {
+                    text.Append(@"\z");
+                    continue;
+                }
+
+                text.Append(character);
+            }
+
+            return text.ToString();
         }
 
         /// <summary>How many characters a string holds, with a surrogate pair counted once.</summary>

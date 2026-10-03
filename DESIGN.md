@@ -643,7 +643,13 @@ The OpenAPI document is the routing table, and it ships as an embedded resource.
   parameter's or a query parameter's, held keyword by keyword to a list of what each type there may
   say, so that anything the checker would not act on refuses to load. That is what keeps a
   subset from becoming a gap: a construct nobody implemented stops the plugin loading, and can
-  never be a body that went unchecked because the checker did not recognize its schema.
+  never be a body that went unchecked because the checker did not recognize its schema. **A string
+  may carry a `pattern`**, compiled as the document is read and held to what JSON Schema means by
+  one, which is ECMA-262's: there `$` is the end of the value, where .NET's also matches before a
+  final line feed, so the checker writes it as `\z`. A pattern is held to the subset the two
+  readers agree on, and one stepping outside it stops the plugin loading: `.`, `\s`, `\a` and `\e`
+  mean different things to each, and `\A`, atomic groups, inline options, class subtraction and
+  the rest are .NET's alone. `BodyCheck.Portable` names them.
 - **The grammar is `Newtonsoft.Json`'s and the policy is ours**, which is the split worth keeping.
   Parsing JSON correctly is solved better elsewhere than it would ever be solved here, and one
   assembly against nine decides which. Deciding what this wire may carry is a decision, and stays

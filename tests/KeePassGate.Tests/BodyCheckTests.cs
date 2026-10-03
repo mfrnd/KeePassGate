@@ -81,6 +81,133 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_string_is_held_to_its_pattern()
+        {
+            var schema = Lifetime();
+
+            Assert.That(BodyCheck.Validate(schema, JsonBody.Read("{\"lifetime\":\"P30D\"}")), Is.Null);
+            Assert.That(BodyCheck.Validate(schema, JsonBody.Read("{\"lifetime\":\"P365D\"}")), Is.Null);
+
+            foreach (var refused in new[] { "P0D", "P366D", "P030D", "p30d", "P30", "30", " P30D", "P30D " })
+            {
+                Assert.That(
+                    BodyCheck.Validate(schema, JsonBody.Read("{\"lifetime\":\"" + refused + "\"}")),
+                    Is.EqualTo(BodyCheck.Refusal),
+                    refused);
+            }
+        }
+
+        [Test]
+        public void A_pattern_ending_in_a_dollar_ends_where_the_value_does()
+        {
+            // JSON Schema's patterns are ECMA-262's, whose `$` is the end of the value. .NET's also
+            // matches before a final line feed, so the pattern a lifetime is held to accepted one
+            // with a line break after it until every `$` was written as `\z`.
+            var schema = Lifetime();
+
+            Assert.That(
+                BodyCheck.Validate(schema, JsonBody.Read("{\"lifetime\":\"P30D\\n\"}")),
+                Is.EqualTo(BodyCheck.Refusal));
+
+            Assert.That(BodyCheck.Ecma("^a[$]b$"), Is.EqualTo("^a[$]b\\z"), "a dollar inside a class is a dollar");
+            Assert.That(BodyCheck.Ecma("^a\\$$"), Is.EqualTo("^a\\$\\z"), "and so is an escaped one");
+        }
+
+        [TestCase("^a.b$")]
+        [TestCase("^\\s$")]
+        [TestCase("^\\S$")]
+        [TestCase("^\\a$")]
+        [TestCase("^\\e$")]
+        [TestCase("\\Aa")]
+        [TestCase("a\\Z")]
+        [TestCase("a\\z")]
+        [TestCase("\\Ga")]
+        [TestCase("^\\p{L}$")]
+        [TestCase("^(?'n'a)\\k'n'$")]
+        [TestCase("^(?>a)$")]
+        [TestCase("^(?i)a$")]
+        [TestCase("^(?#note)a$")]
+        [TestCase("^[a-z-[a-c]]$")]
+        [TestCase("^[^]$")]
+        [TestCase("^[]$")]
+        [TestCase("^\\x4$")]
+        public void A_pattern_the_two_readers_disagree_about_stops_the_document(string pattern)
+        {
+            // ECMA-262 is what the document means and .NET is what checks it, so a construct the
+            // two read differently, or that only .NET reads, is refused as the document is read
+            // rather than meaning one thing there and another here.
+            var foreign = Body(new OpenApiSchema { Type = "string", Pattern = pattern });
+
+            Assert.That(BodyCheck.Supports(foreign), Does.Contain("pattern"), pattern);
+        }
+
+        [TestCase("^P([1-9]|[1-9][0-9]|[12][0-9][0-9]|3[0-5][0-9]|36[0-5])D$")]
+        [TestCase("^[C.][R.][U.][S.][D.][L.][A.][P.]$")]
+        [TestCase("^(?:a|b)+(?=c)(?!d)\\d\\w\\b[^\\]x-]{1,3}\\.\\x41\\u00e9\\-$")]
+        public void A_pattern_inside_the_subset_is_accepted(string pattern)
+        {
+            Assert.That(BodyCheck.Portable(pattern), Is.Null);
+            Assert.That(BodyCheck.Supports(Body(new OpenApiSchema { Type = "string", Pattern = pattern })), Is.Null);
+        }
+
+        [Test]
+        public void A_value_the_pattern_cannot_decide_in_time_is_refused_in_time()
+        {
+            // The pattern is somebody's code and the value a stranger's, so a value is given a
+            // tenth of a second to be decided. Nested quantifiers over a value that almost matches
+            // take far longer than that to fail without the bound.
+            var schema = new OpenApiSchema
+            {
+                Type = "object",
+                AdditionalPropertiesAllowed = false,
+                Properties = { { "name", new OpenApiSchema { Type = "string", Pattern = "^(a+)+$" } } }
+            };
+            Assume.That(BodyCheck.Supports(schema), Is.Null);
+
+            var slow = new string('a', 27) + "!";
+            var spent = System.Diagnostics.Stopwatch.StartNew();
+            var answer = BodyCheck.Validate(schema, JsonBody.Read("{\"name\":\"" + slow + "\"}"));
+            spent.Stop();
+
+            Assert.That(answer, Is.EqualTo(BodyCheck.Refusal));
+            Assert.That(spent.Elapsed, Is.LessThan(TimeSpan.FromSeconds(2)), "refused at the bound, not when the search gave up");
+        }
+
+        [Test]
+        public void A_pattern_that_does_not_compile_stops_the_document()
+        {
+            // Compiled as the document is read, so a pattern nothing can match against is a plugin
+            // that does not load rather than a route that refuses every body.
+            var unfinished = Body(new OpenApiSchema { Type = "string", Pattern = "^[a-" });
+
+            Assert.That(BodyCheck.Supports(unfinished), Does.Contain("pattern"));
+        }
+
+        /// <summary>
+        /// A body of one string held to a pattern: a lifetime in whole days from one to 365,
+        /// written as ISO 8601 writes a duration.
+        /// </summary>
+        private static OpenApiSchema Lifetime()
+        {
+            return new OpenApiSchema
+            {
+                Type = "object",
+                AdditionalPropertiesAllowed = false,
+                Properties =
+                {
+                    {
+                        "lifetime",
+                        new OpenApiSchema
+                        {
+                            Type = "string",
+                            Pattern = "^P([1-9]|[1-9][0-9]|[12][0-9][0-9]|3[0-5][0-9]|36[0-5])D$"
+                        }
+                    }
+                },
+            };
+        }
+
+        [Test]
         public void A_body_that_is_not_an_object_at_all_is_refused()
         {
             Assert.That(Validate(Schema(), null), Is.Not.Null);
@@ -140,9 +267,9 @@ namespace KeePassGate.Tests
             var onText = BodyCheck.Supports(Body(text));
             var onList = BodyCheck.Supports(Body(list));
 
-            if (keyword == "MinLength" || keyword == "MaxLength")
+            if (keyword == "MinLength" || keyword == "MaxLength" || keyword == "Pattern")
             {
-                Assert.That(onText, Is.Null, "a string says how long it is");
+                Assert.That(onText, Is.Null, "a string says how long it is and what shape it has");
                 Assert.That(onList, Is.Not.Null, "an array does not");
             }
             else if (keyword == "Items" || keyword == "MaxItems")
