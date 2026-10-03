@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using KeePassGate.Acl;
-using KeePassGate.Ui;
 using NUnit.Framework;
 
 namespace KeePassGate.Tests
