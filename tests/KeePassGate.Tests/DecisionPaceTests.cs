@@ -84,7 +84,7 @@ namespace KeePassGate.Tests
 
             for (var i = 0; i < DecisionPace.Burst + 3; i++)
             {
-                check.Permits(client, "readEntry", AclVerb.Read, AclReach.Fields, i % 2 == 0 ? entry : null);
+                check.Decide(client, "readEntry", AclVerb.Read, AclReach.Fields, i % 2 == 0 ? entry : null);
             }
 
             Assert.That(_waits, Has.Count.EqualTo(3), "a permitted read and an absent node alike");

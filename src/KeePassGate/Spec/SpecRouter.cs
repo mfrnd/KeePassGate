@@ -689,8 +689,10 @@ namespace KeePassGate.Spec
                 return false;
             });
 
-            if (_access.Permits(
-                    context.Client, operation.OperationId, operation.Verb, operation.Reach, node))
+            var decision = _access.Decide(
+                context.Client, operation.OperationId, operation.Verb, operation.Reach, node);
+
+            if (decision.Permitted)
             {
                 return true;
             }
