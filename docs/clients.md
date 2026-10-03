@@ -175,6 +175,8 @@ database no longer names is not offered, and a line under the list says it is no
 how long the new certificate lasts, as on the pairing dialog. A program that asks again while its
 dialog is still up is told to wait, so the dialog never comes up twice for one certificate.
 
+![The renewal dialog with its Refuse menu open](images/renewal-approval.png)
+
 **Refusing can mean more than once.** Pressing **Refuse** refuses once, and so do Enter, Escape and
 the close box: nothing is kept, and the program may ask again. The arrow beside **Refuse**, or Alt
 and Down while the button has the focus, opens a menu of what else refusing can mean. Escape or a
