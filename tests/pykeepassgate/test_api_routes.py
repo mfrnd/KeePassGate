@@ -21,9 +21,9 @@ import pytest
 from pykeepassgate import credentials as credentials_module
 from pykeepassgate.client import ROOT, GateClient
 from pykeepassgate.errors import ProtocolError, Withheld
-from pykeepassgate.model import Attachment, Entry, Field, Fields, Group, Identity
+from pykeepassgate.model import Access, Attachment, Entry, Field, Fields, Group, Identity
 from pykeepassgate.testing import FakeGate
-from test_reference import SERVED_AHEAD, operations, routing_table
+from test_reference import operations, routing_table
 
 UUID = "7b1c" * 8
 OTHER = "9f86" * 8
@@ -73,6 +73,76 @@ def test_the_gate_says_who_this_client_is_as_it_was_admitted(
     assert set(IDENTITY) == set(declared["required"]) == set(declared["properties"]), (
         "every member the gate answers is one this client reads"
     )
+
+
+def test_the_gate_says_what_each_profile_may_do_at_a_node(
+    gate: FakeGate, paired: GateClient, document: dict[str, Any]
+) -> None:
+    # The example in `openapi.yaml` §511: one mask per profile, as the KPG tab shows a rule.
+    answering(gate, {"grants": {"reader": ".R...L.P", "uploader": "C.....A."}})
+
+    found = paired.group_access()
+
+    assert gate.requests == [("GET", f"/groups/{ROOT}/access")]
+    assert dict(found.grants) == {"reader": ".R...L.P", "uploader": "C.....A."}
+
+    paired.entry_access(UUID)
+    assert gate.requests[-1] == ("GET", f"/entries/{UUID}/access")
+
+    declared = document["components"]["schemas"]["Access"]
+    assert set(declared["required"]) == set(declared["properties"]) == {"grants"}
+
+
+@pytest.mark.parametrize(
+    ("grants", "letters", "allowed"),
+    [
+        ({"reader": ".R...L.P"}, "RP", True),
+        ({"reader": ".R......", "lister": ".....L.P"}, "RP", False),
+        ({"reader": ".R......", "lister": ".....L.P"}, "PL", True),
+        ({"uploader": "C.....A."}, "CA", True),
+        ({"uploader": "C.....A."}, "C", True),
+        ({"reader": ".R...L.P"}, "C", False),
+        ({"nobody": "........"}, "R", False),
+        ({}, "L", False),
+        ({"cleaner": "...S...."}, "SA", True),
+        ({"cleaner": "....D..."}, "DP", True),
+        ({"reader": ".R.....A"}, "SA", False),
+    ],
+    ids=[
+        "one mask holds both",
+        "two masks hold one each",
+        "in any order",
+        "an attachment added",
+        "a verb alone",
+        "a verb no mask holds",
+        "a profile granted nothing",
+        "no profile at all",
+        "a switch beside a strip",
+        "a switch beside a delete",
+        "a switch another verb carries",
+    ],
+)
+def test_a_question_about_a_verb_and_a_switch_is_asked_of_one_mask_at_a_time(
+    grants: dict[str, str], letters: str, allowed: bool
+) -> None:
+    # One profile's `R` and another's `P` do not read a protected value, which is why the gate
+    # answers a mask per profile rather than one made of all of them.
+    assert Access(grants=grants).allows(letters) is allowed
+
+
+@pytest.mark.parametrize("letters", ["", "P", "AP", "X", "rp", "R P"])
+def test_a_question_naming_no_verb_or_a_letter_no_mask_has_is_refused(letters: str) -> None:
+    # A switch on its own grants nothing, so a question about one alone is answered by nothing the
+    # gate does; and a letter the notation does not have is a mistake in the calling program.
+    with pytest.raises(ValueError, match=repr(letters)):
+        Access(grants={"reader": "CRUSDLAP"}).allows(letters)
+
+
+def test_what_a_client_may_do_prints_as_the_masks_it_is() -> None:
+    found = Access(grants={"reader": ".R...L.P"})
+
+    assert repr(found) == "Access(grants={'reader': '.R...L.P'})"
+    assert hash(found) == hash(Access(grants={"reader": ".R...L.P"}))
 
 
 def test_groups_are_listed_read_and_walked(gate: FakeGate, paired: GateClient) -> None:
@@ -612,6 +682,7 @@ WIRE: list[tuple[str, Callable[[GateClient], object], dict[str, str], dict[str, 
         {"Name": "Renamed", "Notes": "invented notes"},
     ),
     ("deleteGroup", lambda c: c.delete_group(AWKWARD), {"uuid": AWKWARD}, None),
+    ("getGroupAccess", lambda c: c.group_access(AWKWARD), {"uuid": AWKWARD}, None),
     ("listGroupEntries", lambda c: c.entries(group=AWKWARD), {"uuid": AWKWARD}, None),
     ("readEntry", lambda c: c.entry(AWKWARD), {"uuid": AWKWARD}, None),
     (
@@ -627,6 +698,7 @@ WIRE: list[tuple[str, Callable[[GateClient], object], dict[str, str], dict[str, 
         {**STANDARD_SENT, "expires": "2031-02-03T04:05:06Z"},
     ),
     ("deleteEntry", lambda c: c.delete_entry(AWKWARD), {"uuid": AWKWARD}, None),
+    ("getEntryAccess", lambda c: c.entry_access(AWKWARD), {"uuid": AWKWARD}, None),
     ("listFields", lambda c: c.fields(AWKWARD), {"uuid": AWKWARD}, None),
     (
         "readField",
@@ -702,6 +774,7 @@ ANY_ANSWER: dict[str, Any] = {
     "entries": [],
     "attachments": [],
     "count": 0,
+    "grants": {},
 }
 
 
@@ -821,7 +894,6 @@ def test_every_call_that_carries_a_value_is_held_to_the_document(
         if operation["method"] != "head"
         and not operation["path"].startswith("/pair/")
         and name != "renewCertificate"
-        and name not in SERVED_AHEAD
         and ("{" in operation["path"] or "requestBody" in operation)
     }
 
@@ -1039,6 +1111,10 @@ UNREADABLE: list[tuple[str, dict[str, Any], Callable[[GateClient], object]]] = [
     ("an identity with no removed profiles",
      {name: value for name, value in IDENTITY.items() if name != "removedProfiles"},
      lambda c: c.identity()),
+    ("grants that are a list", {"grants": ["reader"]}, lambda c: c.group_access()),
+    ("a mask out of its order", {"grants": {"reader": "RC......"}}, lambda c: c.group_access()),
+    ("a mask cut short", {"grants": {"reader": ".R..."}}, lambda c: c.entry_access(UUID)),
+    ("a mask that is a number", {"grants": {"reader": 7}}, lambda c: c.entry_access(UUID)),
 ]
 
 

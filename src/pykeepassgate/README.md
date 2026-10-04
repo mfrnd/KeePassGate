@@ -85,6 +85,12 @@ pykeepassgate identity   # what is stored, without connecting
 pykeepassgate whoami     # what the gate admits this client as now
 ```
 
+**What a client may do at a node is something it can ask before trying.**
+`client.entry_access(uuid)` and `client.group_access(uuid)` answer one mask per profile, as the
+operator's tab shows a rule, and `.allows("RP")` asks whether one of those rules reads the
+protected values there; `pykeepassgate access --entry <uuid>` prints them. A node where it may do
+nothing is refused as one that is not there.
+
 An entry KeePass shows as expired is listed and read like any other, because an expiry is advice
 rather than a control. `client.entries(include_expired=False)` leaves the expired ones out, a read
 entry's `expires` says when it expires, and `client.update_entry(uuid, expires=False)` takes the

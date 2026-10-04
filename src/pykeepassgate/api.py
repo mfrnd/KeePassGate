@@ -43,7 +43,7 @@ from .errors import (
     TransportError,
     Withheld,
 )
-from .model import Attachment, Entry, Field, Fields, Group, Identity
+from .model import Access, Attachment, Entry, Field, Fields, Group, Identity
 from .pairing import (
     LONGEST_LIFETIME,
     SHORTEST_LIFETIME,
@@ -84,6 +84,7 @@ __all__ = [
     "PAIRING_CONNECTION_TIMEOUT",
     "ROOT",
     "SHORTEST_LIFETIME",
+    "Access",
     "Attachment",
     "AuthorityUndecided",
     "Credentials",

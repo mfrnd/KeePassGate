@@ -91,6 +91,39 @@ def test_whoami_names_a_profile_the_database_no_longer_holds(
     assert "removed profiles: reader" in printed
 
 
+@pytest.mark.parametrize(
+    ("node", "path"),
+    [
+        (["--group", "root"], "/groups/root/access"),
+        (["--entry", UUID], f"/entries/{UUID}/access"),
+    ],
+    ids=["a group", "an entry"],
+)
+def test_access_prints_a_rule_for_each_profile(
+    gate: FakeGate,
+    kept: Path,
+    capsys: pytest.CaptureFixture[str],
+    node: list[str],
+    path: str,
+) -> None:
+    answering(gate, {"grants": {"reader": ".R...L.P", "nobody": "........"}})
+
+    assert cli.main(["access", *node, "--directory", str(kept)]) == 0
+
+    assert gate.requests == [("GET", path)]
+    assert capsys.readouterr().out.splitlines() == [".R...L.P  reader", "........  nobody"]
+
+
+def test_access_asks_about_one_node_and_needs_to_be_told_which(kept: Path, gate: FakeGate) -> None:
+    for wrong in ([], ["--group", "root", "--entry", UUID]):
+        with pytest.raises(SystemExit) as raised:
+            cli.main(["access", *wrong, "--directory", str(kept)])
+
+        assert raised.value.code == 2
+
+    assert gate.requests == []
+
+
 def test_groups_are_printed_one_to_a_line(
     gate: FakeGate, kept: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -381,8 +414,25 @@ def test_attachments_are_listed_with_their_sizes(
             {"attachments": [{"name": "a.txt\n      2048  invoice.pdf", "size": 22}]},
             "        22  a.txt\\n      2048  invoice.pdf",
         ),
+        (
+            ["whoami"],
+            {
+                "subject": "CN=Real\nForged",
+                "clientKey": "3a" * 32,
+                "admissionKey": "5f" * 32,
+                "expires": "2027-02-03T04:05:06Z",
+                "profiles": ["reader"],
+                "removedProfiles": [],
+            },
+            "subject:          CN=Real\\nForged",
+        ),
+        (
+            ["access", "--group", "root"],
+            {"grants": {"Real\nForged": ".R......"}},
+            ".R......  Real\\nForged",
+        ),
     ],
-    ids=["groups", "entries", "show", "attachments"],
+    ids=["groups", "entries", "show", "attachments", "whoami", "access"],
 )
 def test_a_name_that_would_break_a_line_is_printed_on_the_one_it_belongs_to(
     command: list[str],

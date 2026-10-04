@@ -39,7 +39,7 @@ from .errors import (
     RouteRefused,
     StorageError,
 )
-from .model import EXPIRES, Attachment, Entry, Field, Group, Identity, made
+from .model import EXPIRES, Access, Attachment, Entry, Field, Group, Identity, made
 from .pairing import lifetime_text
 
 STATUS_PATH = "/gate/status"
@@ -583,6 +583,17 @@ class GateClient:
         """Remove a group, which the gate refuses while it still holds anything."""
         self.send("DELETE", f"/groups/{_segment(uuid)}")
 
+    def group_access(self, uuid: str = ROOT) -> Access:
+        """What this client may do at a group, one mask for each profile it holds.
+
+        The route declares `x-kpg-verb: any`, so the gate puts every verb and switch to the rules
+        here for each profile, as each operation's own question would be put, and answers `404`
+        unless some profile is granted some verb, as it answers a group that is not there. So a
+        client learns what it may do at a node it can reach, and nothing about one it cannot.
+        `Access.allows` asks the questions a caller has.
+        """
+        return Access.of(self.get(f"/groups/{_segment(uuid)}/access"))
+
     # Entries
 
     def entries(self, group: str | None = None, include_expired: bool = True) -> list[Entry]:
@@ -659,6 +670,14 @@ class GateClient:
     def delete_entry(self, uuid: str) -> None:
         """Remove an entry, to the recycle bin when the database keeps one."""
         self.send("DELETE", f"/entries/{_segment(uuid)}")
+
+    def entry_access(self, uuid: str) -> Access:
+        """What this client may do at an entry, one mask for each profile it holds.
+
+        The same question as `group_access`, asked of an entry, and the answer covers its fields
+        and attachments too: neither is a node of its own, so a rule about them is the entry's.
+        """
+        return Access.of(self.get(f"/entries/{_segment(uuid)}/access"))
 
     # Fields
 

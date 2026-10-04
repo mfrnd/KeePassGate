@@ -27,6 +27,7 @@ import base64
 from collections.abc import Container, Iterator, Mapping
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
+from types import MappingProxyType
 from typing import Any
 
 from .errors import ProtocolError, Withheld
@@ -626,3 +627,96 @@ class Identity:
             profiles=_names(body, "profiles"),
             removed_profiles=_names(body, "removedProfiles"),
         )
+
+
+#: The notation a rule is shown in on the KPG tab, one letter for each verb and switch in this
+#: order, and a dot for each one a rule does not hold.
+MASK = "CRUSDLAP"
+
+#: The six of them that are verbs, which come first. `A` and `P` are switches, which say how far
+#: the verbs of the same rule reach and grant nothing on their own.
+VERBS = MASK[:6]
+
+#: The two verbs that remove, which no switch qualifies: `strip` and `delete`.
+_REMOVALS = "SD"
+
+
+def _mask(value: object) -> bool:
+    """Whether this is a mask as the gate writes one: each letter in its place, or a dot."""
+    return (
+        isinstance(value, str)
+        and len(value) == len(MASK)
+        and all(said in (letter, ".") for said, letter in zip(value, MASK, strict=True))
+    )
+
+
+@dataclass(frozen=True)
+class Access:
+    """What this client may do at one group or entry, one mask for each profile it holds.
+
+    A mask is the rule as the KPG tab shows one, `CRUSDLAP` with a dot for each verb or switch the
+    profile is not granted there, and eight dots for a profile granted nothing there. The profiles
+    are the ones the rules are asked about for this client, which `Identity.profiles` lists.
+
+    **One mask per profile, because a switch belongs to its rule.** One profile's `R` and another's
+    `P` do not add up to reading a protected value, so a question about a verb and a switch is a
+    question about one mask at a time, which is what `allows` asks.
+    """
+
+    #: Each profile's mask, by the profile's name.
+    grants: Mapping[str, str]
+
+    def allows(self, letters: str) -> bool:
+        """Whether some one profile's mask here holds every one of these letters.
+
+        `"RP"` asks whether this client may read the protected values here, `"CA"` whether it may
+        add an attachment to this entry, and `"C"` whether it may add to this group. Each mask is
+        asked on its own, so a profile granting `R` and another granting `P` answer no: the gate
+        refuses that read, because a switch reaches only the verbs of its own rule.
+
+        **A switch says nothing about a removal**, which shows nobody anything, and a rule that may
+        remove an entry already takes everything in it: the gate asks no switch of `S` or `D`, and
+        reports none beside them alone. So `"SA"`, may this client strip an attachment here, is
+        answered by `S`, and a switch named beside only `S` or `D` is not asked.
+
+        **Removing the node itself is a question this cannot answer alone.** `D` here is the rule
+        at this node saying removals are allowed, and a removal is asked of the group the node
+        would leave as well, so it needs a `D` in that group's answer too.
+
+        The letters are the mask's own, in any order, and at least one of them a verb: a switch on
+        its own grants nothing, so asking about one alone would be answered by nothing the gate
+        does. Anything else is a `ValueError`.
+        """
+        if not letters or any(letter not in MASK for letter in letters):
+            raise ValueError(
+                f"{letters!r} is not a question about a mask: name letters out of {MASK!r}"
+            )
+
+        if not any(letter in VERBS for letter in letters):
+            raise ValueError(
+                f"{letters!r} names switches alone, which grant nothing: name the verb they "
+                f"qualify as well, as in 'RP'"
+            )
+
+        verbs = [letter for letter in letters if letter in VERBS]
+        if all(verb in _REMOVALS for verb in verbs):
+            letters = "".join(verbs)
+
+        return any(all(letter in mask for letter in letters) for mask in self.grants.values())
+
+    @classmethod
+    def of(cls, body: dict[str, Any]) -> Access:
+        """Read one out of an answer, every mask as the gate writes one or none of them."""
+        grants = body.get("grants")
+        if not isinstance(grants, dict) or not all(_mask(mask) for mask in grants.values()):
+            raise ProtocolError("the gate's answer has no grants this client can read")
+
+        return cls(grants=MappingProxyType(dict(grants)))
+
+    def __hash__(self) -> int:
+        """What it holds, as equality compares it."""
+        return hash(frozenset(self.grants.items()))
+
+    def __repr__(self) -> str:
+        """The masks by profile, which say what a client may do and hold no value."""
+        return f"Access(grants={dict(self.grants)!r})"

@@ -251,11 +251,9 @@ half's own tier rather than at the first real pairing.
 
 **Against the document the plugin embeds.** `tests/pykeepassgate/test_reference.py` reads the
 same `openapi.yaml` the plugin ships and holds the client to it: a route the document declares
-with no call here fails, and a call here with no route fails. A route served before the call
-that will cover it is named in `SERVED_AHEAD`, which is the one way past the first, and the set
-goes once those calls are written. TODO(step 22) It needs no server and no vectors, because the
-document is the thing both halves are being compared against. That is what stops "the reference
-client" being a claim rather than a check.
+with no call here fails, and a call here with no route fails. It needs no server and no
+vectors, because the document is the thing both halves are being compared against. That is
+what stops "the reference client" being a claim rather than a check.
 
 **Against the plugin itself, in the end to end tier rather than here.** Every tier above runs
 PyKeePassGate against a stand-in, a vector or the document, so three things are held only by

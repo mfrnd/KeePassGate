@@ -205,6 +205,23 @@ def _parser() -> argparse.ArgumentParser:
     _dialed(who)
     who.set_defaults(run=_whoami)
 
+    access = commands.add_parser(
+        "access",
+        help="ask the gate what this client may do at a group or an entry",
+        description=(
+            "Prints one rule for each profile this client holds, as the KPG tab shows a rule: "
+            "CRUSDLAP, with a dot for each verb or switch the profile is not granted there. A "
+            "switch reaches only the verbs on its own line. A node this client may do nothing at "
+            "is refused as one that is not there."
+        ),
+    )
+    node = access.add_mutually_exclusive_group(required=True)
+    node.add_argument("--group", help="a group identifier, or root")
+    node.add_argument("--entry", help="an entry identifier")
+    _shared(access)
+    _dialed(access)
+    access.set_defaults(run=_access)
+
     groups = commands.add_parser(
         "groups",
         help="list the groups this client may see",
@@ -977,6 +994,27 @@ def _whoami(arguments: argparse.Namespace) -> int:
 def _listed(names: tuple[str, ...]) -> str:
     """Names on one line, separated by commas, or the word for none."""
     return ", ".join(_printable(name) for name in names) or "none"
+
+
+def _access(arguments: argparse.Namespace) -> int:
+    client = api.GateClient.open(
+        arguments.directory,
+        arguments.profile,
+        host=arguments.host,
+        key_password=_key_password(arguments),
+        **_dialing(arguments),
+    )
+    found = (
+        client.entry_access(arguments.entry)
+        if arguments.entry is not None
+        else client.group_access(arguments.group)
+    )
+
+    # The mask first, since every one is eight characters, so the profiles line up after them.
+    for profile, mask in found.grants.items():
+        print(f"{mask}  {_printable(profile)}")
+
+    return 0
 
 
 def _groups(arguments: argparse.Namespace) -> int:

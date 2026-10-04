@@ -18,6 +18,7 @@ from __future__ import annotations
 from importlib.metadata import version
 
 from .api import (
+    Access,
     AuthorityUndecided,
     Credentials,
     DatabaseLocked,
@@ -57,6 +58,7 @@ from .api import (
 __version__ = version("pykeepassgate")
 
 __all__ = [
+    "Access",
     "AuthorityUndecided",
     "Credentials",
     "DatabaseLocked",
