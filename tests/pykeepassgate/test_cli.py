@@ -452,6 +452,7 @@ def test_pairing_from_the_command_line_passes_on_what_it_was_given(
             "port": gate.port,
             "connection_timeout": transport.PAIRING_CONNECTION_TIMEOUT,
             "host": "gate.invalid",
+            "dial": transport.create_connection,
             "max_response_bytes": transport.MAX_RESPONSE_BYTES,
         }
     ]

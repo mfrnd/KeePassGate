@@ -114,7 +114,7 @@ gate, and `api.forget(directory)` removes the files.
 ## What to catch
 
 Every exception says what to do next rather than what went wrong, because that is the part a caller
-has to decide. Everything in the table but its last three rows derives from `GateError`, which
+has to decide. Everything in the table but its last four rows derives from `GateError`, which
 catches whatever this client raises of its own and nothing the standard library raises.
 
 | Exception | What it means, and what to do |
@@ -141,9 +141,10 @@ catches whatever this client raises of its own and nothing the standard library 
 | `NotPaired` | Nothing is stored for a paired client where this looked: nothing has paired under that profile, its identity was given up, or the directory named is not the one the pairing used. Pair, or name the profile or the directory it used. A `StorageError`, so catching that catches this as well. |
 | `StorageError` | From `pair`, before anything is sent: the directory cannot hold credentials, and the message says why. Nothing is spent, so fix that and pair again. Afterwards: what is stored for this client will not read, or could not be written, and the message names the file or the directory to look at. A key stored under a password is one of these when no password was given, or the one given does not open it. |
 | `TransportError` | No whole answer arrived: nothing is listening, the handshake failed, as below, or the connection broke or timed out once the request was on its way. After a read, send it again. After a write, the change may have landed, so look before sending it again: read or list what it changed, where the rules allow that, or ask the operator. |
-| `ValueError` | A setting or an argument that could not work, refused where it is given and before anything is dialed, stored or spent: a port, a timeout, a retry budget, a response cap, a lifetime, a profile's name, an expiry or a key password. The message names it. |
+| `ValueError` | A setting or an argument that could not work, refused where it is given and before anything is dialed, stored or spent: a port, a timeout, a retry budget, a response cap, a lifetime, a profile's name, an expiry, a key password or a `dial`. The message names it. |
 | `AttributeError` | Something this client never read: a listed entry's `username`, `password`, `notes`, `expires` or `custom()`, a listed group's `notes`, a listed field's `value`. Read it first. Never raised for a withheld value. |
 | `KeyError` | A name `entry.fields` or `entry.custom()` does not hold, as from any mapping. |
+| `TypeError` | A `dial` that handed back something other than a connected socket. |
 
 **The `503`s are the only refusals this client will wait out**, and only when a budget says so.
 Each carries a `Retry-After` saying when to come back, and each of the three budgets, one per word,

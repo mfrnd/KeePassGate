@@ -71,7 +71,7 @@ def test_connection_timeout_reaches_the_client_rather_than_being_parsed_and_drop
         **rest: Any,
     ) -> Any:
         asked.append(rest.get("connection_timeout"))
-        return opened(directory, profile, host, **rest)
+        return opened(directory, profile, host=host, **rest)
 
     monkeypatch.setattr(api.GateClient, "open", watching)
 
@@ -481,7 +481,7 @@ def test_the_retry_budgets_reach_the_client_and_nothing_is_passed_for_what_was_n
         **rest: Any,
     ) -> Any:
         asked.append(given(rest))
-        return opened(directory, profile, host, **rest)
+        return opened(directory, profile, host=host, **rest)
 
     monkeypatch.setattr(api.GateClient, "open", watching)
 
@@ -562,7 +562,7 @@ def test_the_response_cap_reaches_the_client_and_nothing_is_passed_when_it_was_n
         **rest: Any,
     ) -> Any:
         asked.append(given(rest))
-        return opened(directory, profile, host, **rest)
+        return opened(directory, profile, host=host, **rest)
 
     monkeypatch.setattr(api.GateClient, "open", watching)
 

@@ -9,11 +9,12 @@ from __future__ import annotations
 
 import datetime as dt
 import math
+import socket
 import ssl
 import time
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import pytest
 from cryptography import x509
@@ -173,6 +174,111 @@ class TestConnecting:
             gate.port, context, "abc.def.kpg", connection_timeout=10.0
         ) as connection:
             assert connection._socket.version() == "TLSv1.3"
+
+
+class TestDialing:
+    """What makes the socket, which is the standard library's unless a caller gives another."""
+
+    def test_the_dial_is_handed_the_host_the_port_and_the_timeout(
+        self, gate: FakeGate, answers: Answers
+    ) -> None:
+        # The host need not be anything this machine resolves: it is the dial's to read. This one
+        # reaches the gate whatever it was asked, which is what a relay or a proxy does.
+        gate.handler = answers(200, {"ok": True})
+        asked: list[tuple[str, int, float]] = []
+
+        def dial(host: str, port: int, timeout: float) -> socket.socket:
+            asked.append((host, port, timeout))
+            return socket.create_connection((transport.LOOPBACK, gate.port), timeout=timeout)
+
+        with transport.connect(
+            gate.port,
+            transport.unpaired_context(),
+            "abc.def.kpg",
+            host="gate.invalid",
+            connection_timeout=7.0,
+            dial=dial,
+        ) as connection:
+            assert connection.send("GET", "/gate/status").status == 200
+
+        assert asked == [("gate.invalid", gate.port, 7.0)]
+
+    def test_a_socket_dialed_blocking_is_held_to_the_timeout_all_the_same(
+        self, gate: FakeGate, answers: Answers
+    ) -> None:
+        # The timeout bounds the handshake and each read, whatever made the socket, so a dial
+        # that hands back a blocking one cannot take that bound away.
+        gate.handler = answers(200, {"ok": True})
+
+        def blocking(host: str, port: int, timeout: float) -> socket.socket:
+            made = socket.create_connection((host, port))
+            made.settimeout(None)
+            return made
+
+        with transport.connect(
+            gate.port, transport.unpaired_context(), "abc.def.kpg", connection_timeout=9.0,
+            dial=blocking,
+        ) as connection:
+            assert connection._socket.gettimeout() == 9.0
+
+    def test_a_dial_that_fails_is_a_transport_error_saying_where(self) -> None:
+        def refusing(host: str, port: int, timeout: float) -> socket.socket:
+            raise ConnectionRefusedError("refused by an invented relay")
+
+        with pytest.raises(TransportError, match=r"gate\.invalid:45678.*invented relay"), (
+            transport.connect(
+                45678, transport.unpaired_context(), "x.y.kpg", host="gate.invalid",
+                dial=refusing,
+            )
+        ):
+            pass  # pragma: no cover, the dial is what raises
+
+    def test_a_dial_that_hands_back_a_closed_socket_is_a_transport_error(self) -> None:
+        # Setting a closed socket's timeout raises a bare `OSError`, measured on Windows as
+        # `WinError 10038`, which is no `GateError`. No handshake was tried, so the message says
+        # what was wrong rather than sending the reader to the gate's certificates.
+        def closed(host: str, port: int, timeout: float) -> socket.socket:
+            made = socket.socket()
+            made.close()
+            return made
+
+        with pytest.raises(
+            TransportError, match="the socket dial handed back could not be used"
+        ), transport.connect(45678, transport.unpaired_context(), "x.y.kpg", dial=closed):
+            pass  # pragma: no cover, the timeout is what raises
+
+    def test_a_dial_that_hands_back_no_socket_is_a_programming_error(self) -> None:
+        def wrong(host: str, port: int, timeout: float) -> socket.socket:
+            return cast(socket.socket, "a socket, in a manner of speaking")
+
+        with pytest.raises(TypeError, match="dial returned an object of type str"), (
+            transport.connect(45678, transport.unpaired_context(), "x.y.kpg", dial=wrong)
+        ):
+            pass  # pragma: no cover, the dial is what raises
+
+    def test_what_a_dial_handed_back_by_mistake_is_closed(self) -> None:
+        # Something socket-like from another library, which owns a descriptor of its own.
+        closed: list[bool] = []
+
+        class Wrapper:
+            def close(self) -> None:
+                closed.append(True)
+
+        def wrong(host: str, port: int, timeout: float) -> socket.socket:
+            return cast(socket.socket, Wrapper())
+
+        with pytest.raises(TypeError, match="object of type Wrapper"), transport.connect(
+            45678, transport.unpaired_context(), "x.y.kpg", dial=wrong
+        ):
+            pass  # pragma: no cover, the dial is what raises
+
+        assert closed == [True]
+
+    def test_a_dial_that_is_not_callable_is_refused_before_anything(self) -> None:
+        with pytest.raises(ValueError, match="dial is a callable"):
+            transport.dial_limit(cast(Any, "127.0.0.1"))
+
+        assert transport.dial_limit(transport.create_connection) is transport.create_connection
 
 
 class TestPinning:

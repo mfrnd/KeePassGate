@@ -6,9 +6,10 @@ import dataclasses
 import json
 import math
 import re
+import socket
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import pytest
 
@@ -272,6 +273,17 @@ def test_a_revoked_client_and_one_that_never_paired_look_the_same(
         paired.status()
 
 
+def test_every_setting_is_passed_by_name(tmp_path: Path, bundle: dict[str, Any]) -> None:
+    # A setting added in the middle once changed what the fourth argument meant, with nothing to
+    # say so; keyword only, a setting added later cannot.
+    stored = credentials_module.save(tmp_path / "kept", 45678, bundle)
+
+    with pytest.raises(TypeError):
+        cast(Any, GateClient)(stored, 10.0)
+    with pytest.raises(TypeError):
+        cast(Any, GateClient.open)(tmp_path / "kept", "default", "127.0.0.1")
+
+
 def test_a_certificate_that_has_expired_is_named_as_expired_before_anything_is_dialed(
     tmp_path: Path, bundle: dict[str, Any], gate: FakeGate
 ) -> None:
@@ -415,6 +427,58 @@ def test_a_client_that_dials_nowhere_says_where_it_tried(
 
     with pytest.raises(TransportError, match=re.escape("127.0.0.2")):
         client.status()
+
+
+class Dialing:
+    """A dial that reaches this gate whatever host it is asked for, as a relay would."""
+
+    def __init__(self, gate: FakeGate) -> None:
+        self.gate = gate
+        self.asked: list[tuple[str, int, float]] = []
+
+    def __call__(self, host: str, port: int, timeout: float) -> socket.socket:
+        self.asked.append((host, port, timeout))
+        return socket.create_connection((transport.LOOPBACK, self.gate.port), timeout=timeout)
+
+
+def test_a_client_connects_through_the_dial_it_was_given(
+    tmp_path: Path, bundle: dict[str, Any], gate: FakeGate
+) -> None:
+    # The host is the dial's to read, so it need not be anything this machine resolves.
+    stored = credentials_module.save(tmp_path / "kept", gate.port, bundle)
+    gate.handler = lambda path, body, client: (200, "{}")
+    dialing = Dialing(gate)
+
+    client = GateClient(stored, connection_timeout=10.0, host="gate.invalid", dial=dialing)
+    client.get("/gate/status")
+    GateClient.open(stored.directory, host="gate.invalid", dial=dialing).get("/gate/status")
+
+    assert dialing.asked == [("gate.invalid", gate.port, 10.0), ("gate.invalid", gate.port, 120.0)]
+    assert gate.requests == [("GET", "/gate/status")] * 2
+
+
+def test_a_client_dials_with_the_standard_library_unless_told_otherwise(
+    tmp_path: Path, bundle: dict[str, Any], gate: FakeGate
+) -> None:
+    stored = credentials_module.save(tmp_path / "kept", gate.port, bundle)
+
+    assert GateClient(stored)._dial is transport.create_connection
+    assert transport.create_connection.__module__ == transport.__name__
+
+
+def test_a_dial_that_could_not_be_called_is_refused_before_anything_is_dialed(
+    tmp_path: Path, bundle: dict[str, Any], gate: FakeGate
+) -> None:
+    stored = credentials_module.save(tmp_path / "kept", gate.port, bundle)
+    given = cast(Any, ("127.0.0.1", gate.port))
+
+    with pytest.raises(ValueError, match="dial"):
+        GateClient(stored, dial=given)
+
+    with pytest.raises(ValueError, match="dial"):
+        GateClient.open(stored.directory, dial=given)
+
+    assert gate.names == []
 
 
 def test_a_client_opened_from_disk_takes_a_host_too(

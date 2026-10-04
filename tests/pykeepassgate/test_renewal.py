@@ -10,6 +10,7 @@ from __future__ import annotations
 import base64
 import json
 import re
+import socket
 import time
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -631,6 +632,25 @@ def test_a_certificate_that_has_expired_is_not_offered_for_renewal(
 
     assert gate.requests == []
     assert not (tmp_path / "kept.renewing").exists()
+
+
+def test_a_renewal_dials_the_way_its_client_does(
+    tmp_path: Path, gate: FakeGate, bundle: dict[str, Any], renewing: Gate
+) -> None:
+    # Both requests: the renewal, and giving the old certificate up, which is made by a client
+    # built for the old identity and has to reach the same KeePass the same way.
+    asked: list[str] = []
+
+    def dial(host: str, port: int, timeout: float) -> socket.socket:
+        asked.append(host)
+        return socket.create_connection(("127.0.0.1", gate.port), timeout=timeout)
+
+    stored = credentials_module.save(tmp_path / "kept", gate.port, bundle)
+
+    GateClient(stored, connection_timeout=10.0, host="relay", dial=dial).renew()
+
+    assert asked == ["relay", "relay"]
+    assert [path for path, _, _ in renewing.seen] == ["/gate/renew", "/gate/certificate"]
 
 
 @pytest.mark.parametrize(

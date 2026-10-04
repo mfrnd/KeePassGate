@@ -276,6 +276,29 @@ def now() -> datetime:
     return datetime.now(UTC)
 
 
+#: What makes the connection a request goes over: given the host, the port and the timeout, a
+#: connected socket, over which TLS and everything else is layered unchanged. A program that
+#: reaches a gate through something of its own gives one: a relay bridging a socket pair to its
+#: standard input and output, a socket the process that started it handed over, a proxy.
+Dial = Callable[[str, int, float], socket.socket]
+
+
+def create_connection(host: str, port: int, timeout: float) -> socket.socket:
+    """The `dial` a client has unless it is given another: TCP, as `socket` connects."""
+    return socket.create_connection((host, port), timeout=timeout)
+
+
+def dial_limit(dial: Dial) -> Dial:
+    """Refuse a `dial` that could not be called, where it is given, and hand back one that could."""
+    if not callable(dial):
+        raise ValueError(
+            "dial is a callable taking the host, the port and the timeout and returning a "
+            f"connected socket, not an object of type {type(dial).__name__}"
+        )
+
+    return dial
+
+
 class Budget:
     """What one kind of `503` is worth waiting out, and what is left of it.
 
@@ -701,16 +724,48 @@ def connect(
     host: str = LOOPBACK,
     connection_timeout: float = DEFAULT_CONNECTION_TIMEOUT,
     max_response_bytes: int = MAX_RESPONSE_BYTES,
+    dial: Dial = create_connection,
 ) -> Iterator[Connection]:
-    """Open one connection, hand it over, and close it however this ends."""
+    """Open one connection, hand it over, and close it however this ends.
+
+    The socket is whatever `dial` hands back for the host and the port, and every wait on it is
+    then bounded by `connection_timeout` whatever made it, so a `dial` that returns a blocking
+    socket cannot take away the bound on the handshake and the reads.
+    """
     response_limit(max_response_bytes)
     port_number(port)
     connection_limit(connection_timeout)
+    dial_limit(dial)
 
     try:
-        raw = socket.create_connection((host, port), timeout=connection_timeout)
+        # Read as anything at all, because a caller's `dial` can hand back anything at all.
+        made: object = dial(host, port, connection_timeout)
     except OSError as error:
         raise TransportError(f"nothing is listening on {host}:{port}: {error}") from error
+
+    if not isinstance(made, socket.socket):
+        # Closed before it goes, as every failure here closes what it holds: what a `dial` hands
+        # back by mistake is likely a wrapper from some other library that owns a descriptor.
+        # Anything its own `close` raises is that library's, and the mistake reported is this.
+        close = getattr(made, "close", None)
+        if callable(close):
+            with contextlib.suppress(Exception):
+                close()
+
+        raise TypeError(
+            f"dial returned an object of type {type(made).__name__} rather than a connected "
+            "socket"
+        )
+
+    raw = made
+
+    try:
+        # A refusal of its own, because a socket a caller's `dial` handed back can already be
+        # closed, and setting its timeout then raises a bare `OSError` before any handshake.
+        raw.settimeout(connection_timeout)
+    except OSError as error:
+        raw.close()
+        raise TransportError(f"the socket dial handed back could not be used: {error}") from error
 
     try:
         wrapped = context.wrap_socket(raw, server_hostname=server_name)

@@ -60,9 +60,12 @@ from .transport import (
     LOOPBACK,
     MAX_RESPONSE_BYTES,
     PAIRING_CONNECTION_TIMEOUT,
+    Dial,
     KeyPassword,
     Retry,
     connection_limit,
+    create_connection,
+    dial_limit,
     key_password_limit,
     key_secret,
     port_number,
@@ -85,6 +88,7 @@ __all__ = [
     "AuthorityUndecided",
     "Credentials",
     "DatabaseLocked",
+    "Dial",
     "Entry",
     "Exchange",
     "Field",
@@ -144,6 +148,7 @@ def pair(
     # anyway, and only the answer is lost.
     connection_timeout: float = PAIRING_CONNECTION_TIMEOUT,
     host: str = LOOPBACK,
+    dial: Dial = create_connection,
     retry_busy_timeout: float | None = DEFAULT_RETRY_BUSY_TIMEOUT,
     retry_locked_timeout: float | None = DEFAULT_RETRY_LOCKED_TIMEOUT,
     retry_undecided_timeout: float | None = DEFAULT_RETRY_UNDECIDED_TIMEOUT,
@@ -188,6 +193,8 @@ def pair(
     that cannot be had after the invitation is spent loses an identity nobody can ask for again.
     What it protects is a copy of the directory taken elsewhere, a backup or a disk image, and
     nothing against a process running as the same user.
+
+    `dial` makes each connection, as on `GateClient`, both halves of every exchange alike.
     """
     # Refused before `prepare`, which opens files, and before anything is asked of the gate: a
     # setting that could not work, a profile that is not one directory's name, each budget,
@@ -195,6 +202,7 @@ def pair(
     port_number(port)
     connection_limit(connection_timeout)
     response_limit(max_response_bytes)
+    dial_limit(dial)
     if lifetime is not None:
         lifetime_text(lifetime)
     where = directory or default_directory(profile)
@@ -223,6 +231,7 @@ def pair(
                 invitation,
                 connection_timeout=connection_timeout,
                 host=host,
+                dial=dial,
                 max_response_bytes=max_response_bytes,
             )
 

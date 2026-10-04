@@ -110,8 +110,10 @@ class GateClient:
     def __init__(
         self,
         credentials: credentials_module.Credentials,
+        *,
         connection_timeout: float = transport.DEFAULT_CONNECTION_TIMEOUT,
         host: str = transport.LOOPBACK,
+        dial: transport.Dial = transport.create_connection,
         retry_busy_timeout: float | None = transport.DEFAULT_RETRY_BUSY_TIMEOUT,
         retry_locked_timeout: float | None = transport.DEFAULT_RETRY_LOCKED_TIMEOUT,
         retry_undecided_timeout: float | None = transport.DEFAULT_RETRY_UNDECIDED_TIMEOUT,
@@ -155,6 +157,12 @@ class GateClient:
         the gate's key and is what the gate resolves this client by; a tunnel changes the address
         the bytes travel to and changes nothing the gate sees.
 
+        `dial` is what makes the connection for the host and the port: a callable taking them and
+        the timeout and returning a connected socket, `socket.create_connection` unless given.
+        TLS and everything above it is layered over what it returns, and each wait on that socket
+        is bounded by `connection_timeout` whatever made it. A renewal dials with it as well, both
+        for the renewal and for giving the old certificate up.
+
         **A renewal waits at least `transport.PAIRING_CONNECTION_TIMEOUT`** for its answer,
         whatever `connection_timeout` says, because it waits on a person as a pairing does and the
         gate gives it the same six minutes: a client that hung up sooner would leave the operator's
@@ -166,6 +174,7 @@ class GateClient:
         self._credentials = credentials
         self._connection_timeout = transport.connection_limit(connection_timeout)
         self._host = host
+        self._dial = transport.dial_limit(dial)
         self._retry_busy_timeout = transport.retry_limit("retry_busy_timeout", retry_busy_timeout)
         self._retry_locked_timeout = transport.retry_limit(
             "retry_locked_timeout", retry_locked_timeout
@@ -192,7 +201,9 @@ class GateClient:
         cls,
         directory: Path | None = None,
         profile: str = "default",
+        *,
         host: str = transport.LOOPBACK,
+        dial: transport.Dial = transport.create_connection,
         connection_timeout: float = transport.DEFAULT_CONNECTION_TIMEOUT,
         retry_busy_timeout: float | None = transport.DEFAULT_RETRY_BUSY_TIMEOUT,
         retry_locked_timeout: float | None = transport.DEFAULT_RETRY_LOCKED_TIMEOUT,
@@ -213,6 +224,7 @@ class GateClient:
             credentials_module.load(where),
             connection_timeout=connection_timeout,
             host=host,
+            dial=dial,
             retry_busy_timeout=retry_busy_timeout,
             retry_locked_timeout=retry_locked_timeout,
             retry_undecided_timeout=retry_undecided_timeout,
@@ -471,6 +483,7 @@ class GateClient:
                 old,
                 connection_timeout=self._connection_timeout,
                 host=self._host,
+                dial=self._dial,
                 retry_busy_timeout=self._retry_busy_timeout,
                 retry_locked_timeout=self._retry_locked_timeout,
                 retry_undecided_timeout=self._retry_undecided_timeout,
@@ -891,6 +904,7 @@ class GateClient:
                 self._connection_timeout if connection_timeout is None else connection_timeout
             ),
             max_response_bytes=self._max_response_bytes,
+            dial=self._dial,
         ) as connection:
             return connection.send(method, path, payload)
 

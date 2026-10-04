@@ -765,7 +765,7 @@ def _status(arguments: argparse.Namespace) -> int:
     client = api.GateClient.open(
         arguments.directory,
         arguments.profile,
-        arguments.host,
+        host=arguments.host,
         key_password=_key_password(arguments),
         **_dialing(arguments),
     )
@@ -779,7 +779,7 @@ def _renew(arguments: argparse.Namespace) -> int:
     client = api.GateClient.open(
         where,
         arguments.profile,
-        arguments.host,
+        host=arguments.host,
         key_password=_key_password(arguments),
         **_dialing(arguments),
     )
@@ -840,7 +840,7 @@ def _revoke(arguments: argparse.Namespace) -> int:
     client = api.GateClient.open(
         where,
         arguments.profile,
-        arguments.host,
+        host=arguments.host,
         key_password=_key_password(arguments),
         **_dialing(arguments),
     )
@@ -874,7 +874,7 @@ def _groups(arguments: argparse.Namespace) -> int:
     client = api.GateClient.open(
         arguments.directory,
         arguments.profile,
-        arguments.host,
+        host=arguments.host,
         key_password=_key_password(arguments),
         **_dialing(arguments),
     )
@@ -890,7 +890,7 @@ def _entries(arguments: argparse.Namespace) -> int:
     client = api.GateClient.open(
         arguments.directory,
         arguments.profile,
-        arguments.host,
+        host=arguments.host,
         key_password=_key_password(arguments),
         **_dialing(arguments),
     )
@@ -908,7 +908,7 @@ def _show(arguments: argparse.Namespace) -> int:
     client = api.GateClient.open(
         arguments.directory,
         arguments.profile,
-        arguments.host,
+        host=arguments.host,
         key_password=_key_password(arguments),
         **_dialing(arguments),
     )
@@ -940,7 +940,7 @@ def _add(arguments: argparse.Namespace) -> int:
     client = api.GateClient.open(
         arguments.directory,
         arguments.profile,
-        arguments.host,
+        host=arguments.host,
         key_password=_key_password(arguments),
         **_dialing(arguments),
     )
@@ -969,7 +969,7 @@ def _remove(arguments: argparse.Namespace) -> int:
     client = api.GateClient.open(
         arguments.directory,
         arguments.profile,
-        arguments.host,
+        host=arguments.host,
         key_password=_key_password(arguments),
         **_dialing(arguments),
     )
@@ -982,7 +982,7 @@ def _attachments(arguments: argparse.Namespace) -> int:
     client = api.GateClient.open(
         arguments.directory,
         arguments.profile,
-        arguments.host,
+        host=arguments.host,
         key_password=_key_password(arguments),
         **_dialing(arguments),
     )
@@ -997,7 +997,7 @@ def _fetch(arguments: argparse.Namespace) -> int:
     client = api.GateClient.open(
         arguments.directory,
         arguments.profile,
-        arguments.host,
+        host=arguments.host,
         key_password=_key_password(arguments),
         **_dialing(arguments),
     )

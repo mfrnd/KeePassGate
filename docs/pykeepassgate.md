@@ -170,7 +170,10 @@ plugin was built from, or empty for a build that carries none. Two machines runn
 version can be running different builds of it, and the revision says which.
 
 `GateClient.open()` reads the credentials pairing stored. Pass `profile=` where more than one
-identity is kept on the machine.
+identity is kept on the machine. **Every setting is passed by name**: after the identity, which is
+the credentials for `GateClient`, the directory and the profile for `GateClient.open`, the port and
+the invitation for `Pairing`, and those and the name for `api.pair`, everything is keyword only, so
+a setting added later never changes what an argument already written means.
 
 ## Give up an identity
 
@@ -302,6 +305,26 @@ port. Pass `host=` to `api.pair` too if the pairing itself is going down the tun
 **It is not stored with the identity.** The credentials say which KeePass this client is, and where
 that KeePass is reachable from is a fact about the machine calling. Move the client and
 the identity still works; only the host changes.
+
+**A program can make the connection itself.** `dial=`, on `GateClient`, `GateClient.open`,
+`Pairing` and `api.pair`, is a callable taking the host, the port and the timeout and returning a
+connected socket, and it is `socket.create_connection` unless one is given. A renewal dials with
+the client's own, for the renewal and for giving the old certificate up. TLS, the rotating name and
+everything else are layered over whatever it returns, unchanged, and each wait on that socket is
+bounded by `connection_timeout` as on any other. It is how a program reaches a gate through
+something of its own: a relay that bridges a socket pair to its standard input and output, a socket
+the process that started it handed over, or a proxy that answers with a connected one. The host is
+the dial's to read, so it can name anything the dial understands. The command line has no such
+option, because a callable is not something an argument can carry.
+
+```python
+import socket
+
+def dial(host: str, port: int, timeout: float) -> socket.socket:
+    ...     # connect however this program reaches the machine KeePass runs on
+
+client = GateClient.open(dial=dial)
+```
 
 ## Read
 
@@ -464,9 +487,9 @@ pykeepassgate fetch <uuid> key.pem --to ./key.pem
 ## What to catch
 
 Every exception says what to do next rather than what went wrong, because that is the part a caller
-has to decide. Everything in the table but its last three rows derives from `GateError`, so
+has to decide. Everything in the table but its last four rows derives from `GateError`, so
 `except GateError` catches whatever this client raises of its own and nothing the standard library
-raises. The last three are the standard library's, each for a mistake in the calling program, and
+raises. The last four are the standard library's, each for a mistake in the calling program, and
 none of them answers anything sent: each is raised before a request is made, or by reading what
 the client already holds.
 
@@ -511,9 +534,10 @@ except api.RouteRefused:
 | `NotPaired` | Nothing is stored for a paired client where this looked: nothing has paired under that profile, its identity was given up, or the directory named is not the one the pairing used. Pair, or name the profile or the directory it used. A `StorageError`, so catching that catches this as well. |
 | `StorageError` | From `pair`, before anything is sent: the directory cannot hold credentials, and the message says why. Nothing is spent, so fix that and pair again. Afterwards: what is stored for this client will not read, or could not be written, and the message names the file or the directory to look at. A key stored under a password is one of these when no password was given, or the one given does not open it, and the message names `identity.pem`. |
 | `TransportError` | No whole answer arrived: nothing is listening, the handshake failed, which a paragraph below explains, or the connection broke or timed out once the request was on its way. After a read, send it again. After a write, the change may have landed, so look before sending it again: read or list what it changed, where the rules allow that, or ask the operator. |
-| `ValueError` | A setting or an argument that could not work, refused where it is given and before anything is dialed, stored or spent: a port, a timeout, a retry budget, a response cap, a lifetime, a profile's name, an expiry or a key password. The message names it, and never repeats a password. Correct it in the calling program. |
+| `ValueError` | A setting or an argument that could not work, refused where it is given and before anything is dialed, stored or spent: a port, a timeout, a retry budget, a response cap, a lifetime, a profile's name, an expiry, a key password or a `dial`. The message names it, and never repeats a password. Correct it in the calling program. |
 | `AttributeError` | Something this client never read, which is absence and not emptiness: a listed entry's `username`, `password`, `notes`, `expires` or `custom()`, a listed group's `notes`, a listed field's `value`, or the `expires` of a read that said nothing about it. Read the node first. A withheld value is never this, so `getattr` with a default and `hasattr` cannot turn one into a default. |
 | `KeyError` | A name `entry.fields` or `entry.custom()` does not hold, as from any mapping. `get` answers its default for that, and for nothing else. |
+| `TypeError` | A `dial` that handed back something other than a connected socket, which is a mistake in the program's own `dial`; what it handed back is closed first, if it can be. A socket it handed back already closed is a `TransportError` saying the socket could not be used, rather than that a handshake failed. |
 
 **The ones that are worth waiting out say so on the wire.** `GateUnavailable` and the three beneath
 it are the gate answering `503`, and every `503` it sends carries `Retry-After: 2`. The same number
