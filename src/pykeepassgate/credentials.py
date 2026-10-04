@@ -179,12 +179,42 @@ class Credentials:
         What a client asks before refusing to dial, with the leeway a clock running ahead of the
         gate's is owed; False for an `expires` this cannot read, as `expired` is.
         """
+        ends = self.expiry
+        return ends is not None and ends + margin < datetime.now(UTC)
+
+    @property
+    def expiry(self) -> datetime | None:
+        """`expires` as a moment in UTC, or `None` where it is not one this client can read.
+
+        What the gate writes is RFC 3339 in UTC to the second, so anything else is a `client.json`
+        somebody edited or something older wrote.
+        """
         try:
-            ends = datetime.strptime(self.expires, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=UTC)
+            return datetime.strptime(self.expires, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=UTC)
         except ValueError:
+            return None
+
+    @property
+    def key_encrypted(self) -> bool:
+        """Whether the key in `identity.pem` is stored under a password.
+
+        Read off the label the key was written under, so nothing is decrypted and nobody is asked
+        for anything to say so: `save` writes a key it was given a password for as an `ENCRYPTED
+        PRIVATE KEY`, and any other as a `PRIVATE KEY`. A file holding neither holds no key this
+        client can use, which is a `StorageError` rather than an answer either way.
+        """
+        try:
+            held = self.identity.read_bytes()
+        except OSError as error:
+            raise StorageError(f"{self.identity} will not read: {error}") from error
+
+        if b"-----BEGIN ENCRYPTED PRIVATE KEY-----" in held:
+            return True
+
+        if b"-----BEGIN PRIVATE KEY-----" in held:
             return False
 
-        return ends + margin < datetime.now(UTC)
+        raise StorageError(f"{self.identity} holds no key this client can read")
 
     @property
     def admission_key(self) -> str:

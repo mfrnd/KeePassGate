@@ -121,14 +121,15 @@ and are never waived.
 **The key can be kept under a password.** `pair --key-password` asks for one at a terminal, twice
 and without echo, before anything is sent, and stores the client's key encrypted under it. Every
 command that uses the key afterwards asks for it at a terminal, once, and only when the key is
-encrypted. **The command line has no other way to take it, by design**: never as an argument,
-which the process list shows, and not from standard input either, so with no terminal
-`pair --key-password` is refused, exit 2 with nothing spent, and a command that needs the password
-fails with `StorageError`, exit 1. Standard input from the null device is no terminal, on Windows
-as well, where it claims to be one: a command run with its input from `NUL` is refused at once
-rather than left waiting on a console nobody is at. A program passes `key_password=` instead, to
-`api.pair`, `GateClient` and `GateClient.open`: the password as text or bytes, or a callable
-returning it, which is asked once, and only when the key turns out to be encrypted.
+encrypted, which `whoami` says without asking. **The command line has no other way to take it,
+by design**: never as an argument, which the process list shows, and not from standard input
+either, so with no terminal `pair --key-password` is refused, exit 2 with nothing spent, and a
+command that needs the password fails with `StorageError`, exit 1. Standard input from the null
+device is no terminal, on Windows as well, where it claims to be one: a command run with its input
+from `NUL` is refused at once rather than left waiting on a console nobody is at. A program passes
+`key_password=` instead, to `api.pair`, `GateClient` and `GateClient.open`: the password as text
+or bytes, or a callable returning it, which is asked once, and only when the key turns out to be
+encrypted.
 
 ```python
 def key_password() -> str:
@@ -161,8 +162,11 @@ pykeepassgate whoami
 
 `status` connects and asks. `whoami` says what this client is without connecting, which is what to
 run when nothing is answering, to find out which side the problem is on: the subject, the
-admission key, the database, the profiles approved at pairing, when the certificate expires, the
-port and where the identity is stored.
+admission key, the database, the profiles the operator approved at pairing or at the last renewal,
+when the certificate expires and whether it has, or that the stored moment is not one it can read,
+which leaves the gate to decide, whether the key is encrypted, the port, and where the identity is
+stored. The two in the middle are what stop every other command before it dials, and `whoami` reads
+both off the stored files without asking for a password.
 
 ```python
 from pykeepassgate import GateClient

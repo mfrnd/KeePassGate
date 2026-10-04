@@ -72,6 +72,39 @@ def test_whether_the_certificate_has_expired_is_read_off_when_it_does(
     assert stored.expired is expired
 
 
+def test_whether_the_key_is_under_a_password_is_read_off_its_label(
+    tmp_path: Path, bundle: dict[str, Any]
+) -> None:
+    plain = credentials.save(tmp_path / "plain", 45678, bundle)
+    kept = credentials.save(tmp_path / "kept", 45678, bundle, key_password="not-a-real-one")
+
+    assert plain.key_encrypted is False
+    assert kept.key_encrypted is True
+
+
+def test_an_identity_holding_no_key_is_neither_encrypted_nor_not(
+    tmp_path: Path, bundle: dict[str, Any]
+) -> None:
+    # A file cut short after its certificate holds no key at all, and saying "not encrypted" of
+    # it would send whoever reads that looking in the wrong place.
+    stored = credentials.save(tmp_path / "kept", 45678, bundle)
+    held = stored.identity.read_text("utf-8")
+    stored.identity.write_text(held[: held.index("-----BEGIN PRIVATE KEY-----")], "utf-8")
+
+    with pytest.raises(StorageError, match=credentials.IDENTITY_FILE):
+        _ = stored.key_encrypted
+
+
+def test_an_identity_that_has_gone_is_said_to_have_gone(
+    tmp_path: Path, bundle: dict[str, Any]
+) -> None:
+    stored = credentials.save(tmp_path / "kept", 45678, bundle)
+    stored.identity.unlink()
+
+    with pytest.raises(StorageError, match="will not read"):
+        _ = stored.key_encrypted
+
+
 def test_the_admission_key_is_the_digest_the_plugin_keys_the_record_on(
     tmp_path: Path, bundle: dict[str, Any], client_certificate: Issued
 ) -> None:

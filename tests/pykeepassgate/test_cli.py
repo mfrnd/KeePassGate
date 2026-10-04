@@ -88,6 +88,58 @@ def test_whoami_names_the_key_the_audit_names_this_client_by(
     assert f"admission key: {admission_key(client_certificate)}" in lines
 
 
+@pytest.mark.parametrize(
+    ("expires", "line"),
+    [
+        ("2001-02-03T04:05:06Z", "expires:       2001-02-03T04:05:06Z (expired)"),
+        ("2126-08-15T09:00:00Z", "expires:       2126-08-15T09:00:00Z"),
+        (
+            "whenever",
+            "expires:       whenever (not a moment this client can read, so the gate decides)",
+        ),
+    ],
+    ids=["passed", "to come", "unreadable"],
+)
+def test_whoami_says_whether_the_certificate_has_expired(
+    tmp_path: Path,
+    bundle: dict[str, Any],
+    capsys: pytest.CaptureFixture[str],
+    expires: str,
+    line: str,
+) -> None:
+    # Every command that dials refuses an expired certificate before dialing, so this is where it
+    # is seen without one being tried.
+    credentials_module.save(tmp_path / "kept", 45678, {**bundle, "expires": expires})
+
+    assert cli.main(["whoami", "--directory", str(tmp_path / "kept")]) == 0
+    assert line in capsys.readouterr().out.splitlines()
+
+
+@pytest.mark.parametrize(
+    ("password", "line"),
+    [(None, "key:           not encrypted"), ("not-a-real-one", "key:           encrypted")],
+    ids=["none", "a password"],
+)
+def test_whoami_says_whether_the_key_is_under_a_password_and_asks_for_none(
+    tmp_path: Path,
+    bundle: dict[str, Any],
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    password: str | None,
+    line: str,
+) -> None:
+    # Read off the label the key was written under, so nobody is asked anything: a command that
+    # loads the key would ask at a terminal, and with none would fail.
+    def never(prompt: str = "Password: ", stream: object = None) -> str:
+        raise AssertionError("whoami asked for a password")
+
+    monkeypatch.setattr("getpass.getpass", never)
+    credentials_module.save(tmp_path / "kept", 45678, bundle, key_password=password)
+
+    assert cli.main(["whoami", "--directory", str(tmp_path / "kept")]) == 0
+    assert line in capsys.readouterr().out.splitlines()
+
+
 def _shows_no_credential(printed: str, bundle: dict[str, Any], *also: str) -> None:
     """Whether output keeps the promise the module docstring makes: no credential, ever.
 

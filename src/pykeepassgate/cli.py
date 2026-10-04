@@ -914,11 +914,21 @@ def _revoke(arguments: argparse.Namespace) -> int:
 def _whoami(arguments: argparse.Namespace) -> int:
     where = arguments.directory or api.default_directory(arguments.profile)
     credentials = api.load(where)
+    # The two things that stop every other command before it dials are said here as well, since
+    # this is what is run to find out which side a problem is on: a certificate that has expired,
+    # which no request can use, and a key under a password, which is asked for at a terminal.
+    expired = " (expired)" if credentials.expired else ""
+    if credentials.expiry is None:
+        # Said rather than shown as though it were an answer: every other command leaves this to
+        # the gate, which judges by the certificate itself.
+        expired = " (not a moment this client can read, so the gate decides)"
+    key = "encrypted" if credentials.key_encrypted else "not encrypted"
     print(f"subject:       {credentials.subject}")
     print(f"admission key: {credentials.admission_key}")
     print(f"database:      {credentials.database}")
     print(f"profiles:      {', '.join(credentials.profiles) or 'none'}")
-    print(f"expires:       {credentials.expires}")
+    print(f"expires:       {credentials.expires}{expired}")
+    print(f"key:           {key}")
     print(f"port:          {credentials.port}")
     print(f"stored:        {credentials.directory}")
     return 0
