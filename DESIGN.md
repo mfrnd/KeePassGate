@@ -1511,6 +1511,9 @@ Each step is refusable, and each ends with something that runs.
     client's own, once it is in the database. An approval names only a key that was admitted, and
     nothing is written yet for an authority recreated or for rules and profiles changed, which wait
     for audit levels.
+24. **The reference resolver**: the reference client follows field references as KeePass does, under
+    the caller's own rules, with KeePass's own compiler as the test of it, and `show --resolve`
+    prints an entry's strings that way.
 
 Steps 5 to 8 are the ones that prove the design. Step 5 is deliberately early, because the
 `CustomData` dialog hazard is the thing most likely to invalidate the storage decision, and finding
