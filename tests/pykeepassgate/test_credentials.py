@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+import hashlib
 import importlib
 import json
 import os
@@ -17,6 +18,7 @@ from cryptography.hazmat.primitives.serialization import Encoding
 
 from pykeepassgate import credentials
 from pykeepassgate.errors import NotPaired, ProtocolError, StorageError
+from pykeepassgate.testing import Issued
 
 
 def test_what_pairing_hands_over_is_written_where_ssl_can_read_it(
@@ -68,6 +70,40 @@ def test_whether_the_certificate_has_expired_is_read_off_when_it_does(
     stored = credentials.save(tmp_path / "kept", 45678, {**bundle, "expires": expires})
 
     assert stored.expired is expired
+
+
+def test_the_admission_key_is_the_digest_the_plugin_keys_the_record_on(
+    tmp_path: Path, bundle: dict[str, Any], client_certificate: Issued
+) -> None:
+    # `CertificateDigest` on the plugin's side: SHA-256 over the certificate's DER, sixty-four
+    # characters of lower case hex, which is what every line of the audit file names a client by.
+    stored = credentials.save(tmp_path / "kept", 45678, bundle)
+    der = client_certificate.certificate.public_bytes(Encoding.DER)
+
+    assert stored.admission_key == hashlib.sha256(der).hexdigest()
+    assert stored.admission_key == stored.admission_key.lower()
+    assert len(stored.admission_key) == 64
+
+
+def test_the_admission_key_of_a_key_kept_under_a_password_needs_no_password(
+    tmp_path: Path, bundle: dict[str, Any], client_certificate: Issued
+) -> None:
+    # It is read off the certificate, which is never encrypted, so `whoami` can say it without
+    # asking anybody for anything.
+    stored = credentials.save(tmp_path / "kept", 45678, bundle, key_password="not-a-real-one")
+    der = client_certificate.certificate.public_bytes(Encoding.DER)
+
+    assert stored.admission_key == hashlib.sha256(der).hexdigest()
+
+
+def test_an_identity_with_no_certificate_in_it_has_no_admission_key(
+    tmp_path: Path, bundle: dict[str, Any]
+) -> None:
+    stored = credentials.save(tmp_path / "kept", 45678, bundle)
+    stored.identity.write_text("not a certificate", "utf-8")
+
+    with pytest.raises(StorageError, match=credentials.IDENTITY_FILE):
+        _ = stored.admission_key
 
 
 def test_what_was_saved_is_what_is_loaded(tmp_path: Path, bundle: dict[str, Any]) -> None:

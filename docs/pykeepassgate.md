@@ -68,6 +68,12 @@ print(credentials.profiles)
 and `credentials.profiles` is what they approved. A client that assumes it got what it asked for
 discovers otherwise as a refusal on some later request, a long way from the cause.
 
+**`pair` prints the admission key as well**: SHA-256 over the certificate it was issued, in hex,
+which is what the operator's [audit file](audit.md) names this client by. It is how the person
+running the client and the person at KeePass name the same program. `whoami` prints it again later,
+`renew` prints the new certificate's and `revoke` the one it gave up, and from a program it is
+`credentials.admission_key`, read off the stored certificate.
+
 **Ask for a shorter certificate when a year is too long.** `--lifetime 30` on the command line, or
 `lifetime=timedelta(days=30)` from a program, asks for one that lasts thirty days. Anything from a
 day to a year will do, in whole days, and anything else is refused before anything is sent. The
@@ -154,7 +160,9 @@ pykeepassgate whoami
 ```
 
 `status` connects and asks. `whoami` says what this client is without connecting, which is what to
-run when nothing is answering, to find out which side the problem is on.
+run when nothing is answering, to find out which side the problem is on: the subject, the
+admission key, the database, the profiles approved at pairing, when the certificate expires, the
+port and where the identity is stored.
 
 ```python
 from pykeepassgate import GateClient

@@ -799,6 +799,9 @@ def _pair(arguments: argparse.Namespace) -> int:
     )
 
     print(f"paired as {credentials.subject} with database {credentials.database}")
+    # What the audit file names this client by on every line from now on, so the two ends can
+    # name the same client.
+    print(f"admission key: {credentials.admission_key}")
     print(f"profiles approved: {', '.join(credentials.profiles) or 'none'}")
     # What the operator picked, which is not always the lifetime that was asked for.
     print(f"expires: {credentials.expires}")
@@ -834,6 +837,8 @@ def _renew(arguments: argparse.Namespace) -> int:
 
     renewed = renewal.credentials
     print(f"renewed {renewed.subject} with database {renewed.database}")
+    # A new certificate is a new key, which the audit file names this client by from now on.
+    print(f"admission key: {renewed.admission_key}")
     print(f"profiles approved: {', '.join(renewed.profiles) or 'none'}")
     print(f"expires: {renewed.expires}")
     print(f"stored in {renewed.directory}")
@@ -889,6 +894,8 @@ def _revoke(arguments: argparse.Namespace) -> int:
         key_password=_key_password(arguments),
         **_dialing(arguments),
     )
+    # Read before anything is removed, since it is read off the certificate stored there.
+    key = client.credentials.admission_key
     named = f"{client.credentials.subject} with database {client.credentials.database}"
     try:
         client.revoke_certificate()
@@ -899,6 +906,7 @@ def _revoke(arguments: argparse.Namespace) -> int:
         api.forget(where)
         print(f"revoked {named}")
 
+    print(f"admission key: {key}")
     print(f"removed what was stored in {where}")
     return 0
 
@@ -906,12 +914,13 @@ def _revoke(arguments: argparse.Namespace) -> int:
 def _whoami(arguments: argparse.Namespace) -> int:
     where = arguments.directory or api.default_directory(arguments.profile)
     credentials = api.load(where)
-    print(f"subject:  {credentials.subject}")
-    print(f"database: {credentials.database}")
-    print(f"profiles: {', '.join(credentials.profiles) or 'none'}")
-    print(f"expires:  {credentials.expires}")
-    print(f"port:     {credentials.port}")
-    print(f"stored:   {credentials.directory}")
+    print(f"subject:       {credentials.subject}")
+    print(f"admission key: {credentials.admission_key}")
+    print(f"database:      {credentials.database}")
+    print(f"profiles:      {', '.join(credentials.profiles) or 'none'}")
+    print(f"expires:       {credentials.expires}")
+    print(f"port:          {credentials.port}")
+    print(f"stored:        {credentials.directory}")
     return 0
 
 

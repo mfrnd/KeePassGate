@@ -64,6 +64,10 @@ can read it.
 | `decision` | `permitted` or `refused` |
 | `reason` | a few words saying why |
 
+**The reference client says which key is its own.** PyKeePassGate prints its admission key when it
+pairs, renews or gives its certificate up, and `pykeepassgate whoami` prints it at any time, which
+is how a line here is matched to the program it is about.
+
 **`permitted` means the rules allowed it, and nothing more.** The line is written as the rules
 answer, before the body is checked and before anything is read or written, so a request can be
 `permitted` here and still be answered with a refusal of its body, a conflict, `503 busy`,

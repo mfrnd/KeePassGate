@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+import hashlib
 import inspect
 import json
 import re
@@ -13,11 +14,12 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from cryptography.hazmat.primitives import serialization
 
 from pykeepassgate import api, cli, transport
 from pykeepassgate import credentials as credentials_module
 from pykeepassgate.errors import StorageError
-from pykeepassgate.testing import FakeGate
+from pykeepassgate.testing import FakeGate, Issued
 
 
 def test_a_command_is_required(capsys: pytest.CaptureFixture[str]) -> None:
@@ -63,6 +65,27 @@ def test_whoami_says_what_this_client_is_without_connecting(
     assert "CN=agent-invented" in printed
     assert "reader" in printed
     assert "45678" in printed
+
+
+def admission_key(issued: Issued) -> str:
+    """What the plugin keys a certificate's record on, worked out here from the certificate."""
+    return hashlib.sha256(issued.certificate.public_bytes(serialization.Encoding.DER)).hexdigest()
+
+
+def test_whoami_names_the_key_the_audit_names_this_client_by(
+    tmp_path: Path,
+    bundle: dict[str, Any],
+    client_certificate: Issued,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    # Read off the stored certificate, without connecting: what lets a person match the audit
+    # file's lines to the program they are about.
+    credentials_module.save(tmp_path / "kept", 45678, bundle)
+
+    assert cli.main(["whoami", "--directory", str(tmp_path / "kept")]) == 0
+
+    lines = capsys.readouterr().out.splitlines()
+    assert f"admission key: {admission_key(client_certificate)}" in lines
 
 
 def _shows_no_credential(printed: str, bundle: dict[str, Any], *also: str) -> None:
@@ -408,6 +431,38 @@ def test_pairing_prints_what_was_approved_rather_than_what_was_asked(
     assert f"expires: {bundle['expires']}" in printed, "the lifetime the operator picked"
 
 
+def test_pairing_prints_the_key_the_audit_names_this_client_by(
+    tmp_path: Path,
+    gate: FakeGate,
+    bundle: dict[str, Any],
+    client_certificate: Issued,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    # The audit file names this client by it on every line from now on, so this is how the
+    # operator tells which lines are which program's.
+    from test_pairing import INVITATION, Gate
+
+    gate.handler = Gate(gate, gate.host_certificate, bundle=bundle)
+
+    code = cli.main(
+        [
+            "pair",
+            "--port",
+            str(gate.port),
+            "--name",
+            "agent-invented",
+            "--invitation",
+            INVITATION,
+            "--directory",
+            str(tmp_path / "kept"),
+        ]
+    )
+
+    assert code == 0
+    lines = capsys.readouterr().out.splitlines()
+    assert f"admission key: {admission_key(client_certificate)}" in lines
+
+
 def test_pairing_from_the_command_line_passes_on_what_it_was_given(
     tmp_path: Path,
     gate: FakeGate,
@@ -463,7 +518,11 @@ def test_pairing_from_the_command_line_passes_on_what_it_was_given(
 
 
 def test_revoking_gives_up_the_admission_and_removes_what_was_stored(
-    tmp_path: Path, gate: FakeGate, bundle: dict[str, Any], capsys: pytest.CaptureFixture[str]
+    tmp_path: Path,
+    gate: FakeGate,
+    bundle: dict[str, Any],
+    client_certificate: Issued,
+    capsys: pytest.CaptureFixture[str],
 ) -> None:
     # Removed because nothing can use it any more: a private key kept for a certificate the gate
     # refuses protects nothing. Pairing again stores a new one in the same place.
@@ -477,6 +536,9 @@ def test_revoking_gives_up_the_admission_and_removes_what_was_stored(
     assert code == 0
     assert gate.requests == [("DELETE", "/gate/certificate")]
     assert "revoked CN=agent-invented" in printed
+    assert f"admission key: {admission_key(client_certificate)}" in printed.splitlines(), (
+        "the key the audit names this client by, read before the files went"
+    )
     assert not where.exists()
 
 

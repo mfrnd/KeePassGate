@@ -62,7 +62,10 @@ credentials = api.pair(
 )
 
 print(credentials.profiles)  # what the operator approved, not what was asked for
+print(credentials.admission_key)  # what the operator's audit file names this client by
 ```
+
+`pair` prints both, and `whoami` prints them again without connecting.
 
 ## Use
 
