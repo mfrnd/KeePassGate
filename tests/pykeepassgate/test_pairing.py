@@ -25,7 +25,6 @@ from typing import Any, cast
 import pytest
 from cryptography.x509.oid import ExtendedKeyUsageOID
 
-from conftest import Authority, FakeGate, Issued
 from pykeepassgate import api, proofs, sni, transport
 from pykeepassgate import pairing as pairing_module
 from pykeepassgate import token as token_module
@@ -44,6 +43,7 @@ from pykeepassgate.errors import (
     StorageError,
 )
 from pykeepassgate.pairing import Pairing, lifetime_text
+from pykeepassgate.testing import Authority, FakeGate, Issued
 from test_api_routes import resolved
 from test_reference import operations, routing_table
 

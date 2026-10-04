@@ -14,10 +14,10 @@ from typing import Any
 
 import pytest
 
-from conftest import FakeGate
 from pykeepassgate import api, cli, transport
 from pykeepassgate import credentials as credentials_module
 from pykeepassgate.errors import StorageError
+from pykeepassgate.testing import FakeGate
 
 
 def test_a_command_is_required(capsys: pytest.CaptureFixture[str]) -> None:

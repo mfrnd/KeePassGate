@@ -104,7 +104,8 @@ well. [`TESTING.md`](TESTING.md) says what the test tiers are for.
 
 [`src/pykeepassgate/`](src/pykeepassgate/README.md) is **PyKeePassGate**, the reference client:
 pairing, and every route the gate serves. `pykeepassgate.api` is the library and
-`pykeepassgate.cli` is a command line over it that can do nothing the library cannot.
+`pykeepassgate.cli` is a command line over it that can do nothing the library cannot, and
+`pykeepassgate.testing` is a scripted stand-in gate for testing a program built on the library.
 
 Reference implementation means the code is the second copy of the specification. Where it and the
 plugin disagree, one of them is wrong, and the protocol tests pin every construction against

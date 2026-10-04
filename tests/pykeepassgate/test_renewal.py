@@ -22,7 +22,6 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.serialization import pkcs12
 
-from conftest import Authority, FakeGate, Issued
 from pykeepassgate import api, cli, transport
 from pykeepassgate import client as client_module
 from pykeepassgate import credentials as credentials_module
@@ -42,6 +41,7 @@ from pykeepassgate.errors import (
     StorageError,
     TransportError,
 )
+from pykeepassgate.testing import Authority, FakeGate, Issued
 from test_api_routes import disagreements, resolved
 from test_credentials import directory_link
 from test_reference import operations, routing_table

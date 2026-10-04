@@ -655,6 +655,63 @@ client = GateClient.open(max_response_bytes=16 * 1024 * 1024)
 It is a setting of the client, taken by `GateClient`, `GateClient.open` and `api.pair`, and anything
 but a positive whole number of bytes is refused with `ValueError` before anything is dialed.
 
+## Test a program against a stand-in gate
+
+`pykeepassgate.testing` is a scripted TLS stand-in for the gate, for testing a program built on this
+client without a KeePass: a certificate authority, a host certificate under it, and a TLS 1.3
+server on loopback that answers one request per connection and then closes, as the plugin does.
+**It answers whatever the test tells it to answer, and it is not a model of the rules.** It knows
+nothing of grants, of what a database holds or of how a pairing is approved, so a program tested
+against it has been tested against its own script and against nothing else. What it is good for is
+what a script can say: that the program sends what it means to, and does the right thing with each
+answer and with each refusal this client raises.
+
+```python
+from cryptography.x509.oid import ExtendedKeyUsageOID
+
+from pykeepassgate import api
+from pykeepassgate.testing import Authority, FakeGate
+
+authority = Authority(directory)            # writes authority.pem into it
+host = authority.issue("host", ExtendedKeyUsageOID.SERVER_AUTH, "host.pem")
+authority.issue("agent-invented", ExtendedKeyUsageOID.CLIENT_AUTH, "identity.pem")
+(directory / "gate.key").write_bytes(bytes(32))
+
+with FakeGate(host, authority.pem) as gate:
+    gate.handler = lambda path, body, client: (503, '{"error":"busy"}')
+    credentials = api.Credentials(directory, gate.port, "CN=agent-invented", "", (), "")
+    client = api.GateClient(credentials)
+    ...     # whatever the program does, which here meets `GateBusy`
+```
+
+A handler is called with the path, the body as text, and the client certificate as DER, or `None`
+when none was offered, and answers with the status and the body. `gate.method()`, asked from inside
+it, is the request's method, so one path can be answered differently for `GET` and `DELETE`:
+
+```python
+def entry(path: str, body: str, client: bytes | None) -> tuple[int, str]:
+    if gate.method() == "DELETE":
+        return 200, '{"ok":true}'
+    return 200, '{"uuid":"..."}'
+```
+
+`gate.requests` and `gate.names` record what arrived, and `retry_after`, `declare`, `truncate` and
+`linger` make the answers a gate in trouble gives. `held(until)` is the answer the plugin gives a
+pairing or a renewal whose approval it holds until a moment, `503 busy` with `heldUntil`, for a
+handler to return while a test watches `pair` or `renew` ask again. **Its answers carry the head the plugin's do**:
+the reason phrase, `Content-Type: application/json; charset=utf-8`, `Cache-Control: no-store`,
+`X-Content-Type-Options: nosniff`, and on a `503` `Retry-After: 2`, which `retry_after` changes,
+or takes away when it is `None`. The one header it cannot give is the `Allow` the plugin puts on a
+`405`. It imports no test framework, and the client's own tests build it through fixtures of their
+own.
+
+**One refusal it makes on its own, and differently from the plugin.** A client certificate that is
+offered is verified in the handshake, its chain and its dates, because `ssl` cannot ask for one
+without: an expired, not yet valid or foreign one ends the handshake, and the client raises
+`TransportError`, where the plugin completes the handshake and answers `401`, which the client
+raises as `NotAdmitted`. To test what a program does with `NotAdmitted`, script the `401` with a
+current certificate.
+
 ## What it will not do
 
 **It does not open a `.kdbx`.** There is no file and no master password on this side, by design. Where

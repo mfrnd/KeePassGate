@@ -361,9 +361,11 @@ designing around them.
   [`API.md`](API.md) §401.
 - **PyKeePassGate is the reference client, and reference means load bearing.** It lives at
   `src/pykeepassgate/`, imports as `pykeepassgate`, and is split into `pykeepassgate.api`, the
-  library, and `pykeepassgate.cli`, a command line that can do nothing the library cannot. A route
-  the gate serves and this does not cover is a gap, and a method here with no route behind it is a
-  lie. Its `pyproject.toml` is at the repository root because there is one Python project.
+  library, and `pykeepassgate.cli`, a command line that can do nothing the library cannot, with
+  `pykeepassgate.testing` beside them, a scripted stand-in gate for testing a program built on the
+  library, which is not a model of the rules. A route the gate serves and this does not cover is a
+  gap, and a method here with no route behind it is a lie. Its `pyproject.toml` is at the
+  repository root because there is one Python project.
 - **The client's protocol code is pinned against the plugin's own output.**
   `tests/pykeepassgate/test_protocol.py` holds vectors produced by `PairingToken`, `SniName` and
   `PairingProof` over inputs written down beside them. Without those, both halves could agree on

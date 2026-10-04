@@ -19,7 +19,7 @@ from typing import Any, cast
 import pytest
 from cryptography import x509
 
-from conftest import RESPONDER_CLAIM, Authority, FakeGate, Issued
+from conftest import RESPONDER_CLAIM
 from pykeepassgate import transport
 from pykeepassgate.errors import (
     AuthorityUndecided,
@@ -30,6 +30,7 @@ from pykeepassgate.errors import (
     StorageError,
     TransportError,
 )
+from pykeepassgate.testing import Authority, FakeGate, Issued
 
 Answers = Callable[[int, "dict[str, Any] | str"], Any]
 

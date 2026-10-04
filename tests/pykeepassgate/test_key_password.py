@@ -19,11 +19,11 @@ import pytest
 from cryptography import x509
 from cryptography.hazmat.primitives import serialization
 
-from conftest import Authority, FakeGate, Issued
 from pykeepassgate import api, cli
 from pykeepassgate import credentials as credentials_module
 from pykeepassgate.client import GateClient
 from pykeepassgate.errors import MalformedToken, PairingError, StorageError
+from pykeepassgate.testing import Authority, FakeGate, Issued
 from test_pairing import INVITATION
 from test_pairing import Gate as PairingGate
 from test_renewal import Gate as RenewalGate

@@ -162,6 +162,15 @@ asking again reads the same answer to the same cap. The plugin does not page, so
 with the database, and a very large one can need more: `max_response_bytes=` on the client, or
 `--max-response-bytes` on the command line, raises it, and the message names both.
 
+## Test a program built on it
+
+`pykeepassgate.testing` is a scripted TLS stand-in for the gate: a certificate authority, a host
+certificate under it, and a TLS 1.3 server on loopback that answers one request per connection, as
+the plugin does, with whatever the test tells it to answer. It is not a model of the rules, so a
+program tested against it has been tested against its script, and it imports no test framework.
+[`docs/pykeepassgate.md`](https://github.com/mfrnd/KeePassGate/blob/master/docs/pykeepassgate.md)
+shows a client pointed at one.
+
 ## What it does not do
 
 **It does not open a `.kdbx`.** There is no file and no master password on this side of the API, by

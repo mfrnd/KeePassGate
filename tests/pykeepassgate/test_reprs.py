@@ -15,7 +15,6 @@ from typing import Any
 
 import pytest
 
-from conftest import Authority, FakeGate, Issued
 from pykeepassgate import credentials as credentials_module
 from pykeepassgate import transport
 from pykeepassgate.client import GateClient
@@ -27,6 +26,7 @@ from pykeepassgate.errors import (
     TransportError,
     Withheld,
 )
+from pykeepassgate.testing import Authority, FakeGate, Issued
 
 #: A secret nobody would choose, put wherever a value can be and looked for in everything printed.
 SENTINEL = "not-a-real-secret-sentinel"

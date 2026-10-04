@@ -10,9 +10,9 @@ from typing import Any
 
 import pytest
 
-from conftest import FakeGate
 from pykeepassgate import api, cli, transport
 from pykeepassgate import credentials as credentials_module
+from pykeepassgate.testing import FakeGate
 
 UUID = "7b1c" * 8
 

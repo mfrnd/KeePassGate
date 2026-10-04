@@ -13,7 +13,6 @@ from typing import Any, cast
 
 import pytest
 
-from conftest import FakeGate, Issued
 from pykeepassgate import credentials as credentials_module
 from pykeepassgate import sni, transport
 from pykeepassgate.client import GateClient
@@ -28,6 +27,7 @@ from pykeepassgate.errors import (
     StorageError,
     TransportError,
 )
+from pykeepassgate.testing import FakeGate, Issued
 
 
 @pytest.fixture
