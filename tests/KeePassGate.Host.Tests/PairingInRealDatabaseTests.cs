@@ -926,7 +926,7 @@ namespace KeePassGate.Host.Tests
 
             var challenge = Convert.FromBase64String(JsonBody.Read(hello.Json).Text("challenge"));
             var proof = PairingProof.Request(
-                token, binding, nonce, challenge, PairingProof.Asked(name, profiles));
+                token, binding, nonce, challenge, PairingProof.Asked(name, profiles, null));
 
             var body = new System.Text.StringBuilder();
             body.Append("{\"name\":\"").Append(name).Append("\",\"profiles\":[");

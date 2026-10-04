@@ -312,6 +312,15 @@ namespace KeePassGate.Ui
 
         public const string ApprovalProfilesListName = "KpgApprovalProfilesList";
 
+        /// <summary>The choice of how long the certificate lasts.</summary>
+        public const string ApprovalLifetimeName = "KpgApprovalLifetime";
+
+        /// <summary>
+        /// What a screen reader calls that choice, whose own text is the answer rather than the
+        /// question.
+        /// </summary>
+        public const string ApprovalLifetimeLabel = "How long the certificate lasts";
+
         public const string ApprovalCountdownName = "KpgApprovalCountdown";
 
         /// <summary>
@@ -325,7 +334,7 @@ namespace KeePassGate.Ui
         /// compile error.
         /// </remarks>
         public const string ApprovalCountdownFormat =
-            "This pairing request times out in {0} seconds, and nothing is issued if it does.";
+            "This pairing request times out in {0} seconds, and nothing gets issued.";
 
         public const string ApproveButtonName = "KpgApproveButton";
 

@@ -7,7 +7,7 @@ using NUnit.Framework;
 namespace KeePassGate.Tests
 {
     /// <summary>
-    /// The eight values `tests/pykeepassgate/test_protocol.py` holds the client to, held to the
+    /// The nine values `tests/pykeepassgate/test_protocol.py` holds the client to, held to the
     /// plugin here over the same inputs.
     /// </summary>
     /// <remarks>
@@ -80,18 +80,26 @@ namespace KeePassGate.Tests
         public void What_a_request_commits_to_is_what_the_client_commits_to()
         {
             Assert.That(
-                PairingProof.Asked("agent-invented", new[] { "reader", "writer" }),
-                Is.EqualTo(Convert.FromBase64String("YWdlbnQtaW52ZW50ZWQKcmVhZGVyLHdyaXRlcg==")));
+                PairingProof.Asked("agent-invented", new[] { "reader", "writer" }, "P30D"),
+                Is.EqualTo(Convert.FromBase64String("YWdlbnQtaW52ZW50ZWQKcmVhZGVyLHdyaXRlcgpQMzBE")));
+        }
+
+        [Test]
+        public void A_request_asking_for_no_lifetime_commits_to_what_the_client_commits_to()
+        {
+            Assert.That(
+                PairingProof.Asked("agent-invented", new[] { "reader", "writer" }, null),
+                Is.EqualTo(Convert.FromBase64String("YWdlbnQtaW52ZW50ZWQKcmVhZGVyLHdyaXRlcgo=")));
         }
 
         [Test]
         public void The_request_proof_is_the_one_the_client_sends()
         {
-            var asked = PairingProof.Asked("agent-invented", new[] { "reader", "writer" });
+            var asked = PairingProof.Asked("agent-invented", new[] { "reader", "writer" }, "P30D");
 
             Assert.That(
                 PairingProof.Request(Token, Binding, Nonce, Challenge, asked),
-                Is.EqualTo(Convert.FromBase64String("ImkXm/MSrGCEpJO2/JJ5whKI8/NQIq8vyFdum6EVNvo=")));
+                Is.EqualTo(Convert.FromBase64String("BdArJ130P+Sjp+VtBYmmfWXD1+lMQV5xsAiNUz6JabY=")));
         }
 
         private static byte[] Run(int first, int count)

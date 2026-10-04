@@ -136,18 +136,41 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void What_a_request_commits_to_is_the_name_and_the_profiles()
+        public void What_a_request_commits_to_is_the_name_the_profiles_and_the_lifetime()
         {
             Assert.That(
-                PairingProof.Asked("agent-fictitious", new[] { "ops" }),
-                Is.EqualTo(System.Text.Encoding.UTF8.GetBytes("agent-fictitious\nops")));
+                PairingProof.Asked("agent-fictitious", new[] { "ops" }, "P30D"),
+                Is.EqualTo(System.Text.Encoding.UTF8.GetBytes("agent-fictitious\nops\nP30D")));
+        }
+
+        [Test]
+        public void Asking_for_another_lifetime_commits_to_something_else()
+        {
+            // The operator is shown the lifetime asked for, so it is signed for like the name and
+            // the profiles: one swapped on the way would no longer prove itself.
+            var month = PairingProof.Asked("agent-fictitious", new[] { "ops" }, "P30D");
+            var year = PairingProof.Asked("agent-fictitious", new[] { "ops" }, "P365D");
+            var none = PairingProof.Asked("agent-fictitious", new[] { "ops" }, null);
+
+            Assert.That(month, Is.Not.EqualTo(year));
+            Assert.That(month, Is.Not.EqualTo(none));
+        }
+
+        [Test]
+        public void Asking_for_no_lifetime_commits_to_an_empty_line()
+        {
+            // Unambiguous, because no lifetime the wire allows is empty.
+            Assert.That(
+                PairingProof.Asked("agent-fictitious", new[] { "ops" }, null),
+                Is.EqualTo(PairingProof.Asked("agent-fictitious", new[] { "ops" }, string.Empty)));
+            Assert.That(KeePassGate.Authority.Lifetime.Read(string.Empty), Is.Null);
         }
 
         [Test]
         public void Asking_for_more_profiles_commits_to_something_else()
         {
-            var asked = PairingProof.Asked("agent-fictitious", new[] { "readonly" });
-            var more = PairingProof.Asked("agent-fictitious", new[] { "readonly", "admin" });
+            var asked = PairingProof.Asked("agent-fictitious", new[] { "readonly" }, null);
+            var more = PairingProof.Asked("agent-fictitious", new[] { "readonly", "admin" }, null);
 
             Assert.That(
                 PairingProof.Request(_token, _binding, _nonce, _challenge, asked),
@@ -158,8 +181,8 @@ namespace KeePassGate.Tests
         public void Asking_to_be_called_something_else_commits_to_something_else()
         {
             Assert.That(
-                PairingProof.Asked("agent-fictitious", Array.Empty<string>()),
-                Is.Not.EqualTo(PairingProof.Asked("agent-invented", Array.Empty<string>())));
+                PairingProof.Asked("agent-fictitious", Array.Empty<string>(), null),
+                Is.Not.EqualTo(PairingProof.Asked("agent-invented", Array.Empty<string>(), null)));
         }
 
         [Test]
@@ -168,8 +191,8 @@ namespace KeePassGate.Tests
             // The nearest thing to a collision the separator has, and it is not one: the name is
             // followed by a newline whether or not any profiles come after it.
             Assert.That(
-                PairingProof.Asked("agent", new[] { "ops" }),
-                Is.Not.EqualTo(PairingProof.Asked("agent\nops", Array.Empty<string>())));
+                PairingProof.Asked("agent", new[] { "ops" }, null),
+                Is.Not.EqualTo(PairingProof.Asked("agent\nops", Array.Empty<string>(), null)));
 
             // And that spelling could never arrive anyway, which is the belt to that pair of braces.
             Assert.That(Authority.AuthorityIssuer.IsUsableSubjectName("agent\nops"), Is.False);
@@ -198,12 +221,12 @@ namespace KeePassGate.Tests
         public void Asking_for_no_profiles_at_all_still_commits_to_the_name()
         {
             Assert.That(
-                PairingProof.Asked("agent", Array.Empty<string>()),
-                Is.EqualTo(System.Text.Encoding.UTF8.GetBytes("agent\n")));
+                PairingProof.Asked("agent", Array.Empty<string>(), null),
+                Is.EqualTo(System.Text.Encoding.UTF8.GetBytes("agent\n\n")));
 
             Assert.That(
-                PairingProof.Asked("agent", Array.Empty<string>()),
-                Is.Not.EqualTo(PairingProof.Asked("agent-two", Array.Empty<string>())));
+                PairingProof.Asked("agent", Array.Empty<string>(), null),
+                Is.Not.EqualTo(PairingProof.Asked("agent-two", Array.Empty<string>(), null)));
         }
 
         [Test]
@@ -214,8 +237,8 @@ namespace KeePassGate.Tests
             Assert.That(Authority.AuthorityIssuer.IsUsableProfileName(string.Empty), Is.False);
 
             Assert.That(
-                PairingProof.Asked("agent", Array.Empty<string>()),
-                Is.Not.EqualTo(PairingProof.Asked("agent", new List<string> { string.Empty, string.Empty })));
+                PairingProof.Asked("agent", Array.Empty<string>(), null),
+                Is.Not.EqualTo(PairingProof.Asked("agent", new List<string> { string.Empty, string.Empty }, null)));
         }
 
         private static byte[] Bytes(int length, byte seed)

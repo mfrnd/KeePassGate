@@ -8,6 +8,7 @@ import json
 import re
 import subprocess
 import sys
+from datetime import timedelta
 from pathlib import Path
 from typing import Any
 
@@ -404,6 +405,7 @@ def test_pairing_prints_what_was_approved_rather_than_what_was_asked(
     assert code == 0
     assert "profiles approved: reader" in printed
     assert "writer" not in printed, "the operator took it away, so it is not what was stored"
+    assert f"expires: {bundle['expires']}" in printed, "the lifetime the operator picked"
 
 
 def test_pairing_from_the_command_line_passes_on_what_it_was_given(
@@ -457,6 +459,45 @@ def test_pairing_from_the_command_line_passes_on_what_it_was_given(
     assert handler.asked["profiles"] == ["reader", "writer"]
     assert api.load(api.default_directory("work")).port == gate.port
     assert not api.default_directory().exists(), "nothing was kept under the default profile"
+
+
+def test_pairing_asks_for_the_lifetime_it_was_given(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Days on the command line, a `timedelta` in the library, and nothing at all when nothing was
+    # said, which the dialog answers by offering a year.
+    asked: list[timedelta | None] = []
+
+    def pair(**arguments: Any) -> Any:
+        asked.append(arguments["lifetime"])
+        raise StorageError("stop here")
+
+    monkeypatch.setattr(api, "pair", pair)
+    typed = ["pair", "--port", "1", "--name", "agent", "--invitation", "x"]
+
+    cli.main(typed)
+    cli.main([*typed, "--lifetime", "30"])
+
+    assert asked == [None, timedelta(days=30)]
+
+
+@pytest.mark.parametrize("days", ["0", "366", "-7", "1.5", "a week", "99999999999"])
+def test_a_lifetime_no_certificate_can_have_is_an_argument_error(
+    days: str, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Exit code 2, rather than the library's `ValueError` leaving `main` as a traceback. With an
+    # invitation given and the library stood in for, a value the argument took would reach the
+    # library rather than be caught by reading standard input, so only the refusal passes.
+    def pair(**arguments: Any) -> Any:
+        raise AssertionError(f"{arguments['lifetime']} reached the library")
+
+    monkeypatch.setattr(api, "pair", pair)
+
+    with pytest.raises(SystemExit) as raised:
+        cli.main(
+            ["pair", "--port", "1", "--name", "agent", "--invitation", "x", "--lifetime", days]
+        )
+
+    assert raised.value.code == 2
+    assert "days" in capsys.readouterr().err
 
 
 def test_pairing_passes_the_shared_directory_choice_to_the_library(

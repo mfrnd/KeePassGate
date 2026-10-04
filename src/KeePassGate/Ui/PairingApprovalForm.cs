@@ -21,7 +21,8 @@ namespace KeePassGate.Ui
     ///   that will be.
     /// - **The profiles are confirmed rather than accepted.** They arrive as a request and leave as
     ///   whatever is still checked, because the caller asking for something is not the same as the
-    ///   operator agreeing to it.
+    ///   operator agreeing to it. So does the lifetime: what the client asked for is preselected,
+    ///   a year when it asked for nothing, and the operator picks.
     /// - **It closes itself.** Nobody being at the keyboard need not end in a refusal that costs the
     ///   invitee its invitation, so an unanswered dialog is a timeout, which spends nothing.
     /// - **Dismissing it is refusing it.** The close box, Alt and F4, the window menu and the
@@ -35,6 +36,7 @@ namespace KeePassGate.Ui
         private readonly CheckedListBox _profiles;
         private readonly Label _scrolling;
         private readonly Label _regaining;
+        private readonly LifetimeChoice _lifetime;
         private readonly Label _countdown;
         private readonly Timer _clock;
         /// <summary>
@@ -439,6 +441,10 @@ namespace KeePassGate.Ui
                 Margin = new Padding(0, Spacing.Gap, 0, 0)
             };
 
+            // How long the certificate lasts, under the profiles because both are what approving
+            // grants, and over the footer because the buttons are what acts on them.
+            _lifetime = new LifetimeChoice(request.Lifetime, Font);
+
             // A table rather than a flow, because the buttons go against the right edge and a flow
             // panel lays every child out at its own left one. A cell is what `Anchor` answers to.
             // The width is the width of everything else on the dialog, since a column that sized
@@ -542,6 +548,7 @@ namespace KeePassGate.Ui
                 layout.Controls.Add(_regaining);
             }
 
+            layout.Controls.Add(_lifetime);
             layout.Controls.Add(footer);
 
             // Filled rather than dropped in at the origin. A form lays a child out against its
@@ -629,7 +636,7 @@ namespace KeePassGate.Ui
             switch (_decision)
             {
                 case PairingDecision.Approved:
-                    return PairingApproval.Approved(Checked());
+                    return PairingApproval.Approved(Checked(), _lifetime.Chosen);
 
                 case PairingDecision.Refused:
                     return PairingApproval.Refused();

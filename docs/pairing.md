@@ -112,6 +112,13 @@ A profile means nothing until a rule on a group or an entry names it, which is
 [`access-control.md`](access-control.md). Approving a program for `reader` when nothing grants
 `reader` anything admits a program that can reach nothing, which is a safe place to start.
 
+**Under the profiles, how long the certificate lasts.** The list offers 1, 7, 30, 90 and 365 days.
+A program may ask for anything from a day to a year, and what it asked for is chosen already and
+marked "(asked)", offered beside the others when it is none of them. A program that asked for
+nothing is offered a year. **Pick the shortest that will do**: a certificate that has run out is
+refused without anybody having to remember to take it away, and a program that is still wanted
+when it runs out pairs again.
+
 The dialog closes itself after a couple of minutes and issues nothing when it does. An unanswered
 request is not a refusal in one respect: the invitation is not spent, so the program can try again.
 A refusal does spend it.

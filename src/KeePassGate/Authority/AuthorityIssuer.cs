@@ -86,9 +86,6 @@ namespace KeePassGate.Authority
         /// </remarks>
         public static readonly TimeSpan AuthorityLifetime = TimeSpan.FromDays(36524);
 
-        /// <summary>One year for a client, as `CA.md` §207 specifies.</summary>
-        public static readonly TimeSpan ClientLifetime = TimeSpan.FromDays(365);
-
         /// <summary>
         /// Long enough to cover a lock, which is the only thing it has to cover.
         /// </summary>
@@ -297,15 +294,31 @@ namespace KeePassGate.Authority
         }
 
         /// <summary>
-        /// A client certificate: `clientAuth`, one year, and the approved profiles as claims.
+        /// A client certificate: `clientAuth`, for the lifetime the operator picked, and the
+        /// approved profiles as claims.
         /// </summary>
         /// <remarks>
         /// The claims are a convenience for a human reading a certificate and nothing more. What a
         /// client may reach is read from its admission record in the database, so a certificate
         /// whose record is missing grants nothing at all.
+        ///
+        /// A year when nobody picked one, which is what the approval dialog offers a client that
+        /// asked for nothing. Anything outside `Lifetime`'s bounds is refused here as well as on
+        /// the wire, so the rule `CA.md` §207 states has one last door, and the result is clamped
+        /// to the authority like every other leaf.
         /// </remarks>
-        public X509Certificate2 IssueClient(X509Certificate2 authority, string subjectName, IEnumerable<string> profiles)
+        public X509Certificate2 IssueClient(
+            X509Certificate2 authority, string subjectName, IEnumerable<string> profiles, TimeSpan? lifetime = null)
         {
+            var lasts = lifetime ?? Lifetime.Unasked;
+            if (!Lifetime.IsAllowed(lasts))
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(lifetime),
+                    "A client certificate lasts whole days from " + Lifetime.ShortestDays + " to " +
+                    Lifetime.LongestDays + ".");
+            }
+
             if (authority == null)
             {
                 throw new ArgumentNullException(nameof(authority));
@@ -348,7 +361,7 @@ namespace KeePassGate.Authority
 
                 var now = _clock();
                 var notBefore = now - Backdate;
-                var notAfter = Clamp(now + ClientLifetime, authority);
+                var notAfter = Clamp(now + lasts, authority);
 
                 // Against `now`, not `notBefore`, for the reason `IssueHost` records: comparing
                 // with the backdated start lets an authority that expired within the last five

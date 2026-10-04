@@ -16,6 +16,7 @@ import json
 import math
 import os
 import secrets
+from datetime import timedelta
 from pathlib import Path
 from typing import Any
 
@@ -40,7 +41,7 @@ from pykeepassgate.errors import (
     RouteRefused,
     StorageError,
 )
-from pykeepassgate.pairing import Pairing
+from pykeepassgate.pairing import Pairing, lifetime_text
 from test_api_routes import resolved
 from test_reference import operations, routing_table
 
@@ -126,7 +127,7 @@ class Gate:
             self.binding,
             self.nonce,
             self.challenge,
-            proofs.asked(body["name"], body["profiles"]),
+            proofs.asked(body["name"], body["profiles"], body.get("lifetime")),
         )
 
         if not proofs.matches(expected, base64.b64decode(body["proof"])):
@@ -262,6 +263,50 @@ def test_a_request_follows_its_own_hello_and_comes_back_with_a_bundle(
 
     assert bundle["subject"] == "CN=agent-invented"
     assert bundle["profiles"] == ["reader"], "what was approved, not what was asked for"
+
+
+def test_a_lifetime_asked_for_is_sent_and_signed_for(gate: FakeGate, pairing_gate: Gate) -> None:
+    # The gate checks the proof over the lifetime the body carries, so this arriving at all is
+    # the two halves agreeing on what was signed; `test_protocol.py` pins the bytes.
+    pairing = Pairing(gate.port, INVITATION, connection_timeout=10.0)
+    exchange = pairing.hello()
+    pairing.request(exchange, "agent-invented", ["reader"], timedelta(days=30))
+
+    assert pairing_gate.asked is not None
+    assert pairing_gate.asked["lifetime"] == "P30D"
+
+
+@pytest.mark.parametrize(
+    "lifetime",
+    [
+        timedelta(0),
+        timedelta(days=-1),
+        timedelta(days=366),
+        timedelta(hours=36),
+        timedelta(days=30, seconds=1),
+        timedelta(days=1, microseconds=-1),
+        30,
+    ],
+)
+def test_a_lifetime_the_gate_would_refuse_never_reaches_it(
+    gate: FakeGate, pairing_gate: Gate, lifetime: Any
+) -> None:
+    # The gate refuses it as `400 malformed` before it takes the challenge, as it refuses a name,
+    # so this saves the round trip and says which rule was broken. A part of a day is refused
+    # rather than rounded, because either way it rounds is a certificate nobody asked for.
+    pairing = Pairing(gate.port, INVITATION, connection_timeout=10.0)
+    exchange = pairing.hello()
+    before = len(gate.requests)
+
+    with pytest.raises(ValueError, match="whole number of days from 1 to 365"):
+        pairing.request(exchange, "agent-invented", ["reader"], lifetime)
+
+    assert len(gate.requests) == before, "nothing was asked of the gate at all"
+
+
+@pytest.mark.parametrize(("days", "written"), [(1, "P1D"), (7, "P7D"), (365, "P365D")])
+def test_every_lifetime_the_gate_allows_is_written_as_it_reads_one(days: int, written: str) -> None:
+    assert lifetime_text(timedelta(days=days)) == written
 
 
 def test_the_request_goes_out_on_a_new_connection_with_a_new_name(
@@ -529,6 +574,7 @@ def test_pairing_through_the_library_passes_on_what_it_was_given(
         profiles=["reader", "writer"],
         directory=tmp_path / "kept",
         host="gate.invalid",
+        lifetime=timedelta(days=7),
     )
 
     assert built == [
@@ -541,6 +587,7 @@ def test_pairing_through_the_library_passes_on_what_it_was_given(
     ]
     assert handler.asked is not None
     assert handler.asked["profiles"] == ["reader", "writer"], "the operator is shown what was asked"
+    assert handler.asked["lifetime"] == "P7D"
     assert stored.directory == tmp_path / "kept"
     assert api.load(tmp_path / "kept").port == gate.port, "the port stored is the one paired on"
 
@@ -595,6 +642,24 @@ def test_a_pairing_with_a_setting_that_cannot_work_is_refused_before_anything_is
 
     with pytest.raises(ValueError, match=setting):
         Pairing(**{"port": gate.port, "invitation": INVITATION, **given})
+
+    assert not (tmp_path / "kept").exists()
+    assert gate.names == []
+
+
+def test_a_pairing_asking_for_a_lifetime_nobody_can_have_is_refused_before_anything_is_touched(
+    gate: FakeGate, tmp_path: Path
+) -> None:
+    # Before `prepare` and before the hello, as every other setting is: the gate would refuse the
+    # request as `400 malformed`, and only after the four files had been opened to receive it.
+    with pytest.raises(ValueError, match="lifetime"):
+        api.pair(
+            port=gate.port,
+            invitation=INVITATION,
+            name="agent-invented",
+            directory=tmp_path / "kept",
+            lifetime=timedelta(days=400),
+        )
 
     assert not (tmp_path / "kept").exists()
     assert gate.names == []

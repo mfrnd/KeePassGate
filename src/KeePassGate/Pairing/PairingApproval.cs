@@ -17,6 +17,7 @@ namespace KeePassGate.Pairing
         private readonly IReadOnlyList<string> _known;
         private readonly IReadOnlyDictionary<string, IReadOnlyList<AdmissionRecord>> _returning;
         private readonly string _peer;
+        private readonly TimeSpan? _lifetime;
 
         public PairingRequest(
             string databaseId,
@@ -41,6 +42,10 @@ namespace KeePassGate.Pairing
         /// records still hold it. Approving such a profile puts the name back on the list, which
         /// gives it back to every one of them. Null or absent when nobody does.
         /// </param>
+        /// <param name="lifetime">
+        /// How long the client asked its certificate to last, already read off the wire and known
+        /// to be one `Lifetime` allows, or null when it asked for nothing.
+        /// </param>
         public PairingRequest(
             string databaseId,
             string databaseName,
@@ -49,7 +54,8 @@ namespace KeePassGate.Pairing
             IReadOnlyList<string> profiles,
             IReadOnlyList<string> known,
             string peer,
-            IReadOnlyDictionary<string, IReadOnlyList<AdmissionRecord>> returning = null)
+            IReadOnlyDictionary<string, IReadOnlyList<AdmissionRecord>> returning = null,
+            TimeSpan? lifetime = null)
         {
             _databaseId = databaseId ?? string.Empty;
             _databaseName = databaseName ?? string.Empty;
@@ -59,6 +65,7 @@ namespace KeePassGate.Pairing
             _known = known ?? Nothing;
             _returning = returning ?? new Dictionary<string, IReadOnlyList<AdmissionRecord>>();
             _peer = peer ?? string.Empty;
+            _lifetime = lifetime;
         }
 
         /// <summary>Which database is about to admit somebody, by its authority's digest.</summary>
@@ -93,6 +100,15 @@ namespace KeePassGate.Pairing
         public string Peer
         {
             get { return _peer; }
+        }
+
+        /// <summary>
+        /// How long the client asked its certificate to last, or null when it asked for nothing.
+        /// The operator picks the lifetime, and this is what the dialog offers first.
+        /// </summary>
+        public TimeSpan? Lifetime
+        {
+            get { return _lifetime; }
         }
 
         /// <summary>
@@ -180,12 +196,15 @@ namespace KeePassGate.Pairing
 
         private readonly PairingDecision _decision;
         private readonly IReadOnlyList<string> _profiles;
+        private readonly TimeSpan _lifetime;
         private readonly string _reason;
 
-        private PairingApproval(PairingDecision decision, IReadOnlyList<string> profiles, string reason)
+        private PairingApproval(
+            PairingDecision decision, IReadOnlyList<string> profiles, TimeSpan? lifetime, string reason)
         {
             _decision = decision;
             _profiles = profiles ?? Nothing;
+            _lifetime = lifetime ?? Authority.Lifetime.Unasked;
             _reason = reason ?? string.Empty;
         }
 
@@ -203,6 +222,15 @@ namespace KeePassGate.Pairing
             get { return _profiles; }
         }
 
+        /// <summary>
+        /// How long the operator gave the certificate, which is what it is issued for: what the
+        /// client asked for if they left it, and a year when nobody chose.
+        /// </summary>
+        public TimeSpan Lifetime
+        {
+            get { return _lifetime; }
+        }
+
         public string Reason
         {
             get { return _reason; }
@@ -213,24 +241,25 @@ namespace KeePassGate.Pairing
             get { return _decision == PairingDecision.Approved; }
         }
 
-        public static PairingApproval Approved(IReadOnlyList<string> profiles)
+        /// <param name="lifetime">How long the certificate lasts, or null for a year.</param>
+        public static PairingApproval Approved(IReadOnlyList<string> profiles, TimeSpan? lifetime = null)
         {
-            return new PairingApproval(PairingDecision.Approved, profiles, "approved");
+            return new PairingApproval(PairingDecision.Approved, profiles, lifetime, "approved");
         }
 
         public static PairingApproval Refused()
         {
-            return new PairingApproval(PairingDecision.Refused, null, "refused");
+            return new PairingApproval(PairingDecision.Refused, null, null, "refused");
         }
 
         public static PairingApproval TimedOut()
         {
-            return new PairingApproval(PairingDecision.TimedOut, null, "nobody answered");
+            return new PairingApproval(PairingDecision.TimedOut, null, null, "nobody answered");
         }
 
         public static PairingApproval Unavailable(string reason)
         {
-            return new PairingApproval(PairingDecision.Unavailable, null, reason);
+            return new PairingApproval(PairingDecision.Unavailable, null, null, reason);
         }
     }
 

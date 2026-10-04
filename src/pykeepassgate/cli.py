@@ -20,7 +20,7 @@ import getpass
 import math
 import sys
 import unicodedata
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Literal, TypedDict
 
@@ -81,6 +81,16 @@ def _parser() -> argparse.ArgumentParser:
         dest="profiles",
         metavar="PROFILE",
         help="a profile to ask for; repeat for more, and the operator may take any of them away",
+    )
+    pairing.add_argument(
+        "--lifetime",
+        type=_days,
+        metavar="DAYS",
+        help=(
+            "how long the certificate should last, in whole days from "
+            f"{api.SHORTEST_LIFETIME.days} to {api.LONGEST_LIFETIME.days}. The operator picks, "
+            "and is offered a year when this is left out."
+        ),
     )
 
     pairing.add_argument(
@@ -387,6 +397,26 @@ def _finite(text: str) -> float:
     return value
 
 
+def _days(text: str) -> timedelta:
+    """How long a certificate should last, refused here as an argument rather than by the library.
+
+    The library refuses one it will not ask for with a `ValueError`, which is not a `GateError`
+    and would leave `main` as a traceback. The bounds are the library's, read rather than copied.
+    """
+    try:
+        days = int(text)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"{text!r} is not a whole number of days") from None
+
+    shortest, longest = api.SHORTEST_LIFETIME.days, api.LONGEST_LIFETIME.days
+    if not shortest <= days <= longest:
+        raise argparse.ArgumentTypeError(
+            f"a certificate lasts from {shortest} to {longest} days, not {days}"
+        )
+
+    return timedelta(days=days)
+
+
 def _profile(text: str) -> str:
     """A stored identity's name, refused here as an argument rather than joined as a path.
 
@@ -533,11 +563,14 @@ def _pair(arguments: argparse.Namespace) -> int:
         profile=arguments.profile,
         host=arguments.host,
         allow_shared_directory=arguments.allow_shared_directory,
+        lifetime=arguments.lifetime,
         **_dialing(arguments),
     )
 
     print(f"paired as {credentials.subject} with database {credentials.database}")
     print(f"profiles approved: {', '.join(credentials.profiles) or 'none'}")
+    # What the operator picked, which is not always the lifetime that was asked for.
+    print(f"expires: {credentials.expires}")
     print(f"stored in {credentials.directory}")
     return 0
 

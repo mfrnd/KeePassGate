@@ -33,8 +33,9 @@ SNI_NAME = "6465666768696a6b6c6d6e6f70717273.82b166a6ea164ce7bde4cb0bbec5b7e5.kp
 SNI_TAG = "grFmpuoWTOe95MsLvsW35Q=="
 PROOF_CLIENT = "OhAiWUjmxuLkeL50QLEoOk12eI9H9ZDV4/ljctZr1b0="
 PROOF_SERVER = "bJ23EO4jD3y4swTo2uwdsO1Equ0o3VKTmQqVT0pamME="
-PROOF_ASKED = "YWdlbnQtaW52ZW50ZWQKcmVhZGVyLHdyaXRlcg=="
-PROOF_REQUEST = "ImkXm/MSrGCEpJO2/JJ5whKI8/NQIq8vyFdum6EVNvo="
+PROOF_ASKED = "YWdlbnQtaW52ZW50ZWQKcmVhZGVyLHdyaXRlcgpQMzBE"
+PROOF_ASKED_NO_LIFETIME = "YWdlbnQtaW52ZW50ZWQKcmVhZGVyLHdyaXRlcgo="
+PROOF_REQUEST = "BdArJ130P+Sjp+VtBYmmfWXD1+lMQV5xsAiNUz6JabY="
 BINDING_OF_TEN = "yEjhAT+fBKnWP6Q85/1K8DUVLHxmmkpAS2cQfO5fLk4="
 
 
@@ -127,12 +128,23 @@ class TestProofs:
     def test_the_server_proof_is_what_the_gate_answers_with(self) -> None:
         assert proofs.server(TOKEN, BINDING, NONCE, CHALLENGE) == unb64(PROOF_SERVER)
 
-    def test_what_a_request_commits_to_is_the_name_and_the_profiles_in_order(self) -> None:
-        assert proofs.asked("agent-invented", ["reader", "writer"]) == unb64(PROOF_ASKED)
+    def test_what_a_request_commits_to_is_the_name_the_profiles_and_the_lifetime(self) -> None:
+        assert proofs.asked("agent-invented", ["reader", "writer"], "P30D") == unb64(PROOF_ASKED)
+
+    def test_a_request_asking_for_no_lifetime_commits_to_an_empty_line_for_it(self) -> None:
+        assert proofs.asked("agent-invented", ["reader", "writer"], None) == unb64(
+            PROOF_ASKED_NO_LIFETIME
+        )
 
     def test_the_request_proof_covers_the_whole_exchange(self) -> None:
-        asked = proofs.asked("agent-invented", ["reader", "writer"])
+        asked = proofs.asked("agent-invented", ["reader", "writer"], "P30D")
         assert proofs.request(TOKEN, BINDING, NONCE, CHALLENGE, asked) == unb64(PROOF_REQUEST)
+
+    def test_a_lifetime_added_taken_off_or_changed_is_a_different_request(self) -> None:
+        asked = proofs.asked("agent-invented", ["reader"], "P30D")
+
+        assert asked != proofs.asked("agent-invented", ["reader"], None)
+        assert asked != proofs.asked("agent-invented", ["reader"], "P31D")
 
     def test_no_proof_can_be_replayed_as_another(self) -> None:
         # Three labels exist for exactly this: the same inputs under a different label are a
@@ -155,9 +167,9 @@ class TestProofs:
         # `asked` prefixes nothing: the name is separated from the profiles by a newline and the
         # profiles from each other by commas, so outside the charset it is ambiguous. Each of
         # these builds one commitment out of two different requests.
-        assert proofs.asked("agent", ["a\nb"]) == proofs.asked("agent\na", ["b"])
-        assert proofs.asked("agent", ["a,b"]) == proofs.asked("agent", ["a", "b"])
-        assert proofs.asked("agent", []) == proofs.asked("agent", [""])
+        assert proofs.asked("agent", ["a\nb"], None) == proofs.asked("agent\na", ["b"], None)
+        assert proofs.asked("agent", ["a,b"], None) == proofs.asked("agent", ["a", "b"], None)
+        assert proofs.asked("agent", [], None) == proofs.asked("agent", [""], None)
 
         # None of them can arrive. `AuthorityIssuer.IsUsableSubjectName` allows a name only out of
         # `[A-Za-z0-9._ -]` and `IsUsableProfileName` a profile only out of `[A-Za-z0-9_-]`, with

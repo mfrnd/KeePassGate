@@ -278,7 +278,7 @@ namespace KeePassGate.Tests
         public void A_client_is_warned_about_in_the_last_third_of_its_own_life_and_thirty_days_at_most(
             int days, int hours)
         {
-            // A fixed thirty days would warn about a week-long certificate from the moment it was
+            // A fixed thirty days warned about a week-long certificate from the moment it was
             // issued. The five minutes the issuer backdates by count as part of the life, which
             // moves each uncapped third by a hundred seconds.
             using (var authority = TestAuthority.New())

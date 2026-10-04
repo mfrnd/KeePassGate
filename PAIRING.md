@@ -105,11 +105,11 @@ sequenceDiagram
     CL->>CL: verify, or abort: possible interception
 
     Note over OP,CL: Phase 4. Approval, on the KeePass screen
-    CL->>KPG: POST /pair/request + wanted profiles
+    CL->>KPG: POST /pair/request + wanted profiles, and a lifetime if it wants one
     KPG->>KPG: 503 if a dialog is open that would take the record back
     Note right of KPG: before the dialog, so the invitation is<br/>not spent and a new hello can still work
-    KPG->>OP: dialog: database, fingerprint, name, invitation id, profiles, peer
-    OP-->>KPG: approve, confirming the profiles
+    KPG->>OP: dialog: database, fingerprint, name, invitation id, profiles, peer, lifetime
+    OP-->>KPG: approve, confirming the profiles and picking the lifetime
 
     Note over KPG,CL: Phase 5. Issuance. Single writer, on the UI thread, under one lock
     KPG->>KPG: generate the key pair, issue from that database's authority
@@ -165,6 +165,16 @@ looks the same from a connection, which does not walk the tree to count rules. A
 removed that other clients still hold is marked
 "(removed)", and the dialog names those clients: approving puts the name back, every one of them
 regains it, and every rule still naming it applies again.
+
+**The client proposes how long its certificate lasts, and the operator picks.** A request may ask
+for anything from a day to a year, and the dialog offers 1, 7, 30, 90 and 365 days under the
+profiles, with the one asked for chosen already and marked "(asked)". One that is none of those is
+offered as a choice of its own, in its place by length, rather than rounded to the nearest, because
+the nearest is a certificate nobody asked for. A request asking for nothing is offered a year,
+which is what every client was given before any could ask, so asking can shorten a certificate and
+never lengthen one. The list drops down rather than standing open, and a closed list takes neither
+Enter nor Escape, so both still refuse as they do everywhere else on the dialog. `CA.md` §207 holds
+the bounds.
 
 Both proofs are bound to the RFC 5929 `tls-server-end-point` channel binding, which both sides
 derive independently and which hashes the certificate actually in use. **It needs no interface from
@@ -407,7 +417,9 @@ POST /pair/hello
 POST /pair/request
   { "name": "agent-fictitious",
     "profiles": ["ops"],
-    "proof": "<HMAC-SHA256(token, "kpg-request-proof" | binding | nonce | challenge | name,profiles)>" }
+    "lifetime": "P30D",
+    "proof": "<HMAC-SHA256(token, "kpg-request-proof" | binding | nonce | challenge | asked)>" }
+    asked = name "\n" profiles joined by "," "\n" lifetime, or nothing after the second line break
 ->  200 { "identity": "<PKCS#12: the certificate and its key>",
           "authority": "<DER: what to pin from now on>",
           "gateKey": "<32 bytes: what to name every later connection from>",
@@ -418,6 +430,13 @@ POST /pair/request
 
 Every part is length prefixed before it is signed, so no two different sets of parts produce the
 same bytes, and each proof carries its own label, so none of them can be replayed as another.
+
+**`lifetime` is optional, and signed for whether it is there or not.** It is an ISO 8601 duration
+of whole days from one to 365, in one spelling: `P`, the number with no leading zero, and `D`.
+Anything else is `400 malformed`, refused by the document's own pattern before the challenge is
+taken, so nothing is spent. The proof covers the text as it arrived, and an empty line when there
+is none, so a lifetime added on the way, taken off it or changed is a request that no longer proves
+itself, and the operator is never shown a lifetime nobody asked for.
 
 **The exchange spans two connections**, because this transport answers one request per connection
 and closes. The challenge is what carries it across: it is held on the invitation in memory,

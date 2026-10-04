@@ -13,6 +13,7 @@ wrong lesson.
 
 from __future__ import annotations
 
+from datetime import timedelta
 from pathlib import Path
 
 from .client import ROOT, GateClient, Status
@@ -37,7 +38,7 @@ from .errors import (
     Withheld,
 )
 from .model import Attachment, Entry, Field, Fields, Group
-from .pairing import Exchange, Pairing
+from .pairing import LONGEST_LIFETIME, SHORTEST_LIFETIME, Exchange, Pairing, lifetime_text
 from .transport import (
     DEFAULT_CONNECTION_TIMEOUT,
     DEFAULT_RETRY_BUSY_TIMEOUT,
@@ -58,10 +59,12 @@ __all__ = [
     "DEFAULT_RETRY_BUSY_TIMEOUT",
     "DEFAULT_RETRY_LOCKED_TIMEOUT",
     "DEFAULT_RETRY_UNDECIDED_TIMEOUT",
+    "LONGEST_LIFETIME",
     "LOOPBACK",
     "MAX_RESPONSE_BYTES",
     "PAIRING_CONNECTION_TIMEOUT",
     "ROOT",
+    "SHORTEST_LIFETIME",
     "Attachment",
     "AuthorityUndecided",
     "Credentials",
@@ -121,12 +124,17 @@ def pair(
     retry_undecided_timeout: float | None = DEFAULT_RETRY_UNDECIDED_TIMEOUT,
     allow_shared_directory: bool = False,
     max_response_bytes: int = MAX_RESPONSE_BYTES,
+    lifetime: timedelta | None = None,
 ) -> Credentials:
     """Pair with a KeePass and keep what it hands over.
 
     Blocks while the operator reads the dialog, which is the slow half and is meant to be. What
     comes back says which profiles were actually approved, and that is not always what was asked
     for: the dialog can take any of them away.
+
+    **`lifetime` is how long the certificate is asked to last**, a `timedelta` of whole days from
+    `SHORTEST_LIFETIME` to `LONGEST_LIFETIME`, and the operator picks the one it gets: `expires`
+    on what comes back says which. Leaving it out asks for nothing, and the dialog offers a year.
 
     **The exchange is the unit that is retried, not either half of it.** A `503` from the gate on
     this path means the invitation was not spent: `PAIRING.md` §303 refuses before the operator is
@@ -149,6 +157,8 @@ def pair(
     port_number(port)
     connection_limit(connection_timeout)
     response_limit(max_response_bytes)
+    if lifetime is not None:
+        lifetime_text(lifetime)
     where = directory or default_directory(profile)
     retry = Retry(
         busy=retry_busy_timeout, locked=retry_locked_timeout, undecided=retry_undecided_timeout
@@ -169,7 +179,7 @@ def pair(
 
             try:
                 started = exchange.hello()
-                bundle = exchange.request(started, name, profiles or [])
+                bundle = exchange.request(started, name, profiles or [], lifetime)
             except GateUnavailable as refusal:
                 if retry.waited(refusal):
                     continue

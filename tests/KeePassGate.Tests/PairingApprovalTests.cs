@@ -127,6 +127,17 @@ namespace KeePassGate.Tests
                     "the dialog is wider than the smallest screen at " + scaling);
                 Assert.That(InDialog(list, dialog).Bottom, Is.LessThanOrEqualTo(Asked(dialog).Height),
                     "the list is off the bottom of the dialog at " + scaling);
+
+                // The lifetime is part of what Approve grants, so it is held to the same room.
+                var lifetime = Lifetime(dialog);
+                var row = lifetime.Parent;
+                Assert.That(InDialog(row, dialog).Bottom, Is.LessThanOrEqualTo(Asked(dialog).Height),
+                    "the lifetime is off the bottom of the dialog at " + scaling);
+                Assert.That(InDialog(row, dialog).Right, Is.LessThanOrEqualTo(Asked(dialog).Width),
+                    "the lifetime is off the side of the dialog at " + scaling);
+                Assert.That(lifetime.Width, Is.GreaterThan(
+                        lifetime.Items.Cast<string>().Max(text => TextRenderer.MeasureText(text, larger).Width)),
+                    "the longest choice is cut at " + scaling);
             }
         }
 
@@ -230,6 +241,158 @@ namespace KeePassGate.Tests
                 Assert.That(answer.Profiles, Is.Empty);
             }
         }
+
+        [Test]
+        public void The_lifetime_offered_first_is_the_one_asked_for_and_is_marked_as_asked()
+        {
+            using (var dialog = New(TimeSpan.FromDays(30), "ops"))
+            {
+                var lifetime = Lifetime(dialog);
+
+                Assert.That(lifetime.Items.Cast<string>(),
+                    Is.EqualTo(new[] { "1 day", "7 days", "30 days (asked)", "90 days", "365 days" }));
+                Assert.That(lifetime.SelectedItem, Is.EqualTo("30 days (asked)"));
+            }
+        }
+
+        [Test]
+        public void A_lifetime_asked_for_that_is_no_preset_is_offered_as_a_choice_of_its_own()
+        {
+            using (var dialog = New(TimeSpan.FromDays(45), "ops"))
+            {
+                var lifetime = Lifetime(dialog);
+
+                Assert.That(lifetime.Items.Cast<string>(),
+                    Is.EqualTo(new[] { "1 day", "7 days", "30 days", "45 days (asked)", "90 days", "365 days" }),
+                    "in its place by length, among the presets");
+                Assert.That(lifetime.SelectedItem, Is.EqualTo("45 days (asked)"));
+            }
+        }
+
+        [Test]
+        public void A_client_that_asked_for_no_lifetime_is_offered_a_year()
+        {
+            using (var dialog = New("ops"))
+            {
+                var lifetime = Lifetime(dialog);
+
+                Assert.That(lifetime.SelectedItem, Is.EqualTo("365 days"));
+                Assert.That(lifetime.Items.Cast<string>(), Has.None.Contains(LifetimeChoice.AskedSuffix),
+                    "nothing is marked as asked for when nothing was");
+            }
+        }
+
+        [Test]
+        public void A_list_with_nothing_chosen_gives_a_year_rather_than_the_shortest()
+        {
+            using (var dialog = New(TimeSpan.FromDays(30), "ops"))
+            {
+                Lifetime(dialog).SelectedIndex = -1;
+                dialog.Approve();
+
+                Assert.That(dialog.Answer().Lifetime, Is.EqualTo(Authority.Lifetime.Unasked));
+            }
+        }
+
+        [Test]
+        public void Approving_gives_the_certificate_the_lifetime_chosen()
+        {
+            // Asked for thirty days, given seven: what the client proposed is preselected and is
+            // not what is approved unless the operator leaves it.
+            using (var dialog = New(TimeSpan.FromDays(30), "ops"))
+            {
+                Lifetime(dialog).SelectedItem = "7 days";
+                dialog.Approve();
+
+                Assert.That(dialog.Answer().Lifetime, Is.EqualTo(TimeSpan.FromDays(7)));
+            }
+        }
+
+        [Test]
+        public void Approving_without_touching_the_lifetime_gives_what_was_preselected()
+        {
+            using (var asked = New(TimeSpan.FromDays(90), "ops"))
+            using (var unasked = New("ops"))
+            {
+                asked.Approve();
+                unasked.Approve();
+
+                Assert.That(asked.Answer().Lifetime, Is.EqualTo(TimeSpan.FromDays(90)));
+                Assert.That(unasked.Answer().Lifetime, Is.EqualTo(TimeSpan.FromDays(365)));
+            }
+        }
+
+        [TestCase(Keys.Enter)]
+        [TestCase(Keys.Escape)]
+        public void A_key_pressed_on_the_closed_lifetime_list_still_reaches_the_refusal(Keys key)
+        {
+            // A closed list claims neither key, so the loop hands both to the dialog's own buttons,
+            // and both of those refuse. Posted through a real loop, because the question is which
+            // control the loop decides a key belongs to, and a key sent straight to a window has
+            // skipped that question.
+            using (var dialog = New(TimeSpan.FromDays(30), "ops"))
+            {
+                var lifetime = Focused(dialog);
+
+                Press(lifetime, key);
+
+                Assert.That(dialog.Answer().Decision, Is.EqualTo(PairingDecision.Refused));
+            }
+        }
+
+        [TestCase(Keys.Enter)]
+        [TestCase(Keys.Escape)]
+        public void A_key_pressed_on_the_open_lifetime_list_is_the_lists_alone(Keys key)
+        {
+            // An open list takes Enter to pick and Escape to close, as every list does, so an
+            // operator closing the choices is not refusing the client in the same keystroke.
+            using (var dialog = New(TimeSpan.FromDays(30), "ops"))
+            {
+                var lifetime = Focused(dialog);
+                lifetime.DroppedDown = true;
+                OffScreenForm.Pump();
+
+                Press(lifetime, key);
+
+                Assert.That(lifetime.DroppedDown, Is.False, "the key closed the list");
+                Assert.That(dialog.Visible, Is.True, "and nothing else");
+                Assert.That(dialog.Answer().Decision, Is.EqualTo(PairingDecision.TimedOut),
+                    "nobody has answered yet");
+            }
+        }
+
+        /// <summary>The dialog shown where nobody sees it, with the focus on the lifetime.</summary>
+        private static ComboBox Focused(PairingApprovalForm dialog)
+        {
+            dialog.StartPosition = FormStartPosition.Manual;
+            dialog.Location = new Point(-4000, -4000);
+            dialog.ShowInTaskbar = false;
+            dialog.Show();
+            OffScreenForm.Pump();
+
+            var lifetime = Lifetime(dialog);
+            lifetime.Focus();
+            OffScreenForm.Pump();
+
+            Assert.That(lifetime.Focused, Is.True, "the key has to start where an operator would press it");
+            return lifetime;
+        }
+
+        /// <summary>Puts a key on the queue for the list, and lets the loop deliver it.</summary>
+        private static void Press(Control control, Keys key)
+        {
+            PostMessage(control.Handle, WmKeyDown, (IntPtr)(int)key, IntPtr.Zero);
+            PostMessage(control.Handle, WmKeyUp, (IntPtr)(int)key, IntPtr.Zero);
+            OffScreenForm.Pump();
+        }
+
+        private const int WmKeyDown = 0x0100;
+
+        private const int WmKeyUp = 0x0101;
+
+        [DllImport("user32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool PostMessage(IntPtr window, int message, IntPtr key, IntPtr detail);
 
         [Test]
         public void Refusing_refuses()
@@ -656,7 +819,7 @@ namespace KeePassGate.Tests
 
                 Assert.That(shown, Does.Contain("times out"),
                     "a dialog that answers for the operator has to say that it will");
-                Assert.That(shown, Does.Contain("nothing is issued"),
+                Assert.That(shown, Does.Contain("nothing gets issued"),
                     "and which way it answers, because the two are not the same news");
             }
         }
@@ -672,6 +835,30 @@ namespace KeePassGate.Tests
         private static PairingApprovalForm New(params string[] profiles)
         {
             return new PairingApprovalForm(Request("agent-fictitious", profiles, profiles), Timeout);
+        }
+
+        /// <summary>The same, for a client that asked for a lifetime.</summary>
+        private static PairingApprovalForm New(TimeSpan lifetime, params string[] profiles)
+        {
+            return new PairingApprovalForm(
+                new PairingRequest(
+                    "aaaabbbbccccdddd",
+                    "Invented Vault",
+                    "abcdef01",
+                    "agent-fictitious",
+                    profiles,
+                    profiles,
+                    "127.0.0.1:60001",
+                    null,
+                    lifetime),
+                Timeout);
+        }
+
+        private static ComboBox Lifetime(Control form)
+        {
+            var list = ControlTree.FindByName<ComboBox>(form, GateTab.ApprovalLifetimeName);
+            Assert.That(list, Is.Not.Null, "no choice of lifetime");
+            return list;
         }
 
         /// <summary>The same dialog, built at a font a scaled display would hand it.</summary>

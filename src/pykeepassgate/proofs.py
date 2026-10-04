@@ -19,8 +19,8 @@ What each one is for:
   can only produce a proof over its own certificate, which recomputes to something else here.
 - **The request is proved too.** ``tls-server-end-point`` is a constant for the life of a
   certificate, so the freshness comes from the nonce the client chose and the challenge the server
-  chose, and the request carries the name and profiles being asked for, so what the operator is
-  shown is what was signed for.
+  chose, and the request carries the name, the profiles and the lifetime being asked for, so what
+  the operator is shown is what was signed for.
 """
 
 from __future__ import annotations
@@ -55,17 +55,19 @@ def server(token: bytes, bound: bytes, nonce: bytes, challenge: bytes) -> bytes:
 def request(
     token: bytes, bound: bytes, nonce: bytes, challenge: bytes, asked_for: bytes
 ) -> bytes:
-    """What commits the request to the name and the profiles it asks for."""
+    """What commits the request to the name, the profiles and the lifetime it asks for."""
     return _compute(token, REQUEST_LABEL, [bound, nonce, challenge, asked_for])
 
 
-def asked(name: str, profiles: Iterable[str]) -> bytes:
-    """What a pairing request commits to: the name asked for, and the profiles, in order.
+def asked(name: str, profiles: Iterable[str], lifetime: str | None) -> bytes:
+    """What a pairing request commits to: the name, the profiles in order, and the lifetime.
 
     Both sides build this from the same values, so a request altered on the way no longer proves
-    itself, and the operator is shown what was signed for rather than what arrived.
+    itself, and the operator is shown what was signed for rather than what arrived. The lifetime
+    is the text the request carries, such as `P30D`, and an empty line when it asks for none, so a
+    lifetime added on the way or taken off it fails the proof as a changed one does.
     """
-    return f"{name}\n{','.join(profiles)}".encode()
+    return f"{name}\n{','.join(profiles)}\n{lifetime or ''}".encode()
 
 
 def matches(expected: bytes, offered: bytes) -> bool:

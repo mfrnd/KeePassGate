@@ -97,6 +97,36 @@ namespace KeePassGate.Tests
             }
         }
 
+        [TestCase("pairRequest")]
+        public void The_document_and_the_handler_read_a_lifetime_alike(string operationId)
+        {
+            // The document's pattern is checked by the router and `Lifetime.Read` by the handler
+            // behind it, two spellings of one rule. Held to each other here over the shipped
+            // document, so a pattern widened or narrowed there fails rather than stating a rule
+            // the gate does not keep.
+            var operation = SpecDocument.Embedded().Operations.Single(each => each.OperationId == operationId);
+            var schema = new OpenApiSchema
+            {
+                Type = "object",
+                AdditionalPropertiesAllowed = false,
+                Properties = { { "lifetime", operation.Body.Properties["lifetime"] } }
+            };
+
+            var written = Enumerable.Range(0, 1001).Select(days => "P" + days + "D")
+                                    .Concat(new[] { "P030D", "P01D", "p30d", "P30", "30", "PD", "P-1D" })
+                                    .Concat(new[] { "P+1D", "P1.5D" })
+                                    .Concat(new[] { " P30D", "P30D ", "P30D\n", "P\u0663D", "P1000D" });
+
+            foreach (var each in written)
+            {
+                var body = JsonBody.Read("{\"lifetime\":" + Newtonsoft.Json.JsonConvert.ToString(each) + "}");
+                var routerTakes = BodyCheck.Validate(schema, body) == null;
+                var handlerTakes = Authority.Lifetime.Read(each).HasValue;
+
+                Assert.That(routerTakes, Is.EqualTo(handlerTakes), operationId + ": " + each);
+            }
+        }
+
         [Test]
         public void A_pattern_ending_in_a_dollar_ends_where_the_value_does()
         {

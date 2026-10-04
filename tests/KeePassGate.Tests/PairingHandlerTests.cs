@@ -159,7 +159,7 @@ namespace KeePassGate.Tests
         public void A_request_with_no_hello_before_it_is_refused()
         {
             var context = Send(
-                "POST", PairingHandler.RequestPath, RequestBody("agent-fictitious", Array.Empty<string>(), new byte[32]),
+                "POST", PairingHandler.RequestPath, RequestBody("agent-fictitious", Array.Empty<string>(), null, new byte[32]),
                 _connection, Approving());
 
             Assert.That(context.Status, Is.EqualTo(409));
@@ -171,7 +171,7 @@ namespace KeePassGate.Tests
             Hello(ClientProof());
 
             var wrong = Send(
-                "POST", PairingHandler.RequestPath, RequestBody("agent-fictitious", Array.Empty<string>(), new byte[32]),
+                "POST", PairingHandler.RequestPath, RequestBody("agent-fictitious", Array.Empty<string>(), null, new byte[32]),
                 _connection, Approving());
 
             Assert.That(wrong.Status, Is.EqualTo(401));
@@ -195,7 +195,7 @@ namespace KeePassGate.Tests
 
                 var context = Send(
                     "POST", PairingHandler.RequestPath,
-                    RequestBody("agent-fictitious", Array.Empty<string>(), new byte[32]), other, Approving());
+                    RequestBody("agent-fictitious", Array.Empty<string>(), null, new byte[32]), other, Approving());
 
                 Assert.That(context.Status, Is.EqualTo(409));
             }
@@ -486,6 +486,97 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_lifetime_asked_for_is_put_to_the_operator()
+        {
+            var approval = Approving();
+            Hello(ClientProof());
+
+            var context = Request("agent-fictitious", Array.Empty<string>(), "P30D", approval);
+
+            Assert.That(context.Status, Is.EqualTo(200), context.Json);
+            Assert.That(approval.LastRequest.Lifetime, Is.EqualTo(TimeSpan.FromDays(30)));
+        }
+
+        [Test]
+        public void A_request_asking_for_no_lifetime_is_offered_a_year()
+        {
+            var approval = Approving();
+            Hello(ClientProof());
+
+            var context = Request("agent-fictitious", Array.Empty<string>(), approval);
+
+            Assert.That(approval.LastRequest.Lifetime, Is.Null, "nothing was asked for");
+            using (var certificate = IdentityIn(context))
+            {
+                Assert.That(Lasts(certificate), Is.EqualTo(Lifetime.Unasked).Within(TimeSpan.FromMinutes(1)));
+            }
+        }
+
+        [Test]
+        public void The_certificate_lasts_what_the_operator_picked_rather_than_what_was_asked()
+        {
+            // The client proposes and the operator picks: thirty days asked for, seven given.
+            var approval = new FakePairingApproval(
+                request => PairingApproval.Approved(request.Profiles, TimeSpan.FromDays(7)));
+            Hello(ClientProof());
+
+            var context = Request("agent-fictitious", Array.Empty<string>(), "P30D", approval);
+
+            Assert.That(context.Status, Is.EqualTo(200), context.Json);
+            using (var certificate = IdentityIn(context))
+            {
+                Assert.That(Lasts(certificate), Is.EqualTo(TimeSpan.FromDays(7)).Within(TimeSpan.FromMinutes(1)));
+            }
+
+            Assert.That(JsonBody.Read(context.Json).Text("expires"), Is.Not.Null.And.Not.Empty,
+                "and the bundle says until when");
+        }
+
+        [TestCase("P0D")]
+        [TestCase("P366D")]
+        [TestCase("P030D")]
+        [TestCase("30")]
+        [TestCase("")]
+        public void A_lifetime_that_is_not_one_is_malformed_and_spends_nothing(string written)
+        {
+            var approval = Approving();
+            Hello(ClientProof());
+
+            var context = Request("agent-fictitious", Array.Empty<string>(), written, approval);
+
+            Assert.That(context.Status, Is.EqualTo(400), context.Json);
+            Assert.That(context.Json, Does.Contain("malformed"));
+            Assert.That(approval.Asked, Is.Zero, "nobody is asked about a request that could never be issued");
+            Assert.That(_book.Outstanding().Count, Is.EqualTo(1), "and the invitation is still good");
+
+            // And so is the hello's challenge, which is spent only once the body has been read:
+            // a request that follows on it, with no hello in between, is still heard.
+            var following = Request("agent-fictitious", Array.Empty<string>(), approval);
+            Assert.That(following.Status, Is.EqualTo(200), following.Json);
+        }
+
+        [Test]
+        public void A_lifetime_changed_on_the_way_does_not_prove_itself()
+        {
+            // The operator is shown the lifetime, so it is signed for, as the name and the profiles
+            // are: a request asking for a year that was signed for a month is somebody else's.
+            var approval = Approving();
+            Hello(ClientProof());
+
+            var context = Request("agent-fictitious", Array.Empty<string>(), "P30D", "P365D", approval);
+
+            Assert.That(context.Status, Is.EqualTo(401));
+            Assert.That(context.Json, Does.Contain("proof"));
+            Assert.That(approval.Asked, Is.Zero);
+        }
+
+        /// <summary>How long a certificate was issued for, counted from now.</summary>
+        private static TimeSpan Lasts(X509Certificate2 certificate)
+        {
+            return new DateTimeOffset(certificate.NotAfter.ToUniversalTime(), TimeSpan.Zero) - DateTimeOffset.UtcNow;
+        }
+
+        [Test]
         public void The_client_is_never_told_what_is_open_on_the_operators_screen()
         {
             _target.AdmissionBlocked = "a group dialog is open on the group this would be written to";
@@ -624,7 +715,7 @@ namespace KeePassGate.Tests
             Hello(ClientProof());
 
             var context = Send(
-                "POST", PairingHandler.RequestPath, RequestBody(name, Array.Empty<string>(), new byte[32]),
+                "POST", PairingHandler.RequestPath, RequestBody(name, Array.Empty<string>(), null, new byte[32]),
                 _connection, Approving());
 
             Assert.That(context.Status, Is.EqualTo(400));
@@ -638,7 +729,7 @@ namespace KeePassGate.Tests
             Hello(ClientProof());
 
             var context = Send(
-                "POST", PairingHandler.RequestPath, RequestBody("agent-fictitious", new[] { profile }, new byte[32]),
+                "POST", PairingHandler.RequestPath, RequestBody("agent-fictitious", new[] { profile }, null, new byte[32]),
                 _connection, Approving());
 
             Assert.That(context.Status, Is.EqualTo(400));
@@ -650,7 +741,7 @@ namespace KeePassGate.Tests
             Hello(ClientProof());
 
             Send(
-                "POST", PairingHandler.RequestPath, RequestBody("", Array.Empty<string>(), new byte[32]),
+                "POST", PairingHandler.RequestPath, RequestBody("", Array.Empty<string>(), null, new byte[32]),
                 _connection, Approving());
 
             Assert.That(_book.Outstanding().Count, Is.EqualTo(1));
@@ -723,17 +814,33 @@ namespace KeePassGate.Tests
         /// <summary>A request that proves itself, which needs the challenge the hello came back with.</summary>
         private GateContext Request(string name, string[] profiles, IPairingApproval approval)
         {
+            return Request(name, profiles, null, approval);
+        }
+
+        /// <summary>The same, asking for a lifetime as the wire writes it, or for none.</summary>
+        private GateContext Request(string name, string[] profiles, string lifetime, IPairingApproval approval)
+        {
+            return Request(name, profiles, lifetime, lifetime, approval);
+        }
+
+        /// <summary>
+        /// The same, signing for one lifetime and sending another, which is a request altered on
+        /// the way.
+        /// </summary>
+        private GateContext Request(
+            string name, string[] profiles, string signed, string sent, IPairingApproval approval)
+        {
             var challenge = _lastChallenge;
             var proof = challenge == null
                 ? new byte[32]
                 : PairingProof.Request(
-                    _token, _binding, _nonce, challenge, PairingProof.Asked(name, profiles));
+                    _token, _binding, _nonce, challenge, PairingProof.Asked(name, profiles, signed));
 
             return Send(
-                "POST", PairingHandler.RequestPath, RequestBody(name, profiles, proof), _connection, approval);
+                "POST", PairingHandler.RequestPath, RequestBody(name, profiles, sent, proof), _connection, approval);
         }
 
-        private static string RequestBody(string name, string[] profiles, byte[] proof)
+        private static string RequestBody(string name, string[] profiles, string lifetime, byte[] proof)
         {
             var text = new System.Text.StringBuilder();
             text.Append("{\"name\":\"").Append(name).Append("\",\"profiles\":[");
@@ -748,7 +855,13 @@ namespace KeePassGate.Tests
                 text.Append('"').Append(profiles[i]).Append('"');
             }
 
-            text.Append("],\"proof\":\"").Append(Convert.ToBase64String(proof)).Append("\"}");
+            text.Append(']');
+            if (lifetime != null)
+            {
+                text.Append(",\"lifetime\":\"").Append(lifetime).Append('"');
+            }
+
+            text.Append(",\"proof\":\"").Append(Convert.ToBase64String(proof)).Append("\"}");
             return text.ToString();
         }
 

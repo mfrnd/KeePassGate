@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Security.Cryptography.X509Certificates;
 using KeePassGate.Authority;
 using KeePassGate.Diagnostics;
@@ -258,7 +259,15 @@ namespace KeePassGate.Pairing
             var asked = body.Array("profiles") ?? Array.Empty<string>();
             var offered = Base64(body.Text("proof"));
 
-            if (name == null || offered == null)
+            // How long the client asks its certificate to last, as it wrote it, which is what the
+            // proof below is computed over. The document holds it to one spelling and this reads
+            // it again: present and not a lifetime is the same refusal as any other body that is
+            // not what the document declares.
+            var lifetimeWritten = body.Text("lifetime");
+            var lifetime = Lifetime.Read(lifetimeWritten);
+
+            if (name == null || offered == null
+                || (body.Names.Contains("lifetime") && lifetime == null))
             {
                 context.Respond(400, HttpResponse.ErrorBody("malformed"));
                 return;
@@ -313,7 +322,7 @@ namespace KeePassGate.Pairing
                     challenge.Binding,
                     challenge.Nonce,
                     challenge.Value,
-                    PairingProof.Asked(name, asked));
+                    PairingProof.Asked(name, asked, lifetimeWritten));
 
                 if (!FixedTime.Equals(expected, offered))
                 {
@@ -327,11 +336,15 @@ namespace KeePassGate.Pairing
                 Array.Clear(token, 0, token.Length);
             }
 
-            Approve(context, connection, name, asked);
+            Approve(context, connection, name, asked, lifetime);
         }
 
         private void Approve(
-            IGateContext context, PairingConnection connection, string name, IReadOnlyList<string> asked)
+            IGateContext context,
+            PairingConnection connection,
+            string name,
+            IReadOnlyList<string> asked,
+            TimeSpan? lifetime)
         {
             var target = connection.Target;
             var invitation = connection.Invitation;
@@ -365,7 +378,8 @@ namespace KeePassGate.Pairing
                 once,
                 known,
                 connection.Peer,
-                Returning(target, once, known));
+                Returning(target, once, known),
+                lifetime);
 
             PairingApproval decision;
             try
@@ -414,15 +428,20 @@ namespace KeePassGate.Pairing
             }
 
             // Once each here too, because what comes back is whatever the screen answered and a
-            // repeated profile would reach the certificate as a repeated claim.
-            Issue(context, connection, name, Once(decision.Profiles));
+            // repeated profile would reach the certificate as a repeated claim. The lifetime is the
+            // operator's choice, which the issuer holds to `Lifetime`'s bounds once more.
+            Issue(context, connection, name, Once(decision.Profiles), decision.Lifetime);
         }
 
         /// <summary>
         /// Phase 5. Issue, spend the invitation, land the record, and only then hand anything over.
         /// </summary>
         private void Issue(
-            IGateContext context, PairingConnection connection, string name, IReadOnlyList<string> profiles)
+            IGateContext context,
+            PairingConnection connection,
+            string name,
+            IReadOnlyList<string> profiles,
+            TimeSpan lifetime)
         {
             var target = connection.Target;
             var invitation = connection.Invitation;
@@ -430,7 +449,7 @@ namespace KeePassGate.Pairing
             X509Certificate2 certificate;
             try
             {
-                certificate = _issuer.IssueClient(target.Authority, name, profiles);
+                certificate = _issuer.IssueClient(target.Authority, name, profiles, lifetime);
             }
             catch (Exception error) when (Expected.OfIssuance(error))
             {

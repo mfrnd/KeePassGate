@@ -318,6 +318,14 @@ paths:
                     maxLength: 64
                   description: |
                     A ceiling asked for, not a grant. The operator may take any of them away.
+                lifetime:
+                  type: string
+                  pattern: "^P([1-9]|[1-9][0-9]|[12][0-9][0-9]|3[0-5][0-9]|36[0-5])D$"
+                  description: |
+                    How long the certificate should last, as an ISO 8601 duration in whole days from
+                    one to 365, `P30D` for thirty, and in that spelling alone. A proposal rather than
+                    a grant: the dialog preselects it and the operator picks, and a request without
+                    it is offered a year. The proof covers it as written.
                 proof:
                   type: string
                   maxLength: 64
@@ -353,8 +361,9 @@ paths:
           description: |
             A request that could never have been issued as asked, answered before anything is
             spent, and the body names which of three it was. `malformed` is a body that is not what
-            this declares. `name` is a name its description does not allow, and `profile` a
-            profile name that could not travel as a claim.
+            this declares, a lifetime its pattern refuses among them. `name` is a name its
+            description does not allow, and `profile` a profile name that could not travel as a
+            claim.
           content:
             application/json:
               schema:

@@ -450,16 +450,17 @@ namespace KeePassGate.Ui
         /// life, and never more than <see cref="LongestClientWarning"/>.
         /// </summary>
         /// <remarks>
-        /// **Scaled to the certificate rather than fixed at thirty days**, so that a short one is
-        /// not warned about from the moment it was issued, since a warning that is always there
-        /// says nothing. A third is when ACME clients usually renew a ninety-day certificate,
-        /// thirty days before its end, which is long enough to act on without being most of the
-        /// certificate's life; the cap keeps the year every client is issued for warned about
-        /// thirty days ahead, as it was while the window was fixed.
+        /// **Scaled to the certificate, because how long one lasts is the operator's pick from what
+        /// the client asked, a day at the shortest.** A fixed thirty days warned about a week-long
+        /// certificate from the moment it was issued, and a warning that is always there says
+        /// nothing. A third is when ACME clients usually renew a
+        /// ninety-day certificate, thirty days before its end, which is long enough to act on
+        /// without being most of the certificate's life; the cap keeps a year-long certificate
+        /// warned about thirty days ahead, as every client was when every one lasted a year.
         ///
         /// Over its life as issued, `notBefore` to `notAfter`, so the five minutes the issuer
         /// backdates by count too, and a certificate cut short at its authority's end is warned
-        /// about over the life it has rather than the year it was issued for.
+        /// about over the life it has rather than the one the operator picked.
         /// </remarks>
         public static TimeSpan ClientWarning(X509Certificate2 certificate)
         {

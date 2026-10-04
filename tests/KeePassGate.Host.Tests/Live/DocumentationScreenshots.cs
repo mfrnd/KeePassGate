@@ -375,7 +375,9 @@ namespace KeePassGate.Host.Tests.Live
         /// </remarks>
         private void ApproveAClient(KeePassDriver driver, string token)
         {
-            var client = new PairingClient(_session.KeePass.Port, token);
+            // Asking for thirty days, so the picture shows a lifetime asked for, marked among the
+            // presets, rather than the year a client that asks for nothing is offered.
+            var client = new PairingClient(_session.KeePass.Port, token) { Lifetime = "P30D" };
             Assert.That(client.Hello().ServerProved, Is.True, "the gate did not prove itself");
 
             var asking = new Thread(

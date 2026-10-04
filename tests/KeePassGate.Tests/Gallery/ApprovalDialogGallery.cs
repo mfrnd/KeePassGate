@@ -99,6 +99,21 @@ namespace KeePassGate.Tests.Gallery
                         "127.0.0.1:60001",
                         new Dictionary<string, IReadOnlyList<AdmissionRecord>> { { "retired", holding } }));
             }
+
+            // A lifetime asked for that is none of the presets, offered as a choice of its own and
+            // marked as the one asked for: three digits and the mark, as long as a choice gets.
+            Shoot(
+                "approval-09-a-lifetime-of-its-own",
+                new PairingRequest(
+                    "aaaabbbbccccdddd",
+                    "Invented Vault",
+                    "abcdef01",
+                    "agent-invented",
+                    new[] { "reader" },
+                    new[] { "reader" },
+                    "127.0.0.1:60001",
+                    null,
+                    TimeSpan.FromDays(120)));
         }
 
         private static void Shoot(string name, PairingRequest request)

@@ -313,13 +313,24 @@ fail-open in a design that fails closed everywhere else.
 | Authority | 100 years | CA true, **pathLen 0** | keyCertSign, cRLSign | **none** |
 | Host, normal | as long as the authority, issued with it | CA false | digitalSignature, keyAgreement | serverAuth |
 | Host, responder | 90 days, re-minted at every unlock and at every lock | CA false | digitalSignature | serverAuth, plus a KPG marker |
-| Client | 1 year | CA false | digitalSignature | clientAuth |
+| Client | 1 to 365 days, as the operator picks | CA false | digitalSignature | clientAuth |
 
 Every certificate carries a **subject key identifier** and every leaf an **authority key
 identifier**, so the authority can be renewed later without invalidating what it signed. **`pathLen
 0`** so it cannot mint a subordinate. **No EKU on the authority**, because one there constrains
 everything beneath it and buys nothing. **A leaf's `notAfter` is clamped to the authority's**, so
 nothing outlives what vouches for it.
+
+**A client proposes how long its certificate lasts, and the operator picks.** A pairing request may
+ask for whole days from one to 365, and the approval dialog offers 1, 7, 30 and 90 days and a year,
+with the one asked for preselected and offered as a choice of its own when it is none of those,
+`PAIRING.md` §303. A request asking for nothing is offered a year, which is what every client
+certificate was given before any could ask, so asking can shorten a certificate and never lengthen
+one. The issuer holds the same bounds as the wire, `Lifetime`, so nothing reaches a certificate
+that the document would have refused on the way in. A short life is worth having on a client
+certificate where it was worth nothing on the host's: a client's key lives on another machine, in
+a program that may be told what to do by what it reads, and a certificate that runs out is refused
+without anybody having to remember to revoke it.
 
 **A hundred years for the authority and its host certificate, and nothing counts down to it.** What
 was asked for was no expiry at all, RFC 5280's `99991231235959Z`, with a hundred years if that
@@ -664,15 +675,15 @@ Storing the certificate rather than only its digest is what makes any of this po
 
 - **The plugin knows every client's expiry** and warns on the Certificate Authority page in the
   last third of each certificate's own life, and never more than thirty days ahead: thirty days for
-  a year, ten for a month, a little over two for a week, eight hours for a day. A fixed thirty days
-  would warn about a week-long certificate from the moment it was issued, which is a warning that
-  is always there and so says nothing. A third is when ACME clients usually renew a ninety-day
-  certificate, thirty days before its end, and the cap keeps the year every client is issued for
-  warned about thirty days ahead, as it was while the window was fixed. The page says how many
-  clients that is and the days within which the last of them expires. **The authority and its host
-  certificate are not warned about**: issued together for a hundred years, §207, neither runs out
-  while anybody is minding the database. This reverses ninety days of warning for both, on the page
-  and in the plugin's log.
+  a year, ten for a month, a little over two for a week, eight hours for a day. A client proposes
+  how long its certificate lasts and the operator picks, §207, and a fixed thirty days warned about
+  a week-long one from the moment it was issued, which is a warning that is always there and so says
+  nothing. A third is when ACME clients usually renew a ninety-day certificate, thirty days before
+  its end, and the cap keeps a year-long certificate warned about thirty days ahead, as every client
+  was when every one lasted a year. The page says how many clients that is and the days within which
+  the last of them expires. **The authority and its host certificate are not warned about**: issued
+  together for a hundred years, §207, neither runs out while anybody is minding the database. This
+  reverses ninety days of warning for both, on the page and in the plugin's log.
 - **A host certificate no longer runs out under its authority.** It lived five years to the
   authority's ten, and its end was a total outage that happened while nobody was looking, with
   nothing to reissue it but recreating the authority. Issued together, it ends when the authority
@@ -734,4 +745,4 @@ Recorded because a reader seeing only this version will not know which parts wer
 | One `KPG.Authority` key for the only authority | one key per authority, filed under its digest, with a retirement beside every one replaced | a recreation written over the old key lost to a later time, so a stale copy could put a replaced authority back |
 | Recreating emptied the records | recreating and deleting remove them, and the revocations | the retirement refuses every old certificate, so the emptied records refused nothing more |
 | Ten years for the authority and five for its host, each warned about ninety days ahead and refused at pairing once past | a hundred years for both, issued together, warned about and refused at no point | no expiry was asked for, and `X509Certificate2.NotAfter` misreads `99991231235959Z` ahead of UTC, measured; a shorter host life protects nothing, since its key cannot leak without the authority's |
-| A client warned about thirty days before its end, whatever its life | in the last third of its life, and thirty days at most | a fixed thirty days would warn about a week-long certificate from the day it was issued |
+| A client warned about thirty days before its end, whatever its life | in the last third of its life, and thirty days at most | a client may ask for a week, which a fixed thirty days warned about from the day it was issued |

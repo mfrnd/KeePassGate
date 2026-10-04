@@ -235,49 +235,20 @@ namespace KeePassGate.Tests.Fakes
 
         public X509Certificate2 IssueClient(string subject, params string[] profiles)
         {
+            return IssueClient(subject, Lifetime.Unasked, profiles);
+        }
+
+        /// <summary>The same, lasting as long as the caller says.</summary>
+        public X509Certificate2 IssueClient(string subject, TimeSpan lifetime, params string[] profiles)
+        {
             // The test client is an SslStream, which will not present a certificate whose key is
             // ephemeral, so this one is loaded with a container. The plugin itself never does that
             // any more: only the client side of these tests still goes through SChannel.
             X509Certificate2 certificate;
-            using (var issued = new AuthorityIssuer().IssueClient(_authority, subject, profiles))
+            using (var issued = new AuthorityIssuer().IssueClient(_authority, subject, profiles, lifetime))
             using (KeePassGate.Testing.PrivateKeyFiles.Lock())
             {
                 certificate = CertificateBlob.Load(CertificateBlob.Save(issued), X509KeyStorageFlags.Exportable);
-            }
-
-            _issued.Add(certificate);
-            return certificate;
-        }
-
-        /// <summary>A client certificate from this authority, lasting as long as the caller says.</summary>
-        /// <remarks>
-        /// Signed here rather than by the issuer, which gives every client a year: the warning on
-        /// the Certificate Authority page is drawn over a certificate's own life, so a test of it
-        /// needs lives the issuer does not give. Backdated as the issuer backdates, so the life is
-        /// the one an issued certificate would have.
-        /// </remarks>
-        public X509Certificate2 IssueClient(string subject, TimeSpan lifetime)
-        {
-            var now = DateTimeOffset.UtcNow;
-            X509Certificate2 certificate;
-
-            using (var key = ECDsa.Create(ECCurve.NamedCurves.nistP256))
-            {
-                var request = new CertificateRequest(
-                    new X500DistinguishedName("CN=" + subject), key, HashAlgorithmName.SHA256);
-
-                request.CertificateExtensions.Add(new X509BasicConstraintsExtension(false, false, 0, true));
-                request.CertificateExtensions.Add(new X509KeyUsageExtension(X509KeyUsageFlags.DigitalSignature, true));
-                request.CertificateExtensions.Add(new X509EnhancedKeyUsageExtension(
-                    new OidCollection { new Oid(AuthorityIssuer.ClientAuthOid) }, false));
-                request.CertificateExtensions.Add(AuthorityIssuer.AuthorityKeyIdentifierOf(_authority));
-
-                using (var issued = request.Create(
-                    _authority, now - AuthorityIssuer.Backdate, now + lifetime, AuthorityIssuer.NewSerialNumber()))
-                using (var withKey = issued.CopyWithPrivateKey(key))
-                {
-                    certificate = CertificateBlob.Load(CertificateBlob.Save(withKey), X509KeyStorageFlags.Exportable);
-                }
             }
 
             _issued.Add(certificate);

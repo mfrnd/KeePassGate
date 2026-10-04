@@ -66,6 +66,13 @@ print(credentials.profiles)
 and `credentials.profiles` is what they approved. A client that assumes it got what it asked for
 discovers otherwise as a refusal on some later request, a long way from the cause.
 
+**Ask for a shorter certificate when a year is too long.** `--lifetime 30` on the command line, or
+`lifetime=timedelta(days=30)` from a program, asks for one that lasts thirty days. Anything from a
+day to a year will do, in whole days, and anything else is refused before anything is sent. The
+operator picks, from a list with the one asked for chosen already, so the lifetime is another thing
+to read off what came back: `pair` prints when the certificate expires, and so does
+`credentials.expires`. Asking for nothing is offered a year.
+
 ## Where the identity is kept
 
 Pairing stores what it was handed, a private key among it, in one directory per profile:
@@ -368,7 +375,7 @@ except api.RouteRefused:
 | `NotPaired` | Nothing is stored for a paired client where this looked: nothing has paired under that profile, or the directory named is not the one the pairing used. Pair, or name the profile or the directory it used. A `StorageError`, so catching that catches this as well. |
 | `StorageError` | From `pair`, before anything is sent: the directory cannot hold credentials, and the message says why. Nothing is spent, so fix that and pair again. Afterwards: what is stored for this client will not read, or could not be written, and the message names the file or the directory to look at. |
 | `TransportError` | No whole answer arrived: nothing is listening, the handshake failed, which a paragraph below explains, or the connection broke or timed out once the request was on its way. After a read, send it again. After a write, the change may have landed, so look before sending it again: read or list what it changed, where the rules allow that, or ask the operator. |
-| `ValueError` | A setting or an argument that could not work, refused where it is given and before anything is dialed, stored or spent: a port, a timeout, a retry budget, a response cap, a profile's name or an expiry. The message names it. Correct it in the calling program. |
+| `ValueError` | A setting or an argument that could not work, refused where it is given and before anything is dialed, stored or spent: a port, a timeout, a retry budget, a response cap, a lifetime, a profile's name or an expiry. The message names it. Correct it in the calling program. |
 | `AttributeError` | Something this client never read, which is absence and not emptiness: a listed entry's `username`, `password`, `notes`, `expires` or `custom()`, a listed group's `notes`, a listed field's `value`, or the `expires` of a read that said nothing about it. Read the node first. A withheld value is never this, so `getattr` with a default and `hasattr` cannot turn one into a default. |
 | `KeyError` | A name `entry.fields` or `entry.custom()` does not hold, as from any mapping. `get` answers its default for that, and for nothing else. |
 
