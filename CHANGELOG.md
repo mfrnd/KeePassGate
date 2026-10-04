@@ -29,10 +29,10 @@ The first version, so there is nothing earlier to describe a change from: everyt
 - **Access rules** on groups and entries, written on the **KPG** tab, and an audit file of every
   decision they make, which the plugin opens with the right to append and no other.
 - **The API**, whose routes [`openapi.yaml`](src/KeePassGate/Spec/openapi.yaml) declares: a
-  database's groups, entries, fields and attachments, and which version of the plugin is answering
-  and the commit it was built from. An update naming only what a node holds already writes
-  nothing, and a node that goes away under a request is answered as gone, or as locked, never as
-  empty.
+  database's groups, entries, fields and attachments, who the caller is and what it may do at a
+  group or an entry, and which version of the plugin is answering and the commit it was built from.
+  An update naming only what a node holds already writes nothing, and a node that goes away under a
+  request is answered as gone, or as locked, never as empty.
 - **PyKeePassGate**, the reference client, as a library and as a command line. Each refusal is an
   exception saying what to do next, and each word a `503` carries has a budget of its own to wait
   it out with; a value the rules withhold is raised as withheld rather than read as empty; nothing

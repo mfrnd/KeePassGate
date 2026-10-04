@@ -8,7 +8,7 @@ Guidance for anyone, human or AI assistant, working in this repository.
 mutual TLS, so that automation and AI agents can each be given a narrow, revocable, audited slice of
 a database.
 
-**Status: steps 1 to 21 of the build order are done and the API is served.** The plugin loads
+**Status: the whole build order is done and the API is served.** The plugin loads
 into KeePass, the KPG tab creates, recreates and deletes the database's own certificate authority,
 the gate listens on loopback and answers over mutual TLS 1.3, a client is served only if
 the database holds an admission record for its certificate, and **a stranger can now become one**:
@@ -23,9 +23,10 @@ write one**: the KPG tab on the group and entry dialogs edits the rules as a `CR
 writing into the copy the dialog puts back on OK. **And the two halves are combined**: the router
 intersects the admission record with the rules before any handler runs, and writes every decision
 the rules make, and every certificate the database issued that an operation turns away, to a JSON Lines file
-outside the database. **And there is an API**: twenty-two routes over groups,
-entries, fields and attachments, every one declaring the verb it needs and the node it is about, with
-`PyKeePassGate` covering all of them. **And a profile has a home**: the set of names a database
+outside the database. **And there is an API**: twenty-four routes over groups, entries, fields and
+attachments, every one declaring the verb it needs and the node it is about, and the routes about
+the gate and the caller beside them, with `PyKeePassGate` covering all of them. **And a profile has
+a home**: the set of names a database
 knows lives beside the authority, with a page of its own to manage them, and a name taken off it
 grants nothing whatever rule still names it. **And the plugin has a window of its own**, under KeePass's Tools
 menu, saying where the gate is listening and taking the port it should listen on. **And there is
@@ -39,8 +40,8 @@ up, or renew it on an approval dialog like the pairing one, which can refuse it 
 session, until a date or forever, an answer the clients page shows in red and takes back on
 the operator's word. **And the client has options of its own**: a program built on it
 can keep its key under a password, make the connection it goes over, and test against the stand-in
-gate the client's own tests use. **Step 22, the caller's identity and access, is being built**: what
-the build order plans for it is in `DESIGN.md` §132.
+gate the client's own tests use. **And a client can ask about itself**: who the gate takes it for,
+with the key the operator knows it by, and what it may do at a group or an entry before it tries.
 
 ## Read these before proposing anything
 
@@ -773,20 +774,21 @@ here can hang or crash the password manager.
 
 ## Where to start
 
-[`DESIGN.md`](DESIGN.md) §132 ends with a multi-step build order. **Steps 1 to 21 are done.** The
+[`DESIGN.md`](DESIGN.md) §132 ends with a multi-step build order. **All of them are done.** The
 skeleton loads and shows a KPG tab, that tab creates, recreates and deletes the authority, the gate
 serves the document's routes over mutual TLS to a client the authority issued and the database holds
 a record for, a stranger can pair, a locked database answers `503 locked`, a grant means something
 definite, an operator can write one from the group and entry dialogs, the router refuses anything
-the record and the rules do not both allow while recording every answer the rules give, twenty-two
+the record and the rules do not both allow while recording every answer the rules give, twenty-four
 routes read and change the database, two launchers start the pinned KeePass with the plugin in it,
 a profile has a home of its own, the plugin has a window under the Tools menu, `docs/` says how
-to use the result, a client's certificate can be renewed and given up, and a program built on the
-client can keep its key under a password, make its connection and test against a stand-in gate.
+to use the result, a client's certificate can be renewed and given up, a program built on the client
+can keep its key under a password, make its connection and test against a stand-in gate, and a
+client can ask who the gate takes it for and what it may do at a node.
 
 **Start with [`docs/`](docs/README.md) if the question is what this does**, and with the documents
-below if the question is why it does it that way. What is left is step 22, the caller's identity and
-access, and beyond the build order there is no release packaging and no Scoop manifest.
+below if the question is why it does it that way. What is left is not a step: there is no release
+packaging and no Scoop manifest.
 
 **The storage decision survived the thing most likely to invalidate it.** The `GroupForm` snapshot
 hazard is real and now measured rather than remembered: `SnapshotHazardTests` reads the mechanism off
