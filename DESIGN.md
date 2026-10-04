@@ -1402,7 +1402,17 @@ Each step is refusable, and each ends with something that runs.
     up, without asking anybody, since that grants it nothing.
 21. **The client's options**: a password the client's key is kept under when a program gives one, a
     program's own way of making the connection the client goes over, and the stand-in gate the
-    client's own tests run against, shipped for the tests of a program built on it.
+    client's own tests run against, shipped for the tests of a program built on it. **Done.** Until
+    here a program built on the client took each of these as the client did it: the key lay in the
+    directory as pairing wrote it, the connection was the one the client dialed, and nothing short
+    of a KeePass answered the program's own tests. What this settles is that each is the program's
+    to decide, and where that stops. The key is kept under a password when the program gives one,
+    which protects a copy of the directory and nothing against a process running as the user, and
+    the command line takes that password at a terminal and nowhere else. The connection is the
+    program's to make, with TLS and everything above it unchanged, and the command line has no way
+    to offer it, since a callable is not something an argument can carry. And the stand-in gate
+    ships as a script of answers rather than a model of the rules, so that nothing in the package is
+    a second implementation of them.
 
 Steps 5 to 8 are the ones that prove the design. Step 5 is deliberately early, because the
 `CustomData` dialog hazard is the thing most likely to invalidate the storage decision, and finding
