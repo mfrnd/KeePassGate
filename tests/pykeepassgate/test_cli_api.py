@@ -251,6 +251,73 @@ def test_show_says_a_value_the_rule_withholds_is_withheld(
     assert "None" not in printed
 
 
+#: An entry whose password is another's, by reference, and the other entry, as the gate reads each.
+BORROWING = "A1" * 16
+LENDING = "B2" * 16
+READS = {
+    BORROWING: {
+        "uuid": BORROWING,
+        "group": "g",
+        "fields": {
+            "Title": "an invented service",
+            "Password": "{REF:P@I:" + LENDING + "}",
+            "Notes": None,
+        },
+        "protected": ["Password", "Notes"],
+    },
+    LENDING: {
+        "uuid": LENDING,
+        "group": "g",
+        "fields": {"Title": "an invented vault", "Password": "not-a-real-password"},
+        "protected": ["Password"],
+    },
+}
+
+
+def lending(gate: FakeGate) -> None:
+    """Answer a read of either entry above, and `404` for anything else."""
+
+    def answer(path: str, sent: str, client: bytes | None) -> tuple[int, str]:
+        found = READS.get(path.rsplit("/", 1)[-1])
+        if found is None:
+            return 404, json.dumps({"error": "no such route"})
+
+        return 200, json.dumps(found)
+
+    gate.handler = answer
+
+
+def test_show_prints_a_reference_as_stored_unless_told_to_follow_it(
+    gate: FakeGate, kept: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    lending(gate)
+
+    assert cli.main(["show", BORROWING, "--directory", str(kept)]) == 0
+    assert f"Password: {{REF:P@I:{LENDING}}} (protected)" in capsys.readouterr().out.splitlines()
+    assert gate.requests == [("GET", f"/entries/{BORROWING}")], "nothing else is read"
+
+    assert cli.main(["show", BORROWING, "--resolve", "--directory", str(kept)]) == 0
+
+    printed = capsys.readouterr().out.splitlines()
+    assert "Password: not-a-real-password (protected)" in printed
+    assert "Notes: (withheld) (protected)" in printed, "a withheld value is still not a value"
+    assert gate.requests[-1] == ("GET", f"/entries/{LENDING}"), "the other entry, by its own read"
+
+
+def test_show_prints_nothing_when_a_value_cannot_be_resolved(
+    gate: FakeGate, kept: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # Half an entry would read as a whole one, so a refusal fails the command before a line.
+    searching = {**READS[BORROWING], "fields": {"Title": "{REF:T@T:an invented vault}"}}
+    gate.handler = lambda path, sent, client: (200, json.dumps(searching))
+
+    assert cli.main(["show", BORROWING, "--resolve", "--directory", str(kept)]) == cli.FAILED
+
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert captured.err.startswith("Unresolved: ")
+
+
 def test_add_prints_what_addresses_the_new_entry(
     gate: FakeGate, kept: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:

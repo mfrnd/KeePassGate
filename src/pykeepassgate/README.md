@@ -100,7 +100,8 @@ mark off a password that has just been rotated.
 included, and `pykeepassgate.refs.resolve(client, entry, value)` gives what KeePass would give
 for it instead: it follows a reference by identifier, reading the entry it names under this client's
 rules, and the placeholders for the entry's own strings, and refuses with `Unresolved` what it
-cannot answer as KeePass would, such as a search by title.
+cannot answer as KeePass would, such as a search by title. `pykeepassgate show <uuid> --resolve`
+prints an entry that way.
 
 **Nothing it hands back prints a value.** The `repr` of an entry, its fields, a field, an
 attachment or a response names what it is and shows none of what it holds, so a log line or a

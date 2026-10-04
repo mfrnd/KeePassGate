@@ -462,6 +462,14 @@ entry = client.entry(uuid)
 password = refs.resolve(client, entry, entry.password)
 ```
 
+```shell
+pykeepassgate show <uuid> --resolve
+```
+
+`show --resolve` prints every string the entry holds resolved this way, a withheld one still as
+`(withheld)`, and fails with exit code 1, printing nothing, when any value cannot be resolved.
+Without `--resolve`, `show` prints every value as it is stored.
+
 `refs.resolve` gives what KeePass would give for a value of an entry. It follows a reference by
 identifier, `{REF:P@I:<uuid>}` and the same for `T`, `U`, `A`, `N` and `I`, by reading the entry it
 names through the gate, and the placeholders for the entry's own strings, `{TITLE}`, `{USERNAME}`,
