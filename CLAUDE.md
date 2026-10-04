@@ -880,8 +880,9 @@ is what an append-only agent wants.
 `x-kpg-verb` is read out of the document as an `AclVerb`, and an operation that declares none stops
 the plugin loading. It stays in the document rather than becoming an attribute in code so that the
 two cannot disagree, and `none` is a decision written down rather than a field left absent: the
-status route reads nothing, and pairing is authorized by a person reading a dialog rather than by a
-grant, because a client that is pairing holds no profiles yet.
+status route and the caller's identity read nothing a rule is about, a client's revocation of itself
+touches no node a rule is about, and pairing and renewal are authorized by a person reading a dialog
+rather than by a grant, because a client that is pairing holds no profiles yet.
 
 **Four things about the router that are decisions rather than details.** A caller with no
 certificate is refused the same way everywhere, so an undeclared path and one it may not use answer

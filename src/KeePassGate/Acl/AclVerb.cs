@@ -42,10 +42,11 @@ namespace KeePassGate.Acl
     /// about authorization is a route that will not serve.
     ///
     /// `None` is not a weaker verb, and it has no letter. It is for an operation that no rule
-    /// governs: the status route, which reads nothing, and the two pairing routes, which are
-    /// authorized by a person reading a dialog rather than by a grant, because a client that is
-    /// pairing holds no profiles yet. It is written down rather than left absent, because absent
-    /// would be indistinguishable from forgetting.
+    /// governs: the status route and the caller's identity, which read nothing a rule is about, a
+    /// client's revocation of its own certificate, and the two pairing routes and the renewal,
+    /// which are authorized by a person reading a dialog rather than by a grant, because a client
+    /// that is pairing holds no profiles yet. It is written down rather than left absent, because
+    /// absent would be indistinguishable from forgetting.
     /// </remarks>
     public enum AclVerb
     {

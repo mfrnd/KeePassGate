@@ -40,6 +40,7 @@ namespace KeePassGate.Pipeline
         private readonly IReadOnlyList<string> _removed;
         private readonly string _refusal;
         private readonly string _unavailable;
+        private readonly DateTimeOffset? _expires;
 
         private ClientIdentity(
             bool isPaired,
@@ -50,9 +51,11 @@ namespace KeePassGate.Pipeline
             IReadOnlyList<string> profiles,
             string refusal,
             string unavailable = null,
-            IReadOnlyList<string> removed = null)
+            IReadOnlyList<string> removed = null,
+            DateTimeOffset? expires = null)
         {
             _removed = removed ?? Nothing;
+            _expires = expires;
             _isPaired = isPaired;
             _isLocked = isLocked;
             _unavailable = unavailable ?? (isLocked ? Gate.LockedTarget.Error : null);
@@ -78,7 +81,7 @@ namespace KeePassGate.Pipeline
             get { return _isLocked; }
         }
 
-        /// <summary>The certificate's subject, for a log line at pairing. Null for a stranger.</summary>
+        /// <summary>The certificate's subject, answered by `/gate/whoami`. Null for a stranger.</summary>
         public string Subject
         {
             get { return _subject; }
@@ -130,6 +133,21 @@ namespace KeePassGate.Pipeline
         public string Refusal
         {
             get { return _refusal; }
+        }
+
+        /// <summary>
+        /// When the certificate this client presented stops being admitted, in UTC, or null for
+        /// anybody who is not paired.
+        /// </summary>
+        /// <remarks>
+        /// Read off the certificate on the connection, which is the one the record admits: the
+        /// record is keyed by its digest. A client certificate ends no later than its authority,
+        /// which is issued for a hundred years, so the date reads back exactly here, where one in
+        /// the year 9999 would not: `CLAUDE.md` says why under "Measured facts".
+        /// </remarks>
+        public DateTimeOffset? Expires
+        {
+            get { return _expires; }
         }
 
         /// <summary>
@@ -214,7 +232,8 @@ namespace KeePassGate.Pipeline
                 profiles,
                 null,
                 null,
-                removed);
+                removed,
+                new DateTimeOffset(certificate.NotAfter.ToUniversalTime(), TimeSpan.Zero));
         }
     }
 }

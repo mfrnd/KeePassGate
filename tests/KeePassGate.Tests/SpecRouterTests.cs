@@ -289,6 +289,8 @@ namespace KeePassGate.Tests
             {
                 { GateOperations.Status, Nothing },
                 { GateOperations.HeadStatus, Nothing },
+                { GateOperations.Identity, Nothing },
+                { GateOperations.HeadIdentity, Nothing },
                 { GateOperations.RevokeCertificate, Nothing },
                 { GateOperations.RenewCertificate, Nothing },
             };

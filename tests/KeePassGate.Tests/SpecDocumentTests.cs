@@ -149,12 +149,12 @@ namespace KeePassGate.Tests
             // that has to be brought along, and there is nowhere else that number is kept.
             var declared = SpecDocument.Embedded().Operations;
 
-            Assert.That(declared.Count, Is.EqualTo(38),
-                "§128 says thirty-eight operations");
-            Assert.That(declared.Select(o => o.Path.Text).Distinct().Count(), Is.EqualTo(15),
-                "§128 says fifteen paths");
-            Assert.That(declared.Count(o => o.Method == "HEAD"), Is.EqualTo(11),
-                "§128 says eleven of them are the HEAD that answers for a GET");
+            Assert.That(declared.Count, Is.EqualTo(40),
+                "§128 says forty operations");
+            Assert.That(declared.Select(o => o.Path.Text).Distinct().Count(), Is.EqualTo(16),
+                "§128 says sixteen paths");
+            Assert.That(declared.Count(o => o.Method == "HEAD"), Is.EqualTo(12),
+                "§128 says twelve of them are the HEAD that answers for a GET");
         }
 
         [Test]
@@ -187,12 +187,12 @@ namespace KeePassGate.Tests
         public void Nothing_this_serves_is_ungoverned_by_accident()
         {
             // `none` is a decision and it is written down. What this asserts is that the only
-            // operations making it are the ones that were argued for: the status route, which
-            // reads nothing, a client's revocation of itself, which touches no group or entry a
-            // rule is about, and pairing and renewal, which a person authorizes in the moment.
-            // The heads are here as well, and for the same reason their gets are: a head
-            // declares what its own get declares, which the document is refused for
-            // getting wrong.
+            // operations making it are the ones that were argued for: the status route and the
+            // caller's identity, which read nothing a rule is about, a client's revocation of
+            // itself, which touches no group or entry a rule is about, and pairing and renewal,
+            // which a person authorizes in the moment. The heads are here as well, and for the
+            // same reason their gets are: a head declares what its own get declares, which the
+            // document is refused for getting wrong.
             var ungoverned = SpecDocument.Embedded().Operations
                 .Where(o => o.Verb == AclVerb.None)
                 .Select(o => o.OperationId)
@@ -200,7 +200,8 @@ namespace KeePassGate.Tests
 
             Assert.That(ungoverned, Is.EqualTo(new[]
             {
-                "getStatus", "headStatus", "pairHello", "pairRequest", "renewCertificate", "revokeCertificate"
+                "getIdentity", "getStatus", "headIdentity", "headStatus", "pairHello", "pairRequest",
+                "renewCertificate", "revokeCertificate",
             }));
         }
 

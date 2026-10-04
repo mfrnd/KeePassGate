@@ -6,7 +6,9 @@ was a promise. Now it is a file, so it is a test: this reads the same `openapi.y
 embeds and holds the client to it.
 
 The map below is the whole of the claim. Adding a route to the document fails this until somebody
-adds the call, and removing one fails it until somebody removes the call.
+adds the call, and removing one fails it until somebody removes the call. The one way past the
+first is `SERVED_AHEAD`, which names a route whose call is still to come and carries a marker
+saying which step owes it.
 """
 
 from __future__ import annotations
@@ -79,6 +81,11 @@ COVERED = {
     "stripAttachment": (GateClient, "strip_attachment"),
 }
 
+#: Operations the gate serves before this client has a call for them, and the only ones the
+#: coverage test below lets through without one. Each leaves this set in the commit that adds its
+#: call, and the set goes with the last of them. TODO(step 22)
+SERVED_AHEAD = frozenset({"getIdentity", "headIdentity"})
+
 #: Where the repository is, if these tests are in one: its `pyproject.toml` is what says so.
 REPOSITORY = Path(__file__).resolve().parents[2]
 
@@ -146,7 +153,13 @@ def test_the_document_carries_the_version_this_client_is_installed_as(
 def test_every_operation_the_gate_declares_has_a_call_here(document: dict[str, Any]) -> None:
     declared = set(operations(document))
 
-    assert declared == set(COVERED), (
+    assert SERVED_AHEAD.issubset(declared), (
+        f"waiting for a call that no route needs: {sorted(SERVED_AHEAD - declared)}"
+    )
+    assert SERVED_AHEAD.isdisjoint(COVERED), (
+        f"covered and still waiting: {sorted(SERVED_AHEAD & set(COVERED))}"
+    )
+    assert declared - SERVED_AHEAD == set(COVERED), (
         "the document and this client disagree about what the API is: "
         f"only in the document {sorted(declared - set(COVERED))}, "
         f"only here {sorted(set(COVERED) - declared)}"

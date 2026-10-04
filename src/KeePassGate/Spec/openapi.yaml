@@ -95,9 +95,10 @@ info:
     `x-kpg-verb` says what an operation does to the database: `create`, `read`, `update`, `strip`,
     `delete`, `list`, or `none` for an operation no grant governs. **Every operation declares one**,
     and one that does not stops the plugin loading, so authorization is not something a new route
-    can be added without. `none` is the status route, which reads nothing, the revocation of a
-    client's own certificate, which touches no group or entry a rule is about, and the two pairing
-    routes and the renewal, which a person authorizes by reading a dialog rather than a grant.
+    can be added without. `none` is the status route and the caller's identity, which read nothing
+    a rule is about, the revocation of a client's own certificate, which touches no group or entry
+    a rule is about, and the two pairing routes and the renewal, which a person authorizes by
+    reading a dialog rather than a grant.
     `list` is below `read`, because knowing that an entry exists is not knowing what is in it.
 
     `strip` and `delete` are two sizes of removal. `strip` takes the parts off a node, which are an
@@ -224,6 +225,47 @@ paths:
       responses:
         "200":
           description: The gate is serving this database, and it is unlocked.
+        "401":
+          $ref: "#/components/responses/Unpaired"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+
+  /gate/whoami:
+    get:
+      operationId: getIdentity
+      summary: Who this client is, as the database it reached admitted it.
+      description: |
+        What the connection established before this route was chosen: the certificate's subject,
+        the admission key, when the certificate stops being admitted, the profiles the rules are
+        asked about for this client, and the names its record holds that the database no longer
+        does. All of it is this client's own record, so it declares `x-kpg-verb: none`: it reads
+        nothing a rule is about, and a client the rules let reach nothing may still ask who it is.
+        What a rule grants at a node is a question about the node, which the record does not
+        answer.
+      # Not written to the audit, like every operation declaring `none`.
+      x-kpg-verb: none
+      responses:
+        "200":
+          description: The caller.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Identity"
+        "401":
+          $ref: "#/components/responses/Unpaired"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+    head:
+      operationId: headIdentity
+      summary: The same, without the content.
+      description: |
+        Runs what its `get` runs, on the same handler, and answers without the content.
+        Declared rather than derived, and governed by the same `x-kpg-verb`: this document's
+        own description says why.
+      x-kpg-verb: none
+      responses:
+        "200":
+          description: This client is admitted to this database.
         "401":
           $ref: "#/components/responses/Unpaired"
         "503":
@@ -1504,6 +1546,37 @@ components:
             client to do next; the rest are told apart by the status and read by a person. None of them carries anything
             the caller sent back to it.
 
+
+    Identity:
+      type: object
+      required: [subject, admissionKey, expires, profiles, removedProfiles]
+      additionalProperties: false
+      properties:
+        subject:
+          type: string
+          description: The certificate's subject, `CN=` and the name the client paired under.
+        admissionKey:
+          type: string
+          description: |
+            SHA-256 over the certificate, in lower case hex. The Clients page lists and revokes a
+            client by it, and every line of the audit names one by it.
+        expires:
+          type: string
+          description: When the certificate stops being admitted, RFC 3339 in UTC to the second.
+        profiles:
+          type: array
+          items:
+            type: string
+          description: |
+            The profiles the rules are asked about for this client: the ones its admission record
+            holds that the database still names, in the record's order.
+        removedProfiles:
+          type: array
+          items:
+            type: string
+          description: |
+            The ones its record holds that the database no longer names. They grant nothing, and
+            the operator naming one again gives it back.
 
     EntryFields:
       type: object

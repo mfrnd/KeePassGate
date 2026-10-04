@@ -29,6 +29,11 @@ namespace KeePassGate.Spec
         /// </remarks>
         public const string HeadStatus = "headStatus";
 
+        /// <summary>`GET /gate/whoami`: who the caller is, as the database admitted it.</summary>
+        public const string Identity = "getIdentity";
+
+        public const string HeadIdentity = "headIdentity";
+
         public const string RevokeCertificate = "revokeCertificate";
 
         public const string RenewCertificate = "renewCertificate";
@@ -172,11 +177,11 @@ namespace KeePassGate.Spec
         /// </param>
         /// <param name="access">
         /// The record and the rules, combined. Every route that touches the database asks it,
-        /// through `Nodes()`. The status route, the revocation, the renewal and the two pairing
-        /// routes do not: the status route reads nothing, a client giving up its own admission
-        /// touches no group or entry a rule is about, and pairing and renewal are authorized by a
-        /// person reading a dialog rather than by a grant, since a client that is pairing holds no
-        /// profiles yet.
+        /// through `Nodes()`. The status route, the caller's identity, the revocation, the renewal
+        /// and the two pairing routes do not: the first two read nothing a rule is about, a client
+        /// giving up its own admission touches no group or entry a rule is about, and pairing and
+        /// renewal are authorized by a person reading a dialog rather than by a grant, since a
+        /// client that is pairing holds no profiles yet.
         /// </param>
         public static SpecRouter Router(
             string version,
@@ -273,6 +278,8 @@ namespace KeePassGate.Spec
             {
                 { Status, status.Handle },
                 { HeadStatus, status.Handle },
+                { Identity, IdentityOperation.Handle },
+                { HeadIdentity, IdentityOperation.Handle },
                 { RevokeCertificate, RevocationOperation.Handle },
                 { RenewCertificate, renewal == null ? NotServed : (OperationHandler)renewal.Renew },
                 { PairHello, pairing == null ? NotServed : (OperationHandler)pairing.Hello },
