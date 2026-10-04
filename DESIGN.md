@@ -1440,6 +1440,8 @@ Each step is refusable, and each ends with something that runs.
     per profile at a node, put through the same walk an operation's own question takes and asked
     of the node alone, as the KPG tab shows its rule. One mask per profile rather than their union,
     because a switch reaches only the verbs of its own rule.
+23. **The admission audit**: the pairings the operator answers, the renewals and the revocations,
+    written to the audit file beside the rules' decisions, in the same file and the same form.
 
 Steps 5 to 8 are the ones that prove the design. Step 5 is deliberately early, because the
 `CustomData` dialog hazard is the thing most likely to invalidate the storage decision, and finding
