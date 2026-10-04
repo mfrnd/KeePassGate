@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Windows.Automation;
+using KeePassGate.Audit;
 using KeePassGate.Authority;
 using KeePassGate.Gate;
 using KeePassGate.Pairing;
@@ -166,6 +168,31 @@ namespace KeePassGate.Host.Tests.Live
         {
             Assert.That(_exited, Is.True, "KeePass did not exit, so something was still holding it.");
             Assert.That(_pluginLog, Does.Contain("stopped listening"));
+        }
+
+        [Test]
+        public void The_audit_wrote_down_the_pairing_by_its_invitation_and_the_refusal_too()
+        {
+            // The production wiring of the record of admissions: `StartListening` hands the pairing
+            // handler the access check's own, and only a running plugin reaches that line.
+            var pairings = File.ReadAllLines(_session.KeePass.AuditPath)
+                .Where(line => line.Contains("\"operation\":\"" + GateOperations.PairRequest + "\""))
+                .ToArray();
+
+            Assert.That(
+                pairings.Count(line => line.Contains("\"decision\":\"" + AuditEntry.Approved + "\"")
+                    && line.Contains("\"admissionKey\":null,\"clientKey\":\"" + _recordsInTheFile[0].AdmissionKey + "\"")
+                    && line.Contains("\"issued\":\"" + _recordsInTheFile[0].AdmissionKey + "\"")),
+                Is.EqualTo(1), string.Join(Environment.NewLine, pairings));
+            Assert.That(
+                pairings.Count(line => line.Contains("\"decision\":\"" + AuditEntry.Refused + "\"")
+                    && line.Contains("\"admissionKey\":null,\"clientKey\":null")),
+                Is.EqualTo(1), "a refusal admitted nobody, so it names no client");
+            Assert.That(
+                pairings.Count(line => line.Contains("\"decision\":\"" + AuditEntry.Refused + "\"")),
+                Is.EqualTo(1), string.Join(Environment.NewLine, pairings));
+            Assert.That(pairings, Has.All.Contains("\"invitation\":\""), "each names its invitation");
+            Assert.That(pairings, Has.None.Contains("ops"), "and none names a profile");
         }
 
         [Test]

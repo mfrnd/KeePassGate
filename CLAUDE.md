@@ -189,6 +189,10 @@ designing around them.
   thrown and throws it again where one of the four sees it: `GateTlsServer`'s callbacks, because
   Bouncy Castle turns whatever a callback throws into a fatal alert, and the call `ControlUiThread`
   marshals, because WinForms would answer one escaping it with a dialog of its own.
+  **A line that has to outlive a defect is written before it rather than caught around it**: the
+  audit line for a pairing, a renewal or a client's own revocation that landed is written by
+  `DatabaseWriter` on its own landed path, before any listener runs, so no listener's defect can
+  lose it and the operation writes none of its own.
 - **Everything on the KPG settings tab waits for that dialog's OK**, and this reverses an
   earlier decision rather than refining it. The tab used to write the moment a button was pressed,
   which was safe, because KeePass's database settings dialog holds no copy of the custom data this
@@ -856,10 +860,10 @@ admitted, at pairing or at a renewal, and has not taken away since, and there is
 two halves could be compared wrongly. The **router** asks, before the body is checked and before any
 handler runs, because a handler could forget to. A node that may not be reached and one that is not
 there answer the same 404, and the audit is where the operator is told which it was. **Each client's
-lines are paced**, by `DecisionPace`: a thousand at once and ten a second after that, per admission
-key, and a decision past that waits on the caller's own connection rather than being dropped or
-refused, because the file rolls by size and a client that could fill it quickly could push its own
-earlier lines out of it. `DESIGN.md` §120 has the argument.
+lines are paced**, by `DecisionPace`: a thousand at once and ten a second after that, per client
+key, so a renewal keeps the allowance the client has spent, and a decision past that waits on the
+caller's own connection rather than being dropped or refused, because the file rolls by size and a
+client that could fill it quickly could push its own earlier lines out of it. `DESIGN.md` §120 has the argument.
 
 **What step 12 settled about verbs.** A rule holds **six verbs and two switches**, which is
 `CRUSDLAP` and is the order they are declared, written and shown in. The verbs are create, read,

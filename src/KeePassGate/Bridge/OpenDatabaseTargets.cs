@@ -1263,14 +1263,14 @@ namespace KeePassGate.Bridge
             /// The line names the client by the start of its admission key, as the Clients page
             /// and the audit do, and never by the name it chose, which is somebody's own word.
             /// </remarks>
-            public VaultWrite Revoke(string admissionKey)
+            public VaultWrite Revoke(string admissionKey, Action audit)
             {
                 if (_writer == null)
                 {
                     return VaultWrite.Failed("this database is served without a way to write to it");
                 }
 
-                var written = _writer.Revoke(_database, admissionKey);
+                var written = _writer.Revoke(_database, admissionKey, audit);
                 if (written.Ok)
                 {
                     _log.Info("a client revoked its own certificate: " + CertificateDigest.Shorten(admissionKey));
@@ -1323,14 +1323,14 @@ namespace KeePassGate.Bridge
                 return _writer.RefuseRenewal(_database, admissionKey, refusal);
             }
 
-            public AdmissionWrite Admit(AdmissionRecord record, Func<IKeyValueStore, string> condition)
+            public AdmissionWrite Admit(AdmissionRecord record, Func<IKeyValueStore, string> condition, Action audit)
             {
                 if (_writer == null)
                 {
                     return AdmissionWrite.Failed("this database is served without a way to write to it");
                 }
 
-                return _writer.WriteAdmission(_database, record, condition);
+                return _writer.WriteAdmission(_database, record, audit, condition);
             }
 
             /// <summary>Never: a locked database is served by <see cref="LockedTarget"/> instead.</summary>

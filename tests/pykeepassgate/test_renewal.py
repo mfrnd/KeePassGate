@@ -786,8 +786,8 @@ def test_the_command_line_names_the_key_the_new_certificate_is_known_by(
     renewed_certificate: Issued,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    # The new one, which the audit names this client by from now on, and not the one it renewed
-    # from.
+    # The new one, which the audit's line for the renewal names as issued, and not the one it
+    # renewed from.
     where = tmp_path / "kept"
     credentials_module.save(where, gate.port, bundle)
 

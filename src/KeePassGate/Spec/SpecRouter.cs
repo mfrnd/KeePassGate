@@ -695,8 +695,11 @@ namespace KeePassGate.Spec
                 return false;
             });
 
+            // The identifier asked for goes on the line when it found nothing, so the operator can
+            // see which reference a request was following; the check keeps only a well-formed one.
             var decision = _access.Decide(
-                context.Client, operation.OperationId, operation.Verb, operation.Reach, node);
+                context.Client, operation.OperationId, operation.Verb, operation.Reach, node,
+                node == null ? Captured(context, "uuid") : null);
 
             if (decision.Permitted)
             {
@@ -712,6 +715,18 @@ namespace KeePassGate.Spec
 
             context.Respond(404, HttpResponse.ErrorBody(UnreachableError));
             return false;
+        }
+
+        /// <summary>A path parameter as the router captured it, or null.</summary>
+        private static string Captured(IGateContext context, string name)
+        {
+            object found;
+            var captured = context.Items.TryGetValue(ParametersItem, out found)
+                ? found as IReadOnlyDictionary<string, string>
+                : null;
+
+            string value;
+            return captured != null && captured.TryGetValue(name, out value) ? value : null;
         }
 
         private static bool Checked(IGateContext context, SpecOperation operation)

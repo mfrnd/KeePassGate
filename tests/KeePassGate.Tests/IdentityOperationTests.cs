@@ -85,7 +85,7 @@ namespace KeePassGate.Tests
             {
                 var first = CertificateDigest.Of(paired);
                 _authority.Admit(
-                    AdmissionRecord.For(renewed, DateTimeOffset.UtcNow, new[] { "reader" }, first), null);
+                    AdmissionRecord.For(renewed, DateTimeOffset.UtcNow, new[] { "reader" }, first), null, null);
 
                 var answer = Answered("GET", Identified(renewed));
 
@@ -181,6 +181,7 @@ namespace KeePassGate.Tests
                 Assert.That(context.Status, Is.EqualTo(401));
                 Assert.That(_audit.Entries.Single().OperationId, Is.EqualTo(GateOperations.Identity));
                 Assert.That(_audit.Entries.Single().AdmissionKey, Is.EqualTo(CertificateDigest.Of(certificate)));
+                Assert.That(_audit.Entries.Single().ClientKey, Is.Null, "no record stands behind a revoked certificate");
             }
         }
 

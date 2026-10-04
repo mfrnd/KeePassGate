@@ -195,6 +195,12 @@ namespace KeePassGate.Tests.Fakes
         public AdmissionRecord Admitted { get; private set; }
 
         /// <summary>
+        /// Run once a write has landed and its audit line is written, where the writer tells the
+        /// Clients page. A test sets it to throw, to stand for a defect in that listener.
+        /// </summary>
+        public Action WhenLanded { get; set; }
+
+        /// <summary>
         /// Run inside the write, where the writer holds its lock, before its condition is asked: a
         /// test stands a revocation or a change to the list there that landed just before.
         /// </summary>
@@ -263,7 +269,11 @@ namespace KeePassGate.Tests.Fakes
             }
         }
 
-        public AdmissionWrite Admit(AdmissionRecord record, Func<IKeyValueStore, string> condition)
+        /// <summary>
+        /// A record, written in this fake's own records, with its audit line written as the writer
+        /// writes it: once, when the record lands, and before anything else hears of it.
+        /// </summary>
+        public AdmissionWrite Admit(AdmissionRecord record, Func<IKeyValueStore, string> condition, Action audit)
         {
             if (AdmitThrows != null)
             {
@@ -293,12 +303,18 @@ namespace KeePassGate.Tests.Fakes
 
             if (AdmitAnswers != null)
             {
+                if (AdmitAnswers.Ok)
+                {
+                    Landed(audit);
+                }
+
                 return AdmitAnswers;
             }
 
             _admissions.Write(record);
             Name(record.Profiles);
             Admitted = record;
+            Landed(audit);
             return AdmissionWrite.Done();
         }
 
@@ -345,11 +361,20 @@ namespace KeePassGate.Tests.Fakes
             return KeePassGate.Vault.VaultWrite.Done();
         }
 
-        /// <summary>A client's revocation of itself, made in this fake's own records.</summary>
-        public KeePassGate.Vault.VaultWrite Revoke(string admissionKey)
+        /// <summary>
+        /// A client's revocation of itself, made in this fake's own records, with its audit line
+        /// written as the writer writes it: whenever the revocation is left in force, saved and
+        /// verified or not verified, and never otherwise.
+        /// </summary>
+        public KeePassGate.Vault.VaultWrite Revoke(string admissionKey, Action audit)
         {
             if (RevokeAnswers != null)
             {
+                if (RevokeAnswers.Ok || RevokeAnswers.IsUnverified)
+                {
+                    Landed(audit);
+                }
+
                 return RevokeAnswers;
             }
 
@@ -358,9 +383,27 @@ namespace KeePassGate.Tests.Fakes
                 return KeePassGate.Vault.VaultWrite.Missing();
             }
 
-            return _admissions.Remove(admissionKey)
-                ? KeePassGate.Vault.VaultWrite.Done()
-                : KeePassGate.Vault.VaultWrite.Failed("the revocation did not land");
+            if (!_admissions.Remove(admissionKey))
+            {
+                return KeePassGate.Vault.VaultWrite.Failed("the revocation did not land");
+            }
+
+            Landed(audit);
+            return KeePassGate.Vault.VaultWrite.Done();
+        }
+
+        /// <summary>The writer's order for a change that landed: the line, and then the listener.</summary>
+        private void Landed(Action audit)
+        {
+            if (audit != null)
+            {
+                audit();
+            }
+
+            if (WhenLanded != null)
+            {
+                WhenLanded();
+            }
         }
 
         /// <summary>

@@ -9,16 +9,18 @@ namespace KeePassGate.Pipeline
     /// **Everything here was settled before the route was chosen.** The connection proved the
     /// certificate, found its admission record and read the database's list of profiles, and this
     /// says what that came to, which is why it declares `x-kpg-verb: none` as the status route
-    /// does: it reads nothing a rule is about. It is not written down either, for the reason no
-    /// operation declaring `none` is: no rule was asked.
+    /// does: it reads nothing a rule is about. It is not written down either, as the status route
+    /// is not: no rule was asked, and unlike a pairing, a renewal or a client's revocation of
+    /// itself, which declare `none` too and are written as admissions, it changes no admission.
     ///
     /// **The keys are the ones the operator sees**, so a program and the person running KeePass can
     /// name the same client in the same words. `clientKey` is the key the operator knows the client
     /// by, which is the operator's ruling of 2026-10-16: the admission key of the certificate it
     /// paired with, kept through every renewal, which every count and naming of clients on the KPG
     /// tab goes by and each row of the Clients page names. `admissionKey` is the certificate on
-    /// this connection, which the Clients page revokes and every line of the audit names, and which
-    /// changes with each renewal. Both stay, because each answers a question the other cannot.
+    /// this connection, which the Clients page revokes, and which changes with each renewal. Both
+    /// stay, because each answers a question the other cannot, and every line of the audit names
+    /// both under these same two names.
     ///
     /// **The profiles come in two halves of one list.** `profiles` is what the record holds that
     /// the database still names, which is all the rules are ever asked about for this client, and

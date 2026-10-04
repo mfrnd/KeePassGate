@@ -605,6 +605,14 @@ namespace KeePassGate.Bridge
                        "exit throws away what may be the only undamaged copy", cause);
         }
 
+        /// <summary>
+        /// Writes an admission record, saves, and reads both the record and the file back before
+        /// answering that it landed.
+        /// </summary>
+        /// <param name="audit">
+        /// The audit line for the record, written here once it has landed. <see cref="Landed"/>
+        /// says when and why here. Null for no line.
+        /// </param>
         /// <param name="condition">
         /// Why the record may no longer be written, or null when it may, asked on KeePass's thread
         /// under the writer's lock, once the database is known to be writable and before anything
@@ -614,7 +622,10 @@ namespace KeePassGate.Bridge
         /// changed. Null for none.
         /// </param>
         public AdmissionWrite WriteAdmission(
-            PwDatabase database, AdmissionRecord record, Func<IKeyValueStore, string> condition = null)
+            PwDatabase database,
+            AdmissionRecord record,
+            Action audit = null,
+            Func<IKeyValueStore, string> condition = null)
         {
             if (record == null)
             {
@@ -638,7 +649,7 @@ namespace KeePassGate.Bridge
                 bool ran;
                 try
                 {
-                    ran = _ui.Run(() => outcome = OnTheUiThread(database, record, condition), WriteTimeout);
+                    ran = _ui.Run(() => outcome = OnTheUiThread(database, record, audit, condition), WriteTimeout);
                 }
                 catch (Exception error) when (Expected.OfUserInterface(error) || Expected.OfCustomData(error))
                 {
@@ -709,16 +720,21 @@ namespace KeePassGate.Bridge
         /// answers to renewals the last prune takes away with the records they were about, the
         /// revoked client's own among them.
         ///
-        /// A revocation that lands tells the Clients page, as a record that lands does.
+        /// A revocation that lands is written to the audit and tells the Clients page, as a record
+        /// that lands does.
         /// </remarks>
-        public VaultWrite Revoke(PwDatabase database, string admissionKey)
+        /// <param name="audit">
+        /// The audit line for the revocation, written here once it stands. <see cref="Landed"/>
+        /// says when and why here. Null for no line.
+        /// </param>
+        public VaultWrite Revoke(PwDatabase database, string admissionKey, Action audit = null)
         {
             if (string.IsNullOrEmpty(admissionKey))
             {
                 return VaultWrite.Missing();
             }
 
-            return Change(database, () => RevokeOnTheUiThread(database, admissionKey), Admitted);
+            return Change(database, () => RevokeOnTheUiThread(database, admissionKey), () => Landed(audit));
         }
 
         private VaultChange RevokeOnTheUiThread(PwDatabase database, string admissionKey)
@@ -1169,10 +1185,10 @@ namespace KeePassGate.Bridge
                 _log.Error("the file on disk is not what KeePass wrote to it, so a change that " +
                            "may not be stored is not being reported as stored", null);
 
-                // Left in place, so it is in force, and what is drawn from the records is told as
-                // a change that landed is: a revocation kept here refuses the client from its next
-                // request, and a page still listing that client would be listing one every request
-                // refuses. The window is not redrawn, as it is not for a change that may not be
+                // Left in place, so it is in force, and it is written down and what is drawn from
+                // the records is told as a change that landed is: a revocation kept here refuses
+                // the client from its next request, and a page still listing that client would be
+                // listing one every request refuses. The window is not redrawn, as it is not for a change that may not be
                 // stored; the clients page is about who is refused, which this decides.
                 Owing.Settle(owing, Owed);
                 if (landed != null)
@@ -1536,7 +1552,7 @@ namespace KeePassGate.Bridge
         }
 
         private AdmissionWrite OnTheUiThread(
-            PwDatabase database, AdmissionRecord record, Func<IKeyValueStore, string> condition)
+            PwDatabase database, AdmissionRecord record, Action audit, Func<IKeyValueStore, string> condition)
         {
             if (!database.IsOpen)
             {
@@ -1668,8 +1684,41 @@ namespace KeePassGate.Bridge
             }
 
             Owing.Settle(owing, Owed);
-            Admitted();
+            Landed(audit);
             return AdmissionWrite.Done();
+        }
+
+        /// <summary>
+        /// Writes the audit line for a record or a revocation that landed, and then says it landed
+        /// to whatever is drawn from the records.
+        /// </summary>
+        /// <remarks>
+        /// **The line first, and here, so that nothing after it can lose it.** An approved
+        /// pairing, an approved renewal and a client's revocation of itself are each written to
+        /// the audit once their change is in force. The operation used to write its line once this
+        /// write had returned, and a defect in a listener below went past every filter on the way
+        /// to the connection thread's catch-all, so a change that was on the disk was never written
+        /// down. Written here, on the path that leaves the change in force and before any listener
+        /// runs, the line is in the audit however the listener ends, and nothing new catches
+        /// everything to keep it there.
+        ///
+        /// **Once at most.** Each path that leaves a change in force runs this once, and a path
+        /// that took the change back out or never made it does not run it at all, so an operation
+        /// writes no line of its own about a change it handed here.
+        ///
+        /// **And never waiting**, because this is KeePass's own thread inside the writer's lock.
+        /// The line is written without waiting for the client's turn, and the operation takes that
+        /// turn once the write returns, on the client's own connection, as `AdmissionAudit` says.
+        /// An audit swallows what it cannot write, so a full disk fails nothing here either.
+        /// </remarks>
+        private void Landed(Action audit)
+        {
+            if (audit != null)
+            {
+                audit();
+            }
+
+            Admitted();
         }
 
         /// <summary>
@@ -1690,8 +1739,12 @@ namespace KeePassGate.Bridge
         /// throw, the list `Expected.OfUserInterface` keeps. Anything else is a defect in the
         /// listener and is not caught here, because this is not one of the four places that catch
         /// everything: it reaches the connection thread's, which counts it, and the pairing ends
-        /// with its record saved and no certificate handed over. The tab listens only once it is
-        /// whole, so the one listener there is cannot be told about a record half built.
+        /// with its record saved and no certificate handed over. A renewal ends the same way, and a
+        /// client's revocation of itself ends in force and answered `500`. In all three the audit
+        /// line is already written, by <see cref="Landed"/> before this ran, so the change on the
+        /// disk is in the audit as well, and the incident the catch-all counts says why its answer
+        /// was a failure. The tab listens only once it is whole, so the one listener there is
+        /// cannot be told about a record half built.
         /// </remarks>
         private void Admitted()
         {

@@ -152,6 +152,11 @@ The dialog says so before anything is pressed, because this and the renewal dial
 The save comes before the certificate, and the order is why: a program holding a certificate for a
 record that was never written would be a program that is refused forever and cannot say why.
 
+**Every answer is written to [the audit file](audit.md)**, by the invitation the request arrived on:
+approved, with the key of the certificate it admitted, once the record is saved; refused; or
+unanswered, when the dialog closed by itself. An approval whose record never landed admitted nobody
+and is not written down, and neither are the profiles, whichever were asked for or kept.
+
 **If KeePass is busy when Approve is pressed**, saving or with a dialog open that would take the
 record back, the approval is not lost. The plugin keeps it in memory, nothing is issued yet, and
 the program is told to ask again and until when: the end of the six minutes it was given for the

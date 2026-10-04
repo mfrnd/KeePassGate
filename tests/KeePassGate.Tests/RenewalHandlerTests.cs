@@ -28,6 +28,7 @@ namespace KeePassGate.Tests
         private RecordingGateLog _log;
         private DateTimeOffset _now;
         private SessionRefusals _session;
+        private RecordingAudit _audit;
         private ApprovalBook _held;
         private PairingOptions _options;
 
@@ -35,6 +36,7 @@ namespace KeePassGate.Tests
         public void SetUp()
         {
             _options = new PairingOptions();
+            _audit = new RecordingAudit();
             _authority = TestAuthority.New();
             _log = new RecordingGateLog();
             _now = DateTimeOffset.UtcNow;
@@ -83,10 +85,11 @@ namespace KeePassGate.Tests
             // The client key is the certificate the client paired with, copied from the record that
             // asked, so a renewal of a renewal is still the client that paired.
             var operatorAt = FakeRenewalApproval.Approving();
+            string paired;
 
             using (var old = _authority.IssueAdmittedClient("reader"))
             {
-                var paired = CertificateDigest.Of(old);
+                paired = CertificateDigest.Of(old);
                 var first = Renew(operatorAt, old, "{}");
                 Assert.That(first.Status, Is.EqualTo(200), first.Json);
 
@@ -100,9 +103,23 @@ namespace KeePassGate.Tests
                     using (var again = Identity(second.Json))
                     {
                         Assert.That(_authority.Admission(CertificateDigest.Of(again)).ClientKey, Is.EqualTo(paired));
+
+                        // Refused in the dialog and then by that standing answer without asking,
+                        // so every way a renewal is written down has been, from a certificate two
+                        // renewals away from the one the client paired with.
+                        var refusing = new FakeRenewalApproval(RenewalApproval.Refused(RenewalRefusal.Forever()));
+                        Renew(refusing, again, "{}");
+                        Renew(refusing, again, "{}");
                     }
                 }
             }
+
+            // The audit names the client the same way on every line, whichever certificate asked.
+            Assert.That(_audit.Entries, Has.Count.EqualTo(4));
+            Assert.That(_audit.Entries.Select(line => line.ClientKey), Is.All.EqualTo(paired),
+                string.Join(Environment.NewLine, _audit.Entries.Select(line => line.Line())));
+            Assert.That(_audit.Entries.Select(line => line.AdmissionKey).Distinct().Count(), Is.EqualTo(3),
+                "while each line names the certificate that asked");
         }
 
         [Test]
@@ -312,7 +329,8 @@ namespace KeePassGate.Tests
                 new AdmissionStore(page.PluginCustomData, _log)
                     .Write(AdmissionRecord.For(old, _now, new[] { "reader" }));
                 var factory = new KeePassGate.Ui.AuthorityPanelFactory(
-                    new FakeDatabaseSource(page), new FakePrompt(true), _log, null, null, null, _session);
+                    new FakeDatabaseSource(page), new FakePrompt(true), _log, null, null, null,
+                    new AdmissionAudit(NullGateAudit.Instance), _session);
 
                 using (var form = Dialogs.WithNestedTabControl("General"))
                 using (var panel = factory.CreatePanel(form))
@@ -614,6 +632,7 @@ namespace KeePassGate.Tests
 
                 Assert.That(context.Status, Is.EqualTo(503));
                 Assert.That(_authority.Admitted, Is.SameAs(before), "nothing was written");
+                Assert.That(_audit.Entries, Is.Empty, "an approval that renewed nothing is not written down");
             }
         }
 
@@ -640,6 +659,7 @@ namespace KeePassGate.Tests
 
                 Assert.That(again.Status, Is.EqualTo(200), again.Json);
                 Assert.That(operatorAt.Asked, Is.EqualTo(1), "asked once for both requests");
+                Assert.That(_audit.Entries.Count, Is.EqualTo(1), "and written down once, when it renewed");
             }
         }
 
@@ -655,7 +675,7 @@ namespace KeePassGate.Tests
             using (var old = _authority.IssueAdmittedClient("reader"))
             {
                 operatorAt.Meanwhile = by == "by the client"
-                    ? (Action)(() => Assume.That(_authority.Revoke(CertificateDigest.Of(old)).Ok, Is.True))
+                    ? (Action)(() => Assume.That(_authority.Revoke(CertificateDigest.Of(old), null).Ok, Is.True))
                     : () => Assume.That(_authority.Revoke(old), Is.True);
 
                 var before = _authority.Admitted;
@@ -664,6 +684,7 @@ namespace KeePassGate.Tests
                 Assert.That(context.Status, Is.EqualTo(401), context.Json);
                 Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody("unpaired")));
                 Assert.That(_authority.Admitted, Is.SameAs(before), "nothing was written");
+                Assert.That(_audit.Entries, Is.Empty, "nothing was admitted, so nothing is audited");
                 Assert.That(_log.Warnings.Select(entry => entry.Message), Has.Some.Contains("after its record went"));
             }
         }
@@ -687,6 +708,7 @@ namespace KeePassGate.Tests
                 Assert.That(context.Status, Is.EqualTo(401), context.Json);
                 Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody("unpaired")));
                 Assert.That(_authority.Admitted, Is.Null, "nothing was written");
+                Assert.That(_audit.Entries.Where(entry => entry.OperationId == "renewCertificate"), Is.Empty);
             }
         }
 
@@ -851,6 +873,101 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void An_approved_renewal_is_written_down_with_the_key_that_asked_and_the_one_issued()
+        {
+            using (var old = _authority.IssueAdmittedClient("reader"))
+            {
+                var context = Renew(FakeRenewalApproval.Approving(), old, "{}");
+
+                Assert.That(context.Status, Is.EqualTo(200), context.Json);
+
+                using (var renewed = Identity(context.Json))
+                {
+                    var line = _audit.Entries.Single();
+                    Assert.That(line.OperationId, Is.EqualTo(GateOperations.RenewCertificate));
+                    Assert.That(line.Decision, Is.EqualTo(AuditEntry.Approved));
+                    Assert.That(line.AdmissionKey, Is.EqualTo(CertificateDigest.Of(old)), "the certificate that asked");
+                    Assert.That(line.ClientKey, Is.EqualTo(CertificateDigest.Of(old)), "the client, which paired with it");
+                    Assert.That(line.Issued, Is.EqualTo(CertificateDigest.Of(renewed)), "and the one admitted in its place");
+                    Assert.That(line.Line(), Does.Not.Contain("reader"), "never a profile");
+                }
+            }
+        }
+
+        [Test]
+        public void A_listener_that_fails_after_the_new_record_landed_does_not_lose_its_line()
+        {
+            // The writer writes the line before it tells the Clients page, so a defect there costs
+            // the client its new certificate and not the operator the record of what landed, and
+            // the handler writes no second line of its own.
+            _authority.WhenLanded = () => { throw new NullReferenceException("a listener's defect"); };
+
+            using (var old = _authority.IssueAdmittedClient("reader"))
+            {
+                Assert.Throws<NullReferenceException>(() => Renew(FakeRenewalApproval.Approving(), old, "{}"));
+
+                var line = _audit.Entries.Single();
+                Assert.That(line.Decision, Is.EqualTo(AuditEntry.Approved));
+                Assert.That(line.AdmissionKey, Is.EqualTo(CertificateDigest.Of(old)));
+                Assert.That(line.Issued, Is.EqualTo(_authority.Admitted.AdmissionKey));
+            }
+        }
+
+        [TestCase("once", AdmissionAudit.RefusedOnceReason)]
+        [TestCase("in this session", AdmissionAudit.RefusedThisSessionReason)]
+        [TestCase("until a date", AdmissionAudit.RefusedUntilReason)]
+        [TestCase("forever", AdmissionAudit.RefusedForeverReason)]
+        public void A_refused_renewal_is_written_down_with_the_answer_the_operator_gave(string answer, string reason)
+        {
+            var standing = answer == "once" ? null
+                : answer == "in this session" ? RenewalRefusal.ThisSession()
+                : answer == "forever" ? RenewalRefusal.Forever()
+                : RenewalRefusal.Until(_now.AddDays(3));
+
+            using (var old = _authority.IssueAdmittedClient("reader"))
+            {
+                Renew(new FakeRenewalApproval(RenewalApproval.Refused(standing)), old, "{}");
+
+                Assert.That(_audit.Entries.Single().Decision, Is.EqualTo(AuditEntry.Refused));
+                Assert.That(_audit.Entries.Single().Reason, Is.EqualTo(reason));
+                Assert.That(_audit.Entries.Single().AdmissionKey, Is.EqualTo(CertificateDigest.Of(old)));
+            }
+        }
+
+        [TestCase("forever", AdmissionAudit.RefusedForeverReason, AdmissionAudit.StandingForeverReason)]
+        [TestCase("in this session", AdmissionAudit.RefusedThisSessionReason, AdmissionAudit.StandingThisSessionReason)]
+        public void A_renewal_an_earlier_answer_refuses_is_written_down_though_nobody_was_asked(
+            string answer, string refused, string withoutAsking)
+        {
+            // Answered at once and as often as a client cares to ask, which is why these lines are
+            // paced on the client's allowance like its decisions. The session's answer is in the
+            // plugin's memory and the other in the database, and the line says which it was.
+            var standing = answer == "forever" ? RenewalRefusal.Forever() : RenewalRefusal.ThisSession();
+
+            using (var old = _authority.IssueAdmittedClient("reader"))
+            {
+                var operatorAt = new FakeRenewalApproval(RenewalApproval.Refused(standing));
+                Renew(operatorAt, old, "{}");
+                Renew(operatorAt, old, "{}");
+
+                Assert.That(operatorAt.Asked, Is.EqualTo(1));
+                Assert.That(_audit.Entries.Select(line => line.Reason), Is.EqualTo(new[] { refused, withoutAsking }));
+            }
+        }
+
+        [Test]
+        public void A_renewal_nobody_answered_is_written_down_and_one_nobody_could_be_asked_about_is_not()
+        {
+            using (var old = _authority.IssueAdmittedClient("reader"))
+            {
+                Renew(new FakeRenewalApproval(RenewalApproval.TimedOut()), old, "{}");
+                Renew(new FakeRenewalApproval(RenewalApproval.Unavailable("no screen")), old, "{}");
+
+                Assert.That(_audit.Entries.Single().Decision, Is.EqualTo(AuditEntry.Unanswered));
+            }
+        }
+
+        [Test]
         public void A_lock_that_took_the_question_away_changes_nothing_and_says_the_database_is_locked()
         {
             using (var old = _authority.IssueAdmittedClient("reader"))
@@ -862,6 +979,43 @@ namespace KeePassGate.Tests
                 Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody(LockedTarget.Error)));
                 Assert.That(_authority.Admitted, Is.SameAs(before), "nothing was written");
                 Assert.That(_authority.StandingRefusal(CertificateDigest.Of(old)), Is.Null);
+                Assert.That(_audit.Entries.Single().Decision, Is.EqualTo(AuditEntry.Unanswered));
+            }
+        }
+
+        [Test]
+        public void An_approval_that_admitted_nobody_is_not_written_down()
+        {
+            _authority.AdmitAnswers = AdmissionWrite.Failed("the save did not land");
+
+            using (var old = _authority.IssueAdmittedClient("reader"))
+            {
+                Assert.That(Renew(FakeRenewalApproval.Approving(), old, "{}").Status, Is.EqualTo(500));
+                Assert.That(_audit.Entries, Is.Empty);
+            }
+        }
+
+        [Test]
+        public void A_record_whose_subject_is_not_a_name_this_authority_issues_asks_nobody()
+        {
+            // Only a hand at the file writes one, and the renewal would issue a certificate under
+            // a name nothing else accepts: an internal error, before anybody is asked.
+            var operatorAt = FakeRenewalApproval.Approving();
+
+            using (var old = _authority.IssueAdmittedClient("reader"))
+            {
+                var key = CertificateDigest.Of(old);
+                var stored = _authority.Admission(key).Save();
+                Assume.That(stored, Does.Contain("subject=CN=agent-fictitious"));
+                var unnamed = stored.Replace("subject=CN=agent-fictitious", "subject=O=somebody");
+                _authority.Admit(AdmissionRecord.Load(key, unnamed), null, null);
+
+                var context = Renew(operatorAt, old, "{}");
+
+                Assert.That(context.Status, Is.EqualTo(500));
+                Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody("internal error")));
+                Assert.That(operatorAt.Asked, Is.EqualTo(0));
+                Assert.That(_audit.Entries, Is.Empty);
             }
         }
 
@@ -877,6 +1031,7 @@ namespace KeePassGate.Tests
             using (var old = _authority.IssueAdmittedClient("reader"))
             {
                 Assert.That(() => Renew(operatorAt, old, "{}"), Throws.InstanceOf<ArgumentOutOfRangeException>());
+                Assert.That(_audit.Entries, Is.Empty);
             }
         }
 
@@ -886,7 +1041,7 @@ namespace KeePassGate.Tests
             var aCenturyOn = new AuthorityIssuer(
                 () => DateTimeOffset.UtcNow + AuthorityIssuer.AuthorityLifetime + TimeSpan.FromDays(1));
             var handler = new RenewalHandler(
-                FakeRenewalApproval.Approving(), new PairingOptions(), aCenturyOn, () => _now, _session, _log);
+                FakeRenewalApproval.Approving(), new PairingOptions(), aCenturyOn, () => _now, _session, null, _log);
 
             using (var old = _authority.IssueAdmittedClient("reader"))
             {
@@ -895,6 +1050,7 @@ namespace KeePassGate.Tests
 
                 Assert.That(context.Status, Is.EqualTo(500));
                 Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody("internal error")));
+                Assert.That(_audit.Entries, Is.Empty, "an approval that renewed nothing is not written down");
             }
         }
 
@@ -1008,7 +1164,8 @@ namespace KeePassGate.Tests
         private RenewalHandler Handler(FakeRenewalApproval operatorAt)
         {
             return new RenewalHandler(
-                operatorAt, _options, new AuthorityIssuer(), () => _now, _session, _log, _held);
+                operatorAt, _options, new AuthorityIssuer(), () => _now, _session, new AdmissionAudit(_audit), _log,
+                _held);
         }
 
         private static SpecRouter Router(RenewalHandler handler)

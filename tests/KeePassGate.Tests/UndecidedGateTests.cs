@@ -104,7 +104,7 @@ namespace KeePassGate.Tests
             Assert.That(_undecided.Vault, Is.Null);
             Assert.That(_undecided.Admission(_authority.DatabaseId), Is.Null);
             Assert.That(_undecided.AdmissionBlocked, Is.EqualTo(UndecidedTarget.Reason));
-            var write = _undecided.Admit(null, null);
+            var write = _undecided.Admit(null, null, null);
             Assert.That(write.Ok, Is.False);
             Assert.That(write.IsBusy, Is.True, "choosing is all it takes, so the invitee should try again");
         }

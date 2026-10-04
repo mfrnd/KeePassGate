@@ -1,7 +1,10 @@
 using System;
+using System.IO;
 using System.Linq;
 using System.Security.Cryptography.X509Certificates;
+using KeePassGate.Audit;
 using KeePassGate.Authority;
+using KeePassGate.Spec;
 using NUnit.Framework;
 
 namespace KeePassGate.Host.Tests.Live
@@ -90,6 +93,22 @@ namespace KeePassGate.Host.Tests.Live
                 "the revocation is a key of its own in the file");
             Assert.That(keePass.ReadCustomData(AuthorityKeys.ClientRecordKey(_revokedKey)), Is.Empty,
                 "and the record beside it is emptied");
+        }
+
+        [Test]
+        public void The_audit_wrote_the_revocation_down_by_the_key_it_took_away()
+        {
+            // The router this plugin runs hands the revocation the access check's own record of
+            // admissions, which only a running plugin reaches.
+            var revocations = File.ReadAllLines(_session.KeePass.AuditPath)
+                .Where(line => line.Contains("\"operation\":\"" + GateOperations.RevokeCertificate + "\""))
+                .Where(line => line.Contains("\"decision\":\"" + AuditEntry.Revoked + "\""))
+                .ToArray();
+
+            Assert.That(revocations, Has.Length.EqualTo(1));
+            Assert.That(revocations[0], Does.Contain(
+                "\"admissionKey\":\"" + _revokedKey + "\",\"clientKey\":\"" + _revokedKey + "\""),
+                "a client that never renewed, so its client key is the certificate's own");
         }
 
         [Test]

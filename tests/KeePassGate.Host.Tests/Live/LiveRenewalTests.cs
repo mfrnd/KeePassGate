@@ -1,10 +1,13 @@
 using System;
+using System.IO;
 using System.Linq;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Windows.Automation;
+using KeePassGate.Audit;
 using KeePassGate.Authority;
 using KeePassGate.Pairing;
+using KeePassGate.Pipeline;
 using KeePassGate.Spec;
 using KeePassGate.Testing;
 using KeePassGate.Transport;
@@ -161,6 +164,49 @@ namespace KeePassGate.Host.Tests.Live
             Assert.That(admitted, Has.No.Member(_oldKey));
             Assert.That(_savedBeforeTheAnswer, Has.Member(_newKey),
                 "the renewal's own save put the new record in the file before it answered");
+        }
+
+        [Test]
+        public void The_audit_wrote_down_the_renewal_its_refusals_and_the_old_certificate_given_up()
+        {
+            // The production wiring: the renewal handler and the revocation both write through the
+            // access check's own record of admissions, which only a running plugin reaches.
+            var lines = File.ReadAllLines(_session.KeePass.AuditPath);
+
+            // The client paired with the old certificate, so the old key is its client key on
+            // every line, the new certificate's own requests included.
+            Assert.That(
+                lines.Count(line => line.Contains("\"operation\":\"" + GateOperations.RenewCertificate + "\"")
+                    && line.Contains("\"decision\":\"" + AuditEntry.Approved + "\"")
+                    && line.Contains(Keys(_oldKey, _oldKey))
+                    && line.Contains("\"issued\":\"" + _newKey + "\"")),
+                Is.EqualTo(1), string.Join(Environment.NewLine, lines));
+            Assert.That(
+                lines.Count(line => line.Contains("\"operation\":\"" + GateOperations.RenewCertificate + "\"")
+                    && line.Contains(Keys(_newKey, _oldKey))
+                    && line.Contains("\"reason\":\"" + AdmissionAudit.RefusedThisSessionReason + "\"")),
+                Is.EqualTo(1), "the new certificate's renewal, refused in this session");
+            Assert.That(
+                lines.Count(line => line.Contains("\"operation\":\"" + GateOperations.RenewCertificate + "\"")
+                    && line.Contains(Keys(_newKey, _oldKey))
+                    && line.Contains("\"reason\":\"" + AdmissionAudit.StandingThisSessionReason + "\"")),
+                Is.EqualTo(1), "and the one answered without asking");
+            Assert.That(
+                lines.Count(line => line.Contains("\"operation\":\"" + GateOperations.RenewCertificate + "\"")
+                    && line.Contains(Keys(_newKey, _oldKey))
+                    && line.Contains("\"reason\":\"" + AdmissionAudit.RefusedOnceReason + "\"")),
+                Is.EqualTo(1), "and the one the dialog raised again, once the answer was lifted on the page");
+            Assert.That(
+                lines.Count(line => line.Contains("\"operation\":\"" + GateOperations.RevokeCertificate + "\"")
+                    && line.Contains(Keys(_oldKey, _oldKey))),
+                Is.EqualTo(1), "the old certificate given up, by its own key");
+            Assert.That(lines, Has.None.Contains("reader"), "never a profile");
+        }
+
+        /// <summary>A line's certificate and client, as the audit writes them, side by side.</summary>
+        private static string Keys(string admissionKey, string clientKey)
+        {
+            return "\"admissionKey\":\"" + admissionKey + "\",\"clientKey\":\"" + clientKey + "\"";
         }
 
         [Test]

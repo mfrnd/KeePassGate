@@ -30,8 +30,16 @@ namespace KeePassGate.Pipeline
     /// is counted against, so a flood from several of them is several clients the operator
     /// approved, and every line the flood writes names the one doing it.
     ///
-    /// Counted per admission key, because that is what a line names and what the Clients page
-    /// revokes. A decision with no key is not paced: only a defect reaches the audit without one.
+    /// **Counted per client key**, the key every record of one client carries and a renewal
+    /// copies, so a renewal does not hand a client a fresh allowance: counted per admission key,
+    /// as it was, a client could renew and start again at a whole burst, and so roll the file
+    /// faster than the pace says one client can. The key comes from what the router already holds,
+    /// `ClientIdentity.ClientKey`, and costs no read. A certificate the gate refuses has no client
+    /// key, since no record stands behind it, so its lines are counted by its admission key, which
+    /// is what they name; one that was a client's first certificate shares that client's
+    /// allowance, which is right, since it is the same client. A decision with no key at all is
+    /// not paced. The only lines written without one are pairings, whose pace is the operator
+    /// answering the dialog, and anything else without one is a defect.
     /// </remarks>
     public sealed class DecisionPace
     {
@@ -66,9 +74,13 @@ namespace KeePassGate.Pipeline
         }
 
         /// <summary>Returns when this client's next decision may be written down.</summary>
-        public void Take(string admissionKey)
+        /// <param name="clientKey">
+        /// The client's key, or a refused certificate's own admission key, which has no client;
+        /// null for a line no client can be counted for, which is not paced.
+        /// </param>
+        public void Take(string clientKey)
         {
-            if (admissionKey == null)
+            if (clientKey == null)
             {
                 return;
             }
@@ -80,10 +92,10 @@ namespace KeePassGate.Pipeline
                 var now = _elapsed();
 
                 Allowance allowance;
-                if (!_clients.TryGetValue(admissionKey, out allowance))
+                if (!_clients.TryGetValue(clientKey, out allowance))
                 {
                     allowance = new Allowance { Left = Burst, At = now };
-                    _clients.Add(admissionKey, allowance);
+                    _clients.Add(clientKey, allowance);
                 }
 
                 // Earned since last asked, up to the burst. Taken before waiting, so that a

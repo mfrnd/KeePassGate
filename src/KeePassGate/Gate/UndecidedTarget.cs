@@ -121,7 +121,7 @@ namespace KeePassGate.Gate
             get { return Reason; }
         }
 
-        public AdmissionWrite Admit(AdmissionRecord record, Func<IKeyValueStore, string> condition)
+        public AdmissionWrite Admit(AdmissionRecord record, Func<IKeyValueStore, string> condition, Action audit)
         {
             // Busy rather than failed, for the reason a locked database gives: the operator
             // choosing is all it takes, and the invitee should try again rather than start over.
@@ -129,7 +129,7 @@ namespace KeePassGate.Gate
         }
 
         /// <summary>Busy, for the same reason: the operator choosing is all it takes.</summary>
-        public KeePassGate.Vault.VaultWrite Revoke(string admissionKey)
+        public KeePassGate.Vault.VaultWrite Revoke(string admissionKey, Action audit)
         {
             return KeePassGate.Vault.VaultWrite.Busy(Reason);
         }

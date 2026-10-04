@@ -107,7 +107,9 @@ namespace KeePassGate.Pipeline
         /// <remarks>
         /// The key the operator knows a client by, `CA.md` §223, since every count and naming of
         /// clients on the KPG tab goes by it. <see cref="AdmissionKey"/> is the certificate on this
-        /// connection, which is the one the audit names and a revocation takes away.
+        /// connection, which is the one a revocation takes away. Every audit line about this
+        /// client names both, under the names `/gate/whoami` answers them by, and this is where
+        /// the rules' lines take the client key from, so naming it costs no read of its own.
         /// </remarks>
         public string ClientKey
         {

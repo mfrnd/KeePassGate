@@ -112,7 +112,7 @@ namespace KeePassGate.Tests
         {
             using (var certificate = _authority.IssueClient("agent-fictitious"))
             {
-                var write = _locked.Admit(AdmissionRecord.For(certificate, DateTimeOffset.UtcNow, null), null);
+                var write = _locked.Admit(AdmissionRecord.For(certificate, DateTimeOffset.UtcNow, null), null, null);
 
                 Assert.That(write.Ok, Is.False);
                 Assert.That(write.IsBusy, Is.True, "unlocking is all it takes, so it is worth trying again");

@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using KeePassGate.Audit;
 using KeePassGate.Authority;
 using KeePassGate.Pipeline;
 using KeePassGate.Spec;
@@ -18,13 +20,15 @@ namespace KeePassGate.Tests
     public sealed class RevocationOperationTests
     {
         private TestAuthority _authority;
+        private RecordingAudit _audit;
         private SpecRouter _router;
 
         [SetUp]
         public void SetUp()
         {
             _authority = TestAuthority.New();
-            _router = GateOperations.Router("9.9.9");
+            _audit = new RecordingAudit();
+            _router = GateOperations.Router("9.9.9", null, new AccessCheck(_audit));
         }
 
         [TearDown]
@@ -81,6 +85,92 @@ namespace KeePassGate.Tests
 
                 Assert.That(context.Status, Is.EqualTo(status), context.Json);
                 Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody(error)));
+            }
+        }
+
+        [Test]
+        public void A_revocation_that_took_is_written_down_by_the_key_it_took_away()
+        {
+            using (var certificate = _authority.IssueAdmittedClient("reader"))
+            {
+                _router.Handle(Revoking(Paired(certificate)));
+
+                var line = _audit.Entries.Single();
+                Assert.That(line.OperationId, Is.EqualTo(GateOperations.RevokeCertificate));
+                Assert.That(line.AdmissionKey, Is.EqualTo(CertificateDigest.Of(certificate)));
+                Assert.That(line.Decision, Is.EqualTo(AuditEntry.Revoked));
+                Assert.That(line.Reason, Is.EqualTo(AdmissionAudit.RevokedItselfReason));
+                Assert.That(line.DatabaseId, Is.EqualTo(_authority.DatabaseId));
+            }
+        }
+
+        [Test]
+        public void A_revocation_names_the_client_the_certificate_belonged_to()
+        {
+            // A client that renewed gives up a certificate that is not the one it paired with, and
+            // the line names the client by the key its record carried, which the credential check
+            // read as the connection was admitted.
+            var pairedWith = new string('c', 64);
+
+            using (var certificate = _authority.IssueAdmittedClient("reader"))
+            {
+                _router.Handle(Revoking(
+                    ClientIdentity.Paired(_authority.DatabaseId, certificate, new[] { "reader" }, null, pairedWith)));
+
+                var line = _audit.Entries.Single();
+                Assert.That(line.AdmissionKey, Is.EqualTo(CertificateDigest.Of(certificate)));
+                Assert.That(line.ClientKey, Is.EqualTo(pairedWith));
+            }
+        }
+
+        [Test]
+        public void A_revocation_kept_in_memory_and_not_verified_is_written_down_too()
+        {
+            // The database KeePass holds refuses the certificate from then on, whatever the file
+            // turns out to say, so the revocation took.
+            _authority.RevokeAnswers = Outcome("unverified");
+
+            using (var certificate = _authority.IssueAdmittedClient("reader"))
+            {
+                _router.Handle(Revoking(Paired(certificate)));
+
+                Assert.That(_audit.Entries.Single().Decision, Is.EqualTo(AuditEntry.Revoked));
+            }
+        }
+
+        [Test]
+        public void A_listener_that_fails_after_the_revocation_landed_does_not_lose_its_line()
+        {
+            // The writer writes the line before it tells the Clients page, so a defect there goes
+            // to the connection thread's catch-all with the revocation already written down, and
+            // the operation writes no second line of its own.
+            _authority.WhenLanded = () => { throw new NullReferenceException("a listener's defect"); };
+
+            using (var certificate = _authority.IssueAdmittedClient("reader"))
+            {
+                Assert.Throws<NullReferenceException>(() => _router.Handle(Revoking(Paired(certificate))));
+
+                var line = _audit.Entries.Single();
+                Assert.That(line.AdmissionKey, Is.EqualTo(CertificateDigest.Of(certificate)));
+                Assert.That(line.Reason, Is.EqualTo(AdmissionAudit.RevokedItselfReason));
+            }
+        }
+
+        [TestCase("busy")]
+        [TestCase("unsaved")]
+        [TestCase("failed")]
+        [TestCase("missing")]
+        public void A_revocation_that_did_not_take_is_not_written_down(string outcome)
+        {
+            // Taken back out, never made, or made by somebody else first: none of these revoked
+            // anything here, and the operator's own revocation is written down where it lands.
+            _authority.RevokeAnswers = Outcome(outcome);
+
+            using (var certificate = _authority.IssueAdmittedClient("reader"))
+            {
+                _router.Handle(Revoking(Paired(certificate)));
+
+                Assert.That(_audit.Entries, Is.Empty);
             }
         }
 

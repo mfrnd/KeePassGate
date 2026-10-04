@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
+using KeePassGate.Audit;
 using KeePassGate.Authority;
 using KeePassGate.Gate;
 using KeePassGate.Pairing;
@@ -36,12 +37,14 @@ namespace KeePassGate.Tests
         private byte[] _token;
         private PairingConnection _connection;
         private AuthorityIssuer _issuer;
+        private RecordingAudit _audit;
         private ApprovalBook _held;
 
         [SetUp]
         public void SetUp()
         {
             _issuer = null;
+            _audit = new RecordingAudit();
             _held = new ApprovalBook();
             _target = TestAuthority.New();
             _log = new RecordingGateLog();
@@ -342,6 +345,7 @@ namespace KeePassGate.Tests
             Assert.That(context.Status, Is.EqualTo(409));
             Assert.That(context.Json, Does.Contain("no invitation"));
             Assert.That(context.Json, Does.Not.Contain("identity"));
+            Assert.That(_audit.Entries, Is.Empty, "an approval that admitted nobody is not written down");
             Assert.That(_target.Admitted, Is.Null, "the loser must leave no record of its own behind");
             Assert.That(_log.Warnings.Any(w => w.Message.Contains("lost the race")), Is.True);
         }
@@ -383,6 +387,7 @@ namespace KeePassGate.Tests
             Assert.That(context.Status, Is.EqualTo(503));
             Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody(LockedTarget.Error)));
             Assert.That(_book.Outstanding().Count, Is.EqualTo(1));
+            Assert.That(_audit.Entries.Single().Decision, Is.EqualTo(AuditEntry.Unanswered));
         }
 
         [Test]
@@ -438,6 +443,107 @@ namespace KeePassGate.Tests
             Assert.That(context.Status, Is.EqualTo(503));
             Assert.That(_book.Outstanding().Count, Is.EqualTo(1));
             Assert.That(_log.Errors, Is.Not.Empty);
+            Assert.That(_audit.Entries, Is.Empty, "nobody was asked, so nothing was decided");
+        }
+
+        [Test]
+        public void An_approved_pairing_is_written_down_with_its_invitation_and_the_key_it_admitted()
+        {
+            Hello(ClientProof());
+
+            var context = Request("agent-fictitious", new[] { "reader" }, Approving("reader"));
+
+            Assert.That(context.Status, Is.EqualTo(200), context.Json);
+
+            var line = _audit.Entries.Single();
+            Assert.That(line.OperationId, Is.EqualTo(GateOperations.PairRequest));
+            Assert.That(line.Decision, Is.EqualTo(AuditEntry.Approved));
+            Assert.That(line.Invitation, Is.EqualTo(_invitation.Id));
+            Assert.That(line.Issued, Is.EqualTo(_target.Admitted.AdmissionKey), "the key the record admits");
+            Assert.That(line.AdmissionKey, Is.Null, "the asker held no certificate");
+            Assert.That(line.ClientKey, Is.EqualTo(_target.Admitted.ClientKey), "the client the record admits");
+            Assert.That(line.ClientKey, Is.EqualTo(line.Issued), "whose first certificate this is");
+            Assert.That(line.DatabaseId, Is.EqualTo(_target.DatabaseId));
+            Assert.That(line.Line(), Does.Not.Contain("reader"), "never a profile");
+        }
+
+        [Test]
+        public void A_listener_that_fails_after_the_record_landed_does_not_lose_its_line()
+        {
+            // The writer writes the line before it tells the Clients page, so a defect there costs
+            // the client its certificate and not the operator the record of what landed, and the
+            // handler writes no second line of its own.
+            _target.WhenLanded = () => { throw new NullReferenceException("a listener's defect"); };
+            Hello(ClientProof());
+
+            Assert.Throws<NullReferenceException>(
+                () => Request("agent-fictitious", new[] { "reader" }, Approving("reader")));
+
+            var line = _audit.Entries.Single();
+            Assert.That(line.Decision, Is.EqualTo(AuditEntry.Approved));
+            Assert.That(line.Issued, Is.EqualTo(_target.Admitted.AdmissionKey));
+        }
+
+        [Test]
+        public void A_refused_pairing_is_written_down_by_its_invitation_and_admits_nobody()
+        {
+            Hello(ClientProof());
+
+            Request("agent-fictitious", Array.Empty<string>(), FakePairingApproval.Refusing());
+
+            var line = _audit.Entries.Single();
+            Assert.That(line.Decision, Is.EqualTo(AuditEntry.Refused));
+            Assert.That(line.Reason, Is.EqualTo(AdmissionAudit.RefusedReason));
+            Assert.That(line.Invitation, Is.EqualTo(_invitation.Id));
+            Assert.That(line.Issued, Is.Null);
+            Assert.That(line.ClientKey, Is.Null, "and so names no client");
+        }
+
+        [Test]
+        public void A_pairing_nobody_answered_is_written_down_as_unanswered()
+        {
+            Hello(ClientProof());
+
+            Request("agent-fictitious", Array.Empty<string>(), FakePairingApproval.Absent());
+
+            Assert.That(_audit.Entries.Single().Decision, Is.EqualTo(AuditEntry.Unanswered));
+            Assert.That(_audit.Entries.Single().Invitation, Is.EqualTo(_invitation.Id));
+            Assert.That(_audit.Entries.Single().ClientKey, Is.Null);
+        }
+
+        [Test]
+        public void A_pairing_nobody_could_be_asked_about_is_not_written_down()
+        {
+            // Nothing was decided: a screen that was not there is not an answer.
+            Hello(ClientProof());
+
+            Request(
+                "agent-fictitious", Array.Empty<string>(), new FakePairingApproval(PairingApproval.Unavailable("no screen")));
+
+            Assert.That(_audit.Entries, Is.Empty);
+        }
+
+        [Test]
+        public void An_approval_that_admitted_nobody_is_not_written_down()
+        {
+            // `approved` always names a key that was admitted. One whose record did not land issued
+            // a certificate nobody was handed, and the plugin's log says why.
+            _target.AdmitAnswers = AdmissionWrite.Failed("the save did not happen");
+            Hello(ClientProof());
+
+            var context = Request("agent-fictitious", Array.Empty<string>(), Approving());
+
+            Assert.That(context.Status, Is.EqualTo(500));
+            Assert.That(_audit.Entries, Is.Empty);
+        }
+
+        [Test]
+        public void A_proof_that_fails_is_not_written_down()
+        {
+            // Nobody was asked anything, and the operator's audit is not a record of strangers.
+            Hello(new byte[32]);
+
+            Assert.That(_audit.Entries, Is.Empty);
         }
 
         [Test]
@@ -478,6 +584,7 @@ namespace KeePassGate.Tests
             Assert.That(_target.Admitted, Is.Null);
             Assert.That(_book.Outstanding().Count, Is.EqualTo(1),
                 "a 503 spends nothing, which is what makes it worth trying again");
+            Assert.That(_audit.Entries, Is.Empty, "an approval that admitted nobody is not written down");
         }
 
         [Test]
@@ -500,6 +607,7 @@ namespace KeePassGate.Tests
                 "nothing was issued against the invitation, so it is not spent");
             Assert.That(_log.Errors.Any(e => e.Message.Contains("could not be issued")), Is.True);
             Assert.That(_log.Surprises, Is.Empty);
+            Assert.That(_audit.Entries, Is.Empty, "an approval that admitted nobody is not written down");
         }
 
         [Test]
@@ -659,6 +767,7 @@ namespace KeePassGate.Tests
             Assert.That(approval.Asked, Is.EqualTo(1), "the operator answered once");
             Assert.That(_held.Count, Is.Zero, "a landed write uses the approval up");
             Assert.That(_book.Outstanding(), Is.Empty, "and spends the invitation");
+            Assert.That(_audit.Entries, Has.Count.EqualTo(1), "the approval is written down when it lands");
             Assert.That(_log.Entries.Any(line => line.Message.Contains("approved earlier and held")), Is.True,
                 "and the log says it waited");
         }
@@ -909,8 +1018,8 @@ namespace KeePassGate.Tests
             // The default issuer unless a test named one, which is how a clock that moves between
             // the check and the issuance is reached at all.
             return _issuer == null
-                ? new PairingHandler(_book, approval, _held, _log)
-                : new PairingHandler(_book, approval, new PairingOptions(), _issuer, null, _log, _held);
+                ? new PairingHandler(_book, approval, _held, new AdmissionAudit(_audit), _log)
+                : new PairingHandler(_book, approval, new PairingOptions(), _issuer, null, new AdmissionAudit(_audit), _log, _held);
         }
 
         private static FakePairingApproval Approving(params string[] profiles)

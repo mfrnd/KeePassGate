@@ -189,6 +189,11 @@ namespace KeePassGate.Host.Tests.Live
                 Is.True, "the permitted requests of this session are not in it");
             Assert.That(lines.Any(l => l.Contains("\"decision\":\"" + AuditEntry.Refused + "\"")),
                 Is.True, "the refusal of this session is not in it");
+
+            // And by the client, read off the record the request was admitted on, which only the
+            // credential check a running plugin makes hands the rules.
+            Assert.That(lines.Where(l => l.Contains("\"decision\":\"" + AuditEntry.Granted + "\"")),
+                Has.All.Contains("\"clientKey\":\""), "a permitted request names no client");
         }
 
         [Test]

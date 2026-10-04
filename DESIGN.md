@@ -978,8 +978,8 @@ So the rules here:
 
 ## 9. Audit §120
 
-Every decision, allowed or refused, as JSON Lines outside the database: the admission key,
-operationId, entry UUID, the node whose rule answered, decision, reason. The node asked about
+Every decision, allowed or refused, as JSON Lines outside the database: the admission key and the
+client key, operationId, entry UUID, the node whose rule answered, decision, reason. The node asked about
 and the node that decided are both there because nearest wins, so they are usually not the same
 one: a line naming only the first sends an operator to an entry that carries no rule. Never a
 title, never a value, because a log of titles is an inventory of the database sitting beside it.
@@ -993,6 +993,49 @@ closed before the router has decided about it, whether it was locked when the re
 locked while the request was being read, is answered `503 locked` and written down nowhere, because
 no rule was asked; a node that is simply not there while the database is open is still decided
 about, refused and recorded. `openapi.yaml` §502 states the rule for the caller.
+
+**And what happens to the database's admissions, in the same file and form.** No rule decides any
+of it, and it is what an operator opening this file to see what reached the database needs first: a
+client's history used to begin with its first request, while the pairing that admitted it was a
+line in the plugin's own log. So every pairing the operator answers is written, `approved`,
+`refused` or `unanswered`, naming the invitation it arrived on under `invitation` and, approved,
+the admission key it issued under `issued`; its asker holds no certificate yet, so its
+`admissionKey` is null. A renewal is written against the certificate that asked, with the key
+issued in its place when approved, which of the operator's four answers it got when refused, and
+its own reason when an answer given before refused it without asking anybody. A revocation is
+written as `revoked`, with the key it took away: the operator's when the settings dialog's OK puts
+it into the database, which is when it takes effect, and a client's own once it is in the
+database, answered `200` or `500 not verified`. The operator's word, or the act's, is the decision, so `permitted` keeps
+meaning only that the rules allowed something; `node` and `decidedAt` are null, and so is
+`operation` on the operator's revocation, which no route asked for. **`approved` always names a key
+that was admitted.** An approval whose record never landed, whose invitation was spent elsewhere or
+whose certificate could not be issued admitted nobody, was answered as a failure and said so in the
+plugin's log, and gets no line; nor does a request nobody could be asked about. Recreating or
+deleting the authority, which takes every record away, and the operator's changes to rules and
+profiles are not recorded: they wait for a design of audit levels. Never a profile, here as
+anywhere in the file.
+
+**Every line names the client as well as the certificate**, under the two names `/gate/whoami`
+answers with, so one word means one thing wherever it is read. `admissionKey` is the certificate on
+the connection, or the one a revocation took away, and a renewal changes it. `clientKey` is the
+client it belongs to, `CA.md` §223, which every one of its records carries and a renewal copies, so
+one value finds every line a client caused however often it renewed; the audit used to name only
+the certificate, under `client`, and the client was found by following each renewal's `issued`
+back to the pairing. The client key comes from the admission record the request already read, so
+it costs no read of its own: an approved pairing's is the key it issued, and the operator's
+revocation reads it from the record just before OK empties it. **Where no record stands behind a
+line it is null**: a pairing nobody approved, which admitted nobody, and a certificate the gate
+refuses, whose record is emptied or absent, or is never read because the certificate was refused
+before it. Reading the database again to name a client there would cost a read per request for a
+certificate that reaches nothing, and the revocation's line already names both keys.
+
+**A line about a change that landed is written by the write that landed it.** An approved
+pairing's, an approved renewal's and a client's own revocation's are written by `DatabaseWriter`,
+on its own path for a change left in force and before anything drawn from the records is told, and
+the operation that asked writes none of its own. Written by the operation once the write returned,
+a defect in the Clients page's listener went past every filter to the connection thread's
+catch-all, and the line about a change already on the disk was never written. Catching that defect
+instead would have made a fifth place that catches everything.
 
 Three things step 14 settled about it. It defaults to this user's own application data rather than
 beside the `.kdbx`, because a database is often on a share or in a cloud folder and a record of
@@ -1009,12 +1052,13 @@ different version.
 earlier. The all-strings shape was argued for partly on the plugin being able to read its own audit
 with the reader it already has, and it cannot: that reader takes strings and arrays of strings, so
 the lines it refuses are precisely the interesting ones, a question that never reached a node, which
-every refused certificate is. A line with no client is written only by a defect, since a caller that
-proved nothing to this authority is not written down at all. The shape is kept on its first reason
-alone. The plugin reads the audit back for one thing only, when each client last made a request,
-which the window asking which authority to keep shows, and it finds those two members by position
-rather than with `JsonBody`; the reader the file is written for is whatever the operator already
-greps with.
+every refused certificate is. A line with no admission key is a pairing, whose asker holds no
+certificate yet and which names its invitation instead; any other is written only by a defect,
+since a caller that proved nothing to this authority is not written down at all. The shape is kept
+on its first reason alone. The plugin reads the audit back for one thing only, when each client
+last made a request, which the window asking which authority to keep shows, and it finds `at` and
+`admissionKey`, the two members that needs, by position rather than with `JsonBody`; the reader
+the file is written for is whatever the operator already greps with.
 
 **The file is opened with the right to append and no other**, so that an administrator can make it
 append only and every decision is still written. That was measured rather than assumed: on .NET
@@ -1037,11 +1081,28 @@ there included, and with nothing holding it back one client rolled the file twic
 minutes and took every earlier line out of both files, its own earlier reads among them. The threat
 model includes the caller, and a caller covering its tracks is the one the audit exists for. So
 `DecisionPace` lets a client be recorded a thousand times at once and ten times a second after that,
-per admission key, and a decision past that **waits** on the caller's own connection rather than
+per client key, and a decision past that **waits** on the caller's own connection rather than
 being dropped or refused: a line left out is the loss being prevented, and a refusal would be a
 status the API does not have. That is a floor rather than a guarantee, since one flooding client now
 needs well over an hour to push a decision out of both files, and shipping the lines elsewhere is
 still what makes the record durable.
+
+**Per client key, and not per admission key as it first was.** A renewal gives a client a new
+certificate and so a new admission key, and an allowance kept by admission key started again at a
+whole burst after every renewal, so a client could spend the burst once per certificate. The client
+key is the same on every record of one client, `CA.md` §223, and the router holds it already, on
+the identity the credential check built from the record, so counting by it costs no read. A
+certificate the gate refuses has no record behind it and so no client key; its lines are counted by
+its own admission key, which is what they name.
+
+**A client's lines about its own admission count against the same allowance.** A renewal an answer
+given before refuses is answered at once and as often as a client asks, so its lines, and the line
+for a client revoking itself, are paced with that client's decisions rather than on an allowance of
+their own, which would let one client spend two. A pairing's line names no client and waits on a
+person, who is its pace, and the operator's revocation is written on KeePass's own thread, which
+must never be held. So are an approved renewal's line and a client's own revocation's, by the
+writer, so those two are written without waiting and the client's turn for each is taken once the
+write returns, on its own connection, against the same allowance.
 
 A line carries neither the profiles the client holds nor the verb it asked for. Which profiles a
 client has is in the database already, and a log repeating them is a second copy of the thing worth
@@ -1427,7 +1488,7 @@ Each step is refusable, and each ends with something that runs.
     a second implementation of them.
 22. **The caller's identity and access**: a route saying who the caller is, as the database admitted
     it, and one saying what it may do at a group or an entry, with the reference client's calls for
-    both; the admission key the operator knows a client by, printed on the client's side; and
+    both; the admission key the operator revokes a certificate by, printed on the client's side; and
     `identity`, which reads the stored identity without connecting, reporting an expired
     certificate and a key kept under a password. **Done.**
     Until here a client knew itself only from what it stored at pairing or at its last

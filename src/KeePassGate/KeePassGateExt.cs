@@ -470,7 +470,12 @@ namespace KeePassGate
                 // the thing it reached, is a record whoever compromised the database can edit.
                 _audit = new JsonLinesAudit(_log);
 
-                StartListening(host);
+                // One check for the gate's decisions and the record of what happens to admissions,
+                // the operator's revocations on the tab among them, so that the file has one clock
+                // and a client one allowance for everything it can make the file say.
+                var access = new AccessCheck(_audit);
+
+                StartListening(host, access);
 
                 _host = new GateHost(
                     _windows,
@@ -483,6 +488,7 @@ namespace KeePassGate
                             _invitations,
                             _admissions,
                             _incidents,
+                            access.Admissions,
                             _sessionRefusals),
                         _log,
                         KeePassContract.DatabaseSettingsTabControlName,
@@ -712,7 +718,11 @@ namespace KeePassGate
         /// that will not start because a plugin wanted a socket is a worse outcome than a plugin
         /// that does nothing.
         /// </summary>
-        private void StartListening(IPluginHost host)
+        /// <param name="access">
+        /// The record and the rules, combined and written down, and with them the record of what
+        /// happens to admissions, which pairing, renewal and a client's revocation write to.
+        /// </param>
+        private void StartListening(IPluginHost host, AccessCheck access)
         {
             var mainWindow = host.MainWindow;
             if (mainWindow == null)
@@ -771,9 +781,9 @@ namespace KeePassGate
             var router = GateOperations.Router(
                 GateVersion.Current,
                 GateVersion.Revision,
-                new PairingHandler(_invitations, prompt, _approvals, _log),
-                new RenewalHandler(prompt, _sessionRefusals, _approvals, _log),
-                new AccessCheck(_audit));
+                new PairingHandler(_invitations, prompt, _approvals, access.Admissions, _log),
+                new RenewalHandler(prompt, _sessionRefusals, _approvals, access.Admissions, _log),
+                access);
 
             var resolver = new GateResolver(_targets, _invitations, _log);
 

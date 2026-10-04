@@ -451,7 +451,8 @@ namespace KeePassGate.Host.Tests.Live
         /// a real request writes the moment it happened: a picture of that is a picture that changes
         /// on every regeneration. So the line is written instead, through `JsonLinesAudit` and
         /// `AuditEntry`, which is how the gate writes one: a listing of the root group, permitted by
-        /// the rule on it.
+        /// the rule on it. Its client key is the admission key, as it is for a client that paired
+        /// and never renewed, which every seeded record is.
         ///
         /// **Only before KeePass starts**, so that the plugin finds it there when it first reads the
         /// file.
@@ -472,7 +473,8 @@ namespace KeePassGate.Host.Tests.Live
 
             new KeePassGate.Audit.JsonLinesAudit(AuditPath, NullGateLog.Instance).Record(
                 new KeePassGate.Audit.AuditEntry(
-                    at, databaseId, admissionKey, "listEntries", root, root, true, "a rule here grants it"));
+                    at, databaseId, admissionKey, admissionKey, "listEntries", root, root, true,
+                    "a rule here grants it"));
         }
 
         /// <summary>

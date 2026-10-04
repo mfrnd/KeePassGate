@@ -69,13 +69,15 @@ and `credentials.profiles` is what they approved. A client that assumes it got w
 discovers otherwise as a refusal on some later request, a long way from the cause.
 
 **`pair` prints the admission key as well**: SHA-256 over the certificate it was issued, in hex,
-which is what the operator's [audit file](audit.md) names this client by. It is how the person
-running the client and the person at KeePass name the same program. `identity` prints it again
-later, `renew` prints the new certificate's and `revoke` the one it gave up, and from a program it
-is `credentials.admission_key`, read off the stored certificate. The one `pair` prints is also the
-**client key**, which the KPG tab knows this client by and which a renewal keeps while the
-admission key changes. It is stored with the identity, `credentials.client_key`, and `identity`
-prints it above the admission key; `whoami` asks the gate for both.
+which is what the operator's [audit file](audit.md) names this certificate by, as `admissionKey`,
+from the line recording the approval onwards. It is how the person running the client and the
+person at KeePass name the same program. `identity` prints it again later, `renew` prints the new
+certificate's and `revoke` the one it gave up, and from a program it is
+`credentials.admission_key`, read off the stored certificate. The one `pair` prints is also the
+**client key**, which the KPG tab knows this client by, which every line of the audit names as
+`clientKey`, and which a renewal keeps while the admission key changes. It is stored with the
+identity, `credentials.client_key`, and `identity` prints it above the admission key; `whoami`
+asks the gate for both.
 
 **Ask for a shorter certificate when a year is too long.** `--lifetime 30` on the command line, or
 `lifetime=timedelta(days=30)` from a program, asks for one that lasts thirty days. Anything from a

@@ -505,15 +505,15 @@ def test_pairing_prints_what_was_approved_rather_than_what_was_asked(
     assert f"expires: {bundle['expires']}" in printed, "the lifetime the operator picked"
 
 
-def test_pairing_prints_the_key_the_audit_names_this_client_by(
+def test_pairing_prints_the_key_the_audit_names_the_approval_by(
     tmp_path: Path,
     gate: FakeGate,
     bundle: dict[str, Any],
     client_certificate: Issued,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    # The audit file names this client by it on every line from now on, so this is how the
-    # operator tells which lines are which program's.
+    # The audit's line for an approval names the certificate it admitted as `issued`, so this is
+    # how the operator tells which new row is which program's.
     from test_pairing import INVITATION, Gate
 
     gate.handler = Gate(gate, gate.host_certificate, bundle=bundle)
@@ -611,7 +611,7 @@ def test_revoking_gives_up_the_admission_and_removes_what_was_stored(
     assert gate.requests == [("DELETE", "/gate/certificate")]
     assert "revoked CN=agent-invented" in printed
     assert f"admission key: {admission_key(client_certificate)}" in printed.splitlines(), (
-        "the key the audit names this client by, read before the files went"
+        "the key the audit's line for the revocation names, read before the files went"
     )
     assert not where.exists()
 

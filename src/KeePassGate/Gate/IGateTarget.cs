@@ -131,7 +131,13 @@ namespace KeePassGate.Gate
         /// compared with what it was given against. A refusal is answered as withdrawn. Null for
         /// none.
         /// </param>
-        AdmissionWrite Admit(AdmissionRecord record, Func<IKeyValueStore, string> condition);
+        /// <param name="audit">
+        /// The audit line for the record, which the write itself writes once the record has landed
+        /// and before anything else is told, so that nothing after the write can lose it. Run once,
+        /// on KeePass's own thread, where it must not wait; never when the record did not land, so
+        /// the caller writes no line of its own about it. Null for no line.
+        /// </param>
+        AdmissionWrite Admit(AdmissionRecord record, Func<IKeyValueStore, string> condition, Action audit);
 
         /// <summary>
         /// Revokes the client holding this admission key, at that client's own request, and makes
@@ -144,7 +150,12 @@ namespace KeePassGate.Gate
         /// revoke is answered as missing, which is a record that went before the write could make
         /// it.
         /// </remarks>
-        VaultWrite Revoke(string admissionKey);
+        /// <param name="audit">
+        /// The audit line for the revocation, written as <see cref="Admit"/> writes a record's:
+        /// once, by the write itself, whenever the revocation is left in force, saved and verified
+        /// or saved and not verified, and never otherwise. Null for no line.
+        /// </param>
+        VaultWrite Revoke(string admissionKey, Action audit);
 
         /// <summary>
         /// The operator's standing answer to renewing this certificate, read now, or null when

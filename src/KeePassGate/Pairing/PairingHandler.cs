@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography.X509Certificates;
+using KeePassGate.Audit;
 using KeePassGate.Authority;
 using KeePassGate.Diagnostics;
 using KeePassGate.Gate;
@@ -87,6 +88,11 @@ namespace KeePassGate.Pairing
     /// the record is written and saved, and only then is anything handed over. A certificate whose
     /// record never landed is a credential nobody can see and nobody can revoke, so this refuses
     /// rather than hands one over.
+    ///
+    /// **The operator's answer is written to the audit**, by the invitation it arrived on: approved,
+    /// with the key the record admits, once that record is in the database, by the write that put
+    /// it there; refused; or unanswered. Nothing is written when nobody could be asked.
+    /// `AdmissionAudit` says what a line holds.
     /// </remarks>
     public sealed class PairingHandler
     {
@@ -99,11 +105,15 @@ namespace KeePassGate.Pairing
         private readonly PairingOptions _options;
         private readonly AuthorityIssuer _issuer;
         private readonly Func<DateTimeOffset> _clock;
+        private readonly AdmissionAudit _audit;
         private readonly IGateLog _log;
         private readonly ApprovalBook _held;
 
-        public PairingHandler(IInvitations invitations, IPairingApproval approval, IGateLog log)
-            : this(invitations, approval, new PairingOptions(), new AuthorityIssuer(), null, log)
+        /// <param name="audit">
+        /// Where each pairing the operator answers is written down, or null for nowhere.
+        /// </param>
+        public PairingHandler(IInvitations invitations, IPairingApproval approval, AdmissionAudit audit, IGateLog log)
+            : this(invitations, approval, new PairingOptions(), new AuthorityIssuer(), null, audit, log)
         {
         }
 
@@ -112,8 +122,8 @@ namespace KeePassGate.Pairing
         /// book of this handler's own.
         /// </param>
         public PairingHandler(
-            IInvitations invitations, IPairingApproval approval, ApprovalBook held, IGateLog log)
-            : this(invitations, approval, new PairingOptions(), new AuthorityIssuer(), null, log, held)
+            IInvitations invitations, IPairingApproval approval, ApprovalBook held, AdmissionAudit audit, IGateLog log)
+            : this(invitations, approval, new PairingOptions(), new AuthorityIssuer(), null, audit, log, held)
         {
         }
 
@@ -123,6 +133,7 @@ namespace KeePassGate.Pairing
             PairingOptions options,
             AuthorityIssuer issuer,
             Func<DateTimeOffset> clock,
+            AdmissionAudit audit,
             IGateLog log,
             ApprovalBook held = null)
         {
@@ -136,6 +147,7 @@ namespace KeePassGate.Pairing
             _options = options ?? new PairingOptions();
             _issuer = issuer ?? new AuthorityIssuer();
             _clock = clock ?? (() => DateTimeOffset.UtcNow);
+            _audit = audit ?? new AdmissionAudit(NullGateAudit.Instance);
             _log = log ?? NullGateLog.Instance;
             _held = held ?? new ApprovalBook(_clock);
         }
@@ -475,10 +487,12 @@ namespace KeePassGate.Pairing
                 case PairingDecision.TimedOut:
                     // Nothing is spent. An absent operator does not cost the invitee its invitation.
                     _log.Warn("pairing on invitation " + invitation.Id + " went unanswered");
+                    _audit.PairingUnanswered(target.DatabaseId, invitation.Id);
                     context.Respond(504, HttpResponse.ErrorBody("unanswered"));
                     return null;
 
                 case PairingDecision.Unavailable:
+                    // Nobody was asked, so nothing was decided and the audit has nothing to say.
                     _log.Warn("pairing on invitation " + invitation.Id + " could not be put to anybody: " +
                               decision.Reason);
                     context.Respond(503, HttpResponse.ErrorBody("busy"));
@@ -488,12 +502,14 @@ namespace KeePassGate.Pairing
                     // Unanswered, as a timeout is, so nothing is spent; told as every connection to
                     // a locked database is told, since that is what this one now is.
                     _log.Warn("pairing on invitation " + invitation.Id + " was " + decision.Reason);
+                    _audit.PairingUnanswered(target.DatabaseId, invitation.Id);
                     context.Respond(503, HttpResponse.ErrorBody(LockedTarget.Error));
                     return null;
 
                 case PairingDecision.Refused:
                     _invitations.Burn(invitation.Id);
                     _log.Warn("pairing on invitation " + invitation.Id + " was refused, and it is spent");
+                    _audit.PairingRefused(target.DatabaseId, invitation.Id);
                     context.Respond(403, HttpResponse.ErrorBody("refused"));
                     return null;
             }
@@ -628,6 +644,14 @@ namespace KeePassGate.Pairing
                 // record, off the profiles the record already carries.
                 var record = AdmissionRecord.For(certificate, _clock(), profiles);
 
+                // The audit's line is the write's to write, once the record has landed and before
+                // anything else hears of it, so nothing that runs after the write can lose it. The
+                // audit keeps the log's rule below: the invitation and the key the record admits,
+                // and nothing else.
+                var databaseId = target.DatabaseId;
+                var invitationId = invitation.Id;
+                var issued = record.AdmissionKey;
+
                 // **Asked under the writer's lock, once the database is known to be writable**,
                 // which is the one moment none of it can move before the record relies on it: the
                 // approval is still held and is used up, the database still holds what it was
@@ -657,7 +681,7 @@ namespace KeePassGate.Pairing
                         return "a profile it approved is not on the list as it was when the operator answered";
                     }
 
-                    if (!_invitations.Burn(invitation.Id))
+                    if (!_invitations.Burn(invitationId))
                     {
                         refused = "no invitation";
                         return "the invitation was spent or ran out while the operator was deciding";
@@ -670,7 +694,8 @@ namespace KeePassGate.Pairing
                 AdmissionWrite written;
                 try
                 {
-                    written = target.Admit(record, condition) ?? AdmissionWrite.Failed("nothing was reported");
+                    written = target.Admit(record, condition, () => _audit.Paired(databaseId, invitationId, issued))
+                              ?? AdmissionWrite.Failed("nothing was reported");
                 }
                 catch (Exception error) when (Expected.OfCustomData(error) || Expected.OfUserInterface(error))
                 {
@@ -680,7 +705,7 @@ namespace KeePassGate.Pairing
 
                 if (!written.Ok && !spent)
                 {
-                    Unwritten(context, held, written, refused, "pairing on invitation " + invitation.Id);
+                    Unwritten(context, held, written, refused, "pairing on invitation " + invitationId);
                     return;
                 }
 
