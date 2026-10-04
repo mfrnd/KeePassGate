@@ -1400,6 +1400,9 @@ Each step is refusable, and each ends with something that runs.
     client's certificate lasts and whether it is renewed, on a dialog, and can refuse a renewal
     once, in this session, until a date or forever; the client decides when to give a certificate
     up, without asking anybody, since that grants it nothing.
+21. **The client's options**: a password the client's key is kept under when a program gives one, a
+    program's own way of making the connection the client goes over, and the stand-in gate the
+    client's own tests run against, shipped for the tests of a program built on it.
 
 Steps 5 to 8 are the ones that prove the design. Step 5 is deliberately early, because the
 `CustomData` dialog hazard is the thing most likely to invalidate the storage decision, and finding
