@@ -22,7 +22,8 @@ namespace KeePassGate.Host.Tests.Live
     /// in `tests/Shared`. So three things are held here and nowhere else: the identity the plugin
     /// exports with .NET Framework's PKCS#12 and the client reads with `cryptography`, the TLS 1.3
     /// handshake between Bouncy Castle's server and Python's `ssl`, and the plugin's framing under
-    /// the client's reader. And two of the client's answers are held against the plugin's own: a
+    /// the client's reader. And three of the client's answers are held against the plugin's own:
+    /// the admission key it works out from its certificate is the one the gate names it by, a
     /// protected value reaches it through the field route only because the rule grants `P`, and
     /// the two refusals a client waits out, a dialog open on the entry and a lock, arrive under the
     /// names a program catches them by.
@@ -58,6 +59,9 @@ namespace KeePassGate.Host.Tests.Live
         private const string Rotated = "a-rotated-invented-password";
         private const string TurnedAway = "a-password-a-dialog-turns-away";
 
+        /// <summary>What the grant comes to at the entry and at the root, as the KPG tab writes it.</summary>
+        private const string Mask = "CRU..L.P";
+
         /// <summary>What the plugin logs when the lock reaches it, as `LiveLockTests` reads it.</summary>
         private const string LockedLine = "locked, answering with the responder";
 
@@ -78,13 +82,18 @@ namespace KeePassGate.Host.Tests.Live
         private string _approvalText;
         private Run _paired;
         private Run _status;
+        private Run _storedIdentity;
+        private Run _gateWhoami;
         private Run _added;
         private Run _listed;
         private Run _shown;
         private Run _readProtected;
         private Run _rotated;
         private Run _readRotated;
+        private Run _entryAccess;
+        private Run _rootAccess;
         private Run _renewed;
+        private Run _renewedIdentity;
         private Run _renewedWhoami;
         private Run _renewedStatus;
         private Run _busy;
@@ -119,6 +128,9 @@ namespace KeePassGate.Host.Tests.Live
             if (_paired.ExitCode == 0)
             {
                 _status = Client("status" + Where(), CommandTimeout);
+                _storedIdentity = Client("identity" + Where(), CommandTimeout);
+                _gateWhoami = Client("whoami" + Where(), CommandTimeout);
+
                 _added = Client(
                     "add --title \"" + Title + "\" --username \"" + User + "\" --password" + Where(),
                     CommandTimeout, Stored);
@@ -129,10 +141,14 @@ namespace KeePassGate.Host.Tests.Live
                 _rotated = Calls("password " + Created(), CommandTimeout, Rotated);
                 _readRotated = Calls("field " + Created() + " Password", CommandTimeout);
 
+                _entryAccess = Client("access --entry " + Created() + Where(), CommandTimeout);
+                _rootAccess = Client("access --group root" + Where(), CommandTimeout);
+
                 // The client's own renewal, through the real dialog, which ends in the client
                 // giving up the certificate it renewed from: the two routes the Python client had
                 // only ever met in its stand-in. Everything after this runs on the new identity.
                 _renewed = RenewAndApprove(driver);
+                _renewedIdentity = Client("identity" + Where(), CommandTimeout);
                 _renewedWhoami = Client("whoami" + Where(), CommandTimeout);
                 _renewedStatus = Client("status" + Where(), CommandTimeout);
 
@@ -199,6 +215,27 @@ namespace KeePassGate.Host.Tests.Live
         }
 
         [Test]
+        public void The_gate_names_the_client_by_the_key_the_client_works_out_for_itself()
+        {
+            // The client takes SHA-256 over the certificate it stored, and the gate over the one
+            // the record is keyed by. Three printings of one key, or the operator's audit names a
+            // client the person running it cannot find.
+            Assert.That(_gateWhoami, Is.Not.Null, "the client never paired, so nothing was asked");
+            Assert.That(_storedIdentity.ExitCode, Is.Zero, _storedIdentity.ToString());
+            Assert.That(_gateWhoami.ExitCode, Is.Zero, _gateWhoami.ToString());
+
+            var paired = KeyIn(_paired);
+            Assert.That(paired, Does.Match("^[0-9a-f]{64}$"), _paired.ToString());
+            Assert.That(KeyIn(_storedIdentity), Is.EqualTo(paired), _storedIdentity.ToString());
+            Assert.That(KeyIn(_gateWhoami), Is.EqualTo(paired), _gateWhoami.ToString());
+
+            // And a pairing's certificate is the client's first, so its client key is the same key,
+            // stored on the client's side and kept in the record on the gate's.
+            Assert.That(ClientKeyIn(_storedIdentity), Is.EqualTo(paired), _storedIdentity.ToString());
+            Assert.That(ClientKeyIn(_gateWhoami), Is.EqualTo(paired), _gateWhoami.ToString());
+        }
+
+        [Test]
         public void The_client_renews_through_the_dialog_and_gives_up_the_certificate_it_renewed_from()
         {
             // `renew` and `revoke_certificate` against the real plugin: the new identity is stored,
@@ -208,9 +245,28 @@ namespace KeePassGate.Host.Tests.Live
             Assert.That(_renewed.ExitCode, Is.Zero, _renewed.ToString());
             Assert.That(_renewed.Output, Does.Contain("renewed CN=" + Name));
 
+            Assert.That(_renewedIdentity.ExitCode, Is.Zero, _renewedIdentity.ToString());
+            Assert.That(KeyIn(_renewedIdentity), Is.Not.Null.And.Not.EqualTo(KeyIn(_storedIdentity)),
+                "a new certificate is a new key");
+            Assert.That(KeyIn(_renewed), Is.EqualTo(KeyIn(_renewedIdentity)), "and it is the one stored");
+
+            // The same client under a new certificate: the client key the client copied is the one
+            // the gate copied into the new record, and both are the key it paired with.
             Assert.That(_renewedWhoami.ExitCode, Is.Zero, _renewedWhoami.ToString());
+            Assert.That(ClientKeyIn(_renewedIdentity), Is.EqualTo(KeyIn(_paired)), _renewedIdentity.ToString());
+            Assert.That(ClientKeyIn(_renewedWhoami), Is.EqualTo(KeyIn(_paired)), _renewedWhoami.ToString());
+            Assert.That(KeyIn(_renewedWhoami), Is.EqualTo(KeyIn(_renewed)), _renewedWhoami.ToString());
             Assert.That(_renewedStatus.ExitCode, Is.Zero, "the new identity is admitted: " + _renewedStatus);
             Assert.That(_renewed.Errors, Does.Not.Contain("still admitted"), "the old one was given up");
+        }
+
+        [Test]
+        public void The_gate_says_which_profiles_count_for_the_client()
+        {
+            Assert.That(_gateWhoami, Is.Not.Null, "the client never paired, so nothing was asked");
+            Assert.That(_gateWhoami.Output, Does.Contain("subject:          CN=" + Name));
+            Assert.That(_gateWhoami.Output, Does.Contain("profiles:         " + Profile));
+            Assert.That(_gateWhoami.Output, Does.Contain("removed profiles: none"));
         }
 
         [Test]
@@ -251,6 +307,19 @@ namespace KeePassGate.Host.Tests.Live
             Assert.That(_rotated.ExitCode, Is.Zero, _rotated.ToString());
             Assert.That(_readRotated.ExitCode, Is.Zero, _readRotated.ToString());
             Assert.That(_readRotated.Output.Trim(), Is.EqualTo(Rotated));
+        }
+
+        [Test]
+        public void The_gate_says_what_the_client_may_do_at_the_entry_and_at_the_root()
+        {
+            // The rule is on the root and nothing below it says otherwise, so the entry inherits it
+            // whole: one line for the one profile the client holds.
+            Assert.That(_entryAccess, Is.Not.Null, "the client never paired, so nothing was asked");
+            Assert.That(_entryAccess.ExitCode, Is.Zero, _entryAccess.ToString());
+            Assert.That(_entryAccess.Output.Trim(), Is.EqualTo(Mask + "  " + Profile));
+
+            Assert.That(_rootAccess.ExitCode, Is.Zero, _rootAccess.ToString());
+            Assert.That(_rootAccess.Output.Trim(), Is.EqualTo(Mask + "  " + Profile));
         }
 
         [Test]
@@ -302,6 +371,28 @@ namespace KeePassGate.Host.Tests.Live
         private string Created()
         {
             return _added == null ? string.Empty : _added.Output.Trim();
+        }
+
+        /// <summary>The admission key a command printed, on the line that names it.</summary>
+        private static string KeyIn(Run run)
+        {
+            return Printed(run, "admission key:");
+        }
+
+        /// <summary>The client key a command printed, on the line that names it.</summary>
+        private static string ClientKeyIn(Run run)
+        {
+            return Printed(run, "client key:");
+        }
+
+        /// <summary>What a command printed after a label at the start of a line, or null.</summary>
+        private static string Printed(Run run, string label)
+        {
+            var line = run.Output
+                .Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+                .FirstOrDefault(each => each.StartsWith(label, StringComparison.Ordinal));
+
+            return line == null ? null : line.Substring(label.Length).Trim();
         }
 
         /// <summary>Phase 0, on the real tab: the operator invites somebody and reads out the token.</summary>
