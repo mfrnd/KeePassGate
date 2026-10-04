@@ -373,7 +373,9 @@ designing around them.
   `src/pykeepassgate/`, imports as `pykeepassgate`, and is split into `pykeepassgate.api`, the
   library, and `pykeepassgate.cli`, a command line that can do nothing the library cannot, with
   `pykeepassgate.testing` beside them, a scripted stand-in gate for testing a program built on the
-  library, which is not a model of the rules. A route the gate serves and this does not cover is a
+  library, which is not a model of the rules, and `pykeepassgate.refs`, which follows field
+  references as KeePass does under the caller's own rules, in a module of its own so that the
+  client stays one method per route. A route the gate serves and this does not cover is a
   gap, and a method here with no route behind it is a lie. Its `pyproject.toml` is at the
   repository root because there is one Python project.
 - **The client's protocol code is pinned against the plugin's own output.**
@@ -382,6 +384,12 @@ designing around them.
   something neither document describes, because both halves are code written here. Regenerate them
   from the plugin rather than from the client if they ever have to change. `ProtocolVectorsTests`
   holds the plugin to the same values, so a change to either half fails in that half's own tier.
+  **The resolver is pinned against KeePass's own compiler the same way**:
+  `tests/Shared/ReferenceVectors.json` is what `SprEngine` makes of every case, written by
+  `ReferenceVectorsTests` in the host tier and read by `test_refs.py`, and it is regenerated from
+  KeePass, never from the client. **What it follows is KeePass's order, and what it cannot be sure
+  of it refuses**: a search other than by identifier, every placeholder beyond the entry's own
+  strings, and a placeholder that matches a name only once letters beyond ASCII lose their case.
 - **The client cannot be a `pykeepass` backend, and the reason is the design.** A `PyKeePass` is a
   decrypted `.kdbx`, and this side of the API has neither the file nor the master password on
   purpose. Its `save` writes the file it was opened from, so an edit to a synthesized one would
@@ -597,6 +605,14 @@ a database's custom data. Each gathers what it settled in its own `RESULTS.md`. 
   under the pointer says, so a tip on a panel pinned left to right is still drawn right to left
   under a right-to-left translation. `Tooltips.Wrapped` marks both ends of every line left to
   right, and `TooltipsTests` pins the flag and the drawing.
+- **KeePass compares placeholders without case in .NET Framework's terms, which are not Python's.**
+  `OrdinalIgnoreCase` and `char.ToUpperInvariant` leave the Turkish i with no dot, U+0131, and the
+  long s, U+017F, as letters of their own, so `{TITLE}` spelled with the first is no placeholder to
+  KeePass and a reference searching by it is no reference, while Python's `str.upper` turns both
+  into ASCII and would have followed them. A `ü` and a `Ü` are one letter to both. So
+  `pykeepassgate.refs` compares ASCII without case and refuses a placeholder that matches a name only
+  beyond it, rather than guess at .NET Framework's tables. `ReferenceVectors.json` holds the cases,
+  made by KeePass itself.
 - **`dotnet test` with a filter that matches nothing exits 0**, having run nothing, and its trx
   counts nothing. A gate that believes the exit code is green over an empty run, so `build.ps1`
   reads each tier's trx and refuses one in which nothing executed, `Assert-Executed`.

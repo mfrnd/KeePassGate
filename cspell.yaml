@@ -38,6 +38,10 @@ ignorePaths:
   - scratchpad/**
   - package-lock.json
   - "**/*.kdbx"
+  # What KeePass's placeholder engine makes of invented values, written by `ReferenceVectorsTests`:
+  # placeholders spelled the way KeePass spells them, names beyond ASCII and the text the engine
+  # put together out of them, none of it a word anybody chose.
+  - tests/Shared/ReferenceVectors.json
 
 ignoreRegExpList:
   # A run of hex, which covers fingerprints, key identifiers and the SNI labels.

@@ -8,7 +8,7 @@ fails in a way that names its own cause.
 | **Unit** | `tests/KeePassGate.Tests` | nothing but a compiler, and a loopback socket | under a minute | the logic, and the whole transport, against stand-ins shaped like KeePass |
 | **Host** | `tests/KeePassGate.Host.Tests` | a KeePass to reference | about a second | the same code against real KeePass types, dialogs and events |
 | **End to end** | the same project, category `Live` | a desktop, and the machine to itself | under a minute | the plugin loading into a KeePass a user could have started |
-| **Client** | `tests/pykeepassgate` | Python, and `uv` to arrange it | a few seconds | PyKeePassGate against stand-ins, and its protocol code against vectors the plugin produced |
+| **Client** | `tests/pykeepassgate` | Python, and `uv` to arrange it | a few seconds | PyKeePassGate against stand-ins, its protocol code against vectors the plugin produced, and its resolver against vectors KeePass produced |
 
 ```powershell
 .\build.ps1                     # the prose, the client tier, then unit and host
@@ -79,6 +79,19 @@ really reaches the root from an entry three groups down. Then it runs the resolv
 a real tree, to see them hold on what KeePass hands back rather than to settle what they mean:
 nearest wins, a seal, a tree with no rule granting nothing, the rules surviving a save and a
 reopen, a decision naming its node by identifier, and a walk taken while the rules move.
+
+**It is also where KeePass's own compiler is asked.** `ReferenceVectorsTests` builds a database in
+memory holding the entries `tests/Shared/ReferenceVectors.json` writes down, compiles every value
+in it with KeePass's `SprEngine`, as a copy of the field compiles one less what acts, and holds the
+file to what comes out. The client's resolver is held to the same file in its own tier, so a KeePass
+that compiles differently fails here and a resolver that does fails there. The file is regenerated
+from KeePass and never from the client, by running the fixture with `KPG_WRITE_REFERENCE_VECTORS`
+set:
+
+```powershell
+$env:KPG_WRITE_REFERENCE_VECTORS = '1'
+dotnet test tests\KeePassGate.Host.Tests --filter "FullyQualifiedName~ReferenceVectorsTests"
+```
 
 **What it cannot do is show those dialogs.** `Show` throws inside the message pump outside a running
 KeePass, and WinForms answers with its unhandled-exception dialog, which blocks the run until
@@ -234,7 +247,7 @@ something the rest of the suite is not.
 
 ## What the client tier is for
 
-PyKeePassGate has three tiers of its own, and the first two draw the same line the C# ones do.
+PyKeePassGate has four tiers of its own, and the first two draw the same line the C# ones do.
 
 **Against a gate that is not KeePass.** `pykeepassgate.testing` holds an authority, a host
 certificate under it, and a TLS 1.3 server that answers one request per connection, which is what
@@ -254,6 +267,13 @@ encoding, the name construction and all three proofs against vectors produced by
 document describes, because both halves would be code somebody wrote here. `ProtocolVectorsTests`
 holds the plugin to the same values over the same inputs, so a change to either half fails in that
 half's own tier rather than at the first real pairing.
+
+**Against KeePass's own compiler.** `tests/pykeepassgate/test_refs.py` holds `pykeepassgate.refs`
+to `tests/Shared/ReferenceVectors.json`, which the host tier made with KeePass's `SprEngine`: what
+the resolver follows has to come to what KeePass makes of the same value, what it refuses has to
+raise, and the one thing it keeps that KeePass changes, an environment variable, has to stay as it
+was. Without that file the resolver would be a reading of KeePass's documentation checked against
+itself.
 
 **Against the document the plugin embeds.** `tests/pykeepassgate/test_reference.py` reads the
 same `openapi.yaml` the plugin ships and holds the client to it: a route the document declares

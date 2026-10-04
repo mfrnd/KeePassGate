@@ -840,8 +840,9 @@ class GateClient:
 
         **This is also where a retry budget is overridden for one call**, and the reason it is
         here rather than on each method above is that a call to the gate is a request: every one
-        of those methods comes down to the request this makes, so `send` is where a caller can
-        say that this request in particular is worth waiting for. Three more arguments on each of
+        of those methods comes down to the request this makes, `renew` aside, which makes several
+        and waits with the client's own budgets, so `send` is where a caller can say that this
+        request in particular is worth waiting for. Three more arguments on each of
         them would say the same thing once for every route and turn the file that is meant to
         read as the list of what the gate serves into a file about timeouts.
 

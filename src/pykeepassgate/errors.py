@@ -258,16 +258,41 @@ class Withheld(GateError):
 
     `Entry.withheld` and `Field.withheld` say which values are withheld, for a caller that would
     rather ask than catch.
+
+    `pykeepassgate.refs` raises it too, for a withheld value a reference or a placeholder stands
+    for, and then the message says which one, since the value is then not the one asked for.
     """
 
-    def __init__(self, name: str, listed: bool = False) -> None:
-        """Name the field, and say whose rule would have to change for it to be read."""
+    def __init__(self, name: str, listed: bool = False, through: str = "") -> None:
+        """Name the field, and say whose rule would have to change for it to be read.
+
+        `through` is the reference or the placeholder that stands for it, when it was reached
+        through one, which the message names, since the value asked for was another.
+        """
         reached = "list" if listed else "read"
+        holder = "the entry holding it" if through else "the entry"
+        said = f"{name!r}, which {through} stands for," if through else repr(name)
         super().__init__(
-            f"{name!r} is withheld: the database protects it, and the rule that lets this client "
-            f"{reached} the entry does not grant `P`, which the operator can add to that rule"
+            f"{said} is withheld: the database protects it, and the rule that lets this client "
+            f"{reached} {holder} does not grant `P`, which the operator can add to that rule"
         )
         self.name = name
+
+
+class Unresolved(GateError):
+    """A value `pykeepassgate.refs` will not give as KeePass would give it, and says why.
+
+    The resolver follows what it can follow exactly and refuses the rest rather than hand back
+    text KeePass would have changed: a reference that searches by anything but a whole
+    identifier, which KeePass answers from the whole database and the gate from what this client
+    may see; a reference to an entry this client cannot read, absent, in the recycle bin and
+    refused being one answer; a placeholder KeePass replaces and the resolver does not;
+    references that go round in a circle, or further than KeePass follows; a placeholder whose
+    name matches a field only when letters beyond ASCII are compared without their case; and a
+    standard string the entry holds under no name spelled exactly so, beside a name beyond ASCII
+    that KeePass's collation may read as it. The message names the reference, the placeholder or
+    the field, and never the value it was found in.
+    """
 
 
 class RouteRefused(GateError):

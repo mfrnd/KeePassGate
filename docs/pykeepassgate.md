@@ -4,6 +4,8 @@
 <!-- cspell:ignore wslconfig -->
 <!-- Three of Python's built-in functions, named the way Python names them. -->
 <!-- cspell:ignore getattr hasattr repr -->
+<!-- One of KeePass's own placeholders, named the way KeePass names it. -->
+<!-- cspell:ignore NEWPASSWORD -->
 <!-- The encryption scheme PKCS#5 names for a key under a password. -->
 <!-- cspell:ignore PBES -->
 
@@ -430,8 +432,9 @@ edited in KeePass since, is where one can be missing.
 
 **A value is the string the entry stores.** A field reference such as `{REF:P@I:...}` or a
 placeholder such as `{USERNAME}` comes back as that text, not as what KeePass would show or type,
-because resolving one reads another entry, or the machine, past the rules that decide what this
-client may see.
+because the gate resolving one would read another entry, or the machine, past the rules that decide
+what this client may see. This client resolves the ones it can on its own side instead, when asked,
+which the next section is about.
 
 **An expired entry is listed and read like any other**, as KeePass shows one, struck through.
 `entry.expires` is when a read entry expires, in UTC, or `None` when it does not, and
@@ -449,6 +452,54 @@ pykeepassgate show <uuid>
 `show` prints every string the entry holds, one to a line, and when it expires: notes written over
 several lines print on one, with `\n` where each break was. The protected ones arrive only when the
 rule grants `protected`. It is the one command that puts a password on a terminal.
+
+## Follow a reference as KeePass would
+
+```python
+from pykeepassgate import refs
+
+entry = client.entry(uuid)
+password = refs.resolve(client, entry, entry.password)
+```
+
+`refs.resolve` gives what KeePass would give for a value of an entry. It follows a reference by
+identifier, `{REF:P@I:<uuid>}` and the same for `T`, `U`, `A`, `N` and `I`, by reading the entry it
+names through the gate, and the placeholders for the entry's own strings, `{TITLE}`, `{USERNAME}`,
+`{PASSWORD}`, `{URL}`, `{NOTES}` and `{S:<name>}`, in any case. What one stands for is compiled
+again in the entry it came from, as KeePass does, so a reference to a reference is followed as far
+as KeePass follows it. **Each entry a reference names is a read of its own**, so the rules on that
+entry decide whether this client may follow it, and the operator's audit records the read.
+
+**It refuses rather than guess**, with `Unresolved`, whose message says why:
+
+- a reference that searches by anything but a whole identifier, such as `{REF:P@T:...}`, because
+  KeePass takes the first match in the whole database and a search through the gate sees only what
+  this client may list, so the two could answer with different secrets;
+- a reference to an entry this client cannot read, since the gate answers one that is not there,
+  one in the recycle bin, which the API does not serve though KeePass follows a reference into it,
+  and one it may not reach alike;
+- any other placeholder KeePass replaces, from `{UUID}` and `{URL:HOST}` to `{CMD:...}` and
+  `{NEWPASSWORD}`, which `refs.REFUSED` lists, and one of those that an earlier replacement made,
+  which KeePass replaces or leaves by where in its order that placeholder is handled;
+- references that go round in a circle, or twelve deep, where KeePass gives up at the deepest level
+  and answers that value as empty, keeping the text around it, which this refuses whole;
+- a placeholder that names a field only when letters beyond ASCII are compared without their case;
+- a standard string the entry holds under no name spelled exactly so, while it holds a name beyond
+  ASCII, because KeePass reads the five standard strings through the culture's collation, under
+  which a name with a soft hyphen in it can be the password, and empty could stand for a value.
+
+A value behind a reference or a placeholder that the rule withholds raises `Withheld`, naming the
+reference or the placeholder that stood for it.
+
+**What it leaves as text, KeePass leaves as text too**: braces that name nothing KeePass knows,
+which are ordinary in a generated password, and a reference too malformed for KeePass to read.
+**`%NAME%` is the exception.** KeePass replaces it with the environment variable of that name on the
+machine it runs on, which is a fact about that machine rather than about the database, so it stays
+as text here. A placeholder another KeePass plugin adds is unknown here, and stays as text too.
+
+**It is pinned against KeePass's own compiler.** `tests/Shared/ReferenceVectors.json` holds what
+the placeholder engine of the KeePass this repository pins makes of every value the resolver is
+tested on, and the file is regenerated from KeePass, never from this client.
 
 ## Write
 
@@ -590,6 +641,7 @@ except api.RouteRefused:
 | `NotAdmitted` | The gate does not admit this certificate: it was never admitted, it was revoked, or it has expired. One that has expired by this machine's clock, by more than the five minutes a clock running ahead of the gate's is allowed, is named as expired, with the moment, before anything is dialed, rather than left for the gate to refuse as it refuses a stranger. To go on reaching the gate, pair again: a renewal needs a certificate that has not expired. To give the identity up, `revoke` removes what is stored for it, and `forget` from a program. |
 | `RouteRefused` | The gate refused it. `.status` says which: `404` is absent or not reachable and nothing can be done, while `400` and `409` are about the request itself, and `413` is something too large to carry, an attachment bigger than this gate hands out or a body bigger than it takes, which `.error` says in a sentence. `500` is none of those: the gate failed, and the operator's KeePass is where to look. After `500 not saved` or `500 internal error` nothing was left written that sending it again would duplicate; after `500 not verified` the change may be on the disk, so look first. `500 not recorded` is told only to `pair` and `renew`: the operator approved, the record did not reach the disk and was taken back out, and nothing was handed over, so asking again puts the dialog in front of the operator again; a renewing client's certificate still works, and a pairing's invitation is spent. |
 | `Withheld` | A protected value this client may not read, from every way of reading one: the database protects it, and the rule that lets this client read or list the entry does not grant `P`. The message names the field; the operator can add `P` to that rule. The rest of the answer stands, and `entry.withheld` or `field.withheld` says the same without a `try`: `{name: entry.fields[name] for name in entry.fields if name not in entry.withheld}` reads every value this client may read. |
+| `Unresolved` | From `refs.resolve` alone: a value it will not give as KeePass would, and the message says why. A reference searching by anything but a whole identifier, a reference to an entry this client cannot read, a placeholder KeePass replaces and the resolver does not, references going round in a circle or deeper than KeePass follows, a field's name spelled in another case in letters beyond ASCII, or a standard string held under no name spelled exactly so beside a name beyond ASCII. Use the value as stored, refer by identifier, or ask the operator to let this client read the entry referred to. |
 | `ProofRefused` | While pairing: the code is wrong, or whatever answered is not the KeePass whose operator holds it. Stop. |
 | `PairingRefused` | The operator said no. The invitation is spent, so ask for another. |
 | `PairingUnanswered` | Nobody answered the dialog. The invitation is **not** spent, so this can be tried again. |
@@ -659,7 +711,8 @@ pykeepassgate pair --name agent-invented --retry-locked-timeout 300
 client = GateClient.open(retry_busy_timeout=30)
 
 # Or for one call, which overrides what the client was built with. `send` is where a call says
-# so, and every method above is one call to it.
+# so, and every route's method above is one call to it. `renew` is several, and `refs.resolve`
+# one read for each reference it follows: both wait with the client's own budgets.
 client.send("POST", "/groups/root/entries", {"Title": "Nightly"}, retry_busy_timeout=120)
 ```
 

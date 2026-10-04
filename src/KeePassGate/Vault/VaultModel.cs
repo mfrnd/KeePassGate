@@ -312,7 +312,10 @@ namespace KeePassGate.Vault
 
         public VaultEntry Entry { get; private set; }
 
-        /// <summary>Every string the entry holds, by KeePass's own names, values included.</summary>
+        /// <summary>
+        /// Every string the entry holds, by KeePass's own names, values included, enumerated in
+        /// the order KeePass keeps them, which is the order `read` writes them in.
+        /// </summary>
         public IReadOnlyDictionary<string, string> Fields { get; private set; }
 
         /// <summary>

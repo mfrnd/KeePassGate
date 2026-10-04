@@ -1911,7 +1911,13 @@ components:
         # database, which knows nothing about these rules, so compiling one on the way out would
         # hand a client the value of an entry its rules do not reach, through a field of one they
         # do. `EntryFields` refuses that syntax in a URL for the same reason from the other side,
-        # because a URL is the value KeePass compiles by itself.
+        # because a URL is the value KeePass compiles by itself. A client compiles a value on its
+        # own side instead, as `pykeepassgate.refs` does: it follows a reference by identifier with
+        # a read of its own, which the rules decide and the audit records like any other, and the
+        # placeholders for the entry's own strings out of the entry it holds. It refuses a
+        # reference that searches, since a search here sees only what the client may list while
+        # KeePass takes the first match in the whole database, and every other placeholder KeePass
+        # replaces, from the parts of an entry's URL to a command KeePass would run. §512
         fields:
           type: object
           additionalProperties:
@@ -1924,7 +1930,11 @@ components:
             `null` rather than absent, so a value being withheld is not the same answer as a field
             that is not there, and an empty one is `""`. `protected` says which of them the
             database protects. A standard field the entry does not carry is left out, which the
-            reference client reads as `""`, as KeePass reads a missing standard string.
+            reference client reads as `""`, as KeePass reads a missing standard string. The members
+            come in the order KeePass keeps the strings, its collation of their names in the
+            culture it runs under, which decides the order it replaces an entry's own placeholders
+            in, so a client compiling them keeps it: the order is a promise rather than an
+            accident of the writer.
         protected:
           type: array
           items:
