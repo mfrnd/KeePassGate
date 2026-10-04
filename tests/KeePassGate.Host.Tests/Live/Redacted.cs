@@ -56,6 +56,11 @@ namespace KeePassGate.Host.Tests.Live
             new KeePassGate.Ui.Fact(KeePassGate.Ui.GateTab.InvitationIdFactName, null).ControlName(true),
             new KeePassGate.Ui.Fact(KeePassGate.Ui.GateTab.PeerFactName, null).ControlName(true),
             KeePassGate.Ui.GateTab.InvitationLabelName,
+
+            // The renewal dialog's dates: the client it is about is issued when the picture is
+            // taken, so when it was admitted and when its certificate ends are this minute's.
+            new KeePassGate.Ui.Fact(KeePassGate.Ui.GateTab.RenewalAdmittedFactName, null).ControlName(true),
+            new KeePassGate.Ui.Fact(KeePassGate.Ui.GateTab.RenewalExpiresFactName, null).ControlName(true),
         };
 
         /// <summary>

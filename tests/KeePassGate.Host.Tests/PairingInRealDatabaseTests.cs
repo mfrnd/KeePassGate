@@ -70,6 +70,24 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void A_list_of_profiles_that_will_not_read_is_never_written_over()
+        {
+            // Read, a damaged list names nothing, and a list of only the approved names written in
+            // its place drops every name it held and the sign that it was damaged.
+            const string Damaged = "{ not a list";
+            _database.Database.CustomData.Set(ProfileNames.CustomDataKey, Damaged);
+
+            using (var certificate = IssueClient())
+            {
+                var result = _writer.WriteAdmission(_database.Database, Record(certificate, "ops"));
+
+                Assert.That(result.Ok, Is.True, result.Reason);
+                Assert.That(_database.Database.CustomData.Get(ProfileNames.CustomDataKey), Is.EqualTo(Damaged));
+                Assert.That(_log.Warnings.Any(line => line.Contains("will not read")), Is.True);
+            }
+        }
+
+        [Test]
         public void A_record_is_written_and_the_database_is_saved()
         {
             using (var certificate = IssueClient())

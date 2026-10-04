@@ -95,8 +95,9 @@ revocation paragraph below is about.
 | --- | --- | --- |
 | `KPG.Authority.<sha256>` | one authority, filed under the digest of its certificate: the authority, the host certificate and the gate key, all three in one document | once, at creation and on recreation, and never rewritten |
 | `KPG.RetiredAuthority.<sha256>` | the constant `retired`, for an authority recreated, deleted or not kept | once, and never changed or removed |
-| `KPG.Client.<sha256>` | one admission record per paired client | at every pairing, and written empty when the client is revoked; removed once its certificate has expired, and an emptied one with its revocation |
+| `KPG.Client.<sha256>` | one admission record per certificate admitted, naming the client it belongs to by its client key, §223 | at every pairing and every renewal, and written empty when the certificate is revoked; removed once its certificate has expired, and an emptied one with its revocation |
 | `KPG.Revoked.<sha256>` | the revoked certificate's `notAfter` | once, when the client is revoked, and never changed; removed once that moment has passed |
+| `KPG.RenewalRefused.<sha256>` | the operator's standing answer to renewing one certificate: `forever`, or the moment renewals are asked about again | when the operator refuses a renewal forever or until a date, and again when a later answer replaces it, which the dialog takes only once an until-date has passed, or a merge brings in; removed once no record admits that certificate, or when the operator allows renewal on the clients page and accepts the dialog |
 | `KPG.Profiles` | the set of profile names this database knows | when the Profiles page is accepted, and at a pairing that approves a name it does not hold, in the same write as the record |
 
 **Not the root group, and the group dialog is why.** `GroupForm` copies a group's `CustomData` when
@@ -159,8 +160,8 @@ back, and the revocation beside it is what refuses it when it does.
 **A record that comes back is taken away by the plugin's next write.** It admits nobody meanwhile,
 since admission reads the revocation rather than waiting for this, and the clients page counts it
 under the list rather than listing it as a client. The write it rides on is one this plugin makes
-anyway: a revocation, a pairing, keeping one authority, recreating or deleting it. Opening or
-reading a database changes nothing in it.
+anyway: a revocation, a client's own included, a pairing or a renewal, keeping one authority,
+recreating or deleting it. Opening or reading a database changes nothing in it.
 
 **A revocation goes once its certificate has expired**, during the next revocation, because past
 `notAfter` the gate refuses that certificate on its dates and the key has nothing left to refuse,
@@ -169,19 +170,35 @@ that brings a pruned one back does no harm, and it is pruned again. A record tha
 gives no date, and its revocation is written empty and kept.
 
 **So does the record of a certificate that has expired**, by the same argument and on the same
-writes as a record that came back: a revocation, a pairing, keeping one authority, recreating or
-deleting it. Past its `notAfter` the record admits nobody, since the gate reads the certificate's
-dates, and kept it would be a key for every certificate the database ever issued, which a client
-given a week at a time, pairing again as each runs out, makes a number with no bound. A stale copy
-that brings one back brings back a record of a certificate the gate refuses, and the next write
-takes it away again. A record that cannot be read gives no date, and is kept, named on the clients
-page so that the operator can take it away. Until the next write, an expired record stays on the
-clients page, saying so.
+writes as a record that came back. Past its `notAfter` the record admits nobody, since the gate
+reads the certificate's dates, and kept it would be a key for every certificate the database ever
+issued, which a client given a week at a time, renewing as each runs out, makes a number with no
+bound. A stale copy that brings one back brings back a record of a certificate the gate refuses,
+and the next write takes it away again. A record that cannot be read gives no date, and is kept,
+named on the clients page so that the operator can take it away. Until the next write, an expired
+record stays on the clients page, saying so.
 
 **Both are decided on this machine's clock, and each one taken away is said in the log**, with the
 moment its certificate ended and the moment the clock read. A clock that is wrong makes the gate
 refuse a client that setting the clock right admits again; a key taken out of the file is not
 put back by anything, so the log is where a client lost to a wrong clock is found.
+
+**A standing answer to a renewal is changed rather than only added**, unlike a revocation, because
+a later answer about the same certificate replaces an earlier one. That makes it a key a merge can
+decide either way: Synchronize and the methods like it take the newer by modification time, which a
+slow clock or a copy saved without the times turns around, and Overwrite existing takes the other
+copy's whatever its time. The direction is safe, since a renewal is still a person approving one
+and no standing answer admits anybody, but the price is not always a dialog: a forever that wins
+over a newer until a date answers every renewal `409 forever`, and the client's name is red on the
+clients page until the operator lifts it there. One that will not read is answered as forever, and
+said in the log. It goes on the writes the other prunes ride on, once no record admits the
+certificate: revoked, expired, or gone; and when the operator presses **Allow renewal** on that
+client's row and accepts the settings dialog, which removes the key. A removal is the one thing a
+KeePass merge never carries, so a copy of the file from before the lift brings the answer back,
+red on the page again, and the operator lifts it again. **A refusal in this session
+has no key at all**: the plugin holds it in memory, per certificate, until KeePass exits, because
+an answer about one session written into the file would outlast that session in every copy of it,
+`PAIRING.md` §312.
 
 **Each authority is one key, and that is the same argument the other way.** A merge that took its
 parts separately could take the certificate from one replica and the private key from another, and
@@ -321,7 +338,7 @@ fail-open in a design that fails closed everywhere else.
      |
      +-- host certificate, normal      serverAuth               the `host` member
      +-- host certificate, responder   serverAuth + KPG marker   memory only
-     +-- client certificate            clientAuth               issued at pairing
+     +-- client certificate            clientAuth               issued at pairing and at renewal
 ```
 
 | | Life | `basicConstraints` | `keyUsage` (critical) | EKU |
@@ -666,7 +683,26 @@ hex. `X509Certificate2.Thumbprint` is **SHA-1**, measured at 40 hex characters, 
 says SHA-256 throughout should not key its allowlist on it.
 
 Each record holds that key, the certificate itself so expiry is knowable, the subject as issued, the
-**approved profiles**, and the issuance date.
+**client key**, the **approved profiles**, and the issuance date.
+
+**The client key says which client a record belongs to**, and it is the operator's ruling of
+2026-10-16. It is the admission key of the client's first certificate, the one it paired with:
+pairing writes the new certificate's own key there, and a renewal copies it from the record that
+asked, so every certificate a client is ever issued carries the same one. A record is one
+certificate, and a client can hold two at once, since a renewal leaves the old record valid until the
+client gives it up, `PAIRING.md` §312; and a client chooses its own name, so two programs may pair
+under one, such as one program on two machines. Neither the name nor the certificate tells clients
+apart, and the client key does: **every count and naming of clients goes by it**, so a renewal never
+counts twice and two programs under one name are two clients. Names need not be unique, and nothing
+is ever revoked by name. Written once with the record and never changed, so a merge, which never
+reads a value, has nothing to decide about it. It names a client and grants nothing, so it is not
+checked against anything: whoever can write the file can write a whole record.
+
+This reverses counting clients by name, which made a renewal one client again, after counting by
+record had made it two, and merged every program that chose the same name into one. It also
+reverses an earlier ruling of the same day, one admitted certificate per name with issuance in two
+steps, withdrawn after review: revoking by name let a client push another out by choosing its name,
+and let a merge bring a revoked one back.
 
 ### The stored form §223
 
@@ -676,6 +712,7 @@ first:
 ```text
 v=1
 subject=CN=agent-fictitious
+client=<sha256 of the certificate it paired with>
 admitted=2026-08-15T09:14:22Z
 profiles=ops,readonly
 certificate=<base64 DER>
@@ -684,9 +721,11 @@ certificate=<base64 DER>
 Small and strict rather than general, and that is a decision rather than laziness. Everything in a
 record has already been through issuance, which refuses a subject or a profile that is not a plain
 name, so a reader can be total in eighty lines. **Anything that is not exactly a record is refused**:
-a missing field, a repeated one, an unknown version, a date that will not parse, a certificate that
-will not decode, or a certificate whose digest is not the key the record is filed under. A record
-that cannot be read admits nobody, which is the same answer as no record at all.
+a missing field, a repeated one, an unknown version, a client key that is not a digest, a date that
+will not parse, a certificate that will not decode, or a certificate whose digest is not the key the
+record is filed under. A record that cannot be read admits nobody, which is the same answer as no
+record at all. A record with no `client` line is one of those: the field arrived with no record
+written before it anywhere, so there is no older record to read kindly.
 
 Profile names that could not have been issued as claims are dropped when a record is read, so a
 record edited by hand into something strange grants nothing strange.
@@ -722,9 +761,11 @@ Storing the certificate rather than only its digest is what makes any of this po
   dialog, for an authority or a host certificate that had run out, went with the warnings, and so
   did the invite button's refusal that matched them.
 - **Recreating the authority revokes every client at once.** It asks first, and it states the count.
-- **Renewal would be re-issuance**: same profiles, new key, new certificate, new record, old record
-  removed. **Not built:** a client that is about to expire pairs again, which is what
-  [`docs/clients.md`](docs/clients.md) tells an operator to do.
+- **Renewal is re-issuance, approved on screen**: the same name, the profiles the record holds that
+  the database still names less any the operator unchecks, a new key, a new certificate and a new
+  record. The old record is left for the client to give up, `PAIRING.md` §312, so a lost answer
+  costs nothing. This reverses renewal as a thing a client did by pairing again, with an invitation
+  the operator had to hand out for a client they had already admitted.
 - **Key loss** cannot happen separately from losing the database itself.
 - **Key theft** means whoever holds the file. Every minted certificate is still refused until it has
   a record, which is what the record is for.
@@ -733,8 +774,8 @@ Storing the certificate rather than only its digest is what makes any of this po
 
 ## 11. What is not defended against §220
 
-- **Local code execution as the user.** It reads the host key, the client key and any token as
-  typed. Conceded throughout.
+- **Local code execution as the user.** It reads the host key, a client's private key and any
+  token as typed. Conceded throughout.
 - **Anyone who can open the database.** They hold the authority. That is the boundary, not a leak.
 - **A prompt-injected agent using its own legitimate access.** That is the ACL's job and the audit
   log's.
@@ -774,4 +815,6 @@ Recorded because a reader seeing only this version will not know which parts wer
 | Recreating emptied the records | recreating and deleting remove them, and the revocations | the retirement refuses every old certificate, so the emptied records refused nothing more |
 | Ten years for the authority and five for its host, each warned about ninety days ahead and refused at pairing once past | a hundred years for both, issued together, warned about and refused at no point | no expiry was asked for, and `X509Certificate2.NotAfter` misreads `99991231235959Z` ahead of UTC, measured; a shorter host life protects nothing, since its key cannot leak without the authority's |
 | A client warned about thirty days before its end, whatever its life | in the last third of its life, and thirty days at most | a client may ask for a week, which a fixed thirty days warned about from the day it was issued |
-| The record of an expired certificate kept until somebody removed it, and an emptied one kept for good | both taken away by the plugin's next write of its own, an emptied one with its revocation | a client may ask for a day, and pairing again leaves the old record behind, so kept they were a key for every certificate ever issued; past its end the gate refuses a certificate on its dates, so neither record had anything left to say |
+| A client about to expire paired again, with an invitation the operator handed out | it renews, on a dialog like the pairing one with no invitation, and gives the old certificate up itself | an admitted client is already known, so an invitation proved nothing new and cost the operator a step; the old record is left valid so that a lost answer costs nothing |
+| The record of an expired certificate kept until somebody removed it, and an emptied one kept for good | both taken away by the plugin's next write of its own, an emptied one with its revocation | a client may ask for a day, and renewing leaves the old record behind until the client gives it up, so kept they were a key for every certificate ever issued; past its end the gate refuses a certificate on its dates, so neither record had anything left to say |
+| Clients counted by record, then by the name they paired under | by the client key every record carries, the digest of the client's first certificate | by record a renewal was two clients, and by name two programs that chose one name were one; names need not be unique, and a name is never what is revoked |

@@ -84,6 +84,9 @@ namespace KeePassGate.Host.Tests.Live
         private Run _readProtected;
         private Run _rotated;
         private Run _readRotated;
+        private Run _renewed;
+        private Run _renewedWhoami;
+        private Run _renewedStatus;
         private Run _busy;
         private Run _afterBusy;
         private string _notLocked;
@@ -125,6 +128,13 @@ namespace KeePassGate.Host.Tests.Live
                 _readProtected = Calls("field " + Created() + " Password", CommandTimeout);
                 _rotated = Calls("password " + Created(), CommandTimeout, Rotated);
                 _readRotated = Calls("field " + Created() + " Password", CommandTimeout);
+
+                // The client's own renewal, through the real dialog, which ends in the client
+                // giving up the certificate it renewed from: the two routes the Python client had
+                // only ever met in its stand-in. Everything after this runs on the new identity.
+                _renewed = RenewAndApprove(driver);
+                _renewedWhoami = Client("whoami" + Where(), CommandTimeout);
+                _renewedStatus = Client("status" + Where(), CommandTimeout);
 
                 // The entry the client made is the only one there is, so it is the one the list
                 // shows first. While its dialog is open a write to it is one that dialog's OK
@@ -186,6 +196,21 @@ namespace KeePassGate.Host.Tests.Live
             Assert.That(_status, Is.Not.Null, "the client never paired, so nothing was asked");
             Assert.That(_status.ExitCode, Is.Zero, _status.ToString());
             Assert.That(_status.Output, Does.Contain("serving database"));
+        }
+
+        [Test]
+        public void The_client_renews_through_the_dialog_and_gives_up_the_certificate_it_renewed_from()
+        {
+            // `renew` and `revoke_certificate` against the real plugin: the new identity is stored,
+            // it is admitted, and the old one was given up, which the client only reports as done
+            // once the gate has said so.
+            Assert.That(_renewed, Is.Not.Null, "the client never paired, so nothing was renewed");
+            Assert.That(_renewed.ExitCode, Is.Zero, _renewed.ToString());
+            Assert.That(_renewed.Output, Does.Contain("renewed CN=" + Name));
+
+            Assert.That(_renewedWhoami.ExitCode, Is.Zero, _renewedWhoami.ToString());
+            Assert.That(_renewedStatus.ExitCode, Is.Zero, "the new identity is admitted: " + _renewedStatus);
+            Assert.That(_renewed.Errors, Does.Not.Contain("still admitted"), "the old one was given up");
         }
 
         [Test]
@@ -328,6 +353,39 @@ namespace KeePassGate.Host.Tests.Live
                 finally
                 {
                     End(pairing);
+                }
+            }
+        }
+
+        /// <summary>
+        /// The client's renewal, for real: the command line waits for the operator's answer, so it
+        /// runs as its own process while this thread waits for the dialog and presses Approve.
+        /// </summary>
+        private Run RenewAndApprove(KeePassDriver driver)
+        {
+            using (var renewing = Start("pykeepassgate renew" + Where()))
+            {
+                var output = renewing.StandardOutput.ReadToEndAsync();
+                var errors = renewing.StandardError.ReadToEndAsync();
+                renewing.StandardInput.Close();
+
+                try
+                {
+                    var approval = driver.WaitForWindow("asking to renew", DialogTimeout);
+                    if (approval == null)
+                    {
+                        var gone = Finish(renewing, output, errors, TimeSpan.FromSeconds(5));
+                        Assert.Fail("The renewal dialog never appeared. The client said: " + gone + " " +
+                                    driver.Diagnostics);
+                    }
+
+                    Assert.That(driver.PressButton(approval, GateTab.ApproveButtonText), Is.True, driver.Diagnostics);
+
+                    return Finish(renewing, output, errors, CommandTimeout);
+                }
+                finally
+                {
+                    End(renewing);
                 }
             }
         }

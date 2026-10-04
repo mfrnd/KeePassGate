@@ -166,6 +166,27 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void Records_that_could_not_be_listed_leave_an_admitted_client_busy_rather_than_a_stranger()
+        {
+            // A stranger is told to pair, and this client is admitted: what failed was the
+            // listing, for as long as a write on KeePass's thread took.
+            using (var authority = TestAuthority.New())
+            using (var certificate = authority.IssueClient("agent-fictitious", "reader"))
+            {
+                authority.Admit(certificate, "reader");
+                authority.AdmissionThrows = new VaultUnsettled("the admission records could not be listed");
+
+                var identity = ClientCredentials.For(certificate, authority, _log);
+
+                Assert.That(identity.IsPaired, Is.False);
+                Assert.That(identity.UnavailableError, Is.EqualTo("busy"));
+
+                authority.AdmissionThrows = null;
+                Assert.That(ClientCredentials.For(certificate, authority, _log).IsPaired, Is.True);
+            }
+        }
+
+        [Test]
         public void A_permitted_request_is_written_down_as_well_as_a_refused_one()
         {
             Ask(Paired("reader"));

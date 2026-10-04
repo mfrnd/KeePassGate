@@ -283,9 +283,11 @@ namespace KeePassGate.Ui
         {
             // Two rows. The tab is 449 by 314 and every row costs the same seventeen pixels, so
             // the table holds what an operator opens this tab to ask: which authority this is, and
-            // how many programs it has let in. No date is among them. When the authority was
-            // created answers nothing anybody asks here, and the authority and its host certificate
-            // are good for a hundred years, so until when says nothing either, `CA.md` §219.
+            // how many records of programs it has let in, two for a program that renewed until it
+            // gives the old certificate up, `docs/clients.md`. No date is among them. When the
+            // authority was created answers nothing anybody asks here, and the authority and its
+            // host certificate are good for a hundred years, so until when says nothing either,
+            // `CA.md` §219.
             return new List<Fact>
             {
                 new Fact("Fingerprint", CertificateDigest.Shorten(reading.Material.AuthorityDigest)),
@@ -387,6 +389,14 @@ namespace KeePassGate.Ui
         /// refused before their end matters, and the clients page names them so; warning that one
         /// of them expires within the month had the operator looking to pair again a program the
         /// other page said had never reached the database at all.
+        ///
+        /// **By client rather than by record**, which is the client key every record carries. A
+        /// client that renewed keeps the record it renewed from until it gives that certificate
+        /// up, and counting that record warned that a client was expiring, then that it had
+        /// expired, while its renewed certificate had a year left. Each client is judged by the
+        /// reaching record that ends last. By client key and not by name, since two programs
+        /// that paired under one name are two clients, and judged by name the one ending first
+        /// went unwarned about.
         /// </remarks>
         private static void Clients(
             ICollection<string> lines,
@@ -403,15 +413,8 @@ namespace KeePassGate.Ui
             var soon = 0;
             var latest = TimeSpan.Zero;
 
-            foreach (var record in records)
+            foreach (var record in Newest(records, reaches))
             {
-                ClientReach reach;
-                if (reaches != null && reaches.TryGetValue(record.AdmissionKey, out reach)
-                    && reach != ClientReach.Reaches)
-                {
-                    continue;
-                }
-
                 using (var certificate = record.Certificate())
                 {
                     // Through `CertificateValidity`, so the tab cannot call a client expired at an
@@ -443,6 +446,43 @@ namespace KeePassGate.Ui
             {
                 lines.Add(Expiring(soon, WholeDays(latest)));
             }
+        }
+
+        /// <summary>
+        /// For each client, by its client key, the record the gate would get as far as the dates
+        /// of that ends last.
+        /// </summary>
+        private static IEnumerable<AdmissionRecord> Newest(
+            IReadOnlyList<AdmissionRecord> records, IDictionary<string, ClientReach> reaches)
+        {
+            var newest = new Dictionary<string, AdmissionRecord>(StringComparer.Ordinal);
+            var ends = new Dictionary<string, DateTime>(StringComparer.Ordinal);
+
+            foreach (var record in records)
+            {
+                ClientReach reach;
+                if (reaches != null && reaches.TryGetValue(record.AdmissionKey, out reach)
+                    && reach != ClientReach.Reaches)
+                {
+                    continue;
+                }
+
+                DateTime end;
+                using (var certificate = record.Certificate())
+                {
+                    end = certificate.NotAfter.ToUniversalTime();
+                }
+
+                var client = record.ClientKey;
+                DateTime known;
+                if (!ends.TryGetValue(client, out known) || end > known)
+                {
+                    ends[client] = end;
+                    newest[client] = record;
+                }
+            }
+
+            return newest.Values;
         }
 
         /// <summary>

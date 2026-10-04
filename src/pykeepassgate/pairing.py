@@ -350,13 +350,15 @@ def _refuse(reply: transport.Response) -> None:
 
     if reply.status == 503:
         # The invitation survives, and that is a property of the gate rather than a hope.
-        # `PairingHandler.Approve` answers `503` in four places and every one of them is before
-        # the invitation is burned: the blocked check before the dialog and again after it, a
-        # dialog that could not be shown, and one that never reached the screen. After the burn
-        # it answers `500` instead, in as many words, because a client told to come back would be
-        # turned away at the name. So a `503` from this route means no certificate was issued and
-        # no record was written, and `locked` and `undecided` are answered before the request is
-        # read at all.
+        # `PairingHandler` answers `503` only before the invitation is burned: the blocked check
+        # before the dialog and again after it, a dialog that could not be shown, one that never
+        # reached the screen, and the write finding KeePass busy before it spent anything, which
+        # it does under the writer's lock. After the burn it answers `500` instead, in as many
+        # words, because a client told to come back would be turned away at the name. So a `503`
+        # from this route means no certificate was issued and no record was written, and
+        # `locked` and `undecided` are answered before the request is read at all. A `busy`
+        # after the operator approved carries `heldUntil`: the approval is held until then for
+        # exactly this request, which `api.pair` asks for again by itself.
         #
         # What `busy` asks about is the writer's `Blocked`, which looks at no group dialog, and
         # the screen: so the message names those rather than guessing at a dialog the gate never
@@ -370,9 +372,9 @@ def _refuse(reply: transport.Response) -> None:
             busy=(
                 "the gate cannot put this pairing to the operator right now: KeePass is part way "
                 "through something of its own, Database Maintenance is open, saving the database "
-                "would stop to ask the operator something, another pairing is in front of them, "
-                "or there is no screen to ask on. The invitation is still good, but this exchange "
-                "is not: start again from a hello"
+                "would stop to ask the operator something, another pairing or renewal is in front "
+                "of them, or there is no screen to ask on. The invitation is still good, but this "
+                "exchange is not: start again from a hello"
             ),
             undecided=(
                 "the database holds more than one certificate authority and the operator has "

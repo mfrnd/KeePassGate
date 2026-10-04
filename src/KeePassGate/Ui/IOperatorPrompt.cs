@@ -7,9 +7,10 @@ namespace KeePassGate.Ui
     /// </summary>
     /// <remarks>
     /// An interface so that a test can answer without a human, and so that the one place a dialog
-    /// is raised stays visible. Note the rule this does not break: no API request ever prompts.
-    /// These prompts are reached from something the operator has just done, or once at startup
-    /// when the gate could not take its port.
+    /// is raised stays visible. These prompts are never reached from an API request; the two
+    /// requests that do put a window up, pairing and renewal, go through `PairingApprovalPrompt`,
+    /// `DESIGN.md` §119. These are reached from something the operator has just done, or once at
+    /// startup when the gate could not take its port.
     /// </remarks>
     public interface IOperatorPrompt
     {

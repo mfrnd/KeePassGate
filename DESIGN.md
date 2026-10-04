@@ -387,12 +387,13 @@ permitted = record(from the kdbx)  INTERSECT  acl(from the kdbx)
 ```
 
 Both halves live in the database, which is deliberate. The **admission record** carries the profiles
-the operator approved at pairing, and it is what the certificate's SAN once did. The SAN still
-carries them, but only as a convenience for a human reading a certificate: a client that presents a
-valid certificate whose record is missing is refused outright rather than falling back to the SAN.
-[`CA.md`](CA.md) §206 says why that is the only arrangement that survives a lost record. Of the
-record's profiles, only those the database's list still names are handed on, so a name the operator
-removed grants nothing whatever rule still carries it; §139 says why that replaced purging the rules.
+the operator approved when the client was admitted, at pairing or at a renewal, and it is what the
+certificate's SAN once did. The SAN still carries them, but only as a convenience for a human
+reading a certificate: a client that presents a valid certificate whose record is missing is refused
+outright rather than falling back to the SAN. [`CA.md`](CA.md) §206 says why that is the only
+arrangement that survives a lost record. Of the record's profiles, only those the database's list
+still names are handed on, so a name the operator removed grants nothing whatever rule still carries
+it; §139 says why that replaced purging the rules.
 
 The ACL is `AclDocument`, `AclResolver`, `AclGrant`, `AclVerb` and `AclDefault`, with `KdbxNodes`
 adapting a `PwGroup` or a `PwEntry` to the one seam the rules need. It stays authoritative, so access
@@ -588,10 +589,14 @@ copy merged in, which brings the old rule back with the node's own time.
 nothing wherever it comes from: kept by a dialog's OK, restored from a revision, or merged in from
 an older copy. The grant editor strikes such a rule through rather than hiding it, removal needs no
 walk and is refused under no node dialog, and the page counts the live tree's rules only, since a
-revision's rule is in force for nobody. **Adding the name back is a full undo**, rules and clients
-alike, so the page asks first, saying how many rules come back into force and naming every client
-that regains the name. Approving a pairing for a removed name that clients still hold warns the same
-way, because pairing writes the approved name onto the list.
+revision's rule is in force for nobody. **Adding the name back is a full undo** for every rule and
+every record still naming it, so the page asks first, saying how many rules come back into force and
+naming every client that regains the name, each once by its client key, `CA.md` §223, so that a
+client holding two certificates is one client and two that chose one name are two, named apart. A
+client that renewed while the name was off the list was
+given a record without it, `PAIRING.md` §312, and the certificate it renewed to does not regain it.
+Approving a pairing for a removed name that clients still hold warns the same way, because pairing
+writes the approved name onto the list.
 
 ### Resolution §137
 
@@ -844,6 +849,18 @@ So the rules here:
   every one of these hazards is a write. **And a database with unsaved changes is not refused
   either**: an API write still saves what is in memory, the operator's own edits included, which is
   a documented consequence rather than something to guard against.
+
+  **An approval dialog is a marshaled call too**, and was delivered inside a save the same way: the
+  dialog then held the save, the writer's lock and KeePass's interaction block for as long as the
+  operator took, every other write was refused after its twenty seconds, and a workstation lock was
+  dropped rather than deferred, because KeePass does not lock while its interaction is blocked. So
+  the prompt asks the same question on KeePass's thread just before it shows anything, and answers
+  KeePass's own work `503 busy` at once. **This plugin's own save is not KeePass's work**, although
+  it raises the same block: a pairing or a renewal arriving while another client's write is saving
+  waits for that save, inside the wait for the screen it already had, and is shown once the save is
+  over. The writer's check made from a connection thread tells that save apart for the same reason,
+  where it used to turn pairings and renewals away for a write that would simply have taken its
+  turn.
 - **Every `503` this gate sends carries `Retry-After: 2`**, the new one and the ones that were
   always there: `busy`, `locked`, `undecided` and pairing's own. One number for all of them,
   written by the response writer rather than by the four places that answer, so a refusal added
@@ -851,10 +868,10 @@ So the rules here:
   differently from a busy window reads it; the delay is the same because how long any of these
   lasts is a person's business rather than this gate's, and two numbers would invite reading a
   meaning into the difference that nothing here measured.
-- **Pairing is the one deliberate exception, and it is a real one.** `/pair/request` exists to ask
-  the operator, and issuance writes the admission record and saves it before the certificate is
-  handed over, because a certificate must not leave here until its record is on disk.
-  [`PAIRING.md`](PAIRING.md) phase 5 is the sequence.
+- **Pairing and renewal are the two deliberate exceptions, and they are real ones.** `/pair/request`
+  and `/gate/renew` exist to ask the operator, and issuance writes the admission record and saves it
+  before the certificate is handed over, because a certificate must not leave here until its record
+  is on disk. [`PAIRING.md`](PAIRING.md) phase 5 is the sequence, and §312 keeps it for a renewal.
 
   **Built as `MainForm.SaveDatabase(db, null)` rather than `UIFileSave`**, which is a correction
   to the sentence above rather than a departure from it: `UIFileSave` saves whichever document is
@@ -895,8 +912,14 @@ So the rules here:
   call to start, and a call that has started is waited out with no clock on it. No sum of this
   plugin's timeouts bounds a save, so no budget could be chosen that outlasts one; raising it from
   thirty seconds to ninety made the loss rarer and nothing else. **Pairing keeps its deadline
-  through all of this**, because a pairing is the one connection whose remaining work is a sum
+  through all of this**, because a pairing is a connection whose remaining work is a sum
   somebody can write down, and `PairingBudget` is what it is added up against.
+
+  **And so does a renewal**, `PAIRING.md` §312, for the same reason: what is left after its request
+  is the screen, which it waits its turn for with every pairing, the dialog, the grace on it and the
+  turn at the writer, so it is measured against `PairingBudget` too. The listener tells it apart by
+  what it asked for, which is known only once the request is off the wire, and that is where the
+  deadline is set either way.
 
 - **A write that landed is told to the window as well as to the client.** KeePass's save ends in
   `MainForm.UpdateUIState`, which redraws the title bar and the menus and rebuilds neither the
@@ -1150,7 +1173,7 @@ and returns no name rather than throwing; `SniProbe.cs` is the evidence it works
 
 ### C6. "Spec-first routing is slower than a switch statement" §128
 
-It is, and the document declares thirty-seven operations over fourteen paths, eleven of them the
+It is, and the document declares thirty-eight operations over fifteen paths, eleven of them the
 `HEAD` that answers for a `GET`. The property being bought, that an undeclared path has nowhere to
 go and that the document cannot disagree with the implementation, is worth more than the
 microseconds.

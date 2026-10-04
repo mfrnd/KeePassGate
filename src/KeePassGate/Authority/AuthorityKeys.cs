@@ -153,6 +153,42 @@ namespace KeePassGate.Authority
             return IsRevocation(key) ? key.Substring(RevokedPrefix.Length) : null;
         }
 
+        /// <summary>
+        /// The operator's standing answer to renewing one certificate, keyed by the same digest as
+        /// its record, holding `forever` or the moment renewals are asked about again.
+        /// </summary>
+        /// <remarks>
+        /// **Changed rather than only added**, unlike a revocation, because a later answer about
+        /// the same certificate replaces an earlier one: the one the dialog takes once an
+        /// until-date has passed, since a standing answer keeps the dialog shut until then and
+        /// forever keeps it shut for good, or one a merge brings in. So a merge can decide it
+        /// either way: by modification time, which a slow clock or a copy saved without the times
+        /// turns around, or whatever the time under Overwrite existing. It never admits anybody,
+        /// since a renewal is still a person approving one, but losing a newer until-date to an
+        /// older forever costs the client a new pairing rather than a dialog, `CA.md` §204.
+        ///
+        /// **A refusal in this session has no key**: it is held in plugin memory, so that it goes
+        /// with the session it names.
+        /// </remarks>
+        public const string RenewalRefusedPrefix = "KPG.RenewalRefused.";
+
+        public static bool IsRenewalRefusal(string key)
+        {
+            return key != null && key.StartsWith(RenewalRefusedPrefix, StringComparison.Ordinal);
+        }
+
+        /// <summary>The key a standing answer to renewing this certificate lives under.</summary>
+        public static string RenewalRefusalKey(string admissionKey)
+        {
+            return RenewalRefusedPrefix + admissionKey;
+        }
+
+        /// <summary>The digest a standing answer is filed under, or null when the key is not one.</summary>
+        public static string AdmissionKeyInRenewalRefusal(string key)
+        {
+            return IsRenewalRefusal(key) ? key.Substring(RenewalRefusedPrefix.Length) : null;
+        }
+
         public static bool IsOurs(string key)
         {
             return key != null && key.StartsWith(Prefix, StringComparison.Ordinal);

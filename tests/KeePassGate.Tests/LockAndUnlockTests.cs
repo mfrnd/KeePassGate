@@ -112,7 +112,7 @@ namespace KeePassGate.Tests
         {
             using (var certificate = _authority.IssueClient("agent-fictitious"))
             {
-                var write = _locked.Admit(AdmissionRecord.For(certificate, DateTimeOffset.UtcNow, null));
+                var write = _locked.Admit(AdmissionRecord.For(certificate, DateTimeOffset.UtcNow, null), null);
 
                 Assert.That(write.Ok, Is.False);
                 Assert.That(write.IsBusy, Is.True, "unlocking is all it takes, so it is worth trying again");
@@ -170,6 +170,7 @@ namespace KeePassGate.Tests
         private List<string> _order;
         private RecordingTargets _targets;
         private RecordingConnections _connections;
+        private RecordingScreen _screen;
         private RecordingGateLog _log;
         private GateIncidents _incidents;
         private LockWatch _watch;
@@ -181,9 +182,10 @@ namespace KeePassGate.Tests
             _order = new List<string>();
             _targets = new RecordingTargets(_order);
             _connections = new RecordingConnections(_order);
+            _screen = new RecordingScreen(_order);
             _log = new RecordingGateLog();
             _incidents = new GateIncidents(_log);
-            _watch = new LockWatch(_events, _targets, () => _connections, _log, _incidents);
+            _watch = new LockWatch(_events, _targets, () => _connections, _log, _incidents, _screen);
 
             Assert.That(_watch.Start(), Is.True);
         }
@@ -210,7 +212,49 @@ namespace KeePassGate.Tests
             // authority sitting there and use it on the way out.
             _events.RaiseClosed("C:\\invented\\one.kdbx", true);
 
-            Assert.That(_order, Is.EqualTo(new[] { "lock", "close" }));
+            Assert.That(_order, Is.EqualTo(new[] { "screen", "lock", "close" }));
+        }
+
+        [Test]
+        public void A_lock_takes_the_question_away_first_and_spares_the_connections_waiting_on_it()
+        {
+            // A pairing or renewal dialog holds no lock off. Closing its connection left it
+            // offering an Approve over a locked database while the client was told nothing; the
+            // dialog goes instead, and the connection answers `503 locked` itself.
+            _events.RaiseClosed("C:\\invented\\one.kdbx", true);
+
+            Assert.That(_screen.Locked, Is.EqualTo(1));
+            Assert.That(_connections.Spared, Is.EqualTo(1), "those waiting on the operator are spared");
+            Assert.That(_connections.Closed, Is.EqualTo(1), "and every other one is closed");
+        }
+
+        [Test]
+        public void A_lock_of_a_database_nothing_served_still_takes_the_question_away()
+        {
+            // KeePass locks every open database at once, so a lock of any one is a lock of the
+            // database a dialog is about.
+            _targets.HeldSomething = false;
+
+            _events.RaiseClosed("C:\\invented\\one.kdbx", true);
+
+            Assert.That(_screen.Locked, Is.EqualTo(1));
+            Assert.That(_connections.Closed, Is.Zero);
+        }
+
+        [Test]
+        public void An_unlock_and_a_close_spare_nobody_and_close_no_dialog()
+        {
+            _targets.LiftsALock = true;
+
+            _events.RaiseOpened("C:\\invented\\one.kdbx");
+            Assert.That(_screen.Closed, Is.Zero, "an unlock lets go of nothing");
+
+            _events.RaiseClosed("C:\\invented\\two.kdbx", false);
+
+            Assert.That(_connections.Closed, Is.EqualTo(2));
+            Assert.That(_connections.Spared, Is.Zero);
+            Assert.That(_screen.Locked, Is.Zero);
+            Assert.That(_screen.Closed, Is.EqualTo(1), "a close lets go of every approval held, as a lock does");
         }
 
         [Test]
@@ -282,7 +326,7 @@ namespace KeePassGate.Tests
             _events.RaiseClosing();
             _events.RaiseClosed("C:\\invented\\one.kdbx", true);
 
-            Assert.That(_order, Is.EqualTo(new[] { "refresh", "lock", "close" }));
+            Assert.That(_order, Is.EqualTo(new[] { "refresh", "screen", "lock", "close" }));
         }
 
         [Test]
@@ -454,8 +498,11 @@ namespace KeePassGate.Tests
                 }
 
                 _locked.Add(path);
-                return true;
+                return HeldSomething;
             }
+
+            /// <summary>Whether the database locking was being served, which is what a test decides here.</summary>
+            public bool HeldSomething { get; set; } = true;
 
             /// <summary>True when a lock was really lifted, which is what a test decides here.</summary>
             public bool LiftsALock { get; set; }
@@ -511,6 +558,9 @@ namespace KeePassGate.Tests
 
             public Exception Throws { get; set; }
 
+            /// <summary>How many of the closes spared the connections waiting on the operator.</summary>
+            public int Spared { get; private set; }
+
             public int CloseAll(string why)
             {
                 Closed++;
@@ -522,6 +572,38 @@ namespace KeePassGate.Tests
                 }
 
                 return 0;
+            }
+
+            public int CloseAllButAwaiting(string why)
+            {
+                Spared++;
+                return CloseAll(why);
+            }
+        }
+
+        private sealed class RecordingScreen : IApprovalScreen
+        {
+            private readonly List<string> _order;
+
+            public RecordingScreen(List<string> order)
+            {
+                _order = order;
+            }
+
+            public int Locked { get; private set; }
+
+            public int Closed { get; private set; }
+
+            void IApprovalScreen.Locked()
+            {
+                Locked++;
+                _order.Add("screen");
+            }
+
+            void IApprovalScreen.Closed()
+            {
+                Closed++;
+                _order.Add("screen closed");
             }
         }
     }

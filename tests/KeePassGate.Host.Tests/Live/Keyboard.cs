@@ -63,6 +63,8 @@ namespace KeePassGate.Host.Tests.Live
         private const byte EscapeKey = 0x1B;
         private const byte ControlKey = 0x11;
         private const byte EnterKey = 0x0D;
+        private const byte ShiftKey = 0x10;
+        private const byte F10Key = 0x79;
 
         /// <summary>One keystroke, as the accessibility tree describes it.</summary>
         public struct Stroke
@@ -222,6 +224,18 @@ namespace KeePassGate.Host.Tests.Live
             keybd_event(code, 0, 0, UIntPtr.Zero);
             keybd_event(code, 0, KeyUp, UIntPtr.Zero);
             keybd_event(ControlKey, 0, KeyUp, UIntPtr.Zero);
+            Thread.Sleep(400);
+        }
+
+        /// <summary>
+        /// Shift and F10, which opens the menu of whatever has the focus, as the menu key does.
+        /// </summary>
+        public static void SendShiftF10()
+        {
+            keybd_event(ShiftKey, 0, 0, UIntPtr.Zero);
+            keybd_event(F10Key, 0, 0, UIntPtr.Zero);
+            keybd_event(F10Key, 0, KeyUp, UIntPtr.Zero);
+            keybd_event(ShiftKey, 0, KeyUp, UIntPtr.Zero);
             Thread.Sleep(400);
         }
 

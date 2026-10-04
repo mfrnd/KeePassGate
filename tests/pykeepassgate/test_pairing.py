@@ -12,6 +12,7 @@ against output the plugin produced.
 from __future__ import annotations
 
 import base64
+import datetime as dt
 import json
 import math
 import os
@@ -74,8 +75,8 @@ class Gate:
         #: Refusals to hand out before the real answer, one per attempt, so a test can be a gate
         #: that is busy for a while and then is not. Kept per route, because which of the two may
         #: be asked again is the whole question a retry budget raises here.
-        self.hello_refusals: list[tuple[int, str]] = []
-        self.request_refusals: list[tuple[int, str]] = []
+        self.hello_refusals: list[tuple[int, str | dict[str, str]]] = []
+        self.request_refusals: list[tuple[int, str | dict[str, str]]] = []
 
         #: Swapped for something else to play an impostor that cannot prove the token.
         self.server_proof: bytes | None = None
@@ -94,7 +95,7 @@ class Gate:
     def _hello(self, body: dict[str, Any]) -> tuple[int, str]:
         if self.hello_refusals:
             status, error = self.hello_refusals.pop(0)
-            return status, json.dumps({"error": error})
+            return status, json.dumps(error if isinstance(error, dict) else {"error": error})
 
         offered = base64.b64decode(body["proof"])
 
@@ -139,7 +140,7 @@ class Gate:
         # challenge is spent by then and the invitation is not.
         if self.request_refusals:
             status, error = self.request_refusals.pop(0)
-            return status, json.dumps({"error": error})
+            return status, json.dumps(error if isinstance(error, dict) else {"error": error})
 
         if self.refuse_with:
             status, error = self.refuse_with
@@ -391,7 +392,7 @@ def test_a_busy_gate_is_described_by_what_it_asks_about(
     said = str(refused.value)
     assert "Database Maintenance" in said
     assert "saving the database would stop to ask" in said
-    assert "another pairing is in front" in said
+    assert "another pairing or renewal" in said
     assert "group dialog" not in said
     assert "invitation is still good" in said
 
@@ -995,6 +996,53 @@ class TestWhatPairingMayRepeat:
         assert self._sent(gate, "/pair/hello") == 2, "the second try began at phase 3"
         assert self._sent(gate, "/pair/request") == 2
         assert waited == [2.0]
+
+    def test_an_approval_the_gate_holds_is_asked_for_again_without_a_busy_budget(
+        self,
+        gate: FakeGate,
+        host: Issued,
+        tmp_path: Path,
+        bundle: dict[str, Any],
+        waited: list[float],
+    ) -> None:
+        # The operator approved and KeePass was too busy to write it: the gate holds the approval
+        # for exactly this request until `heldUntil`, so not asking again loses it, and a caller
+        # that gave no budget for KeePass being busy did not mean to lose an approval.
+        until = (dt.datetime.now(dt.UTC) + dt.timedelta(minutes=5)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        answering = Gate(gate, host, bundle=bundle)
+        answering.request_refusals = [(503, {"error": "busy", "heldUntil": until})]
+        gate.handler = answering
+        gate.retry_after = "2"
+
+        stored = api.pair(
+            port=gate.port,
+            invitation=INVITATION,
+            name="agent-invented",
+            profiles=["reader"],
+            directory=tmp_path / "kept",
+        )
+
+        assert stored.subject
+        assert self._sent(gate, "/pair/request") == 2, "the same request, from a fresh hello"
+        assert answering.asked is not None and answering.asked["profiles"] == ["reader"]
+        assert waited == [2.0]
+
+    def test_an_approval_no_longer_held_is_raised_with_the_moment_it_ran_out(
+        self, gate: FakeGate, pairing_gate: Gate, tmp_path: Path, waited: list[float]
+    ) -> None:
+        ran_out = {"error": "busy", "heldUntil": "2001-02-03T04:05:06Z"}
+        pairing_gate.request_refusals = [(503, ran_out)]
+
+        with pytest.raises(GateBusy) as refused:
+            api.pair(
+                port=gate.port,
+                invitation=INVITATION,
+                name="agent-invented",
+                directory=tmp_path / "kept",
+            )
+
+        assert refused.value.held_until == dt.datetime(2001, 2, 3, 4, 5, 6, tzinfo=dt.UTC)
+        assert waited == []
 
     def test_a_pairing_waits_out_two_authorities_on_the_budget_given_for_them(
         self,

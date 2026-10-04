@@ -383,6 +383,134 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_standing_answer_to_a_renewal_reads_back_as_it_was_written()
+        {
+            var key = new string('a', 64);
+            Assume.That(_store.StandingRefusal(key), Is.Null, "nothing until the operator says something");
+
+            _store.RefuseRenewal(key, RenewalRefusal.Forever());
+
+            Assert.That(_store.StandingRefusal(key).IsForever, Is.True);
+            Assert.That(_values.Get(AuthorityKeys.RenewalRefusalKey(key)), Is.EqualTo("forever"));
+        }
+
+        [Test]
+        public void A_revocation_takes_the_answers_of_the_records_it_prunes_in_the_same_write()
+        {
+            // A revocation's prunes, in order: an expired record that goes with this write goes
+            // with its standing answer, rather than leaving the answer for some later write.
+            using (var ended = TestAuthority.IssueExpiredClient("agent-nonexistent", "ops"))
+            using (var current = _authority.IssueClient("agent-invented", "ops"))
+            {
+                var expired = AdmissionRecord.For(ended, DateTimeOffset.UtcNow.AddDays(-7), new[] { "ops" });
+                var revoked = AdmissionRecord.For(current, DateTimeOffset.UtcNow, new[] { "ops" });
+                _store.Write(expired);
+                _store.Write(revoked);
+                _store.RefuseRenewal(expired.AdmissionKey, RenewalRefusal.Forever());
+
+                Assume.That(_store.Remove(revoked.AdmissionKey), Is.True);
+
+                Assert.That(_values.Get(expired.StorageKey), Is.Null, "the expired record went with the revocation");
+                Assert.That(_store.StandingRefusal(expired.AdmissionKey), Is.Null, "and its answer with it");
+            }
+        }
+
+        [Test]
+        public void A_later_standing_answer_replaces_the_one_before_it()
+        {
+            // The property the key's being changed rather than only added rests on: the dialog
+            // asks again once an until-date has passed, and the answer it takes then is the one
+            // that stands.
+            var key = new string('a', 64);
+            _store.RefuseRenewal(key, RenewalRefusal.Until(new DateTimeOffset(2026, 10, 9, 22, 0, 0, TimeSpan.Zero)));
+
+            _store.RefuseRenewal(key, RenewalRefusal.Forever());
+
+            Assert.That(_store.StandingRefusal(key).IsForever, Is.True);
+            Assert.That(_values.Get(AuthorityKeys.RenewalRefusalKey(key)), Is.EqualTo("forever"));
+        }
+
+        [Test]
+        public void A_refusal_in_this_session_is_never_written_to_the_database()
+        {
+            // It names this session, and a key in the file would outlast it in every copy.
+            var key = new string('a', 64);
+
+            Assert.That(() => _store.RefuseRenewal(key, RenewalRefusal.ThisSession()), Throws.ArgumentException);
+            Assert.That(_values.Get(AuthorityKeys.RenewalRefusalKey(key)), Is.Null);
+        }
+
+        [TestCase("next Tuesday")]
+        [TestCase("")]
+        public void A_standing_answer_that_will_not_read_is_answered_as_forever_and_said(string written)
+        {
+            // Only a hand at Database Maintenance or a later version writes one of these, and the
+            // operator had said something: answering it as nothing would raise a dialog they did
+            // not want, where answering it as forever refuses, which is the safe direction. An
+            // empty value is one of them, since this plugin never writes one.
+            var key = new string('a', 64);
+            _values.Plant(AuthorityKeys.RenewalRefusalKey(key), written);
+
+            Assert.That(_store.StandingRefusal(key).IsForever, Is.True);
+            Assert.That(_log.Warnings.Select(entry => entry.Message), Has.Some.Contains("could not be read"));
+        }
+
+        [Test]
+        public void A_standing_answer_goes_with_the_admission_it_was_about_and_stays_while_that_does()
+        {
+            using (var leaving = _authority.IssueClient("agent-fictitious", "ops"))
+            using (var staying = _authority.IssueClient("agent-invented", "ops"))
+            {
+                var gone = CertificateDigest.Of(leaving);
+                var kept = CertificateDigest.Of(staying);
+                _store.Write(AdmissionRecord.For(leaving, DateTimeOffset.UtcNow, new[] { "ops" }));
+                _store.Write(AdmissionRecord.For(staying, DateTimeOffset.UtcNow, new[] { "ops" }));
+                _store.RefuseRenewal(gone, RenewalRefusal.Forever());
+                _store.RefuseRenewal(kept, RenewalRefusal.Forever());
+                _store.RefuseRenewal(new string('f', 64), RenewalRefusal.Forever());
+
+                // Reading is not the write the prune rides on.
+                _store.StandingRefusal(gone);
+                _store.All();
+                Assume.That(_values.Get(AuthorityKeys.RenewalRefusalKey(gone)), Is.Not.Null);
+
+                Assert.That(_store.Remove(gone), Is.True);
+
+                Assert.That(_values.Get(AuthorityKeys.RenewalRefusalKey(gone)), Is.Null,
+                    "a revoked certificate cannot ask for a renewal, so the answer has nothing to refuse");
+                Assert.That(_values.Get(AuthorityKeys.RenewalRefusalKey(new string('f', 64))), Is.Null,
+                    "nor can one with no record at all");
+                Assert.That(_values.Get(AuthorityKeys.RenewalRefusalKey(kept)), Is.Not.Null,
+                    "while one still admitted keeps the answer it was given");
+            }
+        }
+
+        [Test]
+        public void A_standing_answer_stays_beside_a_record_that_cannot_be_read()
+        {
+            var key = new string('e', 64);
+            _values.Plant(AuthorityKeys.ClientRecordKey(key), "a record nobody can read");
+            _store.RefuseRenewal(key, RenewalRefusal.Forever());
+
+            Assert.That(_store.PruneRefusals(), Is.Empty, "the record is still there, so its answer is too");
+        }
+
+        [Test]
+        public void Taking_every_record_away_takes_every_standing_answer_with_them()
+        {
+            using (var certificate = _authority.IssueClient("agent-fictitious", "ops"))
+            {
+                var key = CertificateDigest.Of(certificate);
+                _store.Write(AdmissionRecord.For(certificate, DateTimeOffset.UtcNow, new[] { "ops" }));
+                _store.RefuseRenewal(key, RenewalRefusal.Forever());
+
+                _store.RemoveAll();
+
+                Assert.That(_values.Get(AuthorityKeys.RenewalRefusalKey(key)), Is.Null);
+            }
+        }
+
+        [Test]
         public void A_certificate_that_was_never_admitted_finds_nothing()
         {
             using (var admitted = _authority.IssueClient("agent-one"))
@@ -488,6 +616,10 @@ namespace KeePassGate.Tests
 
             Assert.That(store.All().Records, Is.Empty);
             Assert.That(store.Find(new string('a', 64)), Is.Null);
+
+            bool listed;
+            Assert.That(store.Find(new string('a', 64), out listed), Is.Null);
+            Assert.That(listed, Is.False, "and says it could not look, which is not the same as nothing being there");
             Assert.That(_log.Errors, Is.Not.Empty);
 
             // And it says which of the two it is. Everything above is also true of a database

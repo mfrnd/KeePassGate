@@ -17,12 +17,14 @@ namespace KeePassGate.Authority
     {
         private readonly bool _ok;
         private readonly bool _busy;
+        private readonly bool _withdrawn;
         private readonly string _reason;
 
-        private AdmissionWrite(bool ok, bool busy, string reason)
+        private AdmissionWrite(bool ok, bool busy, bool withdrawn, string reason)
         {
             _ok = ok;
             _busy = busy;
+            _withdrawn = withdrawn;
             _reason = reason ?? string.Empty;
         }
 
@@ -41,6 +43,16 @@ namespace KeePassGate.Authority
             get { return _busy; }
         }
 
+        /// <summary>
+        /// True when the write's own condition refused it, under the writer's lock and before
+        /// anything was touched: what it was for no longer stands. The caller that gave the
+        /// condition knows which part of it refused.
+        /// </summary>
+        public bool IsWithdrawn
+        {
+            get { return _withdrawn; }
+        }
+
         public string Reason
         {
             get { return _reason; }
@@ -48,17 +60,22 @@ namespace KeePassGate.Authority
 
         public static AdmissionWrite Done()
         {
-            return new AdmissionWrite(true, false, "written and saved");
+            return new AdmissionWrite(true, false, false, "written and saved");
         }
 
         public static AdmissionWrite Failed(string reason)
         {
-            return new AdmissionWrite(false, false, reason);
+            return new AdmissionWrite(false, false, false, reason);
         }
 
         public static AdmissionWrite Busy(string reason)
         {
-            return new AdmissionWrite(false, true, reason);
+            return new AdmissionWrite(false, true, false, reason);
+        }
+
+        public static AdmissionWrite Withdrawn(string reason)
+        {
+            return new AdmissionWrite(false, false, true, reason);
         }
     }
 }

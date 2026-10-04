@@ -31,6 +31,8 @@ namespace KeePassGate.Spec
 
         public const string RevokeCertificate = "revokeCertificate";
 
+        public const string RenewCertificate = "renewCertificate";
+
         public const string PairHello = "pairHello";
 
         public const string PairRequest = "pairRequest";
@@ -144,12 +146,23 @@ namespace KeePassGate.Spec
         }
 
         /// <summary>
-        /// The same, for a build that carries no revision, which is what a router assembled outside
-        /// the plugin is.
+        /// The same, for a build that carries no revision and renews nothing, which is what a
+        /// router assembled outside the plugin is.
         /// </summary>
         public static SpecRouter Router(string version, PairingHandler pairing, AccessCheck access)
         {
-            return Router(version, string.Empty, pairing, access);
+            return Router(version, pairing, null, access);
+        }
+
+        /// <summary>The same, renewing as well as pairing.</summary>
+        /// <param name="renewal">
+        /// The renewal route's handler, or null for a build that renews nothing, which answers it as
+        /// a route it does not serve.
+        /// </param>
+        public static SpecRouter Router(
+            string version, PairingHandler pairing, RenewalHandler renewal, AccessCheck access)
+        {
+            return Router(version, string.Empty, pairing, renewal, access);
         }
 
         /// <summary>The router this plugin runs.</summary>
@@ -159,16 +172,25 @@ namespace KeePassGate.Spec
         /// </param>
         /// <param name="access">
         /// The record and the rules, combined. Every route that touches the database asks it,
-        /// through `Nodes()`. The status route, the revocation route and the two pairing routes do
-        /// not: the status route reads nothing, a client giving up its own admission touches no
-        /// group or entry a rule is about, and pairing is authorized by a person reading a dialog
-        /// rather than by a grant, since a client that is pairing holds no profiles yet.
+        /// through `Nodes()`. The status route, the revocation, the renewal and the two pairing
+        /// routes do not: the status route reads nothing, a client giving up its own admission
+        /// touches no group or entry a rule is about, and pairing and renewal are authorized by a
+        /// person reading a dialog rather than by a grant, since a client that is pairing holds no
+        /// profiles yet.
         /// </param>
         public static SpecRouter Router(
-            string version, string revision, PairingHandler pairing, AccessCheck access)
+            string version,
+            string revision,
+            PairingHandler pairing,
+            RenewalHandler renewal,
+            AccessCheck access)
         {
             return new SpecRouter(
-                Document, Handlers(version, revision, pairing), Guards(pairing), Nodes(), access);
+                Document,
+                Handlers(version, revision, pairing, renewal),
+                Guards(pairing),
+                Nodes(),
+                access);
         }
 
         /// <summary>
@@ -238,6 +260,13 @@ namespace KeePassGate.Spec
         public static IReadOnlyDictionary<string, OperationHandler> Handlers(
             string version, string revision, PairingHandler pairing)
         {
+            return Handlers(version, revision, pairing, null);
+        }
+
+        /// <summary>The same, with the renewal route's handler.</summary>
+        public static IReadOnlyDictionary<string, OperationHandler> Handlers(
+            string version, string revision, PairingHandler pairing, RenewalHandler renewal)
+        {
             var status = new StatusOperation(version, revision);
 
             return new Dictionary<string, OperationHandler>(StringComparer.Ordinal)
@@ -245,6 +274,7 @@ namespace KeePassGate.Spec
                 { Status, status.Handle },
                 { HeadStatus, status.Handle },
                 { RevokeCertificate, RevocationOperation.Handle },
+                { RenewCertificate, renewal == null ? NotServed : (OperationHandler)renewal.Renew },
                 { PairHello, pairing == null ? NotServed : (OperationHandler)pairing.Hello },
                 { PairRequest, pairing == null ? NotServed : (OperationHandler)pairing.Request },
 

@@ -234,6 +234,32 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void A_target_held_across_a_recreated_authority_admits_nobody()
+        {
+            // A renewal holds its connection's target while the operator decides, and asks it
+            // again for the record afterwards. Recreation takes every record with it, and one that
+            // comes back, by a merge or by a pairing that landed while the authority went, chains
+            // to the authority this target serves, which the database has retired.
+            var databases = new[] { _database.Database }.ToList();
+            using (var targets = new OpenDatabaseTargets(delegate { return databases; }, NullGateLog.Instance))
+            {
+                var record = AdmissionRecord.For(_client, DateTimeOffset.UtcNow, new[] { "ops" });
+                _admissions.Write(record);
+
+                using (var held = targets.Current().Single())
+                {
+                    Assume.That(held.Admission(CertificateDigest.Of(_client)), Is.Not.Null);
+
+                    Assume.That(_authority.Recreate().Succeeded, Is.True);
+                    _admissions.Write(record);
+                    Assume.That(_admissions.Find(CertificateDigest.Of(_client)), Is.Not.Null);
+
+                    Assert.That(held.Admission(CertificateDigest.Of(_client)), Is.Null);
+                }
+            }
+        }
+
+        [Test]
         public void A_client_whose_database_closed_under_its_connection_is_told_it_is_locked()
         {
             // KeePass empties the database before it says why, so a connection resolved a moment

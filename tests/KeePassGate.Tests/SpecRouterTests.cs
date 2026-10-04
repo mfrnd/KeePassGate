@@ -60,7 +60,7 @@ namespace KeePassGate.Tests
         {
             // A member of its own, beside a version left as it was, because every build between
             // two releases carries the same version and this is what tells them apart.
-            var router = GateOperations.Router("9.9.9", "0123abcd", null, new AccessCheck(NullGateAudit.Instance));
+            var router = GateOperations.Router("9.9.9", "0123abcd", null, null, new AccessCheck(NullGateAudit.Instance));
             var context = Request("GET", GateOperations.StatusPath, Paired("db-digest"));
 
             router.Handle(context);
@@ -290,6 +290,7 @@ namespace KeePassGate.Tests
                 { GateOperations.Status, Nothing },
                 { GateOperations.HeadStatus, Nothing },
                 { GateOperations.RevokeCertificate, Nothing },
+                { GateOperations.RenewCertificate, Nothing },
             };
 
             var raised = Assert.Throws<InvalidOperationException>(

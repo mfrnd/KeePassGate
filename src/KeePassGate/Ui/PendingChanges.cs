@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using KeePassGate.Acl;
 using KeePassGate.Authority;
 using KeePassGate.Diagnostics;
+using KeePassGate.Pairing;
 
 namespace KeePassGate.Ui
 {
@@ -52,13 +53,19 @@ namespace KeePassGate.Ui
     /// wholesale write would destroy that record without either side noticing. Replaying only the
     /// keys the operator touched leaves it alone.
     ///
-    /// **Replaying only the touched keys is not enough for a key with two writers.** There is one,
+    /// **Replaying only the touched keys is not enough for a key with two writers.** The first is
     /// `KPG.Profiles`, and the tab and a pairing write it differently: the tab holds its version
     /// until OK, a pairing writes the live database and saves it, because the profile the operator
     /// just approved has to be named by the same write as the admission record. Replaying the
     /// tab's version put an older list over the newer one, which is the same destruction one key
     /// down. What is replayed for such a key is the operator's difference against what they
     /// started from, so a name somebody else added survives and a name they removed still goes.
+    ///
+    /// **A standing answer to a renewal is the other kind of key with two writers**, one per
+    /// certificate. The clients page's Allow renewal takes one away here, and the renewal dialog
+    /// writes one live: once an until-date has passed while this dialog was open, the next
+    /// renewal is asked again and may be refused again. That answer is the newer word on the
+    /// certificate, so OK keeps it rather than replaying the removal over it.
     ///
     /// One case survives all of that and is worth naming rather than hiding. An operator who
     /// recreates or deletes the authority, while a pairing lands, leaves that pairing's record
@@ -90,7 +97,7 @@ namespace KeePassGate.Ui
             // own per read for the same reason.
             _store = new PendingStore(() => database.PluginCustomData);
 
-            // **The one key with a second writer whose two versions have to be merged.** A record
+            // **The key with a second writer whose two versions have to be merged.** A record
             // or a revocation the tab touches can also be written while the dialog is up, by a
             // client revoking itself or by the prune of expired records every landed write rides
             // on, and replaying writes it again as the operator left it: the same revocation, or
@@ -103,6 +110,25 @@ namespace KeePassGate.Ui
             // Registered here rather than known by the buffer, because the buffer is a buffer: it
             // holds strings for a dialog and has no business knowing what any of them mean.
             _store.Reconcile(ProfileNames.CustomDataKey, MergeProfiles);
+
+            // And a standing answer to a renewal, lifted here and given again on the renewal
+            // dialog while this one was open: the answer given later is the one that stands.
+            _store.Reconcile(AuthorityKeys.IsRenewalRefusal, KeepTheLaterAnswer);
+        }
+
+        /// <summary>
+        /// A standing answer somebody else wrote or took away while the dialog was open, kept over
+        /// the tab's own edit of it.
+        /// </summary>
+        /// <remarks>
+        /// Asked only when the key changed under the dialog. The tab only ever takes such a key
+        /// away, so what changed it is a renewal answered again, a merge, or the prune that rides
+        /// on a landed write, and each of those is a later word on the certificate than the press
+        /// on the page.
+        /// </remarks>
+        private static string KeepTheLaterAnswer(string baseline, string current, string buffered, bool landing)
+        {
+            return current;
         }
 
         /// <summary>
@@ -223,6 +249,16 @@ namespace KeePassGate.Ui
                 changed |= _store.Apply();
             }
 
+            // A standing answer about a certificate this OK revoked may have landed after the
+            // press, when the prune that rode on it had already looked and found nothing. Asked
+            // again over what was written, so the order of the two does not decide whether an
+            // answer about a certificate no record admits stays in the file.
+            var live = _database.PluginCustomData;
+            if (changed && live != null)
+            {
+                changed |= new AdmissionStore(live, _log).PruneRefusals().Count > 0;
+            }
+
             // A name the page's view left out that is still not on the list now it is written, which
             // the merge at OK says nothing about when the list was edited again after it went.
             if (_leftOut.Count > 0)
@@ -328,6 +364,10 @@ namespace KeePassGate.Ui
 
         private readonly Dictionary<string, Reconciler> _reconcilers =
             new Dictionary<string, Reconciler>(StringComparer.Ordinal);
+
+        /// <summary>The same for every key of a kind, asked after the keys named one by one.</summary>
+        private readonly List<KeyValuePair<Func<string, bool>, Reconciler>> _kinds =
+            new List<KeyValuePair<Func<string, bool>, Reconciler>>();
 
         /// <summary>
         /// Over a store that cannot be replaced underneath, which is what a test holds.
@@ -438,13 +478,33 @@ namespace KeePassGate.Ui
         /// </remarks>
         private string Viewed(string key, string buffered)
         {
-            if (!_reconcilers.ContainsKey(key))
+            if (MergeFor(key) == null)
             {
                 return buffered;
             }
 
             var store = Underneath;
             return store == null ? buffered : Reconciled(key, buffered, store.Get(key), false);
+        }
+
+        /// <summary>How this key is combined with a second writer's, or null when it has none.</summary>
+        private Reconciler MergeFor(string key)
+        {
+            Reconciler merge;
+            if (_reconcilers.TryGetValue(key, out merge))
+            {
+                return merge;
+            }
+
+            foreach (var kind in _kinds)
+            {
+                if (kind.Key(key))
+                {
+                    return kind.Value;
+                }
+            }
+
+            return null;
         }
 
         /// <summary>
@@ -464,6 +524,25 @@ namespace KeePassGate.Ui
             }
 
             _reconcilers[key] = merge;
+        }
+
+        /// <summary>
+        /// The same for every key of a kind, for a subject kept under one key per thing it is
+        /// about. A key registered by name is asked about first.
+        /// </summary>
+        public void Reconcile(Func<string, bool> kind, Reconciler merge)
+        {
+            if (kind == null)
+            {
+                throw new ArgumentNullException(nameof(kind));
+            }
+
+            if (merge == null)
+            {
+                throw new ArgumentNullException(nameof(merge));
+            }
+
+            _kinds.Add(new KeyValuePair<Func<string, bool>, Reconciler>(kind, merge));
         }
 
         public void Set(string key, string value)
@@ -513,7 +592,7 @@ namespace KeePassGate.Ui
         /// </remarks>
         private void Remember(string key)
         {
-            if (_before.ContainsKey(key) && !_reconcilers.ContainsKey(key))
+            if (_before.ContainsKey(key) && MergeFor(key) == null)
             {
                 return;
             }
@@ -628,8 +707,8 @@ namespace KeePassGate.Ui
         /// </remarks>
         private string Reconciled(string key, string buffered, string current, bool landing)
         {
-            Reconciler merge;
-            if (!_reconcilers.TryGetValue(key, out merge))
+            var merge = MergeFor(key);
+            if (merge == null)
             {
                 return buffered;
             }
@@ -651,6 +730,88 @@ namespace KeePassGate.Ui
             _order.Clear();
             _removed.Clear();
             _before.Clear();
+        }
+    }
+
+    /// <summary>
+    /// The renewals refused in this session as one settings dialog sees them, with the answers its
+    /// clients page lifted held back until the dialog is accepted.
+    /// </summary>
+    /// <remarks>
+    /// **Beside the buffer rather than in it**, because an answer for this session is no key in
+    /// any database: it is the plugin's memory, `PAIRING.md` §312. What it shares with the buffer
+    /// is the rule the whole tab follows, that nothing happens until OK. So the page reads through
+    /// this, and an answer lifted here stops showing at once, and the plugin's own set is told
+    /// only by <see cref="Apply"/>. Cancel is <see cref="Discard"/>, and the gate goes on refusing.
+    ///
+    /// One per dialog, for the reason the buffer is: two settings dialogs open at once each hold
+    /// their own pending changes, and each one's OK applies what was pressed on it.
+    /// </remarks>
+    public sealed class PendingSessionRefusals
+    {
+        private readonly SessionRefusals _session;
+        private readonly HashSet<string> _lifted = new HashSet<string>(StringComparer.Ordinal);
+
+        public PendingSessionRefusals(SessionRefusals session)
+        {
+            if (session == null)
+            {
+                throw new ArgumentNullException(nameof(session));
+            }
+
+            _session = session;
+        }
+
+        /// <summary>Whether renewals of this certificate are refused, as OK would leave them.</summary>
+        public bool Refuses(string admissionKey)
+        {
+            return Answer(admissionKey) != null;
+        }
+
+        /// <summary>
+        /// The answer the plugin's memory holds about renewing this certificate, as OK would leave
+        /// it: this session's, or one for longer still owed to the database, or null.
+        /// </summary>
+        public RenewalRefusal Answer(string admissionKey)
+        {
+            return _lifted.Contains(admissionKey ?? string.Empty) ? null : _session.Answer(admissionKey);
+        }
+
+        /// <summary>
+        /// Lifts this session's answer about one certificate when the dialog is accepted, answering
+        /// with whether there was one.
+        /// </summary>
+        public bool Lift(string admissionKey)
+        {
+            if (!Refuses(admissionKey))
+            {
+                return false;
+            }
+
+            _lifted.Add(admissionKey);
+            return true;
+        }
+
+        /// <summary>
+        /// Lifts every answer that was lifted on the page, which is what OK means, and answers
+        /// with the certificates it lifted.
+        /// </summary>
+        public IReadOnlyList<string> Apply()
+        {
+            var lifted = new List<string>(_lifted);
+            foreach (var key in lifted)
+            {
+                _session.Lift(key);
+            }
+
+            _lifted.Clear();
+            return lifted;
+        }
+
+        /// <summary>Forgets what was lifted on the page, which is what Cancel means.</summary>
+        public void Discard()
+        {
+            _lifted.Clear();
         }
     }
 }

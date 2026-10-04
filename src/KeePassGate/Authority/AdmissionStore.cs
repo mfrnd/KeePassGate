@@ -49,6 +49,17 @@ namespace KeePassGate.Authority
         /// </summary>
         public AdmissionRecord Find(string admissionKey)
         {
+            bool listed;
+            return Find(admissionKey, out listed);
+        }
+
+        /// <summary>
+        /// The same, saying whether the records could be listed at all, since a listing that
+        /// failed finds nothing and that is not the same as nothing being there.
+        /// </summary>
+        public AdmissionRecord Find(string admissionKey, out bool listed)
+        {
+            listed = true;
             if (string.IsNullOrEmpty(admissionKey))
             {
                 return null;
@@ -57,7 +68,7 @@ namespace KeePassGate.Authority
             AdmissionRecord found = null;
             var revoked = false;
 
-            foreach (var pair in Stored(out _))
+            foreach (var pair in Stored(out listed))
             {
                 var key = pair.Key;
 
@@ -161,8 +172,93 @@ namespace KeePassGate.Authority
         }
 
         /// <summary>
-        /// Takes every admission record away, and every revocation with them, answering with how
-        /// many clients went.
+        /// The operator's standing answer to renewing this certificate, or null when there is none.
+        /// </summary>
+        /// <remarks>
+        /// **A value that will not read is answered as forever**, which is the refusing direction:
+        /// only a hand at Database Maintenance or a later version of this plugin writes one, and
+        /// answering it as no answer at all would raise a dialog the operator had said not to. It
+        /// is said in the log, and it goes when the certificate stops being admitted.
+        /// </remarks>
+        public RenewalRefusal StandingRefusal(string admissionKey)
+        {
+            if (string.IsNullOrEmpty(admissionKey))
+            {
+                return null;
+            }
+
+            var stored = _store.Get(AuthorityKeys.RenewalRefusalKey(admissionKey));
+            if (stored == null)
+            {
+                return null;
+            }
+
+            var refusal = RenewalRefusal.Read(stored);
+            if (refusal == null)
+            {
+                _log.Warn("a standing answer to a renewal could not be read, so it is answered as forever: " +
+                          CertificateDigest.Shorten(admissionKey));
+                return RenewalRefusal.Forever();
+            }
+
+            return refusal;
+        }
+
+        /// <summary>Writes the operator's standing answer to renewing this certificate.</summary>
+        /// <exception cref="ArgumentException">
+        /// For a refusal in this session, which is held in memory and never written here.
+        /// </exception>
+        public void RefuseRenewal(string admissionKey, RenewalRefusal refusal)
+        {
+            if (string.IsNullOrEmpty(admissionKey))
+            {
+                throw new ArgumentException("An admission key is required.", nameof(admissionKey));
+            }
+
+            if (refusal == null)
+            {
+                throw new ArgumentNullException(nameof(refusal));
+            }
+
+            if (!refusal.IsWritten)
+            {
+                throw new ArgumentException(
+                    "A renewal refused in this session is held in memory and never written to a database.",
+                    nameof(refusal));
+            }
+
+            _store.Set(AuthorityKeys.RenewalRefusalKey(admissionKey), refusal.Write());
+        }
+
+        /// <summary>
+        /// Takes the operator's standing answer to renewing this certificate away, so that its
+        /// next renewal raises the dialog again, answering with whether there was one to take.
+        /// </summary>
+        /// <remarks>
+        /// The clients page's Allow renewal, and nothing else: the answer otherwise goes only with
+        /// the certificate it is about. A value that will not read is taken away like any other,
+        /// since it is answered as forever and lifting forever is what the operator asked for.
+        /// </remarks>
+        public bool LiftRenewalRefusal(string admissionKey)
+        {
+            if (string.IsNullOrEmpty(admissionKey))
+            {
+                return false;
+            }
+
+            var key = AuthorityKeys.RenewalRefusalKey(admissionKey);
+            if (_store.Get(key) == null)
+            {
+                return false;
+            }
+
+            _store.Remove(key);
+            return true;
+        }
+
+        /// <summary>
+        /// Takes every admission record away, and every revocation and standing answer with them,
+        /// answering with how many clients went.
         /// </summary>
         /// <remarks>
         /// **Refuses rather than reporting nothing when the listing cannot be made.** The authority is
@@ -264,10 +360,12 @@ namespace KeePassGate.Authority
             _store.Set(key, string.Empty);
 
             // Records first, because a record is known to have come back by the revocation beside
-            // it, and the prune after this can take an expired revocation away.
+            // it, and the prune after this can take an expired revocation away. The standing
+            // answers last, because what they ask is whether a record is still there.
             PruneCameBack();
             Prune(now, revocation);
             PruneExpired(now);
+            PruneRefusals();
 
             // Read back rather than assumed, the way every other mutation here is believed. The
             // answer this returns is what the operator is shown, and telling somebody a client is
@@ -286,8 +384,8 @@ namespace KeePassGate.Authority
         ///
         /// **The emptied record goes with it**, because past that end it has nothing left to
         /// refuse either, and kept it would be a key for every client ever revoked: a client given
-        /// a week at a time, whose older row is revoked each time it pairs again, makes that a
-        /// number with no bound. A stale copy that brings it back brings back an empty value, or a
+        /// a week at a time, which gives up its older certificate each time it renews, makes that
+        /// a number with no bound. A stale copy that brings it back brings back an empty value, or a
         /// record of a certificate that has expired, which the next write takes away again.
         ///
         /// A failure here is logged and nothing else, because the revocation this rides on has
@@ -350,14 +448,14 @@ namespace KeePassGate.Authority
         /// <remarks>
         /// **Only as part of a write this plugin makes anyway**, which is the rule every prune
         /// here follows: a revocation, and every write <c>AuthorityStore.Prune</c> rides on, which
-        /// is pairing, keeping one authority, and recreating or deleting it. Opening or reading a
-        /// database changes nothing in it, so an expired record stays until then, and the clients
-        /// page shows it as expired meanwhile.
+        /// is pairing, renewing, keeping one authority, and recreating or deleting it. Opening or
+        /// reading a database changes nothing in it, so an expired record stays until then, and
+        /// the clients page shows it as expired meanwhile.
         ///
         /// Past its certificate's end the gate refuses that certificate on its dates, so the
         /// record admits nobody and has nothing left to say. Kept, records of expired certificates
         /// would be a key for every certificate ever issued, and a client given a week at a time,
-        /// pairing again as each runs out, makes that a number with no bound. A stale copy that
+        /// renewing as each runs out, makes that a number with no bound. A stale copy that
         /// brings one back does no harm, since its certificate is refused on its dates, and the
         /// next write takes it away again.
         ///
@@ -393,6 +491,49 @@ namespace KeePassGate.Authority
             catch (Exception error) when (Expected.OfCustomData(error))
             {
                 _log.Warn("the records of expired certificates could not be taken away: " + error.Message);
+            }
+
+            return removed;
+        }
+
+        /// <summary>
+        /// Takes away every standing answer about a certificate no record admits any more, answering
+        /// with what went so that a write that does not land can put it back.
+        /// </summary>
+        /// <remarks>
+        /// **On the writes every prune here rides on, and after the others**, because what it asks
+        /// is whether the record is still there: a revocation empties it, an expired one is taken
+        /// away, one that came back beside its revocation goes. A record that cannot be read is
+        /// still there, so its answer stays with it. Past that, an answer refuses a renewal nothing
+        /// could ask for, since a renewal is asked with the certificate the record admits.
+        ///
+        /// A failure is logged and answered with what went before it, as the other prunes are.
+        /// </remarks>
+        public IReadOnlyList<KeyValuePair<string, string>> PruneRefusals()
+        {
+            var removed = new List<KeyValuePair<string, string>>();
+
+            try
+            {
+                var stored = Stored(out _);
+                var revoked = Revoked(stored);
+
+                foreach (var pair in stored.Where(pair => AuthorityKeys.IsRenewalRefusal(pair.Key)))
+                {
+                    var admissionKey = AuthorityKeys.AdmissionKeyInRenewalRefusal(pair.Key);
+                    if (!Gone(_store.Get(AuthorityKeys.ClientRecordKey(admissionKey))) && !revoked.Contains(admissionKey))
+                    {
+                        continue;
+                    }
+
+                    _store.Remove(pair.Key);
+                    removed.Add(pair);
+                }
+            }
+            catch (Exception error) when (Expected.OfCustomData(error))
+            {
+                _log.Warn("the standing answers about clients no longer admitted could not be taken away: " +
+                          error.Message);
             }
 
             return removed;
@@ -443,11 +584,11 @@ namespace KeePassGate.Authority
         /// <remarks>
         /// **Only as part of a write this plugin makes anyway**, which is the rule every prune
         /// here follows: a revocation, and every write <c>AuthorityStore.Prune</c> rides on, which
-        /// is pairing, keeping one authority, and recreating or deleting it. Opening or reading a
-        /// database changes nothing in it, so a record a merge brought back stays until then. It
-        /// admits nobody meanwhile, because <see cref="Find"/> reads the revocation rather than
-        /// waiting for this, and the clients page counts it under the list rather than listing
-        /// it as a client.
+        /// is pairing, renewing, keeping one authority, and recreating or deleting it. Opening or
+        /// reading a database changes nothing in it, so a record a merge brought back stays until
+        /// then. It admits nobody meanwhile, because <see cref="Find(string)"/> reads the revocation rather
+        /// than waiting for this, and the clients page counts it under the list rather than
+        /// listing it as a client.
         ///
         /// Deleted rather than emptied. The revocation beside it is what refuses it and is never
         /// changed, so the record has nothing left to say, and a stale copy that brings it back
@@ -560,9 +701,10 @@ namespace KeePassGate.Authority
         }
 
         /// <summary>
-        /// The records and revocations stored, with their values, and whether they could be listed
-        /// at all. The enumeration itself is what throws in the race this guards, so `listed` is
-        /// set from inside the `try` rather than before it, and the values are read inside it too.
+        /// The records, revocations and standing answers stored, with their values, and whether they
+        /// could be listed at all. The enumeration itself is what throws in the race this guards, so
+        /// `listed` is set from inside the `try` rather than before it, and the values are read
+        /// inside it too.
         /// </summary>
         private List<KeyValuePair<string, string>> Stored(out bool listed)
         {
@@ -571,7 +713,9 @@ namespace KeePassGate.Authority
                 var keys = _store.Keys;
                 var found = keys == null
                     ? new List<KeyValuePair<string, string>>()
-                    : keys.Where(key => AuthorityKeys.IsClientRecord(key) || AuthorityKeys.IsRevocation(key))
+                    : keys.Where(key => AuthorityKeys.IsClientRecord(key)
+                                        || AuthorityKeys.IsRevocation(key)
+                                        || AuthorityKeys.IsRenewalRefusal(key))
                           .Select(key => new KeyValuePair<string, string>(key, _store.Get(key)))
                           .ToList();
 

@@ -186,7 +186,13 @@ namespace KeePassGate.Pairing
         TimedOut,
 
         /// <summary>There was nobody to ask, so nothing was decided.</summary>
-        Unavailable
+        Unavailable,
+
+        /// <summary>
+        /// KeePass locked while the question was up or waiting to be, which closes the dialog as
+        /// unanswered. Nothing is spent, and the client is told the database is locked.
+        /// </summary>
+        Locked
     }
 
     /// <summary>What came back from the screen.</summary>
@@ -261,15 +267,25 @@ namespace KeePassGate.Pairing
         {
             return new PairingApproval(PairingDecision.Unavailable, null, null, reason);
         }
+
+        public static PairingApproval Locked()
+        {
+            return new PairingApproval(PairingDecision.Locked, null, null, LockedReason);
+        }
+
+        /// <summary>What the log says of a question a lock took away.</summary>
+        internal const string LockedReason = "closed unanswered when KeePass locked";
     }
 
     /// <summary>
     /// Asking the person at the keyboard whether a stranger may have a certificate.
     /// </summary>
     /// <remarks>
-    /// The one place in this plugin where a request reaches a screen, and `DESIGN.md` §119
-    /// says why the exception is confined to here: an unattended agent must not be able to raise a
-    /// dialog, so every other route refuses rather than asks. This one exists to be asked.
+    /// One of the two places in this plugin where a request reaches a screen, `IRenewalApproval`
+    /// being the other, and both are answered by one prompt so that only one dialog is up at a
+    /// time. `DESIGN.md` §119 says why the exception is confined to these: an unattended agent must
+    /// not be able to raise a dialog, so every other route refuses rather than asks. These exist to
+    /// be asked.
     ///
     /// An implementation must answer within the timeout even when nobody is there, because the
     /// connection thread is waiting on it and the invitation is not spent until it does.

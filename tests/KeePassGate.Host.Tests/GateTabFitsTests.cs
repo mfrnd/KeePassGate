@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Windows.Forms;
 using KeePassGate.Authority;
@@ -578,6 +580,123 @@ namespace KeePassGate.Host.Tests
                         state.Description + ": the client list's columns are " + columns +
                         " wide in " + room + ", so it scrolls sideways.");
                 }
+            }
+        }
+
+        [Test]
+        [TestCase(1.00f)]
+        [TestCase(1.25f)]
+        [TestCase(2.00f)]
+        [TestCase(1.50f)]
+        public void Clients_with_standing_answers_fit_the_page_as_every_other_client_does(float scaling)
+        {
+            // M001: the operator chose a red name, a tooltip and the row's menu over a column and a
+            // button, because neither fitted. What has to stay true is that four clients, each
+            // with one of the answers and two of them the same, leave every column whole and the
+            // list a list, in every state of the tab and at every scaling, with the two lines a
+            // merge adds under the list and without them.
+            var day = new DateTime(2026, 12, 28, 0, 0, 0, DateTimeKind.Local);
+            var clients = new[]
+            {
+                Tuple.Create("nightly-sync", new[] { "ops" }, RenewalRefusal.ThisSession()),
+                Tuple.Create("agent-fictitious", new[] { "reader" }, RenewalRefusal.Until(new DateTimeOffset(day))),
+                Tuple.Create("ci-runner", new[] { "reader", "ops" }, RenewalRefusal.Forever()),
+                Tuple.Create("backup-agent", new[] { "reader" }, RenewalRefusal.Forever())
+            };
+
+            var records = new List<AdmissionRecord>();
+            var standing = new Dictionary<string, RenewalRefusal>(StringComparer.Ordinal);
+            var admitted = new DateTimeOffset(2026, 10, 11, 18, 42, 7, TimeSpan.Zero);
+            foreach (var client in clients)
+            {
+                using (var certificate = ClientCertificate(client.Item1, admitted))
+                {
+                    var record = AdmissionRecord.For(certificate, admitted, client.Item2);
+                    records.Add(record);
+                    standing[record.AdmissionKey] = client.Item3;
+                }
+
+                admitted = admitted.AddMinutes(-3);
+            }
+
+            using (var scaled = scaling > 1.00f ? ScaledDialog(scaling) : null)
+            {
+                var area = scaled == null ? _page.DisplayRectangle.Size : PageOf(scaled.Dialog);
+                var where = " at " + scaling.ToString("0.00", CultureInfo.InvariantCulture) + " scaling";
+
+                foreach (var crowded in new[] { false, true })
+                {
+                    foreach (var state in States())
+                    {
+                        using (var panel = state.Panel)
+                        {
+                            if (scaled != null)
+                            {
+                                panel.Scale(Spacing.ScaleOf(scaled.Dialog));
+                                panel.Font = scaled.Font;
+                            }
+
+                            LayOut(panel, area);
+
+                            var list = ControlTree.FindByName<ClientList>(panel, ClientList.ControlName);
+                            Assert.That(list, Is.Not.Null);
+                            Show(list);
+
+                            list.Fill(
+                                crowded
+                                    ? new AdmissionListing(records, new[] { new string('f', 64) }, 9999, false)
+                                    : new AdmissionListing(records, true),
+                                null,
+                                null,
+                                standing);
+                            list.PerformLayout();
+
+                            var grid = ControlTree.FindFirst<DataGridView>(list);
+                            var what = (crowded ? "with the merge's lines, " : string.Empty) + state.Description + where;
+
+                            var columns = 0;
+                            foreach (DataGridViewColumn column in grid.Columns)
+                            {
+                                columns += column.Width;
+                            }
+
+                            var cut = new List<string>();
+                            foreach (DataGridViewRow row in grid.Rows)
+                            {
+                                foreach (DataGridViewCell cell in row.Cells)
+                                {
+                                    if (cell.PreferredSize.Width > grid.Columns[cell.ColumnIndex].Width)
+                                    {
+                                        cut.Add(Convert.ToString(cell.FormattedValue, CultureInfo.InvariantCulture)
+                                                + " needs " + cell.PreferredSize.Width + " in "
+                                                + grid.Columns[cell.ColumnIndex].Width);
+                                    }
+                                }
+                            }
+
+                            TestContext.Out.WriteLine(what + ": columns " + columns + " of " + grid.ClientSize.Width
+                                                      + ", list " + grid.Height);
+
+                            Assert.That(list.StandingAt(3), Is.Not.Null, what + ": the answers were not shown");
+                            Assert.That(columns, Is.LessThanOrEqualTo(grid.ClientSize.Width),
+                                what + ": the columns are " + columns + " wide in " + grid.ClientSize.Width);
+                            Assert.That(cut, Is.Empty, what + ": " + string.Join("; ", cut));
+                            Assert.That(grid.Height, Is.GreaterThanOrEqualTo(MinimumListHeight),
+                                what + " leaves the list " + grid.Height + " pixels, which is not a list.");
+                        }
+                    }
+                }
+            }
+        }
+
+        /// <summary>A client certificate whose dates do not move, for a row that reads the same every run.</summary>
+        private static X509Certificate2 ClientCertificate(string name, DateTimeOffset issued)
+        {
+            using (var key = RSA.Create(2048))
+            {
+                var request = new CertificateRequest(
+                    "CN=" + name, key, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+                return request.CreateSelfSigned(issued, issued.AddYears(1));
             }
         }
 

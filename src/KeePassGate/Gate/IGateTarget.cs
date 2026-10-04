@@ -30,8 +30,8 @@ namespace KeePassGate.Gate
         /// What KeePass calls this database, or empty when it has nothing to be called.
         /// </summary>
         /// <remarks>
-        /// For the approval dialog and nothing else. A dialog that identifies the database only by
-        /// <see cref="DatabaseId"/> asks the operator to recognize sixteen hexadecimal characters
+        /// For the two approval dialogs and nothing else. A dialog that identifies the database only
+        /// by <see cref="DatabaseId"/> asks the operator to recognize sixteen hexadecimal characters
         /// before letting a stranger in, which is exactly the check nobody performs. The digest
         /// stays beside it, because it is what actually identifies the database and two of them can
         /// carry the same name.
@@ -60,8 +60,10 @@ namespace KeePassGate.Gate
         /// a revocation beside the record has to take effect on the next connection
         /// rather than on the next time something else changed.
         ///
-        /// **Throws `DatabaseShut` when the database closed under the caller**, a lock nearly
-        /// always, which is answered as one rather than as there being no record.
+        /// **Throws `VaultUnsettled` when the records could not be listed**, which is not the same
+        /// as there being none: answered as none, a write landing at the same instant told an
+        /// admitted client it was never admitted. **And `DatabaseShut` when the database closed
+        /// under the caller**, a lock nearly always, which is answered as one.
         /// </remarks>
         AdmissionRecord Admission(string admissionKey);
 
@@ -76,14 +78,29 @@ namespace KeePassGate.Gate
         /// The profiles this database names now, read on every call rather than cached.
         /// </summary>
         /// <remarks>
-        /// Two readers. A client's profiles are its record's less every name missing from here, so
-        /// taking a name off the list takes it from every client without touching a record. And
-        /// the approval dialog says which of the profiles being asked for are new.
+        /// Three readers. A client's profiles are its record's less every name missing from here, so
+        /// taking a name off the list takes it from every client without touching a record. The
+        /// pairing dialog says which of the profiles being asked for are new. And a renewal offers
+        /// only the record's names the list still holds, and says which it no longer does.
         ///
-        /// Empty when the list cannot be read, which is the safe direction for both: every client
-        /// reaches nothing, and the operator is told there is something to create rather than not.
+        /// Empty when the list cannot be read, which is the safe direction for the first reader:
+        /// every client reaches nothing. Not for the other two, which write the list or a record
+        /// from it, so both ask <see cref="ProfilesUnreadable"/> first and refuse.
         /// </remarks>
         IReadOnlyList<string> KnownProfiles { get; }
+
+        /// <summary>
+        /// Why the profiles this database names cannot be read now, or null when they can, an
+        /// empty list included.
+        /// </summary>
+        /// <remarks>
+        /// For the readers for which empty is not the safe direction: a renewal writes a record from
+        /// the names on the list, so a list that would not read would have been written into the
+        /// record as no names at all, and the client would have lost them for good; and a pairing
+        /// writes the names it approves onto the list, which read as empty would have replaced
+        /// every name the damaged list held.
+        /// </remarks>
+        string ProfilesUnreadable { get; }
 
         /// <summary>
         /// The admitted clients whose records hold a profile, read now. Empty when none do or the
@@ -107,7 +124,14 @@ namespace KeePassGate.Gate
         /// can change between asking and writing, and a pairing that cannot land its record has
         /// to fail rather than hand over a certificate nobody can see.
         /// </remarks>
-        AdmissionWrite Admit(AdmissionRecord record);
+        /// <param name="condition">
+        /// Why the record may no longer be written, or null when it may, asked of the database's
+        /// own custom data on KeePass's thread, under the writer's lock, once the database is known
+        /// to be writable and before anything is changed. Where an approval is held, spent and
+        /// compared with what it was given against. A refusal is answered as withdrawn. Null for
+        /// none.
+        /// </param>
+        AdmissionWrite Admit(AdmissionRecord record, Func<IKeyValueStore, string> condition);
 
         /// <summary>
         /// Revokes the client holding this admission key, at that client's own request, and makes
@@ -121,6 +145,23 @@ namespace KeePassGate.Gate
         /// it.
         /// </remarks>
         VaultWrite Revoke(string admissionKey);
+
+        /// <summary>
+        /// The operator's standing answer to renewing this certificate, read now, or null when
+        /// there is none.
+        /// </summary>
+        RenewalRefusal StandingRefusal(string admissionKey);
+
+        /// <summary>
+        /// Writes the operator's standing answer to renewing this certificate, and makes it durable
+        /// the way every change is.
+        /// </summary>
+        /// <remarks>
+        /// Asked for in the same breath as the refusal it belongs to, and answered with what came
+        /// of it; the refusal stands whatever this answers, and a failure costs only the standing
+        /// answer, which the caller says in the log.
+        /// </remarks>
+        VaultWrite RefuseRenewal(string admissionKey, RenewalRefusal refusal);
 
         /// <summary>
         /// What the API reads and changes, or null when there is nothing to reach.

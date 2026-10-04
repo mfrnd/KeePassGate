@@ -244,16 +244,18 @@ namespace KeePassGate.Authority
 
         /// <summary>
         /// Takes away every document whose authority is retired, every admission record that came
-        /// back beside its revocation, and every record of a certificate that has expired,
-        /// answering with what went so that a write that does not land can put it back.
+        /// back beside its revocation, every record of a certificate that has expired, and every
+        /// standing answer to a renewal that no record is left to ask, answering with what went so
+        /// that a write that does not land can put it back.
         /// </summary>
         /// <remarks>
         /// **Only ever as part of a write this plugin is making anyway**: keeping one authority,
-        /// recreating or deleting it, or pairing. Opening or reading a database changes nothing in
-        /// it, so a document a merge brought back stays until then, serving nothing, because the
-        /// decision reads the retirement rather than the document; a record a merge brought back
-        /// admits nobody, because admission reads the revocation rather than the record; and a
-        /// record of an expired certificate admits nobody, because the gate reads its dates.
+        /// recreating or deleting it, or pairing or renewing. Opening or reading a database changes
+        /// nothing in it, so a document a merge brought back stays until then, serving nothing,
+        /// because the decision reads the retirement rather than the document; a record a merge
+        /// brought back admits nobody, because admission reads the revocation rather than the
+        /// record; and a record of an expired certificate admits nobody, because the gate reads its
+        /// dates.
         /// </remarks>
         public IReadOnlyList<KeyValuePair<string, string>> Prune()
         {
@@ -266,6 +268,7 @@ namespace KeePassGate.Authority
             var retired = Retired();
             var removed = new List<KeyValuePair<string, string>>(_admissions.PruneCameBack());
             removed.AddRange(_admissions.PruneExpired(now));
+            removed.AddRange(_admissions.PruneRefusals());
 
             foreach (var key in Keys().ToList())
             {

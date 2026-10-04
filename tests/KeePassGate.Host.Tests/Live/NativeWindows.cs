@@ -46,6 +46,24 @@ namespace KeePassGate.Host.Tests.Live
         /// <summary>Every visible, titled top level window the process owns.</summary>
         public static List<Window> Visible(Process process)
         {
+            return Enumerate(process, untitled: false);
+        }
+
+        /// <summary>
+        /// Every visible top level window the process owns, the untitled ones as well.
+        /// </summary>
+        /// <remarks>
+        /// For finding a window by its identifier rather than by its title. A drop-down menu is a top
+        /// level window with no title, so a search among the titled ones never finds it: the renewal
+        /// dialog's Refuse menu was open on screen while the search for it reported nothing there.
+        /// </remarks>
+        public static List<Window> VisibleUntitledToo(Process process)
+        {
+            return Enumerate(process, untitled: true);
+        }
+
+        private static List<Window> Enumerate(Process process, bool untitled)
+        {
             var found = new List<Window>();
             var wanted = (uint)process.Id;
 
@@ -64,7 +82,7 @@ namespace KeePassGate.Host.Tests.Live
                 var text = new StringBuilder(512);
                 var length = GetWindowText(window, text, text.Capacity);
                 var title = length <= 0 ? string.Empty : text.ToString();
-                if (title.Length > 0)
+                if (untitled || title.Length > 0)
                 {
                     found.Add(new Window(window, title));
                 }

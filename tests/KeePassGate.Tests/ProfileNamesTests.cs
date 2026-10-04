@@ -15,6 +15,21 @@ namespace KeePassGate.Tests
     public sealed class ProfileNamesTests
     {
         [Test]
+        public void A_list_that_will_not_read_is_told_apart_from_one_naming_nothing()
+        {
+            // Read answers both as naming nothing, which is safe for every reader that only asks
+            // what is named; a renewal writes what it reads, and must not write that nothing.
+            var names = ProfileNames.Empty();
+            Assume.That(names.Add("reader"), Is.Null);
+
+            Assert.That(ProfileNames.Readable(null), Is.True);
+            Assert.That(ProfileNames.Readable(string.Empty), Is.True);
+            Assert.That(ProfileNames.Readable(names.Write()), Is.True);
+            Assert.That(ProfileNames.Readable("not a list at all"), Is.False);
+            Assert.That(ProfileNames.Read("not a list at all").Names, Is.Empty);
+        }
+
+        [Test]
         public void A_database_with_no_list_names_no_profiles()
         {
             Assert.That(ProfileNames.Read(null).Names, Is.Empty);

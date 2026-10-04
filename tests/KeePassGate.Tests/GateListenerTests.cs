@@ -787,7 +787,7 @@ namespace KeePassGate.Tests
         public void A_peer_that_dribbles_its_body_is_cut_off_at_the_budget()
         {
             // The budget ends with the request, which is the whole of it including the body: it is
-            // dropped, or extended for a pairing, only once the body has been read.
+            // dropped, or extended for a pairing or a renewal, only once the body has been read.
             // Dropped as the head arrived, it would let a peer that had proved nothing announce a
             // body and feed it a byte inside each read window, holding a thread for as long as the
             // body cap allows. The head goes at once here and the body a byte every quarter of a

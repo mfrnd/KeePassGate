@@ -22,6 +22,12 @@ namespace KeePassGate.Transport
         /// </summary>
         public const string PortVariable = "KEEPASSGATE_PORT";
 
+        /// <summary>
+        /// <see cref="PairingBudget"/> as the gate starts with it, which is also how long an
+        /// approval that could not be written is held for the client's retry.
+        /// </summary>
+        public static readonly TimeSpan DefaultPairingBudget = TimeSpan.FromMinutes(6);
+
         public GateOptions()
         {
             Port = DefaultPort;
@@ -30,7 +36,7 @@ namespace KeePassGate.Transport
             MaxConnections = 32;
             Timeout = TimeSpan.FromSeconds(10);
             Budget = TimeSpan.FromSeconds(90);
-            PairingBudget = TimeSpan.FromMinutes(6);
+            PairingBudget = DefaultPairingBudget;
         }
 
         public int Port { get; set; }
@@ -83,8 +89,8 @@ namespace KeePassGate.Transport
         public TimeSpan Budget { get; set; }
 
         /// <summary>
-        /// How long a whole connection may take once it turns out to be a pairing, which is the one
-        /// exchange that waits on a person.
+        /// How long a whole connection may take once it turns out to be a pairing or a renewal,
+        /// the two exchanges that wait on a person.
         /// </summary>
         /// <remarks>
         /// **A pairing connection is not slow, it is blocked on somebody reading a dialog**, and
@@ -101,7 +107,7 @@ namespace KeePassGate.Transport
         /// before it can start giving it. So a pairing that takes the screen just inside that wait
         /// still has the whole of the dialog ahead of it.
         ///
-        /// **And this is the one connection that keeps a deadline after its request is read**,
+        /// **And these are the connections that keep a deadline after their request is read**,
         /// where <see cref="Budget"/> drops it. The difference is that the rest of a pairing is a
         /// sum somebody can write down, so a number for it means something; the rest of an
         /// ordinary write is a save of unknown length, so a number for it can only cut a landing
@@ -110,10 +116,15 @@ namespace KeePassGate.Transport
         /// because this budget only has to outlast the waits, not bound them.
         ///
         /// So it has to exceed `ApprovalTimeout` for the screen, then `ApprovalTimeout +
-        /// PairingApprovalPrompt.Grace` for the dialog, then `DatabaseWriter.LockTimeout +
+        /// PairingApprovalPrompt.Grace` for the dialog, then `ApprovalSettle` for a busy KeePass to
+        /// settle once the operator has approved, then `DatabaseWriter.LockTimeout +
         /// DatabaseWriter.WriteTimeout` for the write, and
         /// `GateOptionsTests.The_pairing_budget_outlasts_everything_a_pairing_waits_for` is what
-        /// keeps the five numbers from drifting apart.
+        /// keeps the six numbers from drifting apart.
+        ///
+        /// **A renewal is measured against it too**, because it waits for the same things: the
+        /// same screen, which it shares with every pairing, the same dialog and grace, and the same
+        /// turn at the writer.
         /// </remarks>
         public TimeSpan PairingBudget { get; set; }
 

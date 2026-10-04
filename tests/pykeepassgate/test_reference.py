@@ -38,6 +38,7 @@ COVERED = {
     "getStatus": (GateClient, "status"),
     "headStatus": (GateClient, "head"),
     "revokeCertificate": (GateClient, "revoke_certificate"),
+    "renewCertificate": (GateClient, "renew"),
     "pairHello": (Pairing, "hello"),
     "pairRequest": (Pairing, "request"),
 
@@ -167,6 +168,7 @@ def test_the_paths_this_client_sends_are_the_paths_the_document_declares(
 
     assert declared["getStatus"]["path"] == client_module.STATUS_PATH
     assert declared["revokeCertificate"]["path"] == client_module.CERTIFICATE_PATH
+    assert declared["renewCertificate"]["path"] == client_module.RENEW_PATH
     assert declared["pairHello"]["path"] == pairing_module.HELLO_PATH
     assert declared["pairRequest"]["path"] == pairing_module.REQUEST_PATH
 
@@ -176,6 +178,7 @@ def test_the_methods_this_client_uses_are_the_ones_declared(document: dict[str, 
 
     assert declared["getStatus"]["method"] == "get"
     assert declared["revokeCertificate"]["method"] == "delete"
+    assert declared["renewCertificate"]["method"] == "post"
     assert declared["pairHello"]["method"] == "post"
     assert declared["pairRequest"]["method"] == "post"
 

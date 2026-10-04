@@ -125,6 +125,7 @@ namespace KeePassGate.Ui
                 DateTimeOffset when;
                 admitted.Add(new ChoiceClient(
                     ClientList.Describe(record),
+                    record.ClientKey,
                     record.Profiles,
                     record.Admitted,
                     seen != null && seen.TryGetValue(record.AdmissionKey, out when) ? when : (DateTimeOffset?)null));
@@ -194,15 +195,26 @@ namespace KeePassGate.Ui
     public sealed class ChoiceClient
     {
         public ChoiceClient(
-            string name, IReadOnlyList<string> profiles, DateTimeOffset admitted, DateTimeOffset? lastSeen)
+            string name,
+            string clientKey,
+            IReadOnlyList<string> profiles,
+            DateTimeOffset admitted,
+            DateTimeOffset? lastSeen)
         {
             Name = name ?? string.Empty;
+            ClientKey = clientKey ?? string.Empty;
             Profiles = profiles ?? Array.Empty<string>();
             Admitted = admitted;
             LastSeen = lastSeen;
         }
 
         public string Name { get; }
+
+        /// <summary>
+        /// Which client this certificate belongs to, `AdmissionRecord.ClientKey`, which is what the
+        /// count of an authority's clients counts.
+        /// </summary>
+        public string ClientKey { get; }
 
         public IReadOnlyList<string> Profiles { get; }
 

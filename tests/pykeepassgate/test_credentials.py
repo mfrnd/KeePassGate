@@ -449,7 +449,7 @@ def test_preparing_makes_the_directory_and_writes_nothing_into_it(tmp_path: Path
 
     with credentials.prepare(where):
         assert where.is_dir()
-        assert all((where / name).read_bytes() == b"" for name in credentials._FILES)
+        assert all((where / name).read_bytes() == b"" for name in credentials.FILES)
 
     assert list(where.iterdir()) == [], "a file opening created goes if nothing was written"
 

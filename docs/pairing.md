@@ -67,7 +67,10 @@ dialog below is the only thing standing there.
 
 ## Answer the request
 
-When the program asks, KeePass raises this:
+When the program asks, KeePass raises this. It comes up in front without taking the keyboard from
+whatever was being typed into, and KeePass flashes on the taskbar: click the dialog to answer it.
+No key approves it. Enter and Escape refuse, and approving is a click on **Approve**, or Space once
+Tab has reached it.
 
 ![The approval dialog while a client waits](images/pairing-approval.png)
 
@@ -105,8 +108,12 @@ and the Profiles page and the rules are where to look first.
 **A profile marked "(removed)" is one this database used to name**, took off its list, and other
 clients still hold. Approving it puts the name back on the list, and that brings more back than
 this one program: every client still holding it regains it, and every rule still naming it applies
-again. The dialog says so and names those clients, before anything is pressed. A client whose
-certificate has expired is not among them: it regains nothing, and its record goes with the write.
+again. The dialog says so and names those clients, before anything is pressed: past three removed
+profiles or three clients it says how many and names the first three, and the Profiles page names
+them all. Each client is named once, however many of its certificates hold the name, and two that
+chose the same name are named apart by the start of their client keys, "agent (3f2a9c1e)", as
+[adding a profile back](access-control.md) names them. A client whose certificate has expired is not
+among them: it regains nothing, and its record goes with the write.
 
 A profile means nothing until a rule on a group or an entry names it, which is
 [`access-control.md`](access-control.md). Approving a program for `reader` when nothing grants
@@ -116,8 +123,9 @@ A profile means nothing until a rule on a group or an entry names it, which is
 A program may ask for anything from a day to a year, and what it asked for is chosen already and
 marked "(asked)", offered beside the others when it is none of them. A program that asked for
 nothing is offered a year. **Pick the shortest that will do**: a certificate that has run out is
-refused without anybody having to remember to take it away, and a program that is still wanted
-when it runs out pairs again.
+refused without anybody having to remember to take it away, and a program that is still wanted asks
+to renew before then, which is a dialog like this one with no invitation to hand out first, as
+[`clients.md`](clients.md#expiry) says.
 
 The dialog closes itself after a couple of minutes and issues nothing when it does. An unanswered
 request is not a refusal in one respect: the invitation is not spent, so the program can try again.
@@ -138,11 +146,19 @@ say nothing.
 4. The admission record is written into the database **and the database is saved**.
 5. Only then is the certificate handed to the program.
 
-The dialog says so before anything is pressed, because this is the one screen in the plugin whose
-button writes the file.
+The dialog says so before anything is pressed, because this and the renewal dialog,
+[`clients.md`](clients.md#expiry), are the two screens in the plugin whose button writes the file.
 
 The save comes before the certificate, and the order is why: a program holding a certificate for a
 record that was never written would be a program that is refused forever and cannot say why.
+
+**If KeePass is busy when Approve is pressed**, saving or with a dialog open that would take the
+record back, the approval is not lost. The plugin keeps it in memory, nothing is issued yet, and
+the program is told to ask again and until when: the end of the six minutes it was given for the
+whole pairing. When the same program asks again for exactly the same thing before then, it is
+written without the dialog coming back. A lock of KeePass, closing the database or exiting
+KeePass lets go of every approval kept this way, and asking again after that shows the dialog
+again.
 
 **The Database Maintenance dialog refuses the whole thing before anybody is disturbed.** That
 dialog takes a copy of the database's plugin data when it opens and writes the copy back when it

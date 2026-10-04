@@ -115,6 +115,10 @@ It is the one place the chain from KeePass's own lock to an answer on a socket r
 tier drives the plugin's half with the events in the order KeePass raises them, which is a model
 read off one KeePass; this is what notices a KeePass that raises them differently.
 
+**The lock timer**, in `LiveLockTimerTests`: the one session that sets KeePass's own inactivity
+lock, ten seconds, and lets it fall due under a renewal dialog nobody answers. The dialog closes as
+unanswered and the client is told `503 locked`, `PAIRING.md` §308.
+
 **Step 8**, in `LivePairingTests`, and it is the longest chain in the suite. The operator presses
 the invite button on the real tab; the token is read off the real screen; a client holding nothing
 but that token and a port number derives its own connection names, proves itself and is proved to;

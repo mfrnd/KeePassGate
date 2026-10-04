@@ -9,8 +9,8 @@ namespace KeePassGate.Host.Tests.Live
     /// that says so. `build.ps1 -Task Lint` closes the other half of that loop: it refuses an image
     /// no page refers to and a reference to an image that is not there.
     ///
-    /// The order is the order an operator meets them, which is also the order the fixture takes
-    /// them in and the order the pages read in.
+    /// They are declared in the order the fixture takes them in, which is the order of
+    /// <see cref="Expected"/>; the pages that show them put them in an order of their own.
     /// </remarks>
     internal static class DocumentationImages
     {
@@ -23,9 +23,6 @@ namespace KeePassGate.Host.Tests.Live
         /// <summary>The same tab once there is one: fingerprint, dates and record count.</summary>
         public const string AuthorityAfterCreating = "authority-after-creating";
 
-        /// <summary>The profiles page: the names this database keeps, and what grants them.</summary>
-        public const string Profiles = "profiles";
-
         /// <summary>The clients page with an invitation outstanding and its code on screen.</summary>
         public const string ClientsInvitation = "clients-invitation";
 
@@ -35,11 +32,23 @@ namespace KeePassGate.Host.Tests.Live
         /// <summary>The clients page, with an admitted client on it.</summary>
         public const string ClientsAdmitted = "clients-admitted";
 
+        /// <summary>The profiles page: the names this database keeps, and what grants them.</summary>
+        public const string Profiles = "profiles";
+
         /// <summary>The access tab on a group dialog, with a rule written into it.</summary>
         public const string GroupAccess = "group-access";
 
         /// <summary>The same tab on an entry dialog, showing what the group above already grants.</summary>
         public const string EntryAccess = "entry-access";
+
+        /// <summary>
+        /// The clients page with two clients whose renewals stand refused, and the row menu of one
+        /// of them open on the answer and Allow renewal.
+        /// </summary>
+        public const string ClientsStandingAnswers = "clients-standing-answers";
+
+        /// <summary>The dialog raised when an admitted client asks for a new certificate.</summary>
+        public const string RenewalApproval = "renewal-approval";
 
         /// <summary>
         /// The dialog a synchronize raises when two copies each made an authority of their own,
@@ -66,6 +75,8 @@ namespace KeePassGate.Host.Tests.Live
             Profiles,
             GroupAccess,
             EntryAccess,
+            ClientsStandingAnswers,
+            RenewalApproval,
             AuthorityChooser
         };
     }

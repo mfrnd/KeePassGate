@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Security.Cryptography.X509Certificates;
 using KeePassGate.Acl;
 using KeePassGate.Authority;
@@ -262,6 +263,59 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_client_that_renewed_is_one_client_in_the_count_and_the_warning()
+        {
+            // A renewal leaves a second record with the same client key until the client gives
+            // the older up. Counted by record it was two clients holding the profile, and named
+            // twice in the warning about adding it back.
+            var database = new FakeGateDatabase { Nodes = new TestRuledNodes() };
+            var profiles = new DatabaseProfiles(database, null);
+            var store = new AdmissionStore(database.PluginCustomData, null);
+
+            foreach (var record in Renewed("agent-renewing", "ops"))
+            {
+                store.Write(record);
+            }
+
+            store.Write(Admitting("ci-runner", "ops"));
+
+            Assert.That(Counted(profiles.Clients(), "ops"), Is.EqualTo(2), "two clients, three records");
+            Assert.That(profiles.Returning("ops"), Is.EqualTo(
+                "2 clients still hold ops from before and will regain it: agent-renewing, ci-runner."));
+        }
+
+        [Test]
+        public void Two_programs_paired_under_one_name_are_two_clients_named_apart()
+        {
+            // A client chooses its own name, so two programs may pair under one, such as one
+            // program on two machines. Each is its own client key, so they are two clients in the
+            // count and two in the warning, each named with the start of its key.
+            var database = new FakeGateDatabase { Nodes = new TestRuledNodes() };
+            var profiles = new DatabaseProfiles(database, null);
+            var store = new AdmissionStore(database.PluginCustomData, null);
+
+            var first = Admitting("agent", "ops");
+            store.Write(first);
+            string second;
+            using (var other = _authority.IssueClient("agent", new[] { "ops" }))
+            {
+                var der = other.RawData;
+                second = CertificateDigest.Of(der);
+                store.Write(new AdmissionRecord(
+                    second, "CN=agent", second, new DateTimeOffset(2026, 8, 16, 9, 0, 0, TimeSpan.Zero),
+                    new[] { "ops" }, der));
+            }
+
+            var named = new[] { first.ClientKey, second }
+                .OrderBy(key => key, StringComparer.Ordinal)
+                .Select(key => "agent (" + key.Substring(0, 8) + ")");
+
+            Assert.That(Counted(profiles.Clients(), "ops"), Is.EqualTo(2));
+            Assert.That(profiles.Returning("ops"), Is.EqualTo(
+                "2 clients still hold ops from before and will regain it: " + string.Join(", ", named) + "."));
+        }
+
+        [Test]
         public void A_client_whose_certificate_has_expired_is_not_named_as_regaining_anything()
         {
             // The gate refuses it before its record is read, and the next write the plugin makes
@@ -347,6 +401,27 @@ namespace KeePassGate.Tests
             Assert.That(profiles.Remove("ops"), Does.Contain("No database"));
             Assert.That(Counted(profiles.Rules(), "ops"), Is.Zero);
         }
+        /// <summary>
+        /// Two records of one client, as a renewal leaves them until the older certificate is
+        /// given up: the second carries the client key of the first.
+        /// </summary>
+        private static AdmissionRecord[] Renewed(string subject, params string[] profiles)
+        {
+            var records = new AdmissionRecord[2];
+            for (var i = 0; i < records.Length; i++)
+            {
+                using (var certificate = _authority.IssueClient(subject, profiles))
+                {
+                    var admitted = new DateTimeOffset(2026, 8, 15 + i, 9, 0, 0, TimeSpan.Zero);
+                    records[i] = i == 0
+                        ? AdmissionRecord.For(certificate, admitted, profiles)
+                        : AdmissionRecord.For(certificate, admitted, profiles, records[0].ClientKey);
+                }
+            }
+
+            return records;
+        }
+
         /// <summary>A record for a certificate that ended yesterday.</summary>
         internal static AdmissionRecord Expired(string subject, params string[] profiles)
         {
@@ -359,7 +434,7 @@ namespace KeePassGate.Tests
                 {
                     var der = certificate.RawData;
                     return new AdmissionRecord(
-                        CertificateDigest.Of(der), "CN=" + subject, now.AddDays(-30), profiles, der);
+                        CertificateDigest.Of(der), "CN=" + subject, CertificateDigest.Of(der), now.AddDays(-30), profiles, der);
                 }
             }
         }
@@ -379,6 +454,7 @@ namespace KeePassGate.Tests
             return new AdmissionRecord(
                 CertificateDigest.Of(der),
                 "CN=" + subject,
+                CertificateDigest.Of(der),
                 new DateTimeOffset(2026, 8, 15, 9, 0, 0, TimeSpan.Zero),
                 profiles,
                 der);

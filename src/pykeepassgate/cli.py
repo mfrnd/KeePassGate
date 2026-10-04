@@ -122,6 +122,38 @@ def _parser() -> argparse.ArgumentParser:
     _dialed(status)
     status.set_defaults(run=_status)
 
+    renew = commands.add_parser(
+        "renew",
+        help="ask the operator for a new certificate in place of this one",
+        description=(
+            "Asks the operator for a new certificate, which they approve on screen as they did "
+            "the pairing, stores it in place of this one, and then gives this one up. Waits while "
+            "the operator reads."
+        ),
+    )
+    renew.add_argument(
+        "--lifetime",
+        type=_days,
+        metavar="DAYS",
+        help=(
+            "how long the new certificate should last, in whole days from "
+            f"{api.SHORTEST_LIFETIME.days} to {api.LONGEST_LIFETIME.days}. The operator picks, "
+            "and is offered a year when this is left out."
+        ),
+    )
+    renew.add_argument(
+        "--allow-shared-directory",
+        action="store_true",
+        help=(
+            "accept the identity's own directory where another account may reach it, as pair "
+            "did; the directories a renewal makes beside it are never accepted that way"
+        ),
+    )
+
+    _shared(renew)
+    _dialed(renew)
+    renew.set_defaults(run=_renew)
+
     revoke = commands.add_parser(
         "revoke",
         help="give up this client's admission, and remove what pairing stored for it",
@@ -512,9 +544,9 @@ class _Dialing(TypedDict, total=False):
 def _dialing(arguments: argparse.Namespace) -> _Dialing:
     """What the command line asked of a connection, and nothing at all for what it did not.
 
-    Passing nothing is what lets each caller keep its own default: a pairing waits on a
-    person and gets `transport.PAIRING_CONNECTION_TIMEOUT`, and everything else gets the
-    ordinary one. Passing `None` through would flatten both into whatever this file decided,
+    Passing nothing is what lets each caller keep its own default: a pairing and a renewal
+    wait on a person and get `transport.PAIRING_CONNECTION_TIMEOUT`, and everything else gets
+    the ordinary one. Passing `None` through would flatten both into whatever this file decided,
     and for the three retry budgets `None` is a decision in its own right: do not retry.
 
     Only the commands that connect are asked, which is every command `_dialed` reaches.
@@ -597,6 +629,54 @@ def _status(arguments: argparse.Namespace) -> int:
     status = client.status()
     print(f"gate {status.version} serving database {status.database}")
     return 0 if status.ok else FAILED
+
+
+def _renew(arguments: argparse.Namespace) -> int:
+    where = arguments.directory or api.default_directory(arguments.profile)
+    client = api.GateClient.open(where, arguments.profile, arguments.host, **_dialing(arguments))
+    renewal = client.renew(
+        lifetime=arguments.lifetime, allow_shared_directory=arguments.allow_shared_directory
+    )
+
+    renewed = renewal.credentials
+    print(f"renewed {renewed.subject} with database {renewed.database}")
+    print(f"profiles approved: {', '.join(renewed.profiles) or 'none'}")
+    print(f"expires: {renewed.expires}")
+    print(f"stored in {renewed.directory}")
+
+    if renewal.retired is None:
+        return 0
+
+    # The renewal itself worked, and this client is already the new identity, so this is said
+    # after what was stored rather than instead of it. The exit code is the failure's, because
+    # what is left behind wants doing something about: a later renewal will not start until it
+    # is gone.
+    unrevoked = renewal.unrevoked
+    if isinstance(unrevoked, api.RouteRefused) and unrevoked.error == "not verified":
+        # The gate already refuses it: KeePass holds the revocation in memory, and whether the file
+        # keeps it is the operator's to settle. Not "still admitted", which it is not.
+        print(
+            f"the certificate this renewed from is refused, and KeePass may not have that in its "
+            f"file: {unrevoked}. Whether the file keeps it is the operator's to settle. What was "
+            f"stored for it is kept in {renewal.retired}, and `pykeepassgate revoke --directory "
+            f"{renewal.retired}` removes it, as the next renewal does by itself",
+            file=sys.stderr,
+        )
+    elif unrevoked is not None:
+        print(
+            f"the certificate this renewed from is still admitted: {unrevoked}. It is kept in "
+            f"{renewal.retired}, and `pykeepassgate revoke --directory {renewal.retired}` gives "
+            "it up and removes it, as the next renewal tries to by itself",
+            file=sys.stderr,
+        )
+    else:
+        print(
+            f"the certificate this renewed from is revoked, and what was stored for it could not "
+            f"be removed from {renewal.retired}: remove that directory",
+            file=sys.stderr,
+        )
+
+    return FAILED
 
 
 def _revoke(arguments: argparse.Namespace) -> int:

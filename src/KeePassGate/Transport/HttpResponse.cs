@@ -79,10 +79,19 @@ namespace KeePassGate.Transport
         /// different delays on the wire would invite reading a meaning into the difference that
         /// nothing here measured.
         ///
-        /// Two seconds because the shortest of these is a save, which is hundreds of milliseconds,
-        /// and the longest is somebody closing a dialog, which no number would cover. It is long
-        /// enough that a retry is not a second attempt at the same instant and short enough that a
-        /// client honoring it is not asleep through the window it was waiting for.
+        /// Two seconds, which no reason here is measured against. A save of a small database with
+        /// a light key derivation is tens of milliseconds, while the project has measured one of
+        /// 201 MiB of attachments at 80.6 seconds and a heavy key derivation adding about eight to
+        /// every save, and the longest of these is somebody closing a dialog, which no number would
+        /// cover. So two seconds is a pace rather than a prediction: long enough that a retry is
+        /// not a second attempt at the same instant, short enough that a client honoring it is not
+        /// asleep through the window it was waiting for.
+        ///
+        /// **It is also how long an approval waits for a busy KeePass on its own connection**,
+        /// `PairingOptions.ApprovalSettle`, which the operator kept at two seconds on 2026-10-14.
+        /// That wait does not keep the operator's decision through a save of eight or eighty
+        /// seconds, and is not meant to: the approval is held in the plugin's memory and the client
+        /// told until when, `ApprovalBook`, and that is what keeps it.
         /// </remarks>
         public const int RetryAfterSeconds = 2;
 

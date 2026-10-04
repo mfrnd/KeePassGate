@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Globalization;
 using System.Linq;
 using System.Security.Cryptography;
@@ -34,6 +35,100 @@ namespace KeePassGate.Tests
                 Assert.That(list.Clients.Count, Is.EqualTo(1));
                 Assert.That(list.Clients[0].Profiles, Is.EqualTo(new[] { "ops", "readonly" }),
                     "the profiles are shown beside the name, so revoking is not a guess");
+            }
+        }
+
+        [Test]
+        public void Revoking_one_of_a_renewed_clients_two_rows_says_which_certificate_went()
+        {
+            // A renewal leaves the client two rows with one client key until it gives the older
+            // up, and taking one away leaves it reaching the database through the other: the line
+            // used to say the client could no longer reach it.
+            var older = Record("agent-fictitious", "ops");
+            var renewed = Renewal(older);
+
+            using (var list = ListOf(Allows, renewed, older))
+            {
+                var said = list.Revoke(1);
+
+                Assert.That(said, Does.Contain("other certificate still reaches this database"));
+                Assert.That(said, Does.Not.Contain("can no longer reach"));
+                Assert.That(list.Clients, Is.EqualTo(new[] { renewed }));
+
+                said = list.Revoke(0);
+                Assert.That(said, Does.Contain("agent-fictitious can no longer reach this database"),
+                    "the last of them is the client going");
+            }
+        }
+
+        [Test]
+        public void Revoking_one_of_two_programs_under_one_name_says_that_one_went_and_which()
+        {
+            // Two programs that chose one name are two clients: taking one away is that client
+            // gone, not a certificate of one still reaching the database, and the line names it
+            // with the start of its client key so it is not read as the other.
+            var first = Record("agent", "ops");
+            var second = Record("agent", "ops");
+
+            using (var list = ListOf(Allows, first, second))
+            {
+                var said = list.Revoke(1);
+
+                Assert.That(said, Is.EqualTo(
+                    "agent (" + second.ClientKey.Substring(0, ClientList.ShortKeyLength) + ") can no longer reach this database."));
+                Assert.That(list.Clients, Is.EqualTo(new[] { first }));
+            }
+        }
+
+        [Test]
+        public void A_client_key_is_shortened_to_eight_characters_unless_two_would_read_the_same()
+        {
+            var apart = ClientList.ShortKeys(new[] { "ab" + new string('1', 62), "cd" + new string('1', 62) });
+            Assert.That(apart.Values, Is.EquivalentTo(new[] { "ab111111", "cd111111" }));
+
+            var close = ClientList.ShortKeys(new[]
+            {
+                "abcdef0123" + new string('1', 54),
+                "abcdef0123" + new string('2', 54),
+                "99" + new string('0', 62)
+            });
+
+            Assert.That(close["abcdef0123" + new string('1', 54)], Is.EqualTo("abcdef01231"));
+            Assert.That(close["abcdef0123" + new string('2', 54)], Is.EqualTo("abcdef01232"));
+            Assert.That(close["99" + new string('0', 62)], Is.EqualTo("99000000"), "only the two that collide grow");
+        }
+
+        [Test]
+        public void Names_for_sentences_count_each_client_once_and_tell_shared_names_apart()
+        {
+            var older = Record("agent-renewing", "ops");
+            var renewed = Renewal(older);
+            var one = Record("agent", "ops");
+            var other = Record("agent", "ops");
+
+            var named = ClientList.ClientNames(new[] { renewed, older, one, other });
+
+            var apart = new[] { one.ClientKey, other.ClientKey }
+                .OrderBy(key => key, StringComparer.Ordinal)
+                .Select(key => "agent (" + key.Substring(0, ClientList.ShortKeyLength) + ")");
+            Assert.That(named, Is.EqualTo(apart.Concat(new[] { "agent-renewing" })));
+        }
+
+        [Test]
+        public void A_redraw_from_the_database_puts_the_last_press_line_away()
+        {
+            // A renewal landing while the page is open redraws it; the line from the last press
+            // used to stay, so a client could be listed under one saying it could not reach the
+            // database.
+            var record = Record("agent-fictitious", "ops");
+
+            using (var list = ListOf(Allows, record, Record("agent-invented", "ops")))
+            {
+                Assume.That(list.Revoke(1), Does.Contain("can no longer reach"));
+
+                list.Fill(new AdmissionListing(new[] { record, Record("agent-invented", "ops") }, true), null, null);
+
+                Assert.That(list.Result, Is.Null);
             }
         }
 
@@ -407,6 +502,186 @@ namespace KeePassGate.Tests
             }
         }
 
+        /// <summary>The three standing answers, by what the row says about each.</summary>
+        private static IEnumerable<TestCaseData> Answers()
+        {
+            yield return new TestCaseData(RenewalRefusal.Forever(), "Renewal refused forever").SetName("forever");
+            yield return new TestCaseData(RenewalRefusal.ThisSession(), "Renewal refused in this session")
+                .SetName("in this session");
+
+            // A day the operator chose, which begins at midnight where they are.
+            var day = new DateTime(2031, 12, 28, 0, 0, 0, DateTimeKind.Local);
+            yield return new TestCaseData(RenewalRefusal.Until(new DateTimeOffset(day)), "Renewal refused until 2031-12-28")
+                .SetName("until a date");
+        }
+
+        [TestCaseSource(nameof(Answers))]
+        public void A_client_with_a_standing_answer_has_its_name_in_red_and_the_answer_on_its_row(
+            RenewalRefusal standing, string said)
+        {
+            // M001, as the operator decided it on real screenshots: no column, the name in the
+            // tab's own red, the answer in the tooltip of every text cell and in the row's
+            // description, and a selected row in the grid's own colors.
+            var refused = Record("agent-fictitious", "ops");
+            var asked = Record("agent-invented", "ops");
+
+            using (var list = new ClientList(Allows, Allows))
+            {
+                list.Fill(
+                    new AdmissionListing(new[] { refused, asked }, true),
+                    null,
+                    null,
+                    new Dictionary<string, RenewalRefusal> { { refused.AdmissionKey, standing } });
+
+                var row = Grid(list).Rows[0];
+                Assert.That(ClientList.AnswerText(standing), Is.EqualTo(said));
+                Assert.That(list.StandingAt(0), Is.SameAs(standing));
+                Assert.That(row.Cells[0].InheritedStyle.ForeColor, Is.EqualTo(ClientList.StandingColor));
+                Assert.That(ClientList.StandingColor, Is.EqualTo(Color.Firebrick));
+                Assert.That(row.Cells[0].InheritedStyle.SelectionForeColor,
+                    Is.EqualTo(Grid(list).DefaultCellStyle.SelectionForeColor), "a selected row keeps the grid's colors");
+                for (var column = 1; column < 4; column++)
+                {
+                    Assert.That(row.Cells[column].Style.ForeColor, Is.EqualTo(Color.Empty), "only the name is red");
+                }
+
+                for (var column = 0; column < 4; column++)
+                {
+                    Assert.That(Plain(row.Cells[column].ToolTipText), Is.EqualTo(Keys(said, refused)),
+                        "every text cell names it, above the keys");
+                }
+
+                Assert.That(row.Cells[ClientList.RevokeColumnName].ToolTipText, Is.Empty, "the X says what it does");
+                Assert.That(row.AccessibilityObject.Description, Is.EqualTo(said));
+
+                var other = Grid(list).Rows[1];
+                Assert.That(list.StandingAt(1), Is.Null);
+                Assert.That(other.Cells[0].Style.ForeColor, Is.EqualTo(Color.Empty));
+                Assert.That(Plain(other.Cells[0].ToolTipText), Is.EqualTo(Keys(null, asked)), "the keys alone");
+                Assert.That(other.AccessibilityObject.Description, Is.Null);
+            }
+        }
+
+        [TestCaseSource(nameof(Answers))]
+        public void Allowing_renewal_lifts_the_answer_through_the_host_and_the_red_goes_at_once(
+            RenewalRefusal standing, string said)
+        {
+            var record = Record("agent-fictitious", "ops");
+            var lifted = new List<string>();
+
+            using (var list = new ClientList(Allows, key =>
+                   {
+                       lifted.Add(key);
+                       return null;
+                   }))
+            {
+                list.Fill(
+                    new AdmissionListing(new[] { record }, true),
+                    null,
+                    null,
+                    new Dictionary<string, RenewalRefusal> { { record.AdmissionKey, standing } });
+
+                var line = list.AllowRenewal(0);
+
+                Assert.That(lifted, Is.EqualTo(new[] { record.AdmissionKey }), "by the certificate's key");
+                Assert.That(line, Does.Contain("agent-fictitious").And.Contain("raises the dialog again"));
+                Assert.That(list.StandingAt(0), Is.Null);
+                Assert.That(Grid(list).Rows[0].Cells[0].Style.ForeColor, Is.EqualTo(Color.Empty));
+                Assert.That(Plain(Grid(list).Rows[0].Cells[0].ToolTipText), Is.EqualTo(Keys(null, record)));
+                Assert.That(Grid(list).Rows[0].AccessibilityObject.Description, Is.Null);
+                Assert.That(list.Clients.Count, Is.EqualTo(1), "and the client stays admitted");
+            }
+        }
+
+        [Test]
+        public void Allowing_renewal_where_no_answer_stands_asks_the_host_nothing()
+        {
+            var asked = 0;
+            using (var list = new ClientList(Allows, key =>
+                   {
+                       asked++;
+                       return null;
+                   }))
+            {
+                list.Fill(new AdmissionListing(new[] { Record("agent-fictitious", "ops") }, true), null, null, null);
+
+                Assert.That(list.AllowRenewal(0), Does.Contain("no standing answer"));
+                Assert.That(list.AllowRenewal(3), Does.Contain("no such client"));
+                Assert.That(asked, Is.Zero);
+            }
+        }
+
+        [Test]
+        public void A_refused_lift_leaves_the_name_red_and_says_why()
+        {
+            var record = Record("agent-fictitious", "ops");
+
+            using (var list = new ClientList(Allows, Refuses))
+            {
+                list.Fill(
+                    new AdmissionListing(new[] { record }, true),
+                    null,
+                    null,
+                    new Dictionary<string, RenewalRefusal> { { record.AdmissionKey, RenewalRefusal.Forever() } });
+
+                var line = list.AllowRenewal(0);
+
+                Assert.That(line, Does.Contain("still stands").And.Contain("the database is not open"));
+                Assert.That(list.StandingAt(0).IsForever, Is.True);
+                Assert.That(Grid(list).Rows[0].Cells[0].Style.ForeColor, Is.EqualTo(ClientList.StandingColor));
+            }
+        }
+
+        [Test]
+        public void An_until_date_is_named_by_the_day_the_operator_chose_where_they_are()
+        {
+            // Every other moment on the page is UTC; this one is the day picked on a calendar, and
+            // the answer ends where that day begins, so the UTC moment would name the day before
+            // for anybody east of Greenwich.
+            var start = new DateTime(2031, 3, 1, 0, 0, 0, DateTimeKind.Local);
+
+            Assert.That(
+                ClientList.AnswerText(RenewalRefusal.Until(new DateTimeOffset(start))),
+                Is.EqualTo("Renewal refused until 2031-03-01"));
+            Assert.That(ClientList.AnswerText(null), Is.Null);
+        }
+
+        /// <summary>A tooltip without the marks that keep it left to right.</summary>
+        private static string Plain(string tip)
+        {
+            return tip.Replace(Tooltips.LeftToRightMark.ToString(), string.Empty);
+        }
+
+        /// <summary>What a row's tooltip says, without the marks: the answer, if any, and the two keys.</summary>
+        private static string Keys(string answer, AdmissionRecord record)
+        {
+            return (answer == null ? string.Empty : answer + Environment.NewLine)
+                   + "Client key " + record.ClientKey + Environment.NewLine
+                   + "Certificate " + record.AdmissionKey;
+        }
+
+        [Test]
+        public void Each_row_names_its_client_key_and_its_certificate_in_full()
+        {
+            // Two rows under one name are one client that renewed or two that chose the name, and
+            // the client key in the tooltip is what tells which; the certificate's own is the key
+            // the audit names it by.
+            var older = Record("agent", "ops");
+            var renewed = Renewal(older);
+            var other = Record("agent", "ops");
+
+            using (var list = ListOf(Allows, renewed, older, other))
+            {
+                var tips = Grid(list).Rows.Cast<DataGridViewRow>()
+                    .Select(row => Plain(row.Cells[0].ToolTipText))
+                    .ToList();
+
+                Assert.That(tips, Is.EqualTo(new[] { Keys(null, renewed), Keys(null, older), Keys(null, other) }));
+                Assert.That(tips[0], Does.Contain("Client key " + older.AdmissionKey), "a renewal is the client that paired");
+                Assert.That(tips[2], Does.Not.Contain(older.ClientKey), "another program under the name is another client");
+            }
+        }
+
         [Test]
         public void A_held_profile_the_database_no_longer_names_is_marked_as_removed()
         {
@@ -508,6 +783,15 @@ namespace KeePassGate.Tests
             using (var certificate = Certificate(name))
             {
                 return AdmissionRecord.For(certificate, DateTimeOffset.UtcNow, profiles);
+            }
+        }
+
+        /// <summary>The record a renewal of this one writes: the same client, a new certificate.</summary>
+        private static AdmissionRecord Renewal(AdmissionRecord of)
+        {
+            using (var certificate = Certificate(ClientList.Describe(of)))
+            {
+                return AdmissionRecord.For(certificate, DateTimeOffset.UtcNow, of.Profiles, of.ClientKey);
             }
         }
 

@@ -26,7 +26,9 @@ namespace KeePassGate.Ui
     ///
     /// **Enter and Escape stay the dialog's.** A closed list does not take either key, so both
     /// still reach the refusal they reach everywhere else on the dialog; an open one takes them to
-    /// pick or to close, as every list does, and the dialog is untouched until it is closed.
+    /// pick or to close, as every list does, and the dialog is untouched until it is closed. **And
+    /// nothing else typed on it closed changes it**: `SteadyChoice` takes no letter, digit or
+    /// arrow until it is opened, so a stray key cannot lengthen what Approve issues.
     ///
     /// A control rather than something that builds one, so that the dialog's own control tree
     /// owns it and disposes it with everything else.
@@ -76,7 +78,7 @@ namespace KeePassGate.Ui
                 0,
                 0);
 
-            _box = new ComboBox
+            _box = new SteadyChoice
             {
                 Name = GateTab.ApprovalLifetimeName,
                 AccessibleName = GateTab.ApprovalLifetimeLabel,

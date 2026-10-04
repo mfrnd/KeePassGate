@@ -190,6 +190,12 @@ namespace KeePassGate.Host.Tests.Live
         /// <summary>With an authority already in the database, for a test about the gate.</summary>
         public static LiveSession Begin(bool withAuthority)
         {
+            return Begin(withAuthority, 0);
+        }
+
+        /// <summary>The same, with KeePass's own inactivity lock set, for the fixture that runs it.</summary>
+        public static LiveSession Begin(bool withAuthority, int lockAfterSeconds)
+        {
             string reason;
             if (!KeePassDev.MatchesTheAssemblyUnderTest(out reason))
             {
@@ -204,7 +210,7 @@ namespace KeePassGate.Host.Tests.Live
             }
 
             CreatePrivately(directory);
-            return new LiveSession(directory, ThrowawayKeePass.Create(directory, withAuthority));
+            return new LiveSession(directory, ThrowawayKeePass.Create(directory, withAuthority, lockAfterSeconds));
         }
 
         /// <summary>

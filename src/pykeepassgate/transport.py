@@ -33,6 +33,7 @@ import time
 from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -76,14 +77,16 @@ RESPONDER_CLAIM = "kpg://host/responder"
 #: about waiting out a refusal, which is what the three budgets below are for.
 DEFAULT_CONNECTION_TIMEOUT = 120.0
 
-#: What a pairing's socket gets instead, which is the one exchange that waits on a person. It has
-#: to outlast the plugin's own sum: `PairingOptions.ApprovalTimeout` two minutes waiting for the
-#: screen while another pairing holds it, the same two minutes again for the dialog plus
+#: What the socket gets instead for the two exchanges that wait on a person, a pairing and a
+#: renewal, and the least a renewal waits whatever the client was given. It has to outlast the
+#: plugin's own sum: `PairingOptions.ApprovalTimeout` two minutes waiting for the screen while
+#: another pairing or renewal holds it, the same two minutes again for the dialog plus
 #: `PairingApprovalPrompt.Grace` fifteen seconds, then `DatabaseWriter.LockTimeout` twenty and
 #: `WriteTimeout` thirty. That sum is 305 seconds, and is why `GateOptions.PairingBudget` is six
-#: minutes; this is the same six, since the gate closes the connection then and waiting past it buys
-#: nothing. Hanging up early cancels nothing: the invitation is spent and the record is written and
-#: saved regardless, and only the answer is lost, leaving a record for a certificate nobody holds.
+#: minutes for both; this is the same six, since the gate closes the connection then and waiting
+#: past it buys nothing. Hanging up early cancels nothing: the record is written and saved
+#: regardless, an invitation spent with it, and only the answer is lost, leaving a record for a
+#: certificate nobody holds.
 PAIRING_CONNECTION_TIMEOUT = 360.0
 
 #: How long to go on waiting out a `503 busy`, in seconds, and `None` for not waiting at all, which
@@ -190,6 +193,11 @@ def pause(seconds: float) -> None:
     time.sleep(seconds)
 
 
+def now() -> datetime:
+    """The moment, in UTC, that a `heldUntil` is compared with."""
+    return datetime.now(UTC)
+
+
 class Budget:
     """What one kind of `503` is worth waiting out, and what is left of it.
 
@@ -197,7 +205,7 @@ class Budget:
     what the caller was asked about; what the attempts themselves take is bounded separately, one
     wait on the socket at a time, by `connection_timeout`. Measuring elapsed time instead would
     mix the two into one number that answers for neither. **A refusal is not always quick**: a
-    pairing's `503 busy` comes after the gate waited up to two minutes for the
+    pairing's or a renewal's `503 busy` comes after the gate waited up to two minutes for the
     screen, and a write's after up to twenty seconds for its turn at the database, so a busy
     budget of ten seconds can hold a pairing for five attempts of up to two minutes each. The
     budget bounds the pauses between attempts, and the call is the caller's to bound.
@@ -236,32 +244,55 @@ class Budget:
 
 
 class Retry:
-    """The three budgets, one per word a `503` is known to carry, spent by one call only."""
+    """The three budgets, one per word a `503` is known to carry, spent by one call only.
+
+    **And a fourth, for an approval the gate is holding**, which only `pair` and `renew` give.
+    A `503 busy` carrying `heldUntil` is an operator's approval KeePass was too busy to write,
+    kept for exactly the request that was approved until that moment, so asking again before then
+    issues the certificate without the dialog, and not asking loses it. That one is waited out on
+    its own budget, the six minutes the gate gave the request, and only while the moment has not
+    passed, rather than on the busy budget, which a caller sets for KeePass being busy and which is
+    `None` unless they set it.
+    """
 
     def __init__(
         self,
         busy: float | None = None,
         locked: float | None = None,
         undecided: float | None = None,
+        held: float | None = None,
     ) -> None:
         """Take what each kind of refusal is worth waiting out."""
         self.busy = Budget(busy, "retry_busy_timeout")
         self.locked = Budget(locked, "retry_locked_timeout")
         self.undecided = Budget(undecided, "retry_undecided_timeout")
+        self.held = Budget(held, "held")
 
     def waited(self, refusal: GateUnavailable) -> bool:
         """Wait this refusal out, if the budget for its word still allows it.
 
         **The budget is picked by the refusal's class**, so the word is read in one place,
-        `unavailable`, and a pairing that met a `503` is waited out exactly as a read is. A
-        refusal whose word this client does not know has no budget and is never waited out:
-        nothing here knows what ends it, and a caller who gave thirty seconds for a busy KeePass
-        gave them for that and nothing else.
+        `unavailable`, and a renewal or a pairing that met a `503` is waited out exactly as a
+        read is. A refusal whose word this client does not know has no budget and is never waited
+        out: nothing here knows what ends it, and a caller who gave thirty seconds for a busy
+        KeePass gave them for that and nothing else.
 
         The refusal carries what the gate said about coming back, so nothing here has to invent a
         delay or reach for a response that is no longer in hand.
         """
-        if isinstance(refusal, GateBusy):
+        if isinstance(refusal, GateBusy) and refusal.held_until is not None:
+            delay = (
+                refusal.retry_after
+                if refusal.retry_after is not None and refusal.retry_after > 0
+                else FALLBACK_RETRY_AFTER
+            )
+            if (refusal.held_until - now()).total_seconds() >= delay and self.held.wait(
+                refusal.retry_after
+            ):
+                return True
+
+            budget = self.busy
+        elif isinstance(refusal, GateBusy):
             budget = self.busy
         elif isinstance(refusal, DatabaseLocked):
             budget = self.locked
@@ -336,11 +367,11 @@ class Response:
 def unavailable(reply: Response, *, busy: str, locked: str, undecided: str) -> GateUnavailable:
     """The refusal a `503` is, by the gate's word, saying what each means where it was met.
 
-    **The word is read here and nowhere else**, for every route and for pairing alike, so a word
-    the gate learns is one class and one line here rather than a branch on every path, and
-    `Retry` picks a budget by the class this hands back. The messages are the caller's, because
-    what to do next differs: a busy pairing starts again from a hello, where a busy write is
-    asked again as it was.
+    **The word is read here and nowhere else**, for every route, for pairing and for renewal
+    alike, so a word the gate learns is one class and one line here rather than a branch on every
+    path, and `Retry` picks a budget by the class this hands back. The messages are the caller's,
+    because what to do next differs: a busy pairing starts again from a hello, where a busy write
+    is asked again as it was.
 
     A word this client does not know, or a `503` that names none, is `GateUnavailable` itself,
     which no budget waits out.
@@ -351,7 +382,7 @@ def unavailable(reply: Response, *, busy: str, locked: str, undecided: str) -> G
         return DatabaseLocked(locked, reply.retry_after)
 
     if word == GateBusy.word:
-        return GateBusy(busy, reply.retry_after)
+        return GateBusy(busy, reply.retry_after, held_until(reply))
 
     if word == AuthorityUndecided.word:
         return AuthorityUndecided(undecided, reply.retry_after)
@@ -363,6 +394,27 @@ def unavailable(reply: Response, *, busy: str, locked: str, undecided: str) -> G
         word,
         reply.retry_after,
     )
+
+
+def held_until(reply: Response) -> datetime | None:
+    """The moment a `503 busy` says the gate holds an approval until, in UTC, or `None`.
+
+    The gate writes it as RFC 3339 in UTC to the second, and only on `pairRequest` and
+    `renewCertificate`. Anything else in its place is read as no approval held, which is what
+    waiting on the busy budget alone assumes: the dialog comes up again on the next try.
+    """
+    try:
+        value = reply.json().get("heldUntil")
+    except ProtocolError:
+        return None
+
+    if not isinstance(value, str):
+        return None
+
+    try:
+        return datetime.strptime(value, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=UTC)
+    except ValueError:
+        return None
 
 
 def unpaired_context() -> ssl.SSLContext:

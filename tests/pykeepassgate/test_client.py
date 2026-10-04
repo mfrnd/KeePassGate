@@ -6,6 +6,7 @@ import dataclasses
 import json
 import math
 import re
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -280,10 +281,31 @@ def test_a_certificate_that_has_expired_is_named_as_expired_before_anything_is_d
         tmp_path / "kept", gate.port, {**bundle, "expires": "2001-02-03T04:05:06Z"}
     )
 
-    with pytest.raises(NotAdmitted, match=r"expired at 2001-02-03T04:05:06Z.*pair again"):
+    expired = r"expired at 2001-02-03T04:05:06Z.*pair again"
+    with pytest.raises(NotAdmitted, match=expired) as refused:
         GateClient(stored, connection_timeout=10.0).status()
 
     assert gate.names == [], "nothing was dialed to learn it"
+    # The same refusal is met whatever was asked, so it says what to do for giving the identity up
+    # as well as for going on with it.
+    assert "`revoke` does, takes it away" in str(refused.value)
+
+
+def test_a_certificate_expired_only_by_a_clock_ahead_of_the_gate_s_is_still_offered(
+    tmp_path: Path, bundle: dict[str, Any], gate: FakeGate
+) -> None:
+    # The gate judges by its own clock, and serves, and renews, a certificate it holds current: a
+    # minute past by this machine's clock may be a minute before by the gate's.
+    status = {"ok": True, "database": "abcdef01", "version": "0.1.0", "revision": ""}
+    gate.handler = lambda path, body, client: (200, json.dumps(status))
+    moment = datetime.now(UTC) - timedelta(minutes=1)
+    stored = credentials_module.save(
+        tmp_path / "kept", gate.port, {**bundle, "expires": f"{moment:%Y-%m-%dT%H:%M:%SZ}"}
+    )
+
+    assert stored.expired, "whoami still says so"
+    assert GateClient(stored, connection_timeout=10.0).status().ok
+    assert gate.names != [], "the gate was asked"
 
 
 @pytest.mark.parametrize("expires", ["", "whenever", "2001-02-03"], ids=["none", "a word", "a day"])

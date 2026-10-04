@@ -138,6 +138,38 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_client_that_renewed_is_one_client_in_the_row_of_its_authority()
+        {
+            // Listed once per certificate under the selected authority, since each can be taken
+            // away on its own, and counted once in the row, since both carry one client key.
+            Admit(_candidates[0], "agent-fictitious", _clientKey, "ops", "reader");
+
+            using (var dialog = new AuthorityChooserForm(Choice(null), null))
+            {
+                var row = List(dialog, GateTab.ChooserAuthorityListName).Items.Cast<ListViewItem>()
+                    .Single(item => item.Text == CertificateDigest.Shorten(_candidates[0]));
+
+                Assert.That(row.SubItems[2].Text, Is.EqualTo("1"));
+            }
+        }
+
+        [Test]
+        public void Two_programs_that_paired_under_one_name_are_two_clients_in_the_row()
+        {
+            // A client chooses its own name, so one name is not one client: counted by name, a
+            // second program under it went uncounted.
+            AdmitUnder(_candidates[0], "agent-fictitious", "ops", "reader");
+
+            using (var dialog = new AuthorityChooserForm(Choice(null), null))
+            {
+                var row = List(dialog, GateTab.ChooserAuthorityListName).Items.Cast<ListViewItem>()
+                    .Single(item => item.Text == CertificateDigest.Shorten(_candidates[0]));
+
+                Assert.That(row.SubItems[2].Text, Is.EqualTo("2"));
+            }
+        }
+
+        [Test]
         public void Keeping_keeps_the_selected_one()
         {
             using (var dialog = new AuthorityChooserForm(Choice(null), null))
@@ -315,13 +347,24 @@ namespace KeePassGate.Tests
         /// <summary>Admits a client whose certificate the named candidate issued, answering with its key.</summary>
         private string AdmitUnder(string fingerprint, string name, params string[] profiles)
         {
+            return Admit(fingerprint, name, null, profiles);
+        }
+
+        /// <summary>
+        /// The same, for the client this client key names, as a renewal writes it, or for a new
+        /// client when the key is null.
+        /// </summary>
+        private string Admit(string fingerprint, string name, string clientKey, params string[] profiles)
+        {
             var authority = CertificateBlob.Load(
                 AuthorityDocument.Read(_values.Get(AuthorityKeys.AuthorityKey(fingerprint)), null).Authority);
 
             using (authority)
             using (var client = new AuthorityIssuer().IssueClient(authority, name, profiles))
             {
-                var record = AdmissionRecord.For(client, Admitted, profiles);
+                var record = clientKey == null
+                    ? AdmissionRecord.For(client, Admitted, profiles)
+                    : AdmissionRecord.For(client, Admitted, profiles, clientKey);
                 new AdmissionStore(_values, null).Write(record);
                 return record.AdmissionKey;
             }

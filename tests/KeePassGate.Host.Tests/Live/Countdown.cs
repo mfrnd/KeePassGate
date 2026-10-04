@@ -8,7 +8,7 @@ using NUnit.Framework;
 namespace KeePassGate.Host.Tests.Live
 {
     /// <summary>
-    /// The approval dialog's countdown, and the one second a picture of it can be taken in.
+    /// An approval dialog's countdown, and the one second a picture of it can be taken in.
     /// </summary>
     /// <remarks>
     /// **Read, not written.** A label paints from its managed text and never reads the window's,
@@ -50,18 +50,17 @@ namespace KeePassGate.Host.Tests.Live
         private readonly string _wanted;
 
         public Countdown(AutomationElement dialog, int seconds)
+            : this(dialog, seconds, GateTab.ApprovalCountdownName, GateTab.ApprovalCountdownFormat)
         {
-            _label = Uia.ById(dialog, ControlType.Text, GateTab.ApprovalCountdownName);
-            Assert.That(_label, Is.Not.Null, "the approval dialog has no countdown on it");
-
-            _wanted = Says(seconds);
         }
 
-        /// <summary>What the countdown says with this many seconds left.</summary>
-        public static string Says(int seconds)
+        /// <summary>The same for a dialog whose countdown is called and worded otherwise.</summary>
+        public Countdown(AutomationElement dialog, int seconds, string label, string format)
         {
-            return string.Format(
-                CultureInfo.InvariantCulture, GateTab.ApprovalCountdownFormat, seconds);
+            _label = Uia.ById(dialog, ControlType.Text, label);
+            Assert.That(_label, Is.Not.Null, "the approval dialog has no countdown on it");
+
+            _wanted = string.Format(CultureInfo.InvariantCulture, format, seconds);
         }
 
         public void WaitForIt()

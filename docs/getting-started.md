@@ -142,7 +142,7 @@ The table is the whole state of it:
 | | |
 | --- | --- |
 | **Fingerprint** | which authority this is. Written down somewhere, it is how a replaced authority is noticed: the one in the database is not the one that was made. |
-| **Admission records** | how many programs have been let in and not taken back out. One whose certificate has expired is counted until the plugin's next change to the database takes it away, and one whose record cannot be read until it is removed: the [clients page](clients.md) lists every one and says which admit nobody. |
+| **Admission records** | how many records of programs let in the database holds and has not taken back out: one for each program, and two for one that has [renewed](clients.md#expiry) until it gives the old certificate up or the operator revokes it. One whose certificate has expired is counted until the plugin's next change to the database takes it away, and one whose record cannot be read until it is removed: the [clients page](clients.md) lists every one and says which admit nobody. |
 
 No date is in it. The authority and the certificate KeePass answers with are made together and good
 for a hundred years, so there is nothing to count down to: see [`clients.md`](clients.md#expiry).
@@ -237,7 +237,9 @@ or the mouse, and nothing a program does through the gate moves that. It is the 
 cannot postpone, so it is the one to set when the database has to lock once nobody is at the desk,
 whatever the programs reaching it are doing. A lock that falls due during a save is applied when the
 save is over, and one that falls due while KeePass is waiting for an answer to a question of its own
-waits for the answer: [`architecture.md`](architecture.md) says when that happens. A locked database
+waits for the answer: [`architecture.md`](architecture.md) says when that happens. A program's
+question is not one of those: a lock that falls due while a pairing or renewal dialog is up closes
+the dialog as unanswered, and the program is told the database is locked. A locked database
 answers every request that it is locked, until somebody unlocks it.
 
 ## Next

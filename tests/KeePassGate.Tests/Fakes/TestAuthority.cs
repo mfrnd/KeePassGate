@@ -23,6 +23,7 @@ namespace KeePassGate.Tests.Fakes
         private readonly HostKeyMaterial _hostKey;
         private readonly byte[] _gateKey;
         private readonly List<X509Certificate2> _issued = new List<X509Certificate2>();
+        private readonly InMemoryKeyValueStore _records = new InMemoryKeyValueStore();
         private readonly AdmissionStore _admissions;
         private readonly List<string> _named = new List<string>();
 
@@ -34,7 +35,7 @@ namespace KeePassGate.Tests.Fakes
             _hostBlob = hostBlob;
             _hostKey = hostKey;
             _gateKey = gateKey;
-            _admissions = new AdmissionStore(new InMemoryKeyValueStore(), NullGateLog.Instance);
+            _admissions = new AdmissionStore(_records, NullGateLog.Instance);
 
             DatabaseName = "Invented Vault";
         }
@@ -86,6 +87,9 @@ namespace KeePassGate.Tests.Fakes
             }
         }
 
+        /// <summary>Set to say the list of profiles will not read, as a damaged value would.</summary>
+        public string ProfilesUnreadable { get; set; }
+
         /// <summary>Takes a name off the list, as the Profiles page does.</summary>
         public void Forget(string profile)
         {
@@ -125,9 +129,17 @@ namespace KeePassGate.Tests.Fakes
             get { return _authority; }
         }
 
+        /// <summary>Set to make listing the records fail, as a write racing the read does.</summary>
+        public Exception AdmissionThrows { get; set; }
+
         /// <summary>The records this database holds, as the gate reads them.</summary>
         public AdmissionRecord Admission(string admissionKey)
         {
+            if (AdmissionThrows != null)
+            {
+                throw AdmissionThrows;
+            }
+
             return _admissions.Find(admissionKey);
         }
 
@@ -182,11 +194,101 @@ namespace KeePassGate.Tests.Fakes
         /// <summary>What the last pairing wrote, so a test can look at it.</summary>
         public AdmissionRecord Admitted { get; private set; }
 
-        public AdmissionWrite Admit(AdmissionRecord record)
+        /// <summary>
+        /// Run inside the write, where the writer holds its lock, before its condition is asked: a
+        /// test stands a revocation or a change to the list there that landed just before.
+        /// </summary>
+        public Action BeforeWrite { get; set; }
+
+        /// <summary>Set to say this database has retired its authority, as recreating it does.</summary>
+        public bool Retired { get; set; }
+
+        /// <summary>
+        /// This fake's records, its list of profiles and its authority as one database's custom
+        /// data, which is what a write's condition reads.
+        /// </summary>
+        private sealed class ConditionStore : IKeyValueStore
+        {
+            private readonly TestAuthority _authority;
+
+            public ConditionStore(TestAuthority authority)
+            {
+                _authority = authority;
+            }
+
+            public IEnumerable<string> Keys
+            {
+                get { return _authority._records.Keys; }
+            }
+
+            public string Get(string key)
+            {
+                if (key == KeePassGate.Acl.ProfileNames.CustomDataKey)
+                {
+                    if (_authority.ProfilesUnreadable != null)
+                    {
+                        return "{ not a list";
+                    }
+
+                    var names = KeePassGate.Acl.ProfileNames.Read(null);
+                    foreach (var name in _authority._named)
+                    {
+                        names.Add(name);
+                    }
+
+                    return names.Write();
+                }
+
+                if (key == AuthorityKeys.AuthorityKey(_authority.DatabaseId))
+                {
+                    return "the authority";
+                }
+
+                if (key == AuthorityKeys.RetirementKey(_authority.DatabaseId))
+                {
+                    return _authority.Retired ? "retired" : null;
+                }
+
+                return _authority._records.Get(key);
+            }
+
+            public void Set(string key, string value)
+            {
+                _authority._records.Set(key, value);
+            }
+
+            public void Remove(string key)
+            {
+                _authority._records.Remove(key);
+            }
+        }
+
+        public AdmissionWrite Admit(AdmissionRecord record, Func<IKeyValueStore, string> condition)
         {
             if (AdmitThrows != null)
             {
                 throw AdmitThrows;
+            }
+
+            // Busy is what the writer answers before its condition is asked, so the condition is
+            // not asked; every other answer comes after it, as the writer's do.
+            if (AdmitAnswers != null && AdmitAnswers.IsBusy)
+            {
+                return AdmitAnswers;
+            }
+
+            if (BeforeWrite != null)
+            {
+                BeforeWrite();
+            }
+
+            if (condition != null)
+            {
+                var withdrawn = condition(new ConditionStore(this));
+                if (withdrawn != null)
+                {
+                    return AdmissionWrite.Withdrawn(withdrawn);
+                }
             }
 
             if (AdmitAnswers != null)
@@ -202,6 +304,46 @@ namespace KeePassGate.Tests.Fakes
 
         /// <summary>Set to answer a client's revocation of itself with something other than doing it.</summary>
         public KeePassGate.Vault.VaultWrite RevokeAnswers { get; set; }
+
+        /// <summary>Set to make reading a standing answer fail, as a database that will not read does.</summary>
+        public Exception StandingRefusalThrows { get; set; }
+
+        /// <summary>The operator's standing answers to renewals, as the gate reads them.</summary>
+        public RenewalRefusal StandingRefusal(string admissionKey)
+        {
+            if (StandingRefusalThrows != null)
+            {
+                throw StandingRefusalThrows;
+            }
+
+            return _admissions.StandingRefusal(admissionKey);
+        }
+
+        /// <summary>Set to answer a standing refusal's write with something other than doing it.</summary>
+        public KeePassGate.Vault.VaultWrite RefuseRenewalAnswers { get; set; }
+
+        /// <summary>
+        /// Run while a standing answer is on its way to the database, before it lands, which is how
+        /// a test puts a request in the gap between the dialog closing and the write.
+        /// </summary>
+        public Action WhileRefusing { get; set; }
+
+        /// <summary>A standing answer, written in this fake's own records.</summary>
+        public KeePassGate.Vault.VaultWrite RefuseRenewal(string admissionKey, RenewalRefusal refusal)
+        {
+            if (WhileRefusing != null)
+            {
+                WhileRefusing();
+            }
+
+            if (RefuseRenewalAnswers != null)
+            {
+                return RefuseRenewalAnswers;
+            }
+
+            _admissions.RefuseRenewal(admissionKey, refusal);
+            return KeePassGate.Vault.VaultWrite.Done();
+        }
 
         /// <summary>A client's revocation of itself, made in this fake's own records.</summary>
         public KeePassGate.Vault.VaultWrite Revoke(string admissionKey)

@@ -54,6 +54,31 @@ namespace KeePassGate.Host.Tests.Live
             string path,
             string body)
         {
+            return Send(port, serverName, certificate, method, path, body, Answered);
+        }
+
+        /// <summary>How long a request the gate answers at once is given to be answered.</summary>
+        public static readonly TimeSpan Answered = TimeSpan.FromSeconds(15);
+
+        /// <summary>
+        /// How long a request that waits on the operator is given: longer than every wait a
+        /// fixture makes for the dialog to appear and for its answer to come back, so the client is
+        /// never the one that gives up first. A renewal answered after fifteen seconds was read as
+        /// a connection closed without an answer while the gate issued and saved a record for a
+        /// certificate nobody received.
+        /// </summary>
+        public static readonly TimeSpan OnTheOperator = TimeSpan.FromSeconds(150);
+
+        /// <summary>The same, given <paramref name="wait"/> for each read and write.</summary>
+        public static LiveReply Send(
+            int port,
+            string serverName,
+            X509Certificate2 certificate,
+            string method,
+            string path,
+            string body,
+            TimeSpan wait)
+        {
             var reply = new LiveReply();
             var payload = body == null ? Array.Empty<byte>() : Encoding.UTF8.GetBytes(body);
 
@@ -81,8 +106,8 @@ namespace KeePassGate.Host.Tests.Live
                 using (var tcp = new TcpClient())
                 {
                     tcp.Connect("127.0.0.1", port);
-                    tcp.ReceiveTimeout = 15000;
-                    tcp.SendTimeout = 15000;
+                    tcp.ReceiveTimeout = (int)wait.TotalMilliseconds;
+                    tcp.SendTimeout = (int)wait.TotalMilliseconds;
 
                     var certificates = new X509Certificate2Collection();
                     if (certificate != null)

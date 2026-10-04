@@ -201,6 +201,35 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void A_revocation_no_save_kept_puts_back_the_standing_answers_its_prune_took()
+        {
+            // The last prune a revocation runs takes away every standing answer about a record
+            // that is gone or revoked: the revoked client's own, and one beside a record the
+            // write found expired. The undo put the records back and not the answers, so the
+            // client stayed admitted with its operator's forever gone from memory while the file
+            // kept it, and the next save wrote the loss.
+            var key = Admitted();
+            var expired = PlantExpiredRecord();
+            var admissions = new AdmissionStore(new CustomDataStore(_database.Database), null);
+            admissions.RefuseRenewal(key, RenewalRefusal.Forever());
+            admissions.RefuseRenewal(expired, RenewalRefusal.Until(DateTimeOffset.UtcNow.AddDays(3)));
+            _database.Database.Modified = false;
+
+            var writer = new DatabaseWriter(CurrentThread.Instance, database => { }, null, _dialogs, null);
+            var result = writer.Revoke(_database.Database, key);
+
+            Assert.That(result.IsUnsaved, Is.True, result.Reason);
+
+            var afterwards = new AdmissionStore(new CustomDataStore(_database.Database), null);
+            Assert.That(afterwards.Find(key), Is.Not.Null);
+            Assert.That(afterwards.StandingRefusal(key), Is.Not.Null.And.Property("IsForever").True,
+                "the operator's forever is still in force");
+            Assert.That(afterwards.StandingRefusal(expired), Is.Not.Null,
+                "and so is the answer beside the expired record the prune took");
+            Assert.That(_database.Database.Modified, Is.False, "memory agrees with the file");
+        }
+
+        [Test]
         public void A_revocation_the_file_did_not_keep_stays_in_memory_and_the_database_stays_modified()
         {
             // Saved, and the file read back is not the one written. Nothing knows which of the two

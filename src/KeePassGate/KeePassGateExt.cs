@@ -51,6 +51,23 @@ namespace KeePassGate
         /// dialog closes.
         /// </remarks>
         private readonly AdmissionNotice _admissions = new AdmissionNotice();
+
+        /// <summary>
+        /// The renewals the operator refused in this session, which the gate answers from and
+        /// every KPG tab shows and lifts.
+        /// </summary>
+        /// <remarks>
+        /// The plugin's own, for the reason the notice above is: the handler is built once and
+        /// outlives every tab, and a tab holding a set of its own would show answers the gate is
+        /// not giving and lift ones it goes on giving.
+        /// </remarks>
+        private readonly SessionRefusals _sessionRefusals = new SessionRefusals();
+
+        /// <summary>
+        /// The approvals the operator gave that KeePass was too busy to write, held for the client's
+        /// retry, which pairing and renewal share and a lock, a close and an exit clear.
+        /// </summary>
+        private readonly ApprovalBook _approvals = new ApprovalBook();
         private JsonLinesAudit _audit;
         private OpenDatabaseTargets _targets;
         private GateListener _listener;
@@ -372,10 +389,13 @@ namespace KeePassGate
         /// count and needs none: it builds its export without that dialog, so nothing is swapped,
         /// and a write landing inside it would save the database exactly as it is.
         ///
-        /// **Neither is this plugin's own.** Nothing here shows a `MessageService` box, and the
-        /// pairing prompt is a form of its own, so the count is KeePass's word about KeePass. The
-        /// save this writer makes raises the block itself, and is not refused by it, because the
-        /// question is asked before the save rather than during it.
+        /// **The count is not this plugin's own.** Nothing here shows a `MessageService` box, and
+        /// the pairing prompt is a form of its own, so the count is KeePass's word about KeePass.
+        /// **The block can be**: the save this writer makes raises it for as long as it runs. A
+        /// write never meets its own, because the question is asked before the save rather than
+        /// during it, but a pairing or a renewal asking from another connection does, and
+        /// `DatabaseWriter.Blocked` tells that save apart and waits for it rather than reading it
+        /// as KeePass being busy.
         /// </remarks>
         private static string Interrupting(KeePass.Forms.MainForm main)
         {
@@ -412,6 +432,11 @@ namespace KeePassGate
                 {
                     GateIcon.Borrow(main.ClientIcons);
                 }
+
+                // KeePass's own windows keep out of screen captures when it is set to, and it does
+                // that only for windows it registers, which this plugin's do not: `CaptureGuard`
+                // applies the same to them, asking KeePass's setting as each is made.
+                CaptureGuard.Wanted = () => KeePass.Program.Config.Security.PreventScreenCapture;
 
                 _log = new TraceGateLog();
                 _incidents = new GateIncidents(_log);
@@ -457,7 +482,8 @@ namespace KeePassGate
                             _log,
                             _invitations,
                             _admissions,
-                            _incidents),
+                            _incidents,
+                            _sessionRefusals),
                         _log,
                         KeePassContract.DatabaseSettingsTabControlName,
                         GateTab.Text,
@@ -524,6 +550,7 @@ namespace KeePassGate
             try
             {
                 GateIcon.Return();
+                CaptureGuard.Wanted = () => false;
 
                 if (_grants != null)
                 {
@@ -562,6 +589,11 @@ namespace KeePassGate
                     _locks.Dispose();
                     _locks = null;
                 }
+
+                // An exit takes every held approval with it, as a lock does.
+                _approvals.Clear();
+
+                TellWhatIsStillOwed();
             }
             catch (Exception error)
             {
@@ -715,6 +747,10 @@ namespace KeePassGate
                 _groupDialogs,
                 _log);
 
+            // The standing answers the operator gave while a database could not take them, which
+            // the writer's next write to that database that lands writes as well.
+            writer.Owed = _sessionRefusals;
+
             _targets = new OpenDatabaseTargets(
                 delegate { return mainWindow.DocumentManager.GetOpenDatabases(); },
                 writer,
@@ -727,10 +763,16 @@ namespace KeePassGate
             // pairing handler, which holds the prompt, which holds the control every approval is
             // marshaled to. `Terminate` lets go of the listener, and letting go of the listener
             // has to be letting go of all of it.
+            // One prompt for both, because a pairing and a renewal wait their turn for the same
+            // screen. The writer too, because a dialog is a marshaled call like a write and is
+            // delivered inside whatever is pumping: the prompt waits out the writer's own save and
+            // refuses inside KeePass's, as the writer does.
+            var prompt = new PairingApprovalPrompt(ui, _targets.Serving, writer, _log);
             var router = GateOperations.Router(
                 GateVersion.Current,
                 GateVersion.Revision,
-                new PairingHandler(_invitations, new PairingApprovalPrompt(ui, _log), _log),
+                new PairingHandler(_invitations, prompt, _approvals, _log),
+                new RenewalHandler(prompt, _sessionRefusals, _approvals, _log),
                 new AccessCheck(_audit));
 
             var resolver = new GateResolver(_targets, _invitations, _log);
@@ -761,7 +803,10 @@ namespace KeePassGate
             // will be. The incidents are the plugin's own rather than a second
             // tally: these handlers are two of the four places that catch everything, and the
             // window under Tools is where the count is read.
-            _locks = new LockWatch(_databases, _targets, () => _listener, _log, _incidents);
+            // The prompt too, because a lock closes the question it has on the screen, and the
+            // approvals held for a retry, because a lock or a close lets go of every one of them.
+            _locks = new LockWatch(
+                _databases, _targets, () => _listener, _log, _incidents, new ApprovalScreens(prompt, _approvals));
             _locks.Start();
 
             // After the lock watch, so that an unlock has been read by the time the question is
@@ -779,6 +824,47 @@ namespace KeePassGate
                 _incidents,
                 _log);
             _chooser.Start();
+        }
+
+        /// <summary>
+        /// Tells the operator about standing answers to renewals that no database took before
+        /// KeePass exits, which go with it.
+        /// </summary>
+        /// <remarks>
+        /// The operator's ruling of 2026-10-14: an answer forever or until a date given while
+        /// KeePass was busy holds from memory and is written by the plugin's next write to that
+        /// database, and one that still cannot be written by then is told to the operator rather
+        /// than only to the log. Exit is when that becomes true for good: a lock or a close keeps
+        /// it, and the next write after an unlock or an open writes it. Said once, on the way out,
+        /// so that the operator knows which programs will be asked about again.
+        /// </remarks>
+        private void TellWhatIsStillOwed()
+        {
+            var owed = _sessionRefusals.Owed();
+            if (owed.Count == 0)
+            {
+                return;
+            }
+
+            var log = _log;
+            if (log != null)
+            {
+                log.Warn(owed.Count + (owed.Count == 1 ? " standing answer" : " standing answers") +
+                         " to renewing a certificate never reached the database, and go now that KeePass exits");
+            }
+
+            new MessageBoxPrompt().Tell(
+                GateName.Full,
+                (owed.Count == 1
+                    ? "A standing answer to renewing a client's certificate, refused forever or until a "
+                      + "date, was never written to its database, because KeePass was busy whenever it "
+                      + "was given and nothing was written after it."
+                    : owed.Count + " standing answers to renewing clients' certificates, refused forever "
+                      + "or until a date, were never written to their databases, because KeePass was busy "
+                      + "whenever they were given and nothing was written after them.")
+                + Environment.NewLine + Environment.NewLine
+                + "They held for this session and go now. The next time those clients ask to renew, "
+                + "the dialog comes up again.");
         }
 
         /// <summary>

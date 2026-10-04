@@ -98,6 +98,7 @@ namespace KeePassGate.Tests
         }
 
         [TestCase("pairRequest")]
+        [TestCase("renewCertificate")]
         public void The_document_and_the_handler_read_a_lifetime_alike(string operationId)
         {
             // The document's pattern is checked by the router and `Lifetime.Read` by the handler

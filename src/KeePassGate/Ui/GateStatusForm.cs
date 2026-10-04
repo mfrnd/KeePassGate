@@ -641,6 +641,13 @@ namespace KeePassGate.Ui
             };
         }
 
+        /// <summary>Kept out of screen captures when KeePass keeps its own windows out.</summary>
+        protected override void OnHandleCreated(EventArgs e)
+        {
+            base.OnHandleCreated(e);
+            CaptureGuard.Apply(this);
+        }
+
         protected override void Dispose(bool disposing)
         {
             if (disposing)

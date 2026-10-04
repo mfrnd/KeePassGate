@@ -81,6 +81,20 @@ namespace KeePassGate.Acl
         }
 
         /// <summary>
+        /// Whether a stored list reads as one: absent and empty are a list naming nothing, and
+        /// anything else has to be the object this writes.
+        /// </summary>
+        /// <remarks>
+        /// <see cref="Read"/> answers a list that will not read as one naming nothing, the safe
+        /// direction for every reader that only asks what is named. This is for the reader that
+        /// writes what it reads, and must not write that nothing.
+        /// </remarks>
+        public static bool Readable(string document)
+        {
+            return string.IsNullOrEmpty(document) || JsonBody.Read(document) != null;
+        }
+
+        /// <summary>
         /// Reads a document, or answers with an empty set when there is nothing readable there.
         /// </summary>
         public static ProfileNames Read(string document)

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.Globalization;
+using System.Linq;
 using System.Windows.Forms;
 using KeePassGate.Authority;
 using KeePassGate.Pairing;
@@ -13,12 +14,14 @@ namespace KeePassGate.Ui
     /// The dialog that asks whether a stranger may have a certificate for this database.
     /// </summary>
     /// <remarks>
-    /// The only place an API request reaches a screen, and everything about it assumes the operator
-    /// is being interrupted by somebody else's program.
+    /// One of the two places an API request reaches a screen, the renewal dialog modeled on it being
+    /// the other, and everything about it assumes the operator is being interrupted by somebody
+    /// else's program.
     ///
-    /// - **Nothing is approved by default.** Refuse is the button Escape and Enter both reach, and
-    ///   approving takes a deliberate press. A dialog that can be dismissed into a yes is a dialog
-    ///   that will be.
+    /// - **Nothing is approved by default.** It comes up without taking the focus, Escape and
+    ///   Enter both refuse, and Approve has no mnemonic and is never the default button;
+    ///   <see cref="ApprovalDialog"/> says why. Approving takes a deliberate press. A dialog that
+    ///   can be dismissed into a yes is a dialog that will be.
     /// - **The profiles are confirmed rather than accepted.** They arrive as a request and leave as
     ///   whatever is still checked, because the caller asking for something is not the same as the
     ///   operator agreeing to it. So does the lifetime: what the client asked for is preselected,
@@ -31,7 +34,7 @@ namespace KeePassGate.Ui
     /// - **Every string on it is what the request said**, and the request came from outside. Names
     ///   and profiles have already been checked to be plain names by the time they reach here.
     /// </remarks>
-    public sealed class PairingApprovalForm : Form
+    public sealed class PairingApprovalForm : ApprovalDialog
     {
         private readonly CheckedListBox _profiles;
         private readonly Label _scrolling;
@@ -142,6 +145,8 @@ namespace KeePassGate.Ui
             }
 
             var said = new List<string>();
+            var removed = new List<string>();
+            var everyone = new Dictionary<string, AdmissionRecord>(StringComparer.Ordinal);
 
             foreach (var profile in request.Profiles)
             {
@@ -151,13 +156,14 @@ namespace KeePassGate.Ui
                     continue;
                 }
 
-                var names = new List<string>();
+                removed.Add(profile);
                 foreach (var record in holding)
                 {
-                    names.Add(ClientList.Describe(record));
+                    everyone[record.AdmissionKey] = record;
                 }
 
-                names.Sort(StringComparer.Ordinal);
+                // Each client once, by its client key, as the Profiles page names them.
+                var names = ClientList.ClientNames(holding);
 
                 said.Add((names.Count == 1
                         ? "One client still holds " + profile + " from before and will regain it: "
@@ -170,10 +176,33 @@ namespace KeePassGate.Ui
                 return null;
             }
 
+            var programs = ClientList.ClientNames(everyone.Values);
+            if (removed.Count > MostRegaining || programs.Count > MostRegaining)
+            {
+                // **Bounded, as the list above it is.** One sentence per profile, each naming every
+                // holder, grew without a limit and pushed Refuse, Approve and the countdown below
+                // the screen. Past a few, one sentence says how many of each and names the first
+                // clients, and the Profiles page names them all.
+                var shown = programs.Take(MostRegaining).ToList();
+                var more = programs.Count - shown.Count;
+                said.Clear();
+                said.Add(removed.Count.ToString(CultureInfo.InvariantCulture) + " of these profiles were removed and are "
+                    + "still held from before by " + programs.Count.ToString(CultureInfo.InvariantCulture)
+                    + " clients, who will regain them: " + string.Join(", ", shown)
+                    + (more > 0 ? ", and " + more.ToString(CultureInfo.InvariantCulture) + " more" : string.Empty)
+                    + ". The Profiles page names every one.");
+            }
+
             said.Add("Approving a profile marked" + RemovedSuffix + " adds it back to this database, "
                 + "and every rule still naming it applies again.");
             return string.Join(" ", said);
         }
+
+        /// <summary>
+        /// The most removed profiles, and the most clients regaining them, the Regaining line names
+        /// one by one before it says how many instead.
+        /// </summary>
+        public const int MostRegaining = 3;
 
         /// <summary>
         /// What the line under the list says when the list holds more profiles than it shows at
@@ -190,12 +219,21 @@ namespace KeePassGate.Ui
         /// </remarks>
         public static string Scrolling(PairingRequest request)
         {
-            if (request == null || request.Profiles.Count <= MostRows)
+            return request == null ? null : Scrolling(request.Profiles.Count);
+        }
+
+        /// <summary>
+        /// The same line for a list of this many profiles, which the renewal dialog's list says
+        /// too, in the same words.
+        /// </summary>
+        internal static string Scrolling(int profiles)
+        {
+            if (profiles <= MostRows)
             {
                 return null;
             }
 
-            return "The list holds " + request.Profiles.Count.ToString(CultureInfo.InvariantCulture)
+            return "The list holds " + profiles.ToString(CultureInfo.InvariantCulture)
                 + " profiles and shows " + MostRows.ToString(CultureInfo.InvariantCulture)
                 + " at a time: scroll through it, because Approve grants every one still checked, "
                 + "seen or not.";
@@ -287,7 +325,6 @@ namespace KeePassGate.Ui
             MinimizeBox = false;
             MaximizeBox = false;
             ShowInTaskbar = true;
-            TopMost = true;
 
             // Sized by what is in it rather than by a number written here, which is what
             // `GateStatusForm` does and for the same reason. A fixed client area is right at one
@@ -387,7 +424,7 @@ namespace KeePassGate.Ui
                 Margin = new Padding(0, 0, 0, Spacing.Gap)
             });
 
-            _profiles = new CheckedListBox
+            _profiles = new SteadyChecks
             {
                 Name = GateTab.ApprovalProfilesListName,
                 AccessibleName = GateTab.ApprovalProfilesListLabel,
@@ -518,10 +555,8 @@ namespace KeePassGate.Ui
                 Margin = new Padding(0, 0, Spacing.Gap, 0)
             };
 
-            var approve = new Button
+            var approve = new ApproveButton
             {
-                Name = GateTab.ApproveButtonName,
-                Text = "&" + GateTab.ApproveButtonText,
                 AutoSize = true,
                 AutoSizeMode = AutoSizeMode.GrowAndShrink,
                 Margin = new Padding(0, 0, 0, 0)
@@ -559,8 +594,9 @@ namespace KeePassGate.Ui
             Controls.Add(layout);
 
             // Every way a dialog gets dismissed without being read leads to a refusal, and none of
-            // them leads to a certificate. These two are the keys; the close box and everything
-            // else that reaches `Close` without a button are `OnFormClosing` below.
+            // them leads to a certificate. `RefuseByKey` answers the keys, and these two draw Refuse
+            // as the button they reach; the close box and everything else that reaches `Close`
+            // without a button are `OnFormClosing` below.
             CancelButton = refuse;
             AcceptButton = refuse;
 
@@ -587,7 +623,7 @@ namespace KeePassGate.Ui
         /// more for it, which is the trade and is the cheaper half: they are read once and the
         /// row is what gets acted on.
         /// </remarks>
-        private static int Wrap(Font font)
+        internal static int Wrap(Font font)
         {
             return TextRenderer.MeasureText(new string('M', 56), font).Width;
         }
@@ -603,14 +639,14 @@ namespace KeePassGate.Ui
         /// it says so. The border is added because a list box's height includes it and its rows
         /// do not.
         /// </remarks>
-        private static int ListHeight(CheckedListBox list, int profiles)
+        internal static int ListHeight(CheckedListBox list, int profiles)
         {
             var rows = Math.Max(2, Math.Min(MostRows, profiles));
             return (list.ItemHeight * rows) + (SystemInformation.BorderSize.Height * 4);
         }
 
         /// <summary>The most rows the profile list shows at once, past which it scrolls.</summary>
-        private const int MostRows = 10;
+        internal const int MostRows = 10;
 
         /// <summary>
         /// Approves it, exactly as the button does. Public because a button press needs a window on
@@ -627,6 +663,17 @@ namespace KeePassGate.Ui
             Finish(PairingDecision.Refused);
         }
 
+        /// <summary>Enter and Escape refuse, as pressing Refuse does.</summary>
+        protected override void RefuseByKey()
+        {
+            Refuse();
+        }
+
+        internal override void Withdraw()
+        {
+            Finish(PairingDecision.Locked);
+        }
+
         /// <summary>
         /// What the operator decided. A dialog dismissed rather than answered has refused, and one
         /// nobody touches at all has timed out.
@@ -640,6 +687,9 @@ namespace KeePassGate.Ui
 
                 case PairingDecision.Refused:
                     return PairingApproval.Refused();
+
+                case PairingDecision.Locked:
+                    return PairingApproval.Locked();
 
                 default:
                     return PairingApproval.TimedOut();

@@ -94,6 +94,12 @@ namespace KeePassGate.Gate
             get { return Array.Empty<string>(); }
         }
 
+        /// <summary>Nothing to read, which is not a list that would not read.</summary>
+        public string ProfilesUnreadable
+        {
+            get { return null; }
+        }
+
         /// <summary>Nobody, for the same reason.</summary>
         public IReadOnlyList<AdmissionRecord> Holding(string profile)
         {
@@ -138,7 +144,7 @@ namespace KeePassGate.Gate
             get { return Reason; }
         }
 
-        public AdmissionWrite Admit(AdmissionRecord record)
+        public AdmissionWrite Admit(AdmissionRecord record, Func<IKeyValueStore, string> condition)
         {
             // Busy rather than failed: unlocking is all it takes, and the invitee should try again
             // rather than be told to start over.
@@ -147,6 +153,18 @@ namespace KeePassGate.Gate
 
         /// <summary>Busy, for the same reason: unlocking is all it takes.</summary>
         public KeePassGate.Vault.VaultWrite Revoke(string admissionKey)
+        {
+            return KeePassGate.Vault.VaultWrite.Busy(Reason);
+        }
+
+        /// <summary>None, while there is nothing to read one from.</summary>
+        public RenewalRefusal StandingRefusal(string admissionKey)
+        {
+            return null;
+        }
+
+        /// <summary>Busy, for the same reason: unlocking is all it takes.</summary>
+        public KeePassGate.Vault.VaultWrite RefuseRenewal(string admissionKey, RenewalRefusal refusal)
         {
             return KeePassGate.Vault.VaultWrite.Busy(Reason);
         }

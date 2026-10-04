@@ -216,6 +216,33 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_standing_answer_that_lands_after_the_press_goes_with_the_revocation_at_OK()
+        {
+            // The press prunes the standing answers it can see, and a renewal the operator refuses
+            // forever after it writes one live. OK asks again over what it wrote, so the file is
+            // left with no answer about a certificate no record admits, whichever came first.
+            using (var authority = TestAuthority.New())
+            using (var client = authority.IssueClient("agent-fictitious", "ops"))
+            {
+                var live = new InMemoryKeyValueStore();
+                var store = new AdmissionStore(live, null);
+                store.Write(AdmissionRecord.For(client, System.DateTimeOffset.UtcNow, new[] { "ops" }));
+                var key = CertificateDigest.Of(client);
+
+                var pending = new PendingDatabase(new FakeGateDatabase(live), null);
+                Assume.That(new AdmissionStore(pending.PluginCustomData, null).Remove(key), Is.True);
+
+                store.RefuseRenewal(key, RenewalRefusal.Forever());
+                Assume.That(live.Get(AuthorityKeys.RenewalRefusalKey(key)), Is.Not.Null);
+
+                pending.Apply();
+
+                Assert.That(live.Get(AuthorityKeys.RevocationKey(key)), Is.Not.Null, "the revocation landed");
+                Assert.That(live.Get(AuthorityKeys.RenewalRefusalKey(key)), Is.Null, "and the answer went with it");
+            }
+        }
+
+        [Test]
         public void A_profile_the_operator_removed_still_goes_when_a_pairing_writes_that_key()
         {
             // The other half of a difference being replayed rather than a snapshot: the merge must
@@ -536,6 +563,100 @@ namespace KeePassGate.Tests
             Assert.That(pending.Apply(), Is.False);
             Assert.That(inner.Store.Get("KPG.Thing"), Is.Null);
             Assert.That(inner.MarkedModifiedCount, Is.Zero);
+        }
+
+        [TestCase(true)]
+        [TestCase(false)]
+        public void A_standing_answer_lifted_on_the_tab_goes_at_OK_and_stays_on_Cancel(bool accepted)
+        {
+            // M001: Allow renewal waits for the dialog's OK, as a revocation does.
+            var live = new InMemoryKeyValueStore();
+            var key = new string('a', 64);
+            new AdmissionStore(live, null).RefuseRenewal(key, RenewalRefusal.Forever());
+
+            var pending = new PendingDatabase(new FakeGateDatabase(live), null);
+            Assert.That(new AdmissionStore(pending.PluginCustomData, null).LiftRenewalRefusal(key), Is.True);
+            Assert.That(new AdmissionStore(pending.PluginCustomData, null).StandingRefusal(key), Is.Null,
+                "the page reads it as gone at once");
+            Assert.That(live.Get(AuthorityKeys.RenewalRefusalKey(key)), Is.Not.Null, "and the gate still refuses");
+
+            if (accepted)
+            {
+                Assert.That(pending.Apply(), Is.True);
+                Assert.That(live.Get(AuthorityKeys.RenewalRefusalKey(key)), Is.Null);
+            }
+            else
+            {
+                pending.Discard();
+                Assert.That(live.Get(AuthorityKeys.RenewalRefusalKey(key)), Is.EqualTo(RenewalRefusal.ForeverValue));
+            }
+        }
+
+        [Test]
+        public void An_answer_given_again_while_the_dialog_is_open_outlasts_the_lift_at_OK()
+        {
+            // The until-date passed while the settings dialog was open, the next renewal raised its
+            // dialog, and the operator refused it forever there. That is the later word on the
+            // certificate, and replaying the tab's removal over it would throw it away.
+            var live = new InMemoryKeyValueStore();
+            var key = new string('b', 64);
+            var store = new AdmissionStore(live, null);
+            store.RefuseRenewal(key, RenewalRefusal.Until(System.DateTimeOffset.UtcNow.AddDays(1)));
+
+            var pending = new PendingDatabase(new FakeGateDatabase(live), null);
+            Assume.That(new AdmissionStore(pending.PluginCustomData, null).LiftRenewalRefusal(key), Is.True);
+
+            store.RefuseRenewal(key, RenewalRefusal.Forever());
+
+            Assert.That(new AdmissionStore(pending.PluginCustomData, null).StandingRefusal(key).IsForever, Is.True,
+                "the page shows the newer answer while the dialog is still open");
+
+            pending.Apply();
+
+            Assert.That(live.Get(AuthorityKeys.RenewalRefusalKey(key)), Is.EqualTo(RenewalRefusal.ForeverValue));
+        }
+
+        [Test]
+        public void A_session_answer_lifted_on_the_tab_is_lifted_at_OK_and_kept_on_Cancel()
+        {
+            // An answer for this session is the plugin's memory and no key in the database, so
+            // what holds the lift back until OK is a buffer of its own beside the database's.
+            var session = new KeePassGate.Pairing.SessionRefusals();
+            session.Refuse("one");
+
+            var canceled = new PendingSessionRefusals(session);
+            Assert.That(canceled.Lift("one"), Is.True);
+            Assert.That(canceled.Refuses("one"), Is.False, "the page reads it as lifted at once");
+            Assert.That(session.Refuses("one"), Is.True, "and the gate still refuses");
+            canceled.Discard();
+            Assert.That(session.Refuses("one"), Is.True, "Cancel leaves it standing");
+
+            var accepted = new PendingSessionRefusals(session);
+            Assert.That(accepted.Lift("two"), Is.False, "nothing stands for that certificate");
+            Assert.That(accepted.Lift("one"), Is.True);
+            Assert.That(accepted.Apply(), Is.EqualTo(new[] { "one" }));
+            Assert.That(session.Refuses("one"), Is.False, "OK lifts it");
+        }
+
+        [Test]
+        public void An_answer_owed_to_the_database_is_shown_and_lifted_as_the_session_one_is()
+        {
+            // Refused forever while KeePass was busy: the answer holds from memory until the
+            // plugin's next write takes it into the database, and the page shows and lifts it as
+            // it does one for this session, since the gate answers from the same memory.
+            var session = new KeePassGate.Pairing.SessionRefusals();
+            session.Owe("db", "one", RenewalRefusal.Forever());
+
+            var pending = new PendingSessionRefusals(session);
+            Assert.That(pending.Answer("one").IsForever, Is.True);
+
+            Assert.That(pending.Lift("one"), Is.True);
+            Assert.That(pending.Answer("one"), Is.Null, "the page reads it as lifted at once");
+            Assert.That(session.Answer("one"), Is.Not.Null, "and the gate still refuses");
+
+            pending.Apply();
+            Assert.That(session.Answer("one"), Is.Null, "OK lifts it");
+            Assert.That(session.Owed(), Is.Empty, "and nothing is owed to the database any more");
         }
     }
 }

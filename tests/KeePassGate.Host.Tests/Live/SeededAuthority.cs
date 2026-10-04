@@ -80,6 +80,7 @@ namespace KeePassGate.Host.Tests.Live
             {
                 "v=1",
                 "subject=CN=agent-invented",
+                "client=c9d74273af508a25252797f2ceb18288a38bd3ea7aab43bc500629ddb5b5452c",
                 "admitted=2026-08-22T08:38:01Z",
                 "profiles=reader,ops",
                 "certificate=MIIBrTCCAVKgAwIBAgIQfUczW38muXkJ2k4smPkY+jAKBggqhkjOPQQDAjAgMR4wHAYDVQQDExVLZWVQYXNzR2F0ZSBhdXRob3JpdHkwHhcNMjYwODIyMDgzMzAxWhcNMjcwODIyMDgzODAxWjAZMRcwFQYDVQQDEw5hZ2VudC1pbnZlbnRlZDBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABAS78Qqi28/5+7BQmpuOt0QCKeOcPrmdVHdRmXmpguis3LmxeQIknOvn2iFyynH/v9hZF2fYOXc/u0Qs+eys7/qjdTBzMAwGA1UdEwEB/wQCMAAwDgYDVR0PAQH/BAQDAgeAMBMGA1UdJQQMMAoGCCsGAQUFBwMCMB0GA1UdDgQWBBTDHz21u+WoPt0vbC9Z07n/tUe06zAfBgNVHSMEGDAWgBT495o5wolADbrniyVCndXKANXsazAKBggqhkjOPQQDAgNJADBGAiEA/iYw9xJmUgLvzmPZsj1QfFzFqAFthDoVK30EpcYjQ8sCIQCb2ww2hGHccyKgogLTv7X5K6hVtBF1+jcX88CPV92G1A=="
