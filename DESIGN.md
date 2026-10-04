@@ -1525,7 +1525,13 @@ Each step is refusable, and each ends with something that runs.
     prints as stored and nothing but the entry asked for is read.
 25. **The release package**: `build.ps1 -Task Package` builds the plugin as Release and zips it with
     everything it loads, its license and the notices, under the version, beside a `SHA256SUMS` that
-    covers every file in the zip and the zip itself.
+    covers every file in the zip and the zip itself. **Done.** Until here the only way to the
+    plugin's files was a deploy into a KeePass. What this settles is what a release publishes: one
+    zip, which extracted into `plugins` lays the files out as `Deploy` does, and the sums
+    `sha256sum -c` reads beside it, built so that no path in either names the account that built
+    them. It packages a clean clone and nothing else, refuses an assembly the notices do not name,
+    and reads the zip and its sums back before it reports them. Publishing one is not a step of this
+    order: there is no release yet, and no Scoop manifest.
 
 Steps 5 to 8 are the ones that prove the design. Step 5 is deliberately early, because the
 `CustomData` dialog hazard is the thing most likely to invalidate the storage decision, and finding
