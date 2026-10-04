@@ -587,6 +587,125 @@ namespace KeePassGate.Bridge
         /// </param>
         public VaultWrite Change(PwDatabase database, Func<VaultChange> change)
         {
+            return Change(database, change, null);
+        }
+
+        /// <summary>
+        /// Revokes one client at its own request: a revocation beside its record and the record
+        /// emptied, saved and verified like every other change.
+        /// </summary>
+        /// <remarks>
+        /// **The Clients page's write, made here because nobody is going to press OK on it**, which
+        /// is `AdmissionStore.Remove` and the prunes that ride on it. Through
+        /// <see cref="Change(PwDatabase, Func{VaultChange})"/>, so it waits its turn, is refused
+        /// inside an operation KeePass is running and before a save that would ask, is taken back
+        /// out when the save does not reach the disk, and is left where it is, with the database
+        /// marked modified, when the file does not hold what was written.
+        ///
+        /// **And refused while Database Maintenance is open on the database**, which `Change` does
+        /// not ask on its own, because no change to the tree touches what that dialog copies. This
+        /// one does: a revocation adds a key to the database's own custom data, and that dialog
+        /// writes its copy back whenever the number of keys differs, which would put the record
+        /// back without its revocation and admit the client again.
+        ///
+        /// **What is taken back out is everything it touched**, the prunes included, because
+        /// putting back the record alone would leave an undone revocation's prunes for whatever the
+        /// operator saves next.
+        ///
+        /// A revocation that lands tells the Clients page, as a record that lands does.
+        /// </remarks>
+        public VaultWrite Revoke(PwDatabase database, string admissionKey)
+        {
+            if (string.IsNullOrEmpty(admissionKey))
+            {
+                return VaultWrite.Missing();
+            }
+
+            return Change(database, () => RevokeOnTheUiThread(database, admissionKey), Admitted);
+        }
+
+        private VaultChange RevokeOnTheUiThread(PwDatabase database, string admissionKey)
+        {
+            if (_dialogs != null)
+            {
+                var open = _dialogs.BlockingRecords(database);
+                if (open != null)
+                {
+                    return VaultWrite.Busy(open);
+                }
+            }
+
+            var store = new CustomDataStore(database);
+            var admissions = new AdmissionStore(store, _log);
+            if (admissions.Find(admissionKey) == null)
+            {
+                // Gone since the connection was admitted: revoked from the Clients page in
+                // between, or by a merge. Nothing is changed, and the certificate is refused from
+                // here on, which is what was asked for.
+                return VaultWrite.Missing();
+            }
+
+            var held = Records(store);
+            if (!admissions.Remove(admissionKey))
+            {
+                Restore(store, held);
+                return VaultWrite.Failed("the revocation did not survive being written");
+            }
+
+            return new VaultChange(VaultWrite.Done(), () => Restore(store, held));
+        }
+
+        /// <summary>Every admission record and revocation, with what it holds.</summary>
+        private static Dictionary<string, string> Records(CustomDataStore store)
+        {
+            var held = new Dictionary<string, string>(StringComparer.Ordinal);
+
+            foreach (var key in store.Keys)
+            {
+                if (AuthorityKeys.IsClientRecord(key) || AuthorityKeys.IsRevocation(key))
+                {
+                    held[key] = store.Get(key);
+                }
+            }
+
+            return held;
+        }
+
+        /// <summary>
+        /// Puts the records and revocations back as <see cref="Records"/> found them, touching
+        /// only what differs.
+        /// </summary>
+        /// <remarks>
+        /// Only what differs, because `StringDictionaryEx.Set` stamps a fresh modification time on
+        /// a value even when it is the one already there, and a time is what a merge decides by.
+        /// </remarks>
+        private static void Restore(CustomDataStore store, Dictionary<string, string> held)
+        {
+            foreach (var key in store.Keys)
+            {
+                if ((AuthorityKeys.IsClientRecord(key) || AuthorityKeys.IsRevocation(key)) && !held.ContainsKey(key))
+                {
+                    store.Remove(key);
+                }
+            }
+
+            foreach (var pair in held)
+            {
+                if (!string.Equals(store.Get(pair.Key), pair.Value, StringComparison.Ordinal))
+                {
+                    store.Set(pair.Key, pair.Value);
+                }
+            }
+        }
+
+        /// <param name="landed">
+        /// Run on the user interface thread once the change stands: saved and verified, or saved
+        /// and left in place because the file could not be verified, which undoes nothing. Not on
+        /// any path that took the change back out. Null when nothing is drawn from what the change
+        /// wrote.
+        /// </param>
+        private VaultWrite Change(PwDatabase database, Func<VaultChange> change, Action landed)
+        {
             if (change == null)
             {
                 throw new ArgumentNullException(nameof(change));
@@ -609,7 +728,7 @@ namespace KeePassGate.Bridge
                 bool ran;
                 try
                 {
-                    ran = _ui.Run(() => outcome = ChangeOnTheUiThread(database, change), WriteTimeout);
+                    ran = _ui.Run(() => outcome = ChangeOnTheUiThread(database, change, landed), WriteTimeout);
                 }
                 catch (Exception error) when (Expected.OfUserInterface(error) || Expected.OfCustomData(error))
                 {
@@ -730,7 +849,7 @@ namespace KeePassGate.Bridge
             return kept;
         }
 
-        private VaultWrite ChangeOnTheUiThread(PwDatabase database, Func<VaultChange> change)
+        private VaultWrite ChangeOnTheUiThread(PwDatabase database, Func<VaultChange> change, Action landed)
         {
             if (!database.IsOpen)
             {
@@ -868,6 +987,16 @@ namespace KeePassGate.Bridge
                 _log.Error("the file on disk is not what KeePass wrote to it, so a change that " +
                            "may not be stored is not being reported as stored", null);
 
+                // Left in place, so it is in force, and what is drawn from the records is told as
+                // a change that landed is: a revocation kept here refuses the client from its next
+                // request, and a page still listing that client would be listing one every request
+                // refuses. The window is not redrawn, as it is not for a change that may not be
+                // stored; the clients page is about who is refused, which this decides.
+                if (landed != null)
+                {
+                    landed();
+                }
+
                 return VaultWrite.Unverified(
                     "the file on disk does not hold what KeePass wrote to it");
             }
@@ -879,6 +1008,11 @@ namespace KeePassGate.Bridge
             // it to. What a put back does leave wrong is the mark saying there is something to
             // save, which `PutBack` redraws on its own.
             Redraw(database, true);
+
+            if (landed != null)
+            {
+                landed();
+            }
 
             return decided.Outcome;
         }
@@ -1200,11 +1334,16 @@ namespace KeePassGate.Bridge
             return AdmissionWrite.Done();
         }
 
-        /// <summary>Says a record landed, to whatever is drawn from the records.</summary>
+        /// <summary>
+        /// Says a record landed, or a client's revocation of itself did, to whatever is drawn from
+        /// the records.
+        /// </summary>
         /// <remarks>
         /// Here and nowhere earlier: every path above this either put its change back or is still
         /// deciding, and a page told about a record that was taken out again would list a client
-        /// the next request refuses.
+        /// the next request refuses. A revocation reaches it from the end of a change, on the two
+        /// paths that leave the change in force: saved and verified, and saved without the file
+        /// being verified, which takes nothing back out.
         ///
         /// **A page that fails to redraw never fails the write.** By the time this runs the record is
         /// on the disk and the client is about to be handed its certificate, so a page that failed

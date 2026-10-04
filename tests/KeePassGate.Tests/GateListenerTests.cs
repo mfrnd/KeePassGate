@@ -280,6 +280,29 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_client_that_revokes_itself_is_refused_on_its_next_connection()
+        {
+            // Through the whole transport, which is what carries the database's records to the
+            // handler: the route writes in the target the connection resolved to and nowhere else.
+            using (var certificate = _first.IssueAdmittedClient())
+            {
+                var name = _first.NewName();
+                var revoked = GateClient.Send(
+                    _listener.Port,
+                    name,
+                    certificate,
+                    "DELETE " + GateOperations.PathOf(GateOperations.RevokeCertificate) +
+                    " HTTP/1.1\r\nHost: " + name + "\r\n\r\n");
+
+                Assert.That(revoked.Status, Is.EqualTo(200), revoked.ToString());
+
+                var reply = GateClient.Get(_listener.Port, _first.NewName(), certificate, GateOperations.StatusPath);
+
+                Assert.That(reply.Status, Is.EqualTo(401), "refused as a certificate the operator revoked is");
+            }
+        }
+
+        [Test]
         public void A_route_that_does_not_exist_is_a_404()
         {
             using (var certificate = _first.IssueAdmittedClient())

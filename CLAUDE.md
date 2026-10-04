@@ -181,9 +181,12 @@ designing around them.
   writes an admission record to the live database, and only touching the keys the operator changed
   leaves it alone.
 
-  **And `KPG.Profiles` is replayed as a difference**, because it is the one key with a second
-  writer: a pairing names an approved profile in the same write as the admission record, so the
-  tab's own list is not the only version of it. Key by key is no help there, since the tab did
+  **And `KPG.Profiles` is replayed as a difference**, because it is the one key whose second writer
+  has to be merged with the tab: a pairing names an approved profile in the same write as the
+  admission record, so the tab's own list is not the only version of it. Record and revocation keys
+  have second writers too, a client revoking itself and the prune that rides on the plugin's own
+  writes, and key by key is enough for those, since a revocation reads the same whoever wrote it and
+  a pruned record had nothing left to say. Key by key is no help for the list, since the tab did
   touch that key, and the older list went over the newer one. `PendingStore.Reconcile` registers a
   merge through `ProfileNames.Merge` for it, so a name an approval added survives and a name the
   operator removed still goes, and at the ceiling a name the operator added that no longer fits is

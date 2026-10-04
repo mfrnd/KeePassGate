@@ -161,6 +161,28 @@ class Credentials:
         return ends < datetime.now(UTC)
 
 
+def forget(directory: Path) -> None:
+    """Take away what pairing stored in a directory, and the directory if that empties it.
+
+    For an identity nothing can use any more, which is one whose certificate has been revoked: a
+    private key kept for a certificate the gate refuses protects nothing and is one more copy of a
+    key to look after. Only the four files this client writes are touched, so a directory holding
+    anything else is left holding it, and a file already gone is not an error.
+    """
+    for name in _FILES:
+        path = directory / name
+        try:
+            path.unlink()
+        except FileNotFoundError:
+            continue
+        except OSError as error:
+            raise StorageError(f"{path} could not be removed: {error}") from error
+
+    # Only an empty one, which `rmdir` refuses to be anything else about.
+    with contextlib.suppress(OSError):
+        directory.rmdir()
+
+
 def save(
     directory: Path,
     port: int,

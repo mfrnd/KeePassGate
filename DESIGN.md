@@ -620,8 +620,9 @@ check each of them has to remember is a check one of them will not.
 The verb comes from the routing table, as `x-kpg-verb`, and **an operation that declares none stops
 the plugin loading**. That is what keeps authorization from being something a new route can be added
 without: there is no permissive default to fall into, only a document that does not parse. `none` is
-a decision and it is written down, for the status route, which reads nothing, and for the two pairing
-routes, which a person authorizes by reading a dialog rather than by a grant.
+a decision and it is written down, for the status route, which reads nothing, for a client's
+revocation of its own certificate, which touches no group or entry a rule is about, and for the two
+pairing routes, which a person authorizes by reading a dialog rather than by a grant.
 
 `AclResolver` returns why as well as whether, naming the node whose rule decided by its identifier
 and never by its title, because those reasons reach the audit log in step 14 and a log is meant to be
@@ -1149,7 +1150,7 @@ and returns no name rather than throwing; `SniProbe.cs` is the evidence it works
 
 ### C6. "Spec-first routing is slower than a switch statement" §128
 
-It is, and the document declares thirty-six operations over thirteen paths, eleven of them the
+It is, and the document declares thirty-seven operations over fourteen paths, eleven of them the
 `HEAD` that answers for a `GET`. The property being bought, that an undeclared path has nowhere to
 go and that the document cannot disagree with the implementation, is worth more than the
 microseconds.

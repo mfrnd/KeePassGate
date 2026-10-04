@@ -149,10 +149,10 @@ namespace KeePassGate.Tests
             // that has to be brought along, and there is nowhere else that number is kept.
             var declared = SpecDocument.Embedded().Operations;
 
-            Assert.That(declared.Count, Is.EqualTo(36),
-                "§128 says thirty-six operations");
-            Assert.That(declared.Select(o => o.Path.Text).Distinct().Count(), Is.EqualTo(13),
-                "§128 says thirteen paths");
+            Assert.That(declared.Count, Is.EqualTo(37),
+                "§128 says thirty-seven operations");
+            Assert.That(declared.Select(o => o.Path.Text).Distinct().Count(), Is.EqualTo(14),
+                "§128 says fourteen paths");
             Assert.That(declared.Count(o => o.Method == "HEAD"), Is.EqualTo(11),
                 "§128 says eleven of them are the HEAD that answers for a GET");
         }
@@ -188,7 +188,8 @@ namespace KeePassGate.Tests
         {
             // `none` is a decision and it is written down. What this asserts is that the only
             // operations making it are the ones that were argued for: the status route, which
-            // reads nothing, and pairing, which a person authorizes in the moment.
+            // reads nothing, a client's revocation of itself, which touches no group or entry a
+            // rule is about, and pairing, which a person authorizes in the moment.
             // The heads are here as well, and for the same reason their gets are: a head
             // declares what its own get declares, which the document is refused for
             // getting wrong.
@@ -197,7 +198,10 @@ namespace KeePassGate.Tests
                 .Select(o => o.OperationId)
                 .OrderBy(name => name, StringComparer.Ordinal);
 
-            Assert.That(ungoverned, Is.EqualTo(new[] { "getStatus", "headStatus", "pairHello", "pairRequest" }));
+            Assert.That(ungoverned, Is.EqualTo(new[]
+            {
+                "getStatus", "headStatus", "pairHello", "pairRequest", "revokeCertificate"
+            }));
         }
 
         [Test]

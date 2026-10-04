@@ -1194,6 +1194,41 @@ namespace KeePassGate.Bridge
                 }
             }
 
+            /// <summary>
+            /// Revokes a client at its own request, through the writer, and says in the log what
+            /// came of it.
+            /// </summary>
+            /// <remarks>
+            /// The line names the client by the start of its admission key, as the Clients page
+            /// and the audit do, and never by the name it chose, which is somebody's own word.
+            /// </remarks>
+            public VaultWrite Revoke(string admissionKey)
+            {
+                if (_writer == null)
+                {
+                    return VaultWrite.Failed("this database is served without a way to write to it");
+                }
+
+                var written = _writer.Revoke(_database, admissionKey);
+                if (written.Ok)
+                {
+                    _log.Info("a client revoked its own certificate: " + CertificateDigest.Shorten(admissionKey));
+                }
+                else if (written.IsUnverified)
+                {
+                    // In force in the database KeePass holds, and refused from the next request,
+                    // as the audit says: only whether the file kept it is unknown.
+                    _log.Warn("a client revoked its own certificate, and the file was not verified to hold it: " +
+                              CertificateDigest.Shorten(admissionKey) + ": " + written.Reason);
+                }
+                else
+                {
+                    _log.Warn("a client asked to revoke its own certificate and it was not done: " + written.Reason);
+                }
+
+                return written;
+            }
+
             public AdmissionWrite Admit(AdmissionRecord record)
             {
                 if (_writer == null)

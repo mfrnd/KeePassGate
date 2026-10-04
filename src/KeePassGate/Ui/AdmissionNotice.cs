@@ -3,8 +3,8 @@ using System;
 namespace KeePassGate.Ui
 {
     /// <summary>
-    /// Says that an admission record has landed in a database, so that anything drawn from the
-    /// records can read them again.
+    /// Says that an admission record has landed in a database, or that a client's own revocation
+    /// has, so that anything drawn from the records can read them again.
     /// </summary>
     /// <remarks>
     /// **The clients page is the reason this exists.** Records are read from the live database on
@@ -28,7 +28,8 @@ namespace KeePassGate.Ui
     public interface IAdmissionNotice
     {
         /// <summary>
-        /// Raised once a record is written, saved, and read back from the database it went into.
+        /// Raised once a record is written, saved, and read back from the database it went into,
+        /// and once a client's revocation of itself is saved and verified.
         /// </summary>
         /// <remarks>
         /// On the user interface thread, because the write it follows is marshaled there and this

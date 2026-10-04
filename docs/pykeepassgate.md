@@ -133,6 +133,39 @@ version can be running different builds of it, and the revision says which.
 `GateClient.open()` reads the credentials pairing stored. Pass `profile=` where more than one
 identity is kept on the machine.
 
+## Give up an identity
+
+```shell
+pykeepassgate revoke
+```
+
+`revoke` asks the gate to revoke the certificate this client presents, and once the gate says the
+revocation is saved, removes what pairing stored for it: the key, the certificate, the gate key and
+`client.json`, and the directory as well if that empties it. Nothing can use them afterwards, since
+the database refuses the certificate from the next connection on, and a private key kept for a
+certificate nobody accepts protects nothing. Pairing again is the way back, into the same place.
+
+When the gate does not confirm it, nothing is removed. `not saved` means the revocation was taken
+back out and this client is still admitted, so running `revoke` again is safe. `not verified` means
+KeePass holds the revocation in memory and may not have it in the file, so the certificate is
+already refused, `status` says so, and what the file keeps is the operator's to settle.
+
+A certificate the gate already refuses counts as given up, since that is what `revoke` asks for:
+one the operator revoked on the Clients page, one an earlier `not verified` left refused, and one
+that has expired, which is not dialed at all. `revoke` then removes the files as well, says the
+gate already refused it, and exits 0.
+
+From a program, `revoke_certificate` asks the gate and leaves the files alone, and `forget` removes
+them:
+
+```python
+from pykeepassgate import api
+
+client = api.GateClient.open()
+client.revoke_certificate()
+api.forget(client.credentials.directory)
+```
+
 ## Reach a KeePass on another machine
 
 The gate binds to loopback and nothing changes that. What reaches one from somewhere else is a
@@ -372,7 +405,7 @@ except api.RouteRefused:
 | `PairingError` | The base of the three above, and raised on its own for the rest of what stops a pairing, with a message saying which. A name or a profile the gate would refuse, or more profiles than the 32 it takes, is caught before the request is sent: correct it and pair again. An invitation that is gone ran out or was spent: ask for another. An exchange the gate no longer holds leaves the invitation good: pair again with it. A pairing route the gate does not have is the two halves disagreeing about the wire. |
 | `MalformedToken` | The text handed over is not an invitation, so nothing was sent. Check what was pasted. |
 | `ProtocolError` | Something on the wire is not what the protocol allows: an answer this client cannot read, or a request it will not send. Do not retry an answer it cannot read: the two halves disagree about the wire, which `tests/pykeepassgate/test_protocol.py` exists to stop. An answer longer than `max_response_bytes` is refused this way too, and the message says so: raise the setting rather than retry. |
-| `NotPaired` | Nothing is stored for a paired client where this looked: nothing has paired under that profile, or the directory named is not the one the pairing used. Pair, or name the profile or the directory it used. A `StorageError`, so catching that catches this as well. |
+| `NotPaired` | Nothing is stored for a paired client where this looked: nothing has paired under that profile, its identity was given up, or the directory named is not the one the pairing used. Pair, or name the profile or the directory it used. A `StorageError`, so catching that catches this as well. |
 | `StorageError` | From `pair`, before anything is sent: the directory cannot hold credentials, and the message says why. Nothing is spent, so fix that and pair again. Afterwards: what is stored for this client will not read, or could not be written, and the message names the file or the directory to look at. |
 | `TransportError` | No whole answer arrived: nothing is listening, the handshake failed, which a paragraph below explains, or the connection broke or timed out once the request was on its way. After a read, send it again. After a write, the change may have landed, so look before sending it again: read or list what it changed, where the rules allow that, or ask the operator. |
 | `ValueError` | A setting or an argument that could not work, refused where it is given and before anything is dialed, stored or spent: a port, a timeout, a retry budget, a response cap, a lifetime, a profile's name or an expiry. The message names it. Correct it in the calling program. |

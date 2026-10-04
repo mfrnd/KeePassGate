@@ -1030,6 +1030,25 @@ namespace KeePassGate.Host.Tests.Live
             }
         }
 
+        /// <summary>
+        /// One key of the database's own custom data as the file holds it, read after KeePass has
+        /// exited, or null when the file has no such key: the raw value, for a test that has to
+        /// tell an emptied record from a revocation rather than ask the store what they add up to.
+        /// </summary>
+        public string ReadCustomData(string key)
+        {
+            var database = new PwDatabase();
+            try
+            {
+                database.Open(IOConnectionInfo.FromPath(DatabasePath), NewKey(), null);
+                return new CustomDataStore(database).Get(key);
+            }
+            finally
+            {
+                database.Close();
+            }
+        }
+
         public string DatabaseId()
         {
             using (var reading = ReadAuthority())

@@ -225,7 +225,7 @@ namespace KeePassGate.Host.Tests.Live
         /// Both lines, in that order, because the serving line on its own would not tell a gate
         /// that never started from one that started and has nothing to serve yet.
         /// </remarks>
-        private static void WaitUntilServing(ThrowawayKeePass keePass, System.Diagnostics.Process process)
+        internal static void WaitUntilServing(ThrowawayKeePass keePass, System.Diagnostics.Process process)
         {
             WaitForLog(keePass, process, "listening on 127.0.0.1:" + keePass.Port,
                 "the plugin never reported a listening gate");

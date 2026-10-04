@@ -29,6 +29,8 @@ namespace KeePassGate.Spec
         /// </remarks>
         public const string HeadStatus = "headStatus";
 
+        public const string RevokeCertificate = "revokeCertificate";
+
         public const string PairHello = "pairHello";
 
         public const string PairRequest = "pairRequest";
@@ -157,9 +159,10 @@ namespace KeePassGate.Spec
         /// </param>
         /// <param name="access">
         /// The record and the rules, combined. Every route that touches the database asks it,
-        /// through `Nodes()`. The status route and the two pairing routes do not: the status route
-        /// reads nothing, and pairing is authorized by a person reading a dialog rather than by a
-        /// grant, since a client that is pairing holds no profiles yet.
+        /// through `Nodes()`. The status route, the revocation route and the two pairing routes do
+        /// not: the status route reads nothing, a client giving up its own admission touches no
+        /// group or entry a rule is about, and pairing is authorized by a person reading a dialog
+        /// rather than by a grant, since a client that is pairing holds no profiles yet.
         /// </param>
         public static SpecRouter Router(
             string version, string revision, PairingHandler pairing, AccessCheck access)
@@ -241,6 +244,7 @@ namespace KeePassGate.Spec
             {
                 { Status, status.Handle },
                 { HeadStatus, status.Handle },
+                { RevokeCertificate, RevocationOperation.Handle },
                 { PairHello, pairing == null ? NotServed : (OperationHandler)pairing.Hello },
                 { PairRequest, pairing == null ? NotServed : (OperationHandler)pairing.Request },
 

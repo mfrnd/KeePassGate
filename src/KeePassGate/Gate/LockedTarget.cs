@@ -145,6 +145,12 @@ namespace KeePassGate.Gate
             return AdmissionWrite.Busy(Reason);
         }
 
+        /// <summary>Busy, for the same reason: unlocking is all it takes.</summary>
+        public KeePassGate.Vault.VaultWrite Revoke(string admissionKey)
+        {
+            return KeePassGate.Vault.VaultWrite.Busy(Reason);
+        }
+
         /// <summary>
         /// Nothing. A locked database has no tree to read: the key that would decrypt it is gone,
         /// which is what being locked is, and every route answers the lock and nothing else.

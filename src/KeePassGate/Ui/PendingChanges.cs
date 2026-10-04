@@ -90,13 +90,15 @@ namespace KeePassGate.Ui
             // own per read for the same reason.
             _store = new PendingStore(() => database.PluginCustomData);
 
-            // **The one key this dialog is not the only writer of.** Every other key the tab
-            // touches is the tab's alone, so replaying what the operator wrote is the whole of the
-            // answer. `KPG.Profiles` is also written by a pairing, live and saved, because the
-            // profile the operator just approved has to be named by the same write as the
-            // admission record; replaying a snapshot taken before that threw the name away and
-            // left a client holding a profile this tab could no longer list or count, and that
-            // granted it nothing, since a client holds only what the list names.
+            // **The one key with a second writer whose two versions have to be merged.** A record
+            // or a revocation the tab touches can also be written while the dialog is up, by a
+            // client revoking itself or by the prune of expired records every landed write rides
+            // on, and replaying writes it again as the operator left it: the same revocation, or
+            // one the next prune tidies away. `KPG.Profiles` is also written by a pairing, live
+            // and saved, because the profile the operator just approved has to be named by the
+            // same write as the admission record; replaying a snapshot taken before that threw the
+            // name away and left a client holding a profile this tab could no longer list or
+            // count, and that granted it nothing, since a client holds only what the list names.
             //
             // Registered here rather than known by the buffer, because the buffer is a buffer: it
             // holds strings for a dialog and has no business knowing what any of them mean.

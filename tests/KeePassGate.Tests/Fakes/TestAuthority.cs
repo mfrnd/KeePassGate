@@ -200,6 +200,27 @@ namespace KeePassGate.Tests.Fakes
             return AdmissionWrite.Done();
         }
 
+        /// <summary>Set to answer a client's revocation of itself with something other than doing it.</summary>
+        public KeePassGate.Vault.VaultWrite RevokeAnswers { get; set; }
+
+        /// <summary>A client's revocation of itself, made in this fake's own records.</summary>
+        public KeePassGate.Vault.VaultWrite Revoke(string admissionKey)
+        {
+            if (RevokeAnswers != null)
+            {
+                return RevokeAnswers;
+            }
+
+            if (_admissions.Find(admissionKey) == null)
+            {
+                return KeePassGate.Vault.VaultWrite.Missing();
+            }
+
+            return _admissions.Remove(admissionKey)
+                ? KeePassGate.Vault.VaultWrite.Done()
+                : KeePassGate.Vault.VaultWrite.Failed("the revocation did not land");
+        }
+
         /// <summary>
         /// Admits a client, which is what pairing will do for real. Without this a certificate this
         /// authority issued opens nothing, which is the point of step 7.

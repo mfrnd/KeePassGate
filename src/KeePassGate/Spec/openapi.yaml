@@ -95,7 +95,8 @@ info:
     `x-kpg-verb` says what an operation does to the database: `create`, `read`, `update`, `strip`,
     `delete`, `list`, or `none` for an operation no grant governs. **Every operation declares one**,
     and one that does not stops the plugin loading, so authorization is not something a new route
-    can be added without. `none` is the status route, which reads nothing, and the two pairing
+    can be added without. `none` is the status route, which reads nothing, the revocation of a
+    client's own certificate, which touches no group or entry a rule is about, and the two pairing
     routes, which a person authorizes by reading a dialog rather than a grant. `list` is below
     `read`, because knowing that an entry exists is not knowing what is in it.
 
@@ -225,6 +226,51 @@ paths:
           description: The gate is serving this database, and it is unlocked.
         "401":
           $ref: "#/components/responses/Unpaired"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+
+  /gate/certificate:
+    # A client that revokes itself grants itself nothing by it: it could already stop using its
+    # certificate, and what this adds is that nobody else can start. §509
+    delete:
+      operationId: revokeCertificate
+      summary: Revoke the certificate this request was made with.
+      description: |
+        A client giving up its own admission, for a certificate it no longer trusts or no longer
+        needs. It takes no body, because the certificate on the connection is what is revoked and
+        there is no way to name another.
+
+        It writes what the Clients page writes, a revocation beside the record and the record
+        emptied, through the single writer every change goes through, and answers once the
+        database is saved and the file read back. From the next connection on the certificate is
+        refused with `401 unpaired`, as one the operator revoked is. It is answered in the words
+        every write is: `503 busy` covers Database Maintenance open on the database as well, whose
+        write-back would put the record back without its revocation, and nothing was written, so
+        asking again is safe. `401 unpaired` is also the answer when the operator revoked the
+        certificate in the instant between this connection and its write.
+
+        `x-kpg-verb: none`, because a rule says what a profile may do to groups and entries and
+        this is neither: a client the rules let reach nothing may still give up the admission it
+        holds.
+      x-kpg-verb: none
+      responses:
+        "200":
+          $ref: "#/components/responses/Done"
+        "401":
+          $ref: "#/components/responses/Unpaired"
+        "500":
+          description: |
+            The gate failed, and the body says how. `not saved` is a revocation that was made and
+            never reached the disk, and has been taken back out: the certificate is still admitted,
+            and asking again is safe. `not verified` is one that was saved to a file KeePass then
+            read back as something else: it is kept in the database in memory, which stays marked
+            as changed, so the certificate is already refused and asking again is answered
+            `401`, and whether the file keeps it is the operator's to settle. `internal error` is
+            one that could not be attempted at all.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
         "503":
           $ref: "#/components/responses/Unavailable"
 

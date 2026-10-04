@@ -238,7 +238,8 @@ namespace KeePassGate.Host.Tests
         {
             // KeePass empties the database before it says why, so a connection resolved a moment
             // earlier holds a target whose records are gone. Answered as no record, an admitted
-            // and unrevoked client was told `401 unpaired`, which says to pair again.
+            // and unrevoked client was told `401 unpaired`, which says to pair again, and the
+            // reference client's `revoke` deleted its identity.
             var databases = new[] { _database.Database }.ToList();
             using (var targets = new OpenDatabaseTargets(delegate { return databases; }, NullGateLog.Instance))
             {

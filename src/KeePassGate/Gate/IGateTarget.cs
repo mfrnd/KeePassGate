@@ -110,6 +110,19 @@ namespace KeePassGate.Gate
         AdmissionWrite Admit(AdmissionRecord record);
 
         /// <summary>
+        /// Revokes the client holding this admission key, at that client's own request, and makes
+        /// the revocation durable the way every change is.
+        /// </summary>
+        /// <remarks>
+        /// What the Clients page writes, a revocation beside the record and the record emptied,
+        /// marshaled and saved like <see cref="Admit"/> and answered with what happened to it:
+        /// done, busy, not saved and taken back out, saved and not verified, or failed. Nothing to
+        /// revoke is answered as missing, which is a record that went before the write could make
+        /// it.
+        /// </remarks>
+        VaultWrite Revoke(string admissionKey);
+
+        /// <summary>
         /// What the API reads and changes, or null when there is nothing to reach.
         /// </summary>
         /// <remarks>

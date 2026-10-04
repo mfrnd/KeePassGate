@@ -73,6 +73,13 @@ remove. The same mark takes a rule away in the access editor.
 open database on every request, so from the next request onwards that client is told it is not
 admitted. Nothing has to be reloaded and nothing has to be told.
 
+**A program can also revoke itself**, for a key it no longer trusts or a certificate it no longer
+needs. That writes the same revocation this page writes, and its row leaves the list on its own,
+without OK being pressed: nobody is asked, the database is saved before the program is told, and
+this dialog being open at the time changes nothing, since its OK touches only what was changed on
+it. It is refused while KeePass's Database Maintenance dialog is open, for the reason that dialog is
+left alone below, and the program can ask again once it is closed.
+
 The client keeps holding a certificate. It has simply stopped meaning anything to this database,
 which is the point of the record existing separately: a certificate proves who a program is, and a
 record is what grants it anything.

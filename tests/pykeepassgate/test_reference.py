@@ -37,6 +37,7 @@ from pykeepassgate.pairing import Pairing
 COVERED = {
     "getStatus": (GateClient, "status"),
     "headStatus": (GateClient, "head"),
+    "revokeCertificate": (GateClient, "revoke_certificate"),
     "pairHello": (Pairing, "hello"),
     "pairRequest": (Pairing, "request"),
 
@@ -165,6 +166,7 @@ def test_the_paths_this_client_sends_are_the_paths_the_document_declares(
     declared = operations(document)
 
     assert declared["getStatus"]["path"] == client_module.STATUS_PATH
+    assert declared["revokeCertificate"]["path"] == client_module.CERTIFICATE_PATH
     assert declared["pairHello"]["path"] == pairing_module.HELLO_PATH
     assert declared["pairRequest"]["path"] == pairing_module.REQUEST_PATH
 
@@ -173,6 +175,7 @@ def test_the_methods_this_client_uses_are_the_ones_declared(document: dict[str, 
     declared = operations(document)
 
     assert declared["getStatus"]["method"] == "get"
+    assert declared["revokeCertificate"]["method"] == "delete"
     assert declared["pairHello"]["method"] == "post"
     assert declared["pairRequest"]["method"] == "post"
 

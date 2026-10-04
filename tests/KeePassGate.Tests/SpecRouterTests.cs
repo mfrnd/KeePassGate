@@ -289,6 +289,7 @@ namespace KeePassGate.Tests
             {
                 { GateOperations.Status, Nothing },
                 { GateOperations.HeadStatus, Nothing },
+                { GateOperations.RevokeCertificate, Nothing },
             };
 
             var raised = Assert.Throws<InvalidOperationException>(

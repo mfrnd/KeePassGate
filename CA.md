@@ -645,6 +645,18 @@ clients is what an invitation turns into and the operator letting somebody in is
 see who is already in. It writes the way the rest of that tab writes: the row goes at once, the
 revocation lands when the dialog is accepted, and saving is what keeps it. Cancel discards it.
 
+**A client revokes itself with `DELETE /gate/certificate`**,
+[`openapi.yaml`](src/KeePassGate/Spec/openapi.yaml) §509. It takes no body and names nothing,
+because the certificate on the connection is what is revoked, so a client can give up its own
+admission and nobody else's. It writes what the clients page writes, the
+revocation and the emptied record, through the single writer every change goes through, refused
+while Database Maintenance is open on the database, and answers once the database is saved and the
+file read back. Nobody presses OK on it, so it does not wait for a dialog the way the page does, and
+a settings dialog open at the time leaves it alone, since that dialog's OK replays only the keys the
+operator changed. A client wants this for a key it no longer trusts or a certificate it no longer
+needs; it grants nothing a client did not already have, since a client that holds a certificate can
+already stop using it.
+
 Recreating the authority is the other way, and it is the blunt one: it revokes every client at once
 and each has to pair again. That is a recovery from a compromised authority, not a way to remove one
 client.

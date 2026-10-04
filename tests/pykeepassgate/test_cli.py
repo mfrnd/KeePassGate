@@ -461,6 +461,74 @@ def test_pairing_from_the_command_line_passes_on_what_it_was_given(
     assert not api.default_directory().exists(), "nothing was kept under the default profile"
 
 
+def test_revoking_gives_up_the_admission_and_removes_what_was_stored(
+    tmp_path: Path, gate: FakeGate, bundle: dict[str, Any], capsys: pytest.CaptureFixture[str]
+) -> None:
+    # Removed because nothing can use it any more: a private key kept for a certificate the gate
+    # refuses protects nothing. Pairing again stores a new one in the same place.
+    gate.handler = lambda path, body, client: (200, json.dumps({"ok": True}))
+    where = tmp_path / "kept"
+    credentials_module.save(where, gate.port, bundle)
+
+    code = cli.main(["revoke", "--directory", str(where)])
+
+    printed = capsys.readouterr().out
+    assert code == 0
+    assert gate.requests == [("DELETE", "/gate/certificate")]
+    assert "revoked CN=agent-invented" in printed
+    assert not where.exists()
+
+
+@pytest.mark.parametrize("error", ["not saved", "not verified"])
+def test_a_revocation_the_gate_did_not_confirm_keeps_what_was_stored(
+    tmp_path: Path, gate: FakeGate, bundle: dict[str, Any], error: str,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    # `not saved` leaves the client admitted, so the files are still its identity. `not verified`
+    # is a revocation the operator may yet lose, and the next `status` says which it was.
+    gate.handler = lambda path, body, client: (500, json.dumps({"error": error}))
+    where = tmp_path / "kept"
+    credentials_module.save(where, gate.port, bundle)
+
+    code = cli.main(["revoke", "--directory", str(where)])
+
+    assert code == cli.FAILED
+    assert error in capsys.readouterr().err
+    assert api.load(where).subject == "CN=agent-invented"
+
+
+@pytest.mark.parametrize(
+    ("expires", "asked"),
+    [
+        ("2126-08-15T09:00:00Z", [("DELETE", "/gate/certificate")]),
+        ("2001-02-03T04:05:06Z", []),
+    ],
+)
+def test_a_certificate_the_gate_already_refuses_counts_as_revoked(
+    tmp_path: Path,
+    gate: FakeGate,
+    bundle: dict[str, Any],
+    capsys: pytest.CaptureFixture[str],
+    expires: str,
+    asked: list[tuple[str, str]],
+) -> None:
+    # Revoked on the Clients page, left refused by an earlier `not verified`, or expired, which is
+    # not dialed at all: what was asked for has happened, and a key kept for a certificate the gate
+    # refuses protects nothing, so it goes as it would after a `200`.
+    gate.handler = lambda path, body, client: (401, json.dumps({"error": "unpaired"}))
+    where = tmp_path / "kept"
+    credentials_module.save(where, gate.port, {**bundle, "expires": expires})
+
+    code = cli.main(["revoke", "--directory", str(where)])
+
+    printed = capsys.readouterr().out
+    assert code == 0
+    assert gate.requests == asked
+    assert "the gate already refuses CN=agent-invented" in printed
+    assert f"removed what was stored in {where}" in printed
+    assert not where.exists()
+
+
 def test_pairing_asks_for_the_lifetime_it_was_given(monkeypatch: pytest.MonkeyPatch) -> None:
     # Days on the command line, a `timedelta` in the library, and nothing at all when nothing was
     # said, which the dialog answers by offering a year.

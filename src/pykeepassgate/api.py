@@ -17,7 +17,7 @@ from datetime import timedelta
 from pathlib import Path
 
 from .client import ROOT, GateClient, Status
-from .credentials import Credentials, Prepared, default_directory, load, prepare, save
+from .credentials import Credentials, Prepared, default_directory, forget, load, prepare, save
 from .errors import (
     AuthorityUndecided,
     DatabaseLocked,
@@ -94,6 +94,7 @@ __all__ = [
     "TransportError",
     "Withheld",
     "default_directory",
+    "forget",
     "load",
     "pair",
     "prepare",

@@ -122,6 +122,21 @@ def _parser() -> argparse.ArgumentParser:
     _dialed(status)
     status.set_defaults(run=_status)
 
+    revoke = commands.add_parser(
+        "revoke",
+        help="give up this client's admission, and remove what pairing stored for it",
+        description=(
+            "Revokes the certificate this client presents, so the database refuses it from the "
+            "next connection on, then removes the identity stored for it, which nothing can use "
+            "any more. A certificate the gate already refuses, revoked or expired, counts as "
+            "revoked, and its files are removed as well. Pairing again is the way back."
+        ),
+    )
+
+    _shared(revoke)
+    _dialed(revoke)
+    revoke.set_defaults(run=_revoke)
+
     who = commands.add_parser("whoami", help="say what this client is, without connecting")
     _shared(who)
     who.set_defaults(run=_whoami)
@@ -582,6 +597,30 @@ def _status(arguments: argparse.Namespace) -> int:
     status = client.status()
     print(f"gate {status.version} serving database {status.database}")
     return 0 if status.ok else FAILED
+
+
+def _revoke(arguments: argparse.Namespace) -> int:
+    # Removed once the gate has said the revocation is saved and read back, or once it refuses the
+    # certificate already, which is what revoking it was for: revoked on the Clients page, left
+    # refused by an earlier `not verified`, or expired, and an expired one is not dialed at all.
+    # Nothing can use what is stored for a certificate the gate refuses, and the gate itself calls
+    # its `401 unpaired` here what was asked for having happened either way. Any other refusal
+    # leaves the files where they are: `not saved` leaves the client admitted, so they are still
+    # its identity.
+    where = arguments.directory or api.default_directory(arguments.profile)
+    client = api.GateClient.open(where, arguments.profile, arguments.host, **_dialing(arguments))
+    named = f"{client.credentials.subject} with database {client.credentials.database}"
+    try:
+        client.revoke_certificate()
+    except api.NotAdmitted:
+        api.forget(where)
+        print(f"the gate already refuses {named}, so there was nothing left to revoke")
+    else:
+        api.forget(where)
+        print(f"revoked {named}")
+
+    print(f"removed what was stored in {where}")
+    return 0
 
 
 def _whoami(arguments: argparse.Namespace) -> int:

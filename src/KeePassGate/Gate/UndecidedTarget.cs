@@ -122,6 +122,12 @@ namespace KeePassGate.Gate
             return AdmissionWrite.Busy(Reason);
         }
 
+        /// <summary>Busy, for the same reason: the operator choosing is all it takes.</summary>
+        public KeePassGate.Vault.VaultWrite Revoke(string admissionKey)
+        {
+            return KeePassGate.Vault.VaultWrite.Busy(Reason);
+        }
+
         public Vault.IVault Vault
         {
             get { return null; }

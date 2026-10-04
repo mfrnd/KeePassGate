@@ -66,6 +66,64 @@ def test_a_build_carrying_no_commit_is_read_as_an_empty_revision(
     assert paired.status().revision == ""
 
 
+def test_a_client_revokes_itself_with_a_request_that_names_nothing(
+    gate: FakeGate, paired: GateClient
+) -> None:
+    # No body: the certificate on the connection is what is revoked, so there is nothing to name
+    # and no way to name somebody else.
+    bodies: list[str] = []
+
+    def answer(path: str, body: str, client: bytes | None) -> tuple[int, str]:
+        bodies.append(body)
+        return 200, json.dumps({"ok": True})
+
+    gate.handler = answer
+
+    paired.revoke_certificate()
+
+    assert gate.requests == [("DELETE", "/gate/certificate")]
+    assert bodies == [""]
+
+
+@pytest.mark.parametrize(
+    ("status", "error", "raised"),
+    [
+        (401, "unpaired", NotAdmitted),
+        (500, "not saved", RouteRefused),
+        (500, "not verified", RouteRefused),
+        (500, "internal error", RouteRefused),
+        (503, "busy", GateBusy),
+    ],
+)
+def test_a_revocation_that_did_not_happen_says_what_was_left_behind(
+    gate: FakeGate, paired: GateClient, status: int, error: str, raised: type[Exception]
+) -> None:
+    # The word is what tells `not saved`, which kept nothing and may be asked again, from `not
+    # verified`, which is already refusing this certificate in KeePass's memory.
+    gate.handler = lambda path, body, client: (status, json.dumps({"error": error}))
+
+    with pytest.raises(raised) as caught:
+        paired.revoke_certificate()
+
+    if isinstance(caught.value, RouteRefused):
+        assert (caught.value.status, caught.value.error) == (status, error)
+
+
+def test_a_busy_gate_is_waited_out_before_a_revocation_is_given_up(
+    gate: FakeGate, tmp_path: Path, bundle: dict[str, Any]
+) -> None:
+    # A `503` is answered before anything is written, so asking again cannot revoke twice.
+    answers = [(503, json.dumps({"error": "busy"})), (200, json.dumps({"ok": True}))]
+    gate.retry_after = "0"
+    gate.handler = lambda path, body, client: answers.pop(0)
+    stored = credentials_module.save(tmp_path / "kept", gate.port, bundle)
+    client = GateClient(stored, connection_timeout=10.0, retry_busy_timeout=5.0)
+
+    client.revoke_certificate()
+
+    assert gate.requests == [("DELETE", "/gate/certificate")] * 2
+
+
 def test_every_request_is_named_from_the_gate_key(gate: FakeGate, paired: GateClient) -> None:
     gate.handler = lambda path, body, client: (200, "{}")
 

@@ -29,6 +29,8 @@ from .model import EXPIRES, Attachment, Entry, Field, Group, made
 
 STATUS_PATH = "/gate/status"
 
+CERTIFICATE_PATH = "/gate/certificate"
+
 ROOT = "root"
 """What every group identifier may say instead of a UUID."""
 
@@ -171,8 +173,8 @@ class GateClient:
     def status(self) -> Status:
         """The route that proves a connection and nothing else.
 
-        It reads nothing out of the database on purpose, which is why it is one of the three
-        routes declaring `x-kpg-verb: none`, the other two being the pairing ones: no grant
+        It reads nothing out of the database on purpose, which is why it is one of the routes
+        declaring `x-kpg-verb: none`, beside the pairing ones and `revoke_certificate`: no grant
         could allow or refuse it, because it reaches nothing a grant is about. It exists to
         prove a connection rather than to be useful.
 
@@ -191,6 +193,27 @@ class GateClient:
             raise ProtocolError("the gate answered its status in a form this client cannot read")
 
         return Status(ok=ok, database=database, version=version, revision=revision)
+
+    def revoke_certificate(self) -> None:
+        """Give up this client's admission, by the certificate it presents.
+
+        `DELETE /gate/certificate` takes no body and names nothing, because the certificate on
+        the connection is what is revoked: a client can revoke itself and nobody else. The gate
+        writes what its Clients page writes, saves, and reads the file back before it answers,
+        and from the next connection on every call here raises `NotAdmitted`.
+
+        **A failure says what it left behind, in the gate's word on the `RouteRefused`.** `not
+        saved` kept nothing, so the client is still admitted and asking again is safe. `not
+        verified` is a revocation KeePass holds in memory and may not have in the file: the
+        certificate is already refused, so asking again raises `NotAdmitted`, and whether the
+        file keeps it is the operator's to settle. A `503` is answered before anything is
+        written, so it is waited out as on every route.
+
+        What is stored for this client is left as it is, since files are the caller's business:
+        `forget` is the call that takes them away, and the command line's `revoke` makes it once
+        this has returned.
+        """
+        self.send("DELETE", CERTIFICATE_PATH)
 
     # Groups
 

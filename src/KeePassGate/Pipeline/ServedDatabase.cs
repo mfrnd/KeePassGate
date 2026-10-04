@@ -22,20 +22,41 @@ namespace KeePassGate.Pipeline
         public const string Key = "kpg.database";
 
         private readonly IVault _vault;
+        private readonly IGateTarget _target;
 
         public ServedDatabase(IVault vault)
+            : this(vault, null)
         {
-            if (vault == null)
+        }
+
+        /// <param name="vault">
+        /// What the API's routes read and change, or null where the database is served without one,
+        /// which a test about the transport is.
+        /// </param>
+        /// <param name="target">
+        /// The database as the transport serves it, which is what holds its admission records and
+        /// writes them. Null where a test is about the vault alone. One of the two is required.
+        /// </param>
+        public ServedDatabase(IVault vault, IGateTarget target)
+        {
+            if (vault == null && target == null)
             {
                 throw new ArgumentNullException(nameof(vault));
             }
 
             _vault = vault;
+            _target = target;
         }
 
         public IVault Vault
         {
             get { return _vault; }
+        }
+
+        /// <summary>The database's records, for a route about the caller's own admission.</summary>
+        public IGateTarget Target
+        {
+            get { return _target; }
         }
 
         public void PutOn(IGateContext context)
@@ -71,6 +92,24 @@ namespace KeePassGate.Pipeline
 
             var served = found as ServedDatabase;
             return served == null ? null : served.Vault;
+        }
+
+        /// <summary>The database's records for this request, or null when there are none.</summary>
+        public static IGateTarget TargetOf(IGateContext context)
+        {
+            if (context == null)
+            {
+                return null;
+            }
+
+            object found;
+            if (!context.Items.TryGetValue(Key, out found))
+            {
+                return null;
+            }
+
+            var served = found as ServedDatabase;
+            return served == null ? null : served.Target;
         }
 
         /// <summary>

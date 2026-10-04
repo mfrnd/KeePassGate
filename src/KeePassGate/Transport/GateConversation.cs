@@ -119,9 +119,11 @@ namespace KeePassGate.Transport
         /// The same, for a connection that reached a database the API can read and change.
         /// </summary>
         /// <remarks>
-        /// The vault travels in the context's items beside the pairing connection, for the same
+        /// The database travels in the context's items beside the pairing connection, for the same
         /// reason: the transport knows which database a name resolved to and the handlers need it,
-        /// and neither has to learn anything about the other.
+        /// and neither has to learn anything about the other. Its vault is what the API's routes
+        /// read and change, and the target itself is what holds its admission records, which is
+        /// what a route about a client's own admission writes.
         /// </remarks>
         /// <param name="arrived">
         /// Told that the whole request is off the wire, which is the instant the peer stops having
@@ -137,7 +139,7 @@ namespace KeePassGate.Transport
             IGateLog log,
             PairingConnection pairing,
             GateIncidents incidents,
-            Vault.IVault vault,
+            Gate.IGateTarget target,
             Action arrived = null)
         {
             if (stream == null)
@@ -215,9 +217,9 @@ namespace KeePassGate.Transport
                 pairing.PutOn(context);
             }
 
-            if (vault != null)
+            if (target != null)
             {
-                new ServedDatabase(vault).PutOn(context);
+                new ServedDatabase(target.Vault, target).PutOn(context);
             }
 
             try

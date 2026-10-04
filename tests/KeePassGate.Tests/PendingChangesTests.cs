@@ -173,6 +173,48 @@ namespace KeePassGate.Tests
                 "the name the pairing wrote is still there, and so is the one the operator typed");
         }
 
+        [TestCase(false)]
+        [TestCase(true)]
+        public void A_revocation_a_client_made_of_itself_survives_the_dialogs_OK(bool revokedOnThePageToo)
+        {
+            // `DELETE /gate/certificate` lands on the live database at a moment nobody controls,
+            // which may be while the operator has the settings dialog open and is revoking somebody
+            // else on its Clients page. OK replays only the keys the operator changed, so the
+            // client's own revocation and its emptied record stay as the writer left them. The
+            // second case is the operator pressing X on the same row in the same minute: the two
+            // write the same values, and neither undoes the other.
+            using (var authority = TestAuthority.New())
+            using (var leaving = authority.IssueClient("agent-fictitious", "ops"))
+            using (var other = authority.IssueClient("agent-invented", "ops"))
+            {
+                var live = new InMemoryKeyValueStore();
+                var store = new AdmissionStore(live, null);
+                store.Write(AdmissionRecord.For(leaving, System.DateTimeOffset.UtcNow, new[] { "ops" }));
+                store.Write(AdmissionRecord.For(other, System.DateTimeOffset.UtcNow, new[] { "ops" }));
+
+                var pending = new PendingDatabase(new FakeGateDatabase(live), null);
+                var page = new AdmissionStore(pending.PluginCustomData, null);
+                Assume.That(page.Remove(CertificateDigest.Of(other)), Is.True);
+                if (revokedOnThePageToo)
+                {
+                    Assume.That(page.Remove(CertificateDigest.Of(leaving)), Is.True);
+                }
+
+                // The client's own revocation, written live by the writer while the dialog is open.
+                var key = CertificateDigest.Of(leaving);
+                Assume.That(store.Remove(key), Is.True);
+
+                pending.Apply();
+
+                Assert.That(live.Get(AuthorityKeys.ClientRecordKey(key)), Is.Empty, "the record stays emptied");
+                Assert.That(live.Get(AuthorityKeys.RevocationKey(key)), Is.Not.Null.And.Not.Empty,
+                    "and the revocation beside it stays");
+                Assert.That(store.Find(key), Is.Null, "so the client stays refused");
+                Assert.That(store.Find(CertificateDigest.Of(other)), Is.Null,
+                    "and what the operator did on the page landed as well");
+            }
+        }
+
         [Test]
         public void A_profile_the_operator_removed_still_goes_when_a_pairing_writes_that_key()
         {

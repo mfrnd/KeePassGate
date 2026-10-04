@@ -57,9 +57,9 @@ class NotPaired(StorageError):
     """Nothing is stored for a paired client where this looked.
 
     The one state of the four files that is not damage: this client has not paired there yet, or
-    was told to look in the wrong place. A `StorageError` and nothing else, not a
-    `FileNotFoundError` as well, so `except GateError` catches it with everything else this
-    client raises and nothing outside this hierarchy is ever needed to catch it.
+    gave its identity up, or was told to look in the wrong place. A `StorageError` and nothing
+    else, not a `FileNotFoundError` as well, so `except GateError` catches it with everything
+    else this client raises and nothing outside this hierarchy is ever needed to catch it.
     """
 
 

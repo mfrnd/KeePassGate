@@ -892,7 +892,7 @@ namespace KeePassGate.Transport
 
                 GateConversation.Serve(
                     protocol.Stream, client, _handler, _options, _log,
-                    Pairing(resolution, peek, target, peer), _incidents, target.Vault, arrived);
+                    Pairing(resolution, peek, target, peer), _incidents, target, arrived);
             }
             finally
             {
