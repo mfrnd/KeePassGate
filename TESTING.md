@@ -32,6 +32,10 @@ about that tab is checked. It is excluded from `Live` because it writes into the
 and it is ignored entirely unless the build task asks for it. [`docs/`](docs/README.md) is what
 it feeds.
 
+**No tier runs `build.ps1 -Task Package`**, since it packages only a clean commit. It checks its own
+output instead, every time it runs: the zip is read back against the files it was made from and
+`SHA256SUMS` against what `sha256sum -c` reads.
+
 ## Why the unit tier does not reference KeePass
 
 Everything above the KeePass boundary is written against small interfaces: `IWindowEventSource`

@@ -5,9 +5,10 @@
 
 KeePassGate redistributes the components below, and what each license asks of that is one thing:
 that its copyright notice and its permission notice go with every copy. Each is reproduced here in
-full, as the component publishes it. Nothing packages a release yet, so this file is where they are
-kept, and whatever packages one has to carry it beside the assemblies. This obligation is
-independent of KeePassGate's own license and would exist whatever that license were.
+full, as the component publishes it. `build.ps1 -Task Package` zips this file beside the assemblies
+in the package a release publishes, and `build.ps1 -Task Deploy` copies it beside them into
+KeePass. This obligation is independent of KeePassGate's own license and would exist whatever that
+license were.
 
 **The HTTP half of the transport is not among them.** The accept loop, the ClientHello peek and the
 request parser are this project's own code. **The TLS half is Bouncy Castle**, and the reason is
@@ -164,10 +165,11 @@ not taking it. The branch carries its own `THIRD-PARTY-NOTICES.md` for what it r
 ## What is actually redistributed
 
 Five assemblies, and all of them are MIT: `BouncyCastle.Cryptography`, `Microsoft.OpenApi`,
-`Microsoft.OpenApi.Readers`, `SharpYaml` and `Newtonsoft.Json`. `build.ps1 -Task Deploy` copies every
-DLL from the build output, so what ships is exactly that list, and puts this file beside them. It
-takes the file from the repository, since the build output holds no copy of it, which is why the
-head of this file puts carrying it on whatever packages a release as well.
+`Microsoft.OpenApi.Readers`, `SharpYaml` and `Newtonsoft.Json`. `build.ps1 -Task Deploy` and
+`build.ps1 -Task Package` both ship every DLL from the build output, so what ships is exactly that
+list, and both put this file beside them, taking it from the repository, since the build output
+holds no copy of it.
 
 This file is maintained by hand and is to be re-checked against the resolved package set as each
-step lands.
+step lands. The package holds it to that: `build.ps1 -Task Package` refuses a DLL beside the plugin
+that the list above does not name.

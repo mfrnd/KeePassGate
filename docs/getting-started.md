@@ -31,6 +31,14 @@ Installed in its own directory, each plugin finds its own.
 When building from source, `.\build.ps1 -Task Deploy` copies the whole set into
 `plugins\KeePassGate`, with `THIRD-PARTY-NOTICES.md` beside it, which holds the licenses of the DLLs
 this project did not write. `.\run-debug.ps1` deploys and starts the KeePass this repository pins.
+From a clone of the repository with no change left uncommitted, `.\build.ps1 -Task Package` puts
+the same set and the license into one zip under `dist`, with a `SHA256SUMS` beside it to check every
+file against; extracted into `plugins`, the zip makes `plugins\KeePassGate`. A source download has
+no `.git`, and the package refuses it, because the build maps every source path to `/_/` from the
+repository's own record and without one the plugin would name the directory it was built in. The
+sums name each file under `KeePassGate/` and the zip by its own name, so they are checked where the
+zip lies: extract it there, beside `SHA256SUMS`, run `sha256sum -c SHA256SUMS` in that directory,
+and only then copy the folder into `plugins`.
 
 To check that it loaded, open **Tools**, **KeePassGate (KPG)**.
 

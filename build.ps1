@@ -18,6 +18,7 @@
       All      Test then Live
       Screenshots  retake the pictures in docs/images by driving a throwaway KeePass
       Deploy   copy the plugin into the KeePass used for development
+      Package  build the plugin as Release and zip it, with a SHA256SUMS, into dist
       Run      deploy, then start that KeePass with the plugin in it
       Clean    remove build output
 
@@ -43,7 +44,7 @@
 
 [CmdletBinding()]
 param(
-    [ValidateSet('KeePass', 'Build', 'Lint', 'Client', 'Unit', 'Host', 'Coverage', 'Test', 'Live', 'All', 'Screenshots', 'Deploy', 'Run', 'Clean')]
+    [ValidateSet('KeePass', 'Build', 'Lint', 'Client', 'Unit', 'Host', 'Coverage', 'Test', 'Live', 'All', 'Screenshots', 'Deploy', 'Package', 'Run', 'Clean')]
     [string] $Task = 'Test',
 
     [ValidateSet('Debug', 'Release')]
@@ -69,7 +70,7 @@ Set-StrictMode -Version Latest
 # Which tasks are not checks: a prerequisite, the two that only compose others, and the ones that
 # change something rather than judging it. Everything else is a check, which is the way round that
 # fails closed, because a task added and forgotten about is then checked rather than skipped.
-$notGates = @('KeePass', 'Test', 'All', 'Screenshots', 'Deploy', 'Run', 'Clean')
+$notGates = @('KeePass', 'Test', 'All', 'Screenshots', 'Deploy', 'Package', 'Run', 'Clean')
 
 # **A PowerShell 7 on the machine can leave this one unable to find its own cmdlets.** `pwsh` puts
 # its module directories at the front of `PSModulePath` and a Windows PowerShell started from it
@@ -766,6 +767,28 @@ function Invoke-Screenshots {
     Write-Host "Images are in $images" -ForegroundColor Green
 }
 
+# **What goes beside the plugin wherever it is put**, one list for the two tasks that put it
+# somewhere, so that what `Invoke-Package` zips is what `Invoke-Deploy` copies by construction
+# rather than by two lists kept alike by eye.
+#
+# Everything the plugin needs, not only the plugin. KeePass loads a plugin with
+# Assembly.LoadFrom, which probes the plugin's own directory for what it references, so a
+# dependency belongs beside it rather than beside KeePass.exe, and in a directory no other plugin
+# shares. Then its symbols, and the notices of the assemblies, which each of their licenses asks to
+# go with every copy: from the repository, since the build makes no such file.
+function Get-ShippedFiles {
+    param([string] $Output)
+
+    $files = @(Get-ChildItem $Output -Filter '*.dll' -File)
+    $symbols = Join-Path $Output 'KeePassGate.pdb'
+    if (Test-Path $symbols) {
+        $files += Get-Item $symbols
+    }
+
+    $files += Get-Item (Join-Path $root 'THIRD-PARTY-NOTICES.md')
+    return $files
+}
+
 function Invoke-Deploy {
     $keePass = Resolve-KeePass
 
@@ -856,34 +879,512 @@ function Invoke-Deploy {
         }
     }
 
-    # Everything the plugin needs, not only the plugin. KeePass loads a plugin with
-    # Assembly.LoadFrom, which probes the plugin's own directory for what it references, so a
-    # dependency belongs beside it rather than beside KeePass.exe, and in a directory no other
-    # plugin shares.
+    # Recorded like everything else here, so the next deploy takes each file away before writing it
+    # again.
     $deployed = @()
-    Get-ChildItem $output -Filter '*.dll' | ForEach-Object {
-        Copy-Item $_.FullName $target -Force -ErrorAction Stop
-        $deployed += $_.Name
-        Write-Host "  $($_.Name)"
+    foreach ($file in Get-ShippedFiles $output) {
+        Copy-Item $file.FullName $target -Force -ErrorAction Stop
+        $deployed += $file.Name
+        Write-Host "  $($file.Name)"
     }
-
-    $symbols = [System.IO.Path]::ChangeExtension($pluginDll, '.pdb')
-    if (Test-Path $symbols) {
-        Copy-Item $symbols $target -Force
-        $deployed += Split-Path $symbols -Leaf
-    }
-
-    # And the notices of the assemblies copied above, which each of their licenses asks to go with
-    # every copy. From the repository, since the build makes no such file, and recorded like
-    # everything else here, so the next deploy takes it away before writing it again.
-    $notices = Join-Path $root 'THIRD-PARTY-NOTICES.md'
-    Copy-Item $notices $target -Force -ErrorAction Stop
-    $deployed += Split-Path $notices -Leaf
-    Write-Host "  $(Split-Path $notices -Leaf)"
 
     Set-Content -Path $manifest -Value $deployed
 
     Write-Host "Deployed to $target" -ForegroundColor Green
+}
+
+# **The source file names a portable PDB carries**, read the way `System.Reflection.Metadata` reads
+# them, which Windows PowerShell does not have: ECMA-335's metadata root and stream headers, then
+# the `Document` table, which is the first table a portable PDB holds since the type system tables
+# live in the assembly. Each name is a blob holding a separator and a list of blob indices, one per
+# segment, which is why no byte search finds a whole path in one. What this cannot read it refuses,
+# because a file of symbols nobody could look inside is not one to publish.
+function Get-PdbDocuments {
+    param([string] $Path)
+
+    $bytes = [System.IO.File]::ReadAllBytes($Path)
+    $reader = New-Object System.IO.BinaryReader (New-Object System.IO.MemoryStream (, $bytes))
+
+    if ($bytes.Length -lt 16 -or $reader.ReadUInt32() -ne 0x424A5342) {
+        throw "$Path is not a portable PDB, so nothing can say which source paths it names."
+    }
+
+    # Signature, major and minor version and a reserved word, then the version string's length.
+    $reader.BaseStream.Position = 12
+    $versionLength = $reader.ReadUInt32()
+    $reader.BaseStream.Position = 16 + $versionLength + 2
+    $streamCount = $reader.ReadUInt16()
+
+    $streams = @{}
+    for ($i = 0; $i -lt $streamCount; $i++) {
+        $offset = $reader.ReadUInt32()
+        $size = $reader.ReadUInt32()
+        $streamName = ''
+        while ($true) {
+            $character = $reader.ReadByte()
+            if ($character -eq 0) { break }
+            $streamName += [char] $character
+        }
+
+        # A stream's name is padded to a multiple of four bytes, terminator included.
+        $reader.BaseStream.Position = ($reader.BaseStream.Position + 3) -band (-bnot 3)
+        $streams[$streamName] = $offset
+    }
+
+    foreach ($wanted in '#~', '#Blob') {
+        if (-not $streams.ContainsKey($wanted)) {
+            throw "$Path has no $wanted stream, so nothing can say which source paths it names."
+        }
+    }
+
+    $tables = $streams['#~']
+    $blobs = $streams['#Blob']
+
+    $reader.BaseStream.Position = $tables + 6
+    $heapSizes = $reader.ReadByte()
+    $reader.BaseStream.Position = $tables + 8
+    $present = $reader.ReadUInt64()
+
+    $documentBit = [uint64] 1 -shl 0x30
+    if (($present -band $documentBit) -eq 0 -or ($present -band ($documentBit - 1)) -ne 0) {
+        throw "$Path does not begin its tables with its documents, so nothing can say which source paths it names."
+    }
+
+    # One row count for each table present, in the order of their numbers, and the rows after.
+    $reader.BaseStream.Position = $tables + 24
+    $rowCounts = @()
+    for ($bit = 0; $bit -lt 64; $bit++) {
+        if ($present -band ([uint64] 1 -shl $bit)) {
+            $rowCounts += $reader.ReadUInt32()
+        }
+    }
+
+    $wideGuid = ($heapSizes -band 2) -ne 0
+    $wideBlob = ($heapSizes -band 4) -ne 0
+
+    function Read-Compressed([System.IO.BinaryReader] $From) {
+        $first = [int] $From.ReadByte()
+        if (($first -band 0x80) -eq 0) { return $first }
+        if (($first -band 0xC0) -eq 0x80) { return (($first -band 0x3F) -shl 8) -bor $From.ReadByte() }
+        $value = ($first -band 0x1F) -shl 24
+        $value = $value -bor ([int] $From.ReadByte() -shl 16)
+        $value = $value -bor ([int] $From.ReadByte() -shl 8)
+        return $value -bor $From.ReadByte()
+    }
+
+    function Read-Blob([int] $Index) {
+        $reader.BaseStream.Position = $blobs + $Index
+        $length = Read-Compressed $reader
+        return , $reader.ReadBytes($length)
+    }
+
+    # A row is the name and the hash, both blob indices, and the hash algorithm and the language,
+    # both GUID indices, each two bytes wide or four as the heap sizes say.
+    $rowStart = $reader.BaseStream.Position
+    $rowSize = 2 * $(if ($wideBlob) { 4 } else { 2 }) + 2 * $(if ($wideGuid) { 4 } else { 2 })
+    $documents = @()
+    for ($row = 0; $row -lt $rowCounts[0]; $row++) {
+        $reader.BaseStream.Position = $rowStart + $row * $rowSize
+        $nameIndex = $(if ($wideBlob) { $reader.ReadUInt32() } else { $reader.ReadUInt16() })
+        $blob = Read-Blob $nameIndex
+        if ($blob.Length -lt 1 -or $blob[0] -ge 0x80) {
+            throw "$Path names a document in a form this cannot read, so nothing can say which source paths it names."
+        }
+
+        $separator = ''
+        if ($blob[0] -ne 0) {
+            $separator = [string] [char] $blob[0]
+        }
+
+        $segments = New-Object System.IO.BinaryReader (New-Object System.IO.MemoryStream (, $blob))
+        $segments.BaseStream.Position = 1
+        $parts = @()
+        while ($segments.BaseStream.Position -lt $blob.Length) {
+            $parts += [System.Text.Encoding]::UTF8.GetString((Read-Blob (Read-Compressed $segments)))
+        }
+
+        $documents += ($parts -join $separator)
+    }
+
+    return $documents
+}
+
+# **The package read back the way whoever downloads it reads it**, every time one is made, because
+# nothing else ever runs this task before a release does. The zip is opened again and has to hold
+# exactly the files it was made from, under `KeePassGate/`, each with the bytes of its source rather
+# than of the copy that was staged. `SHA256SUMS` has to be what `sha256sum -c` reads, lower case hex,
+# two spaces, forward slashes and a line feed after each line, naming every entry and the zip once
+# each, and every digest in it has to be the one computed here from what the zip holds.
+function Assert-Package {
+    param([string] $Dist, [string] $ZipName, [System.IO.FileInfo[]] $Sources)
+
+    $sha = [System.Security.Cryptography.SHA256]::Create()
+    function Digest([System.IO.Stream] $Stream) {
+        return ([System.BitConverter]::ToString($sha.ComputeHash($Stream)) -replace '-', '').ToLowerInvariant()
+    }
+
+    $zipPath = Join-Path $Dist $ZipName
+    $wanted = New-Object System.Collections.Hashtable ([StringComparer]::Ordinal)
+    foreach ($source in $Sources) {
+        $stream = [System.IO.File]::OpenRead($source.FullName)
+        try {
+            $wanted["KeePassGate/$($source.Name)"] = Digest $stream
+        }
+        finally {
+            $stream.Dispose()
+        }
+    }
+
+    $held = New-Object System.Collections.Hashtable ([StringComparer]::Ordinal)
+    $zip = [System.IO.Compression.ZipFile]::OpenRead($zipPath)
+    try {
+        foreach ($entry in $zip.Entries) {
+            if ($held.ContainsKey($entry.FullName)) {
+                throw "$ZipName holds $($entry.FullName) twice."
+            }
+
+            $stream = $entry.Open()
+            try {
+                $held[$entry.FullName] = Digest $stream
+            }
+            finally {
+                $stream.Dispose()
+            }
+        }
+    }
+    finally {
+        $zip.Dispose()
+    }
+
+    foreach ($path in $wanted.Keys) {
+        if (-not $held.ContainsKey($path)) {
+            throw "$ZipName is missing $path, which it was made from."
+        }
+
+        if ($held[$path] -cne $wanted[$path]) {
+            throw "$ZipName holds $path with bytes that differ from the file it was made from."
+        }
+    }
+
+    foreach ($path in $held.Keys) {
+        if (-not $wanted.ContainsKey($path)) {
+            throw "$ZipName holds $path, which nothing put there."
+        }
+    }
+
+    $stream = [System.IO.File]::OpenRead($zipPath)
+    try {
+        $held[$ZipName] = Digest $stream
+    }
+    finally {
+        $stream.Dispose()
+    }
+
+    $text = [System.IO.File]::ReadAllText((Join-Path $Dist 'SHA256SUMS'))
+    if ($text.Contains("`r") -or -not $text.EndsWith("`n")) {
+        throw 'SHA256SUMS does not end each line with a line feed alone, which is what sha256sum -c reads.'
+    }
+
+    $listed = New-Object System.Collections.Hashtable ([StringComparer]::Ordinal)
+    foreach ($line in $text.TrimEnd("`n").Split("`n")) {
+        $match = [regex]::Match($line, '^([0-9a-f]{64})  ([^\\]+)$')
+        if (-not $match.Success) {
+            throw "SHA256SUMS has the line '$line', which is not lower case hex, two spaces and a path with forward slashes."
+        }
+
+        $path = $match.Groups[2].Value
+        if ($listed.ContainsKey($path)) {
+            throw "SHA256SUMS names $path twice."
+        }
+
+        if (-not $held.ContainsKey($path)) {
+            throw "SHA256SUMS names $path, which is neither the zip nor in it."
+        }
+
+        if ($match.Groups[1].Value -cne $held[$path]) {
+            throw "SHA256SUMS gives $path a digest that is not the one it has."
+        }
+
+        $listed[$path] = $true
+    }
+
+    foreach ($path in $held.Keys) {
+        if (-not $listed.ContainsKey($path)) {
+            throw "SHA256SUMS does not name $path."
+        }
+    }
+
+    $sha.Dispose()
+}
+
+# **What a release would publish, with nothing published.** The plugin built as Release and what
+# `Get-ShippedFiles` puts beside it, which is the set `Invoke-Deploy` copies: every assembly it
+# loads, its symbols and the notices those assemblies' licenses ask to travel with every copy. And
+# this project's own license, which only a package carries. Zipped under the version into `dist\`,
+# which is ignored, beside a `SHA256SUMS` covering every file in the zip and the zip itself, written
+# the way `sha256sum -c` reads it so that the zip extracted where it lies can be checked file by
+# file.
+#
+# **Not a gate.** It judges nothing a check does not already judge, and every run of the gate
+# rebuilding and zipping the plugin would only make it slower.
+function Invoke-Package {
+    $keePass = Resolve-KeePass
+    $output = Join-Path $root 'src\KeePassGate\bin\Release\net48'
+    $dist = Join-Path $root 'dist'
+    $staging = Join-Path $root '.tmp\package'
+
+    # All three emptied first. The output for the reason `Invoke-Deploy` empties it, since what is
+    # collected below is a directory rather than a list; `dist` because a `SHA256SUMS` beside a zip
+    # it does not describe is worse than none.
+    foreach ($path in $output, $dist, $staging) {
+        if (Test-Path $path) {
+            Remove-Item $path -Recurse -Force
+        }
+    }
+
+    # **Built the way a build machine builds**, which is what `ContinuousIntegrationBuild` says.
+    # Without it the compiler writes the full path of the symbols into the plugin, which is wherever
+    # the checkout is and on most machines begins with the account that built it; with it every
+    # path is `/_/` and what follows inside the repository. Release whatever `-Configuration` says,
+    # because a package is the build that ships, and a rebuild rather than an incremental one,
+    # because the switch changes what is compiled without touching anything an incremental build
+    # compares.
+    #
+    # **The switch alone maps nothing.** The SDK builds the mapping from the source roots its git
+    # support reads out of the repository, so a tree with no `.git`, a source download or a
+    # `git archive`, is compiled with every full path in it, and the check below refuses the result
+    # by blaming the directory. Asked first, so that the refusal names what is missing: a clone of
+    # this repository with this script at its top.
+    # cspell:ignore toplevel
+    $before = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        $top = $null
+        if (Get-Command git -ErrorAction SilentlyContinue) {
+            $top = & git -C $root rev-parse --show-toplevel 2>$null
+        }
+    }
+    finally {
+        $ErrorActionPreference = $before
+    }
+
+    if (-not $top -or $LASTEXITCODE -ne 0 -or
+        -not [string]::Equals(
+            [System.IO.Path]::GetFullPath(([string] $top).Trim()).TrimEnd('\', '/'),
+            [System.IO.Path]::GetFullPath($root).TrimEnd('\', '/'),
+            [StringComparison]::OrdinalIgnoreCase)) {
+        throw "Package needs a git checkout with $root at its top, and git to read it: the build maps every source path to /_/ from the repository's own record, and without one the plugin would name the directory it was built in. Package from a clone rather than a source download."
+    }
+
+    # **And a commit with nothing changed since.** The SDK writes HEAD's commit into the plugin's
+    # informational version, and the plugin reports it on its status route and in its log as the
+    # commit it was built from. A change nobody committed, or a file nobody added, which the SDK
+    # compiles if it is a source file, builds a plugin that commit does not reproduce. What
+    # `.gitignore` excludes is left out of the question, being what the tasks write and the KeePass
+    # this repository pins and verifies.
+    $ErrorActionPreference = 'Continue'
+    try {
+        $changes = @(& git -C $root status --porcelain 2>$null)
+    }
+    finally {
+        $ErrorActionPreference = $before
+    }
+
+    if ($LASTEXITCODE -ne 0) {
+        throw "git could not say whether $root has changes nobody committed, and Package builds only a commit."
+    }
+
+    if ($changes.Count -gt 0) {
+        throw "Package builds a commit, and $root has $($changes.Count) change(s) nobody committed, $($changes[0].Substring(3)) first among them. Commit them or set them aside, then package."
+    }
+
+    # **The commit's own time, for every entry in the zip.** The plugin and its symbols are built
+    # deterministically, so every file in the zip is the same from the same commit and toolchain,
+    # and a zip entry would otherwise carry the moment the build wrote its file: the zip's own line
+    # in `SHA256SUMS` would then match only the zip from the same run. With the commit's time it
+    # is the same from every run on the same runtime, whose deflate is the one other input.
+    $ErrorActionPreference = 'Continue'
+    try {
+        $committed = & git -C $root log -1 --format=%ct 2>$null
+    }
+    finally {
+        $ErrorActionPreference = $before
+    }
+
+    if ($LASTEXITCODE -ne 0 -or -not $committed) {
+        throw "git could not say when HEAD was committed, which is the time every entry in the package carries."
+    }
+
+    $stamp = [DateTimeOffset]::FromUnixTimeSeconds([long] ([string] $committed).Trim())
+
+    $global:LASTEXITCODE = 0
+    Invoke-Step 'build (Release, to package)' {
+        dotnet build $pluginProject -c Release -p:KeePassDevDir=$keePass -p:ContinuousIntegrationBuild=true `
+            --no-incremental --nologo
+    }
+
+    $plugin = Join-Path $output 'KeePassGate.dll'
+    $product = (Get-Item $plugin).VersionInfo.ProductName
+    if ($product -ne 'KeePass Plugin') {
+        throw "$plugin reports the product name '$product'. KeePass silently ignores any plugin that does not say 'KeePass Plugin'."
+    }
+
+    # The version the plugin carries, without the commit the SDK appends after a plus sign, so the
+    # zip is named by the one place the number is written, by way of the build that read it.
+    $version = ((Get-Item $plugin).VersionInfo.ProductVersion -split '\+')[0]
+
+    $files = @(Get-ShippedFiles $output)
+    $files += Get-Item (Join-Path $root 'LICENSE')
+
+    # **Every assembly beside the plugin named in the notices**, because a package is where the one
+    # condition each of their licenses sets binds: the copyright and permission notice go with every
+    # copy. The notices file is kept by hand, and its closing section is the list it keeps of what
+    # ships, so an assembly a new reference brings in and nobody wrote a notice for is refused here,
+    # by name, rather than zipped.
+    $noticesText = Get-Content -LiteralPath (Join-Path $root 'THIRD-PARTY-NOTICES.md') -Raw
+    $section = [regex]::Match($noticesText, '(?ms)^## What is actually redistributed\r?$(.*?)(?=^## |\z)')
+    if (-not $section.Success) {
+        throw "THIRD-PARTY-NOTICES.md has no section 'What is actually redistributed', which is the list of assemblies a package may carry."
+    }
+
+    $named = @([regex]::Matches($section.Groups[1].Value, '`([^`]+)`') | ForEach-Object { $_.Groups[1].Value })
+    foreach ($file in $files) {
+        if ($file.Extension -ne '.dll' -or $file.Name -eq 'KeePassGate.dll') {
+            continue
+        }
+
+        $assembly = [System.IO.Path]::GetFileNameWithoutExtension($file.Name)
+        if ($named -cnotcontains $assembly) {
+            throw "$($file.Name) would ship without a notice: THIRD-PARTY-NOTICES.md does not name $assembly under 'What is actually redistributed'. Add its license there before packaging."
+        }
+    }
+
+    # **Taken away however this ends.** A refusal below is about a file that has just been copied
+    # into the staging directory, so leaving that directory behind keeps exactly the file that was
+    # refused, the plugin naming the build path among them. And a zip that a failure interrupted, or
+    # one with no sums beside it, is not a package, so `dist` goes too unless all of it was written.
+    $packaged = $false
+    try {
+        # Inside a directory named for the plugin, so that extracting the zip into `plugins` makes
+        # `plugins\KeePassGate`, which is where `Invoke-Deploy` and `docs/getting-started.md` put it.
+        $folder = Join-Path $staging 'KeePassGate'
+        New-Item -ItemType Directory -Path $folder -Force | Out-Null
+
+        foreach ($file in $files) {
+            Copy-Item $file.FullName $folder -ErrorAction Stop
+        }
+
+        $names = [string[]] @(Get-ChildItem $folder -File | ForEach-Object { $_.Name })
+        [Array]::Sort($names, [StringComparer]::Ordinal)
+
+        # **Checked rather than trusted to the switch above**, because a package is published and
+        # the switch is one property a later change could drop. A path to this checkout names the
+        # machine and usually the account; finding one refuses the package and says which file.
+        #
+        # Looked for as a binary keeps it: as UTF-8, and as UTF-16 starting at either an even or an
+        # odd byte, since a string in an assembly's heap is a length and its characters with no
+        # alignment, so decoding from the first byte alone sees only half of them. And spelled with
+        # forward slashes, and with every backslash doubled, which is how the symbols' Source Link
+        # record writes a path inside its JSON.
+        $spellings = @($root, $root.Replace('\', '/'), $root.Replace('\', '\\'))
+        foreach ($name in $names) {
+            $bytes = [System.IO.File]::ReadAllBytes((Join-Path $folder $name))
+            $texts = @(
+                [System.Text.Encoding]::UTF8.GetString($bytes),
+                [System.Text.Encoding]::Unicode.GetString($bytes),
+                [System.Text.Encoding]::Unicode.GetString($bytes, 1, [Math]::Max(0, $bytes.Length - 1)))
+            foreach ($text in $texts) {
+                foreach ($spelling in $spellings) {
+                    if ($text.IndexOf($spelling, [StringComparison]::OrdinalIgnoreCase) -ge 0) {
+                        throw "$name names the directory it was built in, $root. A package is published, and a path like that names the machine that built it."
+                    }
+                }
+            }
+        }
+
+        # **And the symbols read as a debugger reads them**, because no search of their bytes can
+        # find a source path in them. A portable PDB keeps each document's name as a list of
+        # separately stored segments, so `C:`, `dev` and the rest are never one string. Every
+        # document has to be under `/_/`, the root the switch maps the repository to, which is a
+        # stronger answer than not finding this checkout: a path anywhere else on the machine that
+        # built it is refused too.
+        foreach ($name in $names) {
+            if ([System.IO.Path]::GetExtension($name) -ne '.pdb') {
+                continue
+            }
+
+            foreach ($document in Get-PdbDocuments (Join-Path $folder $name)) {
+                if (-not $document.StartsWith('/_/', [StringComparison]::Ordinal)) {
+                    throw "$name names the source file $document, which is not under /_/. A package is published, and a path like that names the machine that built it."
+                }
+            }
+        }
+
+        New-Item -ItemType Directory -Path $dist -Force | Out-Null
+        $zipName = "KeePassGate-$version.zip"
+        $zipPath = Join-Path $dist $zipName
+
+        # Through the framework's own zip classes rather than `Compress-Archive`, so that every
+        # entry is named with the forward slash the format requires, whichever PowerShell runs this.
+        Add-Type -AssemblyName System.IO.Compression
+        Add-Type -AssemblyName System.IO.Compression.FileSystem
+        $zip = [System.IO.Compression.ZipFile]::Open($zipPath, [System.IO.Compression.ZipArchiveMode]::Create)
+        try {
+            foreach ($name in $names) {
+                # Made and stamped before it is written, since an entry of an archive being created
+                # cannot be changed once its stream has been opened.
+                $entry = $zip.CreateEntry("KeePassGate/$name", [System.IO.Compression.CompressionLevel]::Optimal)
+                $entry.LastWriteTime = $stamp
+                $source = [System.IO.File]::OpenRead((Join-Path $folder $name))
+                try {
+                    $target = $entry.Open()
+                    try {
+                        $source.CopyTo($target)
+                    }
+                    finally {
+                        $target.Dispose()
+                    }
+                }
+                finally {
+                    $source.Dispose()
+                }
+            }
+        }
+        finally {
+            $zip.Dispose()
+        }
+
+        # Lower case hex, two spaces and a path relative to `dist`, one line each with a line feed,
+        # which is what `sha256sum -c` reads on any system. `Get-FileHash` answers the same digests
+        # on Windows.
+        $lines = @()
+        foreach ($name in $names) {
+            $hash = (Get-FileHash -LiteralPath (Join-Path $folder $name) -Algorithm SHA256).Hash.ToLowerInvariant()
+            $lines += "$hash  KeePassGate/$name"
+        }
+
+        $lines += (Get-FileHash -LiteralPath $zipPath -Algorithm SHA256).Hash.ToLowerInvariant() + "  $zipName"
+        [System.IO.File]::WriteAllText(
+            (Join-Path $dist 'SHA256SUMS'), (($lines -join "`n") + "`n"), (New-Object System.Text.UTF8Encoding $false))
+
+        Assert-Package $dist $zipName $files
+        $packaged = $true
+    }
+    finally {
+        if (Test-Path $staging) {
+            Remove-Item $staging -Recurse -Force
+        }
+
+        if (-not $packaged -and (Test-Path $dist)) {
+            Remove-Item $dist -Recurse -Force
+        }
+    }
+
+    foreach ($name in $names) {
+        Write-Host "  KeePassGate/$name"
+    }
+
+    Write-Host "Packaged $zipPath, with SHA256SUMS beside it." -ForegroundColor Green
 }
 
 # Deploy, then start the KeePass that was deployed into. The one thing this does that a person
@@ -989,6 +1490,18 @@ function Invoke-Clean {
         Remove-Item $coverageDir -Recurse -Force
     }
 
+    # And what the other tasks write beside the solution: `dist` is the package and its sums, and
+    # `.tmp` the package's staging, the client's `uv build` and the result files of the end to end
+    # and screenshot runs. A zip left in `dist` after a clean is a package of whichever commit last
+    # made one.
+    foreach ($written in 'dist', '.tmp') {
+        $path = Join-Path $root $written
+        if (Test-Path $path) {
+            Write-Host "removing $path"
+            Remove-Item $path -Recurse -Force
+        }
+    }
+
     Get-ChildItem -Path (Join-Path $root 'src'), (Join-Path $root 'tests') -Include 'bin', 'obj' -Recurse -Directory |
         ForEach-Object {
             Write-Host "removing $($_.FullName)"
@@ -1026,6 +1539,7 @@ switch ($Task) {
     'Screenshots' { Invoke-Screenshots }
     'All' { Invoke-Test; Invoke-Live }
     'Deploy' { Invoke-Deploy }
+    'Package' { Invoke-Package }
     'Run' { Invoke-Run }
     'Clean' { Invoke-Clean }
     default { throw "There is no case for task '$Task'. Every name the Task parameter allows needs one here, or a task would report success having run nothing." }

@@ -93,6 +93,7 @@ that does not depend on where the bytes came from.
 .\build.ps1 -Task KeePass   # provide the pinned KeePass, and say whether a newer one is out
 .\build.ps1 -Task All       # the default, then the end to end tests
 .\build.ps1 -Task Deploy    # copy the plugin into plugins\KeePassGate in the provided KeePass
+.\build.ps1 -Task Package   # the plugin as Release, zipped with a SHA256SUMS into dist\, from a clean clone
 .\run-debug.ps1             # deploy, then start that KeePass with the Debug build in it
 .\run-release.ps1           # the same, with the build that would ship
 uv run pre-commit install   # once per clone: the fast half of the gate, run at every commit
