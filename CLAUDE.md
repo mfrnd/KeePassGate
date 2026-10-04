@@ -8,7 +8,7 @@ Guidance for anyone, human or AI assistant, working in this repository.
 mutual TLS, so that automation and AI agents can each be given a narrow, revocable, audited slice of
 a database.
 
-**Status: the whole build order is done and the API is served.** The plugin loads
+**Status: steps 1 to 24 of the build order are done and the API is served.** The plugin loads
 into KeePass, the KPG tab creates, recreates and deletes the database's own certificate authority,
 the gate listens on loopback and answers over mutual TLS 1.3, a client is served only if
 the database holds an admission record for its certificate, and **a stranger can now become one**:
@@ -44,7 +44,8 @@ can keep its key under a password, make the connection it goes over, and test ag
 gate the client's own tests use. **And a client can ask about itself**: who the gate takes it for,
 with the key the operator knows it by, and what it may do at a group or an entry before it tries.
 **And field references are followed**: the reference client compiles them as KeePass does, on its
-own side and under the caller's own rules, held to KeePass's own compiler.
+own side and under the caller's own rules, held to KeePass's own compiler. **Step 25, the release
+package, is being built**: what the build order plans for it is in `DESIGN.md` §132.
 
 ## Read these before proposing anything
 
@@ -797,7 +798,7 @@ here can hang or crash the password manager.
 
 ## Where to start
 
-[`DESIGN.md`](DESIGN.md) §132 ends with a multi-step build order. **All of them are done.** The
+[`DESIGN.md`](DESIGN.md) §132 ends with a multi-step build order. **Steps 1 to 24 are done.** The
 skeleton loads and shows a KPG tab, that tab creates, recreates and deletes the authority, the gate
 serves the document's routes over mutual TLS to a client the authority issued and the database holds
 a record for, a stranger can pair, a locked database answers `503 locked`, a grant means something
@@ -812,8 +813,8 @@ renewal and revocation, and the client follows field references as KeePass does,
 own rules.
 
 **Start with [`docs/`](docs/README.md) if the question is what this does**, and with the documents
-below if the question is why it does it that way. What is left is not a step: there is no release
-packaging and no Scoop manifest.
+below if the question is why it does it that way. What is left is step 25, the release package, and
+beyond the build order there is no release packaging and no Scoop manifest.
 
 **The storage decision survived the thing most likely to invalidate it.** The `GroupForm` snapshot
 hazard is real and now measured rather than remembered: `SnapshotHazardTests` reads the mechanism off

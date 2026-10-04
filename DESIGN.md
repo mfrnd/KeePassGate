@@ -1523,6 +1523,9 @@ Each step is refusable, and each ends with something that runs.
     grammar is held to KeePass's own compiler, on vectors KeePass produces, rather than to a reading
     of its documentation, and the command line resolves only when asked, so that without it a value
     prints as stored and nothing but the entry asked for is read.
+25. **The release package**: `build.ps1 -Task Package` builds the plugin as Release and zips it with
+    everything it loads, its license and the notices, under the version, beside a `SHA256SUMS` that
+    covers every file in the zip and the zip itself.
 
 Steps 5 to 8 are the ones that prove the design. Step 5 is deliberately early, because the
 `CustomData` dialog hazard is the thing most likely to invalidate the storage decision, and finding
