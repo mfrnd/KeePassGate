@@ -1,6 +1,7 @@
 """What a paired client keeps, and where it keeps it.
 
-Pairing hands over two secrets, a trust anchor and some text about them. The authority is a
+Pairing hands over two secrets, a trust anchor and some text about them, and a renewal hands over
+the same again for the certificate it renews into. The authority is a
 certificate anybody may see; what has to stay unread is the client's own key and the gate key. This
 writes each of the three to a file of its own and the text to a fourth, so that nothing secret is in
 the file a person is most likely to open, paste or attach.
@@ -49,7 +50,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from types import TracebackType
-from typing import Any
+from typing import Any, TypeGuard
 
 from cryptography import x509
 from cryptography.hazmat.primitives import serialization
@@ -94,7 +95,7 @@ def default_directory(name: str = "default") -> Path:
 
     **A profile is one directory's name**, and anything else is refused with `ValueError` rather
     than joined. A separator or `..` would put the identity beside or above the others, an absolute
-    path would replace the place altogether, and `whoami` would read it back from there as though
+    path would replace the place altogether, and `identity` would read it back from there as though
     it were a profile. A name ending in a dot or a space is refused on every platform because
     Windows stores it without them, which makes `work.` and `work` one identity and `...` the
     directory every profile lives in. A path is what a `directory` is for.
@@ -118,7 +119,7 @@ def default_directory(name: str = "default") -> Path:
     else:
         # A relative value is ignored, as the XDG Base Directory specification says it is to be:
         # it would name another directory from every working directory, so a `pair` run in one
-        # would store what a `whoami` run in another could not find.
+        # would store what an `identity` run in another could not find.
         config = os.environ.get("XDG_CONFIG_HOME")
         base = Path(config) if config and Path(config).is_absolute() else Path.home() / ".config"
 
@@ -135,6 +136,11 @@ class Credentials:
     database: str
     profiles: tuple[str, ...]
     expires: str
+    #: The key the operator knows this client by: SHA-256 over the certificate it paired with, in
+    #: lower case hex, which every renewal keeps while `admission_key` changes. Stored rather than
+    #: read off a certificate, since after a renewal the one it paired with is no longer here; the
+    #: gate answers the same key at `GET /gate/whoami`, and every line of its audit names it.
+    client_key: str
 
     @property
     def identity(self) -> Path:
@@ -221,8 +227,9 @@ class Credentials:
         """SHA-256 over this client's certificate, in lower case hex: what the gate knows it by.
 
         The plugin keys this client's admission record on the same digest, and its audit file
-        names this client by it on every line, so a person holding both can tell which lines are
-        this client's. Read off the certificate in `identity.pem` rather than stored beside it, so
+        names this certificate by it on every line, as `admissionKey`, so a person holding both can
+        tell which lines are this certificate's. A renewal changes it, and `client_key` does not.
+        Read off the certificate in `identity.pem` rather than stored beside it, so
         it cannot disagree with the certificate this client presents; nothing about the key is
         read, so an encrypted one needs no password here.
         """
@@ -233,11 +240,25 @@ class Credentials:
                 f"{self.identity} holds no certificate this client can read"
             ) from error
 
-        return hashlib.sha256(certificate.public_bytes(serialization.Encoding.DER)).hexdigest()
+        return _digest(certificate)
+
+
+def _digest(certificate: x509.Certificate) -> str:
+    """SHA-256 over a certificate's DER in lower case hex, which is the plugin's admission key."""
+    return hashlib.sha256(certificate.public_bytes(serialization.Encoding.DER)).hexdigest()
+
+
+def _is_key(value: object) -> TypeGuard[str]:
+    """Whether a stored value is a key as `_digest` writes one: 64 characters of lower case hex."""
+    return (
+        isinstance(value, str)
+        and len(value) == 64
+        and all(character in "0123456789abcdef" for character in value)
+    )
 
 
 def forget(directory: Path) -> None:
-    """Take away what pairing stored in a directory, and the directory if that empties it.
+    """Take away what pairing or a renewal stored in a directory, and the directory if emptied.
 
     For an identity nothing can use any more, which is one whose certificate has been revoked: a
     private key kept for a certificate the gate refuses protects nothing and is one more copy of a
@@ -264,8 +285,9 @@ def save(
     bundle: dict[str, Any],
     allow_shared_directory: bool = False,
     key_password: transport.KeyPassword | None = None,
+    client_key: str | None = None,
 ) -> Credentials:
-    """Write what pairing handed over, and hand back what a client needs to use it.
+    """Write what pairing or a renewal handed over, and hand back what a client needs to use it.
 
     The PKCS#12 the gate sends is converted to PEM here rather than at every connection, because
     `ssl` reads PEM from a path and nothing else, and because converting once means the key is
@@ -278,12 +300,14 @@ def save(
     which `load` refuses, so nothing would ever clean it up.
 
     `allow_shared_directory` is `prepare`'s, and means the same here. `key_password` stores the
-    key encrypted under it, and a client then opens it with the same one.
+    key encrypted under it, and a client then opens it with the same one. `client_key` is the
+    client this identity belongs to: a renewal passes the one it renews from, and a pairing
+    passes nothing, since the certificate it was issued is its first and so its client key.
     """
     # Everything is read before anything is written. See the note in the docstring above: a
     # bundle refused halfway is a working identity destroyed, and the invitation that produced
     # it is spent either way, so there is nothing left to try again with.
-    contents = _contents(port, bundle, key_password)
+    contents = _contents(port, bundle, key_password, client_key)
 
     with prepare(directory, allow_shared_directory=allow_shared_directory) as prepared:
         prepared.write(contents)
@@ -311,9 +335,10 @@ class Prepared:
         port: int,
         bundle: dict[str, Any],
         key_password: transport.KeyPassword | None = None,
+        client_key: str | None = None,
     ) -> Credentials:
         """What `save` does, through the handles this already holds."""
-        self.write(_contents(port, bundle, key_password))
+        self.write(_contents(port, bundle, key_password, client_key))
         return load(self.directory)
 
     def write(self, contents: dict[str, bytes]) -> None:
@@ -389,7 +414,10 @@ class Prepared:
 
 
 def _contents(
-    port: int, bundle: dict[str, Any], key_password: transport.KeyPassword | None = None
+    port: int,
+    bundle: dict[str, Any],
+    key_password: transport.KeyPassword | None = None,
+    client_key: str | None = None,
 ) -> dict[str, bytes]:
     """All four files' contents, read out of the bundle before any of them is touched."""
     # The port as well, which is not the bundle's: one TCP does not have would be written into
@@ -402,11 +430,14 @@ def _contents(
         else transport.key_secret(transport.key_password_limit(key_password))
     )
 
+    identity, issued = _identity(_text(bundle, "identity"), password)
+
     return {
-        IDENTITY_FILE: _identity(_text(bundle, "identity"), password),
+        IDENTITY_FILE: identity,
         AUTHORITY_FILE: _anchor(_text(bundle, "authority")),
         GATE_KEY_FILE: _gate_key(_text(bundle, "gateKey")),
-        DETAILS_FILE: _details(port, bundle),
+        # A pairing's own certificate is its first, which is what makes a client key.
+        DETAILS_FILE: _details(port, bundle, issued if client_key is None else client_key),
     }
 
 
@@ -426,7 +457,7 @@ def load(directory: Path) -> Credentials:
 
     **Every member is held to what `save` writes**, and the text ones and the profiles are not
     converted into it: `str` makes a `null` the four letters `None`, and `tuple` spells a string
-    out one character at a time, which `whoami` would then show as that many profiles approved.
+    out one character at a time, which `identity` would then show as that many profiles approved.
     """
     details_path = directory / DETAILS_FILE
     if not details_path.exists():
@@ -458,6 +489,12 @@ def load(directory: Path) -> Credentials:
     if not isinstance(profiles, list) or not all(isinstance(name, str) for name in profiles):
         raise StorageError(f"{details_path} names its profiles as something other than names")
 
+    # Required like every other member: nothing was ever distributed, so there is no older
+    # `client.json` without it to read.
+    client_key = details.get("clientKey")
+    if not _is_key(client_key):
+        raise StorageError(f"{details_path} names no client key this client wrote")
+
     return Credentials(
         directory=directory,
         port=port,
@@ -465,11 +502,15 @@ def load(directory: Path) -> Credentials:
         database=details["database"],
         profiles=tuple(profiles),
         expires=details["expires"],
+        client_key=client_key,
     )
 
 
-def _identity(value: str, password: bytes | None = None) -> bytes:
-    """The PKCS#12 the gate sent, as the PEM `ssl` will read, the key under `password` if given."""
+def _identity(value: str, password: bytes | None = None) -> tuple[bytes, str]:
+    """The PKCS#12 the gate sent, as the PEM `ssl` will read, the key under `password` if given.
+
+    With the admission key of the certificate in it, which a pairing stores as its client key.
+    """
     try:
         key, certificate, _ = pkcs12.load_key_and_certificates(
             _base64(value, "identity"),
@@ -494,11 +535,13 @@ def _identity(value: str, password: bytes | None = None) -> bytes:
         else serialization.BestAvailableEncryption(password)
     )
 
-    return certificate.public_bytes(serialization.Encoding.PEM) + key.private_bytes(
+    pem = certificate.public_bytes(serialization.Encoding.PEM) + key.private_bytes(
         encoding=serialization.Encoding.PEM,
         format=serialization.PrivateFormat.PKCS8,
         encryption_algorithm=encryption,
     )
+
+    return pem, _digest(certificate)
 
 
 def _anchor(value: str) -> bytes:
@@ -527,7 +570,7 @@ def _gate_key(value: str) -> bytes:
     return key
 
 
-def _details(port: int, bundle: dict[str, Any]) -> bytes:
+def _details(port: int, bundle: dict[str, Any], client_key: str) -> bytes:
     """The text about the identity, which is the part of the bundle nothing else checks."""
     profiles = bundle.get("profiles") or []
     if not isinstance(profiles, list) or not all(isinstance(name, str) for name in profiles):
@@ -541,6 +584,7 @@ def _details(port: int, bundle: dict[str, Any]) -> bytes:
         "database": _optional(bundle, "database"),
         "expires": _optional(bundle, "expires"),
         "profiles": list(profiles),
+        "clientKey": client_key,
     }
 
     return json.dumps(details, indent=2).encode("utf-8") + b"\n"
@@ -560,11 +604,12 @@ def prepare(directory: Path, allow_shared_directory: bool = False) -> Prepared:
     """Make the directory and open the four files, so that `save` can write into them later.
 
     **Called before the exchange, because afterwards is too late.** Once the gate has answered,
-    the invitation is spent and the admission record is written and saved, so a directory that
-    turns out to be a file, to sit under a parent this user cannot create in, or to refuse
-    writes, loses an identity that cannot be asked for again and leaves a record for a
-    certificate nobody holds. None of that needs the bundle to find out, so it is found out
-    first, and a refusal here has cost nothing.
+    the admission record is written and saved, and for a pairing the invitation is spent, so a
+    directory that turns out to be a file, to sit under a parent this user cannot create in, or to
+    refuse writes, leaves a record for a certificate nobody holds: an identity that cannot be asked
+    for again after a pairing, and after a renewal an approval the operator gave for nothing and is
+    asked for again. None of that needs the bundle to find out, so it is found out first, and a
+    refusal here has cost nothing.
 
     **What comes back holds the four files open**, and is a context manager around the exchange:
     `Prepared.save` writes through it, and leaving it closes them. Opening is the only honest

@@ -39,6 +39,8 @@ from pykeepassgate.pairing import Pairing
 COVERED = {
     "getStatus": (GateClient, "status"),
     "headStatus": (GateClient, "head"),
+    "getIdentity": (GateClient, "identity"),
+    "headIdentity": (GateClient, "head"),
     "revokeCertificate": (GateClient, "revoke_certificate"),
     "renewCertificate": (GateClient, "renew"),
     "pairHello": (Pairing, "hello"),
@@ -86,7 +88,6 @@ COVERED = {
 #: call, and the set goes with the last of them. TODO(step 22)
 SERVED_AHEAD = frozenset(
     {
-        "getIdentity", "headIdentity",
         "getGroupAccess", "headGroupAccess",
         "getEntryAccess", "headEntryAccess",
     }
@@ -186,6 +187,7 @@ def test_the_paths_this_client_sends_are_the_paths_the_document_declares(
     declared = operations(document)
 
     assert declared["getStatus"]["path"] == client_module.STATUS_PATH
+    assert declared["getIdentity"]["path"] == client_module.IDENTITY_PATH
     assert declared["revokeCertificate"]["path"] == client_module.CERTIFICATE_PATH
     assert declared["renewCertificate"]["path"] == client_module.RENEW_PATH
     assert declared["pairHello"]["path"] == pairing_module.HELLO_PATH
@@ -196,6 +198,7 @@ def test_the_methods_this_client_uses_are_the_ones_declared(document: dict[str, 
     declared = operations(document)
 
     assert declared["getStatus"]["method"] == "get"
+    assert declared["getIdentity"]["method"] == "get"
     assert declared["revokeCertificate"]["method"] == "delete"
     assert declared["renewCertificate"]["method"] == "post"
     assert declared["pairHello"]["method"] == "post"

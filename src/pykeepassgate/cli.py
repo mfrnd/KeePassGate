@@ -170,7 +170,7 @@ def _parser() -> argparse.ArgumentParser:
 
     revoke = commands.add_parser(
         "revoke",
-        help="give up this client's admission, and remove what pairing stored for it",
+        help="give up this client's admission, and remove what is stored for it",
         description=(
             "Revokes the certificate this client presents, so the database refuses it from the "
             "next connection on, then removes the identity stored for it, which nothing can use "
@@ -183,8 +183,26 @@ def _parser() -> argparse.ArgumentParser:
     _dialed(revoke)
     revoke.set_defaults(run=_revoke)
 
-    who = commands.add_parser("whoami", help="say what this client is, without connecting")
+    # Named as the API names what it answers: `whoami` asks `GET /gate/whoami`, and `identity`
+    # reads the identity this client stored, without connecting.
+    identity = commands.add_parser(
+        "identity", help="say what this client's stored identity is, without connecting"
+    )
+    _shared(identity)
+    identity.set_defaults(run=_identity)
+
+    who = commands.add_parser(
+        "whoami",
+        help="ask the gate who this client is, and which of its profiles count now",
+        description=(
+            "Asks the gate who this client is, as the database admitted it: the subject, the "
+            "client key, the admission key, when the certificate expires, the profiles the rules "
+            "are asked about now, and any the database no longer names, which grant nothing. "
+            "identity says what is stored, without connecting."
+        ),
+    )
     _shared(who)
+    _dialed(who)
     who.set_defaults(run=_whoami)
 
     groups = commands.add_parser(
@@ -343,7 +361,7 @@ def _shared(parser: argparse.ArgumentParser) -> None:
 def _dialed(parser: argparse.ArgumentParser) -> None:
     """Where to open the socket, for the commands that open one.
 
-    Not on `whoami`, which answers out of the stored identity and never connects: an option that
+    Not on `identity`, which answers out of the stored identity and never connects: an option that
     cannot change what a command does is an option that misleads whoever reads `--help`.
     """
     parser.add_argument(
@@ -356,7 +374,7 @@ def _dialed(parser: argparse.ArgumentParser) -> None:
     )
 
     # The socket's own timeout, and the three budgets for waiting out a refusal, all belong to a
-    # command that opens a socket and asks for an answer, which `whoami` does not. The same rule
+    # command that opens a socket and asks for an answer, which `identity` does not. The same rule
     # as `--host` above them.
     parser.add_argument(
         "--connection-timeout",
@@ -510,7 +528,7 @@ def _profile(text: str) -> str:
 
     The library says what a profile's name is, and this asks it rather than keeping a copy of the
     rule: a separator or `..` stored the identity beside the others, and an absolute path
-    somewhere else altogether, where `whoami` read it back as though it were a profile.
+    somewhere else altogether, where `identity` read it back as though it were a profile.
     """
     try:
         api.default_directory(text)
@@ -911,7 +929,7 @@ def _revoke(arguments: argparse.Namespace) -> int:
     return 0
 
 
-def _whoami(arguments: argparse.Namespace) -> int:
+def _identity(arguments: argparse.Namespace) -> int:
     where = arguments.directory or api.default_directory(arguments.profile)
     credentials = api.load(where)
     # The two things that stop every other command before it dials are said here as well, since
@@ -924,6 +942,7 @@ def _whoami(arguments: argparse.Namespace) -> int:
         expired = " (not a moment this client can read, so the gate decides)"
     key = "encrypted" if credentials.key_encrypted else "not encrypted"
     print(f"subject:       {credentials.subject}")
+    print(f"client key:    {credentials.client_key}")
     print(f"admission key: {credentials.admission_key}")
     print(f"database:      {credentials.database}")
     print(f"profiles:      {', '.join(credentials.profiles) or 'none'}")
@@ -932,6 +951,32 @@ def _whoami(arguments: argparse.Namespace) -> int:
     print(f"port:          {credentials.port}")
     print(f"stored:        {credentials.directory}")
     return 0
+
+
+def _whoami(arguments: argparse.Namespace) -> int:
+    client = api.GateClient.open(
+        arguments.directory,
+        arguments.profile,
+        host=arguments.host,
+        key_password=_key_password(arguments),
+        **_dialing(arguments),
+    )
+    found = client.identity()
+
+    # Escaped as every name the gate answers with is, though the plugin allows no character in a
+    # subject or a profile that would need it: what is printed is what was answered.
+    print(f"subject:          {_printable(found.subject)}")
+    print(f"client key:       {_printable(found.client_key)}")
+    print(f"admission key:    {_printable(found.admission_key)}")
+    print(f"expires:          {found.expires:%Y-%m-%dT%H:%M:%SZ}")
+    print(f"profiles:         {_listed(found.profiles)}")
+    print(f"removed profiles: {_listed(found.removed_profiles)}")
+    return 0
+
+
+def _listed(names: tuple[str, ...]) -> str:
+    """Names on one line, separated by commas, or the word for none."""
+    return ", ".join(_printable(name) for name in names) or "none"
 
 
 def _groups(arguments: argparse.Namespace) -> int:

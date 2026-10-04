@@ -41,6 +41,7 @@ namespace KeePassGate.Pipeline
         private readonly string _refusal;
         private readonly string _unavailable;
         private readonly DateTimeOffset? _expires;
+        private readonly string _clientKey;
 
         private ClientIdentity(
             bool isPaired,
@@ -52,10 +53,12 @@ namespace KeePassGate.Pipeline
             string refusal,
             string unavailable = null,
             IReadOnlyList<string> removed = null,
-            DateTimeOffset? expires = null)
+            DateTimeOffset? expires = null,
+            string clientKey = null)
         {
             _removed = removed ?? Nothing;
             _expires = expires;
+            _clientKey = clientKey;
             _isPaired = isPaired;
             _isLocked = isLocked;
             _unavailable = unavailable ?? (isLocked ? Gate.LockedTarget.Error : null);
@@ -94,6 +97,21 @@ namespace KeePassGate.Pipeline
         public string AdmissionKey
         {
             get { return _admissionKey; }
+        }
+
+        /// <summary>
+        /// Which client this is: the client key its admission record carries, the admission key
+        /// of the certificate it paired with, which a renewal keeps. Null for anybody who is not
+        /// paired.
+        /// </summary>
+        /// <remarks>
+        /// The key the operator knows a client by, `CA.md` §223, since every count and naming of
+        /// clients on the KPG tab goes by it. <see cref="AdmissionKey"/> is the certificate on this
+        /// connection, which is the one the audit names and a revocation takes away.
+        /// </remarks>
+        public string ClientKey
+        {
+            get { return _clientKey; }
         }
 
         /// <summary>Which database the name resolved to.</summary>
@@ -212,28 +230,35 @@ namespace KeePassGate.Pipeline
         /// A client whose certificate this database's authority issued, holding these profiles,
         /// and holding on its record these others that the database no longer lists.
         /// </summary>
+        /// <param name="clientKey">
+        /// The client key the record carries, or null for a client that has not renewed, whose
+        /// client key is its own certificate's admission key.
+        /// </param>
         public static ClientIdentity Paired(
             string databaseId,
             X509Certificate2 certificate,
             IReadOnlyList<string> profiles,
-            IReadOnlyList<string> removed = null)
+            IReadOnlyList<string> removed = null,
+            string clientKey = null)
         {
             if (certificate == null)
             {
                 throw new ArgumentNullException(nameof(certificate));
             }
 
+            var admissionKey = CertificateDigest.Of(certificate);
             return new ClientIdentity(
                 true,
                 false,
                 certificate.Subject,
-                CertificateDigest.Of(certificate),
+                admissionKey,
                 databaseId,
                 profiles,
                 null,
                 null,
                 removed,
-                new DateTimeOffset(certificate.NotAfter.ToUniversalTime(), TimeSpan.Zero));
+                new DateTimeOffset(certificate.NotAfter.ToUniversalTime(), TimeSpan.Zero),
+                clientKey ?? admissionKey);
         }
     }
 }

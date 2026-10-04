@@ -21,7 +21,7 @@ import pytest
 from pykeepassgate import credentials as credentials_module
 from pykeepassgate.client import ROOT, GateClient
 from pykeepassgate.errors import ProtocolError, Withheld
-from pykeepassgate.model import Attachment, Entry, Field, Fields, Group
+from pykeepassgate.model import Attachment, Entry, Field, Fields, Group, Identity
 from pykeepassgate.testing import FakeGate
 from test_reference import SERVED_AHEAD, operations, routing_table
 
@@ -39,6 +39,40 @@ def paired(tmp_path: Path, bundle: dict[str, Any], gate: FakeGate) -> GateClient
 def answering(gate: FakeGate, body: dict[str, Any], status: int = 200) -> None:
     """Answer every request with this, whatever it asks for."""
     gate.handler = lambda path, sent, client: (status, json.dumps(body))
+
+
+#: What `getIdentity` answers, every member the document requires and nothing else.
+IDENTITY: dict[str, Any] = {
+    "subject": "CN=agent-invented",
+    "clientKey": "3a" * 32,
+    "admissionKey": "5f" * 32,
+    "expires": "2027-02-03T04:05:06Z",
+    "profiles": ["reader"],
+    "removedProfiles": ["retired"],
+}
+
+
+def test_the_gate_says_who_this_client_is_as_it_was_admitted(
+    gate: FakeGate, paired: GateClient, document: dict[str, Any]
+) -> None:
+    answering(gate, IDENTITY)
+
+    found = paired.identity()
+
+    assert gate.requests == [("GET", "/gate/whoami")]
+    assert found == Identity(
+        subject="CN=agent-invented",
+        client_key="3a" * 32,
+        admission_key="5f" * 32,
+        expires=datetime(2027, 2, 3, 4, 5, 6, tzinfo=UTC),
+        profiles=("reader",),
+        removed_profiles=("retired",),
+    )
+
+    declared = document["components"]["schemas"]["Identity"]
+    assert set(IDENTITY) == set(declared["required"]) == set(declared["properties"]), (
+        "every member the gate answers is one this client reads"
+    )
 
 
 def test_groups_are_listed_read_and_walked(gate: FakeGate, paired: GateClient) -> None:
@@ -989,6 +1023,22 @@ UNREADABLE: list[tuple[str, dict[str, Any], Callable[[GateClient], object]]] = [
      lambda c: c.attachment(UUID, "a.txt")),
     ("no content", {"name": "a.txt", "size": 3, "content": None},
      lambda c: c.attachment(UUID, "a.txt")),
+    ("an identity with no admission key",
+     {name: value for name, value in IDENTITY.items() if name != "admissionKey"},
+     lambda c: c.identity()),
+    ("an identity with no client key",
+     {name: value for name, value in IDENTITY.items() if name != "clientKey"},
+     lambda c: c.identity()),
+    ("an identity expiring at no readable moment", {**IDENTITY, "expires": "next year"},
+     lambda c: c.identity()),
+    ("an identity whose profiles are a word", {**IDENTITY, "profiles": "reader"},
+     lambda c: c.identity()),
+    ("an identity with no subject",
+     {name: value for name, value in IDENTITY.items() if name != "subject"},
+     lambda c: c.identity()),
+    ("an identity with no removed profiles",
+     {name: value for name, value in IDENTITY.items() if name != "removedProfiles"},
+     lambda c: c.identity()),
 ]
 
 

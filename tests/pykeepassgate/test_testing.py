@@ -51,7 +51,7 @@ def test_what_the_documentation_shows_is_enough_to_point_a_client_at_it(tmp_path
 
     with FakeGate(host, authority.pem) as gate:
         gate.handler = lambda path, body, client: (503, '{"error":"busy"}')
-        credentials = api.Credentials(tmp_path, gate.port, "CN=agent-invented", "", (), "")
+        credentials = api.Credentials(tmp_path, gate.port, "CN=agent-invented", "", (), "", "")
         client = api.GateClient(credentials, connection_timeout=10.0)
 
         with pytest.raises(GateBusy):

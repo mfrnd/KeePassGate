@@ -52,6 +52,8 @@ namespace KeePassGate.Tests
                 var answer = Answered("GET", Identified(certificate));
 
                 Assert.That((string)answer["subject"], Is.EqualTo("CN=agent-fictitious"));
+                Assert.That((string)answer["clientKey"], Is.EqualTo(CertificateDigest.Of(certificate)),
+                    "a client that has not renewed is known by the certificate it paired with");
                 Assert.That((string)answer["admissionKey"], Is.EqualTo(CertificateDigest.Of(certificate)));
                 Assert.That(answer["profiles"].Values<string>(), Is.EqualTo(new[] { "reader", "ops" }),
                     "the record's profiles, in the record's order, whatever the certificate claims");
@@ -69,6 +71,26 @@ namespace KeePassGate.Tests
                 Assert.That(_authority.Admission(key), Is.Not.Null, "the record is stored under it");
                 Assert.That(_authority.Revoke(certificate), Is.True);
                 Assert.That(_authority.Admission(key), Is.Null, "and revoking it is revoking that key");
+            }
+        }
+
+        [Test]
+        public void A_renewed_client_is_told_the_key_the_operator_knows_it_by_and_its_certificate_apart()
+        {
+            // The client key is the certificate it paired with, which the renewal copied into the
+            // record; the admission key is the certificate on this connection, which the audit
+            // names and the Clients page revokes.
+            using (var paired = _authority.IssueClient("agent-fictitious", "reader"))
+            using (var renewed = _authority.IssueClient("agent-fictitious", "reader"))
+            {
+                var first = CertificateDigest.Of(paired);
+                _authority.Admit(
+                    AdmissionRecord.For(renewed, DateTimeOffset.UtcNow, new[] { "reader" }, first), null);
+
+                var answer = Answered("GET", Identified(renewed));
+
+                Assert.That((string)answer["clientKey"], Is.EqualTo(first));
+                Assert.That((string)answer["admissionKey"], Is.EqualTo(CertificateDigest.Of(renewed)));
             }
         }
 
@@ -115,7 +137,7 @@ namespace KeePassGate.Tests
 
                 Assert.That(
                     answer.Properties().Select(member => member.Name),
-                    Is.EqualTo(new[] { "subject", "admissionKey", "expires", "profiles", "removedProfiles" }));
+                    Is.EqualTo(new[] { "subject", "clientKey", "admissionKey", "expires", "profiles", "removedProfiles" }));
             }
         }
 

@@ -582,3 +582,47 @@ class Attachment:
             size=_size(body, "size"),
             content=_content(body.get("content")),
         )
+
+
+@dataclass(frozen=True)
+class Identity:
+    """Who this client is, as the database it reached admitted it.
+
+    Everything here was settled when the connection was admitted, out of this client's own
+    admission record. `profiles` are the ones the rules are asked about for it now: the ones the
+    record holds that the database still names. `removed_profiles` are the rest, which grant
+    nothing until the operator names them again. Pairing, or the last renewal, stored what was
+    approved at the time, and this is what holds now, which is why the two can differ.
+    """
+
+    subject: str
+    #: The key the operator knows this client by: SHA-256 over the certificate it paired with, in
+    #: lower case hex, which every renewal keeps. The KPG tab counts and tells clients apart by it,
+    #: since a name is the client's own choice and need not be unique.
+    client_key: str
+    #: SHA-256 over the certificate this connection presented, in lower case hex, which a renewal
+    #: changes and the audit names it by.
+    admission_key: str
+    #: When the certificate stops being admitted, in UTC.
+    expires: datetime
+    profiles: tuple[str, ...]
+    removed_profiles: tuple[str, ...]
+
+    @classmethod
+    def of(cls, body: dict[str, Any]) -> Identity:
+        """Read one out of an answer, which carries every member or is not one this reads."""
+        expires = _moment(body.get("expires"))
+        if expires is None:
+            raise ProtocolError(
+                "the gate said when this client's certificate expires in a form this client "
+                "cannot read"
+            )
+
+        return cls(
+            subject=_text(body, "subject"),
+            client_key=_text(body, "clientKey"),
+            admission_key=_text(body, "admissionKey"),
+            expires=expires,
+            profiles=_names(body, "profiles"),
+            removed_profiles=_names(body, "removedProfiles"),
+        )

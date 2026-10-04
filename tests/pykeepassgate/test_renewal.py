@@ -134,6 +134,7 @@ def test_a_renewal_stores_the_new_identity_and_gives_the_old_one_up_by_presentin
     renewed_certificate: Issued,
 ) -> None:
     where = paired.credentials.directory
+    first = paired.credentials.client_key
 
     renewal = paired.renew()
 
@@ -142,6 +143,11 @@ def test_a_renewal_stores_the_new_identity_and_gives_the_old_one_up_by_presentin
     assert renewal.credentials.directory == where
     assert renewal.credentials.expires == "2127-01-02T03:04:05Z"
     assert api.load(where).expires == "2127-01-02T03:04:05Z", "what load finds is the new one"
+    # The same client under a new certificate: the client key is the one it paired with, and the
+    # admission key is the new certificate's.
+    assert first == hashlib.sha256(der(client_certificate)).hexdigest()
+    assert api.load(where).client_key == first, "carried over from the identity renewed"
+    assert renewal.credentials.admission_key == hashlib.sha256(der(renewed_certificate)).hexdigest()
 
     assert [(method, path) for method, path in gate.requests] == [
         ("POST", "/gate/renew"),

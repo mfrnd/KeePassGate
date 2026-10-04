@@ -12,9 +12,13 @@ namespace KeePassGate.Pipeline
     /// does: it reads nothing a rule is about. It is not written down either, for the reason no
     /// operation declaring `none` is: no rule was asked.
     ///
-    /// **The key is the one the operator sees.** It is the admission key the Clients page lists
-    /// and revokes and every line of the audit names, so a program and the person running KeePass
-    /// can name the same client in the same words.
+    /// **The keys are the ones the operator sees**, so a program and the person running KeePass can
+    /// name the same client in the same words. `clientKey` is the key the operator knows the client
+    /// by, which is the operator's ruling of 2026-10-16: the admission key of the certificate it
+    /// paired with, kept through every renewal, which every count and naming of clients on the KPG
+    /// tab goes by and each row of the Clients page names. `admissionKey` is the certificate on
+    /// this connection, which the Clients page revokes and every line of the audit names, and which
+    /// changes with each renewal. Both stay, because each answers a question the other cannot.
     ///
     /// **The profiles come in two halves of one list.** `profiles` is what the record holds that
     /// the database still names, which is all the rules are ever asked about for this client, and
@@ -28,7 +32,10 @@ namespace KeePassGate.Pipeline
         public static void Handle(IGateContext context)
         {
             var client = context.Client;
-            if (!client.IsPaired || string.IsNullOrEmpty(client.AdmissionKey) || !client.Expires.HasValue)
+            if (!client.IsPaired
+                || string.IsNullOrEmpty(client.AdmissionKey)
+                || string.IsNullOrEmpty(client.ClientKey)
+                || !client.Expires.HasValue)
             {
                 // The router refuses a caller with no admission before any handler runs, so this
                 // is a defect if it is reached, and it is answered as the caller would be anyway.
@@ -38,6 +45,7 @@ namespace KeePassGate.Pipeline
 
             var json = new JsonWriter();
             json.Text("subject", client.Subject);
+            json.Text("clientKey", client.ClientKey);
             json.Text("admissionKey", client.AdmissionKey);
             json.Text("expires", Moments.Wire(client.Expires.Value));
 

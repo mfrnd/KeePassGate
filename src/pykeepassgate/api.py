@@ -43,7 +43,7 @@ from .errors import (
     TransportError,
     Withheld,
 )
-from .model import Attachment, Entry, Field, Fields, Group
+from .model import Attachment, Entry, Field, Fields, Group, Identity
 from .pairing import (
     LONGEST_LIFETIME,
     SHORTEST_LIFETIME,
@@ -98,6 +98,7 @@ __all__ = [
     "GateError",
     "GateUnavailable",
     "Group",
+    "Identity",
     "KeyPassword",
     "MalformedToken",
     "NotAdmitted",

@@ -70,9 +70,12 @@ discovers otherwise as a refusal on some later request, a long way from the caus
 
 **`pair` prints the admission key as well**: SHA-256 over the certificate it was issued, in hex,
 which is what the operator's [audit file](audit.md) names this client by. It is how the person
-running the client and the person at KeePass name the same program. `whoami` prints it again later,
-`renew` prints the new certificate's and `revoke` the one it gave up, and from a program it is
-`credentials.admission_key`, read off the stored certificate.
+running the client and the person at KeePass name the same program. `identity` prints it again
+later, `renew` prints the new certificate's and `revoke` the one it gave up, and from a program it
+is `credentials.admission_key`, read off the stored certificate. The one `pair` prints is also the
+**client key**, which the KPG tab knows this client by and which a renewal keeps while the
+admission key changes. It is stored with the identity, `credentials.client_key`, and `identity`
+prints it above the admission key; `whoami` asks the gate for both.
 
 **Ask for a shorter certificate when a year is too long.** `--lifetime 30` on the command line, or
 `lifetime=timedelta(days=30)` from a program, asks for one that lasts thirty days. Anything from a
@@ -121,7 +124,7 @@ and are never waived.
 **The key can be kept under a password.** `pair --key-password` asks for one at a terminal, twice
 and without echo, before anything is sent, and stores the client's key encrypted under it. Every
 command that uses the key afterwards asks for it at a terminal, once, and only when the key is
-encrypted, which `whoami` says without asking. **The command line has no other way to take it,
+encrypted, which `identity` says without asking. **The command line has no other way to take it,
 by design**: never as an argument, which the process list shows, and not from standard input
 either, so with no terminal `pair --key-password` is refused, exit 2 with nothing spent, and a
 command that needs the password fails with `StorageError`, exit 1. Standard input from the null
@@ -157,16 +160,33 @@ a backup from a casual reader rather than a determined one. A program should pas
 
 ```shell
 pykeepassgate status
+pykeepassgate identity
 pykeepassgate whoami
 ```
 
-`status` connects and asks. `whoami` says what this client is without connecting, which is what to
-run when nothing is answering, to find out which side the problem is on: the subject, the
-admission key, the database, the profiles the operator approved at pairing or at the last renewal,
-when the certificate expires and whether it has, or that the stored moment is not one it can read,
-which leaves the gate to decide, whether the key is encrypted, the port, and where the identity is
-stored. The two in the middle are what stop every other command before it dials, and `whoami` reads
-both off the stored files without asking for a password.
+The two names follow the API's: `whoami` asks `GET /gate/whoami`, and `identity` reads the
+identity this client stored.
+
+`status` connects and asks. `identity` says what this client is without connecting, which is what
+to run when nothing is answering, to find out which side the problem is on: the subject, the client
+key, the admission key, the database, the profiles the operator approved at pairing or at the last
+renewal, when the certificate expires and whether it has, or that the stored moment is not one it
+can read, which leaves the gate to decide, whether the key is encrypted, the port, and where the
+identity is stored. The expiry and the key are what stop every other command before it dials, and
+`identity` reads both off the stored files without asking for a password.
+
+`whoami` asks the gate who this client is, as the database admitted it: the subject, the client
+key, the admission key, when the certificate stops being admitted, and two lists of profiles. The
+**client key** is the key the operator knows this client by: the admission key of the certificate
+it paired with, which every renewal keeps, and which the KPG tab counts and tells clients apart by,
+since a name need not be unique. The **admission key** is the certificate this identity holds now,
+which a renewal changes. A renewed identity no longer holds the certificate it paired with, so the
+client key is stored beside it when it is paired and copied at every renewal, and `identity`
+prints the stored one. `profiles` are the ones the rules are asked about now, and `removed
+profiles` are the ones its record holds that the database no longer names, which grant nothing
+until the operator names them again. What `identity` prints is what the operator approved when this
+identity was issued, at pairing or at its last renewal, so the two differ once a profile has been
+removed since then.
 
 ```python
 from pykeepassgate import GateClient
@@ -175,13 +195,16 @@ client = GateClient.open()
 state = client.status()
 
 print(state.ok, state.database, state.version, state.revision)
+
+me = client.identity()
+print(me.client_key, me.admission_key, me.profiles, me.removed_profiles)
 ```
 
 `version` is the plugin's release, which this client shares, and `revision` is the commit the
 plugin was built from, or empty for a build that carries none. Two machines running the same
 version can be running different builds of it, and the revision says which.
 
-`GateClient.open()` reads the credentials pairing stored. Pass `profile=` where more than one
+`GateClient.open()` reads the credentials pairing stored, or the last renewal. Pass `profile=` where more than one
 identity is kept on the machine. **Every setting is passed by name**: after the identity, which is
 the credentials for `GateClient`, the directory and the profile for `GateClient.open`, the port and
 the invitation for `Pairing`, and those and the name for `api.pair`, everything is keyword only, so
@@ -194,10 +217,11 @@ pykeepassgate revoke
 ```
 
 `revoke` asks the gate to revoke the certificate this client presents, and once the gate says the
-revocation is saved, removes what pairing stored for it: the key, the certificate, the gate key and
-`client.json`, and the directory as well if that empties it. Nothing can use them afterwards, since
-the database refuses the certificate from the next connection on, and a private key kept for a
-certificate nobody accepts protects nothing. Pairing again is the way back, into the same place.
+revocation is saved, removes what is stored for it, by pairing or the last renewal: the key, the
+certificate, the gate key and `client.json`, and the directory as well if that empties it. Nothing
+can use them afterwards, since the database refuses the certificate from the next connection on,
+and a private key kept for a certificate nobody accepts protects nothing. Pairing again is the way
+back, into the same place.
 
 When the gate does not confirm it, nothing is removed. `not saved` means the revocation was taken
 back out and this client is still admitted, so running `revoke` again is safe. `not verified` means
@@ -691,7 +715,7 @@ authority.issue("agent-invented", ExtendedKeyUsageOID.CLIENT_AUTH, "identity.pem
 
 with FakeGate(host, authority.pem) as gate:
     gate.handler = lambda path, body, client: (503, '{"error":"busy"}')
-    credentials = api.Credentials(directory, gate.port, "CN=agent-invented", "", (), "")
+    credentials = api.Credentials(directory, gate.port, "CN=agent-invented", "", (), "", "")
     client = api.GateClient(credentials)
     ...     # whatever the program does, which here meets `GateBusy`
 ```

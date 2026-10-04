@@ -118,7 +118,11 @@ namespace KeePassGate.Pipeline
                 // Read once, so the names granted and the names withheld are two halves of one list.
                 var named = target.KnownProfiles;
                 return ClientIdentity.Paired(
-                    databaseId, presented, Effective(record.Profiles, named), Removed(record.Profiles, named));
+                    databaseId,
+                    presented,
+                    Effective(record.Profiles, named),
+                    Removed(record.Profiles, named),
+                    record.ClientKey);
             }
             catch (DatabaseShut error)
             {

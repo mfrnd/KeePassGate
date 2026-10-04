@@ -238,7 +238,8 @@ paths:
       summary: Who this client is, as the database it reached admitted it.
       description: |
         What the connection established before this route was chosen: the certificate's subject,
-        the admission key, when the certificate stops being admitted, the profiles the rules are
+        the client key the operator knows this client by, the admission key of the certificate on
+        the connection, when the certificate stops being admitted, the profiles the rules are
         asked about for this client, and the names its record holds that the database no longer
         does. All of it is this client's own record, so it declares `x-kpg-verb: none`: it reads
         nothing a rule is about, and a client the rules let reach nothing may still ask who it is.
@@ -1642,17 +1643,25 @@ components:
 
     Identity:
       type: object
-      required: [subject, admissionKey, expires, profiles, removedProfiles]
+      required: [subject, clientKey, admissionKey, expires, profiles, removedProfiles]
       additionalProperties: false
       properties:
         subject:
           type: string
           description: The certificate's subject, `CN=` and the name the client paired under.
+        clientKey:
+          type: string
+          description: |
+            The key the operator knows this client by: SHA-256 over the certificate it paired
+            with, in lower case hex, which every renewal keeps. A name is the client's own choice
+            and need not be unique, so the KPG tab counts and tells clients apart by this, and each
+            row of its Clients page names it.
         admissionKey:
           type: string
           description: |
-            SHA-256 over the certificate, in lower case hex. The Clients page lists and revokes a
-            client by it, and every line of the audit names one by it.
+            SHA-256 over the certificate on this connection, in lower case hex, which a renewal
+            changes. The Clients page revokes a certificate by it, and every line of the audit
+            names one by it.
         expires:
           type: string
           description: When the certificate stops being admitted, RFC 3339 in UTC to the second.
