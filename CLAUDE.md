@@ -8,7 +8,7 @@ Guidance for anyone, human or AI assistant, working in this repository.
 mutual TLS, so that automation and AI agents can each be given a narrow, revocable, audited slice of
 a database.
 
-**Status: steps 1 to 19 of the build order are done and the API is served.** The plugin loads
+**Status: the whole build order is done and the API is served.** The plugin loads
 into KeePass, the KPG tab creates, recreates and deletes the database's own certificate authority,
 the gate listens on loopback and answers over mutual TLS 1.3, a client is served only if
 the database holds an admission record for its certificate, and **a stranger can now become one**:
@@ -30,8 +30,14 @@ knows lives beside the authority, with a page of its own to manage them, and a n
 grants nothing whatever rule still names it. **And the plugin has a window of its own**, under KeePass's Tools
 menu, saying where the gate is listening and taking the port it should listen on. **And there is
 documentation for whoever runs it**: `docs/`, written in the order an operator meets the plugin,
-around screenshots a fixture takes by driving a real KeePass. **Step 20, the certificate lifecycle,
-is being built**: what the build order plans for it is in `DESIGN.md` §132.
+around screenshots a fixture takes by driving a real KeePass. **And a certificate has a
+lifecycle**: the authority and its host certificate are issued together for a hundred years, a
+client's certificate lasts as long as the operator picks from what the client proposes, the records
+of expired certificates go with the plugin's next write of its own, a pairing, a renewal, a
+revocation or a change to the authority, and a client can give its own certificate
+up, or renew it on an approval dialog like the pairing one, which can refuse it once, in this
+session, until a date or forever, an answer the clients page shows in red and takes back on
+the operator's word.
 
 ## Read these before proposing anything
 
@@ -193,7 +199,7 @@ designing around them.
   writes an admission record to the live database, and only touching the keys the operator changed
   leaves it alone.
 
-  **And `KPG.Profiles` is replayed as a difference**, because it is the one key whose second writer
+  **And `KPG.Profiles` is replayed as a difference**, because it is a key whose second writer
   has to be merged with the tab: a pairing names an approved profile in the same write as the
   admission record, so the tab's own list is not the only version of it. Record and revocation keys
   have second writers too, a client revoking itself and the prune that rides on the plugin's own
@@ -207,6 +213,14 @@ designing around them.
   a profile the operator is part way through removing is admitted to a name OK takes off the list,
   where it grants nothing, which is why a buffered profile edit kills the invite button.
 
+  **A standing answer to a renewal is the other key with a second writer that matters.** The
+  clients page's **Allow renewal** takes one away in the buffer, and the renewal dialog writes one
+  live once an until-date passes while the settings dialog is open. That answer is the later word
+  on the certificate, so `PendingDatabase` registers a merge for every `KPG.RenewalRefused.` key,
+  through `PendingStore.Reconcile` by kind, that keeps whatever changed under the dialog. An answer
+  for this session has no key: `PendingSessionRefusals` holds the lift beside the buffer, and the
+  factory applies it to the plugin's one `SessionRefusals` on OK and drops it otherwise.
+
   One case survives all of that, deliberately: recreating or deleting the authority while a pairing
   lands leaves that record behind, inert, because its certificate chains to an authority that is
   gone. The clients page says so on the row rather than listing it as a client.
@@ -214,7 +228,9 @@ designing around them.
   **Revocation waits too, and that is a cost that was argued and accepted.** Immediacy is something
   a revocation would rather have, and an operator who revokes and leaves the dialog open has revoked
   nothing. What it buys is one model for the whole tab, because whichever model somebody assumes on
-  the page they are not looking at is the one that costs them.
+  the page they are not looking at is the one that costs them. **Allow renewal waits the same
+  way**: the client's name stops being red at once, as a revoked row goes at once, and the answer
+  is lifted, from the database and from the session alike, when the dialog is accepted.
 
 - **The tabs say `KPG` and the menu item says `KeePassGate (KPG)`**, and which form goes where is
   about space rather than style. A tab strip is not ours: KeePass puts four or five of its own tabs
@@ -752,19 +768,19 @@ here can hang or crash the password manager.
 
 ## Where to start
 
-[`DESIGN.md`](DESIGN.md) §132 ends with a multi-step build order. **Steps 1 to 19 are done.** The
+[`DESIGN.md`](DESIGN.md) §132 ends with a multi-step build order. **All of them are done.** The
 skeleton loads and shows a KPG tab, that tab creates, recreates and deletes the authority, the gate
 serves the document's routes over mutual TLS to a client the authority issued and the database holds
 a record for, a stranger can pair, a locked database answers `503 locked`, a grant means something
 definite, an operator can write one from the group and entry dialogs, the router refuses anything
 the record and the rules do not both allow while recording every answer the rules give, twenty-two
 routes read and change the database, two launchers start the pinned KeePass with the plugin in it,
-a profile has a home of its own, the plugin has a window under the Tools menu, and `docs/` says how
-to use the result.
+a profile has a home of its own, the plugin has a window under the Tools menu, `docs/` says how
+to use the result, and a client's certificate can be renewed and given up.
 
 **Start with [`docs/`](docs/README.md) if the question is what this does**, and with the documents
-below if the question is why it does it that way. What is left is step 20, the certificate
-lifecycle, and beyond the build order there is no release packaging and no Scoop manifest.
+below if the question is why it does it that way. What is left is not a step: there is no release
+packaging and no Scoop manifest.
 
 **The storage decision survived the thing most likely to invalidate it.** The `GroupForm` snapshot
 hazard is real and now measured rather than remembered: `SnapshotHazardTests` reads the mechanism off
@@ -920,7 +936,8 @@ replaced it, over a real socket. See DESIGN.md §119.
 
 **Two things about records that cost time to learn.** They are read from the live database on every
 connection and never cached, so a record that lands takes effect with nothing having to be reloaded
-or told: the KPG tab's clients page lists every admitted client and takes one away, and from
+or told: the KPG tab's clients page lists every admitted client, names in red the ones whose
+renewals stand refused and lifts that answer from the row's menu, and takes one away, and from
 the next request onwards that client is refused. **Landing is what waits now**, see the tab's own
 entry below: the row goes at once, the revocation lands when the dialog is accepted, and the file changes
 when the database is saved. Until then the certificate still works. The press itself goes into the

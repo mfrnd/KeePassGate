@@ -1394,7 +1394,12 @@ Each step is refusable, and each ends with something that runs.
 20. **The certificate lifecycle**: a lifetime for each client, proposed by the client and picked
     by the operator; the records of expired certificates pruned on the plugin's own writes; a route
     by which a client revokes its own certificate; and renewal through an approval dialog like
-    pairing's.
+    pairing's. **Done.** Until here every client's certificate had one length that nobody chose,
+    and its end was an outage with no way back but an invitation from an operator who had already
+    let the client in. What this settles is who decides each part. The operator decides how long a
+    client's certificate lasts and whether it is renewed, on a dialog, and can refuse a renewal
+    once, in this session, until a date or forever; the client decides when to give a certificate
+    up, without asking anybody, since that grants it nothing.
 
 Steps 5 to 8 are the ones that prove the design. Step 5 is deliberately early, because the
 `CustomData` dialog hazard is the thing most likely to invalidate the storage decision, and finding

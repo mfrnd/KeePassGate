@@ -153,10 +153,21 @@ group dialog's **OK**, and read out of the `.kdbx` after the process has gone. P
 than Escape is what it is for: the dialog writes its own copy of the group's settings back over the
 group at that moment, so a rule written anywhere else would be destroyed exactly there.
 `LiveAuthorityTests` presses OK too, for the reason the end of this document gives, so this is no
-longer the only one that does. It is also the only test that clicks with the pointer, because
-neither column on that table can be typed into and a list is not something the accessibility tree
-can be asked to operate. The screenshots move it too, parking it clear of each window before the
-picture is taken, so that no tooltip covers what the picture shows.
+longer the only one that does. It clicks with the pointer, because neither column on that table can
+be typed into and a list is not something the accessibility tree can be asked to operate, and
+`LiveRenewalTests` below does too, to choose from a menu. The screenshots move it as well, parking
+it clear of each window before the picture is taken, so that no tooltip covers what the picture
+shows, and choosing from the menu one picture leaves open once it has been taken.
+
+**A client's own certificate**, in `LiveCertificateTests` and `LiveRenewalTests`. A client revokes
+the certificate it presents and is refused on its very next connection, and the revocation is in the
+`.kdbx` after KeePass has exited. And an admitted client asks to renew: the renewal dialog is a real
+window approved by a real button press, and the certificate that comes back opens a route on the
+next connection. The new certificate's own renewal is then refused in this session from the Refuse
+button's menu, opened and chosen with the pointer in KeePass's own modal loop, and asking again is
+answered `409 this session` with nobody asked. After that the client gives the old certificate up
+by presenting it and is refused with it, and once KeePass has gone the file holds the new record
+and not the old one, and nothing of the refusal in this session.
 
 **The authority chooser**, in `LiveAuthorityChooserTests`: two copies of one database each replace
 the authority they share and admit a client of their own, the copy KeePass opens is merged with the
