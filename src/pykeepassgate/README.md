@@ -139,9 +139,9 @@ catches whatever this client raises of its own and nothing the standard library 
 | `MalformedToken` | The text handed over is not an invitation, so nothing was sent. Check what was pasted. |
 | `ProtocolError` | Something on the wire is not what the protocol allows: an answer this client cannot read, or a request it will not send. Do not retry an answer it cannot read: the two halves disagree about the wire, which `tests/pykeepassgate/test_protocol.py` exists to stop. An answer longer than `max_response_bytes` is refused this way too, and the message says so: raise the setting rather than retry. |
 | `NotPaired` | Nothing is stored for a paired client where this looked: nothing has paired under that profile, its identity was given up, or the directory named is not the one the pairing used. Pair, or name the profile or the directory it used. A `StorageError`, so catching that catches this as well. |
-| `StorageError` | From `pair`, before anything is sent: the directory cannot hold credentials, and the message says why. Nothing is spent, so fix that and pair again. Afterwards: what is stored for this client will not read, or could not be written, and the message names the file or the directory to look at. |
+| `StorageError` | From `pair`, before anything is sent: the directory cannot hold credentials, and the message says why. Nothing is spent, so fix that and pair again. Afterwards: what is stored for this client will not read, or could not be written, and the message names the file or the directory to look at. A key stored under a password is one of these when no password was given, or the one given does not open it. |
 | `TransportError` | No whole answer arrived: nothing is listening, the handshake failed, as below, or the connection broke or timed out once the request was on its way. After a read, send it again. After a write, the change may have landed, so look before sending it again: read or list what it changed, where the rules allow that, or ask the operator. |
-| `ValueError` | A setting or an argument that could not work, refused where it is given and before anything is dialed, stored or spent: a port, a timeout, a retry budget, a response cap, a lifetime, a profile's name or an expiry. The message names it. |
+| `ValueError` | A setting or an argument that could not work, refused where it is given and before anything is dialed, stored or spent: a port, a timeout, a retry budget, a response cap, a lifetime, a profile's name, an expiry or a key password. The message names it. |
 | `AttributeError` | Something this client never read: a listed entry's `username`, `password`, `notes`, `expires` or `custom()`, a listed group's `notes`, a listed field's `value`. Read it first. Never raised for a withheld value. |
 | `KeyError` | A name `entry.fields` or `entry.custom()` does not hold, as from any mapping. |
 
@@ -170,4 +170,9 @@ gate already has, and the object itself is not one of them.
 
 **It defends nothing against local code execution as the user.** The client's key is on the disk,
 because a client has to still be the same client tomorrow. The whole design concedes this
-throughout, and so does this.
+throughout, and so does this. The key can be stored under a password, with `pair --key-password`,
+which asks at a terminal and takes the password no other way, or with `key_password=` from a
+program, and that protects copies of the directory, such as backups and disk images, and nothing
+against a process running as the user. How well it protects a copy is the password's to decide:
+the key is encrypted with PBKDF2 at OpenSSL's default of 2048 iterations, which is little work per
+guess, so a program should pass a long random one.

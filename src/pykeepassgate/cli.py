@@ -16,16 +16,21 @@ reached, `2` the arguments were wrong. A script can branch on that without readi
 from __future__ import annotations
 
 import argparse
+import ctypes
 import getpass
+import importlib
 import math
+import os
 import sys
 import unicodedata
+from collections.abc import Callable
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Literal, TypedDict
 
-from . import api
-from .errors import GateError, ProtocolError
+from . import api, pairing, transport
+from .credentials import IDENTITY_FILE
+from .errors import GateError, ProtocolError, StorageError
 from .model import TITLE
 
 #: Everything went wrong that this program knows how to be wrong about.
@@ -106,6 +111,15 @@ def _parser() -> argparse.ArgumentParser:
         help=(
             "keep the identity in a directory another account owns or may write to, which is "
             "otherwise refused; every other check on the directory still applies"
+        ),
+    )
+    pairing.add_argument(
+        "--key-password",
+        action="store_true",
+        help=(
+            "store the key under a password, asked for twice at a terminal without echo before "
+            "anything is sent, and asked for at a terminal whenever the key is used after. It "
+            "protects copies of the directory, and nothing against a process run as this user."
         ),
     )
 
@@ -578,19 +592,134 @@ def _secret(prompt: str) -> str:
 
     A `*` stands in for each character because a value is pasted as often as typed, and a prompt
     that stays blank after a paste looks as if the paste did not land. That says how long the
-    value is, which is the price of it.
+    value is, which is the price of it. The password a client's own key is kept under is the
+    exception, and is asked for through `_typed` with nothing shown.
     """
-    if not sys.stdin.isatty():
+    if not _console():
         return sys.stdin.readline()
 
+    return _typed(prompt, "*")
+
+
+def _console() -> bool:
+    """Whether standard input is a terminal a person can type at, which `getpass` then asks on.
+
+    `isatty` alone says too much on Windows, where it is true for every character device, NUL
+    among them: a program that runs a command with its input from NUL, as automation does, would
+    get past every refusal for having no terminal into `getpass`, which reads the console rather
+    than standard input and so waits for good, or spins with no console at all. So there the
+    descriptor is asked whether it is a console. A stream with no descriptor of its own is taken
+    at its word, as every stream is elsewhere.
+    """
+    if not sys.stdin.isatty():
+        return False
+
+    if os.name != "nt":
+        return True
+
     try:
-        return getpass.getpass(prompt, echo_char="*")
+        descriptor = sys.stdin.fileno()
+    except (AttributeError, OSError, ValueError):
+        return True
+
+    return _windows_console(descriptor)
+
+
+def _windows_console(descriptor: int) -> bool:
+    """Whether a descriptor is a console on Windows, which `GetConsoleMode` answers and NUL fails.
+
+    Looked up rather than imported, as `os.geteuid` is in `credentials`: neither `msvcrt` nor
+    `ctypes.windll` exists elsewhere, and a type checker told which platform it runs on calls the
+    other one's branch unreachable or its names undefined.
+    """
+    # cspell:ignore osfhandle
+    try:
+        handle = importlib.import_module("msvcrt").get_osfhandle(descriptor)
+    except OSError:
+        return False
+
+    mode = ctypes.c_ulong()
+    kernel32 = ctypes.__dict__["windll"].kernel32
+    return bool(kernel32.GetConsoleMode(handle, ctypes.byref(mode)))
+
+
+def _typed(prompt: str, echo_char: str | None = None) -> str:
+    """One line typed at the terminal, or nothing if input ended at the prompt.
+
+    Nothing is echoed, or `echo_char` for each character when one is given, which `_secret`
+    says when it is.
+    """
+    try:
+        return getpass.getpass(prompt, echo_char=echo_char)
     except EOFError:
         # Input ended at the prompt, which a pipe would have given as an empty line.
         return ""
 
 
+def _new_key_password() -> str | None:
+    """A password for a key about to be stored, typed twice, or `None` with the reason printed.
+
+    Twice, because a typing mistake here is a key nobody can open again, and nothing sent can be
+    taken back once the gate has answered. Neither answer is ever printed.
+    """
+    first = _typed("Key password: ")
+    if not first:
+        print("an empty key password protects nothing, so none was taken", file=sys.stderr)
+        return None
+
+    if _typed("The same again: ") != first:
+        print("the two key passwords differ, so neither was taken", file=sys.stderr)
+        return None
+
+    try:
+        transport.key_password_limit(first)
+    except ValueError as refused:
+        print(f"{refused}, so it was not taken", file=sys.stderr)
+        return None
+
+    return first
+
+
+def _key_password(arguments: argparse.Namespace) -> Callable[[], str]:
+    """What opens a stored key that is encrypted: its password, asked for at a terminal.
+
+    Handed to every command that loads the key, and called only when the key turns out to be
+    encrypted, so an identity stored without a password is never asked about. There is no other
+    way to give it to the command line, deliberately: never as an argument, which the process
+    list shows, and not from standard input, which may be carrying something else. A program
+    passes `key_password=` instead.
+    """
+    where = arguments.directory or api.default_directory(arguments.profile)
+    identity = where / IDENTITY_FILE
+
+    def ask() -> str:
+        if not _console():
+            raise StorageError(
+                f"{identity} holds an encrypted key, and its password is asked for only at a "
+                "terminal: a program passes key_password= instead"
+            )
+
+        typed = _typed("Key password: ")
+        if not typed:
+            raise StorageError(f"{identity} holds an encrypted key, and no password was typed")
+
+        return typed
+
+    return ask
+
+
 def _pair(arguments: argparse.Namespace) -> int:
+    # Before anything is read or sent: the password is asked for at a terminal and nowhere else,
+    # so without one this pairing could not be what it says, and it is refused as an argument
+    # that cannot be done as given, with nothing spent.
+    if arguments.key_password and not _console():
+        print(
+            "--key-password asks for the password at a terminal, and there is none here: a "
+            "program passes key_password= to api.pair instead",
+            file=sys.stderr,
+        )
+        return 2
+
     # Stripped whichever way it arrives. A paste brings a space or a line break with it as often
     # as not, and the token's alphabet holds neither, so taking them off loses nothing and the
     # argument accepts what standard input does. One of nothing but white space is no invitation,
@@ -600,6 +729,15 @@ def _pair(arguments: argparse.Namespace) -> int:
         # Read rather than argued, so the token does not end up in a shell history or in the
         # process list, where anything running as this user can read it.
         invitation = _secret("Invitation: ").strip()
+
+    key_password = None
+    if arguments.key_password:
+        # Everything the gate is not needed for is refused before a person is asked for a
+        # password twice: an invitation that is not one, a name or profiles it would refuse.
+        pairing.refuse_unusable(invitation, arguments.name, list(arguments.profiles))
+        key_password = _new_key_password()
+        if key_password is None:
+            return 2
 
     credentials = api.pair(
         port=arguments.port,
@@ -611,6 +749,7 @@ def _pair(arguments: argparse.Namespace) -> int:
         host=arguments.host,
         allow_shared_directory=arguments.allow_shared_directory,
         lifetime=arguments.lifetime,
+        key_password=key_password,
         **_dialing(arguments),
     )
 
@@ -624,7 +763,11 @@ def _pair(arguments: argparse.Namespace) -> int:
 
 def _status(arguments: argparse.Namespace) -> int:
     client = api.GateClient.open(
-        arguments.directory, arguments.profile, arguments.host, **_dialing(arguments)
+        arguments.directory,
+        arguments.profile,
+        arguments.host,
+        key_password=_key_password(arguments),
+        **_dialing(arguments),
     )
     status = client.status()
     print(f"gate {status.version} serving database {status.database}")
@@ -633,7 +776,13 @@ def _status(arguments: argparse.Namespace) -> int:
 
 def _renew(arguments: argparse.Namespace) -> int:
     where = arguments.directory or api.default_directory(arguments.profile)
-    client = api.GateClient.open(where, arguments.profile, arguments.host, **_dialing(arguments))
+    client = api.GateClient.open(
+        where,
+        arguments.profile,
+        arguments.host,
+        key_password=_key_password(arguments),
+        **_dialing(arguments),
+    )
     renewal = client.renew(
         lifetime=arguments.lifetime, allow_shared_directory=arguments.allow_shared_directory
     )
@@ -688,7 +837,13 @@ def _revoke(arguments: argparse.Namespace) -> int:
     # leaves the files where they are: `not saved` leaves the client admitted, so they are still
     # its identity.
     where = arguments.directory or api.default_directory(arguments.profile)
-    client = api.GateClient.open(where, arguments.profile, arguments.host, **_dialing(arguments))
+    client = api.GateClient.open(
+        where,
+        arguments.profile,
+        arguments.host,
+        key_password=_key_password(arguments),
+        **_dialing(arguments),
+    )
     named = f"{client.credentials.subject} with database {client.credentials.database}"
     try:
         client.revoke_certificate()
@@ -717,7 +872,11 @@ def _whoami(arguments: argparse.Namespace) -> int:
 
 def _groups(arguments: argparse.Namespace) -> int:
     client = api.GateClient.open(
-        arguments.directory, arguments.profile, arguments.host, **_dialing(arguments)
+        arguments.directory,
+        arguments.profile,
+        arguments.host,
+        key_password=_key_password(arguments),
+        **_dialing(arguments),
     )
     found = client.subgroups(arguments.under) if arguments.under else client.groups()
 
@@ -729,7 +888,11 @@ def _groups(arguments: argparse.Namespace) -> int:
 
 def _entries(arguments: argparse.Namespace) -> int:
     client = api.GateClient.open(
-        arguments.directory, arguments.profile, arguments.host, **_dialing(arguments)
+        arguments.directory,
+        arguments.profile,
+        arguments.host,
+        key_password=_key_password(arguments),
+        **_dialing(arguments),
     )
 
     for entry in client.entries(arguments.group, include_expired=arguments.include_expired):
@@ -743,7 +906,11 @@ def _entries(arguments: argparse.Namespace) -> int:
 
 def _show(arguments: argparse.Namespace) -> int:
     client = api.GateClient.open(
-        arguments.directory, arguments.profile, arguments.host, **_dialing(arguments)
+        arguments.directory,
+        arguments.profile,
+        arguments.host,
+        key_password=_key_password(arguments),
+        **_dialing(arguments),
     )
     entry = client.entry(arguments.uuid)
 
@@ -771,7 +938,11 @@ def _show(arguments: argparse.Namespace) -> int:
 
 def _add(arguments: argparse.Namespace) -> int:
     client = api.GateClient.open(
-        arguments.directory, arguments.profile, arguments.host, **_dialing(arguments)
+        arguments.directory,
+        arguments.profile,
+        arguments.host,
+        key_password=_key_password(arguments),
+        **_dialing(arguments),
     )
 
     password = None
@@ -796,7 +967,11 @@ def _add(arguments: argparse.Namespace) -> int:
 
 def _remove(arguments: argparse.Namespace) -> int:
     client = api.GateClient.open(
-        arguments.directory, arguments.profile, arguments.host, **_dialing(arguments)
+        arguments.directory,
+        arguments.profile,
+        arguments.host,
+        key_password=_key_password(arguments),
+        **_dialing(arguments),
     )
     client.delete_entry(arguments.uuid)
     print(f"removed {arguments.uuid}")
@@ -805,7 +980,11 @@ def _remove(arguments: argparse.Namespace) -> int:
 
 def _attachments(arguments: argparse.Namespace) -> int:
     client = api.GateClient.open(
-        arguments.directory, arguments.profile, arguments.host, **_dialing(arguments)
+        arguments.directory,
+        arguments.profile,
+        arguments.host,
+        key_password=_key_password(arguments),
+        **_dialing(arguments),
     )
 
     for attachment in client.attachments(arguments.uuid):
@@ -816,7 +995,11 @@ def _attachments(arguments: argparse.Namespace) -> int:
 
 def _fetch(arguments: argparse.Namespace) -> int:
     client = api.GateClient.open(
-        arguments.directory, arguments.profile, arguments.host, **_dialing(arguments)
+        arguments.directory,
+        arguments.profile,
+        arguments.host,
+        key_password=_key_password(arguments),
+        **_dialing(arguments),
     )
     attachment = client.attachment(arguments.uuid, arguments.name)
 

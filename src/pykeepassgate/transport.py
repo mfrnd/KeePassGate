@@ -30,7 +30,7 @@ import math
 import socket
 import ssl
 import time
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
@@ -186,6 +186,84 @@ def retry_limit(name: str, seconds: float | None) -> float | None:
 def _finite(value: object) -> bool:
     """Whether this is a number of seconds at all: finite, and not `True` or `False`."""
     return isinstance(value, int | float) and not isinstance(value, bool) and math.isfinite(value)
+
+
+#: What a password for this client's key may be given as: the password, as text or as bytes, or
+#: something that returns one when it is needed, which is only when the key stored turns out to be
+#: encrypted. Text is encoded as UTF-8, which is what `ssl` does with a text password too.
+KeyPassword = str | bytes | Callable[[], str | bytes]
+
+#: The longest password a key can be stored and opened under, in bytes, text counted as UTF-8:
+#: `cryptography` refuses a longer one when it encrypts the key, and the password callback of
+#: `ssl` reads one no longer than this when it opens it. Refused where it is given, so a pairing
+#: whose key could never be stored is refused before its invitation is spent.
+LONGEST_KEY_PASSWORD = 1023
+
+
+class _NoKeyPassword(LookupError):
+    """A key that needs a password, and nobody gave one: `paired_context` names the file."""
+
+
+def key_password_limit(key_password: KeyPassword | None) -> KeyPassword | None:
+    """Refuse a key password that could not be one, and hand back one that could.
+
+    Refused where it is given, as every other setting is. A callable is not called here: it is
+    asked only once a key turns out to need it, and what it returns is held to the same rule then.
+    The value itself is never put in the message, because it is a password.
+    """
+    if key_password is None or callable(key_password):
+        return key_password
+
+    if isinstance(key_password, str | bytes) and key_password:
+        _encoded(key_password)
+        return key_password
+
+    kind = type(key_password).__name__
+    given = (
+        f"an empty {kind}"
+        if isinstance(key_password, str | bytes)
+        else f"an object of type {kind}"
+    )
+    raise ValueError(
+        f"key_password is a password, as text or bytes, or a callable returning one, not {given}"
+    )
+
+
+def key_secret(key_password: KeyPassword | None) -> bytes:
+    """The password itself, asked of a callable if that is what was given, as bytes.
+
+    What a callable returns is held to what a password given directly is, and refused the same
+    way, without the value in the message.
+    """
+    if key_password is None:
+        raise _NoKeyPassword
+
+    given = key_password() if callable(key_password) else key_password
+    if not isinstance(given, str | bytes) or not given:
+        raise ValueError("key_password gave no password: it is text or bytes, and not empty")
+
+    return _encoded(given)
+
+
+def _encoded(password: str | bytes) -> bytes:
+    """A password as the bytes a key is encrypted under, or a refusal that does not repeat it.
+
+    Text that UTF-8 cannot encode, such as the lone surrogate Python leaves in text decoded from a
+    file name or an environment variable that was not UTF-8, is refused here rather than by
+    `str.encode`, whose message quotes the character and where it is.
+    """
+    try:
+        encoded = password.encode("utf-8") if isinstance(password, str) else password
+    except UnicodeEncodeError:
+        raise ValueError("key_password is text that UTF-8 cannot encode") from None
+
+    if len(encoded) > LONGEST_KEY_PASSWORD:
+        raise ValueError(
+            f"key_password is at most {LONGEST_KEY_PASSWORD} bytes, text counted as UTF-8, "
+            f"and the one given is {len(encoded)}"
+        )
+
+    return encoded
 
 
 def pause(seconds: float) -> None:
@@ -431,7 +509,9 @@ def unpaired_context() -> ssl.SSLContext:
     return context
 
 
-def paired_context(authority: Path, identity: Path) -> ssl.SSLContext:
+def paired_context(
+    authority: Path, identity: Path, key_password: KeyPassword | None = None
+) -> ssl.SSLContext:
     """The context for a client that has been through pairing.
 
     The authority handed over at pairing is the only anchor loaded, so a certificate that does not
@@ -455,6 +535,13 @@ def paired_context(authority: Path, identity: Path) -> ssl.SSLContext:
     during a re-pair, edited, or missing its key reaches `ssl` as an `SSLError`, and a missing one
     as a `FileNotFoundError`: both `OSError`, neither this library's, and a traceback out of every
     command that dials.
+
+    **A key stored under a password is opened with `key_password`**, which `ssl` asks for only
+    when the key is encrypted, so a callable is never asked about one that is not. It is always
+    handed a callable, because given none it would fall back on OpenSSL's own prompt, which reads
+    a terminal from inside a library call: an encrypted key with no `key_password` is a
+    `StorageError` naming the file instead, and so is one the password given does not open.
+    Whatever the callable raises comes out unchanged, a refusal of its own among it.
     """
     context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
     context.check_hostname = False
@@ -467,9 +554,25 @@ def paired_context(authority: Path, identity: Path) -> ssl.SSLContext:
             f"{authority} will not load as the authority this client trusts: {error}"
         ) from error
 
+    asked: list[bool] = []
+
+    def password() -> bytes:
+        asked.append(True)
+        return key_secret(key_password)
+
     try:
-        context.load_cert_chain(certfile=str(identity))
+        context.load_cert_chain(certfile=str(identity), password=password)
+    except _NoKeyPassword:
+        raise StorageError(
+            f"{identity} holds an encrypted key, and no key_password was given to open it"
+        ) from None
     except OSError as error:
+        if asked:
+            raise StorageError(
+                f"{identity} holds an encrypted key that the key_password given does not open: "
+                f"{error}"
+            ) from error
+
         raise StorageError(
             f"{identity} will not load as this client's certificate and key: {error}"
         ) from error

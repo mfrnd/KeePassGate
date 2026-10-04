@@ -308,6 +308,17 @@ def lifetime_text(lifetime: timedelta) -> str:
     return f"P{lifetime.days}D"
 
 
+def refuse_unusable(invitation: str, name: str, profiles: Iterable[str]) -> None:
+    """Refuse an invitation that is not one, and a name or profiles the gate would refuse.
+
+    Everything about a pairing that can be refused without the gate, asked before a person is
+    asked for a key password: one typed and then thrown away for a malformed invitation is a
+    person's answer wasted.
+    """
+    token_text.decode(invitation.strip())
+    _usable(name, profiles)
+
+
 def _usable(name: str, profiles: Iterable[str]) -> None:
     """Refuse what the gate would refuse, without spending a connection to be told.
 

@@ -4,6 +4,8 @@
 <!-- cspell:ignore wslconfig -->
 <!-- Three of Python's built-in functions, named the way Python names them. -->
 <!-- cspell:ignore getattr hasattr repr -->
+<!-- The encryption scheme PKCS#5 names for a key under a password. -->
+<!-- cspell:ignore PBES -->
 
 PyKeePassGate is the reference client: a Python library and a command line over it. This page is
 worked examples. [`../src/pykeepassgate/README.md`](../src/pykeepassgate/README.md) is the package's
@@ -109,6 +111,40 @@ it stands where a file goes or where the directory itself is named. `renew`
 takes the same flag, and `GateClient.renew` the same parameter, for the identity's own directory,
 which a renewal writes the new identity into; the two directories it makes beside it are its own
 and are never waived.
+
+**The key can be kept under a password.** `pair --key-password` asks for one at a terminal, twice
+and without echo, before anything is sent, and stores the client's key encrypted under it. Every
+command that uses the key afterwards asks for it at a terminal, once, and only when the key is
+encrypted. **The command line has no other way to take it, by design**: never as an argument,
+which the process list shows, and not from standard input either, so with no terminal
+`pair --key-password` is refused, exit 2 with nothing spent, and a command that needs the password
+fails with `StorageError`, exit 1. Standard input from the null device is no terminal, on Windows
+as well, where it claims to be one: a command run with its input from `NUL` is refused at once
+rather than left waiting on a console nobody is at. A program passes `key_password=` instead, to
+`api.pair`, `GateClient` and `GateClient.open`: the password as text or bytes, or a callable
+returning it, which is asked once, and only when the key turns out to be encrypted.
+
+```python
+def key_password() -> str:
+    ...     # from wherever this program keeps the secrets it is given
+
+client = GateClient.open(key_password=key_password)
+```
+
+`renew` stores the new key under the password that opened the old one, and a key stored without
+one renews to a key without one. An encrypted key with no password, or one the password given
+does not open, is a `StorageError` naming `identity.pem`. **What it protects is a copy of the
+directory** taken somewhere else, such as a backup, a disk image or the image of a virtual machine.
+It protects nothing against a process running as the same user, which can read the password as
+the client is given it, or wait for the client to open the key: the design concedes such a process
+throughout, and this does not change that.
+
+**How much it protects a copy is the password's to decide.** The key is PKCS#8 under PBES2, with
+AES-256-CBC keyed by PBKDF2-HMAC-SHA256 at 2048 iterations, which is OpenSSL's default and the only
+work factor this path offers: `ssl` opens a key from PEM and nothing else, and `cryptography`
+writes PEM PKCS#8 no other way. That is little work per guess, so a password a person types keeps
+a backup from a casual reader rather than a determined one. A program should pass a long random
+`key_password`.
 
 ## Check the gate
 
@@ -473,9 +509,9 @@ except api.RouteRefused:
 | `MalformedToken` | The text handed over is not an invitation, so nothing was sent. Check what was pasted. |
 | `ProtocolError` | Something on the wire is not what the protocol allows: an answer this client cannot read, or a request it will not send. Do not retry an answer it cannot read: the two halves disagree about the wire, which `tests/pykeepassgate/test_protocol.py` exists to stop. An answer longer than `max_response_bytes` is refused this way too, and the message says so: raise the setting rather than retry. |
 | `NotPaired` | Nothing is stored for a paired client where this looked: nothing has paired under that profile, its identity was given up, or the directory named is not the one the pairing used. Pair, or name the profile or the directory it used. A `StorageError`, so catching that catches this as well. |
-| `StorageError` | From `pair`, before anything is sent: the directory cannot hold credentials, and the message says why. Nothing is spent, so fix that and pair again. Afterwards: what is stored for this client will not read, or could not be written, and the message names the file or the directory to look at. |
+| `StorageError` | From `pair`, before anything is sent: the directory cannot hold credentials, and the message says why. Nothing is spent, so fix that and pair again. Afterwards: what is stored for this client will not read, or could not be written, and the message names the file or the directory to look at. A key stored under a password is one of these when no password was given, or the one given does not open it, and the message names `identity.pem`. |
 | `TransportError` | No whole answer arrived: nothing is listening, the handshake failed, which a paragraph below explains, or the connection broke or timed out once the request was on its way. After a read, send it again. After a write, the change may have landed, so look before sending it again: read or list what it changed, where the rules allow that, or ask the operator. |
-| `ValueError` | A setting or an argument that could not work, refused where it is given and before anything is dialed, stored or spent: a port, a timeout, a retry budget, a response cap, a lifetime, a profile's name or an expiry. The message names it. Correct it in the calling program. |
+| `ValueError` | A setting or an argument that could not work, refused where it is given and before anything is dialed, stored or spent: a port, a timeout, a retry budget, a response cap, a lifetime, a profile's name, an expiry or a key password. The message names it, and never repeats a password. Correct it in the calling program. |
 | `AttributeError` | Something this client never read, which is absence and not emptiness: a listed entry's `username`, `password`, `notes`, `expires` or `custom()`, a listed group's `notes`, a listed field's `value`, or the `expires` of a read that said nothing about it. Read the node first. A withheld value is never this, so `getattr` with a default and `hasattr` cannot turn one into a default. |
 | `KeyError` | A name `entry.fields` or `entry.custom()` does not hold, as from any mapping. `get` answers its default for that, and for nothing else. |
 
@@ -564,9 +600,12 @@ five attempts of up to two minutes each; the budget counts only the pauses betwe
 
 **A setting that cannot work is refused where it is given**, with a `ValueError` naming it, before
 anything is dialed or stored: a budget that is neither `None` nor a finite number of seconds from
-zero, a `connection_timeout` that is not a finite number of seconds above zero, and a port outside 1
-to 65535. The command line refuses the same ones as wrong arguments, exit 2. A budget of NaN, for
-one, would never run out, and the client would ask again for as long as the gate refused.
+zero, a `connection_timeout` that is not a finite number of seconds above zero, and a port outside
+1 to 65535. The command line refuses the same ones as wrong arguments, exit 2. A budget of NaN, for
+one, would never run out, and the client would ask again for as long as the gate refused. A
+`key_password` that is empty or is neither text, bytes nor a callable is refused the same way, by
+a message that does not repeat it, and so is one longer than 1023 bytes, text counted as UTF-8,
+which is the most a key can be stored and opened under, or text UTF-8 cannot encode.
 
 ## Read a larger answer
 

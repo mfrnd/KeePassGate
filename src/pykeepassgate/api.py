@@ -44,7 +44,14 @@ from .errors import (
     Withheld,
 )
 from .model import Attachment, Entry, Field, Fields, Group
-from .pairing import LONGEST_LIFETIME, SHORTEST_LIFETIME, Exchange, Pairing, lifetime_text
+from .pairing import (
+    LONGEST_LIFETIME,
+    SHORTEST_LIFETIME,
+    Exchange,
+    Pairing,
+    lifetime_text,
+    refuse_unusable,
+)
 from .transport import (
     DEFAULT_CONNECTION_TIMEOUT,
     DEFAULT_RETRY_BUSY_TIMEOUT,
@@ -53,8 +60,11 @@ from .transport import (
     LOOPBACK,
     MAX_RESPONSE_BYTES,
     PAIRING_CONNECTION_TIMEOUT,
+    KeyPassword,
     Retry,
     connection_limit,
+    key_password_limit,
+    key_secret,
     port_number,
     response_limit,
 )
@@ -84,6 +94,7 @@ __all__ = [
     "GateError",
     "GateUnavailable",
     "Group",
+    "KeyPassword",
     "MalformedToken",
     "NotAdmitted",
     "NotPaired",
@@ -139,6 +150,7 @@ def pair(
     allow_shared_directory: bool = False,
     max_response_bytes: int = MAX_RESPONSE_BYTES,
     lifetime: timedelta | None = None,
+    key_password: KeyPassword | None = None,
 ) -> Credentials:
     """Pair with a KeePass and keep what it hands over.
 
@@ -170,10 +182,16 @@ def pair(
     across every attempt, so the write goes through handles already granted; a pairing that does
     not complete takes away again whatever files opening created. `allow_shared_directory` is
     passed to it, and accepts a directory other accounts can reach; see `prepare`.
+
+    **`key_password` stores the client's key encrypted under it**: the password, as text or
+    bytes, or a callable returning it, which is asked once and before the hello, since a password
+    that cannot be had after the invitation is spent loses an identity nobody can ask for again.
+    What it protects is a copy of the directory taken elsewhere, a backup or a disk image, and
+    nothing against a process running as the same user.
     """
     # Refused before `prepare`, which opens files, and before anything is asked of the gate: a
-    # setting that could not work, a profile that is not one directory's name, and each budget,
-    # which `Retry` holds to the same rule.
+    # setting that could not work, a profile that is not one directory's name, each budget,
+    # which `Retry` holds to the same rule, and a key password that is none.
     port_number(port)
     connection_limit(connection_timeout)
     response_limit(max_response_bytes)
@@ -188,8 +206,14 @@ def pair(
         undecided=retry_undecided_timeout,
         held=PAIRING_CONNECTION_TIMEOUT,
     )
+    refuse_unusable(invitation, name, profiles or [])
+    key_password_limit(key_password)
 
     with prepare(where, allow_shared_directory=allow_shared_directory) as prepared:
+        # Last, once nothing else can be refused before the hello, the directory among them,
+        # because a callable may be asking a person.
+        password = None if key_password is None else key_secret(key_password)
+
         while True:
             # Built without the budgets, deliberately. `hello` would otherwise wait one out on its
             # own and this loop would wait the same one out again, so a caller's thirty seconds
@@ -211,4 +235,4 @@ def pair(
 
                 raise
 
-            return prepared.save(port, bundle)
+            return prepared.save(port, bundle, key_password=password)

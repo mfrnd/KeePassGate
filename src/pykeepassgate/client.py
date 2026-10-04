@@ -116,6 +116,7 @@ class GateClient:
         retry_locked_timeout: float | None = transport.DEFAULT_RETRY_LOCKED_TIMEOUT,
         retry_undecided_timeout: float | None = transport.DEFAULT_RETRY_UNDECIDED_TIMEOUT,
         max_response_bytes: int = transport.MAX_RESPONSE_BYTES,
+        key_password: transport.KeyPassword | None = None,
     ) -> None:
         """Take a paired identity, how long to wait on its socket, and where to dial it.
 
@@ -137,6 +138,12 @@ class GateClient:
         positive whole number of bytes, a socket timeout that is not a finite number of seconds
         above zero, a budget that is neither `None` nor a finite number of seconds from zero, and
         a port in the credentials that TCP does not have.
+
+        `key_password` opens a key that pairing stored under one: the password, as text or bytes,
+        or a callable returning it, which is asked only if the key turns out to be encrypted, and
+        once. A key that is not encrypted is opened without it, and one given for it is not used.
+        An encrypted key with no password, or one the password does not open, is a `StorageError`
+        naming `identity.pem`.
 
         The host is where the socket goes and nothing else. It is not part of the identity and is
         not stored with it: the same paired client reaches the same KeePass through a tunnel or
@@ -167,7 +174,11 @@ class GateClient:
             "retry_undecided_timeout", retry_undecided_timeout
         )
         self._max_response_bytes = transport.response_limit(max_response_bytes)
-        self._context = transport.paired_context(credentials.authority, credentials.identity)
+        self._key_password = transport.key_password_limit(key_password)
+        self._opened: bytes | None = None
+        self._context = transport.paired_context(
+            credentials.authority, credentials.identity, self._unlock
+        )
 
         # Read once, beside the context, because the two are one identity. `gate_key` is a
         # property that reads its file on every access, so leaving it to `send` would let a
@@ -187,13 +198,15 @@ class GateClient:
         retry_locked_timeout: float | None = transport.DEFAULT_RETRY_LOCKED_TIMEOUT,
         retry_undecided_timeout: float | None = transport.DEFAULT_RETRY_UNDECIDED_TIMEOUT,
         max_response_bytes: int = transport.MAX_RESPONSE_BYTES,
+        key_password: transport.KeyPassword | None = None,
     ) -> GateClient:
         """Load a paired identity from where `pair` put it.
 
         Everything that is not the identity is given here rather than read back with it, and for
         the same reason: where to dial, how long to wait on the socket and how long to wait out a
         refusal are the caller's, not the pairing's. This is the way a caller is meant to build
-        one, so a setting it cannot reach is a setting nobody has.
+        one, so a setting it cannot reach is a setting nobody has. The key's password is given
+        here as well, for a key stored under one, since it is not stored beside the key.
         """
         where = directory or credentials_module.default_directory(profile)
         return cls(
@@ -204,6 +217,7 @@ class GateClient:
             retry_locked_timeout=retry_locked_timeout,
             retry_undecided_timeout=retry_undecided_timeout,
             max_response_bytes=max_response_bytes,
+            key_password=key_password,
         )
 
     @property
@@ -308,6 +322,10 @@ class GateClient:
         **This client carries on as the new identity**, for every call after this one: it is the
         same client asking for the same things, and the old certificate is about to be refused.
 
+        **The new key is stored as the old one was**: under the password that opened the old one,
+        or under none when that needed none. Nobody is asked for it again, since the client
+        already holds it.
+
         **The request waits at least `transport.PAIRING_CONNECTION_TIMEOUT`** on the socket, six
         minutes, or this client's `connection_timeout` when that is longer: the gate answers only
         once the operator has, after waiting for the screen behind any other pairing or renewal,
@@ -358,7 +376,7 @@ class GateClient:
                 ),
                 held=transport.PAIRING_CONNECTION_TIMEOUT,
             )
-            renewing.save(self._credentials.port, bundle)
+            renewing.save(self._credentials.port, bundle, key_password=self._opened)
         except BaseException:
             # Only empty ones: whatever opening created was taken away when it closed.
             for each in prepared:
@@ -457,6 +475,7 @@ class GateClient:
                 retry_locked_timeout=self._retry_locked_timeout,
                 retry_undecided_timeout=self._retry_undecided_timeout,
                 max_response_bytes=self._max_response_bytes,
+                key_password=self._opened,
             ).revoke_certificate()
         except NotAdmitted:
             # Already refused, by a `401` or because it has expired, which is what giving it up
@@ -469,10 +488,23 @@ class GateClient:
 
     def _become(self, renewed: credentials_module.Credentials) -> None:
         """Carry on as a renewed identity: its certificate, its anchor and its gate key."""
-        context = transport.paired_context(renewed.authority, renewed.identity)
+        context = transport.paired_context(renewed.authority, renewed.identity, self._unlock)
         self._credentials = renewed
         self._context = context
         self._gate_key = renewed.gate_key
+
+    def _unlock(self) -> bytes:
+        """The password `ssl` asks for when this client's key is encrypted, asked for once.
+
+        Kept once it is known, because a renewal stores the new key under it, opens the new key
+        with it, and opens the old one again to give it up: asking a person three times for one
+        password is twice too many. A key that is not encrypted never asks, so a password given
+        for one is not used, and a renewal stores the next one unencrypted as well.
+        """
+        if self._opened is None:
+            self._opened = transport.key_secret(self._key_password)
+
+        return self._opened
 
     # Groups
 

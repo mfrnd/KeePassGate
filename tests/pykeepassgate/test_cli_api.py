@@ -29,6 +29,16 @@ def answering(gate: FakeGate, body: dict[str, Any]) -> None:
     gate.handler = lambda path, sent, client: (200, json.dumps(body))
 
 
+def given(rest: dict[str, Any]) -> dict[str, Any]:
+    """The settings a command passed on, less the key password every command offers.
+
+    That one is always a callable, which asks at a terminal only if the key is encrypted, so it
+    is not one of the options whose silence leaves the library's default.
+    """
+    assert callable(rest.get("key_password")), "the key password is offered by every command"
+    return {name: value for name, value in rest.items() if name != "key_password"}
+
+
 def test_groups_are_printed_one_to_a_line(
     gate: FakeGate, kept: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -470,7 +480,7 @@ def test_the_retry_budgets_reach_the_client_and_nothing_is_passed_for_what_was_n
         host: str = transport.LOOPBACK,
         **rest: Any,
     ) -> Any:
-        asked.append(dict(rest))
+        asked.append(given(rest))
         return opened(directory, profile, host, **rest)
 
     monkeypatch.setattr(api.GateClient, "open", watching)
@@ -551,7 +561,7 @@ def test_the_response_cap_reaches_the_client_and_nothing_is_passed_when_it_was_n
         host: str = transport.LOOPBACK,
         **rest: Any,
     ) -> Any:
-        asked.append(dict(rest))
+        asked.append(given(rest))
         return opened(directory, profile, host, **rest)
 
     monkeypatch.setattr(api.GateClient, "open", watching)
