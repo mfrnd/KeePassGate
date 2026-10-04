@@ -8,7 +8,7 @@ Guidance for anyone, human or AI assistant, working in this repository.
 mutual TLS, so that automation and AI agents can each be given a narrow, revocable, audited slice of
 a database.
 
-**Status: the whole build order is done and the API is served.** The plugin loads
+**Status: steps 1 to 19 of the build order are done and the API is served.** The plugin loads
 into KeePass, the KPG tab creates, recreates and deletes the database's own certificate authority,
 the gate listens on loopback and answers over mutual TLS 1.3, a client is served only if
 the database holds an admission record for its certificate, and **a stranger can now become one**:
@@ -30,7 +30,8 @@ knows lives beside the authority, with a page of its own to manage them, and a n
 grants nothing whatever rule still names it. **And the plugin has a window of its own**, under KeePass's Tools
 menu, saying where the gate is listening and taking the port it should listen on. **And there is
 documentation for whoever runs it**: `docs/`, written in the order an operator meets the plugin,
-around screenshots a fixture takes by driving a real KeePass.
+around screenshots a fixture takes by driving a real KeePass. **Step 20, the certificate lifecycle,
+is being built**: what the build order plans for it is in `DESIGN.md` §132.
 
 ## Read these before proposing anything
 
@@ -726,7 +727,7 @@ here can hang or crash the password manager.
 
 ## Where to start
 
-[`DESIGN.md`](DESIGN.md) §132 ends with a multi-step build order. **All of them are done.** The
+[`DESIGN.md`](DESIGN.md) §132 ends with a multi-step build order. **Steps 1 to 19 are done.** The
 skeleton loads and shows a KPG tab, that tab creates, recreates and deletes the authority, the gate
 serves the document's routes over mutual TLS to a client the authority issued and the database holds
 a record for, a stranger can pair, a locked database answers `503 locked`, a grant means something
@@ -737,8 +738,8 @@ a profile has a home of its own, the plugin has a window under the Tools menu, a
 to use the result.
 
 **Start with [`docs/`](docs/README.md) if the question is what this does**, and with the documents
-below if the question is why it does it that way. What is left is not a step: there is no release packaging and no
-Scoop manifest.
+below if the question is why it does it that way. What is left is step 20, the certificate
+lifecycle, and beyond the build order there is no release packaging and no Scoop manifest.
 
 **The storage decision survived the thing most likely to invalidate it.** The `GroupForm` snapshot
 hazard is real and now measured rather than remembered: `SnapshotHazardTests` reads the mechanism off

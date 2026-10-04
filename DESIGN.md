@@ -1361,6 +1361,10 @@ Each step is refusable, and each ends with something that runs.
     pass rather than a picture that quietly stops being true. A screenshot pasted in by hand is
     correct on the day it is taken and wrong from the next change onwards, with nothing anywhere to
     say which day that was.
+20. **The certificate lifecycle**: a lifetime for each client, proposed by the client and picked
+    by the operator; the records of expired certificates pruned on the plugin's own writes; a route
+    by which a client revokes its own certificate; and renewal through an approval dialog like
+    pairing's.
 
 Steps 5 to 8 are the ones that prove the design. Step 5 is deliberately early, because the
 `CustomData` dialog hazard is the thing most likely to invalidate the storage decision, and finding
