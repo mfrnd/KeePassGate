@@ -1413,6 +1413,10 @@ Each step is refusable, and each ends with something that runs.
     to offer it, since a callable is not something an argument can carry. And the stand-in gate
     ships as a script of answers rather than a model of the rules, so that nothing in the package is
     a second implementation of them.
+22. **The caller's identity and access**: a route saying who the caller is, as the database admitted
+    it, and one saying what it may do at a group or an entry, with the reference client's calls for
+    both; the admission key the operator knows a client by, printed on the client's side; and
+    `whoami` reporting an expired certificate and a key kept under a password.
 
 Steps 5 to 8 are the ones that prove the design. Step 5 is deliberately early, because the
 `CustomData` dialog hazard is the thing most likely to invalidate the storage decision, and finding
