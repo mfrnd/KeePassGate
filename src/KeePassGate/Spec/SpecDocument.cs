@@ -339,6 +339,16 @@ namespace KeePassGate.Spec
                         ? AclReach.Attachments
                         : AclReach.Fields;
 
+                    if (reach == AclReach.Attachments && verb.Value == AclVerb.Any)
+                    {
+                        // An operation asking about every verb is answered with both switches
+                        // already, for each profile, so the switch would be a second answer to a
+                        // question the first one settles, and one the router would never ask.
+                        throw new InvalidOperationException(
+                            operation.OperationId + " declares " + AttachmentsExtension +
+                            " with a verb of " + written + ", which already answers for both switches.");
+                    }
+
                     if (reach == AclReach.Attachments && !AclVerbs.IsGrantable(verb.Value))
                     {
                         // An operation that touches no data cannot reach into an entry, and one
@@ -348,13 +358,14 @@ namespace KeePassGate.Spec
                             " with a verb of " + written + ", which touches no data at all.");
                     }
 
-                    if (AclVerbs.IsGrantable(verb.Value)
+                    if (AclVerbs.IsGoverned(verb.Value)
                         && IsTrue(operation.Extensions, UnauthenticatedExtension, operation.OperationId))
                     {
                         // The same kind of disagreement. A grant is resolved from the profiles an
                         // admission record carries, and a caller with no certificate has no record,
                         // so this would publish a route as reachable without a certificate that no
-                        // caller without one could ever be allowed.
+                        // caller without one could ever be allowed. `any` as much as any verb: it
+                        // is answered from the same profiles.
                         throw new InvalidOperationException(
                             operation.OperationId + " declares " + UnauthenticatedExtension +
                             " with a verb of " + written + ", which only a caller with a certificate" +

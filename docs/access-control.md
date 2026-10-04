@@ -303,6 +303,14 @@ The record is read from the open database on every request, so removing it takes
 A node a program may not reach and a node that does not exist answer the same way, so a refused
 program cannot map the database by asking.
 
+**A program can ask what it may do at a group or an entry** before it tries. It is told one mask for
+each profile it holds, written as this tab writes them, and nothing about a profile it does not
+hold. Each mask is what the rules grant at that node, as this tab shows it there, so a `D` on an
+entry can still be refused by the group it is in, which removing it asks as well. A switch beside
+nothing but `S` or `D` is left out, since it reaches nothing removing does not already take. A group
+or an entry where none of its profiles may do anything is answered as one that does not exist, and
+the audit records the question as it records any other.
+
 Nothing else is asked. An entry KeePass shows as expired, by its date or after **Expire Now**, is
 still served, because expiry is KeePass's advice to whoever uses the entry rather than a control.
 A program holding `R` is told when an entry expires, one holding `L` may ask a listing to leave the

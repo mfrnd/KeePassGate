@@ -84,7 +84,13 @@ COVERED = {
 #: Operations the gate serves before this client has a call for them, and the only ones the
 #: coverage test below lets through without one. Each leaves this set in the commit that adds its
 #: call, and the set goes with the last of them. TODO(step 22)
-SERVED_AHEAD = frozenset({"getIdentity", "headIdentity"})
+SERVED_AHEAD = frozenset(
+    {
+        "getIdentity", "headIdentity",
+        "getGroupAccess", "headGroupAccess",
+        "getEntryAccess", "headEntryAccess",
+    }
+)
 
 #: Where the repository is, if these tests are in one: its `pyproject.toml` is what says so.
 REPOSITORY = Path(__file__).resolve().parents[2]

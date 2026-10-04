@@ -72,6 +72,10 @@ the program was answered. Why a change was refused is in the plugin's log, a war
 which is where to look when a program's writes keep coming back `busy`: some of the reasons, a
 dialog left open or a database file changed on disk, clear only when somebody at the desk acts.
 
+**A program asking what it may do at a group or an entry is a decision as well**, and written down
+like any other: `permitted` when some profile it holds may do something there, `refused` when none
+may.
+
 **A locked database is not a decision, and gets no line.** A request that meets the database
 locked, whether it was locked when the request arrived or KeePass locked it while the request was
 still being read, is answered `503 locked` and written down nowhere, because no rule was asked. A

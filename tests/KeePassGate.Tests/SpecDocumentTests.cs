@@ -149,12 +149,12 @@ namespace KeePassGate.Tests
             // that has to be brought along, and there is nowhere else that number is kept.
             var declared = SpecDocument.Embedded().Operations;
 
-            Assert.That(declared.Count, Is.EqualTo(40),
-                "§128 says forty operations");
-            Assert.That(declared.Select(o => o.Path.Text).Distinct().Count(), Is.EqualTo(16),
-                "§128 says sixteen paths");
-            Assert.That(declared.Count(o => o.Method == "HEAD"), Is.EqualTo(12),
-                "§128 says twelve of them are the HEAD that answers for a GET");
+            Assert.That(declared.Count, Is.EqualTo(44),
+                "§128 says forty-four operations");
+            Assert.That(declared.Select(o => o.Path.Text).Distinct().Count(), Is.EqualTo(18),
+                "§128 says eighteen paths");
+            Assert.That(declared.Count(o => o.Method == "HEAD"), Is.EqualTo(14),
+                "§128 says fourteen of them are the HEAD that answers for a GET");
         }
 
         [Test]
@@ -202,6 +202,22 @@ namespace KeePassGate.Tests
             {
                 "getIdentity", "getStatus", "headIdentity", "headStatus", "pairHello", "pairRequest",
                 "renewCertificate", "revokeCertificate",
+            }));
+        }
+
+        [Test]
+        public void The_operations_asking_about_every_verb_are_the_four_access_routes()
+        {
+            // `any` is the one verb that answers with what a caller holds rather than with what a
+            // node holds, so nothing else may pick it up by being declared near one.
+            var asking = SpecDocument.Embedded().Operations
+                .Where(o => o.Verb == AclVerb.Any)
+                .Select(o => o.OperationId)
+                .OrderBy(name => name, StringComparer.Ordinal);
+
+            Assert.That(asking, Is.EqualTo(new[]
+            {
+                "getEntryAccess", "getGroupAccess", "headEntryAccess", "headGroupAccess",
             }));
         }
 
@@ -412,6 +428,36 @@ namespace KeePassGate.Tests
 
             Assert.That(raised.Message, Does.Contain("x-kpg-unauthenticated"));
             Assert.That(raised.Message, Does.Contain("can be granted"));
+        }
+
+        [Test]
+        public void Asking_about_every_verb_needs_a_certificate_as_much_as_any_verb_does()
+        {
+            // `any` is answered from the profiles an admission record carries, so the document
+            // would be opening a route to callers it could only ever answer `404`.
+            var raised = Assert.Throws<InvalidOperationException>(() => SpecDocument.Parse(Document(
+                "\"/a\":{\"get\":{\"operationId\":\"getA\",\"x-kpg-verb\":\"any\"," +
+                "\"x-kpg-unauthenticated\":true,\"responses\":{\"200\":{\"description\":\"o\"}}}," +
+                "\"head\":{\"operationId\":\"headA\",\"x-kpg-verb\":\"any\"," +
+                "\"x-kpg-unauthenticated\":true,\"responses\":{\"200\":{\"description\":\"o\"}}}}")));
+
+            Assert.That(raised.Message, Does.Contain("x-kpg-unauthenticated"));
+            Assert.That(raised.Message, Does.Contain("any"));
+        }
+
+        [Test]
+        public void Asking_about_every_verb_answers_for_the_attachment_switch_already()
+        {
+            // The answer carries both switches for every profile, so declaring one beside it would
+            // be a second answer to a question the first one settles, and one nothing reads.
+            var raised = Assert.Throws<InvalidOperationException>(() => SpecDocument.Parse(Document(
+                "\"/a\":{\"get\":{\"operationId\":\"getA\",\"x-kpg-verb\":\"any\"," +
+                "\"x-kpg-attachments\":true,\"responses\":{\"200\":{\"description\":\"o\"}}}," +
+                "\"head\":{\"operationId\":\"headA\",\"x-kpg-verb\":\"any\"," +
+                "\"x-kpg-attachments\":true,\"responses\":{\"200\":{\"description\":\"o\"}}}}")));
+
+            Assert.That(raised.Message, Does.Contain("x-kpg-attachments"));
+            Assert.That(raised.Message, Does.Contain("both switches"));
         }
 
         [Test]

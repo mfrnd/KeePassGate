@@ -882,7 +882,12 @@ the plugin loading. It stays in the document rather than becoming an attribute i
 two cannot disagree, and `none` is a decision written down rather than a field left absent: the
 status route and the caller's identity read nothing a rule is about, a client's revocation of itself
 touches no node a rule is about, and pairing and renewal are authorized by a person reading a dialog
-rather than by a grant, because a client that is pairing holds no profiles yet.
+rather than by a grant, because a client that is pairing holds no profiles yet. `any` is the one
+value no rule can hold: the two routes asking what a client may do at a node declare it, and the
+router answers it profile by profile, every verb and switch through the resolver's own walk,
+refusing it as an absent node unless some profile is granted a verb there. One mask per profile,
+because a switch belongs to its rule and a union across profiles would claim combinations the gate
+refuses.
 
 **Four things about the router that are decisions rather than details.** A caller with no
 certificate is refused the same way everywhere, so an undeclared path and one it may not use answer

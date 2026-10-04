@@ -194,6 +194,15 @@ namespace KeePassGate.Pipeline
                 return AclDecisions.Refused("this client is not admitted");
             }
 
+            if (verb == AclVerb.Any)
+            {
+                // Every verb at once, asked of the node alone and profile by profile, with what
+                // each profile is granted carried on the answer: `AclResolver.DecideAny`. Not a
+                // removal, so the group above is not asked: a `D` in the answer is the rule at the
+                // node saying removals are allowed here, as the editor shows it.
+                return AclResolver.DecideAny(node, profiles);
+            }
+
             if (node == null || verb != AclVerb.Delete)
             {
                 // A node that is not there is answered by the resolver, for a removal as for

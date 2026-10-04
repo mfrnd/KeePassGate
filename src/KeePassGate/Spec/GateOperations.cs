@@ -52,6 +52,10 @@ namespace KeePassGate.Spec
         public const string UpdateGroup = "updateGroup";
         public const string DeleteGroup = "deleteGroup";
 
+        /// <summary>`GET /groups/{uuid}/access`: what the caller may do at that group.</summary>
+        public const string GroupAccess = "getGroupAccess";
+        public const string HeadGroupAccess = "headGroupAccess";
+
         public const string ListEntries = "listEntries";
         public const string HeadEntries = "headEntries";
         public const string ListGroupEntries = "listGroupEntries";
@@ -61,6 +65,10 @@ namespace KeePassGate.Spec
         public const string CreateEntry = "createEntry";
         public const string UpdateEntry = "updateEntry";
         public const string DeleteEntry = "deleteEntry";
+
+        /// <summary>`GET /entries/{uuid}/access`: what the caller may do at that entry.</summary>
+        public const string EntryAccess = "getEntryAccess";
+        public const string HeadEntryAccess = "headEntryAccess";
 
         public const string ListFields = "listFields";
         public const string HeadFields = "headFields";
@@ -215,6 +223,9 @@ namespace KeePassGate.Spec
         /// database, the named group for the two that do not, and the entry itself for the fields
         /// and the attachments inside one. What the caller may see inside it
         /// is asked per item, by the handler, and is not a refusal.
+        ///
+        /// The two that ask what the caller may do are about the node they name, as every other
+        /// question about a group or an entry is.
         /// </remarks>
         public static IReadOnlyDictionary<string, NodeSelector> Nodes()
         {
@@ -229,6 +240,8 @@ namespace KeePassGate.Spec
                 { CreateGroup, VaultHandlers.GroupNode },
                 { UpdateGroup, VaultHandlers.GroupNode },
                 { DeleteGroup, VaultHandlers.GroupNode },
+                { GroupAccess, VaultHandlers.GroupNode },
+                { HeadGroupAccess, VaultHandlers.GroupNode },
 
                 { ListEntries, VaultHandlers.RootNode },
                 { HeadEntries, VaultHandlers.RootNode },
@@ -239,6 +252,8 @@ namespace KeePassGate.Spec
                 { CreateEntry, VaultHandlers.GroupNode },
                 { UpdateEntry, VaultHandlers.EntryNode },
                 { DeleteEntry, VaultHandlers.EntryNode },
+                { EntryAccess, VaultHandlers.EntryNode },
+                { HeadEntryAccess, VaultHandlers.EntryNode },
 
                 { ListFields, VaultHandlers.EntryNode },
                 { HeadFields, VaultHandlers.EntryNode },
@@ -294,6 +309,8 @@ namespace KeePassGate.Spec
                 { CreateGroup, VaultHandlers.CreateGroup },
                 { UpdateGroup, VaultHandlers.UpdateGroup },
                 { DeleteGroup, VaultHandlers.DeleteGroup },
+                { GroupAccess, AccessOperation.Handle },
+                { HeadGroupAccess, AccessOperation.Handle },
 
                 { ListEntries, VaultHandlers.ListEntries },
                 { HeadEntries, VaultHandlers.ListEntries },
@@ -304,6 +321,8 @@ namespace KeePassGate.Spec
                 { CreateEntry, VaultHandlers.CreateEntry },
                 { UpdateEntry, VaultHandlers.UpdateEntry },
                 { DeleteEntry, VaultHandlers.DeleteEntry },
+                { EntryAccess, AccessOperation.Handle },
+                { HeadEntryAccess, AccessOperation.Handle },
 
                 { ListFields, VaultHandlers.ListFields },
                 { HeadFields, VaultHandlers.ListFields },

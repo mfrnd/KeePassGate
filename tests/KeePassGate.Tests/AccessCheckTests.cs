@@ -338,6 +338,65 @@ namespace KeePassGate.Tests
                 Is.True);
         }
 
+        [Test]
+        public void A_question_about_every_verb_is_written_down_once_whichever_way_it_goes()
+        {
+            var entry = TestNode.Root("root").Granting("reader", AclVerb.Read).Child("an entry");
+
+            var permitted = _check.Decide(Client("reader"), "getEntryAccess", AclVerb.Any, AclReach.Fields, entry);
+            var refused = _check.Decide(Client("editor"), "getEntryAccess", AclVerb.Any, AclReach.Fields, entry);
+
+            Assert.That(permitted.Permitted, Is.True);
+            Assert.That(refused.Permitted, Is.False);
+            Assert.That(_audit.Entries.Select(line => line.Permitted), Is.EqualTo(new[] { true, false }));
+            Assert.That(_audit.Entries[0].DecidedAt, Is.EqualTo("root"), "the rule that granted something");
+        }
+
+        [Test]
+        public void A_question_about_every_verb_carries_what_each_profile_is_granted()
+        {
+            var entry = TestNode.Root("root")
+                .Holding("{\"reader\":[\"read\"],\"editor\":[\"update\"]}")
+                .Child("an entry");
+
+            var decision = _check.Decide(
+                Client("reader", "editor"), "getEntryAccess", AclVerb.Any, AclReach.Fields, entry);
+
+            Assert.That(
+                decision.Grants.Select(grant => grant.Key + " " + VerbMask.Of(grant.Value)),
+                Is.EqualTo(new[] { "reader .R......", "editor ..U....." }));
+        }
+
+        [Test]
+        public void A_question_about_every_verb_is_not_a_removal()
+        {
+            // A `D` at the node is its rule saying removals are allowed there, and asking about it
+            // asks the node alone. The group above is asked when something is actually removed.
+            var group = TestNode.Root("root").Child("a group").Granting("reader", AclVerb.Delete);
+
+            Assert.That(
+                _check.Decide(Client("reader"), "getGroupAccess", AclVerb.Any, AclReach.Fields, group).Permitted,
+                Is.True);
+            Assert.That(
+                _check.Decide(Client("reader"), "deleteGroup", AclVerb.Delete, AclReach.Fields, group).Permitted,
+                Is.False, "while removing the group itself is still refused");
+        }
+
+        [Test]
+        public void A_question_about_every_verb_a_removed_profile_would_have_answered_says_so()
+        {
+            var entry = TestNode.Root("root").Granting("ops", AclVerb.Read).Child("an entry");
+
+            var decision = _check.Decide(
+                Removing(new[] { "reader" }, "ops"), "getEntryAccess", AclVerb.Any, AclReach.Fields, entry);
+
+            Assert.That(decision.Permitted, Is.False);
+            Assert.That(_audit.Entries.Single().Reason, Is.EqualTo(AccessCheck.ProfileRemoved));
+            Assert.That(_audit.Entries.Single().RemovedProfiles, Is.EqualTo(new[] { "ops" }));
+            Assert.That(decision.Grants.Select(grant => grant.Key), Is.EqualTo(new[] { "reader" }),
+                "and the answer is about the profiles the client holds, never the removed ones");
+        }
+
         private static readonly DateTimeOffset At = new DateTimeOffset(2026, 3, 4, 5, 6, 7, TimeSpan.Zero);
 
         private static ClientIdentity Client(params string[] profiles)

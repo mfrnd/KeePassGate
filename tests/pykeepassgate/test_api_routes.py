@@ -23,7 +23,7 @@ from pykeepassgate.client import ROOT, GateClient
 from pykeepassgate.errors import ProtocolError, Withheld
 from pykeepassgate.model import Attachment, Entry, Field, Fields, Group
 from pykeepassgate.testing import FakeGate
-from test_reference import operations, routing_table
+from test_reference import SERVED_AHEAD, operations, routing_table
 
 UUID = "7b1c" * 8
 OTHER = "9f86" * 8
@@ -787,6 +787,7 @@ def test_every_call_that_carries_a_value_is_held_to_the_document(
         if operation["method"] != "head"
         and not operation["path"].startswith("/pair/")
         and name != "renewCertificate"
+        and name not in SERVED_AHEAD
         and ("{" in operation["path"] or "requestBody" in operation)
     }
 
