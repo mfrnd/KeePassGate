@@ -1503,6 +1503,14 @@ Each step is refusable, and each ends with something that runs.
     because a switch reaches only the verbs of its own rule.
 23. **The admission audit**: the pairings the operator answers, the renewals and the revocations,
     written to the audit file beside the rules' decisions, in the same file and the same form.
+    **Done.** Until here the audit recorded what the rules decided and nothing about how a client
+    came to hold profiles at all: a pairing, a renewal and a revocation were lines in the plugin's
+    own log, which is not where an operator looks to see what reached the database. What this
+    settles is that the file the operator reads says how every client came in and how it left: a
+    pairing and a renewal as the operator answered them, and a revocation, the operator's or the
+    client's own, once it is in the database. An approval names only a key that was admitted, and
+    nothing is written yet for an authority recreated or for rules and profiles changed, which wait
+    for audit levels.
 
 Steps 5 to 8 are the ones that prove the design. Step 5 is deliberately early, because the
 `CustomData` dialog hazard is the thing most likely to invalidate the storage decision, and finding
