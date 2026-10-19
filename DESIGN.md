@@ -1532,6 +1532,11 @@ Each step is refusable, and each ends with something that runs.
     them. It packages a clean clone and nothing else, refuses an assembly the notices do not name,
     and reads the zip and its sums back before it reports them. Publishing one is not a step of this
     order: there is no release yet, and no Scoop manifest.
+26. **The project's front page**: a `README.md` that tells somebody arriving what this is and shows
+    it, with a diagram of the pieces; a picture of the whole journey that moves, from a database
+    holding entries to a revoked client, taken by the same fixture as the rest so that it is
+    retaken with them; and a pull request template that asks for what the stacked steps'
+    descriptions give.
 
 Steps 5 to 8 are the ones that prove the design. Step 5 is deliberately early, because the
 `CustomData` dialog hazard is the thing most likely to invalidate the storage decision, and finding
