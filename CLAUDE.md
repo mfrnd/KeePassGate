@@ -8,7 +8,7 @@ Guidance for anyone, human or AI assistant, working in this repository.
 mutual TLS, so that automation and AI agents can each be given a narrow, revocable, audited slice of
 a database.
 
-**Status: steps 1 to 25 of the build order are done and the API is served.** The plugin loads
+**Status: the whole build order is done and the API is served.** The plugin loads
 into KeePass, the KPG tab creates, recreates and deletes the database's own certificate authority,
 the gate listens on loopback and answers over mutual TLS 1.3, a client is served only if
 the database holds an admission record for its certificate, and **a stranger can now become one**:
@@ -46,8 +46,10 @@ with the key the operator knows it by, and what it may do at a group or an entry
 **And field references are followed**: the reference client compiles them as KeePass does, on its
 own side and under the caller's own rules, held to KeePass's own compiler. **And there is a package
 a release can publish**: `build.ps1 -Task Package` zips the plugin with everything it loads, its
-license and the notices, beside a `SHA256SUMS`. **Step 26, the project's front page, is being
-built**: what the build order plans for it is in `DESIGN.md` §132.
+license and the notices, beside a `SHA256SUMS`. **And the project has a front page**: the README
+says what this is for and shows it, around a moving picture of the whole journey from a database
+to a revoked client, which the Screenshots fixture takes with the stills, and a diagram of the
+pieces.
 
 ## Read these before proposing anything
 
@@ -822,7 +824,7 @@ here can hang or crash the password manager.
 
 ## Where to start
 
-[`DESIGN.md`](DESIGN.md) §132 ends with a multi-step build order. **Steps 1 to 25 are done.** The
+[`DESIGN.md`](DESIGN.md) §132 ends with a multi-step build order. **All of them are done.** The
 skeleton loads and shows a KPG tab, that tab creates, recreates and deletes the authority, the gate
 serves the document's routes over mutual TLS to a client the authority issued and the database holds
 a record for, a stranger can pair, a locked database answers `503 locked`, a grant means something
@@ -834,13 +836,13 @@ to use the result, a client's certificate can be renewed and given up, a program
 can keep its key under a password, make its connection and test against a stand-in gate, a client
 can ask who the gate takes it for and what it may do at a node, the audit records every pairing and
 renewal the operator answers and every client revoked, the client follows field references as
-KeePass does, under the caller's own rules, and `build.ps1 -Task Package` makes the zip a release
-would publish.
+KeePass does, under the caller's own rules, `build.ps1 -Task Package` makes the zip a release
+would publish, and the README tells somebody arriving what this is, around a picture of the
+whole journey that moves and a diagram of the pieces.
 
 **Start with [`docs/`](docs/README.md) if the question is what this does**, and with the documents
-below if the question is why it does it that way. What is left is step 26, the project's front
-page, and beyond the build order there is no release yet, only the zip `build.ps1 -Task Package`
-makes for one, and no Scoop manifest.
+below if the question is why it does it that way. What is left is not a step: there is no release
+yet, only the zip `build.ps1 -Task Package` makes for one, and no Scoop manifest.
 
 **The storage decision survived the thing most likely to invalidate it.** The `GroupForm` snapshot
 hazard is real and now measured rather than remembered: `SnapshotHazardTests` reads the mechanism off

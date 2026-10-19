@@ -1536,7 +1536,12 @@ Each step is refusable, and each ends with something that runs.
     it, with a diagram of the pieces; a picture of the whole journey that moves, from a database
     holding entries to a revoked client, taken by the same fixture as the rest so that it is
     retaken with them; and a pull request template that asks for what the stacked steps'
-    descriptions give.
+    descriptions give. **Done.** Until here the front page was written for whoever builds this, and
+    somebody arriving had to read past the build order to find out what the plugin is for. What
+    this settles is that the first screen answers that, and that the picture of the journey is a
+    build output like every other picture here: the Screenshots fixture drives it for real,
+    renders it from a fixed timeline, and writes it with an encoder of this repository's own, so
+    retaking the pictures retakes it.
 
 Steps 5 to 8 are the ones that prove the design. Step 5 is deliberately early, because the
 `CustomData` dialog hazard is the thing most likely to invalidate the storage decision, and finding
