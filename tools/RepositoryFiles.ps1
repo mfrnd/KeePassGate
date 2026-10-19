@@ -6,8 +6,8 @@
     What `Markers.ps1`, `Dashes.ps1` and `Anchors.ps1` read, answered once for the three of them,
     because three copies of how a question is asked are three answers to it.
 
-    **Git says which files are ours.** A list of extensions is a list that has to be added to, and
-    the file it forgets is always one with prose in it:
+    **Git says which files are ours**, as it does for `Links.ps1`. A list of extensions is a list
+    that has to be added to, and the file it forgets is always one with prose in it:
     `.editorconfig`, `.gitignore` and `.gitattributes` carry comments like any other file here.
 
     **Tracked, and nothing else in the tree.** A file nobody has added is not yet the repository's,

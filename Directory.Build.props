@@ -43,6 +43,11 @@
   </PropertyGroup>
 
   <PropertyGroup>
+    <!-- The one place the version is written, for the plugin, PyKeePassGate and the routing
+         document alike, which move together: `CONVENTIONS.md` says how the number moves. The
+         build stamps it on the plugin, hatchling reads it from here for the client's package, and
+         the document's `info.version`, which a YAML file cannot take from anywhere, is held to it
+         by a test on each side. -->
     <Version>0.1.0</Version>
     <Product>KeePassGate</Product>
     <Company>KeePassGate</Company>

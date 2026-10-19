@@ -1253,9 +1253,9 @@ namespace KeePassGate.Pipeline
         /// **What this does not reach** is the rest of what KeePass compiles. A reference planted
         /// in `UserName` or `Title` is resolved by a copy or an auto-type, into the operator's own
         /// clipboard or window rather than out to a stranger, and one in `Password` asks the
-        /// `protected` switch already. That leaves a write verb as sensitive as a read verb, which
-        /// is something an operator granting one has to know rather than something this can
-        /// enumerate.
+        /// `protected` switch already. `docs/access-control.md` says what that leaves, because a
+        /// write verb being as sensitive as a read verb is something an operator granting one has
+        /// to know rather than something this can enumerate.
         ///
         /// The name is compared the way the database compares one, so a spelling of `URL` its own
         /// dictionary cannot tell from `URL` is the URL field here too. The name itself is the

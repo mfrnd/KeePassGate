@@ -1,6 +1,6 @@
 [project]
 name = "pykeepassgate"
-version = "0.1.0"
+dynamic = ["version"]
 description = "The reference client for KeePassGate: pairing, and everything the gate serves."
 readme = "src/pykeepassgate/README.md"
 requires-python = ">=3.14"
@@ -28,6 +28,14 @@ Homepage = "https://github.com/mfrnd/KeePassGate"
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+# The version is not written here. It is `Version` in `Directory.Build.props`, the one place the
+# plugin, this client and the routing document take it from, and hatchling reads it from there.
+# The source distribution carries none of the C# build, and needs none of it: the wheel built from
+# it takes the version from the sdist's own `PKG-INFO`, which is how hatchling builds from one.
+[tool.hatch.version]
+path = "Directory.Build.props"
+pattern = "<Version>(?P<version>[^<]+)</Version>"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/pykeepassgate"]

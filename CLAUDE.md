@@ -233,6 +233,9 @@ designing around them.
   sits in, where the room runs out or which button ends it. What makes that publishable is the
   session, not the crop: the database settings dialog carries the open database's path in its
   banner, so `LiveSession` builds the session where that path names nobody.
+  `build.ps1 -Task Lint` refuses a picture no page refers to and a reference to a picture that is
+  not there; that a picture is named in `DocumentationImages` is checked by the fixture that takes
+  it, which is in the `Screenshots` category and so runs only when the pictures are retaken.
 - **Nothing on a tab scrolls.** The content is held to 449 by 314 and has to fit it; horizontal
   scrolling is never acceptable. That is KeePass's own first page on the settings dialog, inside a
   padding of 3. The page this plugin adds has no padding and is laid out to the tab control's whole
@@ -688,9 +691,10 @@ the tools this branch carries.
   omission: thirteen files have never been through the formatter and running it would rewrite them
   all. What is enforced is what a formatter cannot decide for you, and `pycodestyle` is in the
   selected rules, so a line too long or a space in the wrong place still fails. What is left to the
-  author is where a line breaks, which is a judgment this project spends deliberately. Adopting it
-  means reformatting everything in one commit that changes nothing else, not letting it arrive a
-  file at a time under other work.
+  author is where a line breaks, which is a judgment this project spends deliberately, including
+  inside the fenced examples in `docs/`, where the formatter would take the alignment out of a
+  block written to be read. Adopting it means reformatting everything in one commit that changes
+  nothing else, not letting it arrive a file at a time under other work.
 - **Docs stay with code.** A behavior or architecture change updates the design documents in the
   same pass, and reversals are recorded rather than edited away.
 - **American English is checked, not only asked for.** cspell's own `en_US` dictionary accepts the
@@ -698,6 +702,11 @@ the tools this branch carries.
   dictionaries accept a British spelling or two in code, so `cspell.yaml` refuses about 250 British
   spellings by name, in `flagWords`. A name that is somebody else's keeps its own spelling behind a
   `cspell:ignore` where it is quoted.
+- **The version is written once, as `Version` in `Directory.Build.props`.** The build stamps the
+  plugin with it, hatchling reads it from there for the client's package, the client's
+  `__version__` comes from the installed metadata, and the routing document's `info.version`, which
+  YAML cannot take from anywhere, is held to it by a test on each side. Moving it is one line there
+  and the same in `openapi.yaml`; `CONVENTIONS.md` says when, and `CHANGELOG.md` says what moved.
 
 ## Security posture
 
@@ -723,7 +732,8 @@ anything the record and the rules do not both allow, recording every decision ei
 twenty-two routes read and change groups, entries, fields and attachments, and two launchers start
 the pinned KeePass with the plugin in it.
 
-**What is left**: the documentation for whoever runs it.
+**What is left** is the rest of the last step: its documentation for whoever runs it is written,
+in [`docs/`](docs/README.md).
 
 **The storage decision survived the thing most likely to invalidate it.** The `GroupForm` snapshot
 hazard is real and now measured rather than remembered: `SnapshotHazardTests` reads the mechanism off

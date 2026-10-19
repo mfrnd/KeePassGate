@@ -18,6 +18,7 @@ from typing import Any
 import pytest
 import yaml
 
+import pykeepassgate
 from pykeepassgate import api
 from pykeepassgate import client as client_module
 from pykeepassgate import model as model_module
@@ -126,6 +127,18 @@ def operations(document: dict[str, Any]) -> dict[str, dict[str, Any]]:
             found[operation["operationId"]] = {"path": path, "method": method, **operation}
 
     return found
+
+
+def test_the_document_carries_the_version_this_client_is_installed_as(
+    document: dict[str, Any],
+) -> None:
+    """One version for the plugin, this client and the document, moved together.
+
+    It is written once, in `Directory.Build.props`, and this client is installed with it, but the
+    document is YAML and takes it from nowhere, so this is what holds the two to each other. The
+    plugin's tests hold the same document to the plugin.
+    """
+    assert str(document["info"]["version"]) == pykeepassgate.__version__
 
 
 def test_every_operation_the_gate_declares_has_a_call_here(document: dict[str, Any]) -> None:

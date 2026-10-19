@@ -11,6 +11,8 @@ it does not do is a statement too: a route with no method here is a route the ga
 
 from __future__ import annotations
 
+from importlib.metadata import version
+
 from .api import (
     AuthorityUndecided,
     Credentials,
@@ -37,7 +39,10 @@ from .api import (
     pair,
 )
 
-__version__ = "0.1.0"
+#: The version this client was installed as, which the plugin and the routing document carry too.
+#: It is written in one place, `Directory.Build.props`, and an installed package keeps it in its
+#: metadata, so it is read from there rather than written a second time here.
+__version__ = version("pykeepassgate")
 
 __all__ = [
     "AuthorityUndecided",

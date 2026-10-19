@@ -38,6 +38,7 @@ KeePassGate is sound under the strict reading of the linking question as well as
 | [`FINDINGS.md`](FINDINGS.md) | what was measured rather than assumed, and what turned out wrong |
 | [`TESTING.md`](TESTING.md) | the four test tiers, what each one buys, and how to run them |
 | [`CONVENTIONS.md`](CONVENTIONS.md) | the rules that hold on every branch |
+| [`CHANGELOG.md`](CHANGELOG.md) | what each version changes, and that there is one version |
 | [`ANALYSIS.md`](ANALYSIS.md) | the argument, and the alternatives that were rejected |
 
 ## What was decided, in one place

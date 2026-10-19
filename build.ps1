@@ -351,6 +351,13 @@ function Invoke-Lint {
     Invoke-Step 'doc comments' {
         & (Join-Path $root 'tools/DocComments.ps1')
     }
+
+    # What markdownlint does not do: follow what a document points at. A broken image is invisible
+    # in the source and obvious on the page, and the screenshots in `docs/` are generated, so an
+    # image nobody refers to means a page forgot one or the fixture is still taking one.
+    Invoke-Step 'documentation links' {
+        & (Join-Path $root 'tools\Links.ps1') -Root $root
+    }
 }
 
 # The Python half. `uv` owns the environment, so nothing here installs anything by hand and the

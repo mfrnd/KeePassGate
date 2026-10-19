@@ -1028,7 +1028,7 @@ plugin's log as the audit is opened. The case that had to be made audible is the
 sound at all: with no path there is nothing to record to, every request is still answered, nothing
 is counted as lost because nothing was attempted, and an audit that is not being written looks
 exactly like an audit with nothing in it. That is reported as an error and names the variable that
-fixes it.
+fixes it. `docs/audit.md` is the same answer written for whoever runs this.
 
 ---
 
