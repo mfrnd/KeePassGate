@@ -61,6 +61,14 @@ namespace KeePassGate.Host.Tests.Live
             // taken, so when it was admitted and when its certificate ends are this minute's.
             new KeePassGate.Ui.Fact(KeePassGate.Ui.GateTab.RenewalAdmittedFactName, null).ControlName(true),
             new KeePassGate.Ui.Fact(KeePassGate.Ui.GateTab.RenewalExpiresFactName, null).ControlName(true),
+
+            // KeePass's own, on the group dialog's first page, which the moving picture opens: a
+            // group that never expires shows today's date there, whatever the group holds, so no
+            // value written into the database can settle it.
+            "m_dtExpires",
+
+            // And the same on the entry dialog's, for an entry that never expires.
+            "m_dtExpireDateTime",
         };
 
         /// <summary>
@@ -83,9 +91,106 @@ namespace KeePassGate.Host.Tests.Live
         private static readonly Color Bar = Color.FromArgb(255, 108, 108, 108);
 
         /// <summary>
+        /// Paints over the cells of one client's row on the clients page that hold a moment, given
+        /// the picture and where on screen it was taken from, and leaving alone whatever lies
+        /// inside `spared`.
+        /// </summary>
+        /// <remarks>
+        /// **For the moving picture, whose client is paired for real**, so when it was admitted and
+        /// when its certificate ends are this minute's. The client in the still pictures is written
+        /// into the database instead, which is why nothing else needs this.
+        ///
+        /// **Measured from the column headers and the row's own cell**: a cell is drawn by the grid
+        /// rather than being a window, but UI automation still reports where each header and each
+        /// cell is, and a column's header spans exactly the column's width. So the bar is the
+        /// column's width by the row's height, which does not move with the value under it.
+        ///
+        /// **`spared` is a menu open over the row**, which the picture is of, and a bar over the
+        /// cell must not be painted over the menu as well.
+        /// </remarks>
+        public static void Moments(
+            Bitmap picture, Rectangle area, AutomationElement window, string client, Rectangle spared)
+        {
+            var grid = Uia.ById(window, KeePassGate.Ui.ClientList.ListName);
+            var cell = KeePassDriver.ClientCell(window, client);
+            if (grid == null || cell == null)
+            {
+                throw new InvalidOperationException(
+                    "The clients page lists no " + client + ", so nothing on its row can be covered.");
+            }
+
+            var row = cell.Current.BoundingRectangle;
+
+            using (var brush = new SolidBrush(Bar))
+            using (var graphics = Graphics.FromImage(picture))
+            {
+                if (!spared.IsEmpty)
+                {
+                    graphics.ExcludeClip(new Rectangle(
+                        spared.X - area.X, spared.Y - area.Y, spared.Width, spared.Height));
+                }
+
+                foreach (var header in MomentHeaders)
+                {
+                    var column = HeaderOf(grid, header);
+                    if (column.IsEmpty)
+                    {
+                        throw new InvalidOperationException(
+                            "The clients page has no column headed " + header + ": " + Uia.Inventory(grid));
+                    }
+
+                    graphics.FillRectangle(brush, new Rectangle(
+                        (int)Math.Floor(column.X) - area.X,
+                        (int)Math.Floor(row.Y) - area.Y,
+                        (int)Math.Ceiling(column.Width),
+                        (int)Math.Ceiling(row.Height)));
+                }
+            }
+        }
+
+        /// <summary>The headers of the two columns on the clients page that hold a moment.</summary>
+        private static readonly string[] MomentHeaders = { "Admitted", "Until" };
+
+        /// <summary>Where the header of a column with this caption is, or an empty rectangle.</summary>
+        private static System.Windows.Rect HeaderOf(AutomationElement grid, string caption)
+        {
+            foreach (AutomationElement element in grid.FindAll(
+                TreeScope.Descendants, new PropertyCondition(AutomationElement.NameProperty, caption)))
+            {
+                try
+                {
+                    var bounds = element.Current.BoundingRectangle;
+                    if (!bounds.IsEmpty && bounds.Width >= 1 && bounds.Height >= 1)
+                    {
+                        return bounds;
+                    }
+                }
+                catch (ElementNotAvailableException)
+                {
+                }
+            }
+
+            return System.Windows.Rect.Empty;
+        }
+
+        /// <summary>
         /// Paints over each of them, given the picture and where on screen it was taken from.
         /// </summary>
         public static void Over(Bitmap picture, Rectangle area, AutomationElement window)
+        {
+            Over(picture, area, window, Volatile);
+        }
+
+        /// <summary>
+        /// The same over controls only some pictures need covered, which the caller names.
+        /// </summary>
+        /// <remarks>
+        /// KeePass's entry view under the main window's list is one: it says when the chosen entry
+        /// was last changed, and once a client has changed one in the picture that is this
+        /// minute. Every other time it shows times written into the database, which read the same
+        /// on every run and are worth showing, so it is not on the list every picture is held to.
+        /// </remarks>
+        public static void Over(Bitmap picture, Rectangle area, AutomationElement window, params string[] identifiers)
         {
             if (picture == null || window == null)
             {
@@ -95,7 +200,7 @@ namespace KeePassGate.Host.Tests.Live
             using (var brush = new SolidBrush(Bar))
             using (var graphics = Graphics.FromImage(picture))
             {
-                foreach (var identifier in Volatile)
+                foreach (var identifier in identifiers)
                 {
                     foreach (var where in RectanglesOf(window, identifier))
                     {

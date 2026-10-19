@@ -3,6 +3,8 @@
 A KeePass 2.x plugin that serves a small, specification-defined HTTP API over mutual TLS, so that
 automation and AI agents can each be given a narrow, revocable, audited slice of a database.
 
+![A program pairs with KeePass, reads what it may, is refused what it may not, and is shut out once revoked](docs/images/lifecycle.gif)
+
 **Steps 1 to 25 of the build order are done**, and step 26, this page, is being built. The plugin loads into
 KeePass, the KPG tab creates, recreates and deletes the database's own certificate authority, and
 the gate answers over mutual TLS 1.3 with the host certificate chosen from the rotating name in

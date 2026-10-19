@@ -1,13 +1,11 @@
 using System;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 using System.Windows.Automation;
 using KeePassGate.Ui;
 using NUnit.Framework;
+using Run = KeePassGate.Host.Tests.Live.ReferenceClient.Run;
 
 namespace KeePassGate.Host.Tests.Live
 {
@@ -418,7 +416,7 @@ namespace KeePassGate.Host.Tests.Live
         {
             var arguments = "pair --port " + port + " --name " + Name + " --profile-name " + Profile + Where();
 
-            using (var pairing = Start("pykeepassgate " + arguments))
+            using (var pairing = ReferenceClient.Start("pykeepassgate " + arguments))
             {
                 var output = pairing.StandardOutput.ReadToEndAsync();
                 var errors = pairing.StandardError.ReadToEndAsync();
@@ -431,7 +429,7 @@ namespace KeePassGate.Host.Tests.Live
                     var approval = driver.WaitForWindow("asking to pair", DialogTimeout);
                     if (approval == null)
                     {
-                        var gone = Finish(pairing, output, errors, TimeSpan.FromSeconds(5));
+                        var gone = ReferenceClient.Finish(pairing, output, errors, TimeSpan.FromSeconds(5));
                         Assert.Fail("The approval dialog never appeared. The client said: " + gone + " " +
                                     driver.Diagnostics);
                     }
@@ -439,11 +437,11 @@ namespace KeePassGate.Host.Tests.Live
                     _approvalText = Uia.Describe(approval, ControlType.Text);
                     Assert.That(driver.PressButton(approval, GateTab.ApproveButtonText), Is.True, driver.Diagnostics);
 
-                    return Finish(pairing, output, errors, CommandTimeout);
+                    return ReferenceClient.Finish(pairing, output, errors, CommandTimeout);
                 }
                 finally
                 {
-                    End(pairing);
+                    ReferenceClient.End(pairing);
                 }
             }
         }
@@ -454,7 +452,7 @@ namespace KeePassGate.Host.Tests.Live
         /// </summary>
         private Run RenewAndApprove(KeePassDriver driver)
         {
-            using (var renewing = Start("pykeepassgate renew" + Where()))
+            using (var renewing = ReferenceClient.Start("pykeepassgate renew" + Where()))
             {
                 var output = renewing.StandardOutput.ReadToEndAsync();
                 var errors = renewing.StandardError.ReadToEndAsync();
@@ -465,18 +463,18 @@ namespace KeePassGate.Host.Tests.Live
                     var approval = driver.WaitForWindow("asking to renew", DialogTimeout);
                     if (approval == null)
                     {
-                        var gone = Finish(renewing, output, errors, TimeSpan.FromSeconds(5));
+                        var gone = ReferenceClient.Finish(renewing, output, errors, TimeSpan.FromSeconds(5));
                         Assert.Fail("The renewal dialog never appeared. The client said: " + gone + " " +
                                     driver.Diagnostics);
                     }
 
                     Assert.That(driver.PressButton(approval, GateTab.ApproveButtonText), Is.True, driver.Diagnostics);
 
-                    return Finish(renewing, output, errors, CommandTimeout);
+                    return ReferenceClient.Finish(renewing, output, errors, CommandTimeout);
                 }
                 finally
                 {
-                    End(renewing);
+                    ReferenceClient.End(renewing);
                 }
             }
         }
@@ -484,7 +482,7 @@ namespace KeePassGate.Host.Tests.Live
         /// <summary>One command of the command line, from start to exit.</summary>
         private static Run Client(string arguments, TimeSpan timeout, string input = null)
         {
-            return Execute("pykeepassgate " + arguments, timeout, input);
+            return ReferenceClient.Execute("pykeepassgate " + arguments, timeout, input);
         }
 
         /// <summary>
@@ -493,99 +491,8 @@ namespace KeePassGate.Host.Tests.Live
         private Run Calls(string arguments, TimeSpan timeout, string input = null)
         {
             var program = Path.Combine("tests", "pykeepassgate", "live_calls.py");
-            return Execute("python \"" + program + "\" --directory \"" + _identity + "\" " + arguments, timeout, input);
-        }
-
-        /// <summary>
-        /// One program `uv` runs, from start to exit, with one line on standard input if given and
-        /// nothing otherwise.
-        /// </summary>
-        private static Run Execute(string arguments, TimeSpan timeout, string input)
-        {
-            Process process;
-            try
-            {
-                process = Start(arguments);
-            }
-            catch (System.ComponentModel.Win32Exception error)
-            {
-                Assert.Ignore("uv was not found, and PyKeePassGate is run through it: " + error.Message);
-                throw;
-            }
-
-            using (process)
-            {
-                var output = process.StandardOutput.ReadToEndAsync();
-                var errors = process.StandardError.ReadToEndAsync();
-                if (input != null)
-                {
-                    process.StandardInput.WriteLine(input);
-                }
-
-                process.StandardInput.Close();
-
-                try
-                {
-                    return Finish(process, output, errors, timeout);
-                }
-                finally
-                {
-                    End(process);
-                }
-            }
-        }
-
-        /// <summary>
-        /// `uv run --frozen` and what it is to run, from the repository, the way the Client task
-        /// runs it.
-        /// </summary>
-        private static Process Start(string arguments)
-        {
-            var info = new ProcessStartInfo
-            {
-                FileName = "uv",
-                Arguments = "run --frozen " + arguments,
-                WorkingDirectory = Repository.Root,
-                UseShellExecute = false,
-                CreateNoWindow = true,
-                RedirectStandardInput = true,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                StandardOutputEncoding = Encoding.UTF8,
-                StandardErrorEncoding = Encoding.UTF8
-            };
-
-            return Process.Start(info);
-        }
-
-        private static Run Finish(Process process, Task<string> output, Task<string> errors, TimeSpan timeout)
-        {
-            if (!process.WaitForExit((int)timeout.TotalMilliseconds))
-            {
-                return new Run(int.MinValue, string.Empty, "still running after " + timeout.TotalSeconds + "s");
-            }
-
-            // The overload without a timeout, which is the one that waits for the redirected
-            // streams to be read to their end as well.
-            process.WaitForExit();
-            return new Run(process.ExitCode, output.Result, errors.Result);
-        }
-
-        /// <summary>Ends a command that is still running, which only a failure leaves.</summary>
-        private static void End(Process process)
-        {
-            try
-            {
-                if (!process.HasExited)
-                {
-                    process.Kill();
-                    process.WaitForExit(10000);
-                }
-            }
-            catch (Exception error) when (error is InvalidOperationException || error is System.ComponentModel.Win32Exception)
-            {
-                // Gone already, or going.
-            }
+            return ReferenceClient.Execute(
+                "python \"" + program + "\" --directory \"" + _identity + "\" " + arguments, timeout, input);
         }
 
         /// <summary>
@@ -625,28 +532,6 @@ namespace KeePassGate.Host.Tests.Live
             }
 
             return false;
-        }
-
-        /// <summary>What one run of a program printed, and how it ended.</summary>
-        private sealed class Run
-        {
-            public Run(int exitCode, string output, string errors)
-            {
-                ExitCode = exitCode;
-                Output = output ?? string.Empty;
-                Errors = errors ?? string.Empty;
-            }
-
-            public int ExitCode { get; }
-
-            public string Output { get; }
-
-            public string Errors { get; }
-
-            public override string ToString()
-            {
-                return "exit " + ExitCode + Environment.NewLine + Output + Errors;
-            }
         }
     }
 }

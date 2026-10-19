@@ -30,6 +30,11 @@ namespace KeePassGate.Host.Tests.Live
     /// that made an authority of its own synchronized back in. Each step is screenshotted where it
     /// happens, so the images cannot show a sequence the plugin does not actually produce.
     ///
+    /// **One picture moves**: the whole journey, from a database holding only entries to a client
+    /// refused once it is revoked, with PyKeePassGate's real command line on one side and the real
+    /// dialogs on the other, put together from a timeline rather than filmed. See
+    /// `DocumentationLifecycle.cs` and <see cref="Storyboard"/>.
+    ///
     /// The pairing half drives a real client from this process. Nothing else can make the approval
     /// dialog appear, and a dialog mocked up for a screenshot would be a drawing of the plugin
     /// rather than a picture of it.
@@ -48,7 +53,7 @@ namespace KeePassGate.Host.Tests.Live
     [Category(TestCategories.Screenshots)]
     [Apartment(ApartmentState.STA)]
     [NonParallelizable]
-    public sealed class DocumentationScreenshots
+    public sealed partial class DocumentationScreenshots
     {
         /// <summary>What the client is called while it pairs, and therefore in two of the images.</summary>
         private const string ClientName = "agent-invented";
@@ -96,6 +101,11 @@ namespace KeePassGate.Host.Tests.Live
         public void ScreenshotTheWholeFlow()
         {
             _directory = Screenshot.DirectoryOrIgnore();
+
+            // Before the session, for the reason `LiveReferenceClientTests` asks it first: the one
+            // step that can take minutes is about the environment, not about anything filmed.
+            SettleTheClient();
+
             _session = LiveSession.Begin();
 
             // The plugin's window shows the port twice, in the address and in its box, and every
@@ -106,6 +116,10 @@ namespace KeePassGate.Host.Tests.Live
                 ", so the pictures would show another. Free it and take them again.");
 
             _session.KeePass.FillWithInventedContent();
+
+            // The moving picture starts from here, a database with entries and nothing else, so it
+            // is kept as it is now and put back when the picture is taken, last.
+            _pristine = _session.KeePass.CopyDatabase(PristineCopy);
 
             // The rule the access pages are screenshotted showing. Written into the database rather
             // than chosen in the dialog: what the pictures are of is an editor reading a real rule,
@@ -138,7 +152,7 @@ namespace KeePassGate.Host.Tests.Live
 
             foreach (var name in DocumentationImages.Expected)
             {
-                var path = Path.Combine(_directory, name + ".png");
+                var path = Path.Combine(_directory, DocumentationImages.FileName(name));
                 Assert.That(File.Exists(path), Is.True, path + " was not written.");
                 Assert.That(new FileInfo(path).Length, Is.GreaterThan(1024),
                     path + " is too small to be a picture of a dialog.");
@@ -286,6 +300,10 @@ namespace KeePassGate.Host.Tests.Live
             AskToRenew();
 
             AskWhichAuthorityToKeep();
+
+            // The moving picture last, because it starts from the database as it was before any
+            // of this, which it puts back, and ends with a client paired and revoked in it.
+            FilmTheLifecycle();
         }
 
         /// <summary>
