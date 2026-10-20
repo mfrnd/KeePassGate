@@ -6,6 +6,7 @@ command adds: which call it makes with what, what it prints, and what it refuses
 
 from __future__ import annotations
 
+import base64
 import json
 from pathlib import Path
 from typing import Any
@@ -328,3 +329,130 @@ def test_strip_field_says_what_it_took_off(
 
     assert code == 0
     assert json.loads(capsys.readouterr().out) == {"uuid": UUID, "name": "Environment"}
+
+
+def test_add_attachment_sends_the_file_it_was_told_to(
+    gate: FakeGate, kept: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    sent = answering(gate, {"ok": True})
+    source = tmp_path / "key.pem"
+    source.write_bytes(b"not a real key")
+
+    code = cli.main(
+        ["add-attachment", UUID, "key.pem", "--from", str(source), "--directory", str(kept)]
+    )
+
+    assert code == 0
+    assert gate.requests == [("POST", f"/entries/{UUID}/attachments")]
+    assert json.loads(sent[-1]) == {
+        "name": "key.pem",
+        "content": base64.b64encode(b"not a real key").decode("ascii"),
+    }
+    assert capsys.readouterr().out.strip() == f"added key.pem to {UUID}, 14 bytes"
+
+
+def test_update_attachment_replaces_one_by_name(
+    gate: FakeGate, kept: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    sent = answering(gate, {"ok": True})
+    source = tmp_path / "rotated.pem"
+    source.write_bytes(b"not a real key, rotated")
+
+    code = cli.main(
+        [
+            "update-attachment",
+            UUID,
+            "key.pem",
+            "--from",
+            str(source),
+            "--directory",
+            str(kept),
+            "-o",
+            "json",
+        ]
+    )
+
+    assert code == 0
+    assert gate.requests == [("PUT", f"/entries/{UUID}/attachments/key.pem")]
+    assert json.loads(sent[-1]) == {
+        "content": base64.b64encode(b"not a real key, rotated").decode("ascii")
+    }
+    assert json.loads(capsys.readouterr().out) == {"uuid": UUID, "name": "key.pem", "size": 23}
+
+
+def test_a_file_that_will_not_read_is_a_wrong_argument_and_nothing_is_dialed(
+    gate: FakeGate, kept: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    missing = tmp_path / "not-there.pem"
+
+    code = cli.main(
+        ["add-attachment", UUID, "key.pem", "--from", str(missing), "--directory", str(kept)]
+    )
+
+    assert code == 2
+    assert "not-there.pem" in capsys.readouterr().err
+    assert gate.requests == []
+
+
+def test_strip_attachment_says_what_it_took_off(
+    gate: FakeGate, kept: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    answering(gate, {"ok": True})
+
+    assert cli.main(["strip-attachment", UUID, "key.pem", "--directory", str(kept)]) == 0
+
+    assert gate.requests == [("DELETE", f"/entries/{UUID}/attachments/key.pem")]
+    assert capsys.readouterr().out.strip() == f"stripped key.pem from {UUID}"
+
+
+#: `operationId` to the command that asks it, which is the claim this step makes checkable: the
+#: command line reaches every route the library does. Two operations share `groups` and two share
+#: `entries`, as they share a library method, because which is asked is an option. Pairing is the
+#: one command made of two, and a `head` is left to the library, since it answers nothing a
+#: command could print.
+COMMANDS = {
+    "getStatus": "status",
+    "getIdentity": "whoami",
+    "revokeCertificate": "revoke",
+    "renewCertificate": "renew",
+    "pairHello": "pair",
+    "pairRequest": "pair",
+    "listGroups": "groups",
+    "readGroup": "group",
+    "listSubgroups": "groups",
+    "createGroup": "add-group",
+    "updateGroup": "update-group",
+    "deleteGroup": "remove-group",
+    "getGroupAccess": "access",
+    "listEntries": "entries",
+    "listGroupEntries": "entries",
+    "readEntry": "show",
+    "createEntry": "add",
+    "updateEntry": "update",
+    "deleteEntry": "remove",
+    "getEntryAccess": "access",
+    "listFields": "fields",
+    "readField": "field",
+    "createField": "add-field",
+    "updateField": "update-field",
+    "stripField": "strip-field",
+    "listAttachments": "attachments",
+    "readAttachment": "fetch",
+    "createAttachment": "add-attachment",
+    "updateAttachment": "update-attachment",
+    "stripAttachment": "strip-attachment",
+}
+
+
+def test_every_route_but_a_head_has_a_command() -> None:
+    from test_cli_output import commands
+    from test_reference import operations, routing_table
+
+    declared = {
+        name
+        for name, operation in operations(routing_table()).items()
+        if operation["method"] != "head"
+    }
+
+    assert set(COMMANDS) == declared
+    assert set(COMMANDS.values()) <= set(commands())

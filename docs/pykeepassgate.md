@@ -626,7 +626,15 @@ one is refused as `400 malformed`, like any body the routing table does not allo
 ```shell
 pykeepassgate attachments <uuid>
 pykeepassgate fetch <uuid> key.pem --to ./key.pem
+pykeepassgate add-attachment <uuid> key.pem --from ./key.pem
+pykeepassgate update-attachment <uuid> key.pem --from ./rotated.pem
+pykeepassgate strip-attachment <uuid> key.pem
 ```
+
+`add-attachment` and `update-attachment` read the whole file before anything is dialed, so a file
+that is not there or will not read is exit code 2 with nothing sent, as a place `fetch` cannot
+write to is. Adding needs `C` and replacing `U`, each with `A`; stripping needs `S` alone, as
+stripping a field does.
 
 ## Ask what it may do before trying
 

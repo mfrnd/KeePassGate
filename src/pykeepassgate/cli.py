@@ -468,6 +468,40 @@ def _parser() -> argparse.ArgumentParser:
     _dialed(fetch)
     fetch.set_defaults(run=_fetch)
 
+    # Named as `fetch` is, the entry and the attachment's name first, and the file after.
+    add_attachment = commands.add_parser(
+        "add-attachment", help="add an attachment the entry does not have, from a file"
+    )
+    add_attachment.add_argument("uuid", help="the entry's identifier")
+    add_attachment.add_argument("name", help="what to call it")
+    add_attachment.add_argument(
+        "--from", dest="source", type=Path, required=True, help="the file to read it from"
+    )
+    _shared(add_attachment)
+    _dialed(add_attachment)
+    add_attachment.set_defaults(run=_add_attachment)
+
+    update_attachment = commands.add_parser(
+        "update-attachment", help="replace an attachment the entry already has, from a file"
+    )
+    update_attachment.add_argument("uuid", help="the entry's identifier")
+    update_attachment.add_argument("name", help="the attachment's name")
+    update_attachment.add_argument(
+        "--from", dest="source", type=Path, required=True, help="the file to read it from"
+    )
+    _shared(update_attachment)
+    _dialed(update_attachment)
+    update_attachment.set_defaults(run=_update_attachment)
+
+    strip_attachment = commands.add_parser(
+        "strip-attachment", help="take an attachment off an entry"
+    )
+    strip_attachment.add_argument("uuid", help="the entry's identifier")
+    strip_attachment.add_argument("name", help="the attachment's name")
+    _shared(strip_attachment)
+    _dialed(strip_attachment)
+    strip_attachment.set_defaults(run=_strip_attachment)
+
     # Every command, by construction rather than by remembering it on each, so a command added
     # later cannot be the one a program has no way to read.
     for command in commands.choices.values():
@@ -1711,6 +1745,73 @@ def _fetch(arguments: argparse.Namespace) -> int:
             "path": str(arguments.to),
         },
         [f"wrote {len(content)} bytes to {arguments.to}"],
+    )
+    return 0
+
+
+def _attaching(
+    arguments: argparse.Namespace, write: Callable[[api.GateClient, bytes], None], done: str
+) -> int:
+    """Read the file an attachment comes from, and only then dial, write it and say so.
+
+    `done` is what the plain line says was done, as the field commands say it.
+
+    Read first, so a file that is not there or will not read is an argument that cannot be done
+    as given, exit 2 with nothing dialed, as a place `fetch` cannot write to is.
+    """
+    try:
+        content = arguments.source.read_bytes()
+    except OSError as error:
+        print(str(error), file=sys.stderr)
+        return 2
+
+    client = api.GateClient.open(
+        arguments.directory,
+        arguments.profile,
+        host=arguments.host,
+        key_password=_key_password(arguments),
+        **_dialing(arguments),
+    )
+    write(client, content)
+
+    _emit(
+        arguments,
+        {"uuid": arguments.uuid, "name": arguments.name, "size": len(content)},
+        [f"{done}, {len(content)} bytes"],
+    )
+    return 0
+
+
+def _add_attachment(arguments: argparse.Namespace) -> int:
+    return _attaching(
+        arguments,
+        lambda client, content: client.create_attachment(arguments.uuid, arguments.name, content),
+        f"added {_printable(arguments.name)} to {arguments.uuid}",
+    )
+
+
+def _update_attachment(arguments: argparse.Namespace) -> int:
+    return _attaching(
+        arguments,
+        lambda client, content: client.update_attachment(arguments.uuid, arguments.name, content),
+        f"updated {_printable(arguments.name)} on {arguments.uuid}",
+    )
+
+
+def _strip_attachment(arguments: argparse.Namespace) -> int:
+    client = api.GateClient.open(
+        arguments.directory,
+        arguments.profile,
+        host=arguments.host,
+        key_password=_key_password(arguments),
+        **_dialing(arguments),
+    )
+    client.strip_attachment(arguments.uuid, arguments.name)
+
+    _emit(
+        arguments,
+        {"uuid": arguments.uuid, "name": arguments.name},
+        [f"stripped {_printable(arguments.name)} from {arguments.uuid}"],
     )
     return 0
 
