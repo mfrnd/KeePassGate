@@ -299,7 +299,7 @@ namespace KeePassGate.Bridge
         {
             if (string.IsNullOrEmpty(name))
             {
-                return VaultWrite.Failed("a group needs a name");
+                return Logged(VaultWrite.Failed("a group needs a name"));
             }
 
             return Change(() =>
@@ -408,7 +408,7 @@ namespace KeePassGate.Bridge
                     return VaultWrite.Conflict("the group still holds something");
                 }
 
-                var blocked = Blocking(group) ?? BlockingRemoval(group);
+                var blocked = Blocking(group) ?? BlockingRemoval(group) ?? RecycleBinBlocked();
                 if (blocked != null)
                 {
                     return VaultWrite.Busy(blocked);
@@ -537,8 +537,8 @@ namespace KeePassGate.Bridge
 
             if (expiry != null && expiry.IsAuto)
             {
-                return VaultWrite.Failed(
-                    "an entry that exists already was asked to take the expiry KeePass's options give new ones");
+                return Logged(VaultWrite.Failed(
+                    "an entry that exists already was asked to take the expiry KeePass's options give new ones"));
             }
 
             return Change(() =>
@@ -643,7 +643,7 @@ namespace KeePassGate.Bridge
                     return VaultWrite.Missing();
                 }
 
-                var blocked = Blocking(entry);
+                var blocked = Blocking(entry) ?? RecycleBinBlocked();
                 if (blocked != null)
                 {
                     return VaultWrite.Busy(blocked);
@@ -660,7 +660,7 @@ namespace KeePassGate.Bridge
         {
             if (string.IsNullOrEmpty(name))
             {
-                return VaultWrite.Failed("a field needs a name");
+                return Logged(VaultWrite.Failed("a field needs a name"));
             }
 
             return Change(() =>
@@ -784,7 +784,7 @@ namespace KeePassGate.Bridge
         {
             if (string.IsNullOrEmpty(name))
             {
-                return VaultWrite.Failed("an attachment needs a name");
+                return Logged(VaultWrite.Failed("an attachment needs a name"));
             }
 
             return Change(() =>
@@ -1065,10 +1065,49 @@ namespace KeePassGate.Bridge
             };
         }
 
+        /// <summary>
+        /// A write's answer, with the reason written to the log when the write was refused.
+        /// </summary>
+        /// <remarks>
+        /// **A caller is told the kind of refusal and the operator is told the reason.** The route
+        /// answers `503 busy`, `409 conflict` or `500 internal error`, which is all a client can
+        /// act on, and several of the reasons behind them are something only the operator can
+        /// clear: a dialog left open on the node, a file on disk that is not the one KeePass read,
+        /// a database with no file yet, saving disallowed by policy. None of them was written
+        /// anywhere, so an agent retrying a `503 busy` for as long as it was allowed to left the
+        /// operator nothing to find. At `Warn`, the level `IGateLog` keeps for something refused.
+        ///
+        /// Not an absence, which every route answers alike and whose node the audit names, and not
+        /// a change that was made and could not be saved, which the writer logs itself with the
+        /// exception, and that says more than its message does.
+        /// </remarks>
+        private VaultWrite Logged(VaultWrite write)
+        {
+            if (write == null)
+            {
+                return null;
+            }
+
+            if (write.IsBusy)
+            {
+                _log.Warn("a change was refused as busy: " + write.Reason);
+            }
+            else if (write.IsConflict)
+            {
+                _log.Warn("a change was refused as a conflict: " + write.Reason);
+            }
+            else if (write.IsFailed)
+            {
+                _log.Warn("a change could not be attempted: " + write.Reason);
+            }
+
+            return write;
+        }
+
         private VaultWrite Change(Func<VaultChange> change)
         {
             var blocked = WriteBlocked;
-            return blocked != null ? VaultWrite.Failed(blocked) : _writer.Change(_database, change);
+            return Logged(blocked != null ? VaultWrite.Failed(blocked) : _writer.Change(_database, change));
         }
 
         /// <summary>
@@ -1105,7 +1144,7 @@ namespace KeePassGate.Bridge
             var blocked = WriteBlocked;
             if (blocked != null)
             {
-                return VaultWrite.Failed(blocked);
+                return Logged(VaultWrite.Failed(blocked));
             }
 
             return Reading(present) ? VaultWrite.Done() : VaultWrite.Missing();
@@ -1305,6 +1344,35 @@ namespace KeePassGate.Bridge
         {
             return VaultWrite.Conflict(
                 "this database cannot tell that field name apart from one the entry already has");
+        }
+
+        /// <summary>
+        /// Why a removal cannot happen right now because it would have to make the first recycle
+        /// bin, or null when it can.
+        /// </summary>
+        /// <remarks>
+        /// **Only the branch that makes one.** KeePass's database settings dialog fills its recycle
+        /// bin combo from `RecycleBinUuid` when it loads and writes the choice back on OK, so a
+        /// database that had no bin when that dialog opened has the dialog holding "none": a bin
+        /// made underneath it is undone by its OK, and everything the removal moved into it becomes
+        /// an ordinary group under the root that `Discarded` no longer recognizes. `DESIGN.md` §138
+        /// closes that relocation by putting the bin out of reach, and this is the one way it was
+        /// still reachable. A bin that already existed when the dialog opened is what the dialog
+        /// puts back, so nothing is refused for it.
+        ///
+        /// **Refused rather than made permanent.** The alternative to making a bin is destroying
+        /// what was removed outright, which is a worse answer to a dialog being open than telling
+        /// the caller to come back.
+        /// </remarks>
+        private string RecycleBinBlocked()
+        {
+            var root = _database.RootGroup;
+            if (_writer == null || !_database.RecycleBinEnabled || root == null)
+            {
+                return null;
+            }
+
+            return Bin(root) != null ? null : _writer.BlockingRecycleBin(_database);
         }
 
         /// <summary>

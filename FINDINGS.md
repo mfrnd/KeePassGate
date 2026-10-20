@@ -329,6 +329,11 @@ clears the clone's own history, adds it, and then calls `MaintainBackups`, which
 how many to keep, and must not: the operator answered that in Database Settings, for KeePass's own
 edits and for anything else that writes. Read off KeePass 2.61.1 rather than from documentation.
 
+**`DatabaseSettingsForm.OnBtnOK` can be driven outside a running KeePass.** It touches only its own
+controls and the `PwDatabase`, and calls nothing that puts a window on the desktop, so the host tier
+can press it on a form that was never shown and watch what it writes back. That is how the recycle
+bin snapshot was measured rather than modeled.
+
 ## 19. The gate, and where it can run
 
 **A warning is not a failure, and under `Stop` it becomes one.** A native command writing to stderr

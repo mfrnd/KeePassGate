@@ -43,15 +43,12 @@ namespace KeePassGate.Host.Tests.Live
         [OneTimeSetUp]
         public void RunTheWholeSession()
         {
-            _session = LiveSession.Begin(true);
+            _session = LiveSession.Begin();
 
-            // Before KeePass opens the file, because the editor offers the profiles this database
-            // has admitted somebody into and gives no way to invent one. A profile is real here
-            // because a client holds it, so admitting a client is what makes this one.
-            using (var client = _session.KeePass.IssueClientCertificate("invented-reader"))
-            {
-                _session.KeePass.Admit(client, Profile);
-            }
+            // Before KeePass opens the file, because the editor writes rules for profiles this
+            // database names and offers no way to invent one. Naming it here is the same thing the
+            // Profiles page does, done to a file rather than through a window.
+            _session.KeePass.NameProfiles(Profile);
 
             GrantFromTheTabAndSave();
 
@@ -180,11 +177,10 @@ namespace KeePassGate.Host.Tests.Live
         /// anything and reads exactly like one that works. Both are chosen from a list, and a list
         /// is not something the accessibility tree can be asked to operate.
         ///
-        /// So: one click on the empty line opens the profiles this database has admitted somebody
-        /// into, Enter takes the one that is highlighted, and the rule picker opens straight after
-        /// it because choosing a profile is half a decision. Escape leaves that half undone, which
-        /// is deliberate: a rule granting nothing is one of the two states worth proving survives
-        /// the dialog's OK.
+        /// So: one click on the empty line opens the profiles this database names, Enter takes the
+        /// one that is highlighted, and the rule picker opens straight after it because choosing a
+        /// profile is half a decision. Escape leaves that half undone, which is deliberate: a rule
+        /// granting nothing is one of the two states worth proving survives the dialog's OK.
         ///
         /// The seal is toggled through the tree, since a check box is a thing the tree can work.
         /// </remarks>

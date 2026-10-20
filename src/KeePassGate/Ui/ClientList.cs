@@ -47,6 +47,19 @@ namespace KeePassGate.Ui
         /// <summary>The grid, by name.</summary>
         public const string ListName = "KpgClientListView";
 
+        /// <summary>
+        /// What a screen reader calls the grid, which has no caption of its own to be called by.
+        /// </summary>
+        /// <remarks>
+        /// A phrase to be read aloud rather than a lookup name, which is the whole distinction
+        /// `CONVENTIONS.md` draws: the desktop tests point at controls by their `AutomationId`,
+        /// which comes from `Name` and is untouched by this, so a grid announcing
+        /// "KpgClientListView" would have been reading an identifier to somebody who cannot see
+        /// the table it belongs to. Without one the grid announces nothing at all, and a table is
+        /// exactly the kind of control the convention names.
+        /// </remarks>
+        public const string ListLabel = "Clients admitted to this database";
+
         /// <summary>What is said when the database has admitted nobody.</summary>
         public const string NobodyText = "No client has been admitted to this database.";
 
@@ -74,6 +87,17 @@ namespace KeePassGate.Ui
         /// <summary>What the last column says, and what pressing it means.</summary>
         public const string RevokeMark = "X";
 
+        /// <summary>
+        /// Said after a profile a client holds that the database no longer names.
+        /// </summary>
+        /// <remarks>
+        /// A record keeps every name it was approved for, and the gate grants a client only the
+        /// ones the database still names, so such a name is held and grants nothing. It is listed,
+        /// dimmed, rather than left out, because adding the name back gives it to this client
+        /// again, and the row is where the operator looks to see who holds what.
+        /// </remarks>
+        public const string RemovedSuffix = " (removed)";
+
         private const int ClientColumn = 0;
         private const int ProfilesColumn = 1;
         private const int AdmittedColumn = 2;
@@ -83,6 +107,9 @@ namespace KeePassGate.Ui
         private readonly Func<AdmissionRecord, string> _revoke;
         private readonly DataGridView _grid;
         private readonly Label _note;
+
+        /// <summary>The profiles the database names, or null when nobody said.</summary>
+        private ICollection<string> _named;
 
         /// <summary>What the last gesture said, kept because the label also says other things.</summary>
         private string _said = string.Empty;
@@ -304,12 +331,19 @@ namespace KeePassGate.Ui
         /// means reading the authority out of the database and this control reads nothing: it is
         /// a list.
         /// </param>
-        public void Fill(AdmissionListing listing, ICollection<string> strangers)
+        /// <param name="named">
+        /// The profiles the database names, so that one a client holds and the database no longer
+        /// names is shown as removed. Null when nothing here needs marking, which is not the same
+        /// as an empty list: a database whose list names nothing marks every profile any client
+        /// holds, as the gate grants none of them.
+        /// </param>
+        public void Fill(AdmissionListing listing, ICollection<string> strangers, ICollection<string> named)
         {
             _filling = true;
 
             try
             {
+                _named = named;
                 _records.Clear();
                 _grid.Rows.Clear();
 
@@ -354,6 +388,7 @@ namespace KeePassGate.Ui
             var grid = new DataGridView
             {
                 Name = ListName,
+                AccessibleName = ListLabel,
                 Dock = DockStyle.Fill,
                 AllowUserToAddRows = false,
                 AllowUserToDeleteRows = false,
@@ -423,7 +458,8 @@ namespace KeePassGate.Ui
         }
 
         /// <summary>
-        /// Draws a bin over the heading of the column that takes something away.
+        /// Draws a bin over the heading of the column that takes something away, and dims the
+        /// removed profiles a client holds.
         /// </summary>
         /// <remarks>
         /// The heading only. The buttons under it keep their mark: what a button does is said by
@@ -431,6 +467,12 @@ namespace KeePassGate.Ui
         /// </remarks>
         private void OnCellPainting(object sender, DataGridViewCellPaintingEventArgs e)
         {
+            if (e.ColumnIndex == ProfilesColumn && e.RowIndex >= 0)
+            {
+                PaintProfiles(e);
+                return;
+            }
+
             if (e.ColumnIndex != RevokeColumn || e.RowIndex >= 0)
             {
                 return;
@@ -481,22 +523,108 @@ namespace KeePassGate.Ui
             Revoke(e.RowIndex);
         }
 
-        private static string[] Profiles(AdmissionRecord record)
+        private string[] Profiles(AdmissionRecord record)
         {
             var names = new string[record.Profiles.Count];
             for (var i = 0; i < names.Length; i++)
             {
-                names[i] = record.Profiles[i];
+                names[i] = Removed(record.Profiles[i])
+                    ? record.Profiles[i] + RemovedSuffix
+                    : record.Profiles[i];
             }
 
             return names;
+        }
+
+        /// <summary>Whether a profile a client holds is one the database no longer names.</summary>
+        private bool Removed(string profile)
+        {
+            return _named != null && !_named.Contains(profile);
+        }
+
+        /// <summary>
+        /// Draws a profiles cell holding a removed name one line at a time, the removed ones in
+        /// gray.
+        /// </summary>
+        /// <remarks>
+        /// A cell has one color, and the point is that a row holding `reader` and a removed `ops`
+        /// says which of the two still grants anything; the words say it and the gray says it at a
+        /// glance. Drawn only where there is something to dim, so every other cell is the grid's own
+        /// painting and nothing about it can drift from the rest.
+        /// </remarks>
+        private void PaintProfiles(DataGridViewCellPaintingEventArgs e)
+        {
+            if (e.RowIndex >= _records.Count)
+            {
+                return;
+            }
+
+            var record = _records[e.RowIndex];
+            var any = false;
+            foreach (var profile in record.Profiles)
+            {
+                any |= Removed(profile);
+            }
+
+            if (!any)
+            {
+                return;
+            }
+
+            e.Paint(e.ClipBounds, DataGridViewPaintParts.All & ~DataGridViewPaintParts.ContentForeground);
+
+            var selected = (e.State & DataGridViewElementStates.Selected) != 0;
+            var ink = selected ? e.CellStyle.SelectionForeColor : e.CellStyle.ForeColor;
+
+            // Gray on the selection's blue is barely there, so a selected row dims to a light shade
+            // of its own background instead, which reads as dimmer than the lines beside it.
+            var dim = selected
+                ? ControlPaint.Light(e.CellStyle.SelectionBackColor)
+                : SystemColors.GrayText;
+
+            var flags = TextFormatFlags.Left | TextFormatFlags.Top | TextFormatFlags.WordBreak
+                        | TextFormatFlags.NoPrefix | TextFormatFlags.PreserveGraphicsClipping;
+
+            // Where a wrapping text box cell draws its text: inside the border it owns on the right
+            // and at the bottom, inside the padding, and one pixel down. Anything narrower wraps a
+            // line the grid sized the row for as one, and the row cuts it off.
+            var bounds = new Rectangle(
+                e.CellBounds.Left + e.CellStyle.Padding.Left,
+                e.CellBounds.Top + e.CellStyle.Padding.Top + 1,
+                Math.Max(1, e.CellBounds.Width - 1 - e.CellStyle.Padding.Horizontal),
+                Math.Max(1, e.CellBounds.Height - 1 - e.CellStyle.Padding.Vertical - 2));
+
+            var top = bounds.Top;
+            foreach (var profile in record.Profiles)
+            {
+                var removed = Removed(profile);
+                var line = removed ? profile + RemovedSuffix : profile;
+                var height = TextRenderer.MeasureText(
+                    e.Graphics, line, e.CellStyle.Font, new Size(bounds.Width, 0), flags).Height;
+
+                TextRenderer.DrawText(
+                    e.Graphics,
+                    line,
+                    e.CellStyle.Font,
+                    new Rectangle(bounds.Left, top, bounds.Width, height),
+                    removed ? dim : ink,
+                    flags);
+
+                top += height;
+            }
+
+            e.Handled = true;
         }
 
         /// <summary>
         /// What to call a client. The subject as issued, without the attribute that wraps it, since
         /// every one of these reads `CN=` and a column of identical prefixes says nothing.
         /// </summary>
-        private static string Describe(AdmissionRecord record)
+        /// <remarks>
+        /// Internal, because the warnings that name clients, on the Profiles page and on the
+        /// approval dialog, have to call each one what this page calls it.
+        /// </remarks>
+        internal static string Describe(AdmissionRecord record)
         {
             var subject = record.Subject ?? string.Empty;
             return subject.StartsWith("CN=", StringComparison.Ordinal) ? subject.Substring(3) : subject;

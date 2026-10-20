@@ -43,6 +43,7 @@ namespace KeePassGate.Ui
         private readonly bool _canDelete;
         private readonly bool _isServed;
         private readonly bool _hasExpired;
+        private readonly bool _hostHasExpired;
 
         private AuthorityDescription(
             string headline,
@@ -51,7 +52,7 @@ namespace KeePassGate.Ui
             bool canCreate,
             bool canRecreate,
             bool canDelete)
-            : this(headline, facts, details, canCreate, canRecreate, canDelete, false, false)
+            : this(headline, facts, details, canCreate, canRecreate, canDelete, false, false, false)
         {
         }
 
@@ -63,7 +64,8 @@ namespace KeePassGate.Ui
             bool canRecreate,
             bool canDelete,
             bool isServed,
-            bool hasExpired)
+            bool hasExpired,
+            bool hostHasExpired)
         {
             _headline = headline;
             _facts = facts == null ? new List<Fact>() : new List<Fact>(facts);
@@ -73,6 +75,7 @@ namespace KeePassGate.Ui
             _canDelete = canDelete;
             _isServed = isServed;
             _hasExpired = hasExpired;
+            _hostHasExpired = hostHasExpired;
         }
 
         public string Headline
@@ -142,6 +145,21 @@ namespace KeePassGate.Ui
         }
 
         /// <summary>
+        /// Whether the host certificate this database answers with has run out, which it does
+        /// five years into the authority's ten.
+        /// </summary>
+        /// <remarks>
+        /// Apart from <see cref="HasExpired"/> because it is a different date, and the page says
+        /// which one passed. What it costs is the same: every connection is served with this
+        /// certificate, so a client paired now could never connect, and `CA.md` §219 has no
+        /// reissue, so recreating the authority is the way out here too.
+        /// </remarks>
+        public bool HostHasExpired
+        {
+            get { return _hostHasExpired; }
+        }
+
+        /// <summary>
         /// Whether a code minted now could ever be redeemed, which is a narrower question than
         /// any of the three buttons on the first page answer.
         /// </summary>
@@ -149,12 +167,13 @@ namespace KeePassGate.Ui
         /// Narrower in both directions that matter. A damaged authority and one past its own
         /// dates are both authorities recreating is the answer to, and neither can sign anything,
         /// so the button that offers to recreate has to be alive in exactly the two states where
-        /// the button that hands out a code must not be. `PAIRING.md` §311 refuses a pairing
-        /// request on an expired authority before the operator is disturbed.
+        /// the button that hands out a code must not be. A host certificate past its dates is a
+        /// third such state. `PAIRING.md` §311 refuses a pairing request on an expired authority
+        /// or host certificate before the operator is disturbed.
         /// </remarks>
         public bool CanInvite
         {
-            get { return _isServed && !_hasExpired; }
+            get { return _isServed && !_hasExpired && !_hostHasExpired; }
         }
 
         public static AuthorityDescription NoDatabase()
@@ -206,7 +225,8 @@ namespace KeePassGate.Ui
                     return new AuthorityDescription(
                         PresentHeadline, FactsOf(reading), Warnings(reading, clients, now),
                         false, true, true, true,
-                        CertificateValidity.HasExpired(reading.Material.Authority, now));
+                        CertificateValidity.HasExpired(reading.Material.Authority, now),
+                        CertificateValidity.HasExpired(reading.Material.Host, now));
             }
         }
 

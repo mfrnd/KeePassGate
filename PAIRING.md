@@ -139,6 +139,16 @@ screen. Nothing is spent by that, so the invitee can simply ask again. The refer
 so by itself when it is given a budget for waiting, starting again from the hello rather than
 repeating the approval request alone.
 
+**The dialog says what approving a profile brings back.** Pairing writes the approved names onto
+the database's list of profiles in the same write as the record, and that list decides which names
+are in force (`DESIGN.md` §139). A name the database does not name now and no client holds is
+marked "(new)", because approving adds it, and the dialog says that any rule already naming it
+applies at once: a name removed once, whose every holder has since been revoked or has expired,
+looks the same from a connection, which does not walk the tree to count rules. A name the operator
+removed that other clients still hold is marked
+"(removed)", and the dialog names those clients: approving puts the name back, every one of them
+regains it, and every rule still naming it applies again.
+
 Both proofs are bound to the RFC 5929 `tls-server-end-point` channel binding, which both sides
 derive independently and which hashes the certificate actually in use. **It needs no interface from
 the transport on either side**, because it is defined as a hash of the server's certificate: the
@@ -417,7 +427,7 @@ What a refusal says, and deliberately no more:
 | `400 name` / `400 profile` / `400 malformed` | it could never have been issued as asked |
 | `403 refused` | the operator said no, and the invitation is spent |
 | `504 unanswered` | nobody was at the screen. **Nothing is spent** |
-| `503 busy` | a dialog is open on the group, another pairing is already in front of the operator, or there is no screen to ask. **Nothing is spent**, and the client is never told which |
+| `503 busy` | a dialog is open that would take the record back, KeePass is part way through a save, an import, a synchronize, an export or a message box of its own, or shows its progress window for one such as XML Replace, another pairing is already in front of the operator, or there is no screen to ask. **Nothing is spent**, and the client is never told which |
 | `500 not recorded` | the operator approved and the record did not reach the disk. **The invitation is spent** |
 | `500 internal error` | the operator approved and no certificate could be issued: the authority ran out while the dialog was open, or its key would not sign. **The invitation is not spent**, and the client starts again from a hello |
 | `500 expired host` | the host certificate this database answers with has run out, so no client paired now could connect. **Nothing is spent**, and no dialog was raised |
@@ -427,8 +437,8 @@ The `503` row is the one to be careful with. A caller learns that it should try 
 about what is open on somebody's desk.
 
 **Every `503` is raised before the invitation is spent, and that is what makes it honest.** The
-group-dialog check and the wait for the screen both happen before the burn, so a caller that retries
-is retrying something that can still work. Once the invitation is burned there is no retryable
+dialog check and the wait for the screen both happen before the burn, so a caller that starts again
+from a hello is retrying something that can still work. Once the invitation is burned there is no retryable
 answer left: a write that fails after that point is a `500` however transient its cause was, because
 the same code will be turned away at the name on its next connection and dropped without any answer
 at all. Whether it was worth retrying goes to the operator's log, which is where somebody can act on

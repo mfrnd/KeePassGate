@@ -83,7 +83,7 @@ has to decide.
 | Exception | What it means, and what to do |
 | --- | --- |
 | `DatabaseLocked` | The database is locked. Wait, and try again. |
-| `GateBusy` | The gate cannot serve this right now: a write under a dialog open on what it would change, or a read while the database kept changing under it. Retry. |
+| `GateBusy` | The gate cannot serve this right now: a write under a dialog open on what it would change, or while KeePass is busy with something of its own, or a read while the database kept changing under it. Retry. |
 | `NotAdmitted` | This database holds no record for this certificate. It was never admitted, or it was revoked. Pair again. |
 | `ProofRefused` | During pairing: the token is wrong, or whatever answered is not the KeePass whose operator holds it. Stop. |
 | `PairingRefused` | The operator said no. The invitation is spent, so ask for another. |

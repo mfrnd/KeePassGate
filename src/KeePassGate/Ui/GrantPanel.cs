@@ -1133,9 +1133,8 @@ namespace KeePassGate.Ui
                 // the name is one this database names.
                 ReadOnly = true,
                 ToolTipText = Tooltips.Wrapped(
-                    // TODO(step 17): the profiles page arrives then, and is the other way one
-                    // is named. Until it does, a profile becomes real by being approved at
-                    // pairing, which is what `GrantTab.NoProfilesYet` says on the same tab.
+                    // Both ways a profile becomes one this database knows: named on the
+                    // profiles page, or approved when a client asks for it at pairing.
                     "The profile this rule is for, chosen from the ones this database "
                     + "names. Add one on the " + GateName.OnATab + " tab of the database "
                     + "settings, or approve one when a client asks for it."),

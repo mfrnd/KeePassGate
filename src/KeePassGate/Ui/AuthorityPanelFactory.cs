@@ -115,11 +115,11 @@ namespace KeePassGate.Ui
 
         public Control CreatePanel(Form dialog)
         {
-            var found = _databases.ForDialog(dialog);
+            var found = _databases == null ? null : _databases.ForDialog(dialog);
 
-            // Held back until the dialog says so. Everything the page does goes through this, so it
-            // does not have to know, and the dialog's own OK and Cancel come to mean what they say
-            // on a tab that would otherwise write the moment a button was pressed.
+            // Held back until the dialog says so. Everything the pages do goes through this, so
+            // none of them has to know, and the dialog's own OK and Cancel come to mean what they
+            // say on a tab that used to write the moment a button was pressed.
             var database = found == null ? null : new PendingDatabase(found, _log);
 
             // And so are the invitations made on it, which are the plugin's memory rather than the
@@ -128,7 +128,16 @@ namespace KeePassGate.Ui
             var invitations = _invitations == null ? null : new PendingInvitations(_invitations);
 
             var panel = new AuthorityPanel(
-                database, _prompt, _log, _version, _gate, invitations, _incidents, _admissions);
+                database,
+                _prompt,
+                _log,
+                _version,
+                _gate,
+                invitations,
+                _incidents,
+                database == null ? null : new DatabaseProfiles(database, _log),
+                _admissions);
+
             Commit(dialog, database, invitations);
             return panel;
         }
@@ -192,8 +201,8 @@ namespace KeePassGate.Ui
                     // here ends the password manager. A narrow filter left every unpredicted type
                     // to do just that: a null reference, or a `TypeLoadException` after a KeePass
                     // upgrade. Reported at the level that means there is a defect here.
-                    _log.Unexpected(
-                        "what the " + GateTab.Text + " tab was holding could not be written", error);
+                    Log().Unexpected(
+                        "what the " + GateName.Product + " tab was holding could not be written", error);
                 }
             };
 
@@ -204,9 +213,14 @@ namespace KeePassGate.Ui
             catch (Exception error) when (Expected.OfUserInterface(error))
             {
                 // A dialog already gone. Nothing was written, which is the safe half of the two.
-                _log.Warn("the " + GateTab.Text + " tab could not watch for the dialog's result: "
+                Log().Warn("the " + GateName.Product + " tab could not watch for the dialog's result: "
                     + error.Message);
             }
+        }
+
+        private IGateLog Log()
+        {
+            return _log ?? NullGateLog.Instance;
         }
     }
 }

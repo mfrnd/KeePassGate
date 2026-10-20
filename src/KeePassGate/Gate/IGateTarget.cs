@@ -26,6 +26,21 @@ namespace KeePassGate.Gate
         /// </summary>
         string DatabaseId { get; }
 
+        /// <summary>
+        /// What KeePass calls this database, or empty when it has nothing to be called.
+        /// </summary>
+        /// <remarks>
+        /// For the approval dialog and nothing else. A dialog that identifies the database only by
+        /// <see cref="DatabaseId"/> asks the operator to recognize sixteen hexadecimal characters
+        /// before letting a stranger in, which is exactly the check nobody performs. The digest
+        /// stays beside it, because it is what actually identifies the database and two of them can
+        /// carry the same name.
+        ///
+        /// It never leaves the machine: a name is somebody's own word for their database, and the
+        /// wire carries the digest, which identifies it without describing it.
+        /// </remarks>
+        string DatabaseName { get; }
+
         /// <summary>A copy of the gate key, which is what connection names are built from.</summary>
         byte[] GateKey { get; }
 
@@ -51,23 +66,36 @@ namespace KeePassGate.Gate
         AdmissionRecord Admission(string admissionKey);
 
         /// <summary>
-        /// What KeePass calls this database, or empty when it has nothing to be called.
-        /// </summary>
-        /// <remarks>
-        /// For the approval dialog and nothing else. A dialog that identifies the database only by
-        /// <see cref="DatabaseId"/> asks the operator to recognize sixteen hexadecimal characters
-        /// before letting a stranger in, which is exactly the check nobody performs. The digest
-        /// stays beside it, because it is what actually identifies the database and two of them can
-        /// carry the same name.
-        /// </remarks>
-        string DatabaseName { get; }
-
-        /// <summary>
         /// Why a record cannot be written right now, or null when one can. Checked before an
         /// invitation is spent and before the operator is asked, so that Database Maintenance
         /// left open on this database costs a pairing attempt rather than the invitation behind it.
         /// </summary>
         string AdmissionBlocked { get; }
+
+        /// <summary>
+        /// The profiles this database names now, read on every call rather than cached.
+        /// </summary>
+        /// <remarks>
+        /// Two readers. A client's profiles are its record's less every name missing from here, so
+        /// taking a name off the list takes it from every client without touching a record. And
+        /// the approval dialog says which of the profiles being asked for are new.
+        ///
+        /// Empty when the list cannot be read, which is the safe direction for both: every client
+        /// reaches nothing, and the operator is told there is something to create rather than not.
+        /// </remarks>
+        IReadOnlyList<string> KnownProfiles { get; }
+
+        /// <summary>
+        /// The admitted clients whose records hold a profile, read now. Empty when none do or the
+        /// records cannot be read.
+        /// </summary>
+        /// <remarks>
+        /// For the approval dialog. A record keeps every name it was approved for, so a profile
+        /// the operator removed is still held, granting nothing, by every client approved for it
+        /// before; approving a pairing for that name puts it back on the list and gives it back
+        /// to all of them. The dialog names them, so that is not a side effect nobody saw.
+        /// </remarks>
+        IReadOnlyList<AdmissionRecord> Holding(string profile);
 
         /// <summary>
         /// Writes an admission record and makes it durable, on whichever thread owns the database.

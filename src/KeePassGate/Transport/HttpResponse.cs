@@ -72,12 +72,12 @@ namespace KeePassGate.Transport
         /// to agree about.
         ///
         /// **One number for every reason**, and that is the decision rather than an economy.
-        /// A locked database and a dialog open on what a write would change answer `503`, and a
-        /// save that would stop and ask and KeePass part way through an import are to answer it
-        /// too. How long each of them lasts is a person's business rather than this gate's.
-        /// Which refusal it was is in the body, where a client that wants to treat them
-        /// differently reads it; putting two different delays on the wire would invite reading a
-        /// meaning into the difference that nothing here measured.
+        /// A locked database, a dialog open on what a write would change, a save that would stop
+        /// and ask, and KeePass part way through an import all answer `503`, and how long each of
+        /// them lasts is a person's business rather than this gate's. Which refusal it was is in
+        /// the body, where a client that wants to treat them differently reads it; putting two
+        /// different delays on the wire would invite reading a meaning into the difference that
+        /// nothing here measured.
         ///
         /// Two seconds because the shortest of these is a save, which is hundreds of milliseconds,
         /// and the longest is somebody closing a dialog, which no number would cover. It is long

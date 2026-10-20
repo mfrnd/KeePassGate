@@ -18,9 +18,10 @@ namespace KeePassGate.Ui
         /// **Including when one is in the book and this authority has expired**, which is a code
         /// nobody can redeem and nothing can bring back: `PAIRING.md` §311 refuses the redemption,
         /// and recreating the authority changes the digest the book answers on. This line used to
-        /// say the authority had expired, which the authority page already says whenever this
-        /// state is reached, with the date and above the button that recreates it. This line is
-        /// about what is on offer.
+        /// say the authority had expired, which is the sentence the notice above the button is
+        /// already showing whenever this state is reached, so the page said one thing twice on a
+        /// tab that is 449 by 314. The reason belongs to the notice, because that is the band that
+        /// also names the remedy.
         /// </remarks>
         public const string None = "No code is outstanding.";
 
@@ -52,19 +53,16 @@ namespace KeePassGate.Ui
             "This authority has not been applied yet. Press OK, reopen this dialog, and invite then.";
 
         /// <summary>
-        /// Said when this database's authority has run out.
+        /// Said when a profile edit on this dialog has not reached the database yet.
         /// </summary>
         /// <remarks>
-        /// Short, like the line above it and for the same reason: this is the footer under both
-        /// pages.
-        ///
-        /// The button is dead in this state, so nothing an operator does reaches this. What does
-        /// is a clock that crosses the expiry between the page being drawn and the button being
-        /// pressed, and the answer to that has to be a sentence rather than a code that no program
-        /// can redeem.
+        /// The button is dead in this state, so nothing an operator does with it reaches this.
+        /// What does is a profile typed on the second page after the clients page was last drawn,
+        /// which leaves a live button over a list that is about to change under whoever is
+        /// approved next.
         /// </remarks>
-        public const string AuthorityExpired =
-            "This authority has expired. Recreate it on the first page; every client pairs again.";
+        public const string ProfilesWaiting =
+            "A profile change has not been applied yet. Press OK, reopen this dialog, and invite then.";
 
         /// <summary>
         /// What is outstanding, which is one code or none, and what an approval dialog will call

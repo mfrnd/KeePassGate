@@ -8,7 +8,7 @@ Guidance for anyone, human or AI assistant, working in this repository.
 mutual TLS, so that automation and AI agents can each be given a narrow, revocable, audited slice of
 a database.
 
-**Status: steps 1 to 16 of the build order are done and the API is served.** The plugin loads
+**Status: steps 1 to 17 of the build order are done and the API is served.** The plugin loads
 into KeePass, the KPG tab creates, recreates and deletes the database's own certificate authority,
 the gate listens on loopback and answers over mutual TLS 1.3, a client is served only if
 the database holds an admission record for its certificate, and **a stranger can now become one**:
@@ -25,7 +25,9 @@ intersects the admission record with the rules before any handler runs, and writ
 the rules make, and every certificate the database issued that an operation turns away, to a JSON Lines file
 outside the database. **And there is an API**: twenty-two routes over groups,
 entries, fields and attachments, every one declaring the verb it needs and the node it is about, with
-`PyKeePassGate` covering all of them.
+`PyKeePassGate` covering all of them. **And a profile has a home**: the set of names a database
+knows lives beside the authority, with a page of its own to manage them, and a name taken off it
+grants nothing whatever rule still names it.
 
 ## Read these before proposing anything
 
@@ -107,8 +109,9 @@ designing around them.
   which is why a paired database belongs in KeePass 2.48 or later with the plugin. See CA.md §204.
 - **The admission record is load bearing.** A certificate that chains, passes its EKU check and has
   no record in the database is refused, and so is one whose record has a revocation beside it. The
-  permitted profiles are read from the **record**, not from the certificate's SAN. This is not belt
-  and braces: it is what makes a lost record fail closed. See the `GroupForm` trap below.
+  permitted profiles are read from the **record**, less any name the database's list of profiles no
+  longer holds, and never from the certificate's SAN. This is not belt and braces: it is what makes
+  a lost record fail closed. See the `GroupForm` trap below.
 - **Claims carry profile names only**: `kpg://profile/<name>`. No database identifier, because the
   issuing authority already identifies it. **There is no `kpg://any` wildcard**, and re-proposing one
   reopens a measured escalation.
@@ -142,16 +145,70 @@ designing around them.
   KeePass: the plugin entry point, the KeePass window event handlers, and the connection thread.
   Those report through `GateIncidents`, which counts on the KPG tab and
   logs at `UNEXPECTED`.
+- **Everything on the KPG settings tab waits for that dialog's OK**, and this reverses an
+  earlier decision rather than refining it. The tab used to write the moment a button was pressed,
+  which was safe, because KeePass's database settings dialog holds no copy of the custom data this
+  plugin writes and so never undid any of it. It was still wrong: a dialog offering OK and Cancel
+  says nothing has happened yet, and a tab inside one that has already happened is a tab lying about
+  the buttons around it. `PendingDatabase` wraps `IGateDatabase` for the tab and nothing above it
+  knows; `AuthorityPanelFactory` applies on `FormClosed` with `DialogResult.OK` and discards
+  otherwise. KeePass's own `FormClosed` handler, subscribed when the dialog was made, has taken the
+  page away by then, and that costs nothing: what is applied is the buffer the panel wrote into,
+  which outlives it, and not the panel.
+
+  **Replayed key by key, never wholesale**, because a snapshot written back would be this plugin
+  doing to itself exactly what `GroupForm` does to it: a pairing that lands while the dialog is open
+  writes an admission record to the live database, and only touching the keys the operator changed
+  leaves it alone.
+
+  **And `KPG.Profiles` is replayed as a difference**, because it is the one key with a second
+  writer: a pairing names an approved profile in the same write as the admission record, so the
+  tab's own list is not the only version of it. Key by key is no help there, since the tab did
+  touch that key, and the older list went over the newer one. `PendingStore.Reconcile` registers a
+  merge through `ProfileNames.Merge` for it, so a name an approval added survives and a name the
+  operator removed still goes, and at the ceiling a name the operator added that no longer fits is
+  left out, said on the page as it goes and named in the log at OK, however the list was edited in
+  between. What no merge can decide is left where it is: a client approved for
+  a profile the operator is part way through removing is admitted to a name OK takes off the list,
+  where it grants nothing, which is why a buffered profile edit kills the invite button.
+
+  One case survives all of that, deliberately: recreating or deleting the authority while a pairing
+  lands leaves that record behind, inert, because its certificate chains to an authority that is
+  gone. The clients page says so on the row rather than listing it as a client.
+
+  **Revocation waits too, and that is a cost that was argued and accepted.** Immediacy is something
+  a revocation would rather have, and an operator who revokes and leaves the dialog open has revoked
+  nothing. What it buys is one model for the whole tab, because whichever model somebody assumes on
+  the page they are not looking at is the one that costs them.
+
+- **The tabs say `KPG` and the menu item says `KeePassGate (KPG)`**, and which form goes where is
+  about space rather than style. A tab strip is not ours: KeePass puts four or five of its own tabs
+  on those dialogs and any other plugin may add one, so every character spent there is width taken
+  from everybody, and the icon does the work a long caption was doing. A menu item is a line of its
+  own, costs nobody anything, and is the only place that can teach the abbreviation. `GateName` has
+  all three forms and every caption reads one of them. TODO(step 18): the menu item arrives with
+  the plugin's own window.
+
+- **The plugin's own name carries KeePass's icon 29, `TerminalEncrypted`**, on all three tabs. Read
+  off `MainWindow.ClientIcons` rather than shipped as a resource, so it matches the window it is in
+  and follows a KeePass that restyles its icons, and copied every time because each copy is handed
+  to an image list that disposes it. **A tab strip shows
+  pictures only if the whole control has an `ImageList`**, and none of the three dialogs brings one,
+  so `TabPageInjector` gives it one and takes it away again on detach: that makes every tab on
+  those dialogs a little taller, which WinForms offers no way around. `GateIconTests` pins both the
+  icon's identity and the fact that KeePass brings no list of its own, because a KeePass that
+  started putting icons on its own tabs would have us appending to somebody else's list.
+
 - **Nothing on a tab scrolls.** The content is held to 449 by 314 and has to fit it; horizontal
   scrolling is never acceptable. That is KeePass's own first page on the settings dialog, inside a
   padding of 3. The page this plugin adds has no padding and is laid out to the tab control's whole
   display area, a few pixels more even after the icon's share of the strip, and `TabRoom` holds a
   fit test to the smaller of the two, so the tests are strict by that padding on purpose.
   `GateTabFitsTests` measures it against the real dialog, including the longest text every label
-  can hold at once. **The KPG tab has two pages of its own**, "Certificate Authority" and
-  "Clients", because two subjects competing for one page is what makes a tab that has to be
-  shortened rather than read. Each page is measured in the room that page is given, not both in
-  the sum, which is the whole point of there being two. A
+  can hold at once. **The KPG tab has three pages of its own**, "Certificate Authority",
+  "Profiles" and "Clients", because subjects competing for one page is what makes a tab that has
+  to be shortened rather than read. Each page is measured in the room that page is given, not all
+  of them in the sum, which is the whole point of there being three. A
   `TabControl` with no window handle never sizes its pages, so the measurement creates one and
   brings each page to the front before believing what it is told.
 - **The grant editor writes into the dialog's own copy**, `m_sdCustomData`, on the group dialog and
@@ -334,12 +391,51 @@ a database's custom data. Each gathers what it settled in its own `RESULTS.md`. 
   `LockInRealDatabaseTests.Two_spellings_KeePass_keeps_apart_are_kept_apart_here_too`, under tr-TR.
 - **`MainForm.SaveDatabase(db, null)` saves a named database**; `UIFileSave` saves whichever document
   is active. Pairing names its database, so it uses the first. Neither reports anything, so a write
-  is believed only after reading the record back and finding `PwDatabase.Modified` false.
+  is believed only after reading the record back and finding `PwDatabase.Modified` false. **And
+  `Modified` is not enough on its own**, see "KeePass's save reports nothing to its caller" below:
+  the file is hashed back as well.
+- **KeePass's own two busy signals say nothing about an ordinary dialog.**
+  `MainForm.UIIsInteractionBlocked` is raised only through `UIBlockInteraction`, whose callers in
+  2.61.1 are save, save as, opening a database, search, duplicate entry removal, the status dialog
+  and logger, the shell command action and file search. `MessageService.CurrentMessageCount` moves
+  only for message boxes, task dialogs, triggers, `PerformExport` and the secure desktop. An open
+  `DatabaseSettingsForm`, or any plain dialog, raises neither: read off the IL, and a host probe
+  holding the settings dialog open read a count of zero. So the writer's refusal of a write inside
+  an operation KeePass is running covers no ordinary dialog, and the dialogs that write back are
+  covered by `GroupDialogs`, one at a time. `KeePassContractTests` pins both calls, in
+  `The_main_window_still_says_when_it_has_blocked_itself` and
+  `An_export_still_shows_in_the_count_of_windows_KeePass_is_waiting_on`. **Nor do they say anything
+  about XML Replace**, under Tools then Database Tools, which merges into the live database with
+  KeePass's progress window as its status logger, pumping on every step, and raises neither: a
+  group created under the root there makes the merge throw out of `ApplyDeletions`, after the
+  write's own save. So there is a third signal, the plugin's own: `GroupDialogs.Working` answers
+  whether KeePass's `StatusProgressForm` is open, for any database, and the writer asks it after
+  the two. `VaultWritesUnderDialogsTests` drives the real window and the real merge.
+- **A `ToolStripDropDown` must not be disposed inside its own `Closed` handler.** That event is
+  raised while WinForms is still delivering the click or keystroke that closed it, and disposing
+  there disposes the control whose event is running: the next message reaches
+  `ToolStripDropDown.SetVisibleCore` through `ToolStripManager.ModalMenuFilter` and throws
+  `ObjectDisposedException` **into the message loop**, where no handler on the page can see it and
+  KeePass answers by closing the dialog. Rebuilding the grid underneath and restoring the dialog's
+  `AcceptButton` have the same problem for the same reason. `GrantPanel.Finish` defers all three
+  with `BeginInvoke`, and `GrantPickerTests` reproduces the crash on a real shown form: revert the
+  deferral and the test host dies rather than the assertion failing.
+
 - **A control with an `AccessibleName` reports that to UI automation as its name**, in place of
   its text. That is why the desktop tests point at a control by its `AutomationId`, which comes
   from `Name` and is ours: with the lookup keyed on the identifier, `AccessibleName` is free to
   be the phrase a screen reader should say, and is set only where a control has no text of its
   own to say it. Keying the lookup on the name instead is what made the two collide.
+- **A single line `TextBox` never raises `KeyDown` for Enter on a form with an `AcceptButton`.**
+  `IsInputKey` is false for it, so `PreProcessMessage` hands the key to `Form.ProcessDialogKey`,
+  which clicks the accept button and swallows the message: the box's own handler never runs, and
+  `Handled` and `SuppressKeyPress` inside it are never consulted. A control says the key is its own
+  through `PreviewKeyDown` and `IsInputKey`, which is the only thing that works here;
+  `SuppressKeyPress` takes the beep away and nothing else. Measured on KeePass's own
+  `DatabaseSettingsForm`, which does set an accept button and overrides none of the preprocessing.
+  `ProfileListTests.Enter_on_a_dialog_with_an_accept_button_adds_the_name_rather_than_pressing_it`
+  posts the key through a real message loop, which is the only way to see this: a test that calls
+  the handler directly passes either way.
 - **KeePass's dialogs scale, and by more than the text does.** They are `AutoScaleMode.Font` against
   `AutoScaleDimensions` of 6 by 13, so a larger system font makes a larger dialog: the settings
   dialog's own first page goes from 449 by 314 at font height 13 to 599 by 410 at 16, 674 by 482 at
@@ -394,6 +490,16 @@ write is believed on. Every write waits for its save on KeePass's thread and rea
 wrote, pairing's among them rather than pairing's alone as this once said, and it waits through
 `BeginInvoke` and a bounded wait, never `Invoke`, which has none. `DESIGN.md` §119 says why that
 wait is safe.
+
+**`Modified` alone turned out to be too generous, and a write is now believed on two things.**
+KeePass clears the flag from what it did in memory, so a save that wrote the file and then failed
+its own verification, or never reached the disk at all, still reads as done. So the file is hashed
+back against `PwDatabase.HashOfLastIO` after a landed write, and a disagreement answers
+`500 not verified`, which is deliberately not `500 not saved`: the second has been taken back out,
+so a retry duplicates nothing, while the first has not, because nothing knows whether the file holds
+the change. The same asymmetry decides the null case: `Asking` lets an unreadable file through
+because the next save is about to put it back, and both of these refuse it, since a commit that got
+as far as deleting the old file is exactly the unreadable case.
 
 ## Build and toolchain
 
@@ -508,7 +614,7 @@ here can hang or crash the password manager.
 
 ## Where to start
 
-[`DESIGN.md`](DESIGN.md) §132 ends with a multi-step build order. **Steps 1 to 16 are done.** The skeleton
+[`DESIGN.md`](DESIGN.md) §132 ends with a multi-step build order. **Steps 1 to 17 are done.** The skeleton
 loads and shows a KPG tab, that tab creates, recreates and deletes the authority, the gate serves
 the document's routes over mutual TLS to a client the authority issued and the database holds a
 record for, a stranger can pair, a locked database answers `503 locked`, a grant means something
@@ -517,15 +623,39 @@ anything the record and the rules do not both allow, recording every decision ei
 twenty-two routes read and change groups, entries, fields and attachments, and two launchers start
 the pinned KeePass with the plugin in it.
 
-**What is left**: a profile's own home beside the authority, the plugin's own window under the
-Tools menu, and the documentation for whoever runs it.
+**What is left**: the plugin's own window under the Tools menu, and the documentation for whoever
+runs it.
 
 **The storage decision survived the thing most likely to invalidate it.** The `GroupForm` snapshot
 hazard is real and now measured rather than remembered: `SnapshotHazardTests` reads the mechanism off
 the real KeePass and reproduces the behavior with KeePass's own types. What it established, and what
-step 8 built on: the settings dialog the KPG tab lives on carries **no** snapshot, so those
-buttons are safe from their own dialog, and anything written while a **group** dialog is open is
-destroyed by its OK.
+step 8 built on: the settings dialog the KPG tab lives on carries **no** snapshot of custom data, so
+those buttons are safe from their own dialog, and anything written while a **group** dialog is open
+is destroyed by its OK.
+
+**That dialog does hold one other copy**, and it is the recycle bin choice rather than custom data.
+A bin made underneath it is undone by its OK, so a removal that would make the first one is refused
+while it is open. `GroupDialogs` therefore watches the settings dialog beside the group, entry and
+maintenance dialogs, the TAN wizard as well, which fills a group on OK, and KeePass's progress
+window, which says an operation of KeePass's own is running inside the tree: six in all. A KeePass
+that lacks any of the six starts no watch, so every write and every pairing is refused and the log
+names the missing one. The settings dialog is left out of the count it keeps, since it carries no
+node's custom data, and so are the wizard, which puts back no custom data either, and the progress
+window, which holds nothing. The count gates nothing: it gated the profile purge, a button on that
+very dialog, and went on being kept for the tests and the log when the purge went.
+
+**The profile list is the database's own names.** `GrantSheet.Available` is what the profile
+picker offers, being `ProfileNames` less every profile already on the table, **explicit and
+inherited alike**, because a profile is one row however it got there and narrowing an inherited
+one is done on the row that is already there.
+
+**And the list decides what a client holds.** A client is given the profiles its record holds less
+every name not on the list, read beside the record on every request, so removing a profile touches
+the list and nothing else: a rule still naming it grants nothing, and adding the name back restores
+every rule and every client holding it, which the Profiles page and the approval dialog both say
+before it happens. This reverses a purge that took a removed name out of every rule, revisions
+included, and still lost to a stale copy merged in; see DESIGN.md §139. An unreadable list is an
+empty one, so every client stays admitted and reaches nothing.
 
 **What step 13 settled about the editor.** The tab is captioned `KPG` with the plugin's icon, and
 not "Access control", because another plugin may well put an access control page on the same dialogs
@@ -547,8 +677,9 @@ hands back with the one it was given, so a rule respelled by a byte is a changed
 revision in its history and the database marked modified, for having been looked at.
 
 **What step 14 settled about authorization.** The intersection is structural: the profiles handed to
-the resolver are the ones the admission record carries, so the rules can only ever answer about what
-the operator approved at pairing, and there is no place where the two halves could be compared
+the resolver are the ones the admission record carries, less any the database's list no longer
+names, so the rules can only ever answer about what the operator approved at pairing and has not
+taken away since, and there is no place where the two halves could be compared
 wrongly. The **router** asks, before the body is checked and before any handler runs, because a
 handler could forget to. A node that may not be reached and one that is not there answer the same
 404, and the audit is where the operator is told which it was. **Each client's lines are paced**, by
@@ -619,13 +750,12 @@ exceeds it on purpose, because it is blocked on a person. Closing the socket the
 the invitation is still spent and the record still saved, and only the answer is lost.
 
 **Two things about records that cost time to learn.** They are read from the live database on every
-connection and never cached, so a record that changes takes effect with nothing having to be
-reloaded or told: the KPG tab's clients page lists every admitted client and takes one away, and
-from the next request onwards that client is refused. **Landing is what waits**, because the clients
-page obeys the same rule as the rest of the tab: the row goes at once, the revocation lands when the
-dialog is accepted, and the file changes when the database is saved. Until then the certificate
-still works. The press itself goes into the dialog's buffer and cannot fail there. And a record
-written into the
+connection and never cached, so a record that lands takes effect with nothing having to be reloaded
+or told: the KPG tab's clients page lists every admitted client and takes one away, and from
+the next request onwards that client is refused. **Landing is what waits now**, see the tab's own
+entry below: the row goes at once, the revocation lands when the dialog is accepted, and the file changes
+when the database is saved. Until then the certificate still works. The press itself goes into the
+dialog's buffer and cannot fail there. And a record written into the
 `.kdbx` file underneath a running KeePass is invisible to it and will be overwritten by its next
 save: KeePass serves the database it holds in memory, which is why pairing writes through the plugin
 rather than through the file.

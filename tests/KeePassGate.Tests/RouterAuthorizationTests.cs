@@ -94,6 +94,8 @@ namespace KeePassGate.Tests
             Assert.That(_audit.Entries.Count, Is.EqualTo(2));
             Assert.That(_audit.Entries[0].Node, Is.EqualTo("an entry"));
             Assert.That(_audit.Entries[0].Reason, Does.Contain("no rule anywhere grants it"));
+            Assert.That(_audit.Entries[0].RemovedProfiles, Is.Null,
+                "a client holding no removed profile is refused by the rules and says nothing of profiles");
             Assert.That(_audit.Entries[1].Node, Is.Null);
             Assert.That(_audit.Entries[1].Reason, Does.Contain("nothing to decide"));
         }
@@ -132,6 +134,35 @@ namespace KeePassGate.Tests
 
             Assert.That(context.Status, Is.EqualTo(401));
             Assert.That(_audit.Entries, Is.Empty);
+        }
+
+        [Test]
+        public void A_profile_taken_off_the_list_grants_nothing_while_its_rule_stays()
+        {
+            // The rule for `reader` is still on the node and the record still names it. The list
+            // does not any more, so the client the router is handed holds nothing and the rule
+            // answers about nobody.
+            using (var authority = TestAuthority.New())
+            using (var certificate = authority.IssueClient("agent-fictitious", "reader"))
+            {
+                authority.Admit(certificate, "reader");
+                Assume.That(Ask(ClientCredentials.For(certificate, authority, _log)).Status, Is.EqualTo(200));
+
+                authority.Forget("reader");
+                var removed = Ask(ClientCredentials.For(certificate, authority, _log));
+
+                Assert.That(removed.Status, Is.EqualTo(404));
+                Assert.That(_reached, Is.EqualTo(new[] { "readEntry" }), "the handler ran the first time only");
+                Assert.That(_audit.Entries[_audit.Entries.Count - 1].Permitted, Is.False);
+                Assert.That(_audit.Entries[_audit.Entries.Count - 1].Reason, Is.EqualTo(AccessCheck.ProfileRemoved),
+                    "the line says why, which a rule refusing would not");
+                Assert.That(_audit.Entries[_audit.Entries.Count - 1].RemovedProfiles, Is.EqualTo(new[] { "reader" }));
+                Assert.That(_audit.Entries[0].RemovedProfiles, Is.Null, "and a permitted line names no profile");
+
+                authority.KnownProfiles = new[] { "reader" };
+                Assert.That(Ask(ClientCredentials.For(certificate, authority, _log)).Status, Is.EqualTo(200),
+                    "and naming it again is the whole of the undo");
+            }
         }
 
         [Test]

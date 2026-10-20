@@ -94,6 +94,33 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void The_settings_dialog_still_holds_its_own_copy_of_the_recycle_bin_choice()
+        {
+            // Why a removal that would make the first recycle bin is refused while this dialog is
+            // open. The combo is filled from `RecycleBinUuid` when the dialog loads and the
+            // dictionary says which group each of its items means; an index the dictionary does not
+            // hold is the item naming no group, and that is the branch whose OK sets
+            // `RecycleBinUuid` back to zero. A KeePass that drops either of these is one where the
+            // refusal is guarding nothing, which is worth being told about rather than carrying.
+            var type = KeePassAssembly.GetType(KeePassContract.DatabaseSettingsFormTypeName, false);
+
+            var combo = type.GetField(
+                KeePassContract.DatabaseSettingsFormRecycleBinComboField,
+                BindingFlags.NonPublic | BindingFlags.Instance);
+            var groups = type.GetField(
+                KeePassContract.DatabaseSettingsFormRecycleBinGroupsField,
+                BindingFlags.NonPublic | BindingFlags.Instance);
+
+            Assert.That(combo, Is.Not.Null,
+                KeePassContract.DatabaseSettingsFormRecycleBinComboField + " is gone, so that dialog no "
+                + "longer offers the choice the refusal exists for.");
+            Assert.That(combo.FieldType, Is.EqualTo(typeof(ComboBox)));
+            Assert.That(groups, Is.Not.Null,
+                KeePassContract.DatabaseSettingsFormRecycleBinGroupsField + " is gone, so which item "
+                + "means which group is decided somewhere else now.");
+        }
+
+        [Test]
         public void The_main_window_still_lists_the_open_databases()
         {
             // This is how the gate knows what it can serve.
@@ -134,7 +161,7 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
-        public void The_group_dialog_still_has_the_name_pairing_watches_for()
+        public void The_group_dialog_still_has_the_name_the_writer_watches_for()
         {
             var type = KeePassAssembly.GetType(KeePassContract.GroupFormTypeName, false);
 
@@ -151,7 +178,8 @@ namespace KeePassGate.Host.Tests
                 KeePassContract.GroupFormGroupField, BindingFlags.NonPublic | BindingFlags.Instance);
 
             Assert.That(field, Is.Not.Null,
-                "Without this, pairing refuses while any group dialog is open, which is safe and useless.");
+                "Without this, every write to a group is refused while any group dialog is open, " +
+                "which is safe and useless.");
             Assert.That(field.FieldType, Is.EqualTo(typeof(KeePassLib.PwGroup)));
         }
 
@@ -318,6 +346,180 @@ namespace KeePassGate.Host.Tests
 
             Assert.That(save, Is.Not.Null,
                 "KeePass no longer takes a database to save, so pairing cannot make a record durable.");
+        }
+
+        [Test]
+        public void The_main_window_still_says_when_it_has_blocked_itself()
+        {
+            // The window a write refuses behind. Answered from the count `UIBlockInteraction`
+            // keeps, which is what a save, an import and a synchronize raise. Asked of the shape
+            // rather than driven: blocking the window reaches `Enabled` on a main window that a
+            // test cannot build, and the count is only ever written by that one method.
+            var method = typeof(MainForm).GetMethod(
+                KeePassContract.MainFormInteractionBlockedMethod, Type.EmptyTypes);
+
+            Assert.That(method, Is.Not.Null);
+            Assert.That(method.ReturnType, Is.EqualTo(typeof(bool)));
+            Assert.That(typeof(MainForm).GetMethod("UIBlockInteraction", new[] { typeof(bool) }), Is.Not.Null,
+                "what raises the answer is gone, so a save may no longer be what makes it true");
+        }
+
+        [Test]
+        public void Both_loggers_an_import_can_choose_still_block_the_main_window()
+        {
+            // File, Import and File, Synchronize both reach `ImportUtil.Import`, which picks one of
+            // two status loggers and hands it to `PwDatabase.MergeIn`, whose loops pump through it.
+            // A write is kept out of that merge only because both loggers block the main window
+            // before the merge starts: the default one in `StartLogging`, and the one
+            // `ShowImportStatusDialog` asks for when it builds its window, which it does at the
+            // first status line, before any file is read. Read off the IL, because both need a
+            // main window to be driven and a test cannot build one.
+            var block = typeof(MainForm).GetMethod("UIBlockInteraction", new[] { typeof(bool) });
+            var import = Array.Find(
+                typeof(KeePass.DataExchange.ImportUtil).GetMethods(BindingFlags.Static | BindingFlags.NonPublic),
+                method => method.Name == "Import" && method.GetParameters().Length == 9);
+
+            Assert.That(import, Is.Not.Null, "the import every merge goes through is gone");
+            Assert.That(Calls(import, typeof(UIBlockerStatusLogger).GetConstructor(new[] { typeof(Form) })), Is.True,
+                "the import no longer chooses the logger that blocks the window");
+            Assert.That(Calls(import, typeof(OnDemandStatusDialog).GetConstructor(new[] { typeof(bool), typeof(Form) })), Is.True,
+                "the import no longer chooses the status dialog");
+            Assert.That(Calls(typeof(UIBlockerStatusLogger).GetMethod("StartLogging"), block), Is.True,
+                "the default import logger no longer blocks the window, so a write can land inside a merge");
+            Assert.That(Calls(
+                    typeof(OnDemandStatusDialog).GetMethod("ConstructStatusDialog", BindingFlags.Instance | BindingFlags.NonPublic),
+                    block),
+                Is.True,
+                "the import status dialog no longer blocks the window, so a write can land inside a merge");
+        }
+
+        [Test]
+        public void Emptying_the_recycle_bin_asks_while_the_count_is_raised()
+        {
+            // KeePass lists what the bin holds, asks, and on yes destroys what the bin holds by
+            // then, so an entry an API delete moved in while the question was up would be destroyed
+            // without having been on the list the operator agreed to. The writer refuses every
+            // change while `MessageService` counts a window KeePass is waiting on, and the question
+            // is counted: a task dialog raises the count for as long as it is shown, and where no
+            // task dialog can be shown KeePass asks in a message box, which it counts as well.
+            var empty = typeof(MainForm).GetMethod("EmptyRecycleBin", BindingFlags.Instance | BindingFlags.NonPublic);
+            var shown = typeof(VistaTaskDialog).GetMethod("ShowDialog", new[] { typeof(Form) });
+
+            Assert.That(empty, Is.Not.Null, "the method behind Empty Recycle Bin is gone");
+            Assert.That(Calls(empty, typeof(VistaTaskDialog).GetMethod("ShowDialog", Type.EmptyTypes)), Is.True,
+                "emptying the bin no longer asks in a task dialog");
+            Assert.That(
+                Calls(empty, typeof(KeePassLib.Utility.MessageService).GetMethod("AskYesNo", new[] { typeof(string) })),
+                Is.True,
+                "nor in a message box where no task dialog can be shown");
+            Assert.That(
+                Calls(shown, typeof(KeePassLib.Utility.MessageService).GetMethod("ExternalIncrementMessageCount")),
+                Is.True,
+                "a task dialog no longer counts itself, so a delete can land while the bin is being emptied");
+        }
+
+        [Test]
+        public void The_export_a_trigger_runs_swaps_neither_the_key_nor_the_root_group()
+        {
+            // The count refuses a write while an export has the database's key or root group
+            // swapped for its own, and the trigger action that exports a database raises no count.
+            // It needs none only while it asks for neither swap, which the export dialog alone
+            // does, through the two flags it copies off its own check boxes.
+            // Internal to KeePass, so asked for by name.
+            var provider = typeof(MainForm).Assembly.GetType("KeePass.Ecas.EcasDefaultActionProvider");
+            var action = provider == null
+                ? null
+                : provider.GetMethod("ExportDatabaseFile", BindingFlags.Static | BindingFlags.NonPublic);
+            var export = typeof(KeePass.DataExchange.ExportUtil).GetMethod(
+                "Export",
+                new[]
+                {
+                    typeof(KeePass.DataExchange.PwExportInfo), typeof(string),
+                    typeof(KeePassLib.Serialization.IOConnectionInfo),
+                });
+            var swaps = new[] { "ExportMasterKeySpec", "ExportParentGroups" };
+
+            Assert.That(action, Is.Not.Null, "the trigger action that exports a database is gone");
+            Assert.That(Calls(action, export), Is.True, "the trigger no longer exports through this overload");
+
+            foreach (var swap in swaps)
+            {
+                var setter = typeof(KeePass.DataExchange.PwExportInfo)
+                    .GetProperty(swap, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)
+                    .GetSetMethod(true);
+
+                Assert.That(Calls(action, setter), Is.False, swap + " is asked for by the trigger");
+                Assert.That(Calls(export, setter), Is.False, swap + " is asked for on the trigger's way in");
+                Assert.That(Calls(typeof(ExchangeDataForm).GetMethod(
+                        "PrepareExchangeEx", BindingFlags.Instance | BindingFlags.NonPublic), setter),
+                    Is.True, swap + " is no longer what the export dialog sets");
+            }
+        }
+
+        /// <summary>Whether a method's body calls, or constructs through, the other one.</summary>
+        /// <remarks>
+        /// The token after every call, virtual call and constructor call opcode in the body is
+        /// resolved against its module.
+        /// The scan is byte by byte rather than instruction by instruction, so an operand that
+        /// happens to hold one of those opcodes resolves to something else or to nothing, and can
+        /// only ever fail to match rather than match wrongly.
+        /// </remarks>
+        private static bool Calls(MethodBase caller, MethodBase callee)
+        {
+            var body = caller.GetMethodBody().GetILAsByteArray();
+
+            for (var i = 0; i + 4 < body.Length; i++)
+            {
+                if (body[i] != 0x28 && body[i] != 0x6F && body[i] != 0x73)
+                {
+                    continue;
+                }
+
+                try
+                {
+                    var called = caller.Module.ResolveMethod(BitConverter.ToInt32(body, i + 1));
+                    if (called.Module == callee.Module && called.MetadataToken == callee.MetadataToken)
+                    {
+                        return true;
+                    }
+                }
+                catch (ArgumentException)
+                {
+                    // Not a method token, which the byte by byte scan meets in operands.
+                }
+                catch (BadImageFormatException)
+                {
+                    // The same, for a token that names no row.
+                }
+            }
+
+            return false;
+        }
+
+        [Test]
+        public void An_export_still_shows_in_the_count_of_windows_KeePass_is_waiting_on()
+        {
+            // `PerformExport` raises the count rather than blocking the window, so this is the only
+            // signal a write has that an export is walking the live tree.
+            var property = typeof(KeePassLib.Utility.MessageService).GetProperty(
+                KeePassContract.MessageServiceCountProperty, BindingFlags.Public | BindingFlags.Static);
+
+            Assert.That(property, Is.Not.Null);
+
+            var before = KeePassLib.Utility.MessageService.CurrentMessageCount;
+
+            KeePassLib.Utility.MessageService.ExternalIncrementMessageCount();
+            try
+            {
+                Assert.That(KeePassLib.Utility.MessageService.CurrentMessageCount, Is.EqualTo(before + 1),
+                    "raising the count no longer shows in the answer a write asks for");
+            }
+            finally
+            {
+                KeePassLib.Utility.MessageService.ExternalDecrementMessageCount();
+            }
+
+            Assert.That(KeePassLib.Utility.MessageService.CurrentMessageCount, Is.EqualTo(before));
         }
 
         [Test]

@@ -8,7 +8,28 @@ namespace KeePassGate
     public static class KeePassContract
     {
         /// <summary>The dialog behind File, Database Settings.</summary>
+        /// <remarks>
+        /// It holds no copy of any custom data, which is what makes the KPG tab's own buttons safe
+        /// there, and it does hold the recycle bin choice: the combo below is filled from
+        /// `RecycleBinUuid` when the dialog loads, and its OK writes the choice back, setting
+        /// `RecycleBinUuid` to `PwUuid.Zero` when the combo is on the item that names no group. A
+        /// database with no bin yet opens that dialog with the combo on exactly that item, so a
+        /// removal that makes the first bin underneath one is undone by its OK, leaving what the
+        /// removal moved in an ordinary group under the root. See <see cref="Bridge.GroupDialogs"/>.
+        /// </remarks>
         public const string DatabaseSettingsFormTypeName = "KeePass.Forms.DatabaseSettingsForm";
+
+        /// <summary>The combo on that dialog naming the group the recycle bin is.</summary>
+        public const string DatabaseSettingsFormRecycleBinComboField = "m_cmbRecycleBin";
+
+        /// <summary>
+        /// What that combo's selected index means, which is the dialog's own copy of the choice.
+        /// </summary>
+        /// <remarks>
+        /// An index this does not hold is the item naming no group, and that is the branch whose
+        /// OK zeroes `RecycleBinUuid`.
+        /// </remarks>
+        public const string DatabaseSettingsFormRecycleBinGroupsField = "m_dictRecycleBinGroups";
 
         /// <summary>
         /// The tab strip on that dialog. A name rather than a position, and the injector falls
@@ -24,14 +45,16 @@ namespace KeePassGate
         public const string DatabaseSettingsFormDatabaseProperty = "DatabaseEx";
 
         /// <summary>
-        /// The dialog behind Edit Group. Pairing refuses to write while one of these is open,
-        /// because it holds a copy of the group's custom data and puts it back on OK.
+        /// The dialog behind Edit Group and Add Group. A write to the group one of these is open
+        /// on is refused, because it holds a copy of the group's properties and custom data and
+        /// puts it back on OK.
         /// </summary>
         public const string GroupFormTypeName = "KeePass.Forms.GroupForm";
 
         /// <summary>
         /// The group that dialog is editing. Read by reflection, and a KeePass that renames it
-        /// leaves pairing refused while any group dialog is open, which is the safe direction.
+        /// leaves every write to a group refused while any group dialog is open, which is the safe
+        /// direction.
         /// </summary>
         public const string GroupFormGroupField = "m_pwGroup";
 
@@ -44,6 +67,22 @@ namespace KeePassGate
         /// into one that may vanish.
         /// </remarks>
         public const string GroupFormCreatingField = "m_bCreatingNew";
+
+        /// <summary>
+        /// The dialog behind Tools then Database Maintenance, which holds a copy of the database's
+        /// own custom data and puts it back on Close whenever the live one has grown or shrunk.
+        /// </summary>
+        /// <remarks>
+        /// The same hazard as the group dialog and easier to miss, because the write-back is
+        /// conditional: it compares the count it copied against the count it finds, so a pairing
+        /// landing while this is open is destroyed even though the operator touched nothing. That
+        /// its one button is both the accept and the cancel button, with `DialogResult.Cancel`,
+        /// means there is no way for an operator to decline it either.
+        /// </remarks>
+        public const string MaintenanceFormTypeName = "KeePass.Forms.DatabaseOperationsForm";
+
+        /// <summary>The database that dialog is working on.</summary>
+        public const string MaintenanceFormDatabaseField = "m_pwDatabase";
 
         /// <summary>The dialog behind Edit Entry, where an entry's own grants are edited.</summary>
         public const string EntryFormTypeName = "KeePass.Forms.PwEntryForm";
@@ -132,25 +171,49 @@ namespace KeePassGate
         public const string NodeFormDatabaseField = "m_pwDatabase";
 
         /// <summary>
-        /// The dialog behind Tools then Database Maintenance, which holds a copy of the database's
-        /// own custom data and puts it back on Close whenever the live one has grown or shrunk.
-        /// </summary>
-        /// <remarks>
-        /// The same hazard as the group dialog and easier to miss, because the write-back is
-        /// conditional: it compares the count it copied against the count it finds, so a pairing
-        /// landing while this is open is destroyed even though the operator touched nothing. That
-        /// its one button is both the accept and the cancel button, with `DialogResult.Cancel`,
-        /// means there is no way for an operator to decline it either.
-        /// </remarks>
-        public const string MaintenanceFormTypeName = "KeePass.Forms.DatabaseOperationsForm";
-
-        /// <summary>The database that dialog is working on.</summary>
-        public const string MaintenanceFormDatabaseField = "m_pwDatabase";
-
-        /// <summary>
         /// How a named database is saved. Not `UIFileSave`, which saves whichever document is
         /// active: pairing names the database it is writing to and must not save a different one.
         /// </summary>
         public const string MainFormSaveDatabaseMethod = "SaveDatabase";
+
+        /// <summary>
+        /// Whether KeePass has blocked its own window for an operation of its own: a save, an
+        /// import, a synchronize, opening a database. One of the two things a write asks before it
+        /// is put in KeePass's way.
+        /// </summary>
+        /// <remarks>
+        /// Called directly rather than found by name, so the compiler already pins that it exists,
+        /// and `nameof` makes this constant the name the call binds to rather than a second copy of
+        /// it. Listed here so that this list is the whole of what the plugin reaches for, and so
+        /// that the host tests pin what it answers, which no compiler can.
+        /// </remarks>
+        public const string MainFormInteractionBlockedMethod =
+            nameof(KeePass.Forms.MainForm.UIIsInteractionBlocked);
+
+        /// <summary>
+        /// How many message boxes KeePass is waiting on, and whether an export is running. The other
+        /// thing a write asks.
+        /// </summary>
+        /// <remarks>
+        /// Called directly, for the reason <see cref="MainFormInteractionBlockedMethod"/> is. An
+        /// export raises it through `ExternalIncrementMessageCount` rather than blocking the window,
+        /// so what the host tests pin is that the one still moves the other.
+        /// </remarks>
+        public const string MessageServiceCountProperty =
+            nameof(KeePassLib.Utility.MessageService.CurrentMessageCount);
+
+        /// <summary>
+        /// KeePass's progress window, open for as long as an operation of its own reports progress
+        /// in it. The third thing a write asks.
+        /// </summary>
+        /// <remarks>
+        /// Needed for the operation that raises neither of the other two: XML Replace, under Tools
+        /// then Database Tools, merges its result back into the live database through
+        /// `PwDatabase.MergeIn` with this window as the status logger, and the window's
+        /// `ContinueWork` is `Application.DoEvents` on every call. By name rather than by type, as
+        /// the dialogs are, so that a KeePass which renames it is caught by the host tests rather
+        /// than by a build that no longer finds it.
+        /// </remarks>
+        public const string StatusProgressFormTypeName = "KeePass.Forms.StatusProgressForm";
     }
 }

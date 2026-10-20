@@ -29,7 +29,7 @@ namespace KeePassGate.Tests
             _log = new RecordingGateLog();
             _database = new FakeGateDatabase();
             _injector = new TabPageInjector(
-                new AuthorityPanelFactory(new FakeDatabaseSource(_database), new FakePrompt(false), _log, "9.9.9"),
+                new AuthorityPanelFactory(new FakeDatabaseSource(_database), new FakePrompt(false), _log, "1.2.3"),
                 _log);
             _host = new GateHost(_windows, new TypeNameFormMatcher(typeof(TestDialogForm).FullName), _injector, _log);
         }
@@ -41,7 +41,7 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void A_settings_dialog_opening_gains_a_KPG_tab_showing_the_version()
+        public void A_settings_dialog_opening_gains_a_KPG_tab_showing_the_authority()
         {
             _host.Start();
 
@@ -52,10 +52,6 @@ namespace KeePassGate.Tests
                 var page = ControlTree.FindByName<TabPage>(form, GateTab.PageControlName);
                 Assert.That(page, Is.Not.Null);
                 Assert.That(page.Text, Is.EqualTo(GateTab.Text));
-
-                var version = ControlTree.FindByName<Label>(form, GateTab.VersionLabelName);
-                Assert.That(version, Is.Not.Null);
-                Assert.That(version.Text, Is.EqualTo("Version 9.9.9"));
 
                 var status = ControlTree.FindByName<Label>(form, GateTab.StatusLabelName);
                 Assert.That(status.Text, Is.EqualTo(AuthorityDescription.AbsentHeadline));

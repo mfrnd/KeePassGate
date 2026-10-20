@@ -390,7 +390,9 @@ Both halves live in the database, which is deliberate. The **admission record** 
 the operator approved at pairing, and it is what the certificate's SAN once did. The SAN still
 carries them, but only as a convenience for a human reading a certificate: a client that presents a
 valid certificate whose record is missing is refused outright rather than falling back to the SAN.
-[`CA.md`](CA.md) §206 says why that is the only arrangement that survives a lost record.
+[`CA.md`](CA.md) §206 says why that is the only arrangement that survives a lost record. Of the
+record's profiles, only those the database's list still names are handed on, so a name the operator
+removed grants nothing whatever rule still carries it; §139 says why that replaced purging the rules.
 
 The ACL is `AclDocument`, `AclResolver`, `AclGrant`, `AclVerb` and `AclDefault`, with `KdbxNodes`
 adapting a `PwGroup` or a `PwEntry` to the one seam the rules need. It stays authoritative, so access
@@ -525,6 +527,71 @@ The reader's ceilings are the format's ceilings, and reaching one denies rather 
 node carries the default and 31 profiles, and a 32nd makes the whole document unreadable and
 everything under that node refused. That is the right way round, but it is worth knowing about
 rather than discovering.
+
+### The set of profiles is written down §139
+
+A profile had no home for most of this design. A name became real by being approved at a pairing and
+meant something by being named in a rule, and nothing anywhere held the set. That works until
+somebody has to answer "what may I grant here", and the honest answer was "whatever you type,
+spelled exactly as somebody else typed it". A typo made a profile that existed, granted nothing, and
+looked exactly like the one that was meant.
+
+So the set is `ProfileNames`, under `KPG.Profiles` beside the authority and the records, in the
+same grammar as everything else here:
+
+```json
+{"profiles":["reader","ops"]}
+```
+
+**It holds names and nothing else.** What a name reaches is on the nodes, who holds one is in the
+admission records, and the set of them is here. Three places, three questions, none of them
+duplicated, and no fourth place where they could disagree.
+
+**A name this list does not hold grants nothing.** A client is given the profiles its admission
+record holds that the list still names, read uncached beside the record on every request, and the
+resolver is handed only those. So taking a name off the list is the whole of taking it away: a rule
+for it that stays on a node, or comes back with a restored revision or a merge, answers for nobody.
+**This reverses what this section first said**, that nothing is authorized by the list and the
+resolver has never heard of it, which made losing the list cost an operator their pick list rather
+than anybody their access. The intersection makes it load bearing, and fails closed the way
+everything here does: a list that will not read is an empty set, so every client stays admitted
+and reaches nothing until it reads again.
+
+The one rule it applies is the issuer's, `AuthorityIssuer.IsUsableProfileName`, because a name that
+cannot travel as a claim is a name no client can ever hold: it would be granted here and refused at
+the certificate. `default` is refused by that rule already, so there is no second reservation written
+beside it to disagree with the first.
+
+Two things follow from it existing, and both are what it was for:
+
+**The editor picks rather than types**, on both columns. A mask spelled by hand is a rule nobody
+meant and a profile spelled by hand is a rule for a name that may not exist, and the second one is
+worse: it grants nobody anything and reads exactly like a rule that works. `GrantSheet.Available` is
+what is offered, which is this list less every profile already on the table, explicit and inherited
+alike, because a profile is one row however it got there and narrowing an inherited one is done on
+the row that is already there.
+
+**Removing a profile touches the list and nothing else**, and that reverses the purge this section
+used to require. `ProfilePurge` walked the tree and took a removed name out of every rule, because
+a name left in the documents went on being obeyed and a profile of the same name created later
+would arrive holding permissions nobody wrote for it. Each way the name came back then needed a
+rule of its own. The page refused to remove while a group or entry dialog was open, since that
+dialog's OK would put the rule back for its node. The walk reached every revision in an entry's
+history, since restoring one copies its rules back over the live entry. It rewrote a revision
+without touching it, since KeePass matches revisions across a merge by modification time and keeps
+the local one where both carry that time. And it ran a second time over the live tree at OK, since
+an API update made while the removal waited put a new revision naming the profile into the history
+and, at KeePass's history limit, moved every older one down a place. None of that closed a stale
+copy merged in, which brings the old rule back with the node's own time.
+
+**The intersection closes all of them at once**, because a rule for a name off the list grants
+nothing wherever it comes from: kept by a dialog's OK, restored from a revision, or merged in from
+an older copy. The grant editor marks such a rule not named rather than hiding it, removal needs no
+walk and is refused under no node dialog, and the page counts the live tree's rules only, since a
+revision's rule is in force for nobody. **Adding the name back is a full undo**, rules and clients
+alike, so the page asks first, saying how many rules come back into force and naming every client
+that regains the name. Approving a pairing for a removed name that clients still hold warns the same
+way, because pairing writes the approved name onto the list.
 
 ### Resolution §137
 
@@ -678,11 +745,13 @@ So the rules here:
   provokes one holds its thread and the writer's lock until somebody presses OK. Nothing here
   bounds that, and pretending otherwise is what this paragraph used to do.
 
-  **For a database KeePass opened from a URL, the work is the network's.** The save reads the
-  file, uploads it and by default reads it back: each a download or an upload on KeePass's thread,
-  under the writer's lock, bounded only by the network timeouts KeePass gives it. For a server that
-  has stopped answering that is minutes, for every write and for every other write waiting behind
-  it.
+  **For a database KeePass opened from a URL, the work is the network's.** The writer's check
+  before the save reads the file, the save reads it again, uploads it and by default reads it
+  back, and the writer's check after it reads it once more: each a download or an upload on
+  KeePass's thread, under the writer's lock, bounded only by the network timeouts KeePass gives
+  it. For a server that has stopped answering that is minutes, for every write and for every
+  other write waiting behind it, and a pairing makes the first read on its connection thread as
+  well, before the operator is asked.
 - **A plugin-wide write lock.** It closes the one race this design can close cheaply: two requests
   mutating the same entry at once. It does nothing about a user editing in the UI at the same
   moment, which stays exactly as unprotected as it is today.
@@ -690,12 +759,12 @@ So the rules here:
   unattended agent must not be able to prompt somebody's screen, so anything behind the spec
   router that would need a human answer is refused with a distinct status instead.
   `MainForm.SaveDatabase` asks three questions that can be seen coming, and a write that would
-  meet any of them is to be refused `503 busy` before the save is attempted: saving disallowed by
+  meet any of them is refused `503 busy` before the save is attempted: saving disallowed by
   policy, a database with no file yet, and a file on disk that is not the one KeePass read. The
   third is the one an ordinary client provokes, because a database on a shared or synced path
-  meets it without anybody having misconfigured anything. **It is to be refused whether KeePass
-  would ask or merge.** With `SaveForceSync` on, KeePass asks nothing and synchronizes, and that
-  merge still runs inside the request and underneath the write, and can still stop for the other
+  meets it without anybody having misconfigured anything. **It is refused whether KeePass would
+  ask or merge.** With `SaveForceSync` on, KeePass asks nothing and synchronizes, and that merge
+  still runs inside the request and underneath the write, and can still stop for the other
   file's key or to warn about what it found.
 
   **Two remain, and both are a save that has already failed.** `MessageService.ShowSaveWarning`
@@ -718,9 +787,9 @@ So the rules here:
   connection thread for as long as the box stands. **This is KeePass's behavior for any failed
   save, and what this plugin adds is that an unattended agent can provoke one with nobody at the
   desk.** It cannot be closed from here: nothing in a plugin can make KeePass lock while KeePass
-  is refusing to. What is to narrow it is forestalling the failures that can be seen coming, which
-  is what the three refusals above are for, and the writer's own guard, which is to refuse a second
-  write for as long as the box is counted.
+  is refusing to. What narrows it is forestalling the failures that can be seen coming, which is
+  what the three refusals above are, and the writer's own guard, which refuses a second write for
+  as long as the box is counted.
 
   **And the operator's own triggers run inside the save**, which makes them the one dialog a
   request can raise that somebody asked for. `SaveDatabase` raises KeePass's Saving database file
@@ -730,8 +799,46 @@ So the rules here:
   KeePass's thread and the writer's lock for as long as it works. That is the operator's
   configuration doing what it was set up to do, so it is run rather than refused, and it is said
   here so that the list of what a write can wait on is not read as closed.
-- **Every `503` this gate sends carries `Retry-After: 2`**: `busy`, `locked` and pairing's own.
-  One number for all of them, written by the
+
+  **So do other plugins' own handlers.** `SaveDatabase` raises `FileSavingPre`, `FileSaving` and
+  `FileSaved` to every plugin KeePass has loaded, on its own thread and inside the same marshaled
+  call, so a plugin that uploads the file or shows a box of its own from one of them holds the
+  request and the writer's lock for as long as it takes, as a trigger does. One that cancels the
+  save leaves the database saying it has changes to save, which is what a write is believed on, so
+  the change is taken back out and answered `500 not saved`.
+- **No write lands inside an operation KeePass is already running.** Being on the UI thread is not
+  being alone on it, which the writer's own remarks claimed for a while and which is the one
+  assumption in this section that cost data. Everything KeePass takes a noticeable time over pumps
+  that thread's queue while it runs: `MainForm.SaveDatabase` pumps before the save and once per
+  percent of the serialization, an import or a synchronize pumps from the merge's status logger, an
+  export pumps from the exporter's, and a message box pumps by definition. A marshaled call is a
+  message, so a write queued by a connection thread is delivered in the middle of whichever of them
+  is running, against the tree that operation is walking.
+
+  What that costs, measured rather than reasoned. Inside KeePass's own save, the nested save lands
+  and the outer save then commits the serialization it took before the change: the client was
+  answered `200` or `201`, the change is in memory, it is not on the disk, and `Modified` is false,
+  so nothing will ever write it again. Inside an import, the nested save writes a half-merged
+  database and clears `Modified`, so the rest of the operator's import exists only in memory with
+  no asterisk in the title and no question on lock, close or exit. Inside an export, the list being
+  enumerated moves and KeePass shows the operator a failed export over a truncated file.
+
+  So the writer asks a third question, beside the dialogs and the save's own three, inside the
+  marshaled call: **is KeePass part way through something of its own**, and a write that meets it
+  is refused `503 busy` before anything is touched. It takes two answers rather than one, because
+  the operations do not announce themselves the same way: `MainForm.UIIsInteractionBlocked` covers
+  the save and both merges, and an export raises `MessageService.CurrentMessageCount` instead,
+  which also covers every message box KeePass is waiting on. **A third operation raises neither**:
+  XML Replace, under Tools then Database Tools, merges into the live database with KeePass's
+  progress window as its status logger, and that window pumps on every step of the merge. A group
+  created under the root there makes the merge throw out of `ApplyDeletions`, with the write's own
+  save already on the disk. So the dialog watch also answers whether that window is open, and the
+  writer asks it after KeePass's two signals. **Reads are not refused by it**, since
+  every one of these hazards is a write. **And a database with unsaved changes is not refused
+  either**: an API write still saves what is in memory, the operator's own edits included, which is
+  a documented consequence rather than something to guard against.
+- **Every `503` this gate sends carries `Retry-After: 2`**, the new one and the ones that were
+  always there: `busy`, `locked` and pairing's own. One number for all of them, written by the
   response writer rather than by the four places that answer, so a refusal added later cannot be
   the one that forgets. Which refusal it was is in the body, where a client that treats a lock
   differently from a busy window reads it; the delay is the same because how long any of these
@@ -762,6 +869,32 @@ So the rules here:
   not cancel anything: the invitation is still spent and the record still saved, and only the answer
   is lost. `GateOptions.PairingBudget` covers the whole of what a pairing waits for, and a test pins
   it against the four timeouts it has to outlast.
+- **A write that landed is told to the window as well as to the client.** KeePass's save ends in
+  `MainForm.UpdateUIState`, which redraws the title bar and the menus and rebuilds neither the
+  group tree nor the entry list, so an operator watching the window sees the database as it was
+  before the request: an entry created through the API is not listed, one deleted is still listed,
+  and one renamed still reads as it did. `DatabaseWriter` therefore calls
+  `MainForm.UpdateUI(false, null, true, null, true, null, false)` after a change that was made and
+  saved, on the thread it made it on and inside its own lock.
+
+  **Those seven arguments are `UpdateUISyncPost`'s**, which is the call KeePass makes to itself
+  after a synchronize: the same situation, a database changed by something other than somebody
+  typing in the window and already written to disk. Its own editing paths pass different arguments
+  because they know more, adding one row or removing the rows they deleted. Naming neither a group
+  nor an entry source is what keeps the operator's selection and scroll position, since both
+  rebuilds fall back to what is selected now, and the last argument is false because the writer has
+  saved already.
+
+  **Two costs, stated rather than denied.** A rebuild replaces whatever the entry list is showing
+  with the selected group's entries, so an operator looking at search results when a write lands
+  loses them; KeePass accepts that for a synchronize, and there is no cheaper call that would show
+  an entry that was created or deleted. And it resets the inactivity timer, which changes nothing,
+  because `UpdateUIState` inside the save already does. **A redraw that fails never fails the
+  request**: by then the change is on disk, and a client told its create failed creates a second
+  one under an identifier it was never given.
+
+  **Not for an admission record.** A record is in the database's own custom data, which the main
+  window has no view of, so pairing saves and redraws nothing.
 - **Nothing throws to the transport.** A handler failure becomes `500 internal error` and an
   incident, counted on the KPG tab and logged at `UNEXPECTED`, because an unhandled exception in
   this process takes KeePass with it. It is not audited, which this bullet used to claim: the
@@ -827,7 +960,10 @@ still what makes the record durable.
 
 A line carries neither the profiles the client holds nor the verb it asked for. Which profiles a
 client has is in the database already, and a log repeating them is a second copy of the thing worth
-stealing.
+stealing. A refusal that the client's whole record would have permitted names the profiles the
+operator removed, under the reason `profile removed`, and that is not the copy: a removed name
+grants nothing, so writing it down says why a request failed without saying what anybody can
+reach.
 
 **A certificate this authority issued is written down when an operation refuses it**, by its admission key,
 with the reason the credential check gave and no node. It has no admission record, or is outside
@@ -1003,6 +1139,14 @@ in KeePass's own settings, which is a KeePass decision rather than one this plug
 them. And an entry that goes into the bin leaves the reach of every rule, so its rule is no longer
 consulted for anything: recovering it is the operator's job, in KeePass, where they can see it.
 
+**One case reopens the question, and it is refused rather than repaired.** A database that has never
+had a bin gets one the first time something is removed, and the database settings dialog holds a copy
+of that choice from the moment it opens: a bin made underneath it is undone by its OK, which would
+leave the entry sitting in a group that no longer is one. So a removal that would make the first bin
+is refused with `503 busy` while that dialog is open, the way every other write a dialog would take
+back is refused. A database that already has a bin is unaffected, because the dialog is putting back
+the same answer it copied.
+
 ## What would falsify the design §131
 
 Written down so that it is possible to be wrong about this on purpose rather than by drift.
@@ -1059,7 +1203,10 @@ Each step is refusable, and each ends with something that runs.
    than argued. The hazard is now measured rather than remembered, and it cut both ways: the dialog
    the KPG tab lives on carries no snapshot, so those buttons are safe from their own dialog, while
    anything written during a **group** dialog is destroyed by its OK, which is what step 8 has to
-   answer for. Two things step 7 inherits early: `AnchorPin`, because telling a stored pair apart by
+   answer for. That the settings dialog keeps no snapshot is also why the tab now keeps one of its
+   own: safe from Cancel turned out to mean unaffected by it, and a tab that has already acted
+   inside a dialog offering OK and Cancel is a tab disagreeing with the buttons around it.
+   Two things step 7 inherits early: `AnchorPin`, because telling a stored pair apart by
    issuer name turned out to accept a foreign authority, and the gate key.
 6. **Gate and transport**: accept loop, ClientHello peek, SNI resolution, TLS 1.3, our request
    parser, one route. `IGateContext` lands here. **Done.** A real client reaches a real KeePass over
@@ -1147,7 +1294,14 @@ Each step is refusable, and each ends with something that runs.
     against a version nobody chose. Deploying is not enough on its own, since a plugin that is
     present and not loaded looks exactly like one that is loaded and doing nothing.
 17. **A profile gets a home**: the set of names a database knows, stored with the authority, with a page
-    of its own on the tab to manage them and a purge that takes a deleted one out of every rule.
+    of its own on the tab to manage them, and a name taken off it granting nothing wherever a rule
+    still names it.
+    **Done.** Before this a profile was whatever somebody had typed, and a misspelling made one that
+    existed,
+    granted nothing and looked exactly like the one that was meant. The editor stops accepting typed
+    names once there is a list to choose from, and pairing marks a name this database has never seen
+    so that approving it is visibly two decisions rather than one.
+
 18. **The plugin's own window**: one item under KeePass's Tools menu, opening a window that says
     where the gate is listening and sets the port it listens on.
 19. **The documentation for whoever runs it**: `docs/`, in the order an operator meets the plugin,

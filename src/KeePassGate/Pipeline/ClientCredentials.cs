@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography.X509Certificates;
 using KeePassGate.Authority;
@@ -35,7 +36,8 @@ namespace KeePassGate.Pipeline
     /// `AdmissionStore.Find` asks in the same pass, so a record a stale copy brought back after
     /// its client was revoked is refused exactly as a missing one is.
     ///
-    /// The profiles come from the record and never from the certificate's claims.
+    /// The profiles come from the record and never from the certificate's claims, and only those
+    /// the database's list still names: see <see cref="Effective"/>.
     /// </remarks>
     public static class ClientCredentials
     {
@@ -106,7 +108,10 @@ namespace KeePassGate.Pipeline
                     return ClientIdentity.Refused(databaseId, presented, "this certificate has no admission record");
                 }
 
-                return ClientIdentity.Paired(databaseId, presented, record.Profiles);
+                // Read once, so the names granted and the names withheld are two halves of one list.
+                var named = target.KnownProfiles;
+                return ClientIdentity.Paired(
+                    databaseId, presented, Effective(record.Profiles, named), Removed(record.Profiles, named));
             }
             catch (DatabaseShut error)
             {
@@ -120,6 +125,69 @@ namespace KeePassGate.Pipeline
                 logger.Error("a certificate could not be checked against this database", error);
                 return ClientIdentity.Stranger(databaseId);
             }
+        }
+
+        /// <summary>
+        /// The profiles a record holds that the database still names, in the record's order.
+        /// </summary>
+        /// <remarks>
+        /// **Removing a profile is taking it off the list, and this is what makes that enough.** A
+        /// record keeps every name it was approved for, and a rule for a removed name can stay on a
+        /// node or come back in a merge. Neither grants anything, because a name off the list never
+        /// reaches the resolver: the router and the rules see this and nothing else. Adding the name back is then a full undo, rules and clients alike.
+        ///
+        /// Read beside the record, on every connection and never cached, for the reason the record
+        /// is. A list that cannot be read is an empty one, which leaves the client admitted and
+        /// reaching nothing: the direction everything here fails in.
+        /// </remarks>
+        public static IReadOnlyList<string> Effective(IReadOnlyList<string> held, IReadOnlyList<string> named)
+        {
+            var kept = new List<string>();
+
+            if (held == null || named == null)
+            {
+                return kept;
+            }
+
+            foreach (var profile in held)
+            {
+                if (profile != null && named.Contains(profile, StringComparer.Ordinal))
+                {
+                    kept.Add(profile);
+                }
+            }
+
+            return kept;
+        }
+
+        /// <summary>
+        /// The profiles a record holds that the database no longer names, in the record's order:
+        /// what <see cref="Effective"/> leaves out.
+        /// </summary>
+        /// <remarks>
+        /// Granting nothing, and kept for the audit alone: a refusal these names would have
+        /// permitted is written down as a profile removed rather than as a rule refusing. A list
+        /// that cannot be read is an empty one here too, so every name the record holds counts as
+        /// removed, which is how the clients page shows it as well.
+        /// </remarks>
+        public static IReadOnlyList<string> Removed(IReadOnlyList<string> held, IReadOnlyList<string> named)
+        {
+            var removed = new List<string>();
+
+            if (held == null)
+            {
+                return removed;
+            }
+
+            foreach (var profile in held)
+            {
+                if (profile != null && (named == null || !named.Contains(profile, StringComparer.Ordinal)))
+                {
+                    removed.Add(profile);
+                }
+            }
+
+            return removed;
         }
 
         /// <summary>

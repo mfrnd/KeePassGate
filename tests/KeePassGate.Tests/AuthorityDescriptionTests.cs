@@ -232,6 +232,27 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_host_certificate_that_has_expired_is_one_nobody_can_be_invited_to_either()
+        {
+            // Five years into the authority's ten. The authority still signs, but every connection
+            // is served with the host certificate, so a program paired now could never connect,
+            // and `PAIRING.md` §311 refuses the request before anybody is asked.
+            var hostAgo = DateTimeOffset.UtcNow - AuthorityIssuer.HostLifetime - TimeSpan.FromDays(1);
+            var service = new AuthorityService(_values, new AuthorityIssuer(() => hostAgo), null);
+            service.Create();
+
+            using (var reading = service.Read())
+            {
+                var description = AuthorityDescription.Of(reading, null, DateTimeOffset.UtcNow);
+
+                Assert.That(description.HasExpired, Is.False, "the authority has years left");
+                Assert.That(description.HostHasExpired, Is.True);
+                Assert.That(description.CanInvite, Is.False);
+                Assert.That(description.CanRecreate, Is.True, "recreating is the way out of this too");
+            }
+        }
+
+        [Test]
         public void An_authority_inside_its_dates_is_one_anybody_can_be_invited_to()
         {
             _service.Create();

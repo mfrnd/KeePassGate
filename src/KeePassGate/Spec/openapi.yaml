@@ -1637,7 +1637,7 @@ components:
         handler has already run: the change is handed to the writer, which finds nothing open to
         change and answers `500 internal error`, because the change could not be attempted.
 
-        `busy` is three things, and a read meets the first as readily as a write meets the others.
+        `busy` is five things, and a read meets the first as readily as a write meets the others.
         The tree moved while it was being read, which is somebody using KeePass rather than a
         fault here. A dialog is open on what a write would change, and a change made underneath
         one is a change the operator's OK destroys; a dialog that is adding something is answered
@@ -1652,7 +1652,29 @@ components:
         as long as the database's size and its storage make it, unless the save outlasts what is
         left of the connection's budget, which closes it with no answer; for a database KeePass
         opened from a URL the storage is a server, and a save waits on it for as long as KeePass's
-        network timeouts allow.
+        network timeouts allow. And a save that would stop and ask: KeePass answers three
+        conditions with a question on the operator's screen rather than by writing, which are
+        saving disallowed by policy, a database with no file yet, and a file on disk that is not
+        the one KeePass read, and a request from an unattended client must not raise a modal box
+        that would hold the connection until somebody answered it. The third is the one a client
+        meets in the ordinary course of things, on a database kept on a share or in a synced
+        folder, and it clears when the operator lets KeePass reconcile the file, which is why it
+        is a retry rather than an error. It is refused as well where KeePass is set to synchronize
+        without asking, because that merge would run inside the request and underneath the write,
+        and can still stop to ask for the other file's key.
+
+        The fifth is KeePass being part way through something of its own. A write is made and
+        saved on KeePass's own thread, and the operations that take it for a while, saving,
+        importing, synchronizing, exporting, every message box and anything KeePass shows its
+        progress window for, XML Replace among them, all pump that thread's queue while they run.
+        A write delivered inside one of them changes the tree that operation is walking, so it is
+        refused until the operation is over, which is the shortest of these refusals: a save is a
+        fraction of a second, an import is a few.
+      # What a write delivered inside one of KeePass's own operations did was nothing a client
+      # could see as a conflict: the operator's own save committed the copy it took before the
+      # change and the write the client was told had landed was gone from the disk, or half an
+      # import was written with nothing left saying the rest never was, or an export threw and
+      # left a truncated file.
       headers:
         Retry-After:
           description: |
@@ -1713,17 +1735,27 @@ components:
     # request had nowhere to go while the database held the change, and a retry made a second one.
     Internal:
       description: |
-        The gate failed, rather than the request being wrong or the node being out of reach. Two
+        The gate failed, rather than the request being wrong or the node being out of reach. Three
         things reach this. `not saved` means the change was made and the save never got to the
         disk, and it has been taken back out again. `internal error` means it could not be
         attempted at all: the database closed under the request, or KeePass answered the attempt
         with an error. Neither leaves anything behind that a retry would duplicate, which is why
         this is not the `404` a refusal gives: that answer says the request had nowhere to go, and
         it is the one an absent node and a forbidden one share. Neither is worth retrying either,
-        for the same reason.
+        for the same reason. `not verified` is the third and the one that does leave something
+        behind: the change was made and saved, and the file KeePass hashed back afterwards is not
+        the one it wrote, so nothing knows whether the file holds the change and it is not taken
+        back out. A retry may make a second copy, and what to do about it is the operator's, whom
+        KeePass has already warned that writing failed. A pairing in the same situation is refused
+        instead, because a record that may not be on the disk is a certificate nobody can see and
+        nobody can revoke.
 
         Every operation whose verb changes the database declares this, and one that does not stops
         the plugin loading.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
 
     # Declared by every operation with a body because the refusal is decided from the document's
     # own media type rather than from anything an operation says.

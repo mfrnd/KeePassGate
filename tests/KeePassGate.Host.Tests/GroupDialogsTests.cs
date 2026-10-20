@@ -32,6 +32,7 @@ namespace KeePassGate.Host.Tests
         private TemporaryDatabase _database;
         private GlobalWindowManagerWindows _windows;
         private GroupDialogs _dialogs;
+        private ImageList _icons;
 
         [SetUp]
         public void SetUp()
@@ -40,6 +41,9 @@ namespace KeePassGate.Host.Tests
             _windows = new GlobalWindowManagerWindows();
             _dialogs = new GroupDialogs(_windows, NullGateLog.Instance);
 
+            // The entry dialog refuses a null one, and what is in it is never looked at here.
+            _icons = new ImageList();
+
             Assert.That(_dialogs.Start(), Is.True);
         }
 
@@ -47,8 +51,58 @@ namespace KeePassGate.Host.Tests
         public void TearDown()
         {
             _dialogs.Dispose();
+            _icons.Dispose();
             _windows.Dispose();
             _database.Dispose();
+        }
+
+        [Test]
+        public void A_watch_that_never_started_refuses_rather_than_counting_nothing()
+        {
+            // A count is a number and cannot say "I do not know". A watch that never started
+            // answers zero exactly as an empty desktop does, which is why nothing refuses on the
+            // count: the one guard this design rests on is the last place where silence may be
+            // read as permission. `Blocking` folds the question into a sentence and so cannot be
+            // misread this way.
+            using (var never = new GroupDialogs(new GlobalWindowManagerWindows(), NullGateLog.Instance))
+            {
+                Assert.That(never.Count, Is.EqualTo(0),
+                    "which is the number an empty desktop gives too, which is the whole problem");
+                Assert.That(never.Blocking(_database.Database.RootGroup), Is.Not.Null,
+                    "the sentence, which says it rather than leaving it to be inferred");
+            }
+
+            Assert.That(_dialogs.Blocking(_database.Database.RootGroup), Is.Null,
+                "and the fixture's own, which did start, refuses nothing with nothing open");
+        }
+
+        [Test]
+        public void Every_dialog_it_watches_for_is_in_the_KeePass_it_runs_in()
+        {
+            // The same names the contract tests pin, asked the way `Start` asks them: of the KeePass
+            // that is loaded rather than of the constants.
+            Assert.That(GroupDialogs.Watched, Has.Count.EqualTo(6));
+            Assert.That(GroupDialogs.Unrecognized(typeof(GroupForm).Assembly, GroupDialogs.Watched, null), Is.Empty);
+        }
+
+        [Test]
+        public void A_dialog_this_KeePass_does_not_have_leaves_every_question_refusing()
+        {
+            // A KeePass that renamed one of these would open it under a name nothing compares
+            // against: never recorded, so every question answered that nothing was open, the count
+            // said none, and the watch said it was running. That is allowing the one write this
+            // class exists to refuse, so a name that is not there is a watch that never starts.
+            var renamed = new[] { KeePassContract.GroupFormTypeName, "KeePass.Forms.GroupEditForm" };
+
+            using (var windows = new GlobalWindowManagerWindows())
+            using (var watch = new GroupDialogs(windows, null, NullGateLog.Instance, renamed))
+            {
+                Assert.That(watch.Start(), Is.False);
+                Assert.That(watch.Blocking(_database.RootGroup), Is.Not.Null);
+                Assert.That(watch.Blocking(EntryUnderRoot()), Is.Not.Null);
+                Assert.That(watch.BlockingRecords(_database.Database), Is.Not.Null);
+                Assert.That(watch.Working(), Is.Not.Null);
+            }
         }
 
         [Test]
@@ -474,6 +528,38 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void KeePass_s_progress_window_says_it_is_working_until_it_closes()
+        {
+            // The one sign XML Replace gives of merging into the live database, which it does
+            // with this window as its status logger. The real window, registered the way its own
+            // `OnFormLoad` registers it, because the guard recognizes it by name.
+            Assert.That(_dialogs.Working(), Is.Null, "nothing is running yet");
+
+            using (var form = new StatusProgressForm())
+            {
+                form.InitEx("XML Replace", true, false, null);
+                GlobalWindowManager.AddWindow(form);
+
+                try
+                {
+                    Assert.That(_dialogs.Working(), Does.Contain("progress window"));
+                }
+                finally
+                {
+                    GlobalWindowManager.RemoveWindow(form);
+                }
+            }
+
+            Assert.That(_dialogs.Working(), Is.Null, "and closing it lets writes through again");
+
+            using (var never = new GroupDialogs(new GlobalWindowManagerWindows(), NullGateLog.Instance))
+            {
+                Assert.That(never.Working(), Is.Not.Null,
+                    "a watch that is not running cannot say nothing is, so it refuses");
+            }
+        }
+
+        [Test]
         public void Stopping_the_watch_forgets_what_was_open()
         {
             using (var form = GroupDialogFor(_database.RootGroup))
@@ -557,6 +643,92 @@ namespace KeePassGate.Host.Tests
                 try
                 {
                     Assert.That(_dialogs.Count, Is.EqualTo(1));
+                }
+                finally
+                {
+                    GlobalWindowManager.RemoveWindow(form);
+                }
+            }
+        }
+
+        [Test]
+        public void An_open_entry_dialog_counts_as_a_dialog_that_is_open()
+        {
+            // An entry dialog puts its entry's custom data back on OK exactly as a group dialog
+            // puts its group's, so it is one of the dialogs this watches, and blocks a write to the
+            // entry it holds.
+            var entry = new PwEntry(true, true);
+            _database.RootGroup.AddEntry(entry, true);
+
+            using (var form = new PwEntryForm())
+            {
+                form.InitEx(entry, PwEditMode.EditExistingEntry, _database.Database, _icons, false, false);
+                GlobalWindowManager.AddWindow(form);
+
+                try
+                {
+                    Assert.That(_dialogs.Count, Is.EqualTo(1),
+                        "an entry dialog is a dialog that puts custom data back on OK");
+                    Assert.That(_dialogs.Blocking(entry), Is.Not.Null);
+                }
+                finally
+                {
+                    GlobalWindowManager.RemoveWindow(form);
+                }
+            }
+
+            Assert.That(_dialogs.Count, Is.Zero, "and it stops counting when it closes");
+        }
+
+        [Test]
+        public void A_bulk_entry_dialog_counts_as_a_dialog_that_is_open()
+        {
+            // Kept in a table of its own, so that it refuses only its own database's entries, and
+            // still a dialog whose OK puts custom data back, over every entry it was opened on.
+            using (var form = BulkEntryDialogFor(EntryUnderRoot(), EntryUnderRoot()))
+            {
+                GlobalWindowManager.AddWindow(form);
+
+                try
+                {
+                    Assert.That(_dialogs.Count, Is.EqualTo(1),
+                        "an Edit Entries dialog is a dialog that puts custom data back on OK");
+                }
+                finally
+                {
+                    GlobalWindowManager.RemoveWindow(form);
+                }
+            }
+
+            Assert.That(_dialogs.Count, Is.Zero, "and it stops counting when it closes");
+        }
+
+        [Test]
+        public void Stopping_the_watch_forgets_an_entry_dialog_too()
+        {
+            // Two questions here, and they have opposite answers. The **count** must go to zero,
+            // because that is what refuses a profile deletion and a stale entry would refuse one
+            // for ever. **Blocking must not**: a watch that has stopped cannot tell a table it
+            // never filled from one that is empty, and the dialog below is still on screen.
+            // Asserting null on both inverted the group half's own rule, which calls answering
+            // null there "the one failure this class exists to prevent".
+            var entry = new PwEntry(true, true);
+            _database.RootGroup.AddEntry(entry, true);
+
+            using (var form = new PwEntryForm())
+            {
+                form.InitEx(entry, PwEditMode.EditExistingEntry, _database.Database, _icons, false, false);
+                GlobalWindowManager.AddWindow(form);
+
+                try
+                {
+                    Assume.That(_dialogs.Count, Is.EqualTo(1));
+
+                    _dialogs.Dispose();
+
+                    Assert.That(_dialogs.Count, Is.Zero);
+                    Assert.That(_dialogs.Blocking(entry), Is.Not.Null,
+                        "a watch that has stopped must refuse, not allow");
                 }
                 finally
                 {

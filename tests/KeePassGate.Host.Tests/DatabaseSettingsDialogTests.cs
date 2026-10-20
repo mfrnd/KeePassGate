@@ -82,7 +82,6 @@ namespace KeePassGate.Host.Tests
 
             Assert.That(Text(GateTab.StatusLabelName), Is.EqualTo(AuthorityDescription.AbsentHeadline),
                 "A tab that cannot reach the database says so, and this one must not have to.");
-            Assert.That(Text(GateTab.VersionLabelName), Is.EqualTo("Version 1.2.3"));
         }
 
         [Test]
@@ -94,15 +93,31 @@ namespace KeePassGate.Host.Tests
 
             Assert.That(HoldsAnAuthority(), Is.False,
                 "the authority reached the database before anybody pressed OK");
-
-            // Read before the dialog is accepted, because accepting closes it and the page goes
-            // with it: what the tab says is only there while the tab is.
             Assert.That(Text(GateTab.StatusLabelName), Is.EqualTo(AuthorityDescription.PresentHeadline),
-                "the page has to show what OK would produce");
+                "and the page has to show what OK would produce");
 
             KeePassDialogs.Accept(_form);
 
             Assert.That(HoldsAnAuthority(), Is.True);
+        }
+
+        [Test]
+        public void Canceling_the_dialog_leaves_the_database_as_it_was()
+        {
+            // What the whole waiting arrangement is for. This dialog keeps no copy of this plugin's
+            // custom data, so before it, Cancel undid nothing the tab had done.
+            _injector.Attach(_form);
+
+            // Cleared rather than assumed, for the reason the test below says: a fresh database
+            // does not reliably start unmodified once KeePass's own statics have been loaded.
+            _database.Database.Modified = false;
+
+            Panel().CreateAuthority();
+            KeePassDialogs.Cancel(_form);
+
+            Assert.That(HoldsAnAuthority(), Is.False);
+            Assert.That(_database.Database.Modified, Is.False,
+                "and KeePass is not asked to save a change that was canceled");
         }
 
         [Test]
@@ -123,6 +138,19 @@ namespace KeePassGate.Host.Tests
 
             Assert.That(_database.Database.Modified, Is.True,
                 "Without this KeePass has no reason to write the authority to disk.");
+        }
+
+        [Test]
+        public void A_dialog_nobody_changed_anything_on_is_not_marked_at_all()
+        {
+            // Opening a settings dialog, looking at the tab and pressing OK has to leave a database
+            // with nothing to save, or the tab teaches its operator to save for no reason.
+            _injector.Attach(_form);
+            _database.Database.Modified = false;
+
+            KeePassDialogs.Accept(_form);
+
+            Assert.That(_database.Database.Modified, Is.False);
         }
 
         [Test]

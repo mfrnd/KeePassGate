@@ -16,7 +16,9 @@ namespace KeePassGate.Pipeline
     /// beside it. Take away the record, or add the revocation, and the same certificate admits
     /// nobody from its next connection on, which is all a revocation has to do.
     ///
-    /// <see cref="Profiles"/> comes from that record and never from the certificate's claims.
+    /// <see cref="Profiles"/> comes from that record and never from the certificate's claims, less
+    /// every name the database's list no longer holds. Those names are <see cref="Removed"/>,
+    /// which grants nothing and is kept only so a refusal they would have permitted can say so.
     ///
     /// **A refused certificate this authority issued is not anonymous**, and is kept apart from
     /// one that proved nothing. It admits nobody, exactly as a stranger does, but it carries its
@@ -35,6 +37,7 @@ namespace KeePassGate.Pipeline
         private readonly string _admissionKey;
         private readonly string _databaseId;
         private readonly IReadOnlyList<string> _profiles;
+        private readonly IReadOnlyList<string> _removed;
         private readonly string _refusal;
 
         private ClientIdentity(
@@ -44,8 +47,10 @@ namespace KeePassGate.Pipeline
             string admissionKey,
             string databaseId,
             IReadOnlyList<string> profiles,
-            string refusal)
+            string refusal,
+            IReadOnlyList<string> removed = null)
         {
+            _removed = removed ?? Nothing;
             _isPaired = isPaired;
             _isLocked = isLocked;
             _subject = subject;
@@ -91,10 +96,28 @@ namespace KeePassGate.Pipeline
             get { return _databaseId; }
         }
 
-        /// <summary>From the admission record, never from the certificate.</summary>
+        /// <summary>
+        /// From the admission record, never from the certificate, and only the names the database
+        /// still lists.
+        /// </summary>
         public IReadOnlyList<string> Profiles
         {
             get { return _profiles; }
+        }
+
+        /// <summary>
+        /// The names the admission record holds that the database no longer lists, in the
+        /// record's order. Empty for anybody who is not paired.
+        /// </summary>
+        /// <remarks>
+        /// **Never handed to the rules as a grant.** It is here for one question only, asked
+        /// after a refusal: whether the record's whole list would have been permitted, which is
+        /// what lets the audit say a refusal was the operator removing a profile rather than a
+        /// rule saying no. See `AccessCheck.Decide`.
+        /// </remarks>
+        public IReadOnlyList<string> Removed
+        {
+            get { return _removed; }
         }
 
         /// <summary>
@@ -139,9 +162,15 @@ namespace KeePassGate.Pipeline
             return new ClientIdentity(false, true, null, null, databaseId, Nothing, null);
         }
 
-        /// <summary>A client whose certificate this database's authority issued.</summary>
+        /// <summary>
+        /// A client whose certificate this database's authority issued, holding these profiles,
+        /// and holding on its record these others that the database no longer lists.
+        /// </summary>
         public static ClientIdentity Paired(
-            string databaseId, X509Certificate2 certificate, IReadOnlyList<string> profiles)
+            string databaseId,
+            X509Certificate2 certificate,
+            IReadOnlyList<string> profiles,
+            IReadOnlyList<string> removed = null)
         {
             if (certificate == null)
             {
@@ -155,7 +184,8 @@ namespace KeePassGate.Pipeline
                 CertificateDigest.Of(certificate),
                 databaseId,
                 profiles,
-                null);
+                null,
+                removed);
         }
     }
 }

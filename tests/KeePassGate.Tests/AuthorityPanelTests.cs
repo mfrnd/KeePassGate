@@ -4,6 +4,8 @@ using System.Threading;
 using System.Windows.Forms;
 using KeePassGate.Authority;
 using KeePassGate.Tests.Fakes;
+using KeePassGate.Pairing;
+using KeePassGate.Acl;
 using KeePassGate.Ui;
 using NUnit.Framework;
 
@@ -24,6 +26,9 @@ namespace KeePassGate.Tests
     [Apartment(ApartmentState.STA)]
     public sealed class AuthorityPanelTests
     {
+        /// <summary>Invented, and only ever shown in a label.</summary>
+        private const string Version = "1.2.3";
+
         private FakeGateDatabase _database;
         private RecordingGateLog _log;
 
@@ -47,22 +52,28 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void The_tab_has_a_page_for_the_authority_and_a_page_for_the_clients()
+        public void The_tab_has_a_page_for_each_of_its_three_subjects()
         {
+            // What this database can issue, the names a rule can grant to, and who holds what was
+            // issued. Three questions asked on different occasions, so three pages.
             using (var panel = NewPanel(true))
             {
                 var tabs = ControlTree.FindByName<TabControl>(panel, GateTab.SubTabsName);
 
                 Assert.That(tabs, Is.Not.Null);
-                Assert.That(tabs.TabPages.Count, Is.EqualTo(2));
+                Assert.That(tabs.TabPages.Count, Is.EqualTo(3));
                 Assert.That(tabs.TabPages[0].Text, Is.EqualTo(GateTab.AuthorityPageText));
-                Assert.That(tabs.TabPages[1].Text, Is.EqualTo(GateTab.ClientsPageText));
+                Assert.That(tabs.TabPages[1].Text, Is.EqualTo(GateTab.ProfilesPageText));
+                Assert.That(tabs.TabPages[2].Text, Is.EqualTo(GateTab.ClientsPageText));
             }
         }
 
         [Test]
         public void It_says_which_button_makes_any_of_this_real()
         {
+            // Which used to be the opposite sentence. The tab wrote at once, and a tab that has
+            // already acted, inside a dialog offering OK and Cancel, is a tab lying about the
+            // buttons around it.
             using (var panel = NewPanel(true))
             {
                 var notice = Label(panel, GateTab.NoticeLabelName).Text;
@@ -91,9 +102,11 @@ namespace KeePassGate.Tests
                     Assert.That(reading.Presence, Is.EqualTo(AuthorityPresence.Present));
                 }
 
+                // The table is what says it happened. A sentence saying so as well was a line of
+                // height spent naming something already on screen.
                 Assert.That(Label(panel, GateTab.StatusLabelName).Text, Is.EqualTo(AuthorityDescription.PresentHeadline));
-                Assert.That(Label(panel, GateTab.ResultLabelName).Text, Is.Empty,
-                    "the table is what says it happened");
+                Assert.That(Label(panel, GateTab.ResultLabelName).Text, Is.Empty);
+                Assert.That(Label(panel, GateTab.ResultLabelName).Visible, Is.False);
             }
         }
 
@@ -105,11 +118,9 @@ namespace KeePassGate.Tests
                 panel.CreateAuthority();
 
                 Assert.That(_database.MarkedModifiedCount, Is.EqualTo(1));
-                Assert.That(Label(panel, GateTab.ResultLabelName).Text, Is.Empty,
-                    "the table is what says it happened");
 
-                // Where the operator is told to save is the standing notice, once, rather than
-                // every answer repeating it.
+                // Where the operator is told to press OK and then save is the standing notice,
+                // once, rather than every answer repeating it.
                 Assert.That(Label(panel, GateTab.NoticeLabelName).Text, Does.Contain("saved"));
             }
         }
@@ -153,9 +164,10 @@ namespace KeePassGate.Tests
 
                 panel.RecreateAuthority();
 
+                // The fingerprint on the table is different, which is the cue, and what recreating
+                // cost was in the question the operator answered before pressing anything.
                 Assert.That(Digest(), Is.Not.EqualTo(digest));
-                Assert.That(Label(panel, GateTab.ResultLabelName).Text, Is.Empty,
-                    "the fingerprint on the table is different, which is the cue");
+                Assert.That(Label(panel, GateTab.ResultLabelName).Text, Is.Empty);
             }
         }
 
@@ -211,7 +223,7 @@ namespace KeePassGate.Tests
         [Test]
         public void A_dialog_with_no_database_shows_that_and_offers_nothing()
         {
-            using (var panel = new AuthorityPanel(null, new FakePrompt(true), _log, "1.0.0"))
+            using (var panel = new AuthorityPanel(null, new FakePrompt(true), _log, Version))
             {
                 Assert.That(Label(panel, GateTab.StatusLabelName).Text, Is.EqualTo(AuthorityDescription.NoDatabaseHeadline));
                 Assert.That(Button(panel, GateTab.CreateButtonName).Enabled, Is.False);
@@ -287,15 +299,6 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void It_shows_the_version_it_was_built_with()
-        {
-            using (var panel = NewPanel(true))
-            {
-                Assert.That(Label(panel, GateTab.VersionLabelName).Text, Is.EqualTo("Version 1.0.0"));
-            }
-        }
-
-        [Test]
         public void A_database_that_went_away_under_the_dialog_is_said_to_be_gone()
         {
             // KeePass locks or closes the database while this dialog is open, which
@@ -358,7 +361,8 @@ namespace KeePassGate.Tests
             var notice = new AdmissionNotice();
 
             using (var panel = new AuthorityPanel(
-                       _database, new FakePrompt(true), _log, "1.0.0", null, null, null, notice))
+                       _database, new FakePrompt(true), _log, "1.0.0", null, null, null, null,
+                       notice))
             {
                 panel.CreateAuthority();
                 panel.Describe();
@@ -387,7 +391,8 @@ namespace KeePassGate.Tests
             var notice = new AdmissionNotice();
 
             using (var panel = new AuthorityPanel(
-                       _database, new FakePrompt(true), _log, "1.0.0", null, null, null, notice))
+                       _database, new FakePrompt(true), _log, "1.0.0", null, null, null, null,
+                       notice))
             {
                 panel.CreateAuthority();
                 panel.Describe();
@@ -483,8 +488,6 @@ namespace KeePassGate.Tests
 
                 var list = ControlTree.FindByName<ClientList>(panel, ClientList.ControlName);
 
-                // The mark is in the row it acts on, so the row is what it is told rather than a
-                // selection somewhere else.
                 Assert.That(list.Revoke(0), Does.Contain("agent-fictitious"));
                 Assert.That(list.Clients, Is.Empty);
                 Assert.That(panel.AdmittedClients().Records, Is.Empty);
@@ -839,7 +842,7 @@ namespace KeePassGate.Tests
         [Test]
         public void Revoking_with_no_database_says_so_rather_than_throwing()
         {
-            using (var panel = new AuthorityPanel(null, new FakePrompt(true), _log, "1.0.0"))
+            using (var panel = new AuthorityPanel(null, new FakePrompt(true), _log, Version))
             {
                 Assert.That(panel.AdmittedClients().Records, Is.Empty);
                 Assert.That(panel.Revoke(null), Is.Not.Null);
@@ -895,6 +898,177 @@ namespace KeePassGate.Tests
             }
         }
 
+        [Test]
+        public void The_clients_page_says_when_the_gate_cannot_see_the_authority_yet()
+        {
+            // The one place the waiting arrangement costs something, and it is invisible from where
+            // the operator is standing: they pressed Create, the first page says there is an
+            // authority, and a client pairing against the gate is answered out of the database
+            // KeePass is holding, which has not been told.
+            var pending = new PendingDatabase(_database, null);
+
+            using (var panel = new AuthorityPanel(pending, new FakePrompt(true), _log, Version))
+            {
+                Assert.That(panel.AuthorityIsWaiting, Is.False, "before anybody pressed anything");
+                Assert.That(Label(panel, GateTab.InviteNoticeName).Visible, Is.False);
+
+                panel.CreateAuthority();
+
+                Assert.That(panel.AuthorityIsWaiting, Is.True);
+                Assert.That(Label(panel, GateTab.InviteNoticeName).Text,
+                    Is.EqualTo(GateTab.PendingAuthorityNotice));
+                Assert.That(GateTab.PendingAuthorityNotice, Does.Contain("Press OK"));
+
+                pending.Apply();
+                panel.Describe();
+
+                Assert.That(panel.AuthorityIsWaiting, Is.False, "once it is in the database");
+            }
+        }
+
+        [Test]
+        public void Nobody_can_be_invited_while_a_profile_name_is_still_waiting()
+        {
+            // `KPG.Profiles` is the one key this tab and pairing both write, and they write it
+            // differently: the tab holds its version until OK, pairing writes live and saves.
+            // `PendingStore` reconciles the two, so what is left is the direction no merge can
+            // decide: a client approved for a profile the operator is part way through removing is
+            // admitted to a name that OK takes out of the list, where it grants nothing.
+            var pending = new PendingDatabase(_database, null);
+
+            using (var panel = new AuthorityPanel(
+                pending, new FakePrompt(true), _log, Version, null, new InvitationBook(_log), null, null))
+            {
+                panel.CreateAuthority();
+                pending.Apply();
+                panel.Describe();
+
+                Assume.That(panel.ProfilesAreWaiting, Is.False, "before anybody typed anything");
+                Assume.That(Button(panel, GateTab.InviteButtonName).Enabled, Is.True,
+                    "so what the assertion below reads is this edit and not the authority");
+
+                var names = ProfileNames.Read(null);
+                Assume.That(names.Add("ops"), Is.Null);
+                pending.PluginCustomData.Set(ProfileNames.CustomDataKey, names.Write());
+                panel.Describe();
+
+                Assert.That(panel.ProfilesAreWaiting, Is.True);
+                Assert.That(Button(panel, GateTab.InviteButtonName).Enabled, Is.False,
+                    "so a pairing cannot write the list this dialog is about to write over");
+
+                // The band under the button, which is the only place this reason can be given. A
+                // dead button says nothing about why it is dead, and this was the one of the three
+                // reasons the page left unsaid. The band is sized to its text and hidden when
+                // there is none, so the text is what says whether it is showing.
+                Assert.That(Label(panel, GateTab.InviteNoticeName).Text,
+                    Is.EqualTo(GateTab.PendingProfilesNotice));
+                Assert.That(GateTab.PendingProfilesNotice, Does.Contain("Press OK"));
+
+                pending.Apply();
+                panel.Describe();
+
+                Assert.That(panel.ProfilesAreWaiting, Is.False, "once it is in the database");
+                Assert.That(Button(panel, GateTab.InviteButtonName).Enabled, Is.True);
+                Assert.That(Label(panel, GateTab.InviteNoticeName).Text, Is.Empty,
+                    "the band costs a line of the page, so it goes when it has nothing to say");
+            }
+        }
+
+        [Test]
+        public void Inviting_while_a_profile_name_is_waiting_refuses_the_way_the_button_does()
+        {
+            // The button is decided by `Describe`, so a profile typed on the second page after
+            // the clients page was last drawn leaves a live button over a state that must not
+            // hand out a code. The method behind the button has to refuse it too, exactly as it
+            // already refuses a waiting authority, or the guard is only as good as the last
+            // redraw.
+            var pending = new PendingDatabase(_database, null);
+
+            using (var panel = new AuthorityPanel(
+                pending, new FakePrompt(true), _log, Version, null, new InvitationBook(_log), null, null))
+            {
+                panel.CreateAuthority();
+                pending.Apply();
+                panel.Describe();
+
+                var names = ProfileNames.Read(null);
+                Assume.That(names.Add("ops"), Is.Null);
+                pending.PluginCustomData.Set(ProfileNames.CustomDataKey, names.Write());
+
+                // Deliberately not redrawn, which is the state the button cannot cover.
+                panel.InviteClient();
+
+                Assert.That(Label(panel, GateTab.ResultLabelName).Text,
+                    Is.EqualTo(InvitationText.ProfilesWaiting));
+                Assert.That(Box(panel, GateTab.InvitationBoxName).Text, Is.Empty,
+                    "no code was made, so there is nothing to copy and hand over");
+            }
+        }
+
+        [Test]
+        public void Nobody_can_be_invited_against_an_authority_the_gate_cannot_see_yet()
+        {
+            // A code handed out now either cannot be spent, or is spent against the authority this
+            // dialog is about to replace: the client pairs, is issued a certificate, and OK
+            // invalidates it. The notice says what to do; the dead button is what stops somebody
+            // doing it anyway.
+            var pending = new PendingDatabase(_database, null);
+
+            using (var panel = new AuthorityPanel(
+                pending, new FakePrompt(true), _log, Version, null, new InvitationBook(_log), null, null))
+            {
+                panel.CreateAuthority();
+
+                Assert.That(Button(panel, GateTab.InviteButtonName).Enabled, Is.False);
+
+                pending.Apply();
+                panel.Describe();
+
+                Assert.That(Button(panel, GateTab.InviteButtonName).Enabled, Is.True);
+            }
+        }
+
+        [Test]
+        public void A_tab_on_a_database_that_holds_nothing_back_never_says_that()
+        {
+            // The panel is given whatever database it is given. One that writes as it goes has
+            // nothing waiting, ever, and a notice about a dialog it is not on would be nonsense.
+            using (var panel = NewPanel(true))
+            {
+                panel.CreateAuthority();
+
+                Assert.That(panel.AuthorityIsWaiting, Is.False);
+                Assert.That(Label(panel, GateTab.InviteNoticeName).Visible, Is.False);
+            }
+        }
+
+        [Test]
+        public void Both_tables_on_the_tab_have_something_to_be_read_aloud()
+        {
+            // A grid carries no text, so what UI automation reports as its name is whatever
+            // `AccessibleName` says and nothing at all otherwise. `CONVENTIONS.md` names a grid as
+            // one of the few controls that needs one, and names the trap in the same paragraph:
+            // the tests that drive a real KeePass point at a control by its `AutomationId`, which
+            // comes from `Name`, so the phrase must be a phrase rather than the identifier and
+            // must not displace it.
+            using (var panel = NewPanel(true))
+            {
+                var clients = ControlTree.FindByName<DataGridView>(panel, ClientList.ListName);
+                var profiles = ControlTree.FindByName<DataGridView>(panel, ProfileList.ListName);
+
+                Assert.That(clients, Is.Not.Null, "the clients page has no grid on it");
+                Assert.That(profiles, Is.Not.Null, "the profiles page has no grid on it");
+
+                Assert.That(clients.AccessibleName, Is.EqualTo(ClientList.ListLabel));
+                Assert.That(profiles.AccessibleName, Is.EqualTo(ProfileList.ListLabel));
+
+                Assert.That(clients.AccessibleName, Is.Not.EqualTo(clients.Name),
+                    "a table announcing its own lookup name tells a listener nothing");
+                Assert.That(profiles.AccessibleName, Is.Not.EqualTo(profiles.Name),
+                    "a table announcing its own lookup name tells a listener nothing");
+            }
+        }
+
         private AuthorityPanel NewPanel(bool confirm)
         {
             return NewPanel(new FakePrompt(confirm));
@@ -902,7 +1076,7 @@ namespace KeePassGate.Tests
 
         private AuthorityPanel NewPanel(IOperatorPrompt prompt)
         {
-            return new AuthorityPanel(_database, prompt, _log, "1.0.0");
+            return new AuthorityPanel(_database, prompt, _log, Version);
         }
 
         private string Digest()
@@ -925,6 +1099,13 @@ namespace KeePassGate.Tests
             var button = ControlTree.FindByName<Button>(panel, name);
             Assert.That(button, Is.Not.Null, "no button called " + name);
             return button;
+        }
+
+        private static TextBox Box(Control panel, string name)
+        {
+            var box = ControlTree.FindByName<TextBox>(panel, name);
+            Assert.That(box, Is.Not.Null, "no box called " + name);
+            return box;
         }
     }
 }

@@ -398,6 +398,79 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void Opening_a_group_dialog_and_changing_nothing_leaves_the_node_and_the_database_alone()
+        {
+            // The tab is on a dialog whose OK writes its own copy of the node's settings back over
+            // the node, so anything this panel touches while merely being looked at is a change the
+            // operator did not make and is then asked to save.
+            var group = GroupUnderRoot("Fictitious");
+            group.CustomData.Set(AclDocument.CustomDataKey, "{\"reader\":[\"read\"]}");
+
+            var written = group.CustomData.Get(AclDocument.CustomDataKey);
+            var touched = group.LastModificationTime;
+            _database.Database.Modified = false;
+
+            using (var dialog = new GroupForm())
+            {
+                dialog.InitEx(group, false, null, _database.Database);
+
+                var injector = Injector();
+                Assert.That(injector.Attach(dialog), Is.True);
+
+                var panel = ControlTree.FindByName<GrantPanel>(dialog, GrantTab.PanelControlName);
+                Assert.That(panel, Is.Not.Null);
+                Assert.That(panel.Lines, Is.EqualTo(new[] { "reader .R......" }), "it read the rule");
+                Assert.That(panel.Writes, Is.Zero, "and wrote nothing back");
+
+                injector.DetachAll();
+            }
+
+            Assert.That(group.CustomData.Get(AclDocument.CustomDataKey), Is.EqualTo(written));
+            Assert.That(group.LastModificationTime, Is.EqualTo(touched));
+            Assert.That(_database.Database.Modified, Is.False,
+                "nothing on this plugin's tab asked KeePass to save anything");
+        }
+
+        [Test]
+        public void Opening_an_entry_dialog_and_changing_nothing_leaves_the_entry_and_the_database_alone()
+        {
+            var entry = EntryIn(GroupUnderRoot("Fictitious"));
+            entry.CustomData.Set(AclDocument.CustomDataKey, "{\"reader\":[\"read\"]}");
+
+            var written = entry.CustomData.Get(AclDocument.CustomDataKey);
+            var touched = entry.LastModificationTime;
+            _database.Database.Modified = false;
+
+            using (var dialog = new PwEntryForm())
+            {
+                dialog.InitEx(entry, PwEditMode.EditExistingEntry, _database.Database, _icons, false, false);
+
+                var injector = Injector(KeePassContract.NodeFormTabControlName);
+                Assert.That(injector.Attach(dialog), Is.True);
+
+                var panel = ControlTree.FindByName<GrantPanel>(dialog, GrantTab.PanelControlName);
+                Assert.That(panel, Is.Not.Null);
+                Assert.That(panel.Writes, Is.Zero);
+
+                injector.DetachAll();
+            }
+
+            Assert.That(entry.CustomData.Get(AclDocument.CustomDataKey), Is.EqualTo(written));
+            Assert.That(entry.LastModificationTime, Is.EqualTo(touched));
+            Assert.That(_database.Database.Modified, Is.False);
+        }
+
+        private static TabPageInjector Injector(string tabControlName = null)
+        {
+            return new TabPageInjector(
+                new GrantPanelFactory(new NodeDialogs(null), null),
+                null,
+                tabControlName ?? KeePassContract.NodeFormTabControlName,
+                GrantTab.Text,
+                GrantTab.PageControlName);
+        }
+
+        [Test]
         public void The_tab_lands_on_a_real_entry_dialog_too()
         {
             var entry = EntryIn(GroupUnderRoot("Fictitious"));
@@ -644,12 +717,11 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
-        public void The_profiles_offered_are_the_ones_this_database_has_admitted()
+        public void The_profiles_offered_are_the_ones_this_database_names()
         {
-            // From the admission records, because that is where a profile becomes real. A name no
-            // client holds still grants nobody anything, so the list is a convenience rather than a
-            // constraint.
-            Admit("reader", "editor");
+            // From the database's own list, because that is where a profile lives: a name can be
+            // written down before any client holds it, and given its rules then.
+            Name("reader", "editor");
 
             using (var dialog = new GroupForm())
             {
@@ -658,6 +730,47 @@ namespace KeePassGate.Host.Tests
                 var sheet = new NodeDialogs(null).SheetFor(dialog);
 
                 Assert.That(sheet.Offered, Is.EqualTo(new[] { "editor", "reader" }));
+            }
+        }
+
+        [Test]
+        public void A_profile_only_an_admission_record_still_holds_is_not_offered()
+        {
+            // What a removal on the Profiles page leaves: the list has let the name go and a
+            // client's record still holds it. Offering it would let a rule be written for a name
+            // that grants nothing, which reads exactly like one that works.
+            Name("reader");
+            Admit("reader", "ops");
+
+            using (var dialog = new GroupForm())
+            {
+                dialog.InitEx(GroupUnderRoot("Fictitious"), false, null, _database.Database);
+
+                var sheet = new NodeDialogs(null).SheetFor(dialog);
+
+                Assert.That(sheet.Offered, Is.EqualTo(new[] { "reader" }));
+                Assert.That(sheet.Available, Does.Not.Contain("ops"));
+            }
+        }
+
+        [Test]
+        public void A_rule_left_behind_by_a_removed_profile_is_shown_granting_nothing()
+        {
+            // Removing a profile touches the list and nothing else, so a group keeps its rule for
+            // the name. The dialog shows it, marked, because adding the name again brings it back
+            // into force and this is the node it would be in force on.
+            Name("reader");
+            var group = GroupUnderRoot("Fictitious");
+            group.CustomData.Set(AclDocument.CustomDataKey, "{\"ops\":[\"read\"],\"reader\":[\"list\"]}");
+
+            using (var dialog = new GroupForm())
+            {
+                dialog.InitEx(group, false, null, _database.Database);
+
+                var sheet = new NodeDialogs(null).SheetFor(dialog);
+
+                Assert.That(sheet.Rows.Select(row => row.Profile + (row.Named ? "" : " (not named)")),
+                    Is.EqualTo(new[] { "ops (not named)", "reader" }));
             }
         }
 
@@ -752,6 +865,18 @@ namespace KeePassGate.Host.Tests
         private static void Load(Form dialog, StringDictionaryEx live)
         {
             WorkingCopyField(dialog).SetValue(dialog, live.CloneDeep());
+        }
+
+        /// <summary>Writes these names into the database's own profile list, as the page does.</summary>
+        private void Name(params string[] profiles)
+        {
+            var names = ProfileNames.Empty();
+            foreach (var profile in profiles)
+            {
+                Assume.That(names.Add(profile), Is.Null);
+            }
+
+            _database.Database.CustomData.Set(ProfileNames.CustomDataKey, names.Write());
         }
 
         /// <summary>Admits an invented client into these profiles, the way pairing does.</summary>

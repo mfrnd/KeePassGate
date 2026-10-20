@@ -61,7 +61,7 @@ namespace KeePassGate.Host.Tests
 
             _vault = new KdbxVault(
                 _database.Database,
-                new DatabaseWriter(CurrentThread.Instance, Save, _dialogs, NullGateLog.Instance),
+                new DatabaseWriter(CurrentThread.Instance, Save, null, _dialogs, NullGateLog.Instance),
                 NullGateLog.Instance);
         }
 
@@ -300,6 +300,186 @@ namespace KeePassGate.Host.Tests
 
             Assert.That(adding.Entries.UCount + adding.Groups.UCount, Is.Zero,
                 "nothing went into a group whose Cancel would have taken it away");
+        }
+
+        [Test]
+        public void A_write_delivered_inside_xml_replace_s_merge_is_refused_and_the_merge_finishes()
+        {
+            // XML Replace merges its result into the live database with KeePass's progress window
+            // as the status logger, and that window's `ContinueWork` pumps on every call. Neither
+            // of KeePass's own busy signals is raised, so the window is the only thing the write
+            // can see. Driven with the real window as the pump and the real merge, posting the
+            // write the moment `ApplyDeletions` is walking the root group's children, which is
+            // where a group added to the root breaks the enumeration.
+            var merge = MergeWithAWriteInside(true);
+
+            Assert.That(merge.Landed, Is.Not.Null, "the merge's own pump delivered the write");
+            Assert.That(merge.Inside, Is.True, "while ApplyDeletions was on the stack");
+            Assert.That(merge.Landed.IsBusy, Is.True, merge.Landed.Reason);
+            Assert.That(merge.Landed.Reason, Does.Contain("progress window"));
+            Assert.That(merge.Thrown, Is.Null, "so the merge was not broken");
+            Assert.That(merge.Left, Is.Zero, "and it finished: every deletion the replica carried was applied");
+            Assert.That(_saves, Is.Zero, "a refused write saves nothing");
+        }
+
+        [Test]
+        public void Without_the_window_the_same_write_breaks_the_merge()
+        {
+            // The hazard the test above is guarding, pinned as well as the guard, because it is a
+            // claim about KeePass rather than about this code: the write lands, is saved half way
+            // through the merge, and the merge then throws out of the walk over the root group's
+            // children. Whatever it deleted after that save is in memory only, with `Modified`
+            // cleared by the save, and whatever it had still to do it never does.
+            var merge = MergeWithAWriteInside(false);
+
+            Assert.That(merge.Inside, Is.True);
+            Assert.That(merge.Landed.Ok, Is.True, "nothing refused it");
+            Assert.That(merge.Thrown, Is.InstanceOf<InvalidOperationException>(),
+                "the root group's children moved under ApplyDeletions");
+            Assert.That(_saves, Is.EqualTo(1), "after the write was saved half way through the merge");
+            Assert.That(_database.Database.Modified, Is.False,
+                "and the database says nothing is unsaved, though it no longer holds what the file does");
+        }
+
+        /// <summary>
+        /// Synchronizes a replica that deletes forty entries into the fixture's database, with
+        /// KeePass's progress window as the logger, and posts a group creation under the root the
+        /// first time the merge asks that window to pump from inside `ApplyDeletions`.
+        /// </summary>
+        /// <remarks>
+        /// The window is built and never shown, like every dialog in this fixture, and registered
+        /// the way its own `OnFormLoad` registers it, or not at all. The write is posted to this
+        /// thread's queue exactly as `ControlUiThread` posts one, and so is delivered by the next
+        /// `Application.DoEvents` the window runs, which is the next step of the same loop.
+        /// </remarks>
+        private (VaultWrite Landed, bool Inside, Exception Thrown, uint Left) MergeWithAWriteInside(bool registered)
+        {
+            var merged = new PwGroup(true, true, "Merged", PwIcon.Folder);
+            _database.Database.RootGroup.AddGroup(merged, true);
+
+            var replica = new PwDatabase();
+            replica.New(new KeePassLib.Serialization.IOConnectionInfo(), _database.Database.MasterKey);
+            replica.RootGroup.Uuid = _database.Database.RootGroup.Uuid;
+
+            var later = DateTime.UtcNow.AddMinutes(1);
+            for (var i = 0; i < 40; i++)
+            {
+                var entry = new PwEntry(true, true);
+                merged.AddEntry(entry, true);
+                replica.DeletedObjects.Add(new PwDeletedObject(entry.Uuid, later));
+            }
+
+            _database.Save();
+            _saves = 0;
+
+            VaultWrite landed = null;
+            var inside = false;
+            Exception thrown = null;
+
+            using (var queue = new Control())
+            using (var window = new StatusProgressForm())
+            {
+                Assume.That(queue.Handle, Is.Not.EqualTo(IntPtr.Zero));
+                window.InitEx("XML Replace", true, false, null);
+
+                var logger = new PostsOnceInside("ApplyDeletions", window, () => queue.BeginInvoke(new MethodInvoker(() =>
+                {
+                    inside = OnTheStack("ApplyDeletions");
+                    landed = _vault.CreateGroup(_vault.RootAlias, "Landed", null);
+                })));
+
+                if (registered)
+                {
+                    GlobalWindowManager.AddWindow(window);
+                }
+
+                try
+                {
+                    _database.Database.MergeIn(replica, PwMergeMethod.Synchronize, logger);
+                }
+                catch (InvalidOperationException error)
+                {
+                    thrown = error;
+                }
+                finally
+                {
+                    if (registered)
+                    {
+                        GlobalWindowManager.RemoveWindow(window);
+                    }
+                }
+            }
+
+            return (landed, inside, thrown, merged.Entries.UCount);
+        }
+
+        private static bool OnTheStack(string method)
+        {
+            foreach (var frame in new System.Diagnostics.StackTrace().GetFrames())
+            {
+                if (frame.GetMethod() != null && frame.GetMethod().Name == method)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// A status logger that is KeePass's progress window, and posts one piece of work the
+        /// first time it is asked anything from inside the named method.
+        /// </summary>
+        private sealed class PostsOnceInside : KeePassLib.Interfaces.IStatusLogger
+        {
+            private readonly string _method;
+            private readonly KeePassLib.Interfaces.IStatusLogger _window;
+            private readonly Action _post;
+            private bool _posted;
+
+            public PostsOnceInside(string method, KeePassLib.Interfaces.IStatusLogger window, Action post)
+            {
+                _method = method;
+                _window = window;
+                _post = post;
+            }
+
+            public void StartLogging(string operation, bool writeToLog)
+            {
+                _window.StartLogging(operation, writeToLog);
+            }
+
+            public void EndLogging()
+            {
+                _window.EndLogging();
+            }
+
+            public bool SetProgress(uint percent)
+            {
+                Post();
+                return _window.SetProgress(percent);
+            }
+
+            public bool SetText(string text, KeePassLib.Interfaces.LogStatusType type)
+            {
+                Post();
+                return _window.SetText(text, type);
+            }
+
+            public bool ContinueWork()
+            {
+                Post();
+                return _window.ContinueWork();
+            }
+
+            private void Post()
+            {
+                if (!_posted && OnTheStack(_method))
+                {
+                    _posted = true;
+                    _post();
+                }
+            }
         }
 
         private static void Refused(VaultWrite write, string route)

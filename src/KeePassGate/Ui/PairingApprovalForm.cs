@@ -33,6 +33,8 @@ namespace KeePassGate.Ui
     public sealed class PairingApprovalForm : Form
     {
         private readonly CheckedListBox _profiles;
+        private readonly Label _scrolling;
+        private readonly Label _regaining;
         private readonly Label _countdown;
         private readonly Timer _clock;
         /// <summary>
@@ -56,6 +58,171 @@ namespace KeePassGate.Ui
         /// <summary>The same when it asked for nothing, which is unusual enough to say plainly.</summary>
         public const string NoProfilesAsked =
             "The client is asking for no profiles, so it would be admitted and reach nothing.";
+
+        /// <summary>
+        /// What marks a profile this database does not name now and no client holds. Approving one
+        /// adds it to the list.
+        /// </summary>
+        /// <remarks>
+        /// **Not "never named"**: a name the operator removed, whose every holder has since been
+        /// revoked or has expired, looks the same from here, and the rules naming it were left in
+        /// place when it was removed. Whether any rule names it is a walk of the whole tree, which
+        /// a connection does not make, so the dialog says what approving does either way.
+        /// </remarks>
+        public const string NewSuffix = " (new)";
+
+        /// <summary>Said under the list when any of them is new.</summary>
+        public const string NewProfilesAsked =
+            "The client is asking for binding to these profiles. One or more are marked" +
+            NewSuffix + ", which means this database does not name them now: approving adds them, " +
+            "and any rule already naming one grants it to this client at once. A name no rule names " +
+            "grants nothing until one does. Uncheck anything it should not have:";
+
+        /// <summary>
+        /// Said under the list when any of them would be added and the database's list is already
+        /// full, so approving adds none of them.
+        /// </summary>
+        public static readonly string FullProfilesAsked =
+            "The client is asking for binding to these profiles. One or more are marked" + NewSuffix +
+            " or (removed), and this database already names as many profiles as it can hold, " +
+            KeePassGate.Acl.ProfileNames.Most.ToString(CultureInfo.InvariantCulture) + ": approving adds none of them, " +
+            "so the client holds them and reaches nothing through them until one is added on the " +
+            "Profiles page, after another is taken off. Uncheck anything it should not have:";
+
+        /// <summary>
+        /// What marks a profile this database named once and removed, which clients still hold.
+        /// Approving one gives it back to all of them.
+        /// </summary>
+        public const string RemovedSuffix = " (removed)";
+
+        /// <summary>
+        /// How a profile reads in the list: its name, and whether approving it would create it or
+        /// bring back one that was removed.
+        /// </summary>
+        public static string Listed(string profile, bool isNew, bool removed)
+        {
+            return removed ? profile + RemovedSuffix : isNew ? profile + NewSuffix : profile;
+        }
+
+        /// <summary>The name back out of what the list shows, which is what gets approved.</summary>
+        public static string Asked(string shown)
+        {
+            foreach (var suffix in new[] { NewSuffix, RemovedSuffix })
+            {
+                if (shown != null && shown.EndsWith(suffix, StringComparison.Ordinal))
+                {
+                    return shown.Substring(0, shown.Length - suffix.Length);
+                }
+            }
+
+            return shown;
+        }
+
+        /// <summary>
+        /// What the line under the list says about the clients that regain a removed profile, or
+        /// null when approving gives nothing back to anybody.
+        /// </summary>
+        /// <remarks>
+        /// The same warning the Profiles page gives before a removed name is added back, because
+        /// approving one here is exactly that: pairing writes the approved names onto the list.
+        /// Every client by name, as the Clients page calls it, since which clients regain the name
+        /// is what the operator is being asked to agree to. The rules come back with it, which the
+        /// page counts and this cannot: counting them walks the whole tree, and this is asked from
+        /// a connection rather than from the window that owns the tree.
+        /// </remarks>
+        public static string Regaining(PairingRequest request)
+        {
+            if (request == null || request.ListIsFull)
+            {
+                // A full list takes no name back, so nobody regains anything: `FullProfilesAsked`
+                // says that instead.
+                return null;
+            }
+
+            var said = new List<string>();
+
+            foreach (var profile in request.Profiles)
+            {
+                var holding = request.Returning(profile);
+                if (holding.Count == 0)
+                {
+                    continue;
+                }
+
+                var names = new List<string>();
+                foreach (var record in holding)
+                {
+                    names.Add(ClientList.Describe(record));
+                }
+
+                names.Sort(StringComparer.Ordinal);
+
+                said.Add((names.Count == 1
+                        ? "One client still holds " + profile + " from before and will regain it: "
+                        : names.Count + " clients still hold " + profile + " from before and will regain it: ")
+                    + string.Join(", ", names) + ".");
+            }
+
+            if (said.Count == 0)
+            {
+                return null;
+            }
+
+            said.Add("Approving a profile marked" + RemovedSuffix + " adds it back to this database, "
+                + "and every rule still naming it applies again.");
+            return string.Join(" ", said);
+        }
+
+        /// <summary>
+        /// What the line under the list says when the list holds more profiles than it shows at
+        /// once, or null when every one of them is on screen.
+        /// </summary>
+        /// <remarks>
+        /// **Approve grants every profile still checked, whether it was ever on screen or not**,
+        /// and a request may carry 32 of them in the order the client chose, every one checked.
+        /// Past the rows the list shows, the only sign of the rest was a scroll bar, so ten harmless
+        /// names first and the wanted ones after were approved by a glance at the ten, and a
+        /// profile marked as new could be the one out of sight. This says how many there are, next
+        /// to the button that grants them. Absent for a list that shows everything, so the
+        /// ordinary dialog is unchanged.
+        /// </remarks>
+        public static string Scrolling(PairingRequest request)
+        {
+            if (request == null || request.Profiles.Count <= MostRows)
+            {
+                return null;
+            }
+
+            return "The list holds " + request.Profiles.Count.ToString(CultureInfo.InvariantCulture)
+                + " profiles and shows " + MostRows.ToString(CultureInfo.InvariantCulture)
+                + " at a time: scroll through it, because Approve grants every one still checked, "
+                + "seen or not.";
+        }
+
+        /// <summary>What the line above the list says, which depends on whether any are new.</summary>
+        public static string Asking(PairingRequest request)
+        {
+            if (request == null || request.Profiles.Count == 0)
+            {
+                return NoProfilesAsked;
+            }
+
+            var adding = false;
+            var anyNew = false;
+            foreach (var profile in request.Profiles)
+            {
+                var isNew = request.IsNew(profile);
+                anyNew |= isNew;
+                adding |= isNew || request.Returning(profile).Count > 0;
+            }
+
+            if (adding && request.ListIsFull)
+            {
+                return FullProfilesAsked;
+            }
+
+            return anyNew ? NewProfilesAsked : ProfilesAsked;
+        }
 
         private readonly Font _titleFont;
         private readonly Font _valueFont;
@@ -81,10 +248,32 @@ namespace KeePassGate.Ui
         private bool _decided;
 
         public PairingApprovalForm(PairingRequest request, TimeSpan timeout)
+            : this(request, timeout, null)
+        {
+        }
+
+        /// <summary>
+        /// The same, built at a font other than the system's, which is how a test stands in for a
+        /// display that was scaled before the dialog was made.
+        /// </summary>
+        /// <remarks>
+        /// **Everything that sizes this dialog is measured while it is built**, from the font it is
+        /// built at: how wide a line may be, and how tall the list is for the rows it holds. A
+        /// larger font handed in here is measured exactly the way a larger system font is on a
+        /// scaled display, which is the path the dialog takes in use. Changing the font of a dialog
+        /// already built is a different path, and nothing takes it: KeePass never touches this
+        /// dialog's font.
+        /// </remarks>
+        internal PairingApprovalForm(PairingRequest request, TimeSpan timeout, Font font)
         {
             if (request == null)
             {
                 throw new ArgumentNullException(nameof(request));
+            }
+
+            if (font != null)
+            {
+                Font = font;
             }
 
             _allowed = timeout;
@@ -103,13 +292,18 @@ namespace KeePassGate.Ui
             // granting direction: at 125% the profile list showed one row of what was asked for and
             // at 150% it showed none, while every profile stayed checked and Approve granted all of
             // them.
-            AutoScaleMode = AutoScaleMode.Font;
+            //
+            // **No automatic scaling**, because there is nothing for it to do. What the content is
+            // sized from is measured below in the font the dialog is built at, which on a scaled
+            // display is already the larger one; `AutoScaleMode.Font` was set here with no
+            // dimensions to scale from, so it did nothing at any display scaling, and acted only
+            // when the font changed after the dialog was built, which nothing does.
             AutoSize = true;
             AutoSizeMode = AutoSizeMode.GrowAndShrink;
 
             // The prototype is disposed, because `SystemFonts.DefaultFont` hands back a new font
             // every time it is read and `new Font(prototype, style)` copies rather than adopts.
-            using (var prototype = SystemFonts.DefaultFont)
+            using (var prototype = font == null ? SystemFonts.DefaultFont : new Font(font, font.Style))
             {
                 _titleFont = new Font(prototype, FontStyle.Bold);
                 _valueFont = new Font(prototype, FontStyle.Bold);
@@ -185,7 +379,7 @@ namespace KeePassGate.Ui
             // make it look attached to the wrong one of the two.
             layout.Controls.Add(new TextLabel
             {
-                Text = request.Profiles.Count == 0 ? NoProfilesAsked : ProfilesAsked,
+                Text = Asking(request),
                 AutoSize = true,
                 MaximumSize = new Size(_wrap, 0),
                 Margin = new Padding(0, 0, 0, Spacing.Gap)
@@ -198,6 +392,10 @@ namespace KeePassGate.Ui
                 Width = _wrap,
                 CheckOnClick = true,
 
+                // The dialog's own, given before it is measured below: a list not yet on the dialog
+                // has no font of the dialog's to inherit, and its row height is what that measures.
+                Font = Font,
+
                 // Off, so the height set below is the height it keeps rather than a whole number
                 // of rows. With it on, the list rounds itself down and leaves a strip of the
                 // dialog's background under the last row.
@@ -207,13 +405,39 @@ namespace KeePassGate.Ui
 
             foreach (var profile in request.Profiles)
             {
-                _profiles.Items.Add(profile, true);
+                _profiles.Items.Add(
+                    Listed(profile, request.IsNew(profile), request.Returning(profile).Count > 0), true);
             }
 
             // Tall enough for what is being asked, up to a point, and never zero. This is the one
             // control the operator has to act on, so it is sized from the list it holds rather
             // than from whatever two docked bands leave over.
             _profiles.Height = ListHeight(_profiles, request.Profiles.Count);
+
+            // Straight under the list, because it is about the list: a list longer than it shows
+            // grants what is scrolled out of sight too.
+            var scrolling = Scrolling(request);
+            _scrolling = scrolling == null ? null : new TextLabel
+            {
+                Name = GateTab.ApprovalScrollingName,
+                Text = scrolling,
+                AutoSize = true,
+                MaximumSize = new Size(_wrap, 0),
+                Margin = new Padding(0, Spacing.Gap, 0, 0)
+            };
+
+            // Under the list rather than above it, because it is about what checking one of those
+            // does, and the operator reads it with the check marks in front of them. Absent
+            // unless a removed profile is being asked for, so the ordinary dialog is unchanged.
+            var regaining = Regaining(request);
+            _regaining = regaining == null ? null : new TextLabel
+            {
+                Name = GateTab.ApprovalRegainingName,
+                Text = regaining,
+                AutoSize = true,
+                MaximumSize = new Size(_wrap, 0),
+                Margin = new Padding(0, Spacing.Gap, 0, 0)
+            };
 
             // A table rather than a flow, because the buttons go against the right edge and a flow
             // panel lays every child out at its own left one. A cell is what `Anchor` answers to.
@@ -308,6 +532,16 @@ namespace KeePassGate.Ui
             // filling what the other two left, which is how the list came to be the part that
             // disappeared: the bands grow with the font and the client area did not.
             layout.Controls.Add(_profiles);
+            if (_scrolling != null)
+            {
+                layout.Controls.Add(_scrolling);
+            }
+
+            if (_regaining != null)
+            {
+                layout.Controls.Add(_regaining);
+            }
+
             layout.Controls.Add(footer);
 
             // Filled rather than dropped in at the origin. A form lays a child out against its
@@ -355,17 +589,21 @@ namespace KeePassGate.Ui
         /// How tall the profile list should be for this many profiles.
         /// </summary>
         /// <remarks>
-        /// Between two rows and ten. Never fewer than two, because a list showing one row of two
-        /// profiles reads as a list of one and the operator is then approving what they cannot
-        /// see; never more than ten, because past that the dialog is taller than the answer is
-        /// worth and the list scrolls, which it can. The border is added because a list box's
-        /// height includes it and its rows do not.
+        /// Between two rows and <see cref="MostRows"/>. Never fewer than two, because a list
+        /// showing one row of two profiles reads as a list of one and the operator is then
+        /// approving what they cannot see; never more than that, because past it the dialog is
+        /// taller than the answer is worth and the list scrolls, which it can, and the line under
+        /// it says so. The border is added because a list box's height includes it and its rows
+        /// do not.
         /// </remarks>
         private static int ListHeight(CheckedListBox list, int profiles)
         {
-            var rows = Math.Max(2, Math.Min(10, profiles));
+            var rows = Math.Max(2, Math.Min(MostRows, profiles));
             return (list.ItemHeight * rows) + (SystemInformation.BorderSize.Height * 4);
         }
+
+        /// <summary>The most rows the profile list shows at once, past which it scrolls.</summary>
+        private const int MostRows = 10;
 
         /// <summary>
         /// Approves it, exactly as the button does. Public because a button press needs a window on
@@ -498,7 +736,7 @@ namespace KeePassGate.Ui
             var approved = new List<string>();
             foreach (var item in _profiles.CheckedItems)
             {
-                approved.Add(Convert.ToString(item, CultureInfo.InvariantCulture));
+                approved.Add(Asked(Convert.ToString(item, CultureInfo.InvariantCulture)));
             }
 
             return approved.ToArray();

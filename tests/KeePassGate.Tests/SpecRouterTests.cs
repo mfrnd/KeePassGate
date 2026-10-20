@@ -821,6 +821,60 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_profile_taken_off_the_list_is_one_the_client_no_longer_holds()
+        {
+            // Removing a profile touches the list and nothing else. The record still says `ops`,
+            // and the gate reads the two side by side on every connection.
+            using (var certificate = _ours.IssueClient("agent-fictitious", "ops", "reader"))
+            {
+                _ours.Admit(certificate, "ops", "reader");
+                _ours.Forget("ops");
+
+                var identity = ClientCredentials.For(certificate, _ours, _log);
+
+                Assert.That(identity.IsPaired, Is.True, "still admitted");
+                Assert.That(identity.Profiles, Is.EqualTo(new[] { "reader" }));
+                Assert.That(_ours.Admission(identity.AdmissionKey).Profiles, Is.EqualTo(new[] { "ops", "reader" }),
+                    "and the record is exactly what was approved");
+            }
+        }
+
+        [Test]
+        public void Naming_the_profile_again_gives_it_back()
+        {
+            // Nothing was rewritten, so nothing has to be restored: the next connection reads a
+            // list that names it again.
+            using (var certificate = _ours.IssueClient("agent-fictitious", "ops"))
+            {
+                _ours.Admit(certificate, "ops");
+                _ours.Forget("ops");
+                Assume.That(ClientCredentials.For(certificate, _ours, _log).Profiles, Is.Empty);
+
+                _ours.KnownProfiles = new[] { "ops" };
+
+                Assert.That(ClientCredentials.For(certificate, _ours, _log).Profiles, Is.EqualTo(new[] { "ops" }));
+            }
+        }
+
+        [Test]
+        public void A_list_that_cannot_be_read_leaves_every_client_holding_nothing()
+        {
+            // A target answers an unreadable list as an empty one, and the intersection with an
+            // empty list is empty, so the client is admitted and reaches nothing.
+            Assert.That(ClientCredentials.Effective(new[] { "ops", "reader" }, Array.Empty<string>()), Is.Empty);
+            Assert.That(ClientCredentials.Effective(new[] { "ops", "reader" }, null), Is.Empty);
+            Assert.That(ClientCredentials.Effective(null, new[] { "ops" }), Is.Empty);
+        }
+
+        [Test]
+        public void The_intersection_keeps_the_record_s_order_and_compares_exactly()
+        {
+            Assert.That(
+                ClientCredentials.Effective(new[] { "reader", "ops", "Ops" }, new[] { "ops", "reader" }),
+                Is.EqualTo(new[] { "reader", "ops" }));
+        }
+
+        [Test]
         public void A_certificate_outside_its_dates_is_refused_even_with_a_record()
         {
             using (var certificate = _ours.IssueClient("agent-fictitious"))

@@ -90,6 +90,26 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void Every_shared_response_says_what_its_body_is()
+        {
+            // A client generated from the document reads a response without content as one with
+            // no body. Every answer given under these carries one, and `Internal` was the one that
+            // declared none, so the words telling `not saved` from `internal error` were nowhere.
+            Microsoft.OpenApi.Models.OpenApiDocument document;
+            using (var stream = typeof(SpecDocument).Assembly.GetManifestResourceStream("KeePassGate.Spec.openapi.yaml"))
+            {
+                Microsoft.OpenApi.Readers.OpenApiDiagnostic diagnostic;
+                document = new Microsoft.OpenApi.Readers.OpenApiStreamReader().Read(stream, out diagnostic);
+            }
+
+            Assert.That(document.Components.Responses, Is.Not.Empty);
+            foreach (var response in document.Components.Responses)
+            {
+                Assert.That(response.Value.Content, Is.Not.Empty, response.Key + " declares no body");
+            }
+        }
+
+        [Test]
         public void The_build_carries_a_routing_table()
         {
             var document = SpecDocument.Embedded();

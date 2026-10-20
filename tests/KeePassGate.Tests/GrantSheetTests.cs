@@ -432,5 +432,31 @@ namespace KeePassGate.Tests
 
             Assert.That(sheet.Available, Is.EqualTo(new[] { "reader" }));
         }
+
+        [Test]
+        public void A_rule_for_a_name_the_database_does_not_name_is_marked_as_granting_nothing()
+        {
+            // Local and inherited alike: a client holds only the names the list still names, so
+            // a rule for any other reaches nobody, wherever it was written.
+            var above = TestNode.Root("root").Granting("retired", AclVerb.Read);
+            var sheet = new GrantSheet("{\"ops\":[\"read\"],\"reader\":[\"list\"]}", above, new[] { "reader" }, null);
+
+            Assert.That(sheet.Rows.Select(row => row.ToString()), Is.EqualTo(new[]
+            {
+                "ops .R...... (not named)",
+                "reader .....L..",
+                "retired .R...... (inherited) (not named)"
+            }));
+        }
+
+        [Test]
+        public void A_list_that_could_not_be_read_marks_every_rule()
+        {
+            // The editor is handed an empty list when the database's cannot be read, and the gate
+            // grants nothing then either, so every row says so.
+            var sheet = new GrantSheet("{\"reader\":[\"list\"]}", null, System.Array.Empty<string>(), null);
+
+            Assert.That(sheet.Rows.Single().Named, Is.False);
+        }
     }
 }

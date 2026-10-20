@@ -1211,7 +1211,7 @@ namespace KeePassGate.Host.Tests
             // answered as unsaved and taken back out.
             var stuck = new KdbxVault(
                 _database.Database,
-                new DatabaseWriter(CurrentThread.Instance, database => { }, null, null),
+                new DatabaseWriter(CurrentThread.Instance, database => { }, null, null, null),
                 null);
 
             Assert.That(stuck.CreateEntry(group, Named("never written")).IsUnsaved, Is.True);
@@ -1238,6 +1238,42 @@ namespace KeePassGate.Host.Tests
 
             Assert.That(Describe(), Is.EqualTo(before),
                 "each of those was taken back out, so the tree reads exactly as it did before");
+        }
+
+        [Test]
+        public void A_refused_change_says_why_in_the_log()
+        {
+            // A client is told `503 busy`, `409 conflict` or `500` and nothing more, which is all it
+            // can act on. What the operator has to clear, a dialog left open or a file that changed
+            // on disk, was worked out and then written nowhere, so an agent retrying a busy write
+            // for as long as it was allowed to left nothing to find.
+            var log = new RecordingLog();
+            var vault = new KdbxVault(_database.Database, Writer(), log);
+            var uuid = Created(vault.CreateEntry(vault.RootAlias, Named("an invented service")));
+
+            Assert.That(vault.CreateField(uuid, "Invented", "a value", false).Ok, Is.True);
+            Assert.That(vault.CreateField(uuid, "Invented", "again", false).IsConflict, Is.True);
+            Assert.That(new KdbxVault(_database.Database, null, log).CreateEntry(vault.RootAlias, Named("x")).IsFailed,
+                Is.True);
+
+            var key = new KeePassLib.Keys.CompositeKey();
+            key.AddUserKey(new KeePassLib.Keys.KcpPassword("an invented passphrase"));
+            var nowhere = new PwDatabase();
+            nowhere.New(new KeePassLib.Serialization.IOConnectionInfo(), key);
+
+            try
+            {
+                Assert.That(new KdbxVault(nowhere, Writer(), log).CreateEntry(KdbxVault.Root, Named("x")).IsBusy, Is.True);
+            }
+            finally
+            {
+                nowhere.Close();
+            }
+
+            Assert.That(log.Warnings, Has.Some.Contains("that field is already there"));
+            Assert.That(log.Warnings, Has.Some.Contains("served without a way to write to it"));
+            Assert.That(log.Warnings, Has.Some.Contains("the database has no file"));
+            Assert.That(log.Warnings, Has.Count.EqualTo(3), "and nothing for the writes that landed");
         }
 
         /// <summary>Everything a change of any shape here would move.</summary>
@@ -1314,13 +1350,35 @@ namespace KeePassGate.Host.Tests
 
         private DatabaseWriter Writer()
         {
-            return new DatabaseWriter(CurrentThread.Instance, Save, null, null);
+            return new DatabaseWriter(CurrentThread.Instance, Save, null, null, null);
         }
 
         private void Save(PwDatabase database)
         {
             _saves++;
             database.Save(null);
+        }
+
+        private sealed class RecordingLog : IGateLog
+        {
+            public List<string> Warnings { get; } = new List<string>();
+
+            public void Info(string message)
+            {
+            }
+
+            public void Warn(string message)
+            {
+                Warnings.Add(message);
+            }
+
+            public void Error(string message, Exception error)
+            {
+            }
+
+            public void Unexpected(string message, Exception error)
+            {
+            }
         }
 
         private static IReadOnlyDictionary<string, string> Named(string title)

@@ -18,6 +18,18 @@ namespace KeePassGate.Ui
         IKeyValueStore PluginCustomData { get; }
 
         /// <summary>
+        /// What this database is called, for a screen that has to say which one it is talking
+        /// about. Empty when there is nothing to call it.
+        /// </summary>
+        string Name { get; }
+
+        /// <summary>
+        /// Every group and entry in it, as somewhere rules can be read. Null when the tree cannot
+        /// be reached, which is not the same as a tree with nothing in it.
+        /// </summary>
+        Acl.IRuledNodes Nodes { get; }
+
+        /// <summary>
         /// Tells the host there is something to save. It does not save: KeePass decides when, and
         /// a plugin that forces a write from inside a modal dialog is a plugin fighting its host.
         /// </summary>
