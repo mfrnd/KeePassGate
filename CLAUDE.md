@@ -8,14 +8,14 @@ Guidance for anyone, human or AI assistant, working in this repository.
 mutual TLS, so that automation and AI agents can each be given a narrow, revocable, audited slice of
 a database.
 
-**Status: the design is settled and steps 1 to 9 of the build order are done.** The plugin loads
+**Status: the design is settled and steps 1 to 10 of the build order are done.** The plugin loads
 into KeePass, the KPG tab creates, recreates and deletes the database's own certificate authority,
 the gate listens on loopback and answers over mutual TLS 1.3, a client is served only if
 the database holds an admission record for its certificate, and **a stranger can now become one**:
 the tab hands out an invitation, both sides prove they hold it, the operator approves what it may
 reach, and the record is written and saved before the certificate is handed over, and **a locked
-KeePass now answers `503 locked`** with a second host certificate held only in memory. Step 10, the
-reference client, is next.
+KeePass now answers `503 locked`** with a second host certificate held only in memory. Step 11, the
+specification router, is next.
 
 ## Read these before proposing anything
 
@@ -25,7 +25,7 @@ reference client, is next.
 | [`CA.md`](CA.md) | the certificate authority: issuance, claims, validation, revocation |
 | [`PAIRING.md`](PAIRING.md) | how a stranger becomes a client, with the flow diagrams |
 | [`FINDINGS.md`](FINDINGS.md) | what was measured rather than assumed, and what turned out wrong |
-| [`TESTING.md`](TESTING.md) | the three test tiers, what each one buys, and how to run them |
+| [`TESTING.md`](TESTING.md) | the four test tiers, what each one buys, and how to run them |
 
 **One document is historical and says so at the top.** [`ANALYSIS.md`](ANALYSIS.md) is the argument
 that was made, and several of its conclusions were later reversed; it opens with a banner naming
@@ -156,6 +156,31 @@ designing around them.
   subject out of the ACL could only ever be wrong here, however sensible it looks in a design that
   has something older to carry.
 
+- **PyKeePassGate is the reference client, and reference means load bearing.** It lives at
+  `src/pykeepassgate/`, imports as `pykeepassgate`, and is split into `pykeepassgate.api`, the
+  library, and `pykeepassgate.cli`, a command line that can do nothing the library cannot. A route
+  the gate serves and this does not cover is a gap, and a method here with no route behind it is a
+  lie. Its `pyproject.toml` is at the repository root because there is one Python project.
+- **The client's protocol code is pinned against the plugin's own output.**
+  `tests/pykeepassgate/test_protocol.py` holds vectors produced by `PairingToken`, `SniName` and
+  `PairingProof` over inputs written down beside them. Without those, both halves could agree on
+  something neither document describes, because both halves are code written here. Regenerate them
+  from the plugin rather than from the client if they ever have to change. `ProtocolVectorsTests`
+  holds the plugin to the same values, so a change to either half fails in that half's own tier.
+- **The client cannot be a `pykeepass` backend, and the reason is the design.** A `PyKeePass` is a
+  decrypted `.kdbx`, and this side of the API has neither the file nor the master password on
+  purpose. Its `save` writes the file it was opened from, so an edit to a synthesized one would
+  change a copy while the real database carried on and the ACL never saw the write.
+
+  **The read model that replaces it has two rules**: no `save`, because a method that looks like
+  theirs and does something else is worse than no method, and absent rather than empty, so a
+  missing feature is an attribute that is not there rather than a blank value.
+
+  Measured on `spikes/pykeepass-compatibility`, taken from `master` and never merged: of the 56 public
+  members on `PyKeePass`, 23 are servable over the routes the API is to have, 6 would need routes
+  nothing forbids, and 27 cannot exist here. Its `RESULTS.md` has the per member table and what
+  would have to change on each side. TODO(step 15): those routes arrive with this step.
+
 ## Measured facts that cost time if rediscovered
 
 Every one of these was established by running code, and most contradict what the documentation
@@ -283,15 +308,24 @@ request and on every push to `master`, because there is one definition of clean 
 file.
 
 ```powershell
-.\build.ps1                # build, then every test that does not need a running KeePass
-.\build.ps1 -Task All      # the above, then the end to end tests
+.\build.ps1                # prose, the client, the build, and every test that does not need KeePass
+.\build.ps1 -Task Lint     # markdownlint and cspell on their own
+.\build.ps1 -Task Client   # PyKeePassGate on its own: ruff, mypy, pytest
+.\build.ps1 -Task All      # the default, then the end to end tests
 .\build.ps1 -Task Deploy   # copy the plugin into plugins\KeePassGate in the provided KeePass
 ```
 
-**`build.ps1 -ListGates` is what CI asks for.** The workflow builds one job per name it returns, so
-a task added to the script is checked without anybody editing `.github/workflows/gate.yml`. The
-jobs are never written there, so what changes in that file is the commit each action is pinned
+**`build.ps1 -ListGates` is what CI asks for.** It answers one line per check and the runner CI
+gives it, and the workflow builds one job per line, so a task added to the script, or a runner
+added for one, is checked without anybody editing `.github/workflows/gate.yml`. Every check runs on
+Windows, and the client's on Linux as well, under PowerShell 7. The jobs are never written there
+and neither is where they run, so what changes in that file is the commit each action is pinned
 to, which its header says as well.
+
+**The fast half can also run at a commit.** `.pre-commit-config.yaml` holds the client's style and
+types, the spelling and the markdown rules, run on what is being committed, and nothing installs
+it: `uv run pre-commit install` does, once per clone. It is not the gate, and `TESTING.md` says
+what it leaves to `build.ps1`.
 
 The projects are SDK-style, target `net48` and build with the **.NET SDK's `dotnet` CLI**, which is
 what makes `dotnet test` available; they open in Visual Studio 2019 as well. `msbuild` is not on
@@ -348,6 +382,18 @@ and `-pw:` puts the password in the process list, so it is only ever acceptable 
 layout, prose and commits. What follows is what this branch adds, because each of these depends on
 the tools this branch carries.
 
+- **Python is checked the way the C# is.** `ruff`, `mypy --strict` and `pytest` with a coverage
+  floor, all configured in the root `pyproject.toml`, all run by `build.ps1 -Task Client`, which
+  `Test` runs. `uv` owns the environment and `uv.lock` is committed, so every machine gets the same
+  versions.
+
+  **`ruff check` is the gate and `ruff format` is not**, which is a decision rather than an
+  omission: thirteen files have never been through the formatter and running it would rewrite them
+  all. What is enforced is what a formatter cannot decide for you, and `pycodestyle` is in the
+  selected rules, so a line too long or a space in the wrong place still fails. What is left to the
+  author is where a line breaks, which is a judgment this project spends deliberately. Adopting it
+  means reformatting everything in one commit that changes nothing else, not letting it arrive a
+  file at a time under other work.
 - **Docs stay with code.** A behavior or architecture change updates the design documents in the
   same pass, and reversals are recorded rather than edited away.
 
@@ -366,7 +412,7 @@ here can hang or crash the password manager.
 
 ## Where to start
 
-[`DESIGN.md`](DESIGN.md) §132 ends with a multi-step build order. **Steps 1 to 9 are done.** The skeleton
+[`DESIGN.md`](DESIGN.md) §132 ends with a multi-step build order. **Steps 1 to 10 are done.** The skeleton
 loads and shows a KPG tab, that tab creates, recreates and deletes the authority, and the gate
 serves one route over mutual TLS to a client the database holds an admission record for.
 

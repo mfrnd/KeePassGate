@@ -3,7 +3,7 @@
 A KeePass 2.x plugin that serves a small, specification-defined HTTP API over mutual TLS, so that
 automation and AI agents can each be given a narrow, revocable, audited slice of a database.
 
-**Design settled, and the first nine steps are built.** The plugin loads into KeePass, the KPG tab
+**Design settled, and the first ten steps are built.** The plugin loads into KeePass, the KPG tab
 creates, recreates and deletes the database's own certificate authority, and the gate answers over
 mutual TLS 1.3 with the host certificate chosen from the rotating name in the ClientHello. A client
 is served only if the database holds an admission record for its certificate, so revoking one
@@ -26,7 +26,7 @@ KeePassGate is sound under the strict reading of the linking question as well as
 | [`CA.md`](CA.md) | the certificate authority in full: issuance, claims, validation, revocation |
 | [`PAIRING.md`](PAIRING.md) | how a stranger becomes a client, with the flow diagrams |
 | [`FINDINGS.md`](FINDINGS.md) | what was measured rather than assumed, and what turned out wrong |
-| [`TESTING.md`](TESTING.md) | the three test tiers, what each one buys, and how to run them |
+| [`TESTING.md`](TESTING.md) | the four test tiers, what each one buys, and how to run them |
 | [`CONVENTIONS.md`](CONVENTIONS.md) | the rules that hold on every branch |
 | [`ANALYSIS.md`](ANALYSIS.md) | the argument, and the alternatives that were rejected |
 
@@ -70,13 +70,35 @@ for, and carry a valid Authenticode signature from KeePass's author. That last c
 that does not depend on where the bytes came from.
 
 ```powershell
-.\build.ps1                # build, then every test that does not need a running KeePass
+.\build.ps1                # prose, the client, the build, and every test that does not need KeePass
 .\build.ps1 -Task All      # the above, then the end to end tests
 .\build.ps1 -Task Deploy   # copy the plugin into plugins\KeePassGate in the provided KeePass
 ```
 
 A plain DLL on .NET Framework 4.8, built with the `dotnet` CLI, opening in Visual Studio 2019 as
-well. [`TESTING.md`](TESTING.md) says what the three test tiers are for.
+well. [`TESTING.md`](TESTING.md) says what the test tiers are for.
+
+## The client
+
+[`src/pykeepassgate/`](src/pykeepassgate/README.md) is **PyKeePassGate**, the reference client:
+pairing, and every route the gate serves. `pykeepassgate.api` is the library and
+`pykeepassgate.cli` is a command line over it that can do nothing the library cannot.
+
+Reference implementation means the code is the second copy of the specification. Where it and the
+plugin disagree, one of them is wrong, and the protocol tests pin every construction against
+vectors the plugin itself produced, so a disagreement fails a test rather than a pairing.
+
+```shell
+uv sync
+uv run pykeepassgate pair --port 45678 --name agent-invented --profile-name reader
+uv run pykeepassgate status
+```
+
+The question a `pykeepass` user asks first is answered on `spikes/pykeepass-compatibility`, taken from
+`master` and never merged. Short version: not as a `PyKeePass` object, because that is a decrypted
+`.kdbx` and this side has neither the file nor the password, but 23 of its 56 public members are
+servable over the routes the API is to have. That branch's `RESULTS.md` has the table.
+TODO(step 15): those routes arrive with this step.
 
 ## The measurements
 

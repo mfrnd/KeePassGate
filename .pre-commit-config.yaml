@@ -1,0 +1,93 @@
+# The checks that are cheap enough to run on what is being committed rather than on everything.
+#
+# It is not a second set of rules. Every hook here runs the tool the gate runs, against the config
+# the gate reads, so a commit that passes this passes `build.ps1` for the same reasons. What it
+# buys is distance: a finding at the commit costs a sentence, and the same finding at the gate
+# costs a rebuild.
+#
+# **What is deliberately not here.** The C# build and the test suites. They take minutes, and a
+# pre-commit hook people are tempted to skip is worse than one that never existed. `build.ps1` is
+# the gate; this is the fast part of it.
+#
+# Install it once:
+#
+#     uv run pre-commit install
+#
+# It lives with the Python client because `pre-commit` is a Python tool and `uv` is what this
+# repository uses to run those.
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      # The five that catch a mistake nobody would make on purpose.
+      - id: check-merge-conflict
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: check-yaml
+      - id: check-toml
+      # A `.kdbx` must never be committed, and neither must a key. Size alone catches neither,
+      # since a scratch database and a PEM key are both small, so the two rules that do are by
+      # content and by name. The size limit stays for everything else.
+      - id: check-added-large-files
+        args: ["--maxkb=512"]
+      - id: detect-private-key
+        # `test_credentials.py` asserts that the identity it wrote holds a private key, and
+        # the way it says so is the header this hook looks for. A test vector that names a
+        # thing is not the thing, which is the same reason `pyproject.toml` carries
+        # per-file ignores for the tests.
+        exclude: '^tests/pykeepassgate/test_credentials\.py$'
+
+  - repo: local
+    hooks:
+      # Style, types and spelling all run locally rather than from a mirror, because each
+      # needs this repository's own config and its own environment to mean anything. Ruff
+      # was pinned to a mirror revision and disagreed with the one `uv.lock` resolves, so
+      # the mirror flagged what the gate passed. That is the header above being false in
+      # the one way it is most expensive to discover. No `--fix`: a hook that rewrites a
+      # file during `git commit` is a hook that commits something nobody read.
+      - id: ruff
+        name: style
+        entry: uv run --frozen ruff check --force-exclude
+        language: system
+        types: [python]
+
+      - id: ruff-format
+        name: format
+        entry: uv run --frozen ruff format
+        language: system
+        types: [python]
+        # Kept for running by hand and deliberately in no gate, because this repository's
+        # Python is written to be read and `ruff format` would reflow comments that were
+        # wrapped on purpose. `stages: [manual]` is what keeps it out of a commit.
+        stages: [manual]
+
+      - id: mypy
+        name: types
+        entry: uv run --frozen mypy
+        language: system
+        types: [python]
+        pass_filenames: false
+
+      - id: cspell
+        name: spelling
+        entry: npx --no-install cspell lint --no-progress --no-summary
+        language: system
+        pass_filenames: true
+        # Passing filenames goes around `cspell.yaml`'s own include list, so without this
+        # the hook checks files the gate never does and reports words this repository has
+        # no reason to know. `.gitignore` and `LICENSE` are among the files it would check.
+        files: '\.(md|cs|ps1|py|ya?ml|json|toml|csproj|props)$'
+
+      - id: markdownlint
+        name: markdown
+        entry: npx --no-install markdownlint-cli2
+        language: system
+        files: '\.md$'
+
+      # By name, because the only thing that reliably identifies a database here is its extension,
+      # and a throwaway one made by a test is exactly the file most likely to be staged by accident.
+      - id: no-database
+        name: refuse a database file
+        entry: A .kdbx must never be committed, not even a throwaway one.
+        language: fail
+        files: '\.kdbx$'

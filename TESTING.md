@@ -1,6 +1,6 @@
 # Testing
 
-Three tiers, and the split is deliberate: each one buys something the others cannot, and each one
+Four tiers, and the split is deliberate: each one buys something the others cannot, and each one
 fails in a way that names its own cause.
 
 | | Project | Needs | Runs in | What it proves |
@@ -8,9 +8,10 @@ fails in a way that names its own cause.
 | **Unit** | `tests/KeePassGate.Tests` | nothing but a compiler, and a loopback socket | under a minute | the logic, and the whole transport, against stand-ins shaped like KeePass |
 | **Host** | `tests/KeePassGate.Host.Tests` | a KeePass to reference | about a second | the same code against real KeePass types, dialogs and events |
 | **End to end** | the same project, category `Live` | a desktop, and the machine to itself | under a minute | the plugin loading into a KeePass a user could have started |
+| **Client** | `tests/pykeepassgate` | Python, and `uv` to arrange it | a few seconds | PyKeePassGate against stand-ins, and its protocol code against vectors the plugin produced |
 
 ```powershell
-.\build.ps1                # build, then the unit and host tiers
+.\build.ps1                # the prose, the client tier, then the unit and host tiers
 .\build.ps1 -Task Live     # the end to end tier
 .\build.ps1 -Task All      # everything
 ```
@@ -136,6 +137,32 @@ machine, or a failure means nothing until somebody asks what was installed.
 tests drive has to hold the same KeePass the tests compiled against, or the live tier is measuring
 something the rest of the suite is not.
 
+## What the client tier is for
+
+PyKeePassGate has two tiers of its own, and they draw the same line the C# ones do.
+
+**Against a gate that is not KeePass.** `tests/pykeepassgate/conftest.py` builds an authority, a
+host certificate under it, and a TLS 1.3 server that answers one request per connection, which is
+what the plugin's transport does. That covers everything a client has to get right about the
+protocol, including the parts `ssl` decides: that the rotating name arrives as SNI, that the
+server's certificate is readable before a body is written, and that loading one authority really is
+a pin.
+
+**Against the plugin's own output.** `tests/pykeepassgate/test_protocol.py` pins the token
+encoding, the name construction and all three proofs against vectors produced by `PairingToken`,
+`SniName` and `PairingProof`. Without those, the two halves could agree on something neither
+document describes, because both halves would be code somebody wrote here. `ProtocolVectorsTests`
+holds the plugin to the same values over the same inputs, so a change to either half fails in that
+half's own tier rather than at the first real pairing.
+
+```shell
+uv run pytest --cov        # the client, with the coverage floor the gate enforces
+```
+
+```powershell
+.\build.ps1 -Task Client         # the same thing, and its style and types
+```
+
 ## Conventions
 
 - One assertion subject per test, and the name is a sentence about behavior rather than about a
@@ -179,6 +206,9 @@ fixtures drive KeePass's own statics, which belong to the whole process as much 
 does, and the plugin reads them. A mark forgotten there would fail now and then rather than
 plainly, and the tier is a minute or two either way.
 
+**And the client tier runs beside both.** `build.ps1` starts it as a process of its own while the
+plugin builds and its tiers run, prints its output once they are done, and fails if either half did.
+
 ## What the coverage floor holds
 
 `.\build.ps1 -Task Coverage` runs the unit and host tiers and measures what they reach in the
@@ -203,3 +233,16 @@ figure did.
 
 There is CI, and there is no branch protection, because none is configured.
 `.\build.ps1 -Task All` is the gate, and nothing stops a push that skipped it.
+
+**The fast half can run at the commit itself, once it is installed.** `.pre-commit-config.yaml`
+holds the checks cheap enough to run on what is being committed: the client's style and types, the
+spelling and the markdown rules, each run by the tool and the configuration the gate uses, and a
+refusal of a `.kdbx`, a private key or a merge left half done. Nothing installs it, so a clone has
+none of it until somebody runs this once:
+
+```powershell
+uv run pre-commit install
+```
+
+It is not the gate, and does not try to be: the C# build and every test tier are left to
+`build.ps1`, which is what a branch is judged by.

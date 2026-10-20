@@ -62,8 +62,25 @@ words:
   - Dominik
   - Reichl
 
+  # give the operator a command line that can do nothing more
+  - capsys
 
+  # own the transport, because the name rotates
+  - REUSEADDR
+  - cafile
 
+  # start the reference client, with the checks it is held to
+  - addopts
+  - conftest
+  - docstrings
+  - isort
+  - pathlib
+  - pycodestyle
+  - pydocstyle
+  - pyflakes
+  - pytest
+  - pyupgrade
+  - testpaths
 
   # keep the gate working on a machine that also has PowerShell 7
   - PSHOME
@@ -89,19 +106,29 @@ words:
 
   # The platform
   - CREAT
+  - WRONLY
+  - geteuid
+  - ftruncate
+  - lseek
   - msbuild
   - netstandard
   - SChannel
   - vswhere
 
   # Tooling
+  - mypy
+  - pyproject
+  - sdist
   - autonumber
   - LASTEXITCODE
   - nologo
   - noresult
   - Parallelizable
   - pathspec
+  - pycache
+  - venv
   - USERPROFILE
+  - LOCALAPPDATA
 
   # Names of other people's projects, spelled the way they spell them
   - Connexion

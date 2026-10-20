@@ -27,8 +27,7 @@ namespace KeePassGate.Testing
         /// replacement character on each side of the split. An answer that arrived intact then
         /// reads as one that did not, and a test comparing what it stored with what came back
         /// fails for a reason nothing on either side of the wire did. The reference client gathers
-        /// the whole answer before decoding it for exactly this reason. TODO(step 10): the
-        /// reference client arrives with step 10.
+        /// the whole answer before decoding it for exactly this reason.
         ///
         /// The head is US-ASCII and the body is UTF-8, and one decoding covers both because ASCII
         /// is a subset of it.
