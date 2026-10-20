@@ -1,9 +1,9 @@
 """A paired client, and every route the gate serves it.
 
 **This is the reference implementation, so what is here is what exists.** The gate serves one route
-today besides pairing, and this covers it. When the specification router lands and the document
-becomes the routing table, the routes it declares belong here, one method each, and the absence of
-a method here should read as the absence of a route rather than as something nobody got round to.
+today besides pairing, and this covers it. The document is the routing table, so the routes it
+declares belong here, one method each, and the absence of a method here should read as the absence
+of a route rather than as something nobody got round to.
 
 Every request is its own connection, named freshly from the gate key. That is not a cost worth
 optimizing away: it is what makes a passive observer see a different name each time.
@@ -75,12 +75,10 @@ class GateClient:
     def status(self) -> Status:
         """The route that proves a connection and nothing else.
 
-        It reads nothing out of the database on purpose, which is why it will be one of the
-        three routes declaring `x-kpg-verb: none`, the other two being the pairing ones: no
-        grant could allow or refuse it, because it reaches nothing a grant is about. It
-        exists to prove a connection rather than to be useful.
-        TODO(step 12): the routing document declares that extension at step 11, and every
-        route carries one from step 12, which is when the count of three becomes true.
+        It reads nothing out of the database on purpose, which is why it is one of the three
+        routes declaring `x-kpg-verb: none`, the other two being the pairing ones: no grant
+        could allow or refuse it, because it reaches nothing a grant is about. It exists to
+        prove a connection rather than to be useful.
 
         A client can use it to answer three questions at once: whether the gate is listening,
         whether this certificate is still admitted, and whether the database is unlocked.
@@ -91,6 +89,22 @@ class GateClient:
             database=str(body.get("database", "")),
             version=str(body.get("version", "")),
         )
+
+    def head(self, path: str) -> None:
+        """Whether a route answers, and whether this client may reach it, without the answer.
+
+        One method for every `head` the document declares, because a `head` is generic in a way
+        a `get` is not: it carries no content, so there is nothing to shape per route. What it
+        reports is the status, which is the whole of what was asked.
+
+        It hands back nothing: a refusal is an exception here as it is everywhere else in this
+        client, so reaching the next line is the answer. What a refusal cannot carry is the
+        gate's word, since that is written in a body and this answer has none: a `RouteRefused`
+        from here holds the status and an empty `error`. The gate omits `Content-Length` on
+        these, which RFC 9110 section 9.3.2 permits for a value determined only while
+        generating content, so this one reads to the close the gate sends anyway.
+        """
+        self.send("HEAD", path)
 
     def get(self, path: str) -> dict[str, Any]:
         """One GET, on its own connection, under a name built for it."""

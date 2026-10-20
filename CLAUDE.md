@@ -8,14 +8,16 @@ Guidance for anyone, human or AI assistant, working in this repository.
 mutual TLS, so that automation and AI agents can each be given a narrow, revocable, audited slice of
 a database.
 
-**Status: the design is settled and steps 1 to 10 of the build order are done.** The plugin loads
+**Status: the design is settled and steps 1 to 11 of the build order are done.** The plugin loads
 into KeePass, the KPG tab creates, recreates and deletes the database's own certificate authority,
 the gate listens on loopback and answers over mutual TLS 1.3, a client is served only if
 the database holds an admission record for its certificate, and **a stranger can now become one**:
 the tab hands out an invitation, both sides prove they hold it, the operator approves what it may
 reach, and the record is written and saved before the certificate is handed over, and **a locked
-KeePass now answers `503 locked`** with a second host certificate held only in memory. Step 11, the
-specification router, is next.
+KeePass now answers `503 locked`** with a second host certificate held only in memory. **The routing
+table is now the OpenAPI document itself**: handlers bind to `operationId`, an undeclared path has
+nowhere to go, and a document that disagrees with the handlers stops the plugin loading. Step 12, the
+access control model, is next.
 
 ## Read these before proposing anything
 
@@ -139,13 +141,25 @@ designing around them.
   so the platform's own TLS meant a host key on the disk. `Org.BouncyCastle.Tls` is MIT, alive, and
   parses the stored PKCS#12 itself. Do not re-propose `SslStream` for the server without measuring
   `EphemeralKeyProbe.cs` on `spikes/tls-and-certificates` again first.
-- **Spec-first routing.** The OpenAPI document is the routing table and handlers bind to
-  `operationId`, so an undeclared path has nowhere to go.
+- **Spec-first routing.** The OpenAPI document at `src/KeePassGate/Spec/openapi.yaml` is the
+  routing table, embedded in the assembly, and handlers bind to `operationId`, so an undeclared path
+  has nowhere to go. Every declared operation must have a handler and every handler a declared
+  operation, asserted when the router is built, which is as the plugin loads.
+- **No schema library checks request bodies**, and that is a count rather than a preference:
+  fourteen assemblies against three for reading the document. `BodyCheck` covers the subset this
+  wire carries and **refuses at startup any schema it does not implement**, which is what stops a
+  subset becoming a gap. Re-proposing one means arguing with the counts on `spikes/json-reading`.
 - **The JSON grammar is `Newtonsoft.Json`'s and the policy is ours**, which is the split worth
   keeping. `JsonBody` decides what this wire may carry, which is one flat object of strings and
   arrays of strings, and parses none of it. Three alternatives were measured and refused, on
   assembly count and on license. The counts are on `spikes/json-reading`, and re-proposing one means
   arguing with them.
+- **Every GET declares the HEAD that answers for it**, bound to the same handler and carrying
+  the same `x-kpg-verb`. Declared rather than derived, so the document stays the whole account
+  of what the API answers; one handler, so the two cannot come to disagree about whether
+  something is there. The plugin refuses to load a `get` with no `head`, or a pair governed
+  differently. The answer omits `Content-Length` rather than sending a wrong one, which
+  RFC 9110 section 9.3.2 permits.
 - **A plain DLL on .NET Framework 4.8**, not a `.plgx`.
 - **The access control model is one document per node**, and its types arrive with step 12.
   Grants live under a `KPG` key, which is this plugin's own namespace and touches nothing another
@@ -412,7 +426,7 @@ here can hang or crash the password manager.
 
 ## Where to start
 
-[`DESIGN.md`](DESIGN.md) §132 ends with a multi-step build order. **Steps 1 to 10 are done.** The skeleton
+[`DESIGN.md`](DESIGN.md) §132 ends with a multi-step build order. **Steps 1 to 11 are done.** The skeleton
 loads and shows a KPG tab, that tab creates, recreates and deletes the authority, and the gate
 serves one route over mutual TLS to a client the database holds an admission record for.
 
@@ -423,10 +437,22 @@ step 8 built on: the settings dialog the KPG tab lives on carries **no** snapsho
 buttons are safe from their own dialog, and anything written while a **group** dialog is open is
 destroyed by its OK.
 
-**Step 11 is the spec router**: the OpenAPI document as the routing table, handlers bound to
-`operationId`, schema validation, and a startup assertion that the document and the handlers agree.
-`GateRouter` is what it replaces, and the shape to keep is the one already there: identity is
-refused in one place before dispatch, and a locked database is refused before even that.
+**Step 12 is the ACL**: the model in `DESIGN.md` §114, resolving against a real database. What
+step 11 leaves it is `x-kpg-verb`, declared on every operation, all of them `none` so far, and
+carried through to `SpecOperation.Verb`, which nothing reads yet but the check holding a `head` to
+its `get`. That is where the authorization layer reads what an operation may do, so it never becomes
+an attribute in code that the document could disagree with.
+
+**Three things about the router that are decisions rather than details.** A caller with no
+certificate is refused the same way everywhere, so an undeclared path and one it may not use answer
+alike and only an admitted client is told which it was. That is about the *refusal*, not about
+whether a route exists: the routes are declared in a document that ships inside the plugin, so a
+`405` for a declared path asked for with the wrong method says no more than reading that document
+says, and `GET /pair/hello` answers exactly that. An operation may carry a guard for a
+precondition the document cannot state, which is how pairing keeps its routes to connections that
+arrived on an invitation, and a guard runs **before** the body is checked so that nothing is
+reported about a body on a route the caller may not reach. And `PairingHandler` is two operations
+now rather than one dispatcher: which path is which is the document's answer.
 
 What steps 8 and 9 leave it. `AdmissionWriter` is the single writer, and the only place a request
 writes to a database. `GroupDialogs` watches for the dialog that would take a write back, tracking
@@ -437,7 +463,7 @@ seeing nothing open and is the fail-closed direction on the one guard this desig
 `LockWatch` drives both lock transitions against seams rather than KeePass, and
 `OpenDatabaseTargets` is where a database becomes a `LockedTarget` and back. `JsonBody` reads
 request bodies strictly and says in its own comments where it stops being enough, which is exactly
-where step 11 begins.
+where step 11 began.
 
 **A pairing connection is measured against `GateOptions.PairingBudget` rather than `Budget`.** The
 ordinary thirty seconds is what stops a peer holding a thread by feeding it slowly, and phase 4
@@ -462,6 +488,14 @@ terminates the transport, and why every key the plugin loads can stay off the di
 `HostCertificateHandshakeTests` pins both halves, including the SChannel refusal, so a tidy-up that
 goes back to `SslStream` fails loudly rather than quietly writing keys to somebody's profile.
 
-**A dependency ships beside the plugin.** `build.ps1 -Task Deploy` copies every DLL from the build
-output into the plugins directory, because KeePass loads plugins with `Assembly.LoadFrom`, which
-probes the plugin's own directory rather than KeePass's.
+**A dependency ships beside the plugin, and so does everything it drags in.** `build.ps1 -Task
+Deploy` copies every DLL from the build output into `plugins\KeePassGate`, because KeePass loads
+plugins with `Assembly.LoadFrom`, which probes the plugin's own directory rather than KeePass's.
+**A directory of its own, not `plugins` itself**: KeePass finds a plugin anywhere under `plugins`,
+and a flat install shares every dependency by file name with every other plugin installed flat.
+Only KeePass has a binding redirect, so one `Newtonsoft.Json.dll` cannot serve two plugins built
+against different major versions, and whichever was there first stops binding.
+**The whole closure, not the direct references**: copying what the plugin names was enough while its
+one dependency had none of its own, and stopped being enough the moment one did. A plugin missing a
+transitive dependency fails to load with nothing in the log to say why, which is what 34 of the 35
+end to end tests said the first time.

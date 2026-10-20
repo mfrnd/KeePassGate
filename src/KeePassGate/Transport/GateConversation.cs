@@ -43,9 +43,12 @@ namespace KeePassGate.Transport
         /// thing and is not politeness either. Closing a socket with the peer's bytes still unread
         /// is answered by the stack with a reset, and a reset discards what it has already
         /// delivered: the client is left with no answer at all, which is the one outcome the
-        /// responder certificate exists to prevent. `Content-Length` bounds it, and `ReadHead` has
-        /// already refused a length over the cap. A client that asked to be told first has sent
-        /// nothing, so there is nothing to take and waiting for it would deadlock both sides.
+        /// responder certificate exists to prevent. It happens after the answer rather than before
+        /// it, so a client that reads while it writes can stop without finishing. A length over
+        /// the cap is taken the same way as any other, because the reader refusing such a head
+        /// changes nothing about what the peer is already sending. A client that asked to be told
+        /// first has sent nothing, so there is nothing to take and waiting for it would leave both
+        /// sides waiting for the other.
         ///
         /// What it names is the lock and nothing else: not which database, not whether anything is
         /// stored, not whether the caller would have been admitted. `PAIRING.md` §308 refuses
@@ -67,13 +70,9 @@ namespace KeePassGate.Transport
                 return;
             }
 
-            if (read.Ok && read.Head.ContentLength > 0 &&
-                string.IsNullOrEmpty(read.Head.GetHeader("Expect")))
-            {
-                HttpRequestReader.ReadBody(stream, read.Head);
-            }
+            Answer(stream, 503, HttpResponse.ErrorBody(LockedError), logger, IsHead(read.Method));
 
-            Answer(stream, 503, HttpResponse.ErrorBody(LockedError), logger, null);
+            HttpRequestReader.Discard(stream, read.Announced);
         }
 
         public static void Serve(
@@ -123,7 +122,16 @@ namespace KeePassGate.Transport
             if (!read.Ok)
             {
                 logger.Warn("refused a request: " + read.Reason);
-                Answer(stream, read.Status, HttpResponse.ErrorBody(read.Reason), logger, null);
+                Answer(
+                    stream, read.Status, HttpResponse.ErrorBody(read.Reason), logger,
+                    IsHead(read.Method));
+
+                // The body the head announced is on its way regardless of what was decided about
+                // the head, and a socket closed over those bytes is reset by the stack, which
+                // throws away the refusal just written. `DESIGN.md` §110 promises a 413 for a body
+                // over the cap, and a client that streams one without asking first can only be
+                // told so if what it is sending is taken.
+                HttpRequestReader.Discard(stream, read.Announced);
                 return;
             }
 
@@ -133,11 +141,15 @@ namespace KeePassGate.Transport
                 return;
             }
 
-            var body = HttpRequestReader.ReadBody(stream, head);
+            string refusal;
+            var body = HttpRequestReader.ReadBody(stream, head, out refusal);
             if (body == null)
             {
-                logger.Warn("refused a request whose body stopped early");
-                Answer(stream, 400, HttpResponse.ErrorBody("the body ended early"), logger, null);
+                // What the reader said, rather than one sentence for both of the things it refuses.
+                // A body that is not UTF-8 reported as one that ended early sends whoever reads the
+                // answer to the socket and to the length, where nothing is wrong.
+                logger.Warn("refused a request: " + refusal);
+                Answer(stream, 400, HttpResponse.ErrorBody(refusal), logger, IsHead(head.Method));
                 return;
             }
 
@@ -156,12 +168,20 @@ namespace KeePassGate.Transport
                 // Part of the connection catch-all, kept here rather than left to it so that the
                 // client is answered rather than dropped. A handler is this plugin's own code, so
                 // anything it throws is a defect and is counted as one.
-                incidents.Record("a handler failed on " + head.Method + " " + head.Path, error);
-                Answer(stream, 500, HttpResponse.ErrorBody("internal error"), logger, null);
+                //
+                // The method and not the path. A path names what it is about, a field or an
+                // attachment by what it is called, and a name does not go into a log that somebody
+                // with no right to the database may read. The exception says which handler it was.
+                incidents.Record("a handler failed on " + head.Method, error);
+                Answer(
+                    stream, 500, HttpResponse.ErrorBody("internal error"), logger,
+                    IsHead(head.Method));
                 return;
             }
 
-            Answer(stream, context.Status, context.Json, logger, context.Headers);
+            // The one answer a handler decided, so the one that can carry a field of its own.
+            Answer(
+                stream, context.Status, context.Json, logger, IsHead(head.Method), context.Headers);
         }
 
         /// <summary>
@@ -191,8 +211,11 @@ namespace KeePassGate.Transport
 
             if (!string.Equals(expected.Trim(), "100-continue", StringComparison.OrdinalIgnoreCase))
             {
-                log.Warn("refused an expectation this server does not meet: " + expected);
-                Answer(stream, 417, HttpResponse.ErrorBody("expectation"), log, null);
+                // What the peer expected is not repeated. It was the one string a peer chooses that
+                // reached this log, at any length the head allows and carrying whatever it carried,
+                // and saying which expectation this server meets is all the line needs.
+                log.Warn("refused an expectation other than 100-continue");
+                Answer(stream, 417, HttpResponse.ErrorBody("expectation"), log, IsHead(head.Method));
                 return false;
             }
 
@@ -214,12 +237,29 @@ namespace KeePassGate.Transport
             }
         }
 
+        /// <summary>Whether this method's answer may carry content at all.</summary>
+        /// <remarks>
+        /// Asked at every exit rather than at one of them. A HEAD is refused by the reader, by
+        /// the router, by the guard and by the body check, and RFC 9112 section 6.3 applies to
+        /// all of them: only the answer to a request nobody could read has no method to ask about.
+        /// </remarks>
+        private static bool IsHead(string method)
+        {
+            return string.Equals(method, "HEAD", StringComparison.Ordinal);
+        }
+
+        /// <summary>The refusals, which carry nothing a handler decided because none of them is one.</summary>
+        private static void Answer(Stream stream, int status, string json, IGateLog log, bool head)
+        {
+            Answer(stream, status, json, log, head, null);
+        }
+
         private static void Answer(
-            Stream stream, int status, string json, IGateLog log, WebHeaderCollection headers)
+            Stream stream, int status, string json, IGateLog log, bool head, WebHeaderCollection headers)
         {
             try
             {
-                HttpResponse.Write(stream, status, json, headers);
+                HttpResponse.Write(stream, status, json, head, headers);
             }
             catch (IOException)
             {

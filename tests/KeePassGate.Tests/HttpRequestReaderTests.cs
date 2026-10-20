@@ -59,7 +59,9 @@ namespace KeePassGate.Tests
             var stream = Stream("POST /thing HTTP/1.1\r\nContent-Length: 5\r\n\r\nhello and then some");
             var head = HttpRequestReader.ReadHead(stream, _options);
 
-            Assert.That(HttpRequestReader.ReadBody(stream, head.Head), Is.EqualTo("hello"));
+            string refusal;
+            Assert.That(HttpRequestReader.ReadBody(stream, head.Head, out refusal), Is.EqualTo("hello"));
+            Assert.That(refusal, Is.Null);
         }
 
         [Test]
@@ -68,7 +70,9 @@ namespace KeePassGate.Tests
             var stream = Stream("POST /thing HTTP/1.1\r\nContent-Length: 50\r\n\r\nshort");
             var head = HttpRequestReader.ReadHead(stream, _options);
 
-            Assert.That(HttpRequestReader.ReadBody(stream, head.Head), Is.Null);
+            string refusal;
+            Assert.That(HttpRequestReader.ReadBody(stream, head.Head, out refusal), Is.Null);
+            Assert.That(refusal, Is.EqualTo(HttpRequestReader.EndedEarly));
         }
 
         [Test]
@@ -84,7 +88,32 @@ namespace KeePassGate.Tests
             var stream = new MemoryStream(all);
             var head = HttpRequestReader.ReadHead(stream, _options);
 
-            Assert.That(HttpRequestReader.ReadBody(stream, head.Head), Is.EqualTo(body));
+            string refusal;
+            Assert.That(HttpRequestReader.ReadBody(stream, head.Head, out refusal), Is.EqualTo(body));
+            Assert.That(refusal, Is.Null);
+        }
+
+        [Test]
+        public void A_body_that_is_not_utf8_says_so_rather_than_reporting_a_short_read()
+        {
+            // Every declared byte arrives, so nothing about the socket or the length is wrong. A
+            // refusal naming the length sends whoever reads it looking at the one thing that is in
+            // order, and the answer is the same 400 either way, so the sentence is all there is.
+            var request = "POST /thing HTTP/1.1\r\nContent-Length: 2\r\n\r\n";
+            var all = new byte[Encoding.ASCII.GetByteCount(request) + 2];
+            Buffer.BlockCopy(Encoding.ASCII.GetBytes(request), 0, all, 0, all.Length - 2);
+
+            // A lead byte announcing a two byte sequence, followed by something that cannot
+            // continue one.
+            all[all.Length - 2] = 0xC3;
+            all[all.Length - 1] = 0x28;
+
+            var stream = new MemoryStream(all);
+            var head = HttpRequestReader.ReadHead(stream, _options);
+
+            string refusal;
+            Assert.That(HttpRequestReader.ReadBody(stream, head.Head, out refusal), Is.Null);
+            Assert.That(refusal, Is.EqualTo(HttpRequestReader.NotUtf8));
         }
 
         [Test]
@@ -105,6 +134,32 @@ namespace KeePassGate.Tests
 
             Assert.That(result.Ok, Is.False);
             Assert.That(result.Status, Is.EqualTo(400));
+        }
+
+        [TestCase("X-Thing: a\rb")]
+        [TestCase("X-Thing: a\nb")]
+        [TestCase("X-Thing: a\0b")]
+        [TestCase("X-Thing: a\u001Bb")]
+        [TestCase("X-Thing: a\u007Fb")]
+        [TestCase("Expect: 100-continue\n")]
+        public void A_header_value_holding_a_control_character_is_refused(string header)
+        {
+            // RFC 9110 section 5.5. A bare CR or LF is not a line ending here, so either can sit
+            // inside a value, and a value that trims into a match, like the last case, is exactly
+            // the guess this reader does not make.
+            var result = Read("GET /thing HTTP/1.1\r\n" + header + "\r\n\r\n");
+
+            Assert.That(result.Ok, Is.False, header);
+            Assert.That(result.Status, Is.EqualTo(400));
+        }
+
+        [Test]
+        public void A_tab_inside_a_header_value_is_kept()
+        {
+            var result = Read("GET /thing HTTP/1.1\r\nX-Thing: a\tb\r\n\r\n");
+
+            Assert.That(result.Ok, Is.True, result.Reason);
+            Assert.That(result.Head.GetHeader("X-Thing"), Is.EqualTo("a\tb"));
         }
 
         [Test]
@@ -285,7 +340,66 @@ namespace KeePassGate.Tests
             var head = Read("POST /a HTTP/1.1\r\nContent-Length: 1048576\r\n\r\n");
 
             Assert.That(head.Ok, Is.True, head.Reason);
-            Assert.That(HttpRequestReader.ReadBody(Stream("short"), head.Head), Is.Null);
+            string refusal;
+            Assert.That(HttpRequestReader.ReadBody(Stream("short"), head.Head, out refusal), Is.Null);
+            Assert.That(refusal, Is.EqualTo(HttpRequestReader.EndedEarly));
+        }
+
+        [Test]
+        public void A_refusal_says_how_much_body_is_still_on_its_way()
+        {
+            // What the refusal has to take off the wire before the connection ends. Without it the
+            // answer is written into a socket that is then closed over the peer's unread bytes, and
+            // the reset that follows discards it.
+            var result = Read("POST /thing HTTP/1.1\r\nContent-Length: " + (_options.MaxBodyBytes + 1) + "\r\n\r\n");
+
+            Assert.That(result.Status, Is.EqualTo(413));
+            Assert.That(result.Announced, Is.EqualTo(_options.MaxBodyBytes + 1L));
+        }
+
+        [Test]
+        public void A_refusal_to_a_client_that_asked_first_announces_nothing()
+        {
+            // It is waiting to be invited, so nothing is on its way and reading would leave both
+            // sides waiting for the other.
+            var result = Read(
+                "POST /thing HTTP/1.1\r\nExpect: 100-continue\r\nContent-Length: " +
+                (_options.MaxBodyBytes + 1) + "\r\n\r\n");
+
+            Assert.That(result.Status, Is.EqualTo(413));
+            Assert.That(result.Announced, Is.Zero);
+        }
+
+        [Test]
+        public void A_refusal_decided_before_the_headers_announces_nothing()
+        {
+            // Nothing was parsed, so there is no length to bound a read by. Said here because it is
+            // a limit of the answer rather than an oversight in it.
+            var result = Read("BOGUS-VERSION /thing HTTP/9.9\r\nContent-Length: 5\r\n\r\nhello");
+
+            Assert.That(result.Status, Is.EqualTo(505));
+            Assert.That(result.Announced, Is.Zero);
+        }
+
+        [Test]
+        public void What_was_announced_is_dropped_rather_than_kept()
+        {
+            var stream = Stream("0123456789");
+
+            HttpRequestReader.Discard(stream, 6);
+
+            Assert.That(Encoding.ASCII.GetString(Remaining(stream)), Is.EqualTo("6789"));
+        }
+
+        [Test]
+        public void Discarding_more_than_arrives_ends_with_the_connection()
+        {
+            // The count is the peer's own number and bounds nothing on its own. A stream that stops
+            // giving is the end of it, exactly as it is for a body that is being read.
+            var stream = Stream("short");
+
+            Assert.DoesNotThrow(() => HttpRequestReader.Discard(stream, 1024 * 1024));
+            Assert.That(Remaining(stream), Is.Empty);
         }
 
         [Test]

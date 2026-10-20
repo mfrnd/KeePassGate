@@ -6,6 +6,7 @@ using KeePassGate.Diagnostics;
 using KeePassGate.Gate;
 using KeePassGate.Pairing;
 using KeePassGate.Pipeline;
+using KeePassGate.Spec;
 using KeePassGate.Tests.Fakes;
 using KeePassGate.Transport;
 using KeePassGate.Ui;

@@ -19,6 +19,11 @@ namespace KeePassGate.Gate
     ///
     /// Nothing here is disposable, because there is nothing to release: no handle, no container, no
     /// file. The bytes go when the object does.
+    ///
+    /// That is also why a lock lets this go rather than erasing it. An `AsymmetricKeyParameter` is
+    /// an immutable `BigInteger` and offers nothing to overwrite, so the last reference going is
+    /// the whole of what happens to it. `CA.md` §208 states the bound that leaves, and it is the
+    /// same one conceded for local code execution as the user.
     /// </remarks>
     public sealed class HostKeyMaterial
     {

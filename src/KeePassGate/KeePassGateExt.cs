@@ -5,6 +5,7 @@ using KeePassGate.Diagnostics;
 using KeePassGate.Gate;
 using KeePassGate.Pairing;
 using KeePassGate.Pipeline;
+using KeePassGate.Spec;
 using KeePassGate.Transport;
 using KeePassGate.Ui;
 
@@ -377,7 +378,7 @@ namespace KeePassGate
             _listener = new GateListener(
                 GateOptions.FromEnvironment(),
                 new GateResolver(_targets, _invitations, _log),
-                new GateRouter(
+                GateOperations.Router(
                     GateVersion.Current,
                     new PairingHandler(_invitations, new PairingApprovalPrompt(ui, _log), _log)),
                 _incidents,

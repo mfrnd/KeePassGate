@@ -40,6 +40,12 @@ namespace KeePassGate.Transport
         /// <summary>Refuses bytes that are not UTF-8 rather than rewriting them.</summary>
         private static readonly UTF8Encoding StrictUtf8 = new UTF8Encoding(false, true);
 
+        /// <summary>The body stopped, or the connection did, before the declared length arrived.</summary>
+        public const string EndedEarly = "the body ended early";
+
+        /// <summary>Every declared byte arrived and they are not text this server will read.</summary>
+        public const string NotUtf8 = "the body is not utf-8";
+
         /// <summary>
         /// The only line ending a head is split on, held once rather than allocated per request.
         /// </summary>
@@ -76,8 +82,10 @@ namespace KeePassGate.Transport
                     return HttpReadResult.Refused(BadRequest, "the head ended early");
 
                 case HeadOutcome.TooLong:
+                    // With the method, read off what arrived, so that a HEAD is answered without
+                    // content here as it is everywhere else: RFC 9110 section 9.3.2.
                     return HttpReadResult.Refused(
-                        HeadersTooLarge, "the head is over " + options.MaxHeadBytes + " bytes");
+                        HeadersTooLarge, "the head is over " + options.MaxHeadBytes + " bytes", MethodIn(head));
             }
 
             // Before anything is decoded. `Encoding.ASCII` substitutes a question mark for every
@@ -90,7 +98,9 @@ namespace KeePassGate.Transport
             {
                 if (b > 0x7F)
                 {
-                    return HttpReadResult.Refused(BadRequest, "the head is not ascii");
+                    // The method too, for the reason above: the request line is in the buffer
+                    // whatever the bytes after it are.
+                    return HttpReadResult.Refused(BadRequest, "the head is not ascii", MethodIn(head));
                 }
             }
 
@@ -109,7 +119,7 @@ namespace KeePassGate.Transport
             IReadOnlyDictionary<string, string> query;
             if (!TrySplitTarget(target, out path, out query))
             {
-                return HttpReadResult.Refused(BadRequest, "the target is not a path this server accepts");
+                return HttpReadResult.Refused(BadRequest, "the target is not a path this server accepts", method);
             }
 
             var headers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -126,26 +136,37 @@ namespace KeePassGate.Transport
                 {
                     // Obsolete line folding. Refused rather than joined, because two parsers that
                     // disagree about a folded header is exactly how a request gets smuggled.
-                    return HttpReadResult.Refused(BadRequest, "folded headers are not accepted");
+                    return Refuse(BadRequest, "folded headers are not accepted", method, headers);
                 }
 
                 var colon = line.IndexOf(':');
                 if (colon <= 0)
                 {
-                    return HttpReadResult.Refused(BadRequest, "a header line has no name");
+                    return Refuse(BadRequest, "a header line has no name", method, headers);
                 }
 
                 var name = line.Substring(0, colon);
                 if (!IsToken(name))
                 {
-                    return HttpReadResult.Refused(BadRequest, "a header name is not a token");
+                    return Refuse(BadRequest, "a header name is not a token", method, headers);
                 }
 
                 var value = line.Substring(colon + 1).Trim(' ', '\t');
 
+                // A bare CR or LF is not a line ending here, so either can sit inside a value, and so
+                // can NUL and every other control. RFC 9110 section 5.5 says a recipient of CR, LF or
+                // NUL in a value refuses the message or replaces them, and calls the other controls
+                // invalid as well; a tab is the one the grammar allows. Refused, as everything else
+                // this reader will not guess about, rather than handed to whatever reads the value
+                // next. https://www.rfc-editor.org/rfc/rfc9110#section-5.5
+                if (!IsFieldValue(value))
+                {
+                    return Refuse(BadRequest, "a header value holds a control character", method, headers);
+                }
+
                 if (string.Equals(name, "Transfer-Encoding", StringComparison.OrdinalIgnoreCase))
                 {
-                    return HttpReadResult.Refused(NotImplemented, "transfer encodings are not accepted");
+                    return Refuse(NotImplemented, "transfer encodings are not accepted", method, headers);
                 }
 
                 // Every name, not only `Content-Length`. Keeping the last of a repeated field is a
@@ -153,7 +174,7 @@ namespace KeePassGate.Transport
                 // in front of this would have to make the same way to agree with it.
                 if (headers.ContainsKey(name))
                 {
-                    return HttpReadResult.Refused(BadRequest, "a header is repeated");
+                    return Refuse(BadRequest, "a header is repeated", method, headers);
                 }
 
                 headers[name] = value;
@@ -166,28 +187,39 @@ namespace KeePassGate.Transport
                 if (!long.TryParse(lengthHeader, NumberStyles.None, CultureInfo.InvariantCulture, out length) ||
                     length < 0)
                 {
-                    return HttpReadResult.Refused(BadRequest, "the content length is not a number");
+                    return Refuse(BadRequest, "the content length is not a number", method, headers);
                 }
 
                 if (length > options.MaxBodyBytes)
                 {
-                    return HttpReadResult.Refused(PayloadTooLarge, "the body is over " + options.MaxBodyBytes + " bytes");
+                    return Refuse(
+                        PayloadTooLarge, "the body is over " + options.MaxBodyBytes + " bytes", method, headers);
                 }
             }
             else if (TakesABody(method))
             {
-                return HttpReadResult.Refused(LengthRequired, "a body needs a content length");
+                return Refuse(LengthRequired, "a body needs a content length", method, headers);
             }
 
-            return HttpReadResult.Read(new HttpRequestHead(method, path, query, headers, length));
+            return HttpReadResult.Read(
+                new HttpRequestHead(method, path, query, headers, length), AnnouncedBy(headers));
         }
 
         /// <summary>
-        /// Reads exactly what the head declared. Null when the connection ends first, which is a
-        /// refusal rather than an empty body.
+        /// Reads exactly what the head declared. Null when there is no body to hand on, with
+        /// <paramref name="refusal"/> saying which of the two reasons it was.
         /// </summary>
-        public static string ReadBody(Stream stream, HttpRequestHead head)
+        /// <remarks>
+        /// Two failures, and they answered as one until a body that was not UTF-8 was reported as
+        /// a body that ended early. That sends whoever reads it to the socket and to the length,
+        /// where everything is in order: all the bytes arrived and what was wrong was what they
+        /// said. The refusal is the same 400 either way, so only the sentence separates them, which
+        /// is why the sentence has to be the right one.
+        /// </remarks>
+        public static string ReadBody(Stream stream, HttpRequestHead head, out string refusal)
         {
+            refusal = null;
+
             if (stream == null)
             {
                 throw new ArgumentNullException(nameof(stream));
@@ -221,6 +253,7 @@ namespace KeePassGate.Transport
                 }
                 catch (IOException)
                 {
+                    refusal = EndedEarly;
                     return null;
                 }
                 catch (ObjectDisposedException)
@@ -229,11 +262,13 @@ namespace KeePassGate.Transport
                     // that stopped sending. Caught here for the reason the head reader catches it:
                     // left to travel, it reaches the connection catch-all and is counted against
                     // the plugin rather than against the client that chose it.
+                    refusal = EndedEarly;
                     return null;
                 }
 
                 if (got <= 0)
                 {
+                    refusal = EndedEarly;
                     return null;
                 }
 
@@ -252,8 +287,106 @@ namespace KeePassGate.Transport
             }
             catch (DecoderFallbackException)
             {
+                refusal = NotUtf8;
                 return null;
             }
+        }
+
+        /// <summary>
+        /// Takes up to <paramref name="count"/> bytes off the stream and drops them, stopping early
+        /// if the connection stops giving.
+        /// </summary>
+        /// <remarks>
+        /// For a body that was announced and will never be served: over the cap, or behind a head
+        /// this reader refused for some other reason. The bytes are unwanted, and taking them is
+        /// still what has to happen, because a socket closed while the peer's bytes are unread is
+        /// answered by the stack with a reset, and a reset discards the answer already delivered
+        /// to the client.
+        ///
+        /// The count comes from the peer, so it bounds nothing on its own: a head announcing more
+        /// than it will ever send is stopped by the socket's read timeout, and one that keeps
+        /// sending by `GateOptions.Budget`, which closes the connection whatever it is doing. What
+        /// the count buys is the ordinary case, where a client that announced a megabyte is
+        /// finished with after a megabyte and the answer it was sent is read rather than reset.
+        ///
+        /// Nothing is kept. The body was refused, so holding it is the one thing this must not do.
+        /// </remarks>
+        public static void Discard(Stream stream, long count)
+        {
+            if (stream == null)
+            {
+                throw new ArgumentNullException(nameof(stream));
+            }
+
+            if (count <= 0)
+            {
+                return;
+            }
+
+            var chunk = new byte[(int)Math.Min(count, ChunkBytes)];
+            var read = 0L;
+
+            while (read < count)
+            {
+                int got;
+                try
+                {
+                    got = stream.Read(chunk, 0, (int)Math.Min(count - read, chunk.Length));
+                }
+                catch (IOException)
+                {
+                    return;
+                }
+                catch (ObjectDisposedException)
+                {
+                    // The connection went, which is the end of the body as much as the end of
+                    // anything else. There is nothing left to answer and nothing left to read.
+                    return;
+                }
+
+                if (got <= 0)
+                {
+                    return;
+                }
+
+                read += got;
+            }
+        }
+
+        /// <summary>A refusal that carries whatever the head has already said it was sending.</summary>
+        private static HttpReadResult Refuse(
+            int status, string reason, string method, IDictionary<string, string> headers)
+        {
+            return HttpReadResult.Refused(status, reason, method, AnnouncedBy(headers));
+        }
+
+        /// <summary>
+        /// How much body the peer is sending without waiting to be asked, read off as much of the
+        /// head as arrived.
+        /// </summary>
+        /// <remarks>
+        /// One place, so that what a refusal drains and what a served request reads are the same
+        /// question answered once. A client that sent `Expect` announces nothing here whatever its
+        /// length says, because it has sent nothing and is waiting to be told to.
+        /// </remarks>
+        private static long AnnouncedBy(IDictionary<string, string> headers)
+        {
+            string expectation;
+            if (headers.TryGetValue("Expect", out expectation) && !string.IsNullOrEmpty(expectation))
+            {
+                return 0;
+            }
+
+            string lengthHeader;
+            long length;
+            if (!headers.TryGetValue("Content-Length", out lengthHeader) ||
+                !long.TryParse(lengthHeader, NumberStyles.None, CultureInfo.InvariantCulture, out length) ||
+                length < 0)
+            {
+                return 0;
+            }
+
+            return length;
         }
 
         private static HttpReadResult ParseRequestLine(string line, out string method, out string target)
@@ -272,25 +405,31 @@ namespace KeePassGate.Transport
                 return HttpReadResult.Refused(BadRequest, "the method is not a token");
             }
 
+            // Settled as soon as it is read rather than once the whole line has been believed, so
+            // that every refusal below carries it. A response to HEAD cannot have content whatever
+            // else was wrong with the request, and a refusal that lost the method is one the
+            // writer measures a body onto.
+            method = parts[0];
+
             if (parts[1].Length == 0 || parts[1][0] != '/')
             {
                 // Only origin form. An absolute URI or an authority is somebody treating this as a
                 // proxy, which it is not.
-                return HttpReadResult.Refused(BadRequest, "the target is not an absolute path");
+                return HttpReadResult.Refused(BadRequest, "the target is not an absolute path", method);
             }
 
             if (parts[1].Length > 2048)
             {
-                return HttpReadResult.Refused(UriTooLong, "the target is over 2048 characters");
+                return HttpReadResult.Refused(UriTooLong, "the target is over 2048 characters", method);
             }
 
             if (!string.Equals(parts[2], "HTTP/1.1", StringComparison.Ordinal) &&
                 !string.Equals(parts[2], "HTTP/1.0", StringComparison.Ordinal))
             {
-                return HttpReadResult.Refused(VersionNotSupported, "only HTTP/1.1 and HTTP/1.0 are accepted");
+                return HttpReadResult.Refused(
+                    VersionNotSupported, "only HTTP/1.1 and HTTP/1.0 are accepted", method);
             }
 
-            method = parts[0];
             target = parts[1];
             return null;
         }
@@ -399,6 +538,23 @@ namespace KeePassGate.Transport
                    || string.Equals(method, "PATCH", StringComparison.Ordinal);
         }
 
+        /// <summary>Whether a header value holds no control character other than a tab.</summary>
+        /// <remarks>
+        /// The bytes above 0x7F never get this far, because the whole head is refused for one.
+        /// </remarks>
+        private static bool IsFieldValue(string text)
+        {
+            foreach (var c in text)
+            {
+                if ((c < 0x20 && c != '\t') || c == 0x7F)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
         private static bool IsToken(string text)
         {
             if (string.IsNullOrEmpty(text))
@@ -485,10 +641,47 @@ namespace KeePassGate.Transport
 
                 if (buffer.Count >= cap)
                 {
-                    head = null;
+                    // What arrived, for the method at its start and nothing else.
+                    head = buffer.ToArray();
                     return HeadOutcome.TooLong;
                 }
             }
+        }
+
+        /// <summary>
+        /// The method a head starts with, read off its bytes before anything else is decided about
+        /// them, or null when it does not start with one.
+        /// </summary>
+        /// <remarks>
+        /// For a head refused before its request line is parsed, over the cap or holding a byte
+        /// that is not ASCII, so that the refusal of a HEAD carries no content, which RFC 9110
+        /// section 9.3.2 requires whatever the answer is. Only the characters a method can be made
+        /// of, RFC 9110 section 9.1's token, up to the first space: anything else names no method.
+        /// </remarks>
+        private static string MethodIn(byte[] head)
+        {
+            if (head == null)
+            {
+                return null;
+            }
+
+            var method = new StringBuilder();
+            foreach (var b in head)
+            {
+                if (b == 0x20)
+                {
+                    return method.Length == 0 ? null : method.ToString();
+                }
+
+                if (b > 0x7E || b <= 0x20 || "\"(),/:;<=>?@[\\]{}".IndexOf((char)b) >= 0)
+                {
+                    return null;
+                }
+
+                method.Append((char)b);
+            }
+
+            return null;
         }
 
         /// <summary>

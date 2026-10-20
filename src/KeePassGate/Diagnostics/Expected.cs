@@ -6,6 +6,8 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security;
 using System.Security.Cryptography;
+using Microsoft.OpenApi.Exceptions;
+using Microsoft.OpenApi.Readers.Exceptions;
 using System.Threading;
 
 namespace KeePassGate.Diagnostics
@@ -131,6 +133,34 @@ namespace KeePassGate.Diagnostics
                    // filter narrow enough to cover the drawing calls alone.
                    || error is ExternalException
                    || error is GateFailure;
+        }
+
+        /// <summary>
+        /// Reading the OpenAPI document that is this API's routing table.
+        /// </summary>
+        /// <remarks>
+        /// Measured rather than assumed, and two of the three cost time. The reader **reports some
+        /// problems and throws others**: malformed JSON comes back as an entry in
+        /// `diagnostic.Errors`, and in that case `Paths` can be null, while a document with no
+        /// recognizable version throws instead. And the exception it throws,
+        /// `OpenApiUnsupportedSpecVersionException`, **derives straight from `Exception`** rather
+        /// than from the library's own `OpenApiException`, so there is no one base to catch and
+        /// both have to be named.
+        ///
+        /// This is only ever reached at startup, over a document that ships inside the assembly, so
+        /// what it buys is a sentence naming the document rather than a stack trace out of a
+        /// dependency.
+        /// </remarks>
+        public static bool OfDocument(Exception error)
+        {
+            // `InvalidOperationException` among them because the reader raises one from a
+            // LINQ `First()` when the document is empty, which is a document this refuses
+            // rather than a defect here.
+            return error is OpenApiException
+                   || error is OpenApiUnsupportedSpecVersionException
+                   || error is FormatException
+                   || error is ArgumentException
+                   || error is InvalidOperationException;
         }
 
         /// <summary>

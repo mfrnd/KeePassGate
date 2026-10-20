@@ -325,6 +325,25 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void Letting_the_material_go_overwrites_the_two_secrets_that_can_be_overwritten()
+        {
+            // What `CA.md` §208 means by the normal host key being let go at lock. Two of the
+            // three really are erased, and this is the pair: the gate key and the stored PKCS#12
+            // the host certificate and its key travel in. The key the TLS server signs with is
+            // neither of these and cannot be erased at all, which is why the section says
+            // dereferenced rather than zeroed and why this test does not claim otherwise.
+            Write();
+            var reading = _store.Read();
+            Assume.That(reading.Material.HostPkcs12.Any(b => b != 0), Is.True);
+            Assume.That(reading.Material.SniKey.Any(b => b != 0), Is.True);
+
+            reading.Dispose();
+
+            Assert.That(reading.Material.SniKey.Any(b => b != 0), Is.False);
+            Assert.That(reading.Material.HostPkcs12.Any(b => b != 0), Is.False);
+        }
+
+        [Test]
         public void Two_authorities_nobody_retired_are_a_choice_rather_than_either_one()
         {
             var first = Write();

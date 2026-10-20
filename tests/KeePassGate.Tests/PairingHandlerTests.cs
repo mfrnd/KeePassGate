@@ -7,6 +7,7 @@ using KeePassGate.Authority;
 using KeePassGate.Gate;
 using KeePassGate.Pairing;
 using KeePassGate.Pipeline;
+using KeePassGate.Spec;
 using KeePassGate.Tests.Fakes;
 using KeePassGate.Transport;
 using NUnit.Framework;
@@ -127,27 +128,17 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void The_pairing_routes_answer_to_POST_and_nothing_else()
-        {
-            foreach (var method in new[] { "GET", "PUT", "DELETE" })
-            {
-                var context = Send(method, PairingHandler.HelloPath, "{}", _connection, Approving());
-
-                Assert.That(context.Status, Is.EqualTo(405), "on " + method);
-            }
-        }
-
-        [Test]
         public void A_connection_that_did_not_arrive_on_an_invitation_is_told_what_every_route_tells_it()
         {
             var context = Send("POST", PairingHandler.HelloPath, "{}", null, Approving());
 
-            // 401, which is what the router answers an unadmitted caller about every path there is,
-            // rather than the 404 this used to give. A caller holding the gate key but no admission
-            // (a revoked client, say) could otherwise ask for one path under this prefix and one
-            // path outside it, get two different answers, and know the prefix was reserved.
+            // 401, which is what the router answers an unadmitted caller about every path there
+            // is, rather than the 404 this used to give. What that buys is one refusal for one
+            // caller: whether a route exists is not what it hides, because the routes are
+            // declared in a document that ships inside the plugin and `GET /pair/hello` answers
+            // `405` for that reason. What it hides is whether this caller was close to using it.
             Assert.That(context.Status, Is.EqualTo(401),
-                "an unadmitted caller must not learn that these routes exist");
+                "a caller that may not pair is refused the way it is refused everywhere");
         }
 
         [Test]
@@ -165,14 +156,6 @@ namespace KeePassGate.Tests
 
                 Assert.That(context.Status, Is.EqualTo(404));
             }
-        }
-
-        [Test]
-        public void A_path_under_pair_that_does_not_exist_is_a_404()
-        {
-            var context = Send("POST", "/pair/anything", "{}", _connection, Approving());
-
-            Assert.That(context.Status, Is.EqualTo(404));
         }
 
         [Test]
@@ -717,18 +700,18 @@ namespace KeePassGate.Tests
         [Test]
         public void The_handler_is_only_ever_given_a_context()
         {
-            Assert.Throws<ArgumentNullException>(() => Handler(Approving()).Handle(null));
+            Assert.Throws<ArgumentNullException>(() => Handler(Approving()).Hello(null));
+            Assert.Throws<ArgumentNullException>(() => Handler(Approving()).Request(null));
         }
 
         [Test]
-        public void Only_paths_under_pair_belong_to_it()
+        public void The_two_operations_are_declared_where_this_answers_them()
         {
-            Assert.That(PairingHandler.Owns("/pair/hello"), Is.True);
-            Assert.That(PairingHandler.Owns("/pair/request"), Is.True);
-            Assert.That(PairingHandler.Owns("/pair/anything"), Is.True);
-            Assert.That(PairingHandler.Owns("/gate/status"), Is.False);
-            Assert.That(PairingHandler.Owns("/pairing"), Is.False);
-            Assert.That(PairingHandler.Owns(null), Is.False);
+            // Which paths belong to pairing is the document's answer rather than this class's, and
+            // the startup assertion is what stops the two disagreeing. What is asserted here is the
+            // half that assertion cannot see: that these are the paths the exchange is written for.
+            Assert.That(GateOperations.PathOf(GateOperations.PairHello), Is.EqualTo(PairingHandler.HelloPath));
+            Assert.That(GateOperations.PathOf(GateOperations.PairRequest), Is.EqualTo(PairingHandler.RequestPath));
         }
 
         /// <summary>
@@ -859,7 +842,17 @@ namespace KeePassGate.Tests
                 pairing.PutOn(context);
             }
 
-            Handler(approval).Handle(context);
+            // What the router would have chosen, chosen here by the same rule: the path the
+            // document declares the operation at.
+            var handler = Handler(approval);
+            if (string.Equals(path, PairingHandler.RequestPath, StringComparison.Ordinal))
+            {
+                handler.Request(context);
+            }
+            else
+            {
+                handler.Hello(context);
+            }
 
             if (context.Status == 200 && path == PairingHandler.HelloPath)
             {

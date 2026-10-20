@@ -139,7 +139,7 @@ something the rest of the suite is not.
 
 ## What the client tier is for
 
-PyKeePassGate has two tiers of its own, and they draw the same line the C# ones do.
+PyKeePassGate has three tiers of its own, and the first two draw the same line the C# ones do.
 
 **Against a gate that is not KeePass.** `tests/pykeepassgate/conftest.py` builds an authority, a
 host certificate under it, and a TLS 1.3 server that answers one request per connection, which is
@@ -154,6 +154,33 @@ encoding, the name construction and all three proofs against vectors produced by
 document describes, because both halves would be code somebody wrote here. `ProtocolVectorsTests`
 holds the plugin to the same values over the same inputs, so a change to either half fails in that
 half's own tier rather than at the first real pairing.
+
+**Against the document the plugin embeds.** `tests/pykeepassgate/test_reference.py` reads the
+same `openapi.yaml` the plugin ships and holds the client to it: a route the document declares
+with no call here fails, and a call here with no route fails. It needs no server and no
+vectors, because the document is the thing both halves are being compared against. That is
+what stops "the reference client" being a claim rather than a check.
+
+**Nothing runs it against the plugin itself**, and that is a gap written down rather than a check
+passed. The end to end tier pairs through `tests/Shared/PairingClient.cs`, which is C#, and every
+tier above runs PyKeePassGate against a stand-in, a vector or the document. So three things are
+held by no test: the pairing identity, which the plugin writes with .NET Framework's PKCS#12 export
+and this client reads with `cryptography`, since the stand-in's identity is one `cryptography`
+wrote; the TLS 1.3 handshake between Bouncy Castle's server and Python's `ssl`; and the plugin's
+framing under the client's reader. A `cryptography` release that stopped reading what .NET
+Framework exports would break every pairing with every tier green. Closing it is a step in the end
+to end tier that pairs with this client, or an identity the plugin exported kept beside the vectors.
+
+**Seven of them do not run on Windows, and run on Linux in CI.** The client narrows the
+directory and the files it keeps a paired identity in, refuses a directory other accounts may
+write to, refuses a link where one of those files is about to go, and reads `XDG_CONFIG_HOME`
+where Windows reads `LOCALAPPDATA`. Four of the tests ask questions Windows answers with an access
+control list rather than with nine bits, two need a link, which takes a privilege on Windows, and
+one reads a variable Windows does not, so all seven are skipped there, and a run on the machine
+this is developed on reports `7 skipped`. The code is guarded by the same platform test, so what is
+skipped is the check rather than the behavior, and the check is not skipped everywhere:
+`build.ps1 -ListGates` gives the client's check a second runner, `ubuntu-latest`, where those seven
+run and the one test about a Windows roaming profile is skipped instead.
 
 ```shell
 uv run pytest --cov        # the client, with the coverage floor the gate enforces

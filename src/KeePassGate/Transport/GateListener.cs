@@ -650,6 +650,17 @@ namespace KeePassGate.Transport
                 }
                 catch (TlsFatalAlert alert)
                 {
+                    if (server.Failure != null)
+                    {
+                        // Part of the connection catch-all, kept here rather than left to it, for
+                        // the reason `GateTlsServer.Failure` gives: Bouncy Castle made an alert of
+                        // this side's own failure, and an alert is an `IOException`, which every
+                        // filter on this thread reads as a peer that went away. A peer's own
+                        // failure leaves nothing there, and is logged below as it always was.
+                        _incidents.Record("the handshake failed on this side", server.Failure);
+                        return;
+                    }
+
                     // A client offering something we do not is refused here, and told so in the
                     // alert.
                     _log.Info("a handshake failed: " + alert.Message);
@@ -657,6 +668,13 @@ namespace KeePassGate.Transport
                 }
                 catch (Exception error) when (Expected.OfConnection(error))
                 {
+                    if (server.Failure != null)
+                    {
+                        // The same, for one that arrived as an `IOException` rather than an alert.
+                        _incidents.Record("the handshake failed on this side", server.Failure);
+                        return;
+                    }
+
                     // Everything a handshake can fail with that is not an alert: a client that
                     // hung up, a stream that closed, bytes that were never TLS.
                     _log.Info("a handshake failed: " + error.Message);

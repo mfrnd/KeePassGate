@@ -118,6 +118,7 @@ words:
   # Tooling
   - mypy
   - pyproject
+  - pyyaml
   - sdist
   - autonumber
   - LASTEXITCODE
@@ -139,6 +140,10 @@ words:
   - Swashbuckle
   - wasmtime
   - libwasmtime
+
+  # People credited in `THIRD-PARTY-NOTICES.md`
+  - Alexandre
+  - Mutel
 
   # More of the platform, and of the wire
   - Consolas

@@ -60,6 +60,14 @@ namespace KeePassGate.Tests.Fakes
             get { return _outgoing.Length > 0; }
         }
 
+        /// <summary>
+        /// How much of the request was never read, which over a socket is what provokes a reset.
+        /// </summary>
+        public long Unread
+        {
+            get { return _incoming.Length - _incoming.Position; }
+        }
+
         public override bool CanRead
         {
             get { return true; }

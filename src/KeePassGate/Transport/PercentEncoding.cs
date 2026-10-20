@@ -57,6 +57,36 @@ namespace KeePassGate.Transport
             return segment == "." || segment == "..";
         }
 
+        /// <summary>Whether a decoded value climbs, however it is spelled.</summary>
+        /// <remarks>
+        /// Not the same question as <see cref="IsTraversal"/>, which asks whether one segment
+        /// *is* a climb. A segment that decodes to `../../` is not `..` and passes that,
+        /// because the escape was decoded after the split. That order is deliberate, so that an
+        /// attachment called `a/b` can be addressed at all. This asks the other question: whether
+        /// what the escape decoded into contains a climb. Backslash counts, because this runs on
+        /// Windows and `..%5C..%5C` climbs there exactly as `..%2F..%2F` does.
+        ///
+        /// Nothing here maps a path to a file. The tree this would climb is the group tree,
+        /// which is the one the nearest-wins rules resolve over.
+        /// </remarks>
+        public static bool Navigates(string value)
+        {
+            if (string.IsNullOrEmpty(value))
+            {
+                return false;
+            }
+
+            foreach (var part in value.Split('/', '\\'))
+            {
+                if (IsTraversal(part))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         /// <summary>
         /// Refuses a sequence that is not UTF-8 rather than repairing it, which is what every
         /// other refusal here does.

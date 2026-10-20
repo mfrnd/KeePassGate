@@ -279,6 +279,7 @@ is the one to answer first, because the fit was never in doubt.
 | Bodies over 1 MB | by `Content-Length`, before reading |
 | An `Expect` that is not `100-continue` | before the body, 417 |
 | A header block over 8 KB | during the parse |
+| What the grammar does not allow: a control character in a header value, a header folded onto the next line, a character RFC 3986 says to escape arriving bare, a query name sent twice | during the parse, 400 |
 | WebSocket upgrade | never implemented |
 | Keep-alive | responses always close |
 | Anything the OpenAPI document does not declare | terminal stage, 404 |
@@ -432,6 +433,36 @@ The OpenAPI document is the routing table, and it ships as an embedded resource.
 Each operation declares the verb it needs, and the authorization layer reads that from the document
 rather than from an attribute in code, so the specification stays the single account of what the API
 permits.
+
+**HEAD is decided, and the decision is that every GET declares one.** The two are declared
+separately and bound to one handler, which is what makes RFC 9110 section 9.3.2's "identical to
+GET, except no content" true by construction rather than by two implementations agreeing.
+Deriving it instead would have left this document an incomplete account of what the API answers,
+which is the one thing it is for; refusing it would have left an HTTP requirement unmet for no
+gain. **A pair carries one verb between them.** The plugin refuses to load a `get` with no `head`,
+or a pair whose `x-kpg-verb` differs, because a `head` governed differently would answer whether
+a node exists to a caller its own `get` would have refused, which is an oracle rather than a
+route. The answer carries no length, which section 9.3.2 permits: it asks for the same header
+fields as GET and allows omitting the ones determined while generating the content.
+
+**And a refusal to a HEAD carries none either, which is the part that was left implicit and was
+therefore wrong.** RFC 9112 section 6.3 forbids content on a response to HEAD, and a refusal is a
+response: the rule is about the method the client asked with, not about whether a handler ever ran.
+So the transport carries the method from the moment the request line yields it, and every refusal
+decided below the router answers a HEAD with headers alone, including the ones that judge the target
+or the version before the head is believed. A refusal that made it out with a body would have been a
+correct route breaking the rule its own answer keeps.
+
+**One refusal is ordered by what it must not reveal.** A caller with no certificate is told the same
+thing on a path that does not exist as on one that does, because answering 404 for the first and 401
+for the second would let anybody who reaches the port map the API by asking. The exception is a path
+whose operations need no certificate: those are declared in a document that ships inside the plugin,
+so a 405 there reveals nothing that reading the document would not.
+
+**An operation may have a precondition the document cannot state.** Pairing has one: its routes are
+open to a connection that arrived on an invitation and to nothing else, which is neither identity
+nor a body. The router asks the operation's own subsystem, before it looks at a body, so a caller
+that may not reach a route never learns whether what it sent would have been accepted.
 
 ## 8. KeePass integration §119
 
@@ -732,11 +763,10 @@ Each step is refusable, and each ends with something that runs.
    the end
    because a second implementation is what turns a specification into a contract: where the two
    disagree one of them is wrong, and a disagreement should fail a test rather than a pairing.
-11. **Spec router**: the document, `operationId` binding, schema validation, startup assertion.
-   Decide `HEAD` here: today a `HEAD` on a declared route gets 405, because the router requires the
-   declared method exactly. That is honest and fail closed rather than a defect, but HTTP says a
-   `HEAD` should be served wherever a `GET` is, so the document is the place to say which methods
-   exist.
+11. **Spec router**: the document, `operationId` binding, body checking, startup assertion. `HEAD`
+   is decided: every `GET` declares one, and both reach the same handler. **Done.** Bodies are
+   checked against the declared schema by a checker over the subset this wire carries, which is
+   what §118 settles and why no schema library is taken.
 12. **The ACL**: the model in section 7, resolving against a real database.
 13. **The editor**: the grant UI, the largest single piece and the last thing needed.
 14. **Intersection and audit**: the two answers combined, every decision recorded.
@@ -744,7 +774,7 @@ Each step is refusable, and each ends with something that runs.
     They arrive with no new machinery, which is the point of everything under them: a verb in the
     document, a node selector beside the handler, and the router does the rest.
     `API.md` is the account of them, and `openapi.yaml` is the contract.
-    TODO(step 11): `openapi.yaml` arrives with step 11, and `API.md` with these routes.
+    TODO(step 15): `API.md` arrives with these routes.
 16. **Running it**: two launchers that build, deploy and start the pinned KeePass with the plugin in
     it, one per configuration.
 17. **A profile gets a home**: the set of names a database knows, stored with the authority, with a page

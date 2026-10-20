@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Text;
 using KeePassGate.Authority;
 using KeePassGate.Pipeline;
@@ -119,6 +120,21 @@ namespace KeePassGate.Tests
             Assert.That(stream.Status, Is.EqualTo(417));
             Assert.That(stream.Response, Does.Contain("expectation"));
             Assert.That(_log.Warnings, Is.Not.Empty);
+        }
+
+        [Test]
+        public void What_was_expected_is_not_repeated_into_the_log()
+        {
+            // The one string a peer chooses that reached the plugin's log, at any length the head
+            // allows and carrying whatever it carried. What was refused is named; what it said is
+            // not.
+            var expected = "the-moon-on-a-stick-" + new string('x', 4000);
+
+            var stream = Serve("POST", "Expect: " + expected + "\r\n", "{}");
+
+            Assert.That(stream.Status, Is.EqualTo(417));
+            Assert.That(_log.Entries.Any(e => e.Message.Contains("the-moon")), Is.False);
+            Assert.That(_log.Warnings.Any(w => w.Message.Contains("100-continue")), Is.True);
         }
 
         [Test]

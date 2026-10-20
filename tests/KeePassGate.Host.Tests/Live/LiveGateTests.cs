@@ -5,6 +5,7 @@ using System.Threading;
 using KeePassGate.Authority;
 using KeePassGate.Gate;
 using KeePassGate.Pipeline;
+using KeePassGate.Spec;
 using NUnit.Framework;
 
 namespace KeePassGate.Host.Tests.Live
@@ -61,12 +62,12 @@ namespace KeePassGate.Host.Tests.Live
                 var process = keePass.Start();
                 WaitUntilServing(keePass, process);
 
-                _paired = Ask(keePass.Port, keePass.NewGateName(), admitted, GateRouter.StatusPath);
+                _paired = Ask(keePass.Port, keePass.NewGateName(), admitted, GateOperations.StatusPath);
                 _notFound = Ask(keePass.Port, keePass.NewGateName(), admitted, "/secrets");
-                _noRecord = Ask(keePass.Port, keePass.NewGateName(), never, GateRouter.StatusPath);
+                _noRecord = Ask(keePass.Port, keePass.NewGateName(), never, GateOperations.StatusPath);
                 _refusedDigest = CertificateDigest.Shorten(CertificateDigest.Of(never));
-                _unpaired = Ask(keePass.Port, keePass.NewGateName(), null, GateRouter.StatusPath);
-                _wrongName = Ask(keePass.Port, SniName.For(new byte[32]), admitted, GateRouter.StatusPath);
+                _unpaired = Ask(keePass.Port, keePass.NewGateName(), null, GateOperations.StatusPath);
+                _wrongName = Ask(keePass.Port, SniName.For(new byte[32]), admitted, GateOperations.StatusPath);
 
                 process.CloseMainWindow();
                 _exited = process.WaitForExit(30000);

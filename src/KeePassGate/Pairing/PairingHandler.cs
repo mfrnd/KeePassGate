@@ -63,10 +63,8 @@ namespace KeePassGate.Pairing
     /// record never landed is a credential nobody can see and nobody can revoke, so this refuses
     /// rather than hands one over.
     /// </remarks>
-    public sealed class PairingHandler : IGateHandler
+    public sealed class PairingHandler
     {
-        public const string Prefix = "/pair/";
-
         public const string HelloPath = "/pair/hello";
 
         public const string RequestPath = "/pair/request";
@@ -104,13 +102,63 @@ namespace KeePassGate.Pairing
             _log = log ?? NullGateLog.Instance;
         }
 
-        /// <summary>Whether this path belongs to pairing at all.</summary>
-        public static bool Owns(string path)
+        /// <summary>`pairHello`, once the router has decided this is the operation.</summary>
+        public void Hello(IGateContext context)
         {
-            return path != null && path.StartsWith(Prefix, StringComparison.Ordinal);
+            var connection = Reached(context);
+            if (connection != null)
+            {
+                Hello(context, connection);
+            }
         }
 
-        public void Handle(IGateContext context)
+        /// <summary>`pairRequest`, once the router has decided this is the operation.</summary>
+        public void Request(IGateContext context)
+        {
+            var connection = Reached(context);
+            if (connection != null)
+            {
+                Request(context, connection);
+            }
+        }
+
+        /// <summary>
+        /// Whether this connection may be here at all, which only pairing knows.
+        /// </summary>
+        /// <remarks>
+        /// The router asks this before it looks at a body, so that a caller which may not reach
+        /// these routes never learns whether what it sent would have been accepted. It is asked
+        /// again inside the operations below, because a class that is only safe when something
+        /// else remembers to check first is a class waiting to be called directly.
+        /// </remarks>
+        public static bool MayReach(IGateContext context)
+        {
+            return Reached(context) != null;
+        }
+
+        /// <summary>
+        /// The same question, answering with the connection when the answer is yes.
+        /// </summary>
+        /// <remarks>
+        /// The router decided that the path and the method are declared and that the operation
+        /// needs no certificate. What it cannot know is that a pairing route is not open to
+        /// anybody who reaches the port: the connection has to have arrived on an invitation, and a
+        /// client that already holds a certificate has no business here.
+        ///
+        /// Neither is answered anything of its own. Both get `Undeclared.Refuse`, which is what
+        /// the router says about a path nobody declared: the `404` an undeclared route gets for an
+        /// admitted client, and for anybody else the `401` every route gets before a certificate
+        /// is proved. Answering `404` to both made this one prefix the only one in the API that
+        /// replied differently.
+        ///
+        /// **That does not hide that these routes exist, and it is not meant to.** The router
+        /// answers `405` for a declared path asked for with an undeclared method, and these two
+        /// paths are declared in a document that ships inside the plugin, so `GET /pair/hello` says
+        /// as much as reading that document says. What it keeps is the rule that a caller which may
+        /// not *use* a route is refused the same way everywhere, rather than learning from the
+        /// refusal whether it was close.
+        /// </remarks>
+        private static PairingConnection Reached(IGateContext context)
         {
             if (context == null)
             {
@@ -118,55 +166,13 @@ namespace KeePassGate.Pairing
             }
 
             var connection = PairingConnection.Of(context);
-            if (connection == null || context.Client.IsPaired)
+            if (connection != null && !context.Client.IsPaired)
             {
-                // Not a pairing connection, or one that already has a certificate. Neither is told
-                // that these routes exist, and the way to say nothing is to answer exactly what the
-                // router would have answered about any other path: an admitted client gets the 404
-                // an undeclared route gets, and anybody else gets the 401 that every route gets
-                // before a certificate is proved. Answering 404 to both would have made this one
-                // prefix the only one in the API that replies differently, which is the whole of
-                // what an enumeration needs.
-                Undeclared(context);
-                return;
+                return connection;
             }
 
-            if (!string.Equals(context.Method, "POST", StringComparison.Ordinal))
-            {
-                context.Respond(405, HttpResponse.ErrorBody("method not allowed"));
-                return;
-            }
-
-            if (string.Equals(context.Path, HelloPath, StringComparison.Ordinal))
-            {
-                Hello(context, connection);
-                return;
-            }
-
-            if (string.Equals(context.Path, RequestPath, StringComparison.Ordinal))
-            {
-                Request(context, connection);
-                return;
-            }
-
-            // A pairing connection asking for a path under this prefix that does not exist. It
-            // already knows the prefix is here, so there is nothing left to give away.
-            context.Respond(404, HttpResponse.ErrorBody("no such route"));
-        }
-
-        /// <summary>
-        /// What the router says about a path nobody declared, said here so that these paths are
-        /// indistinguishable from those for every caller that may not use them.
-        /// </summary>
-        private static void Undeclared(IGateContext context)
-        {
-            if (!context.Client.IsPaired)
-            {
-                context.Respond(401, HttpResponse.ErrorBody("unpaired"));
-                return;
-            }
-
-            context.Respond(404, HttpResponse.ErrorBody("no such route"));
+            Undeclared.Refuse(context);
+            return null;
         }
 
         /// <summary>

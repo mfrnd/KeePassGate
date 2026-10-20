@@ -67,8 +67,8 @@ namespace KeePassGate.Transport
         /// So it is the same megabyte the transport allows a whole body, which means it can never
         /// be the thing that refuses a request: a string cannot be longer than the body holding it.
         /// **What actually limits a string is the `maxLength` its route declares**, which
-        /// `BodyCheck` enforces per operation. TODO(step 11): routes declare their bodies, and
-        /// `BodyCheck` checks them, from spec-first routing on.
+        /// `BodyCheck` enforces per operation, so pairing's proof is still refused over 64
+        /// characters because its own schema says so.
         /// </remarks>
         public const int MaxStringLength = 1024 * 1024;
 

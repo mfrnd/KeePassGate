@@ -12,7 +12,7 @@ namespace KeePassGate.Host.Tests.Live
     /// through the accessibility tree.
     /// </summary>
     /// <remarks>
-    /// The order of operations here is measured rather than chosen, and `FINDINGS.md` section 7
+    /// The order of operations here is measured rather than chosen, and `FINDINGS.md`, under "Loading a plugin, and testing one",
     /// records why. Reading the accessibility tree while a menu is open dismisses the menu, and
     /// choosing from a menu through the tree blocks every other automation call until the dialog it
     /// opened is closed. So keys are discovered first, the menu is then driven from synthesized

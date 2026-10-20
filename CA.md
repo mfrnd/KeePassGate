@@ -294,8 +294,16 @@ The **responder certificate** is minted at unlock and again at the lock it answe
 plugin memory. While locked it is the only identity available and it can do nothing but answer
 "locked".
 
-- **The normal host key must be actively dropped at lock**, or two certificates buy nothing: memory
-  disclosure while locked would otherwise yield the full host identity.
+- **The normal host key is let go at lock**, or two certificates buy nothing: memory disclosure
+  while locked would otherwise yield the full host identity. What letting go means is worth being
+  exact about, because the phrase promises more than the platform gives. Two of the three parts
+  really are erased: the gate key and the stored PKCS#12 the host certificate and its key travel in
+  are overwritten, and the certificate handles are released. The key the TLS server signs with is
+  neither of those. It is a BouncyCastle `AsymmetricKeyParameter` over an immutable `BigInteger`,
+  which offers nothing to overwrite, so what happens to it is that the last reference goes and the
+  collector reuses the memory when it gets to it. Read as erasure that would be a claim this design
+  cannot keep. It is the bound §220 concedes anyway: a dump taken at the wrong moment finds it, and
+  what the drop takes away is the key being reachable for as long as the database stays locked.
 - **The responder must be distinguishable by what it carries**, not by convention, so a client can
   refuse to send real requests over it. It is a `kpg://host/responder` URI in the subject
   alternative name rather than an extension of its own: the UUID arc `2.25` does not survive

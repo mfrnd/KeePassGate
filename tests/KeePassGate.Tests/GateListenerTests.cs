@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading;
 using KeePassGate.Gate;
 using KeePassGate.Pipeline;
+using KeePassGate.Spec;
 using KeePassGate.Tests.Fakes;
 using KeePassGate.Transport;
 using NUnit.Framework;
@@ -58,7 +59,7 @@ namespace KeePassGate.Tests
             _listener = new GateListener(
                 new GateOptions { Port = 0 },
                 new GateResolver(_targets, _log),
-                new GateRouter("9.9.9"),
+                GateOperations.Router("9.9.9"),
                 _log);
 
             Assert.That(_listener.Start(), Is.True, "the listener did not start");
@@ -80,7 +81,7 @@ namespace KeePassGate.Tests
         {
             using (var certificate = _first.IssueAdmittedClient())
             {
-                var reply = GateClient.Get(_listener.Port, _first.NewName(), certificate, GateRouter.StatusPath);
+                var reply = GateClient.Get(_listener.Port, _first.NewName(), certificate, GateOperations.StatusPath);
 
                 Assert.That(reply.Answered, Is.True, reply.Failure);
                 Assert.That(reply.Status, Is.EqualTo(200));
@@ -93,7 +94,7 @@ namespace KeePassGate.Tests
         {
             using (var certificate = _first.IssueAdmittedClient())
             {
-                var reply = GateClient.Get(_listener.Port, _first.NewName(), certificate, GateRouter.StatusPath);
+                var reply = GateClient.Get(_listener.Port, _first.NewName(), certificate, GateOperations.StatusPath);
 
                 Assert.That(reply.Body, Does.Contain(_first.DatabaseId.Substring(0, 16)));
             }
@@ -109,8 +110,8 @@ namespace KeePassGate.Tests
             using (var first = _first.IssueAdmittedClient())
             using (var second = _second.IssueAdmittedClient())
             {
-                var toFirst = GateClient.Get(_listener.Port, _first.NewName(), first, GateRouter.StatusPath);
-                var toSecond = GateClient.Get(_listener.Port, _second.NewName(), second, GateRouter.StatusPath);
+                var toFirst = GateClient.Get(_listener.Port, _first.NewName(), first, GateOperations.StatusPath);
+                var toSecond = GateClient.Get(_listener.Port, _second.NewName(), second, GateOperations.StatusPath);
 
                 Assert.That(toFirst.ServerCertificate.RawData, Is.EqualTo(_first.Host.CertificateDer));
                 Assert.That(toSecond.ServerCertificate.RawData, Is.EqualTo(_second.Host.CertificateDer));
@@ -122,7 +123,7 @@ namespace KeePassGate.Tests
         [Test]
         public void A_client_with_no_certificate_is_told_it_is_unpaired()
         {
-            var reply = GateClient.Get(_listener.Port, _first.NewName(), null, GateRouter.StatusPath);
+            var reply = GateClient.Get(_listener.Port, _first.NewName(), null, GateOperations.StatusPath);
 
             Assert.That(reply.Answered, Is.True, reply.Failure);
             Assert.That(reply.Status, Is.EqualTo(401));
@@ -134,7 +135,7 @@ namespace KeePassGate.Tests
         {
             using (var certificate = _foreign.IssueAdmittedClient())
             {
-                var reply = GateClient.Get(_listener.Port, _first.NewName(), certificate, GateRouter.StatusPath);
+                var reply = GateClient.Get(_listener.Port, _first.NewName(), certificate, GateOperations.StatusPath);
 
                 Assert.That(reply.Status, Is.EqualTo(401), reply.Failure);
             }
@@ -144,7 +145,7 @@ namespace KeePassGate.Tests
         public void A_client_presenting_a_host_certificate_is_told_it_is_unpaired()
         {
             var reply = GateClient.Get(
-                _listener.Port, _first.NewName(), _first.HostCertificateAsClient(), GateRouter.StatusPath);
+                _listener.Port, _first.NewName(), _first.HostCertificateAsClient(), GateOperations.StatusPath);
 
             Assert.That(reply.Status, Is.EqualTo(401), reply.Failure);
         }
@@ -157,7 +158,7 @@ namespace KeePassGate.Tests
             // revocation relies on.
             using (var certificate = _first.IssueClient("agent-unadmitted"))
             {
-                var reply = GateClient.Get(_listener.Port, _first.NewName(), certificate, GateRouter.StatusPath);
+                var reply = GateClient.Get(_listener.Port, _first.NewName(), certificate, GateOperations.StatusPath);
 
                 Assert.That(reply.Status, Is.EqualTo(401), reply.Failure);
                 Assert.That(reply.Body, Does.Contain("unpaired"));
@@ -217,12 +218,12 @@ namespace KeePassGate.Tests
         {
             using (var certificate = _first.IssueAdmittedClient())
             {
-                Assume.That(GateClient.Get(_listener.Port, _first.NewName(), certificate, GateRouter.StatusPath).Status,
+                Assume.That(GateClient.Get(_listener.Port, _first.NewName(), certificate, GateOperations.StatusPath).Status,
                     Is.EqualTo(200));
 
                 _first.Revoke(certificate);
 
-                var reply = GateClient.Get(_listener.Port, _first.NewName(), certificate, GateRouter.StatusPath);
+                var reply = GateClient.Get(_listener.Port, _first.NewName(), certificate, GateOperations.StatusPath);
 
                 Assert.That(reply.Status, Is.EqualTo(401),
                     "a revocation takes effect at once, with no cache in the way");
@@ -247,7 +248,7 @@ namespace KeePassGate.Tests
             {
                 var forged = SniName.For(new byte[32]);
 
-                var reply = GateClient.Get(_listener.Port, forged, certificate, GateRouter.StatusPath);
+                var reply = GateClient.Get(_listener.Port, forged, certificate, GateOperations.StatusPath);
 
                 Assert.That(reply.Connected, Is.True, "the connection is accepted before it is judged");
                 Assert.That(reply.Answered, Is.False,
@@ -260,7 +261,7 @@ namespace KeePassGate.Tests
         {
             using (var certificate = _first.IssueAdmittedClient())
             {
-                var reply = GateClient.Get(_listener.Port, "localhost", certificate, GateRouter.StatusPath);
+                var reply = GateClient.Get(_listener.Port, "localhost", certificate, GateOperations.StatusPath);
 
                 Assert.That(reply.Answered, Is.False);
             }
@@ -275,7 +276,7 @@ namespace KeePassGate.Tests
 
             using (var certificate = _first.IssueAdmittedClient())
             {
-                var reply = GateClient.Get(_listener.Port, _first.NewName(), certificate, GateRouter.StatusPath);
+                var reply = GateClient.Get(_listener.Port, _first.NewName(), certificate, GateOperations.StatusPath);
 
                 Assert.That(reply.Answered, Is.False);
                 Assert.That(_log.Warnings.Any(w => w.Message.Contains("cannot be told apart")), Is.True);
@@ -291,7 +292,7 @@ namespace KeePassGate.Tests
 
             using (var certificate = _first.IssueAdmittedClient())
             {
-                var afterwards = GateClient.Get(_listener.Port, _first.NewName(), certificate, GateRouter.StatusPath);
+                var afterwards = GateClient.Get(_listener.Port, _first.NewName(), certificate, GateOperations.StatusPath);
 
                 Assert.That(afterwards.Status, Is.EqualTo(200), "a bad connection must not take the listener with it");
             }
@@ -304,9 +305,92 @@ namespace KeePassGate.Tests
 
             using (var certificate = _first.IssueAdmittedClient())
             {
-                var afterwards = GateClient.Get(_listener.Port, _first.NewName(), certificate, GateRouter.StatusPath);
+                var afterwards = GateClient.Get(_listener.Port, _first.NewName(), certificate, GateOperations.StatusPath);
 
                 Assert.That(afterwards.Status, Is.EqualTo(200));
+            }
+        }
+
+        [Test]
+        public void A_handshake_this_side_fails_is_counted_rather_than_put_down_to_the_peer()
+        {
+            // Bouncy Castle catches whatever the server's own callbacks throw and raises an alert
+            // in its place, so a defect there read as a client whose handshake failed: a line at
+            // Info with the cause dropped, and nothing counted. Host material whose certificate
+            // will not parse makes the credentials callback throw, as a defect there would.
+            using (var broken = TestAuthority.New())
+            {
+                var unreadable = (HostKeyMaterial)typeof(HostKeyMaterial)
+                    .GetConstructor(
+                        BindingFlags.Instance | BindingFlags.NonPublic,
+                        null,
+                        new[] { typeof(byte[]), typeof(Org.BouncyCastle.Crypto.AsymmetricKeyParameter) },
+                        null)
+                    .Invoke(new object[] { new byte[] { 1, 2, 3 }, broken.Host.PrivateKey });
+                typeof(TestAuthority)
+                    .GetField("_hostKey", BindingFlags.Instance | BindingFlags.NonPublic)
+                    .SetValue(broken, unreadable);
+
+                var log = new QueueLog();
+                var incidents = new KeePassGate.Diagnostics.GateIncidents(log);
+                using (var listener = new GateListener(
+                    new GateOptions { Port = 0 },
+                    new GateResolver(new FakeGateTargets(broken), log),
+                    GateOperations.Router("9.9.9"),
+                    incidents,
+                    log))
+                {
+                    Assert.That(listener.Start(), Is.True);
+
+                    // A peer's own failure first, which stays what it was: a client offering only
+                    // TLS 1.2 is refused by the handshake itself, before any callback here runs.
+                    using (var tcp = new TcpClient())
+                    {
+                        tcp.Connect("127.0.0.1", listener.Port);
+                        using (var tls = new System.Net.Security.SslStream(tcp.GetStream(), false, delegate { return true; }))
+                        {
+                            Assert.Catch(() => tls.AuthenticateAsClient(
+                                broken.NewName(), null, System.Security.Authentication.SslProtocols.Tls12, false));
+                        }
+                    }
+
+                    Assert.That(Waited(() => log.Lines.Any(line => line.StartsWith("INFO a handshake failed", StringComparison.Ordinal))),
+                        Is.True, string.Join("\n", log.Lines));
+                    Assert.That(incidents.Count, Is.Zero, "a peer's failure is not this side's");
+
+                    var reply = GateClient.Get(listener.Port, broken.NewName(), null, GateOperations.StatusPath);
+
+                    Assert.That(reply.Answered, Is.False, "there is no certificate to answer with");
+                    Assert.That(Waited(() => incidents.Count == 1), Is.True, string.Join("\n", log.Lines));
+                    Assert.That(incidents.Recent.Single(), Does.Contain("the handshake failed on this side"));
+                }
+            }
+        }
+
+        /// <summary>A log a test can read while connection threads write to it.</summary>
+        private sealed class QueueLog : KeePassGate.Diagnostics.IGateLog
+        {
+            public System.Collections.Concurrent.ConcurrentQueue<string> Lines { get; } =
+                new System.Collections.Concurrent.ConcurrentQueue<string>();
+
+            public void Info(string message)
+            {
+                Lines.Enqueue("INFO " + message);
+            }
+
+            public void Warn(string message)
+            {
+                Lines.Enqueue("WARN " + message);
+            }
+
+            public void Error(string message, Exception error)
+            {
+                Lines.Enqueue("ERROR " + message);
+            }
+
+            public void Unexpected(string message, Exception error)
+            {
+                Lines.Enqueue("UNEXPECTED " + message);
             }
         }
 
@@ -323,11 +407,51 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_body_over_the_cap_is_refused_with_a_413_the_client_can_read()
+        {
+            // `DESIGN.md` §110 promises this refusal, and a client streaming a body without asking
+            // first reaches it only if the announced bytes are taken off the wire: a connection
+            // closed while they are unread is reset by the stack, and the reset discards the 413
+            // already delivered, leaving a transport failure the caller cannot tell from a stopped
+            // gate or a wrong port.
+            var options = new GateOptions { Port = 0, MaxBodyBytes = 64 };
+            var listener = new GateListener(
+                options, new GateResolver(_targets, _log), GateOperations.Router("9.9.9"), _log);
+
+            try
+            {
+                Assert.That(listener.Start(), Is.True);
+
+                using (var certificate = _first.IssueAdmittedClient())
+                {
+                    // Big enough that the client is still writing when the gate refuses it, which
+                    // is what makes the reset certain rather than a race a small body sometimes
+                    // wins.
+                    var body = new string('x', 512 * 1024);
+                    var reply = GateClient.Send(
+                        listener.Port,
+                        _first.NewName(),
+                        certificate,
+                        "POST /gate/status HTTP/1.1\r\nHost: gate\r\nContent-Length: " +
+                        body.Length + "\r\n\r\n" + body);
+
+                    Assert.That(reply.Answered, Is.True, reply.Failure);
+                    Assert.That(reply.Status, Is.EqualTo(413), reply.Raw);
+                    Assert.That(reply.Body, Does.Contain("over 64 bytes"));
+                }
+            }
+            finally
+            {
+                listener.Dispose();
+            }
+        }
+
+        [Test]
         public void Nothing_it_ever_answers_leaks_a_certificate_or_a_key()
         {
             using (var certificate = _first.IssueAdmittedClient())
             {
-                var reply = GateClient.Get(_listener.Port, _first.NewName(), certificate, GateRouter.StatusPath);
+                var reply = GateClient.Get(_listener.Port, _first.NewName(), certificate, GateOperations.StatusPath);
 
                 Assert.That(reply.Body, Does.Not.Contain("BEGIN"));
                 Assert.That(reply.Body, Does.Not.Contain("MII"));
@@ -346,7 +470,7 @@ namespace KeePassGate.Tests
             {
                 foreach (var name in names)
                 {
-                    Assert.That(GateClient.Get(_listener.Port, name, certificate, GateRouter.StatusPath).Status,
+                    Assert.That(GateClient.Get(_listener.Port, name, certificate, GateOperations.StatusPath).Status,
                         Is.EqualTo(200), "the name " + name + " was refused");
                 }
             }
@@ -382,7 +506,7 @@ namespace KeePassGate.Tests
 
             using (var certificate = _first.IssueAdmittedClient())
             {
-                var reply = GateClient.Get(port, _first.NewName(), certificate, GateRouter.StatusPath);
+                var reply = GateClient.Get(port, _first.NewName(), certificate, GateOperations.StatusPath);
 
                 Assert.That(reply.Answered, Is.False);
             }
@@ -394,7 +518,7 @@ namespace KeePassGate.Tests
             var second = new GateListener(
                 new GateOptions { Port = _listener.Port },
                 new GateResolver(_targets, _log),
-                new GateRouter("9.9.9"),
+                GateOperations.Router("9.9.9"),
                 _log);
 
             try
@@ -444,7 +568,7 @@ namespace KeePassGate.Tests
             // served holds its slot for as long as a silent peer can, which is far longer than a
             // loaded machine takes to accept the others.
             var options = new GateOptions { Port = 0, MaxConnections = 1 };
-            var listener = new GateListener(options, new GateResolver(_targets, _log), new GateRouter("9.9.9"), _log);
+            var listener = new GateListener(options, new GateResolver(_targets, _log), GateOperations.Router("9.9.9"), _log);
 
             try
             {
@@ -528,8 +652,8 @@ namespace KeePassGate.Tests
         {
             using (var certificate = _first.IssueAdmittedClient())
             {
-                GateClient.Get(_listener.Port, _first.NewName(), certificate, GateRouter.StatusPath);
-                GateClient.Get(_listener.Port, "localhost", certificate, GateRouter.StatusPath);
+                GateClient.Get(_listener.Port, _first.NewName(), certificate, GateOperations.StatusPath);
+                GateClient.Get(_listener.Port, "localhost", certificate, GateOperations.StatusPath);
                 GateClient.SendRaw(_listener.Port, new byte[] { 1, 2, 3 });
             }
 
