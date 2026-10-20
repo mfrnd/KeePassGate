@@ -1,7 +1,6 @@
 <#
 .SYNOPSIS
     Checks one file the way `build.ps1 -Task Lint` checks all of them.
-    TODO(step 2): that script arrives with step 2.
 
 .DESCRIPTION
     A Claude Code hook. Claude Code writes a JSON object on standard input describing the tool call
@@ -15,7 +14,7 @@
     gate. The one difference is scope: one file, so that it is fast enough to run after every edit.
 
     Silent when the tools are not installed. A missing `node_modules` should stop nobody from
-    editing a file, and `build.ps1` will be what refuses to let it reach a commit.
+    editing a file, and `build.ps1` is what refuses to let it reach a commit.
 #>
 
 $ErrorActionPreference = 'Stop'

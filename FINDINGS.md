@@ -118,3 +118,39 @@ The proofs were deleted once they had answered their questions. To rebuild any o
 
 `TlsProbe.cs` on `spikes/tls-and-certificates` is kept because it answers the TLS question in
 isolation and is the cheapest way to re-check it on a new machine.
+
+## 7. The gate, and where it can run
+
+**A warning is not a failure, and under `Stop` it becomes one.** A native command writing to stderr
+raises a terminating error as soon as anything upstream merges the streams, which is what capturing
+a build's output does. `npm ci` warns about any configuration key it does not recognize, and
+installing the prose tools is the first thing a fresh clone does, so the gate ended on a warning and
+named nothing while the command it ran had succeeded. Every step therefore runs under `Continue` and
+is judged by its exit code alone. `BuildStepProbe.ps1` on `spikes/build-environment` reproduces it.
+
+**A PowerShell 7 on the machine can leave this one unable to find its own cmdlets.** `pwsh` leads
+`PSModulePath` with its own module directories, a Windows PowerShell started from it inherits them,
+and `Microsoft.PowerShell.Utility` then resolves to a copy marked for a runtime this is not. It
+refuses to load and takes `Get-FileHash` with it, so the name is not a command at all rather than a
+command that errors, which is what makes it look like a broken script rather than a borrowed path.
+Same probe.
+
+**A hosted `windows-latest` runner has a real interactive desktop**, and this reverses what was
+asserted before it was measured. The claim was that no hosted runner could drive a GUI and that the
+end to end tier would need a self-hosted one. It is wrong: the runner reports `WinSta0` and
+`Default`, a window from another process is visible, the foreground can be taken, synthesized
+keystrokes and clicks arrive, and UI Automation describes another process. The whole end to end tier
+passed there, **47 tests, none skipped**, the same count as locally on the day it was read, and the
+pinned KeePass is fetched, hash checked and signature checked on the way. That count is a reading of
+the runner rather than a standing claim about the tier: the suite grows, so what it does there at any
+later commit is what that commit's run says and nothing here. The screen is 1024x768 with one
+monitor, which is enough for the one place the tier moves a real pointer. `spikes/hosted-runner-desktop` holds
+the probe and the numbers.
+
+**Containers were never the alternative.** Linux is the wrong operating system for UI Automation,
+`keybd_event` and WinForms on .NET Framework; Windows containers have no interactive desktop; and
+GitHub does not support container jobs on Windows runners at all.
+
+**Required status checks are available and not configured.** The workflow reports and does not
+block, which is a property of the repository's settings rather than of the gate. Requiring the
+gate before a merge is one setting and costs nothing.
