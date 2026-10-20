@@ -431,12 +431,14 @@ client.delete_entry(uuid)
 
 ```shell
 pykeepassgate add --title "Invented Service" --username agent-invented --password --expires auto
+pykeepassgate update <uuid> --password --expires never
 pykeepassgate remove <uuid>
 ```
 
-`--password` reads from standard input rather than taking a value, so the secret stays out of the
-process list. At a terminal it is asked for, and each character typed or pasted shows as a `*`;
-piped in, it is the one line as sent, spaces and all.
+`update` changes only what it names, and refuses to run with nothing named; `--expires never` takes
+an expiry off. `--password` reads from standard input rather than taking a value, so the secret
+stays out of the process list. At a terminal it is asked for, and each character typed or pasted
+shows as a `*`; piped in, it is the one line as sent, spaces and all.
 
 **`expires` is when the entry expires**: a moment with its time zone, `"auto"` on a create for
 whatever KeePass's options give every new entry, or `False` for none, which on an update takes an

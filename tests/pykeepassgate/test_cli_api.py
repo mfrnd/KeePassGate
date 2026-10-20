@@ -224,6 +224,71 @@ def test_remove_says_what_it_removed(
     assert gate.requests[-1] == ("DELETE", f"/entries/{UUID}")
 
 
+def _bodies(gate: FakeGate) -> list[dict[str, Any]]:
+    """Answer every request as done, keeping each body sent."""
+    sent: list[dict[str, Any]] = []
+
+    def answer(path: str, body: str, client: bytes | None) -> tuple[int, str]:
+        sent.append(json.loads(body))
+        return 200, json.dumps({"ok": True})
+
+    gate.handler = answer
+    return sent
+
+
+def test_update_writes_what_was_named_and_nothing_else(
+    gate: FakeGate, kept: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    sent = _bodies(gate)
+
+    assert cli.main(["update", UUID, "--title", "renamed", "--directory", str(kept)]) == 0
+
+    assert sent[-1] == {"Title": "renamed"}
+    assert gate.requests[-1] == ("PUT", f"/entries/{UUID}")
+    assert capsys.readouterr().out.strip() == f"updated {UUID}"
+
+
+def test_update_reads_a_new_password_rather_than_arguing_it(
+    gate: FakeGate, kept: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    sent = _bodies(gate)
+    monkeypatch.setattr("sys.stdin", _Line("  not a real password, rotated\n"))
+
+    assert cli.main(["update", UUID, "--password", "--directory", str(kept)]) == 0
+
+    assert sent[-1] == {"Password": "  not a real password, rotated"}
+
+
+def test_update_takes_an_expiry_off_with_never(gate: FakeGate, kept: Path) -> None:
+    sent = _bodies(gate)
+
+    assert cli.main(["update", UUID, "--expires", "never", "--directory", str(kept)]) == 0
+
+    assert sent[-1] == {"expires": ""}
+
+
+@pytest.mark.parametrize("given", ["auto", "2031-02-03T04:05:06", "tomorrow"])
+def test_update_refuses_an_expiry_it_cannot_send_as_an_argument(
+    given: str, gate: FakeGate, kept: Path
+) -> None:
+    with pytest.raises(SystemExit) as raised:
+        cli.main(["update", UUID, "--expires", given, "--directory", str(kept)])
+
+    assert raised.value.code == 2
+    assert gate.requests == []
+
+
+def test_update_with_nothing_to_change_is_refused_before_anything_is_dialed(
+    gate: FakeGate, kept: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # A body naming nothing writes nothing, and a command saying "updated" for it would read to a
+    # script exactly like a change that landed.
+    assert cli.main(["update", UUID, "--directory", str(kept)]) == 2
+
+    assert "needs something to change" in capsys.readouterr().err
+    assert gate.requests == []
+
+
 def test_attachments_are_listed_with_their_sizes(
     gate: FakeGate, kept: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:

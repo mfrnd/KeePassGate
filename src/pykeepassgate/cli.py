@@ -266,6 +266,33 @@ def _parser() -> argparse.ArgumentParser:
     _dialed(add)
     add.set_defaults(run=_add)
 
+    update = commands.add_parser("update", help="change an entry's standard fields")
+    update.add_argument("uuid", help="the entry's identifier")
+    update.add_argument("--title", help="what to call it")
+    update.add_argument("--username", help="the user name")
+    update.add_argument("--url", help="the address")
+    update.add_argument("--notes", help="the notes")
+    update.add_argument(
+        "--expires",
+        type=_changed_expiry,
+        help=(
+            "when it expires from now on: a moment with its time zone, such as "
+            "2031-02-03T04:05:06Z, or never to take its expiry off. Left off, it stays as it is."
+        ),
+    )
+    update.add_argument(
+        "--password",
+        action="store_true",
+        help=(
+            "read the new password from standard input, so it stays out of the process list; at "
+            "a terminal it is asked for, showing a * for each character"
+        ),
+    )
+
+    _shared(update)
+    _dialed(update)
+    update.set_defaults(run=_update)
+
     remove = commands.add_parser("remove", help="delete an entry")
     remove.add_argument("uuid", help="the entry's identifier")
     _shared(remove)
@@ -511,6 +538,24 @@ def _expiry(text: str) -> datetime | Literal["auto"]:
 
     if when.utcoffset() is None:
         raise argparse.ArgumentTypeError(f"{text!r} names no time zone; end it with Z for UTC")
+
+    return when
+
+
+def _changed_expiry(text: str) -> datetime | Literal[False]:
+    """When an entry expires from now on, or `False` for never, refused here as an argument.
+
+    `never` is the word `show` prints for an entry that does not expire. `auto` is a new entry's
+    alone, so it is refused here as the library refuses it on an update.
+    """
+    if text == "never":
+        return False
+
+    when = _expiry(text)
+    if when == "auto":
+        raise argparse.ArgumentTypeError(
+            "auto is for a new entry; an update takes a moment or never"
+        )
 
     return when
 
@@ -962,6 +1007,46 @@ def _add(arguments: argparse.Namespace) -> int:
     )
 
     print(uuid)
+    return 0
+
+
+def _update(arguments: argparse.Namespace) -> int:
+    # Refused before anything is dialed. The library writes nothing for a body naming nothing,
+    # and a command that reports success for that is one a script cannot tell from a change.
+    named = (arguments.title, arguments.username, arguments.url, arguments.notes, arguments.expires)
+    if all(value is None for value in named) and not arguments.password:
+        print(
+            "update needs something to change: --title, --username, --url, --notes, --expires "
+            "or --password",
+            file=sys.stderr,
+        )
+        # Exit 2, which a shell reads as the arguments having been wrong.
+        return 2
+
+    client = api.GateClient.open(
+        arguments.directory,
+        arguments.profile,
+        host=arguments.host,
+        key_password=_key_password(arguments),
+        **_dialing(arguments),
+    )
+
+    password = None
+    if arguments.password:
+        # Read rather than argued, as `add` reads one.
+        password = _secret("New password: ").rstrip("\n")
+
+    client.update_entry(
+        arguments.uuid,
+        title=arguments.title,
+        username=arguments.username,
+        password=password,
+        url=arguments.url,
+        notes=arguments.notes,
+        expires=arguments.expires,
+    )
+
+    print(f"updated {arguments.uuid}")
     return 0
 
 
