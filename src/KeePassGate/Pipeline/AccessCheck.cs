@@ -16,11 +16,11 @@ namespace KeePassGate.Pipeline
     ///
     /// **The intersection is structural rather than a step.** The profiles handed to the resolver
     /// are the ones the admission record carries that the database's list still names, so the
-    /// rules can only ever answer about what the operator approved at pairing and has not taken
-    /// away since: a rule granting `analyst` says nothing about a client whose record does not
-    /// name `analyst`, or while the list does not, and a record naming ten profiles opens nothing
-    /// that no rule mentions. There is no place where the two are compared and could be compared
-    /// wrongly.
+    /// rules can only ever answer about what the operator approved when the client was admitted,
+    /// at pairing or at a renewal, and has not taken away since: a rule granting `analyst` says
+    /// nothing about a client whose record does not name `analyst`, or while the list does not, and
+    /// a record naming ten profiles opens nothing that no rule mentions. There is no place where the
+    /// two are compared and could be compared wrongly.
     ///
     /// All three live in the database, which is what makes any of them enough to take access
     /// away. Deleting the record refuses the certificate on the next connection; taking a name off

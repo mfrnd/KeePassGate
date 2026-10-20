@@ -24,11 +24,53 @@ namespace KeePassGate.Host.Tests.Live
         [return: MarshalAs(UnmanagedType.Bool)]
         private static extern bool SetCursorPos(int x, int y);
 
+        /// <summary>
+        /// The pointer moved in physical pixels, whatever this process's DPI awareness, which is
+        /// what UI automation's bounding rectangles are in.
+        /// </summary>
+        /// <remarks>
+        /// `SetCursorPos` takes the logical coordinates of the calling thread's awareness, and the
+        /// test host declares none, so at any scaling but a hundred percent a press made with it at a
+        /// point read off the tree landed somewhere else.
+        /// </remarks>
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool SetPhysicalCursorPos(int x, int y);
+
         [DllImport("user32.dll")]
         private static extern void mouse_event(uint flags, int x, int y, uint data, UIntPtr extraInfo);
 
         private const uint LeftDown = 0x0002;
         private const uint LeftUp = 0x0004;
+        private const uint RightDown = 0x0008;
+        private const uint RightUp = 0x0010;
+
+        /// <summary>
+        /// The right button pressed and released in the middle of an element, which is what opens
+        /// a menu on it.
+        /// </summary>
+        public static void RightClick(AutomationElement element)
+        {
+            if (element == null)
+            {
+                throw new ArgumentNullException(nameof(element));
+            }
+
+            var box = element.Current.BoundingRectangle;
+            if (box.IsEmpty || box.Width <= 0 || box.Height <= 0)
+            {
+                throw new InvalidOperationException(
+                    "The element occupies nothing on screen, so there is nowhere to press it.");
+            }
+
+            SetPhysicalCursorPos((int)(box.Left + (box.Width / 2)), (int)(box.Top + (box.Height / 2)));
+            Thread.Sleep(150);
+
+            mouse_event(RightDown, 0, 0, 0, UIntPtr.Zero);
+            Thread.Sleep(60);
+            mouse_event(RightUp, 0, 0, 0, UIntPtr.Zero);
+            Thread.Sleep(300);
+        }
 
         /// <summary>Clicks the middle of whatever the tree says this element occupies.</summary>
         public static void Click(AutomationElement element)
@@ -70,9 +112,10 @@ namespace KeePassGate.Host.Tests.Live
             Thread.Sleep(500);
         }
 
+        /// <summary>A press at a point in physical pixels, as the accessibility tree gives them.</summary>
         public static void Click(int x, int y)
         {
-            SetCursorPos(x, y);
+            SetPhysicalCursorPos(x, y);
 
             // The pause is not politeness. A window that has just been moved to the front is still
             // settling, and a press that lands in the same message as the move is a press some

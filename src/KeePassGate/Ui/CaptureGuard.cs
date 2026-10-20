@@ -1,0 +1,49 @@
+using System;
+using System.Runtime.InteropServices;
+using System.Windows.Forms;
+
+namespace KeePassGate.Ui
+{
+    /// <summary>
+    /// KeePass's "Prevent certain screen captures", applied to this plugin's own windows.
+    /// </summary>
+    /// <remarks>
+    /// KeePass applies the option to every window it registers, as the window's handle is made,
+    /// by setting the window's display affinity to the monitor alone. This plugin's windows do not
+    /// register: the approval dialogs because a registered dialog holds off every lock, and the rest
+    /// because nothing they do needs KeePass to know about them. So the one thing registering
+    /// would have given them, this, is applied here, the way KeePass applies it, and the pairing
+    /// and renewal dialogs, the question of a day, the chooser and the window under Tools are kept
+    /// out of a capture whenever KeePass's own windows are.
+    /// </remarks>
+    internal static class CaptureGuard
+    {
+        private const uint MonitorOnly = 0x00000001;
+
+        /// <summary>
+        /// Whether KeePass is set to keep its windows out of screen captures, asked as each window
+        /// is made. The plugin sets it from KeePass's configuration as it starts, and puts it back
+        /// as it ends; a test sets it to say what it is measuring.
+        /// </summary>
+        internal static Func<bool> Wanted { get; set; } = () => false;
+
+        /// <summary>Keeps a window out of screen captures when KeePass keeps its own out.</summary>
+        internal static void Apply(Form form)
+        {
+            if (form == null || !form.IsHandleCreated)
+            {
+                return;
+            }
+
+            var wanted = Wanted;
+            if (wanted != null && wanted())
+            {
+                SetWindowDisplayAffinity(form.Handle, MonitorOnly);
+            }
+        }
+
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool SetWindowDisplayAffinity(IntPtr window, uint affinity);
+    }
+}

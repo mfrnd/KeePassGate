@@ -23,6 +23,7 @@ namespace KeePassGate.Tests.Fakes
         private readonly HostKeyMaterial _hostKey;
         private readonly byte[] _gateKey;
         private readonly List<X509Certificate2> _issued = new List<X509Certificate2>();
+        private readonly InMemoryKeyValueStore _records = new InMemoryKeyValueStore();
         private readonly AdmissionStore _admissions;
         private readonly List<string> _named = new List<string>();
 
@@ -34,7 +35,7 @@ namespace KeePassGate.Tests.Fakes
             _hostBlob = hostBlob;
             _hostKey = hostKey;
             _gateKey = gateKey;
-            _admissions = new AdmissionStore(new InMemoryKeyValueStore(), NullGateLog.Instance);
+            _admissions = new AdmissionStore(_records, NullGateLog.Instance);
 
             DatabaseName = "Invented Vault";
         }
@@ -86,6 +87,9 @@ namespace KeePassGate.Tests.Fakes
             }
         }
 
+        /// <summary>Set to say the list of profiles will not read, as a damaged value would.</summary>
+        public string ProfilesUnreadable { get; set; }
+
         /// <summary>Takes a name off the list, as the Profiles page does.</summary>
         public void Forget(string profile)
         {
@@ -125,9 +129,17 @@ namespace KeePassGate.Tests.Fakes
             get { return _authority; }
         }
 
+        /// <summary>Set to make listing the records fail, as a write racing the read does.</summary>
+        public Exception AdmissionThrows { get; set; }
+
         /// <summary>The records this database holds, as the gate reads them.</summary>
         public AdmissionRecord Admission(string admissionKey)
         {
+            if (AdmissionThrows != null)
+            {
+                throw AdmissionThrows;
+            }
+
             return _admissions.Find(admissionKey);
         }
 
@@ -182,11 +194,101 @@ namespace KeePassGate.Tests.Fakes
         /// <summary>What the last pairing wrote, so a test can look at it.</summary>
         public AdmissionRecord Admitted { get; private set; }
 
-        public AdmissionWrite Admit(AdmissionRecord record)
+        /// <summary>
+        /// Run inside the write, where the writer holds its lock, before its condition is asked: a
+        /// test stands a revocation or a change to the list there that landed just before.
+        /// </summary>
+        public Action BeforeWrite { get; set; }
+
+        /// <summary>Set to say this database has retired its authority, as recreating it does.</summary>
+        public bool Retired { get; set; }
+
+        /// <summary>
+        /// This fake's records, its list of profiles and its authority as one database's custom
+        /// data, which is what a write's condition reads.
+        /// </summary>
+        private sealed class ConditionStore : IKeyValueStore
+        {
+            private readonly TestAuthority _authority;
+
+            public ConditionStore(TestAuthority authority)
+            {
+                _authority = authority;
+            }
+
+            public IEnumerable<string> Keys
+            {
+                get { return _authority._records.Keys; }
+            }
+
+            public string Get(string key)
+            {
+                if (key == KeePassGate.Acl.ProfileNames.CustomDataKey)
+                {
+                    if (_authority.ProfilesUnreadable != null)
+                    {
+                        return "{ not a list";
+                    }
+
+                    var names = KeePassGate.Acl.ProfileNames.Read(null);
+                    foreach (var name in _authority._named)
+                    {
+                        names.Add(name);
+                    }
+
+                    return names.Write();
+                }
+
+                if (key == AuthorityKeys.AuthorityKey(_authority.DatabaseId))
+                {
+                    return "the authority";
+                }
+
+                if (key == AuthorityKeys.RetirementKey(_authority.DatabaseId))
+                {
+                    return _authority.Retired ? "retired" : null;
+                }
+
+                return _authority._records.Get(key);
+            }
+
+            public void Set(string key, string value)
+            {
+                _authority._records.Set(key, value);
+            }
+
+            public void Remove(string key)
+            {
+                _authority._records.Remove(key);
+            }
+        }
+
+        public AdmissionWrite Admit(AdmissionRecord record, Func<IKeyValueStore, string> condition)
         {
             if (AdmitThrows != null)
             {
                 throw AdmitThrows;
+            }
+
+            // Busy is what the writer answers before its condition is asked, so the condition is
+            // not asked; every other answer comes after it, as the writer's do.
+            if (AdmitAnswers != null && AdmitAnswers.IsBusy)
+            {
+                return AdmitAnswers;
+            }
+
+            if (BeforeWrite != null)
+            {
+                BeforeWrite();
+            }
+
+            if (condition != null)
+            {
+                var withdrawn = condition(new ConditionStore(this));
+                if (withdrawn != null)
+                {
+                    return AdmissionWrite.Withdrawn(withdrawn);
+                }
             }
 
             if (AdmitAnswers != null)
@@ -198,6 +300,67 @@ namespace KeePassGate.Tests.Fakes
             Name(record.Profiles);
             Admitted = record;
             return AdmissionWrite.Done();
+        }
+
+        /// <summary>Set to answer a client's revocation of itself with something other than doing it.</summary>
+        public KeePassGate.Vault.VaultWrite RevokeAnswers { get; set; }
+
+        /// <summary>Set to make reading a standing answer fail, as a database that will not read does.</summary>
+        public Exception StandingRefusalThrows { get; set; }
+
+        /// <summary>The operator's standing answers to renewals, as the gate reads them.</summary>
+        public RenewalRefusal StandingRefusal(string admissionKey)
+        {
+            if (StandingRefusalThrows != null)
+            {
+                throw StandingRefusalThrows;
+            }
+
+            return _admissions.StandingRefusal(admissionKey);
+        }
+
+        /// <summary>Set to answer a standing refusal's write with something other than doing it.</summary>
+        public KeePassGate.Vault.VaultWrite RefuseRenewalAnswers { get; set; }
+
+        /// <summary>
+        /// Run while a standing answer is on its way to the database, before it lands, which is how
+        /// a test puts a request in the gap between the dialog closing and the write.
+        /// </summary>
+        public Action WhileRefusing { get; set; }
+
+        /// <summary>A standing answer, written in this fake's own records.</summary>
+        public KeePassGate.Vault.VaultWrite RefuseRenewal(string admissionKey, RenewalRefusal refusal)
+        {
+            if (WhileRefusing != null)
+            {
+                WhileRefusing();
+            }
+
+            if (RefuseRenewalAnswers != null)
+            {
+                return RefuseRenewalAnswers;
+            }
+
+            _admissions.RefuseRenewal(admissionKey, refusal);
+            return KeePassGate.Vault.VaultWrite.Done();
+        }
+
+        /// <summary>A client's revocation of itself, made in this fake's own records.</summary>
+        public KeePassGate.Vault.VaultWrite Revoke(string admissionKey)
+        {
+            if (RevokeAnswers != null)
+            {
+                return RevokeAnswers;
+            }
+
+            if (_admissions.Find(admissionKey) == null)
+            {
+                return KeePassGate.Vault.VaultWrite.Missing();
+            }
+
+            return _admissions.Remove(admissionKey)
+                ? KeePassGate.Vault.VaultWrite.Done()
+                : KeePassGate.Vault.VaultWrite.Failed("the revocation did not land");
         }
 
         /// <summary>
@@ -235,11 +398,17 @@ namespace KeePassGate.Tests.Fakes
 
         public X509Certificate2 IssueClient(string subject, params string[] profiles)
         {
+            return IssueClient(subject, Lifetime.Unasked, profiles);
+        }
+
+        /// <summary>The same, lasting as long as the caller says.</summary>
+        public X509Certificate2 IssueClient(string subject, TimeSpan lifetime, params string[] profiles)
+        {
             // The test client is an SslStream, which will not present a certificate whose key is
             // ephemeral, so this one is loaded with a container. The plugin itself never does that
             // any more: only the client side of these tests still goes through SChannel.
             X509Certificate2 certificate;
-            using (var issued = new AuthorityIssuer().IssueClient(_authority, subject, profiles))
+            using (var issued = new AuthorityIssuer().IssueClient(_authority, subject, profiles, lifetime))
             using (KeePassGate.Testing.PrivateKeyFiles.Lock())
             {
                 certificate = CertificateBlob.Load(CertificateBlob.Save(issued), X509KeyStorageFlags.Exportable);
@@ -249,39 +418,25 @@ namespace KeePassGate.Tests.Fakes
             return certificate;
         }
 
-        /// <summary>A client certificate from this authority, lasting as long as the caller says.</summary>
+        /// <summary>
+        /// A client certificate that ended days ago, from an authority of its own made a week ago,
+        /// for the caller to dispose.
+        /// </summary>
         /// <remarks>
-        /// Signed here rather than by the issuer, which gives every client a year: the warning on
-        /// the Certificate Authority page is drawn over a certificate's own life, so a test of it
-        /// needs lives the issuer does not give. Backdated as the issuer backdates, so the life is
-        /// the one an issued certificate would have.
+        /// The one way to hold a certificate that has expired at the real moment rather than at a
+        /// moment a test passes in: nothing can be issued from before its authority began, so the
+        /// authority has to be older than the certificate. Whose authority it is does not matter
+        /// to anything that reads a record's dates.
         /// </remarks>
-        public X509Certificate2 IssueClient(string subject, TimeSpan lifetime)
+        public static X509Certificate2 IssueExpiredClient(string subject, params string[] profiles)
         {
-            var now = DateTimeOffset.UtcNow;
-            X509Certificate2 certificate;
+            var then = DateTimeOffset.UtcNow.AddDays(-7);
+            var issuer = new AuthorityIssuer(() => then);
 
-            using (var key = ECDsa.Create(ECCurve.NamedCurves.nistP256))
+            using (var authority = issuer.CreateAuthority())
             {
-                var request = new CertificateRequest(
-                    new X500DistinguishedName("CN=" + subject), key, HashAlgorithmName.SHA256);
-
-                request.CertificateExtensions.Add(new X509BasicConstraintsExtension(false, false, 0, true));
-                request.CertificateExtensions.Add(new X509KeyUsageExtension(X509KeyUsageFlags.DigitalSignature, true));
-                request.CertificateExtensions.Add(new X509EnhancedKeyUsageExtension(
-                    new OidCollection { new Oid(AuthorityIssuer.ClientAuthOid) }, false));
-                request.CertificateExtensions.Add(AuthorityIssuer.AuthorityKeyIdentifierOf(_authority));
-
-                using (var issued = request.Create(
-                    _authority, now - AuthorityIssuer.Backdate, now + lifetime, AuthorityIssuer.NewSerialNumber()))
-                using (var withKey = issued.CopyWithPrivateKey(key))
-                {
-                    certificate = CertificateBlob.Load(CertificateBlob.Save(withKey), X509KeyStorageFlags.Exportable);
-                }
+                return issuer.IssueClient(authority, subject, profiles, TimeSpan.FromDays(1));
             }
-
-            _issued.Add(certificate);
-            return certificate;
         }
 
         /// <summary>

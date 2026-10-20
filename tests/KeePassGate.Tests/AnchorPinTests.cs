@@ -310,7 +310,7 @@ namespace KeePassGate.Tests
                 return request.Create(
                     authority,
                     now - AuthorityIssuer.Backdate,
-                    now + AuthorityIssuer.ClientLifetime,
+                    now + Lifetime.Unasked,
                     AuthorityIssuer.NewSerialNumber());
             }
         }

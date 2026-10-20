@@ -296,13 +296,35 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void A_client_lasts_a_year()
+        public void A_client_nobody_chose_a_lifetime_for_lasts_a_year()
         {
             using (var client = _issuer.IssueClient(_authority, "agent-fictitious", null))
             {
                 Assert.That(client.NotAfter.ToUniversalTime(),
-                    Is.EqualTo((Now + AuthorityIssuer.ClientLifetime).UtcDateTime).Within(TimeSpan.FromSeconds(1)));
+                    Is.EqualTo((Now + Lifetime.Unasked).UtcDateTime).Within(TimeSpan.FromSeconds(1)));
             }
+        }
+
+        [Test]
+        public void A_client_lasts_the_lifetime_it_is_given()
+        {
+            using (var client = _issuer.IssueClient(_authority, "agent-fictitious", null, TimeSpan.FromDays(7)))
+            {
+                Assert.That(client.NotAfter.ToUniversalTime(),
+                    Is.EqualTo((Now + TimeSpan.FromDays(7)).UtcDateTime).Within(TimeSpan.FromSeconds(1)));
+            }
+        }
+
+        [TestCase(0.0)]
+        [TestCase(0.5)]
+        [TestCase(1.5)]
+        [TestCase(366.0)]
+        public void A_lifetime_outside_whole_days_from_one_to_a_year_is_refused(double days)
+        {
+            // The wire and the dialog both hold a lifetime to this, and the issuer is the last door
+            // a lifetime passes before it is a certificate.
+            Assert.Throws<ArgumentOutOfRangeException>(
+                () => _issuer.IssueClient(_authority, "agent-fictitious", null, TimeSpan.FromDays(days)));
         }
 
         [Test]

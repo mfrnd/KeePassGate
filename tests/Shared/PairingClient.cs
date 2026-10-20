@@ -132,6 +132,13 @@ namespace KeePassGate.Testing
         }
 
         /// <summary>
+        /// How long the next request asks its certificate to last, as the wire writes it, or null
+        /// to ask for nothing. Sent as it is and signed for as it is, so the screenshot fixture
+        /// asks for exactly the lifetime its picture shows.
+        /// </summary>
+        public string Lifetime { get; set; }
+
+        /// <summary>
         /// Phase 4, on a new connection, which is why the challenge carries the binding and the
         /// nonce of the hello rather than of this one.
         /// </summary>
@@ -150,7 +157,7 @@ namespace KeePassGate.Testing
             var reply = Send(serverName, PairingHandler.RequestPath, der =>
             {
                 var proof = WrongProof ?? PairingProof.Request(
-                    _token, _binding, _nonce, _challenge, PairingProof.Asked(name, asked));
+                    _token, _binding, _nonce, _challenge, PairingProof.Asked(name, asked, Lifetime));
 
                 var body = new StringBuilder();
                 body.Append("{\"name\":\"").Append(name).Append("\",\"profiles\":[");
@@ -164,7 +171,13 @@ namespace KeePassGate.Testing
                     body.Append('"').Append(asked[i]).Append('"');
                 }
 
-                body.Append("],\"proof\":\"").Append(Convert.ToBase64String(proof)).Append("\"}");
+                body.Append(']');
+                if (Lifetime != null)
+                {
+                    body.Append(",\"lifetime\":\"").Append(Lifetime).Append('"');
+                }
+
+                body.Append(",\"proof\":\"").Append(Convert.ToBase64String(proof)).Append("\"}");
                 return body.ToString();
             });
 

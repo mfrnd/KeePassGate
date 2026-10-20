@@ -218,6 +218,7 @@ namespace KeePassGate.Tests.Gallery
             return new AdmissionRecord(
                 CertificateDigest.Of(der),
                 "CN=" + name,
+                CertificateDigest.Of(der),
                 new DateTimeOffset(2026, 8, 15, 9, 0, 0, TimeSpan.Zero),
                 profiles,
                 der);

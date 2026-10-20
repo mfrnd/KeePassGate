@@ -72,6 +72,15 @@ namespace KeePassGate.Host.Tests.Live
         /// <summary>The second copy of the database, which the last picture merges back in.</summary>
         private const string OtherCopy = "other-copy.kdbx";
 
+        /// <summary>A client whose renewals the operator refused forever, in the standing answers picture.</summary>
+        private const string RefusedForeverName = "agent-nightly";
+
+        /// <summary>One refused until a day, whose menu that picture shows open.</summary>
+        private const string RefusedUntilName = "agent-backup";
+
+        /// <summary>The client the renewal dialog is photographed asking about.</summary>
+        private const string RenewingName = "agent-renewing";
+
         private static readonly TimeSpan DialogTimeout = TimeSpan.FromSeconds(60);
         private static readonly TimeSpan StartTimeout = TimeSpan.FromSeconds(60);
 
@@ -272,7 +281,149 @@ namespace KeePassGate.Host.Tests.Live
             Assert.That(_ruleOnTheRoot, Does.Contain(Profile),
                 "the rule the pictures are of is not in the database they were taken from");
 
+            ShowStandingAnswers();
+
+            AskToRenew();
+
             AskWhichAuthorityToKeep();
+        }
+
+        /// <summary>
+        /// The clients page with two more clients whose renewals the operator refused, one forever
+        /// and one until a day, screenshotted with the second one's menu open.
+        /// </summary>
+        /// <remarks>
+        /// **Admitted and refused in the file, at moments that do not move**, before this KeePass
+        /// starts, for the reason the seeded client is: the rows show both dates, and a client
+        /// paired or refused this minute would put this minute in the picture. Both moments come
+        /// after the seeded client's, since the authority they are issued by is no older than that
+        /// and refuses to issue a certificate that starts before it does. The day refused until is
+        /// the day before their certificates end, which is as far as the dialog lets an operator
+        /// choose, and it is named in this computer's zone as the dialog names it.
+        ///
+        /// **Two of them**, so that the picture shows a name in red as well as a menu: the row the
+        /// menu is opened on becomes the selected one, and a selected row keeps the grid's colors.
+        ///
+        /// **Opened with the right button and the pointer parked clear again**, as the Refuse menu
+        /// is for its picture, so that nothing on the menu is highlighted and no tooltip is up.
+        /// </remarks>
+        private void ShowStandingAnswers()
+        {
+            var keePass = _session.KeePass;
+
+            var forever = keePass.AdmitAsOf(
+                RefusedForeverName, new DateTimeOffset(2026, 8, 22, 8, 50, 0, TimeSpan.Zero), Profile);
+            var until = keePass.AdmitAsOf(
+                RefusedUntilName, new DateTimeOffset(2026, 8, 22, 8, 40, 0, TimeSpan.Zero), Profile, SecondProfile);
+            keePass.RefuseRenewal(forever, RenewalRefusal.Forever());
+            keePass.RefuseRenewal(
+                until,
+                RenewalRefusal.Until(new DateTimeOffset(new DateTime(2027, 8, 21, 0, 0, 0, DateTimeKind.Local))));
+
+            var log = keePass.ReadPluginLog();
+            var driver = KeePassDriver.Start(keePass);
+            WaitUntilServing(driver, Occurrences(log, ListeningLine), Occurrences(log, ServingLine));
+
+            var settings = driver.OpenDatabaseSettings();
+            driver.SelectGateTab(settings);
+            driver.SelectPage(settings, GateTab.ClientsPageText);
+            Thread.Sleep(900);
+
+            Shoot(settings, DocumentationImages.ClientsStandingAnswers, null, new ClientMenuOpen(driver, settings, RefusedUntilName));
+
+            Keyboard.SendEscape();
+            driver.CloseDialog(settings);
+            Assert.That(driver.ShutDown(), Is.True, "KeePass did not exit cleanly after the standing answers picture");
+        }
+
+        /// <summary>
+        /// An admitted client asking for a new certificate, and the dialog that raises:
+        /// screenshotted with the Refuse button's menu open, and then refused once from that menu,
+        /// which keeps nothing.
+        /// </summary>
+        /// <remarks>
+        /// **A client of its own, admitted after every picture of the clients page**, because the
+        /// seeded one is a certificate without its key and a renewal is asked with the key. Issued
+        /// now, so when it was admitted and when its certificate ends are this minute's, which
+        /// `Redacted` covers rather than anything settling them.
+        ///
+        /// **It asks for thirty days**, so the picture shows a lifetime asked for, as the pairing
+        /// one does.
+        ///
+        /// **The menu is open in the picture**, because what refusing can mean is the point of it,
+        /// and the menu opens upward over the dialog, inside the rectangle the picture is of. See
+        /// <see cref="RefuseMenuOpen"/> for when it is opened.
+        /// </remarks>
+        private void AskToRenew()
+        {
+            var keePass = _session.KeePass;
+
+            using (var renewing = keePass.IssueClientCertificate(RenewingName))
+            {
+                keePass.Admit(renewing, Profile);
+
+                var log = keePass.ReadPluginLog();
+                var driver = KeePassDriver.Start(keePass);
+                WaitUntilServing(driver, Occurrences(log, ListeningLine), Occurrences(log, ServingLine));
+
+                // The name before the thread and everything the thread throws kept, as the
+                // renewal fixture does: an exception escaping a bare thread ends the test host with
+                // KeePass left behind showing the dialog.
+                var gateName = keePass.NewGateName();
+                LiveReply reply = null;
+                Exception failed = null;
+                var asking = new Thread(() =>
+                {
+                    try
+                    {
+                        reply = LiveGateClient.Send(
+                            keePass.Port,
+                            gateName,
+                            renewing,
+                            "POST",
+                            KeePassGate.Pairing.RenewalHandler.Path,
+                            "{\"lifetime\":\"P30D\"}",
+                            LiveGateClient.OnTheOperator);
+                    }
+                    catch (Exception error)
+                    {
+                        failed = error;
+                    }
+                }) { IsBackground = true };
+                asking.Start();
+
+                var renewal = driver.WaitForWindow("asking to renew", DialogTimeout);
+                Assert.That(renewal, Is.Not.Null, "The renewal dialog never appeared. " + driver.Diagnostics);
+
+                // Ten seconds in rather than the pairing picture's five, because opening the menu
+                // inside the wait for the shutter costs a second and more of its own.
+                var second = (int)new PairingOptions().ApprovalTimeout.TotalSeconds - 10;
+                Shoot(
+                    renewal,
+                    DocumentationImages.RenewalApproval,
+                    null,
+                    new RefuseMenuOpen(
+                        driver,
+                        renewal,
+                        new Countdown(renewal, second, GateTab.RenewalCountdownName, GateTab.RenewalCountdownFormat)));
+
+                // Refused once from the menu that is still open, which is the gesture the picture
+                // invites and the one that keeps nothing.
+                var menu = driver.WaitForWindowById(GateTab.RefuseMenuName, TimeSpan.FromSeconds(5));
+                Assert.That(menu, Is.Not.Null, "the menu closed after the picture. " + driver.Diagnostics);
+
+                var once = Uia.Descendant(menu, ControlType.MenuItem, name => name == GateTab.RefuseOnceText);
+                Assert.That(once, Is.Not.Null, "the menu offers no '" + GateTab.RefuseOnceText + "': " + Uia.Inventory(menu));
+                Mouse.Click(once);
+
+                Assert.That(asking.Join(TimeSpan.FromSeconds(60)), Is.True,
+                    "the client was still waiting after the operator answered");
+                Assert.That(failed, Is.Null, "the renewal failed: " + failed);
+                Assert.That(reply.Status, Is.EqualTo(403),
+                    "the press on Refuse once is what answered it: " + (reply.Failure ?? reply.Body));
+
+                Assert.That(driver.ShutDown(), Is.True, "KeePass did not exit cleanly after the renewal picture");
+            }
         }
 
         /// <summary>
@@ -375,7 +526,9 @@ namespace KeePassGate.Host.Tests.Live
         /// </remarks>
         private void ApproveAClient(KeePassDriver driver, string token)
         {
-            var client = new PairingClient(_session.KeePass.Port, token);
+            // Asking for thirty days, so the picture shows a lifetime asked for, marked among the
+            // presets, rather than the year a client that asks for nothing is offered.
+            var client = new PairingClient(_session.KeePass.Port, token) { Lifetime = "P30D" };
             Assert.That(client.Hello().ServerProved, Is.True, "the gate did not prove itself");
 
             var asking = new Thread(
@@ -427,6 +580,97 @@ namespace KeePassGate.Host.Tests.Live
         private static AutomationElement Seal(AutomationElement dialog)
         {
             return Uia.ById(dialog, ControlType.CheckBox, GrantTab.SealCheckBoxName);
+        }
+
+        /// <summary>
+        /// The renewal dialog with its Refuse menu open, in the second the countdown holds still for.
+        /// </summary>
+        /// <remarks>
+        /// **Opened at the last moment, from inside the wait for the shutter**, rather than before
+        /// the capture begins. What the capture does first, bringing the dialog forward and parking
+        /// the pointer, is what an open menu might not survive, and the open menu is what the
+        /// picture is of. By the time this runs the backdrop is already behind the dialog.
+        ///
+        /// **Opened with the pointer, and the pointer parked clear again**, so that nothing on the
+        /// menu is highlighted and the button is not drawn hovered: what the picture shows is the
+        /// menu as it comes up under a click, with no choice made yet. The keyboard would have
+        /// highlighted the first choice, and Alt would have drawn the underlines the capture takes
+        /// away from every other picture.
+        ///
+        /// **And it is asked again afterwards**, beside the countdown, because a picture of a menu
+        /// that closed before the shutter did is a picture of something else.
+        /// </remarks>
+        private sealed class RefuseMenuOpen : ISteadyMoment
+        {
+            private readonly KeePassDriver _driver;
+            private readonly AutomationElement _dialog;
+            private readonly ISteadyMoment _countdown;
+
+            public RefuseMenuOpen(KeePassDriver driver, AutomationElement dialog, ISteadyMoment countdown)
+            {
+                _driver = driver;
+                _dialog = dialog;
+                _countdown = countdown;
+            }
+
+            public void WaitForIt()
+            {
+                Assert.That(_driver.OpenRefuseMenu(_dialog), Is.Not.Null, _driver.Diagnostics);
+
+                var window = _dialog.Current.BoundingRectangle;
+                Mouse.Park((int)window.Left, (int)window.Top, (int)window.Right, (int)window.Bottom);
+
+                _countdown.WaitForIt();
+            }
+
+            public void ConfirmItHeld()
+            {
+                _countdown.ConfirmItHeld();
+
+                Assert.That(
+                    _driver.WaitForWindowById(GateTab.RefuseMenuName, TimeSpan.Zero),
+                    Is.Not.Null,
+                    "the menu closed before the shutter did, so the picture is not of it");
+            }
+        }
+
+        /// <summary>
+        /// The clients page with one row's menu open, opened at the last moment as the Refuse menu
+        /// is and asked again after the shutter.
+        /// </summary>
+        /// <remarks>
+        /// Opened inside the wait for the shutter, for the reason <see cref="RefuseMenuOpen"/>
+        /// gives, and with the pointer parked clear afterwards, which also keeps the tooltip the
+        /// row's cells carry from coming up over the menu.
+        /// </remarks>
+        private sealed class ClientMenuOpen : ISteadyMoment
+        {
+            private readonly KeePassDriver _driver;
+            private readonly AutomationElement _dialog;
+            private readonly string _client;
+
+            public ClientMenuOpen(KeePassDriver driver, AutomationElement dialog, string client)
+            {
+                _driver = driver;
+                _dialog = dialog;
+                _client = client;
+            }
+
+            public void WaitForIt()
+            {
+                Assert.That(_driver.OpenClientMenu(_dialog, _client, false), Is.Not.Null, _driver.Diagnostics);
+
+                var window = _dialog.Current.BoundingRectangle;
+                Mouse.Park((int)window.Left, (int)window.Top, (int)window.Right, (int)window.Bottom);
+            }
+
+            public void ConfirmItHeld()
+            {
+                Assert.That(
+                    _driver.WaitForWindowById(ClientList.MenuName, TimeSpan.Zero),
+                    Is.Not.Null,
+                    "the menu closed before the shutter did, so the picture is not of it");
+            }
         }
 
         private void Shoot(

@@ -14,6 +14,7 @@ using KeePassGate.Diagnostics;
 using KeePassGate.Gate;
 using KeePassGate.Pairing;
 using KeePassGate.Pipeline;
+using KeePassGate.Spec;
 
 namespace KeePassGate.Transport
 {
@@ -76,6 +77,12 @@ namespace KeePassGate.Transport
         /// unlocked state would promote it to an authority it never proved anything to.
         /// </remarks>
         private readonly HashSet<TcpClient> _live = new HashSet<TcpClient>();
+
+        /// <summary>
+        /// The live connections whose request is a pairing or a renewal, which wait on the operator
+        /// and which a lock spares: see <see cref="CloseAllButAwaiting"/>.
+        /// </summary>
+        private readonly HashSet<TcpClient> _awaiting = new HashSet<TcpClient>();
 
         public GateListener(GateOptions options, GateResolver resolver, IGateHandler handler, IGateLog log)
             : this(options, resolver, handler, null, log)
@@ -233,13 +240,45 @@ namespace KeePassGate.Transport
         /// </remarks>
         public int CloseAll(string why)
         {
+            return Close(why, false);
+        }
+
+        /// <summary>
+        /// Closes every connection except a pairing's or a renewal's, which a lock leaves to answer.
+        /// </summary>
+        /// <remarks>
+        /// `PAIRING.md` §308. The lock has already closed the dialog such a connection waits on, or
+        /// kept one from being shown, so what is left to it is answering `503 locked`; closing it
+        /// here was what left the client with no answer at all. It reads nothing more of the
+        /// database, which writes nothing while locked, and its deadline still bounds it. An
+        /// unlock and a stop close it with the rest.
+        /// </remarks>
+        public int CloseAllButAwaiting(string why)
+        {
+            return Close(why, true);
+        }
+
+        private int Close(string why, bool spareAwaiting)
+        {
             TcpClient[] closing;
 
             lock (_stateLock)
             {
-                closing = new TcpClient[_live.Count];
-                _live.CopyTo(closing);
-                _live.Clear();
+                var chosen = new List<TcpClient>();
+                foreach (var client in _live)
+                {
+                    if (!spareAwaiting || !_awaiting.Contains(client))
+                    {
+                        chosen.Add(client);
+                    }
+                }
+
+                closing = chosen.ToArray();
+                foreach (var client in closing)
+                {
+                    _live.Remove(client);
+                    _awaiting.Remove(client);
+                }
             }
 
             foreach (var client in closing)
@@ -598,11 +637,25 @@ namespace KeePassGate.Transport
                                 // now, because `GateConversation.Locked` answers `503` without
                                 // reading a request, so the guard is the shape of the code rather
                                 // than a condition beside it.
+                                //
+                                // **A renewal waits on a person too**, and is measured the same way
+                                // for the same reason: what is left after its request is the screen,
+                                // the dialog, the grace on it and the write. It is told apart by what
+                                // it asked for, which is only known here, once the request is read.
                                 Serve(
                                     raw, peek, resolution, Peer(socket),
-                                    resolution.IsPairing
-                                        ? (Action)delegate { deadline.Extend(_options.PairingBudget); }
-                                        : deadline.Disarm);
+                                    head =>
+                                    {
+                                        if (resolution.IsPairing || Renewing(head))
+                                        {
+                                            deadline.Extend(_options.PairingBudget);
+                                            Awaiting(client);
+                                        }
+                                        else
+                                        {
+                                            deadline.Disarm();
+                                        }
+                                    });
                             }
                         }
                     }
@@ -611,6 +664,7 @@ namespace KeePassGate.Transport
                         lock (_stateLock)
                         {
                             _live.Remove(client);
+                            _awaiting.Remove(client);
                         }
                     }
                 }
@@ -679,8 +733,9 @@ namespace KeePassGate.Transport
             /// has said nothing anybody could have meant: it is owed a ClientHello and no more,
             /// and it is holding a connection slot while it says it. This is where a connection
             /// that has named a database is given the span the design writes down for a whole
-            /// conversation, and where the one exchange that waits on a person is given the
-            /// longer span written down for that. A peer that named nothing reaches neither.
+            /// conversation, and where the two exchanges that wait on a person, a pairing and a
+            /// renewal, are given the longer span written down for that. A peer that named nothing
+            /// reaches neither.
             ///
             /// The pairing budget exists because the budget is there to stop a peer holding a
             /// thread by feeding it slowly, and a pairing sitting in front of an approval dialog
@@ -713,8 +768,9 @@ namespace KeePassGate.Transport
             /// call to *start*, not the call, so no sum of this plugin's timeouts bounds it either.
             /// The answer write that follows is bounded by the socket's own `SendTimeout`.
             ///
-            /// **Not for a pairing**, which is the one connection whose remaining work is a sum
-            /// somebody wrote down: the screen, the dialog, the grace on it, and the write.
+            /// **Not for a pairing or a renewal**, the two connections whose remaining work is a sum
+            /// somebody wrote down: the screen, the dialog, the grace on it, the settling of a busy
+            /// KeePass, and the write.
             /// <see cref="GateOptions.PairingBudget"/> outlasts those together, so there the
             /// deadline still means something.
             /// </remarks>
@@ -800,12 +856,43 @@ namespace KeePassGate.Transport
             }
         }
 
+        /// <summary>
+        /// Marks a live connection as waiting on the operator, unless something has already closed
+        /// it.
+        /// </summary>
+        private void Awaiting(TcpClient client)
+        {
+            lock (_stateLock)
+            {
+                if (_live.Contains(client))
+                {
+                    _awaiting.Add(client);
+                }
+            }
+        }
+
+        /// <summary>Whether a request is a renewal, which waits on a person as a pairing does.</summary>
+        /// <remarks>
+        /// Matched the way the router matches it, segment by segment after decoding, so an escaped
+        /// spelling the router serves as a renewal is measured as one: compared as it arrived,
+        /// `/%67ate/renew` raised the dialog with its deadline disarmed.
+        /// </remarks>
+        private static bool Renewing(HttpRequestHead head)
+        {
+            IReadOnlyDictionary<string, string> captured;
+            return head != null
+                   && string.Equals(head.Method, "POST", StringComparison.Ordinal)
+                   && RenewalPath.TryMatch(head.Path, out captured);
+        }
+
+        private static readonly PathTemplate RenewalPath = PathTemplate.Parse(RenewalHandler.Path);
+
         private void Serve(
             System.IO.Stream raw,
             ClientHelloPeek peek,
             GateResolution resolution,
             string peer,
-            Action arrived)
+            Action<HttpRequestHead> arrived)
         {
             var target = resolution.Target;
             var replayed = new PrependingStream(peek.Bytes, raw);
@@ -892,7 +979,7 @@ namespace KeePassGate.Transport
 
                 GateConversation.Serve(
                     protocol.Stream, client, _handler, _options, _log,
-                    Pairing(resolution, peek, target, peer), _incidents, target.Vault, arrived);
+                    Pairing(resolution, peek, target, peer), _incidents, target, peer, arrived);
             }
             finally
             {

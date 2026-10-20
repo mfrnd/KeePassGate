@@ -98,6 +98,36 @@ def test_nothing_stored_is_this_librarys_to_name_and_nobody_elses(tmp_path: Path
     assert not isinstance(refused.value, OSError)
 
 
+def test_forgetting_an_identity_takes_its_files_and_its_directory(
+    tmp_path: Path, bundle: dict[str, Any]
+) -> None:
+    stored = credentials.save(tmp_path / "kept", 45678, bundle)
+
+    credentials.forget(stored.directory)
+
+    assert not stored.directory.exists()
+    with pytest.raises(NotPaired):
+        credentials.load(stored.directory)
+
+
+def test_forgetting_an_identity_leaves_whatever_else_shares_its_directory(
+    tmp_path: Path, bundle: dict[str, Any]
+) -> None:
+    # Four files are this client's and nothing else is, so somebody's own notes beside them, or a
+    # directory given with --directory that holds more, stay exactly where they were.
+    stored = credentials.save(tmp_path / "kept", 45678, bundle)
+    (stored.directory / "notes.txt").write_text("somebody's own", "utf-8")
+
+    credentials.forget(stored.directory)
+
+    assert sorted(path.name for path in stored.directory.iterdir()) == ["notes.txt"]
+
+
+def test_forgetting_what_is_already_gone_is_not_an_error(tmp_path: Path) -> None:
+    credentials.forget(tmp_path / "never")
+    credentials.forget(tmp_path / "never")
+
+
 @pytest.mark.skipif(sys.platform == "win32", reason="Windows decides this with an ACL instead")
 def test_the_key_is_readable_by_its_owner_and_nobody_else(
     tmp_path: Path, bundle: dict[str, Any]
@@ -419,7 +449,7 @@ def test_preparing_makes_the_directory_and_writes_nothing_into_it(tmp_path: Path
 
     with credentials.prepare(where):
         assert where.is_dir()
-        assert all((where / name).read_bytes() == b"" for name in credentials._FILES)
+        assert all((where / name).read_bytes() == b"" for name in credentials.FILES)
 
     assert list(where.iterdir()) == [], "a file opening created goes if nothing was written"
 

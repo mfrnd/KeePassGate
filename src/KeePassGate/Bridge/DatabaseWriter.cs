@@ -39,8 +39,9 @@ namespace KeePassGate.Bridge
     ///   able to change. A dialog holds its own copy of what it shows and writes that copy back when
     ///   it is accepted, so a change made underneath one is a change the operator's OK destroys.
     /// - **A save that would ask the operator something is refused instead**, which
-    ///   `DESIGN.md` §119 states as "no API request ever raises a dialog". `MainForm.SaveDatabase`
-    ///   has three questions that can be seen coming, and <see cref="Asking"/> is those three.
+    ///   `DESIGN.md` §119 states as "no API request raises a dialog of KeePass's own that could
+    ///   have been foreseen". `MainForm.SaveDatabase` has three questions that can be seen
+    ///   coming, and <see cref="Asking"/> is those three.
     /// - **Nothing is believed without asking.** KeePass's save reports nothing to its caller,
     ///   so what "it worked" is made of is `PwDatabase.Modified` having gone false. **That is the
     ///   answer after an exception as well as after a return**, because `MainForm.SaveDatabase`
@@ -59,7 +60,7 @@ namespace KeePassGate.Bridge
     ///   failed save redrew the title bar while the change was still there: what it drew was a
     ///   database with something to save.
     /// </remarks>
-    public sealed class DatabaseWriter
+    public sealed class DatabaseWriter : IWriterState
     {
         /// <summary>How long one write waits for another to finish before giving up.</summary>
         public static readonly TimeSpan LockTimeout = TimeSpan.FromSeconds(20);
@@ -76,6 +77,17 @@ namespace KeePassGate.Bridge
         private readonly Action _admitted;
 
         private readonly object _writing = new object();
+
+        /// <summary>
+        /// How many times this writer's own save has begun or ended, so odd while one is running.
+        /// </summary>
+        /// <remarks>
+        /// Changed only on the user interface thread, around <c>_save</c>, and read from any
+        /// thread. A count rather than a flag so that a question asked from a connection thread
+        /// can tell that a save began and ended between two of its reads, which a flag read twice
+        /// as false cannot: <see cref="Blocked"/> says why that matters.
+        /// </remarks>
+        private int _saves;
 
         /// <param name="redraw">
         /// What tells KeePass that its window is out of date about a database, run on the user
@@ -160,6 +172,23 @@ namespace KeePassGate.Bridge
         /// before an invitation is spent, so that a dialog left open costs an attempt rather than
         /// the invitation behind it.
         /// </summary>
+        /// <remarks>
+        /// **This writer's own save is not KeePass being busy**, and this is the one place that has
+        /// to say so. The save goes through `MainForm.SaveDatabase`, which blocks KeePass's
+        /// interaction for as long as it runs, and this is asked from connection threads, outside
+        /// the writer's lock, while another client's write may be saving. Read as KeePass's own
+        /// work, that save turned every pairing and renewal arriving during it away with `503
+        /// busy`, before the dialog at the cost of a hello and after it at the cost of the
+        /// operator's approval, for a write that would simply have waited its turn. So a block
+        /// this writer raised is waited for instead: by the write, which waits for the lock, and
+        /// by the approval prompt, which waits for the save before it puts a dialog up.
+        ///
+        /// Told apart by <see cref="_saves"/>, read either side of the question: a block seen
+        /// while a save of this writer's was running, or began or ended, is that save's. What is
+        /// left unasked then is the file, which that save is in the middle of writing, so a
+        /// comparison now could only find the two halves of it; the write asks again inside its
+        /// own marshaled call, where nothing of this writer's is running.
+        /// </remarks>
         public string Blocked(PwDatabase database)
         {
             if (database == null || !database.IsOpen)
@@ -172,8 +201,12 @@ namespace KeePassGate.Bridge
                 return "the database has no root group";
             }
 
+            var before = Volatile.Read(ref _saves);
             var interrupting = Interrupting();
-            if (interrupting != null)
+            var after = Volatile.Read(ref _saves);
+            var ours = (before & 1) == 1 || before != after;
+
+            if (interrupting != null && !ours)
             {
                 // First of the three, because it is the cheapest and because it is the one that
                 // makes the other two unsafe to trust: `Asking` reads the file, and KeePass part
@@ -198,8 +231,61 @@ namespace KeePassGate.Bridge
             // Last, because it is the only one of these that reads the file. Pairing asks this
             // before it spends an invitation for the same reason it asks about the dialogs there:
             // a save that would stop to ask somebody costs an attempt rather than the invitation
-            // behind it.
-            return Asking(database);
+            // behind it. Not while this writer's own save is writing that file, as above.
+            return ours ? null : Asking(database);
+        }
+
+        /// <summary>
+        /// Whether this writer's own save is running, which on KeePass's thread means it is what
+        /// is pumping underneath whoever asks.
+        /// </summary>
+        public bool Saving
+        {
+            get { return (Volatile.Read(ref _saves) & 1) == 1; }
+        }
+
+        /// <summary>
+        /// Why KeePass is part way through something of its own, asked on its thread, or null.
+        /// </summary>
+        /// <remarks>
+        /// The question every write asks inside its marshaled call, for the approval prompt to ask
+        /// inside its own: a dialog is a marshaled call like a write, and is delivered by whatever
+        /// is pumping just as a write is. Asked after <see cref="Saving"/>, since this writer's
+        /// own save blocks KeePass's interaction as KeePass's own does.
+        /// </remarks>
+        string IWriterState.Interrupting()
+        {
+            return Interrupting();
+        }
+
+        /// <summary>
+        /// Waits for the write in flight, if there is one, to end, and says whether it did within
+        /// the wait. Asked on a connection thread, never on KeePass's, where the write being waited
+        /// for is waiting for that very thread.
+        /// </summary>
+        public bool Quiet(TimeSpan wait)
+        {
+            if (!Monitor.TryEnter(_writing, wait < TimeSpan.Zero ? TimeSpan.Zero : wait))
+            {
+                return false;
+            }
+
+            Monitor.Exit(_writing);
+            return true;
+        }
+
+        /// <summary>Saves through KeePass, counted so that its block is known for this writer's.</summary>
+        private void Save(PwDatabase database)
+        {
+            Interlocked.Increment(ref _saves);
+            try
+            {
+                _save(database);
+            }
+            finally
+            {
+                Interlocked.Increment(ref _saves);
+            }
         }
 
         /// <summary>Why this group cannot be changed right now, or null when it can.</summary>
@@ -519,7 +605,16 @@ namespace KeePassGate.Bridge
                        "exit throws away what may be the only undamaged copy", cause);
         }
 
-        public AdmissionWrite WriteAdmission(PwDatabase database, AdmissionRecord record)
+        /// <param name="condition">
+        /// Why the record may no longer be written, or null when it may, asked on KeePass's thread
+        /// under the writer's lock, once the database is known to be writable and before anything
+        /// is touched. Whatever it answers is the last word on the approval the record is for: an
+        /// approval held while KeePass was busy, a record a renewal renews that went in the
+        /// meantime, an invitation already spent. A refusal comes back withdrawn, with nothing
+        /// changed. Null for none.
+        /// </param>
+        public AdmissionWrite WriteAdmission(
+            PwDatabase database, AdmissionRecord record, Func<IKeyValueStore, string> condition = null)
         {
             if (record == null)
             {
@@ -533,7 +628,7 @@ namespace KeePassGate.Bridge
 
             if (!Monitor.TryEnter(_writing, LockTimeout))
             {
-                return AdmissionWrite.Busy("another pairing is already writing");
+                return AdmissionWrite.Busy("another admission record is already being written");
             }
 
             try
@@ -543,7 +638,7 @@ namespace KeePassGate.Bridge
                 bool ran;
                 try
                 {
-                    ran = _ui.Run(() => outcome = OnTheUiThread(database, record), WriteTimeout);
+                    ran = _ui.Run(() => outcome = OnTheUiThread(database, record, condition), WriteTimeout);
                 }
                 catch (Exception error) when (Expected.OfUserInterface(error) || Expected.OfCustomData(error))
                 {
@@ -564,7 +659,7 @@ namespace KeePassGate.Bridge
                         return outcome;
                     }
 
-                    _log.Warn("the user interface did not run the pairing write in time");
+                    _log.Warn("the user interface did not run the admission record's write in time");
                     return AdmissionWrite.Busy("the user interface did not answer in time");
                 }
 
@@ -586,6 +681,206 @@ namespace KeePassGate.Bridge
         /// <see cref="VaultChange.Unchanged"/>, which is answered as having worked.
         /// </param>
         public VaultWrite Change(PwDatabase database, Func<VaultChange> change)
+        {
+            return Change(database, change, null);
+        }
+
+        /// <summary>
+        /// Revokes one client at its own request: a revocation beside its record and the record
+        /// emptied, saved and verified like every other change.
+        /// </summary>
+        /// <remarks>
+        /// **The Clients page's write, made here because nobody is going to press OK on it**, which
+        /// is `AdmissionStore.Remove` and the prunes that ride on it. Through
+        /// <see cref="Change(PwDatabase, Func{VaultChange})"/>, so it waits its turn, is refused
+        /// inside an operation KeePass is running and before a save that would ask, is taken back
+        /// out when the save does not reach the disk, and is left where it is, with the database
+        /// marked modified, when the file does not hold what was written.
+        ///
+        /// **And refused while Database Maintenance is open on the database**, which `Change` does
+        /// not ask on its own, because no change to the tree touches what that dialog copies. This
+        /// one does: a revocation adds a key to the database's own custom data, and that dialog
+        /// writes its copy back whenever the number of keys differs, which would put the record
+        /// back without its revocation and admit the client again.
+        ///
+        /// **What is taken back out is everything it touched**, the prunes included, because
+        /// putting back the record alone would leave an undone revocation's prunes for whatever the
+        /// operator saves next. That is three kinds of key: records, revocations, and the standing
+        /// answers to renewals the last prune takes away with the records they were about, the
+        /// revoked client's own among them.
+        ///
+        /// A revocation that lands tells the Clients page, as a record that lands does.
+        /// </remarks>
+        public VaultWrite Revoke(PwDatabase database, string admissionKey)
+        {
+            if (string.IsNullOrEmpty(admissionKey))
+            {
+                return VaultWrite.Missing();
+            }
+
+            return Change(database, () => RevokeOnTheUiThread(database, admissionKey), Admitted);
+        }
+
+        private VaultChange RevokeOnTheUiThread(PwDatabase database, string admissionKey)
+        {
+            if (_dialogs != null)
+            {
+                var open = _dialogs.BlockingRecords(database);
+                if (open != null)
+                {
+                    return VaultWrite.Busy(open);
+                }
+            }
+
+            var store = new CustomDataStore(database);
+            var admissions = new AdmissionStore(store, _log);
+            if (admissions.Find(admissionKey) == null)
+            {
+                // Gone since the connection was admitted: revoked from the Clients page in
+                // between, or by a merge. Nothing is changed, and the certificate is refused from
+                // here on, which is what was asked for.
+                return VaultWrite.Missing();
+            }
+
+            var held = Records(store);
+            if (!admissions.Remove(admissionKey))
+            {
+                Restore(store, held);
+                return VaultWrite.Failed("the revocation did not survive being written");
+            }
+
+            return new VaultChange(VaultWrite.Done(), () => Restore(store, held));
+        }
+
+        /// <summary>
+        /// Writes the operator's standing answer to a client renewing one certificate, saved and
+        /// verified like every other change.
+        /// </summary>
+        /// <remarks>
+        /// Refused while Database Maintenance is open on the database, for the reason a revocation
+        /// is: the key is in the database's own custom data, which that dialog writes back. Taken
+        /// back out, and the answer that was there before put back, when the save does not land.
+        /// Nothing is drawn from it, so nothing is told when it lands.
+        /// </remarks>
+        public VaultWrite RefuseRenewal(PwDatabase database, string admissionKey, RenewalRefusal refusal)
+        {
+            if (string.IsNullOrEmpty(admissionKey) || refusal == null)
+            {
+                return VaultWrite.Failed("there is no standing answer to write");
+            }
+
+            if (!refusal.IsWritten)
+            {
+                // A caller's mistake, refused here by name rather than thrown inside the change,
+                // where the store's argument exception read as a write that failed.
+                _log.Error("a standing answer for this session alone was handed to the database writer", null);
+                return VaultWrite.Failed("a standing answer for this session is never written to the database");
+            }
+
+            return Change(database, () => RefuseRenewalOnTheUiThread(database, admissionKey, refusal), null);
+        }
+
+        private VaultChange RefuseRenewalOnTheUiThread(PwDatabase database, string admissionKey, RenewalRefusal refusal)
+        {
+            if (_dialogs != null)
+            {
+                var open = _dialogs.BlockingRecords(database);
+                if (open != null)
+                {
+                    return VaultWrite.Busy(open);
+                }
+            }
+
+            var store = new CustomDataStore(database);
+            var key = AuthorityKeys.RenewalRefusalKey(admissionKey);
+            var before = store.Get(key);
+
+            new AdmissionStore(store, _log).RefuseRenewal(admissionKey, refusal);
+
+            return new VaultChange(VaultWrite.Done(), () =>
+            {
+                if (before == null)
+                {
+                    store.Remove(key);
+                }
+                else
+                {
+                    store.Set(key, before);
+                }
+            });
+        }
+
+        /// <summary>
+        /// Every admission record, revocation and standing answer to a renewal, with what it holds.
+        /// </summary>
+        private static Dictionary<string, string> Records(CustomDataStore store)
+        {
+            var held = new Dictionary<string, string>(StringComparer.Ordinal);
+
+            foreach (var key in store.Keys)
+            {
+                if (Revocable(key))
+                {
+                    held[key] = store.Get(key);
+                }
+            }
+
+            return held;
+        }
+
+        /// <summary>
+        /// Whether a key is one a revocation can change: a record, a revocation, or a standing
+        /// answer to renewing a certificate, which the revocation's prune takes away with its record.
+        /// </summary>
+        /// <remarks>
+        /// One test for both halves of the undo, because the snapshot and the sweep disagreeing
+        /// about a kind of key is what lost the standing answers: the prune that takes them came
+        /// after the two were written.
+        /// </remarks>
+        private static bool Revocable(string key)
+        {
+            return AuthorityKeys.IsClientRecord(key)
+                   || AuthorityKeys.IsRevocation(key)
+                   || AuthorityKeys.IsRenewalRefusal(key);
+        }
+
+        /// <summary>
+        /// Puts the records, revocations and standing answers back as <see cref="Records"/> found
+        /// them, touching only what differs.
+        /// </summary>
+        /// <remarks>
+        /// Only what differs, because `StringDictionaryEx.Set` stamps a fresh modification time on
+        /// a value even when it is the one already there, and a time is what a merge decides by.
+        /// What does differ comes back with a time of now rather than the one it had, since nothing
+        /// public sets a time; each is a key this write changed in memory and the file never saw
+        /// changed.
+        /// </remarks>
+        private static void Restore(CustomDataStore store, Dictionary<string, string> held)
+        {
+            foreach (var key in store.Keys)
+            {
+                if (Revocable(key) && !held.ContainsKey(key))
+                {
+                    store.Remove(key);
+                }
+            }
+
+            foreach (var pair in held)
+            {
+                if (!string.Equals(store.Get(pair.Key), pair.Value, StringComparison.Ordinal))
+                {
+                    store.Set(pair.Key, pair.Value);
+                }
+            }
+        }
+
+        /// <param name="landed">
+        /// Run on the user interface thread once the change stands: saved and verified, or saved
+        /// and left in place because the file could not be verified, which undoes nothing. Not on
+        /// any path that took the change back out. Null when nothing is drawn from what the change
+        /// wrote.
+        /// </param>
+        private VaultWrite Change(PwDatabase database, Func<VaultChange> change, Action landed)
         {
             if (change == null)
             {
@@ -609,7 +904,7 @@ namespace KeePassGate.Bridge
                 bool ran;
                 try
                 {
-                    ran = _ui.Run(() => outcome = ChangeOnTheUiThread(database, change), WriteTimeout);
+                    ran = _ui.Run(() => outcome = ChangeOnTheUiThread(database, change, landed), WriteTimeout);
                 }
                 catch (Exception error) when (Expected.OfUserInterface(error) || Expected.OfCustomData(error))
                 {
@@ -730,7 +1025,7 @@ namespace KeePassGate.Bridge
             return kept;
         }
 
-        private VaultWrite ChangeOnTheUiThread(PwDatabase database, Func<VaultChange> change)
+        private VaultWrite ChangeOnTheUiThread(PwDatabase database, Func<VaultChange> change, Action landed)
         {
             if (!database.IsOpen)
             {
@@ -803,11 +1098,16 @@ namespace KeePassGate.Bridge
             var wasModified = database.Modified;
             database.Modified = true;
 
+            // Standing answers the operator gave while a database could not take them, written
+            // with this change because it is the plugin's next write to that database: kept by
+            // the same save, and taken back out with the change when the save does not land.
+            var owing = Owe(database);
+
             Exception failed = null;
 
             try
             {
-                _save(database);
+                Save(database);
             }
             catch (Exception error) when (Expected.OfSaving(error))
             {
@@ -825,6 +1125,7 @@ namespace KeePassGate.Bridge
                 // say: a database it has saved has no unsaved changes left. When `_save` returned
                 // rather than threw, this is the live path, because `SaveDatabase` shows its own
                 // warning and returns.
+                TakeBackOwed(owing);
                 return PutBack(
                     database,
                     decided,
@@ -868,6 +1169,17 @@ namespace KeePassGate.Bridge
                 _log.Error("the file on disk is not what KeePass wrote to it, so a change that " +
                            "may not be stored is not being reported as stored", null);
 
+                // Left in place, so it is in force, and what is drawn from the records is told as
+                // a change that landed is: a revocation kept here refuses the client from its next
+                // request, and a page still listing that client would be listing one every request
+                // refuses. The window is not redrawn, as it is not for a change that may not be
+                // stored; the clients page is about who is refused, which this decides.
+                Owing.Settle(owing, Owed);
+                if (landed != null)
+                {
+                    landed();
+                }
+
                 return VaultWrite.Unverified(
                     "the file on disk does not hold what KeePass wrote to it");
             }
@@ -879,6 +1191,12 @@ namespace KeePassGate.Bridge
             // it to. What a put back does leave wrong is the mark saying there is something to
             // save, which `PutBack` redraws on its own.
             Redraw(database, true);
+
+            Owing.Settle(owing, Owed);
+            if (landed != null)
+            {
+                landed();
+            }
 
             return decided.Outcome;
         }
@@ -1016,7 +1334,19 @@ namespace KeePassGate.Bridge
 
             try
             {
-                var names = ProfileNames.Read(store.Get(ProfileNames.CustomDataKey));
+                var stored = store.Get(ProfileNames.CustomDataKey);
+                if (!ProfileNames.Readable(stored))
+                {
+                    // Never written over. Read, it is a list naming nothing, and a list of only the
+                    // approved names written in its place would drop every name the damaged one
+                    // held, and with it the sign that it was damaged. The pairing and the renewal
+                    // refuse before this while it will not read, so this is a list damaged since.
+                    _log.Warn("the profiles this database names will not read, so a profile the operator " +
+                              "approved was not added to them and the list was left as it is");
+                    return;
+                }
+
+                var names = ProfileNames.Read(stored);
                 var added = false;
 
                 foreach (var profile in profiles)
@@ -1056,8 +1386,132 @@ namespace KeePassGate.Bridge
         }
 
         /// <summary>
-        /// Takes away the documents of retired authorities, and the admission records that came
-        /// back beside their revocations, as part of a write this plugin is making anyway,
+        /// The standing answers owed to databases, written by every write that lands on the one
+        /// each belongs to, or null for none.
+        /// </summary>
+        /// <remarks>
+        /// Settable rather than a constructor argument because one plugin builds one of each and
+        /// tests build writers with nothing owed. `SessionRefusals` is the one there is.
+        /// </remarks>
+        public IOwedAnswers Owed { get; set; }
+
+        /// <summary>
+        /// Writes every standing answer owed to this database into it, and says what it wrote and
+        /// what was there before, so that a write that does not land takes them back out.
+        /// </summary>
+        /// <remarks>
+        /// **Only where the answer belongs**: the database serving the authority it was given
+        /// under, and while the record it is about is still there. One whose record has gone is
+        /// settled without being written, since nothing is left for it to refuse. **A failure here
+        /// fails nothing**: the write it rides on goes ahead, the answers stay owed, and the next
+        /// write tries again.
+        /// </remarks>
+        private Owing Owe(PwDatabase database)
+        {
+            var owed = Owed == null ? null : Owed.Owed();
+            if (owed == null || owed.Count == 0)
+            {
+                return null;
+            }
+
+            var owing = new Owing(new CustomDataStore(database));
+            try
+            {
+                var admissions = new AdmissionStore(owing.Store, _log);
+                foreach (var answer in owed)
+                {
+                    if (string.IsNullOrEmpty(owing.Store.Get(AuthorityKeys.AuthorityKey(answer.DatabaseId)))
+                        || owing.Store.Get(AuthorityKeys.RetirementKey(answer.DatabaseId)) != null)
+                    {
+                        continue;
+                    }
+
+                    if (admissions.Find(answer.AdmissionKey) == null)
+                    {
+                        owing.Settled.Add(answer);
+                        continue;
+                    }
+
+                    var key = AuthorityKeys.RenewalRefusalKey(answer.AdmissionKey);
+                    if (!owing.Before.ContainsKey(key))
+                    {
+                        owing.Before[key] = owing.Store.Get(key);
+                    }
+
+                    admissions.RefuseRenewal(answer.AdmissionKey, answer.Refusal);
+                    owing.Settled.Add(answer);
+                }
+            }
+            catch (Exception error) when (Expected.OfCustomData(error))
+            {
+                _log.Warn("a standing answer to a renewal owed to this database could not be written " +
+                          "with this change, and is still owed: " + error.Message);
+                TakeBackOwed(owing);
+                return null;
+            }
+
+            return owing;
+        }
+
+        /// <summary>Takes back out what <see cref="Owe"/> wrote, leaving the answers owed.</summary>
+        private static void TakeBackOwed(Owing owing)
+        {
+            if (owing == null)
+            {
+                return;
+            }
+
+            foreach (var pair in owing.Before)
+            {
+                if (pair.Value == null)
+                {
+                    owing.Store.Remove(pair.Key);
+                }
+                else
+                {
+                    owing.Store.Set(pair.Key, pair.Value);
+                }
+            }
+
+            owing.Before.Clear();
+            owing.Settled.Clear();
+        }
+
+        /// <summary>What one write wrote of the answers owed, and what it wrote over.</summary>
+        private sealed class Owing
+        {
+            public Owing(CustomDataStore store)
+            {
+                Store = store;
+                Before = new Dictionary<string, string>(StringComparer.Ordinal);
+                Settled = new List<OwedAnswer>();
+            }
+
+            public CustomDataStore Store { get; private set; }
+
+            public Dictionary<string, string> Before { get; private set; }
+
+            public List<OwedAnswer> Settled { get; private set; }
+
+            /// <summary>Says the answers it wrote are in their database, once the write has landed.</summary>
+            public static void Settle(Owing owing, IOwedAnswers owed)
+            {
+                if (owing == null || owed == null)
+                {
+                    return;
+                }
+
+                foreach (var answer in owing.Settled)
+                {
+                    owed.Kept(answer);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Takes away the documents of retired authorities, the admission records that came back
+        /// beside their revocations, the records of expired certificates and the standing answers
+        /// about certificates no record admits, as part of a write this plugin is making anyway,
         /// answering with what went.
         /// </summary>
         /// <remarks>
@@ -1065,7 +1519,7 @@ namespace KeePassGate.Bridge
         /// opening a database must not mark it modified, and a prune made while Database
         /// Maintenance is open is undone by that dialog's write-back. Nothing depends on it, since
         /// the decision reads the retirements and admission reads the revocations, so one that
-        /// fails is a warning and the pairing goes on.
+        /// fails is a warning and the write goes on.
         /// </remarks>
         private IReadOnlyList<KeyValuePair<string, string>> Prune(CustomDataStore store)
         {
@@ -1075,13 +1529,14 @@ namespace KeePassGate.Bridge
             }
             catch (Exception error) when (Expected.OfCustomData(error))
             {
-                _log.Warn("what retired authorities and revoked clients left behind could not be taken away: " +
-                          error.Message);
+                _log.Warn("what retired authorities, revoked clients and expired certificates left behind " +
+                          "could not be taken away: " + error.Message);
                 return Array.Empty<KeyValuePair<string, string>>();
             }
         }
 
-        private AdmissionWrite OnTheUiThread(PwDatabase database, AdmissionRecord record)
+        private AdmissionWrite OnTheUiThread(
+            PwDatabase database, AdmissionRecord record, Func<IKeyValueStore, string> condition)
         {
             if (!database.IsOpen)
             {
@@ -1101,6 +1556,20 @@ namespace KeePassGate.Bridge
             }
 
             var store = new CustomDataStore(database);
+
+            if (condition != null)
+            {
+                // Last of the questions and first of the changes: everything above can still say
+                // busy, which keeps an approval held, and nothing below can. So what the condition
+                // spends, an approval or an invitation, is spent only on a write that is going
+                // ahead, and what it compares cannot move before the write that relies on it.
+                var withdrawn = condition(store);
+                if (withdrawn != null)
+                {
+                    return AdmissionWrite.Withdrawn(withdrawn);
+                }
+            }
+
             var written = record.Save();
 
             // What was there before, so a write that never reaches the disk can be taken back out
@@ -1118,23 +1587,25 @@ namespace KeePassGate.Bridge
             // What the prune below takes away, so a write that does not land puts it back and
             // the database in memory goes on agreeing with the file.
             IReadOnlyList<KeyValuePair<string, string>> pruned = null;
+            Owing owing = null;
 
             try
             {
                 Name(store, record.Profiles);
                 store.Set(record.StorageKey, written);
                 pruned = Prune(store);
+                owing = Owe(database);
                 database.Modified = true;
             }
             catch (Exception error) when (Expected.OfCustomData(error))
             {
                 _log.Error("an admission record could not be put in the database", error);
-                return Undo(store, database, record, before, namesBefore, pruned, wasModified, error.Message);
+                return Undo(store, database, record, before, namesBefore, pruned, owing, wasModified, error.Message);
             }
 
             try
             {
-                _save(database);
+                Save(database);
             }
             catch (Exception error) when (Expected.OfSaving(error))
             {
@@ -1152,8 +1623,8 @@ namespace KeePassGate.Bridge
                 // exists to prevent, arriving by the other road.
                 if (database.Modified)
                 {
-                    _log.Error("the database could not be saved after pairing", error);
-                    return Undo(store, database, record, before, namesBefore, pruned, wasModified, error.Message);
+                    _log.Error("the database could not be saved after an admission record was written", error);
+                    return Undo(store, database, record, before, namesBefore, pruned, owing, wasModified, error.Message);
                 }
 
                 _log.Error("the record was saved and something after the save failed, which is " +
@@ -1164,7 +1635,7 @@ namespace KeePassGate.Bridge
             if (!string.Equals(store.Get(record.StorageKey), written, StringComparison.Ordinal))
             {
                 return Undo(
-                    store, database, record, before, namesBefore, pruned, wasModified, "the record did not survive being written");
+                    store, database, record, before, namesBefore, pruned, owing, wasModified, "the record did not survive being written");
             }
 
             if (database.Modified)
@@ -1172,7 +1643,7 @@ namespace KeePassGate.Bridge
                 // KeePass tells a caller nothing about whether a save worked. This is what it does
                 // say: a database it has saved has no unsaved changes left.
                 return Undo(
-                    store, database, record, before, namesBefore, pruned, wasModified,
+                    store, database, record, before, namesBefore, pruned, owing, wasModified,
                     "the database still has unsaved changes, so nothing is on disk");
             }
 
@@ -1192,19 +1663,25 @@ namespace KeePassGate.Bridge
                 database.Modified = true;
 
                 return Undo(
-                    store, database, record, before, namesBefore, pruned, wasModified,
+                    store, database, record, before, namesBefore, pruned, owing, wasModified,
                     "the file on disk does not hold what KeePass wrote to it");
             }
 
+            Owing.Settle(owing, Owed);
             Admitted();
             return AdmissionWrite.Done();
         }
 
-        /// <summary>Says a record landed, to whatever is drawn from the records.</summary>
+        /// <summary>
+        /// Says a record landed, or a client's revocation of itself did, to whatever is drawn from
+        /// the records.
+        /// </summary>
         /// <remarks>
         /// Here and nowhere earlier: every path above this either put its change back or is still
         /// deciding, and a page told about a record that was taken out again would list a client
-        /// the next request refuses.
+        /// the next request refuses. A revocation reaches it from the end of a change, on the two
+        /// paths that leave the change in force: saved and verified, and saved without the file
+        /// being verified, which takes nothing back out.
         ///
         /// **A page that fails to redraw never fails the write.** By the time this runs the record is
         /// on the disk and the client is about to be handed its certificate, so a page that failed
@@ -1258,11 +1735,14 @@ namespace KeePassGate.Bridge
             string before,
             string namesBefore,
             IReadOnlyList<KeyValuePair<string, string>> pruned,
+            Owing owing,
             bool wasModified,
             string reason)
         {
             try
             {
+                TakeBackOwed(owing);
+
                 if (before == null)
                 {
                     store.Remove(record.StorageKey);
@@ -1272,9 +1752,13 @@ namespace KeePassGate.Bridge
                     store.Set(record.StorageKey, before);
                 }
 
-                // What the prune took away: retired documents and records that came back beside
-                // their revocations. They serve and admit nothing either way, and put back they
-                // leave memory agreeing with the file this write never reached.
+                // What the prune took away: retired documents, records that came back beside
+                // their revocations, records of expired certificates and the standing answers
+                // about certificates no record admits. They serve, admit and refuse nothing either
+                // way, and put back they leave memory agreeing with the file this write never
+                // reached. Each comes back with a modification time of now rather than the one it
+                // had, which nothing public can set; harmless, since each is about something no
+                // record admits, and the next landed write prunes it again.
                 if (pruned != null)
                 {
                     foreach (var pair in pruned)

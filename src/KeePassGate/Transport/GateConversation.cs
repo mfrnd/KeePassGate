@@ -119,14 +119,21 @@ namespace KeePassGate.Transport
         /// The same, for a connection that reached a database the API can read and change.
         /// </summary>
         /// <remarks>
-        /// The vault travels in the context's items beside the pairing connection, for the same
+        /// The database travels in the context's items beside the pairing connection, for the same
         /// reason: the transport knows which database a name resolved to and the handlers need it,
-        /// and neither has to learn anything about the other.
+        /// and neither has to learn anything about the other. Its vault is what the API's routes
+        /// read and change, and the target itself is what holds its admission records, which is
+        /// what a route about a client's own admission writes.
         /// </remarks>
+        /// <param name="peer">
+        /// The address the connection came from, for the two routes that show it to a person, or
+        /// null where nobody knows.
+        /// </param>
         /// <param name="arrived">
-        /// Told that the whole request is off the wire, which is the instant the peer stops having
-        /// anything to do with how long the rest takes. The listener hangs its connection deadline
-        /// on it: see `GateListener.Deadline.Disarm`. Null where nothing is counting, which is
+        /// Told that the whole request is off the wire, and what it asked for, which is the instant
+        /// the peer stops having anything to do with how long the rest takes. The listener hangs its
+        /// connection deadline on it, and the request is what says whether the rest waits on a
+        /// person: see `GateListener.Deadline.Disarm`. Null where nothing is counting, which is
         /// every test of this over a pair of memory streams.
         /// </param>
         public static void Serve(
@@ -137,8 +144,9 @@ namespace KeePassGate.Transport
             IGateLog log,
             PairingConnection pairing,
             GateIncidents incidents,
-            Vault.IVault vault,
-            Action arrived = null)
+            Gate.IGateTarget target,
+            string peer = null,
+            Action<HttpRequestHead> arrived = null)
         {
             if (stream == null)
             {
@@ -206,7 +214,7 @@ namespace KeePassGate.Transport
                 // able to make this connection take any longer. Everything below is this plugin's
                 // own work and the write of the answer, and neither is something to close a socket
                 // over: the one bound that matters to the answer is the socket's `SendTimeout`.
-                arrived();
+                arrived(head);
             }
 
             var context = new GateContext(head, body, client);
@@ -215,10 +223,12 @@ namespace KeePassGate.Transport
                 pairing.PutOn(context);
             }
 
-            if (vault != null)
+            if (target != null)
             {
-                new ServedDatabase(vault).PutOn(context);
+                new ServedDatabase(target.Vault, target).PutOn(context);
             }
+
+            ConnectionPeer.PutOn(context, peer);
 
             try
             {

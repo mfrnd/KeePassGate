@@ -280,6 +280,29 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_client_that_revokes_itself_is_refused_on_its_next_connection()
+        {
+            // Through the whole transport, which is what carries the database's records to the
+            // handler: the route writes in the target the connection resolved to and nowhere else.
+            using (var certificate = _first.IssueAdmittedClient())
+            {
+                var name = _first.NewName();
+                var revoked = GateClient.Send(
+                    _listener.Port,
+                    name,
+                    certificate,
+                    "DELETE " + GateOperations.PathOf(GateOperations.RevokeCertificate) +
+                    " HTTP/1.1\r\nHost: " + name + "\r\n\r\n");
+
+                Assert.That(revoked.Status, Is.EqualTo(200), revoked.ToString());
+
+                var reply = GateClient.Get(_listener.Port, _first.NewName(), certificate, GateOperations.StatusPath);
+
+                Assert.That(reply.Status, Is.EqualTo(401), "refused as a certificate the operator revoked is");
+            }
+        }
+
+        [Test]
         public void A_route_that_does_not_exist_is_a_404()
         {
             using (var certificate = _first.IssueAdmittedClient())
@@ -764,7 +787,7 @@ namespace KeePassGate.Tests
         public void A_peer_that_dribbles_its_body_is_cut_off_at_the_budget()
         {
             // The budget ends with the request, which is the whole of it including the body: it is
-            // dropped, or extended for a pairing, only once the body has been read.
+            // dropped, or extended for a pairing or a renewal, only once the body has been read.
             // Dropped as the head arrived, it would let a peer that had proved nothing announce a
             // body and feed it a byte inside each read window, holding a thread for as long as the
             // body cap allows. The head goes at once here and the body a byte every quarter of a

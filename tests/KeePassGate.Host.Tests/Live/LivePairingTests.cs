@@ -300,7 +300,7 @@ namespace KeePassGate.Host.Tests.Live
         /// fixture presses the invite button on needs the database quite as much as the wire does:
         /// there is no invitation to hand out until there is an authority to hand one out for.
         /// </remarks>
-        private static void WaitUntilServing(ThrowawayKeePass keePass, KeePassDriver driver)
+        internal static void WaitUntilServing(ThrowawayKeePass keePass, KeePassDriver driver)
         {
             WaitForLog(keePass, driver, "listening on 127.0.0.1:" + keePass.Port,
                 "The plugin never reported a listening gate.");

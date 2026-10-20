@@ -557,6 +557,138 @@ namespace KeePassGate.Host.Tests.Live
         }
 
         /// <summary>
+        /// Opens the renewal dialog's Refuse menu as an operator with a mouse does, by a press on
+        /// the button's arrow, and answers with the menu once it is on screen, or null when none
+        /// comes.
+        /// </summary>
+        /// <remarks>
+        /// With the pointer rather than through the accessibility tree, because the arrow is not a
+        /// control of its own: it is part of the button, and what a press on it does is a decision
+        /// the button makes about where the press landed.
+        ///
+        /// **The dialog is brought to the front first**, by every caller alike. A press on a window
+        /// that is not active activates it on the way in, and a menu that opens during that change
+        /// of focus is closed by it as the focus arrives: the documentation's run pressed the arrow
+        /// of a dialog standing in front of its backdrop but not active, and no menu was there to
+        /// photograph.
+        /// </remarks>
+        public AutomationElement OpenRefuseMenu(AutomationElement dialog)
+        {
+            var refuse = Uia.ById(dialog, ControlType.Button, GateTab.RefuseButtonName);
+            if (refuse == null)
+            {
+                _diagnostics.AppendLine("no Refuse button. What the dialog shows: " + Uia.Inventory(dialog));
+                return null;
+            }
+
+            Keyboard.Front(dialog);
+            var button = refuse.Current.BoundingRectangle;
+            Mouse.Click((int)button.Right - ArrowInset, (int)(button.Top + (button.Height / 2)));
+
+            var menu = WaitForWindowById(GateTab.RefuseMenuName, TimeSpan.FromSeconds(10));
+            if (menu == null)
+            {
+                _diagnostics.AppendLine("a press on the arrow of Refuse opened no menu");
+                _diagnostics.AppendLine("pressed at " + ((int)button.Right - ArrowInset) + "," +
+                                        (int)(button.Top + (button.Height / 2)) + " on a button at " + button);
+                foreach (var window in NativeWindows.VisibleUntitledToo(_process))
+                {
+                    try
+                    {
+                        var element = AutomationElement.FromHandle(window.Handle);
+                        _diagnostics.AppendLine("  window '" + Uia.Identifier(element) + "' " +
+                                                element.Current.ClassName + " " +
+                                                element.Current.ControlType.ProgrammaticName + " '" +
+                                                element.Current.Name + "' at " + element.Current.BoundingRectangle);
+                    }
+                    catch (ElementNotAvailableException)
+                    {
+                    }
+                }
+            }
+
+            return menu;
+        }
+
+        /// <summary>
+        /// Opens the menu of the first row on the clients page naming this client, and answers
+        /// with the menu once it is on screen, or null when none comes.
+        /// </summary>
+        /// <remarks>
+        /// **By the keyboard, the row is pressed first and Shift and F10 then asks for the menu**,
+        /// because the keys go to whatever has the focus, and a page just brought forward leaves it
+        /// on the tab strip. **By the pointer, the right button on the row's name**, which selects
+        /// the row as it opens the menu. Either way the dialog comes to the front first, for the
+        /// reason <see cref="OpenRefuseMenu"/> gives.
+        /// </remarks>
+        public AutomationElement OpenClientMenu(AutomationElement dialog, string client, bool fromTheKeyboard)
+        {
+            var cell = ClientCell(dialog, client);
+            if (cell == null)
+            {
+                _diagnostics.AppendLine("no row names " + client + ". What the dialog shows: " + Uia.Inventory(dialog));
+                return null;
+            }
+
+            Keyboard.Front(dialog);
+            if (fromTheKeyboard)
+            {
+                Mouse.Click(cell);
+                Keyboard.SendShiftF10();
+            }
+            else
+            {
+                Mouse.RightClick(cell);
+            }
+
+            var menu = WaitForWindowById(ClientList.MenuName, TimeSpan.FromSeconds(10));
+            if (menu == null)
+            {
+                _diagnostics.AppendLine((fromTheKeyboard ? "Shift and F10" : "the right button") +
+                                        " on the row of " + client + " opened no menu");
+            }
+
+            return menu;
+        }
+
+        /// <summary>
+        /// The first cell on the clients page whose value is this text, which is the first row of
+        /// a client listed by that name, or null when there is none.
+        /// </summary>
+        public static AutomationElement ClientCell(AutomationElement dialog, string text)
+        {
+            var grid = Uia.ById(dialog, ClientList.ListName);
+            if (grid == null)
+            {
+                return null;
+            }
+
+            foreach (AutomationElement element in grid.FindAll(TreeScope.Descendants, Condition.TrueCondition))
+            {
+                object pattern;
+                if (element.TryGetCurrentPattern(ValuePattern.Pattern, out pattern)
+                    && string.Equals(((ValuePattern)pattern).Current.Value, text, StringComparison.Ordinal))
+                {
+                    return element;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// How far in from the Refuse button's right edge a press lands to reach its arrow.
+        /// </summary>
+        /// <remarks>
+        /// Inside the arrow's part, which is as wide as a line of the dialog's text is tall and
+        /// more at any scaling, and clear of the frame the theme draws around the button. In
+        /// physical pixels, which is what the button's bounding rectangle is in and what
+        /// `Mouse.Click` presses at; a press made in the host's logical pixels landed elsewhere at
+        /// any scaling but a hundred percent.
+        /// </remarks>
+        private const int ArrowInset = 6;
+
+        /// <summary>
         /// Escape rather than OK. KeePass writes back a snapshot of custom data on the group
         /// dialog's OK, and while the settings dialog carries no such snapshot, a test that closes
         /// dialogs with Cancel can never be the reason something was lost.
@@ -632,7 +764,7 @@ namespace KeePassGate.Host.Tests.Live
 
         private static AutomationElement WindowById(Process process, string automationId)
         {
-            foreach (var window in NativeWindows.Visible(process))
+            foreach (var window in NativeWindows.VisibleUntitledToo(process))
             {
                 AutomationElement element;
                 try

@@ -187,6 +187,50 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_client_that_renewed_is_one_client_in_what_recreating_costs()
+        {
+            // Two records with one client key until it gives the older certificate up, and it was
+            // two clients that would have to pair again.
+            var prompt = new FakePrompt(false);
+            using (var panel = NewPanel(prompt))
+            using (var issuer = TestAuthority.New())
+            using (var older = issuer.IssueClient("agent-renewing", "ops"))
+            using (var renewed = issuer.IssueClient("agent-renewing", "ops"))
+            {
+                panel.CreateAuthority();
+                var store = new AdmissionStore(_database.PluginCustomData, null);
+                var paired = AdmissionRecord.For(older, DateTimeOffset.UtcNow.AddDays(-1), new[] { "ops" });
+                store.Write(paired);
+                store.Write(AdmissionRecord.For(renewed, DateTimeOffset.UtcNow, new[] { "ops" }, paired.ClientKey));
+
+                panel.RecreateAuthority();
+
+                Assert.That(prompt.LastQuestion, Does.Contain("One client is admitted"));
+            }
+        }
+
+        [Test]
+        public void Two_programs_under_one_name_are_two_clients_in_what_recreating_costs()
+        {
+            // Each would have to pair again, whatever name they chose.
+            var prompt = new FakePrompt(false);
+            using (var panel = NewPanel(prompt))
+            using (var issuer = TestAuthority.New())
+            using (var first = issuer.IssueClient("agent", "ops"))
+            using (var second = issuer.IssueClient("agent", "ops"))
+            {
+                panel.CreateAuthority();
+                var store = new AdmissionStore(_database.PluginCustomData, null);
+                store.Write(AdmissionRecord.For(first, DateTimeOffset.UtcNow.AddDays(-1), new[] { "ops" }));
+                store.Write(AdmissionRecord.For(second, DateTimeOffset.UtcNow, new[] { "ops" }));
+
+                panel.RecreateAuthority();
+
+                Assert.That(prompt.LastQuestion, Does.Contain("2 clients are admitted"));
+            }
+        }
+
+        [Test]
         public void Deleting_asks_first_and_then_empties_the_database()
         {
             var prompt = new FakePrompt(true);

@@ -56,7 +56,7 @@ flowchart LR
     subgraph kdbx["The .kdbx file"]
         ca["Authority<br/>certificate and key"]
         host["Host certificate"]
-        records["Admission records<br/>one per admitted client"]
+        records["Admission records<br/>one per client certificate"]
         rules["Rules<br/>on groups and entries"]
     end
 
@@ -123,8 +123,10 @@ inactivity** counts from the last thing KeePass did on its own screen, and a sav
 program is one. **Lock workspace after global user inactivity** counts from the last time Windows
 saw the keyboard or the mouse, which KeePass asks Windows for every second, and nothing that comes
 through the gate moves it. A lock that falls due while a change is being saved is applied once the
-save is over, and one that falls due while KeePass has a question on the screen waits for the
-answer, as below. Reading moves neither timeout.
+save is over, and one that falls due while KeePass has a question of its own on the screen waits for
+the answer, as below. The plugin's pairing and renewal dialogs are not such a question: a lock goes
+through under one and closes it as unanswered, and the program is told the database is locked.
+Reading moves neither timeout.
 [`getting-started.md`](getting-started.md#locking-while-a-program-writes) says which to set.
 
 ## The states of a database

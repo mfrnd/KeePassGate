@@ -1,6 +1,7 @@
 # Pairing
 
-How a stranger becomes a client. [`CA.md`](CA.md) covers the authority this flow issues from,
+How a stranger becomes a client, and, in §312, how a client already admitted is given a new
+certificate. [`CA.md`](CA.md) covers the authority this flow issues from,
 [`DESIGN.md`](DESIGN.md) covers the transport it runs over, and
 [`docs/pairing.md`](docs/pairing.md) is the same flow described to the person answering the dialog,
 with the screens.
@@ -105,11 +106,11 @@ sequenceDiagram
     CL->>CL: verify, or abort: possible interception
 
     Note over OP,CL: Phase 4. Approval, on the KeePass screen
-    CL->>KPG: POST /pair/request + wanted profiles
+    CL->>KPG: POST /pair/request + wanted profiles, and a lifetime if it wants one
     KPG->>KPG: 503 if a dialog is open that would take the record back
     Note right of KPG: before the dialog, so the invitation is<br/>not spent and a new hello can still work
-    KPG->>OP: dialog: database, fingerprint, name, invitation id, profiles, peer
-    OP-->>KPG: approve, confirming the profiles
+    KPG->>OP: dialog: database, fingerprint, name, invitation id, profiles, peer, lifetime
+    OP-->>KPG: approve, confirming the profiles and picking the lifetime
 
     Note over KPG,CL: Phase 5. Issuance. Single writer, on the UI thread, under one lock
     KPG->>KPG: generate the key pair, issue from that database's authority
@@ -120,21 +121,21 @@ sequenceDiagram
     CL->>CL: store, then discard the token
 ```
 
-**A pairing connection is measured against a budget of its own.** Every other connection has a
-fixed span from accept to the end of its request, which is what stops a peer holding a thread by
-feeding it a byte at a time, and no deadline at all after that: what is left there is a write and a
-save that no number bounds, so a deadline could only ever close the socket while a write that is
-still going to land is landing.
+**A pairing connection is measured against a budget of its own, and so is a renewal's, §312.** Every
+other connection has a fixed span from accept to the end of its request, which is what stops a peer
+holding a thread by feeding it a byte at a time, and no deadline at all after that: what is left
+there is a write and a save that no number bounds, so a deadline could only ever close the socket
+while a write that is still going to land is landing.
 
 Phase 4 blows through it on purpose, and by more than one wait. The operator is given two minutes to
 read the dialog; a second pairing waits that long again just to get in front of them, since only one
 is put to the operator at a time; the prompt waits a little longer than the dialog does; and the
 write and save that follow have timeouts of their own. So the moment the request is off the wire,
 the connection's deadline is set again to `GateOptions.PairingBudget`, which outlasts all of them
-together: where every other connection's deadline is dropped at that point, a pairing's is raised.
-**That is the whole of the difference**: a pairing's remaining work is a list of waits somebody
-wrote down, so a number for it means something, where an ordinary write's remaining work is a save
-of unknown length.
+together: where every other connection's deadline is dropped at that point, a pairing's, and a
+renewal's, is raised. **That is the whole of the difference**: their remaining work is a list of
+waits somebody wrote down, so a number for it means something, where an ordinary write's remaining
+work is a save of unknown length.
 
 **Not when the name resolves**, which is earlier and asks for less. The reason for the longer
 budget is that the connection is about to wait on a person, and a connection that has named an
@@ -145,7 +146,10 @@ against, reachable all along against a database that was open.
 Closing the socket underneath phase 4 does not stop the pairing, which is what makes this worth
 saying. Everything after the dialog still happens: the certificate is issued, the invitation is
 burned, and the record is written and saved. All that is lost is the answer, leaving a record on
-disk for a certificate the client never received and cannot ask for again.
+disk for a certificate the client never received and cannot ask for again. That is the peer hanging
+up, or its deadline running out. A lock is the other thing that closes connections, and it spares
+this one: it closes the dialog as unanswered instead, nothing is issued or spent, and the client is
+told `503 locked`, §308.
 
 **One pairing is put to the operator at a time.** Two connections can reach phase 4 together, and
 each asks the user interface thread to show a dialog. The second would open inside the first one's
@@ -156,6 +160,25 @@ screen. Nothing is spent by that, so the invitee can simply ask again. The refer
 so by itself when it is given a budget for waiting, starting again from the hello rather than
 repeating the approval request alone.
 
+**Nor is a dialog put up inside a save.** Showing it is a call marshaled to KeePass's thread, and
+KeePass's save pumps that thread while it runs, so a dialog posted during one opened inside it and
+held the save, the writer and KeePass's interaction block for as long as the operator took, which
+also kept a workstation lock from locking KeePass. So the dialog is shown only once nothing is
+saving. **A save this plugin is making for another client is waited for**: the request waits for it
+within the same wait it has for the screen, and answers `503 busy` only if that wait runs out first.
+**KeePass's own work is not**: its own saves, an import, XML Replace, a message box of its own, its
+progress window, Database Maintenance and the dialogs that would take the record back are answered
+`503 busy` at once, before the dialog and again just before it would be shown.
+
+**The dialog does not take the focus, and no key approves it.** A client chooses when it comes up,
+and the operator may be typing into KeePass at that moment, so a dialog that took the focus would
+take the next keystroke too: a Tab, a word and an Enter meant for an entry were measured approving.
+It comes up on top without being activated, and KeePass's taskbar entry flashes until the operator
+clicks it. Once it has the focus, Enter and Escape refuse wherever the focus is, unless an open list
+takes them first, and Approve has no mnemonic, is never the default button and comes after Refuse
+in the tab order, so a click on it, or Space while it has the focus, is the only way to approve. The
+renewal dialog, §312, is built the same way.
+
 **The dialog says what approving a profile brings back.** Pairing writes the approved names onto
 the database's list of profiles in the same write as the record, and that list decides which names
 are in force (`DESIGN.md` §139). A name the database does not name now and no client holds is
@@ -164,7 +187,24 @@ applies at once: a name removed once, whose every holder has since been revoked 
 looks the same from a connection, which does not walk the tree to count rules. A name the operator
 removed that other clients still hold is marked
 "(removed)", and the dialog names those clients: approving puts the name back, every one of them
-regains it, and every rule still naming it applies again.
+regains it through whichever certificate still holds it, and every rule still naming it applies
+again. A client that renewed while the name was off the list regains it only through its older
+certificate, until it gives that up, since the one it renewed to was recorded without the name.
+Each client is named once, by its client key, `CA.md` §223, however many of its certificates hold
+the name, and two clients that paired under one name are named apart, each with the start of its
+client key as the clients page shows it.
+
+**The client proposes how long its certificate lasts, and the operator picks.** A request may ask
+for anything from a day to a year, and the dialog offers 1, 7, 30, 90 and 365 days under the
+profiles, with the one asked for chosen already and marked "(asked)". One that is none of those is
+offered as a choice of its own, in its place by length, rather than rounded to the nearest, because
+the nearest is a certificate nobody asked for. A request asking for nothing is offered a year, which
+is what every client was given before any could ask, so asking can shorten a certificate and never
+lengthen one. The list drops down rather than standing open, and a closed list takes neither Enter
+nor Escape, so both still refuse as they do everywhere else on the dialog, nor any letter, digit or
+arrow, so no stray key changes the lifetime unless the list is opened. The profile list takes no
+letter or digit either, so its checks change only by a click or by Space. `CA.md` §207 holds the
+bounds.
 
 Both proofs are bound to the RFC 5929 `tls-server-end-point` channel binding, which both sides
 derive independently and which hashes the certificate actually in use. **It needs no interface from
@@ -294,9 +334,11 @@ The gate against a stale dialog tracks specific `GroupForm` instances through
 `GlobalWindowManager.WindowAdded`. It must **not** gate on `WindowCount`. That number counts every
 window KeePass registers, and nearly none of them copies anything: keyed on it, an about box left
 open becomes a reason not to pair, and it still cannot answer the question actually being asked,
-which is whether a dialog is open on *this* group. The plugin's own approval dialog does not add
-itself to that manager, and it is the one window certain to be open at exactly this moment, so a
-count would also leave the guard at the mercy of one line added elsewhere in this plugin.
+which is whether a dialog is open on *this* group. The plugin's own approval dialogs do not add
+themselves to that manager, and one is the window certain to be open at exactly this moment, so a
+count would also leave the guard at the mercy of one line added elsewhere in this plugin. Their
+staying out is a decision of its own, §308: a dialog registered there holds every lock off, and one
+a client can raise would let it keep KeePass unlocked with nobody at the desk.
 
 **And it refuses when it is not watching, which is a separate thing from seeing nothing open.** The
 first version answered "nothing is open" whenever its table was empty, which is also what it answers
@@ -342,7 +384,7 @@ stateDiagram-v2
     [*] --> Cold: KeePass starts
     Cold --> Unlocked: first unlock mints the responder certificate
     Cold --> [*]: never unlocked, so nothing to answer with
-    Unlocked --> Locked: re-mint the responder, then drop the authority key,<br/>the records and the normal host key. close every connection.
+    Unlocked --> Locked: close an open approval dialog, re-mint the responder,<br/>then drop the authority key, the records and the normal host key.<br/>close every connection but the one waiting on that dialog.
     Locked --> Unlocked: reload, re-mint.<br/>close every connection.
     Locked --> Locked: answer 503, naming nothing but the lock
 ```
@@ -350,13 +392,28 @@ stateDiagram-v2
 Pairing while locked is refused the same way: issuing needs the authority private key and the
 admission write, and neither exists in this state.
 
-**Both transitions close every connection, and unlock is the interesting one.** Closing at lock is
-obvious: a socket thread must not be reading a database the UI thread is closing, and that race
-needs a real gate because the lock fires on the UI thread. Closing at unlock is about privilege. A
-connection that completed its handshake against the responder certificate was authenticated
-against nothing, because validating a client certificate needs the authority, which was not loaded.
-Letting it survive into the unlocked state would promote a connection to an authority it never
-proved anything to.
+**Both transitions close every connection, but for the one below, and unlock is the interesting
+one.** Closing at lock is obvious: a socket thread must not be reading a database the UI thread is
+closing, and that race needs a real gate because the lock fires on the UI thread. Closing at unlock
+is about privilege. A connection that completed its handshake against the responder certificate was
+authenticated against nothing, because validating a client certificate needs the authority, which
+was not loaded. Letting it survive into the unlocked state would promote a connection to an
+authority it never proved anything to.
+
+**A lock closes an open pairing or renewal dialog as unanswered**, and its client is told `503
+locked`. Neither dialog holds a lock off, since a dialog that did would let a client that raises one
+after another keep KeePass unlocked, so every way KeePass locks can fall under one: its own
+inactivity timer, Ctrl and L, a session lock or switch, a suspend, a minimize, a change of remote
+control. All of them end in the same closing of the database, and that closes the dialog before
+anything else happens, so it does not stand over a locked database offering an Approve that can do
+nothing. The connections of pairings and renewals are spared when every other one is closed, and
+answer for themselves: the dialog's, and any still waiting for the screen, which is never shown,
+with `503 locked`, and one the lock caught before it asked, with `503 busy`, as a database that
+cannot be written answers. Their deadline still bounds them. Nothing is written and nothing is
+spent: an invitation is still good after the unlock, and a renewing client's old certificate still
+works. **A lock lets go of every approval held for a retry**, §303, and a close of the database
+does too, so an approval still waiting for a busy KeePass when the lock comes is answered `503
+locked` at once and never written into the database the unlock opens again.
 
 **An unlock that lifts no lock closes nothing**, which is a refinement the end to end tier forced
 rather than a weakening. KeePass announces a database being opened and a database being unlocked
@@ -407,7 +464,9 @@ POST /pair/hello
 POST /pair/request
   { "name": "agent-fictitious",
     "profiles": ["ops"],
-    "proof": "<HMAC-SHA256(token, "kpg-request-proof" | binding | nonce | challenge | name,profiles)>" }
+    "lifetime": "P30D",
+    "proof": "<HMAC-SHA256(token, "kpg-request-proof" | binding | nonce | challenge | asked)>" }
+    asked = name "\n" profiles joined by "," "\n" lifetime, or nothing after the second line break
 ->  200 { "identity": "<PKCS#12: the certificate and its key>",
           "authority": "<DER: what to pin from now on>",
           "gateKey": "<32 bytes: what to name every later connection from>",
@@ -418,6 +477,13 @@ POST /pair/request
 
 Every part is length prefixed before it is signed, so no two different sets of parts produce the
 same bytes, and each proof carries its own label, so none of them can be replayed as another.
+
+**`lifetime` is optional, and signed for whether it is there or not.** It is an ISO 8601 duration
+of whole days from one to 365, in one spelling: `P`, the number with no leading zero, and `D`.
+Anything else is `400 malformed`, refused by the document's own pattern before the challenge is
+taken, so nothing is spent. The proof covers the text as it arrived, and an empty line when there
+is none, so a lifetime added on the way, taken off it or changed is a request that no longer proves
+itself, and the operator is never shown a lifetime nobody asked for.
 
 **The exchange spans two connections**, because this transport answers one request per connection
 and closes. The challenge is what carries it across: it is held on the invitation in memory,
@@ -444,13 +510,31 @@ What a refusal says, and deliberately no more:
 | `400 name` / `400 profile` / `400 malformed` | it could never have been issued as asked |
 | `403 refused` | the operator said no, and the invitation is spent |
 | `504 unanswered` | nobody was at the screen. **Nothing is spent** |
-| `503 busy` | a dialog is open that would take the record back, KeePass is part way through a save, an import, a synchronize, an export or a message box of its own, or shows its progress window for one such as XML Replace, saving the database would stop to ask the operator something, such as what to do about a file on disk that is not the one KeePass read, another pairing is already in front of the operator, or there is no screen to ask. **Nothing is spent**, and the client is never told which |
+| `503 busy` | a dialog is open that would take the record back, KeePass is part way through a save, an import, a synchronize, an export or a message box of its own, or shows its progress window for one such as XML Replace, saving the database would stop to ask the operator something, such as what to do about a file on disk that is not the one KeePass read, another pairing or a renewal is already in front of the operator, a save this plugin is making for another client outlasts the wait for the screen, or there is no screen to ask; or the operator approved and KeePass was still busy a moment later, and then the body carries `heldUntil`, the moment the approval stops being held. **Nothing is spent**, and the client is never told which |
 | `500 not recorded` | the operator approved and the record did not reach the disk. **The invitation is spent** |
 | `500 internal error` | the operator approved and no certificate could be issued: the authority's key would not sign, or the authority has outlived its hundred years. **The invitation is not spent**, and the client starts again from a hello |
 | `503 undecided` | the database holds more than one authority and the operator has not kept one. Answered before the request is read, as `503 locked` is, so **nothing is spent** |
 
 The `503 busy` row is the one to be careful with. A caller learns that it should try later and nothing
-about what is open on somebody's desk.
+about what is open on somebody's desk. **An approval KeePass is too busy to write is held rather
+than lost**, which is the operator's ruling of 2026-10-14. The check made once the operator has
+answered is asked again for as long as the `Retry-After` the caller would be told, so a save that
+ends in a moment is written on the same connection. One that lasts longer is answered
+`{"error":"busy","heldUntil":"<UTC to the second>"}`: the approval is kept in the plugin's memory,
+beside the invitations, until the end of the pairing budget the request arrived in, and the same
+request asked again before then, from a fresh hello as every pairing retry starts, is written
+without the dialog. The same request is the same invitation, name, profiles and lifetime as
+written; anything different is put to the operator again, since the gate makes the key pair itself
+and nothing else is on the wire. Answering at once used to let a client retrying on busy put the
+dialog the operator had just answered in front of them again.
+
+**What it was approved against is compared at the write, under the writer's lock**: the authority
+served, and for each approved profile whether the list holds it exactly as it did when the operator
+answered, since the write would otherwise put a name back that was taken off in between. The
+approval is used up there, and the invitation spent there, last, so nothing that can still answer
+busy comes after the burn. **A lock, a close and KeePass exiting let go of every approval held**,
+and one still settling when KeePass locks is answered `503 locked` rather than written into the
+database an unlock opens again.
 
 **Every `503` is raised before the invitation is spent, and that is what makes it honest.** The
 dialog check and the wait for the screen both happen before the burn, so a caller that starts again
@@ -472,9 +556,122 @@ Nothing was issued, so the approval is lost and the invitation is not.
 out before anybody was disturbed. Issued together for a century, neither is a state a database
 reaches while anybody is minding it, and a check for it would be code that never runs.
 
-## 10. What this deliberately does not defend §310
+## 10. Renewing a certificate §312
 
-- **Local code execution as the user.** It reads the host key, the client key, the token as typed,
+A client that is already admitted asks for a new certificate with `POST /gate/renew`, and the
+operator approves or refuses it on screen as they would a pairing. It is pairing's request with the
+client already known: no invitation and no proofs, because the certificate on the connection is the
+proof, and the router has checked that it chains, is current and has a record before anything here
+runs.
+
+```text
+POST /gate/renew
+  { "lifetime": "P30D" }          or {} to ask for nothing
+->  200 { the bundle the pairing request answers with, for the new certificate }
+```
+
+**What the operator is shown is read from the record, not from the request.** Who is asking is the
+name the record was issued under, with when it was admitted and when the certificate it holds now
+expires, where the request came from, and the profiles its record holds that the database still
+names, all checked. The operator may uncheck any of them and can add none: the new certificate is
+never wider than the record. Unchecking narrows the new certificate alone, since the old record is
+left valid with everything it held until the client gives it up, and the dialog says so. A name the
+database no longer holds is not offered, and a line under the list says it is not carried over,
+since a renewed record is written from the names on the list. The list is read again once the
+operator has answered, so a name taken off it while they decided is not carried over either, and the
+renewal never puts a name back on the list. The lifetime is a proposal, as on a pairing: preselected
+among the presets when one is asked for, and a year when none is.
+
+**Refusing can answer more than this request**, which is the operator's ruling. Refuse is a split
+button. Pressing it refuses once, which keeps nothing, and so do Enter, Escape, the close box and
+every other way of dismissing the dialog: a standing answer is given from the button's menu and from
+nothing else. The menu, opened by its arrow or by Alt and Down, offers refusing once, in this
+session, until a date, or forever, and until a date asks for a day from tomorrow to the day the
+certificate it holds now ends, so on that day itself the choice is grayed out and says why. The
+answer stands until the chosen day begins where the operator is, its first midnight on a day the
+clocks fall back, and that moment is the `notBefore` a client is sent, in UTC. While a standing
+answer stands, every renewal of that certificate is answered without the dialog:
+
+- **In this session** is held in the plugin's memory, per certificate, as invitations are held, and
+  goes when KeePass exits. Nothing of it is written to the database, since an answer about one
+  session kept in the file would outlast it in every copy. It is answered `409 this session`, and a
+  renewal asked after KeePass has started again raises the dialog.
+- **Until a date** and **forever** are stored under `KPG.RenewalRefused.` and the certificate's key,
+  `CA.md` §204. They are answered `409 too early` with `notBefore`, the moment from which the
+  operator is asked again, and `409 forever`, for which pairing again is the way out. **If one
+  cannot be written now**, KeePass busy or Database Maintenance open, it takes effect at once all
+  the same, held in the plugin's memory as an answer about this session is, and the plugin's next
+  write to that database that lands writes it with whatever that write was for, which is the
+  operator's ruling of 2026-10-14. One that no write has taken when KeePass exits goes with it, and
+  the operator is told so on the way out rather than only in the log.
+
+**The operator can take any of the three back**, which is the operator's ruling on review 3: on the
+clients page a client with a standing answer has its name in red, the row's tooltip and its
+description to a screen reader name the answer, and the row's menu, opened by the right button,
+Shift and F10 or the menu key, states it on a grayed first line and offers **Allow renewal** beside
+**Revoke**. Allow renewal waits for the settings dialog's OK, as a revocation does: the stored
+answer is taken away in the dialog's buffer and the session's in what the dialog holds of the
+plugin's memory, so the red goes at once and the gate keeps refusing until OK, and Cancel leaves
+the answer standing. The plugin holds one set of the session's answers, read by the handler and by
+every clients page, so the page shows and lifts exactly what the gate answers from. Once lifted,
+the next renewal raises the dialog again. An answer given on that dialog while the settings dialog
+was still open, possible once an until-date has passed, is the later word and survives the OK.
+Otherwise a standing answer ends as described: the session's with KeePass, the stored ones with
+the certificate they are about, and every one with the authority recreated or deleted.
+
+The database's answer is read before the session's. The dialog is raised only while neither
+refuses, and a renewal waiting behind another of the same certificate is answered at once rather
+than kept for a second dialog, so the two meet only when a merge brings a stored answer in from
+another copy of the file. Then the stored one is what the client is told, since forever says that
+only pairing again helps. A stored until a date says less there: once its day begins the session's
+answer is told in its place, `409 this session`, so its `notBefore` is the moment the session's
+refusal takes over rather than one from which the operator is asked again.
+
+**The order is pairing's, kept exactly.** Refused with `503 busy` before anybody is disturbed while
+a dialog would take the record back, asked again once the operator has answered, then issued,
+written and saved, and only then handed over. Refused `503 busy` the second time, when KeePass is
+still busy a moment after the answer, the approval is held, as a pairing's is, keyed by the
+admission key and the lifetime as written, and the answer carries `heldUntil`: nothing is issued
+yet, the audit has its line when the write lands, and the renewal asked again before then is
+written without the dialog, **unless an answer refusing it stands by then**: a merge can bring one
+in, and so can the dialog of a renewal of the same certificate that asked for another lifetime.
+That answer is what the retry is told, as it would be told before any dialog, and the approval is
+let go. What pairing asks again about its invitation a renewal asks about its
+record: one revoked while the operator was deciding, or left behind by an authority recreated or
+deleted in that time, is answered `401 unpaired` and nothing is issued. **And the write asks it
+once more, under the writer's lock**, comparing the record with the one the operator approved, so a
+revocation landing after the handler last read it, the client's own on another connection among
+them, is found under the lock it was written under rather than overtaken. A renewal
+waits its turn for the screen with every pairing, since one raised inside a pairing's dialog would
+gray it out, and its connection is measured against `GateOptions.PairingBudget` from the moment its
+request is off the wire, since what is left after it is the same list of waits.
+
+**One renewal per certificate is in flight at a time.** A second renewal of a certificate whose first
+is still being answered is told `503 busy` at once, before anything about it is read, and the first
+stays in flight until its answer has been kept, the standing half included. So the dialog is never
+raised twice for one certificate, and the next renewal after the first is answered meets whatever
+the operator decided.
+
+**The old record is left valid.** Nothing is revoked by a renewal: the client gives the old
+certificate up itself with `DELETE /gate/certificate` once the new identity is stored, presenting
+the old one, which is what the reference client does. So an answer lost on the way costs the
+database nothing, since the old certificate still works and the client can ask again, and a record
+a lost answer orphans expires and is pruned, or the operator revokes it from the clients page,
+which lists both until then. It costs the operator the dialog a second time, which is why a client
+waits on its socket for as long as `GateOptions.PairingBudget` before giving up on the answer, as
+the reference client does for a renewal as for a pairing. What each refusal says is in the route's
+own responses, [`openapi.yaml`](src/KeePassGate/Spec/openapi.yaml) §510.
+
+**The new record is the same client.** It carries the client key of the record that asked,
+`CA.md` §223, the digest of the certificate the client paired with, so the two records name one
+client while both stand and every count of clients counts it once. Nothing is issued in two steps
+and nothing is revoked by name: the operator's ruling of 2026-10-16 first had a renewal revoke every
+other certificate under the same name once the client had shown it held the new one, and withdrew
+that the same day, since a name is the client's own choice and two programs may share one.
+
+## 11. What this deliberately does not defend §310
+
+- **Local code execution as the user.** It reads the host key, a client's private key, the token as typed,
   and the clipboard the tab's copy button puts it on. Conceded everywhere in this design.
 - **A compromised second channel.** Whoever holds the token may ask. That is what the operator's
   approval is for, and it is the only thing standing there.

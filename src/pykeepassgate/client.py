@@ -15,19 +15,45 @@ optimizing away: it is what makes a passive observer see a different name each t
 from __future__ import annotations
 
 import base64
+import contextlib
 import json
+from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any, Literal
 from urllib.parse import quote
 
 from . import credentials as credentials_module
 from . import sni, transport
-from .errors import GateUnavailable, NotAdmitted, ProtocolError, RouteRefused
+from .errors import (
+    GateError,
+    GateUnavailable,
+    NotAdmitted,
+    ProtocolError,
+    RenewalRefused,
+    RenewalRefusedForever,
+    RenewalRefusedThisSession,
+    RenewalTooEarly,
+    RenewalUnanswered,
+    RouteRefused,
+    StorageError,
+)
 from .model import EXPIRES, Attachment, Entry, Field, Group, made
+from .pairing import lifetime_text
 
 STATUS_PATH = "/gate/status"
+
+CERTIFICATE_PATH = "/gate/certificate"
+
+RENEW_PATH = "/gate/renew"
+
+CLOCK_LEEWAY = timedelta(minutes=5)
+"""How long after its stored expiry a certificate is still offered, since the gate's clock decides.
+
+The five minutes the plugin's authority backdates a certificate by, `AuthorityIssuer.Backdate`, for
+a client clock behind the gate's, granted here the other way, to a clock ahead of it.
+"""
 
 ROOT = "root"
 """What every group identifier may say instead of a UUID."""
@@ -61,6 +87,21 @@ class Status:
     database: str
     version: str
     revision: str
+
+
+@dataclass(frozen=True)
+class Renewal:
+    """What a renewal left: the identity the client is now, and what became of the one before.
+
+    `unrevoked` and `retired` are both `None` when everything went: the old certificate is
+    revoked and what was stored for it is gone. Otherwise `retired` is where the old identity is
+    still kept, because revoking a certificate takes presenting it, and `unrevoked` says why the
+    gate did not take it back, when that is the reason it is kept.
+    """
+
+    credentials: credentials_module.Credentials
+    unrevoked: GateError | None
+    retired: Path | None
 
 
 class GateClient:
@@ -106,6 +147,13 @@ class GateClient:
         It does not reach the name in the ClientHello either. That is minted per connection from
         the gate's key and is what the gate resolves this client by; a tunnel changes the address
         the bytes travel to and changes nothing the gate sees.
+
+        **A renewal waits at least `transport.PAIRING_CONNECTION_TIMEOUT`** for its answer,
+        whatever `connection_timeout` says, because it waits on a person as a pairing does and the
+        gate gives it the same six minutes: a client that hung up sooner would leave the operator's
+        approval written and saved for a certificate nobody holds. A longer `connection_timeout`
+        is kept. Giving the old certificate up afterwards asks nobody, and waits
+        `connection_timeout`.
         """
         transport.port_number(credentials.port)
         self._credentials = credentials
@@ -171,8 +219,8 @@ class GateClient:
     def status(self) -> Status:
         """The route that proves a connection and nothing else.
 
-        It reads nothing out of the database on purpose, which is why it is one of the three
-        routes declaring `x-kpg-verb: none`, the other two being the pairing ones: no grant
+        It reads nothing out of the database on purpose, which is why it is one of the routes
+        declaring `x-kpg-verb: none`, beside the pairing ones and `revoke_certificate`: no grant
         could allow or refuse it, because it reaches nothing a grant is about. It exists to
         prove a connection rather than to be useful.
 
@@ -191,6 +239,240 @@ class GateClient:
             raise ProtocolError("the gate answered its status in a form this client cannot read")
 
         return Status(ok=ok, database=database, version=version, revision=revision)
+
+    def revoke_certificate(self) -> None:
+        """Give up this client's admission, by the certificate it presents.
+
+        `DELETE /gate/certificate` takes no body and names nothing, because the certificate on
+        the connection is what is revoked: a client can revoke itself and nobody else. The gate
+        writes what its Clients page writes, saves, and reads the file back before it answers,
+        and from the next connection on every call here raises `NotAdmitted`.
+
+        **A failure says what it left behind, in the gate's word on the `RouteRefused`.** `not
+        saved` kept nothing, so the client is still admitted and asking again is safe. `not
+        verified` is a revocation KeePass holds in memory and may not have in the file: the
+        certificate is already refused, so asking again raises `NotAdmitted`, and whether the
+        file keeps it is the operator's to settle. A `503` is answered before anything is
+        written, so it is waited out as on every route.
+
+        What is stored for this client is left as it is, since files are the caller's business:
+        `forget` is the call that takes them away, and the command line's `revoke` makes it once
+        this has returned.
+        """
+        self.send("DELETE", CERTIFICATE_PATH)
+
+    def renew(
+        self, lifetime: timedelta | None = None, allow_shared_directory: bool = False
+    ) -> Renewal:
+        """Ask the operator for a new certificate, keep it in place of this one, give this one up.
+
+        `POST /gate/renew` blocks while the operator reads a dialog, as pairing does, and answers
+        with the bundle pairing answers with. **`lifetime` is a proposal**, a `timedelta` of
+        whole days from `SHORTEST_LIFETIME` to `LONGEST_LIFETIME`, refused with `ValueError`
+        before anything is sent; the operator picks, and `expires` on what comes back says which.
+
+        **Stored whole beside the old identity before it is put in place.** Three directories are
+        made ready before anything is asked, so that one that cannot hold an identity costs
+        nothing: `<dir>.renewing`, which receives the new identity, `<dir>.retired`, which receives
+        a copy of the old one, and the identity's own. Once the new identity is whole in the first
+        and the old one in the second, the four files of the identity's own directory are written
+        over with the new ones, and the first is taken away. **Only those four files move**:
+        anything else a program keeps in the directory stays where it is. A failure while they
+        are written over puts the old ones back, and says where each identity is; at every moment
+        each of the two is whole somewhere, and a person can finish what was interrupted.
+        `allow_shared_directory` waives `prepare`'s ownership check on the identity's own
+        directory, for one paired into a directory shared on purpose; the two beside it are this
+        client's own and are never waived.
+
+        **A renewed identity an earlier renewal left in that directory is never written over.**
+        The gate hands one over only once its record is saved, so it is admitted and its key is the
+        only one there is: a renewal refuses to start while it is there, with a `StorageError`
+        saying how to finish the one that stopped. Anything there that does not load as an identity
+        is what a renewal that stopped before its answer leaves, and is written over.
+
+        **Then this certificate is given up**, with `revoke_certificate` as the identity it
+        renewed from, because the gate leaves the old record in place: an answer lost on the way
+        costs nothing that way, since the old certificate still works and the renewal can be asked
+        for again. **A revocation that did not happen is reported on what comes back rather than
+        raised**, because the renewal itself succeeded and this client is already the new
+        identity: raising would read as the opposite. The old identity is then kept beside the new
+        one, at `retired`, since giving it up later takes presenting it.
+
+        **A later renewal gives it up first.** It presents the kept certificate again before it
+        asks for anything, and a certificate the gate then refuses, or one that has expired and is
+        not dialed at all, counts as given up as well: nothing can use it, so what was kept for it
+        is forgotten and the renewal goes on. While the gate still admits it and will not take it
+        back, the renewal refuses to start, with a `StorageError` naming the directory, since a
+        second one kept beside the first would have nowhere to go.
+
+        **This client carries on as the new identity**, for every call after this one: it is the
+        same client asking for the same things, and the old certificate is about to be refused.
+
+        **The request waits at least `transport.PAIRING_CONNECTION_TIMEOUT`** on the socket, six
+        minutes, or this client's `connection_timeout` when that is longer: the gate answers only
+        once the operator has, after waiting for the screen behind any other pairing or renewal,
+        and then writes and saves before it says so. Hanging up sooner would lose an approval
+        already saved, and a `RenewalUnanswered` the gate sends once its dialog's two minutes are
+        up.
+
+        A refusal raises `RenewalRefused`, or `RenewalRefusedThisSession`, `RenewalTooEarly` or
+        `RenewalRefusedForever` when the operator answered more than this once, and nobody
+        answering raises `RenewalUnanswered`; none of them changes anything stored, and this
+        client stays what it was. Nor does `500 not recorded`, a `RouteRefused`: the operator
+        approved and the new record did not reach the disk, so nothing was handed over.
+
+        **A `503` is the gate's, answered before anything is written**, and raised as on every
+        route, `GateBusy`, `DatabaseLocked` or `AuthorityUndecided`, or waited out on this client's
+        own budgets, since there is no budget given per call here. Waiting one out sends the
+        renewal again, and a renewal refused busy waits its turn for the screen again: the
+        operator's dialog comes up again for it, and a busy one can take two minutes to arrive.
+        **Except an approval the gate holds**: when the operator approved and KeePass was too busy
+        to write it, `GateBusy` carries `held_until`, and this asks again by itself, every
+        `Retry-After`, until the renewal is written without the dialog or that moment passes,
+        within the six minutes the gate gives a renewal and whatever the busy budget.
+        """
+        written = None if lifetime is None else lifetime_text(lifetime)
+        directory = self._credentials.directory
+        staging = _beside(directory, "renewing")
+        retired = _beside(directory, "retired")
+
+        self._unfinished(staging)
+        self._settle(retired)
+        kept = _held(directory)
+
+        prepared: list[credentials_module.Prepared] = []
+        try:
+            for where, shared in (
+                (staging, False),
+                (retired, False),
+                (directory, allow_shared_directory),
+            ):
+                prepared.append(credentials_module.prepare(where, allow_shared_directory=shared))
+
+            renewing, keeping, live = prepared
+            bundle = self._request(
+                "POST", RENEW_PATH, {} if written is None else {"lifetime": written},
+                _refuse_renewal,
+                connection_timeout=max(
+                    self._connection_timeout, transport.PAIRING_CONNECTION_TIMEOUT
+                ),
+                held=transport.PAIRING_CONNECTION_TIMEOUT,
+            )
+            renewing.save(self._credentials.port, bundle)
+        except BaseException:
+            # Only empty ones: whatever opening created was taken away when it closed.
+            for each in prepared:
+                each.close()
+            for where in (staging, retired):
+                with contextlib.suppress(OSError):
+                    where.rmdir()
+            raise
+
+        _put_in_place(directory, staging, retired, renewing, keeping, live, kept)
+
+        old = credentials_module.load(retired)
+        renewed = credentials_module.load(directory)
+        self._become(renewed)
+
+        unrevoked = self._give_up(old)
+        if unrevoked is not None:
+            return Renewal(credentials=renewed, unrevoked=unrevoked, retired=retired)
+
+        try:
+            credentials_module.forget(retired)
+        except StorageError:
+            return Renewal(credentials=renewed, unrevoked=None, retired=retired)
+
+        return Renewal(credentials=renewed, unrevoked=None, retired=None)
+
+    def _unfinished(self, staging: Path) -> None:
+        """Refuse to renew over a renewed identity an earlier renewal could not put in place.
+
+        It is admitted, since the gate hands one over only once the record is written and saved,
+        and its key may be the only one there is: preparing over it would destroy it, and ask the
+        operator to approve the same program again for a record nobody would then hold the key
+        to. A directory that does not load as an identity is what a renewal that stopped before
+        its answer leaves. One holding the certificate this client already presents is a copy an
+        earlier renewal put in place and could not take away afterwards, and is forgotten. A link
+        there is refused rather than read through, since what it names is not this renewal's.
+        """
+        credentials_module.refuse_link(staging)
+        try:
+            found = credentials_module.load(staging)
+        except StorageError:
+            return
+
+        if _same(found, self._credentials):
+            credentials_module.forget(staging)
+            return
+
+        raise StorageError(
+            f"{staging} holds a renewed identity, {found.subject}, which an earlier renewal was "
+            "given and could not put in place, and the gate admits it. Finish that renewal "
+            f"rather than asking for another: {_finishing(self._credentials.directory, staging)}"
+        )
+
+    def _settle(self, retired: Path) -> None:
+        """Give up what an earlier renewal kept at `retired`, or refuse to renew while it stands.
+
+        Kept because its give-up did not happen then: locked, busy, not saved. Asked again now,
+        presenting it, and forgotten once the gate takes it back or already refuses it, which
+        includes one that has expired, since `revoke_certificate` refuses that before dialing.
+        What does not load is no kept identity, and the renewal writes over it. A link there is
+        refused before anything is read through it: presenting what it names would revoke some
+        other identity of this user's, and forgetting it would take that identity's files away.
+        """
+        credentials_module.refuse_link(retired)
+        try:
+            old = credentials_module.load(retired)
+        except StorageError:
+            # Nothing there, or files opened and never written, which a renewal stopped while the
+            # operator read leaves: the old identity was never copied out of its own directory.
+            return
+
+        if _same(old, self._credentials):
+            # A copy of this client's own identity, which a renewal that put the old one back left.
+            # Presenting it would revoke this client.
+            credentials_module.forget(retired)
+            return
+
+        unrevoked = self._give_up(old)
+        if unrevoked is not None:
+            raise StorageError(
+                f"{retired} holds the identity an earlier renewal renewed from, and the gate "
+                f"still admits it and did not take it back now either: {unrevoked}. Revoke it "
+                f"first, which `pykeepassgate revoke --directory {retired}` does"
+            )
+
+        credentials_module.forget(retired)
+
+    def _give_up(self, old: credentials_module.Credentials) -> GateError | None:
+        """Revoke the certificate a renewal replaced, presenting it, and say why not if not."""
+        try:
+            GateClient(
+                old,
+                connection_timeout=self._connection_timeout,
+                host=self._host,
+                retry_busy_timeout=self._retry_busy_timeout,
+                retry_locked_timeout=self._retry_locked_timeout,
+                retry_undecided_timeout=self._retry_undecided_timeout,
+                max_response_bytes=self._max_response_bytes,
+            ).revoke_certificate()
+        except NotAdmitted:
+            # Already refused, by a `401` or because it has expired, which is what giving it up
+            # was for.
+            return None
+        except GateError as error:
+            return error
+
+        return None
+
+    def _become(self, renewed: credentials_module.Credentials) -> None:
+        """Carry on as a renewed identity: its certificate, its anchor and its gate key."""
+        context = transport.paired_context(renewed.authority, renewed.identity)
+        self._credentials = renewed
+        self._context = context
+        self._gate_key = renewed.gate_key
 
     # Groups
 
@@ -480,18 +762,51 @@ class GateClient:
         failed for any other reason may well have landed. A budget given for one call is refused
         as the client's own are, before anything is dialed.
         """
+        return self._request(
+            method,
+            path,
+            body,
+            _refuse,
+            retry_busy_timeout=retry_busy_timeout,
+            retry_locked_timeout=retry_locked_timeout,
+            retry_undecided_timeout=retry_undecided_timeout,
+        )
+
+    def _request(
+        self,
+        method: str,
+        path: str,
+        body: dict[str, Any] | None,
+        refuse: Callable[[transport.Response], None],
+        *,
+        retry_busy_timeout: transport.Given = transport.KEEP,
+        retry_locked_timeout: transport.Given = transport.KEEP,
+        retry_undecided_timeout: transport.Given = transport.KEEP,
+        connection_timeout: float | None = None,
+        held: float | None = None,
+    ) -> dict[str, Any]:
+        """What `send` does, with what each refusal means given by the caller.
+
+        A renewal's refusals mean things no other route's do, and one of them carries a moment in
+        its body, so the route that has them says what they are rather than every route learning
+        them. Its `503`s are read by `_refuse` as every route's are, so a renewal is waited out
+        exactly as a read is. It waits on a person as well, so it gives its own
+        `connection_timeout` too, and `None` is this client's. And it can be answered with an
+        approval the gate holds, which `held` is how long to go on asking for, `None` for not.
+        """
         retry = transport.Retry(
             busy=transport.given(retry_busy_timeout, self._retry_busy_timeout),
             locked=transport.given(retry_locked_timeout, self._retry_locked_timeout),
             undecided=transport.given(retry_undecided_timeout, self._retry_undecided_timeout),
+            held=held,
         )
 
         payload = "" if body is None else json.dumps(body, separators=(",", ":"))
 
         while True:
             try:
-                reply = self._once(method, path, payload)
-                _refuse(reply)
+                reply = self._once(method, path, payload, connection_timeout)
+                refuse(reply)
             except GateUnavailable as refusal:
                 # Safe to repeat whichever it was: the gate refuses before it acts, so a `503` is
                 # the one refusal that says nothing happened. A `DatabaseLocked` read off the
@@ -507,7 +822,9 @@ class GateClient:
 
             return reply.json()
 
-    def _once(self, method: str, path: str, payload: str) -> transport.Response:
+    def _once(
+        self, method: str, path: str, payload: str, connection_timeout: float | None = None
+    ) -> transport.Response:
         """One attempt, on a connection of its own and under a name of its own.
 
         A retry is a new connection because the gate serves one request per connection, and a new
@@ -517,13 +834,18 @@ class GateClient:
         **A certificate that has expired is refused here, before anything is dialed.** The gate
         refuses one as it refuses a stranger, `401` with nothing to say why, and this client
         would then report the missing record its `401` usually means, when the record is there
-        and the certificate is what ran out. Pairing stored when it expires, so this says so by
-        name, and spends no connection learning what it already knows.
+        and the certificate is what ran out. What is stored says when it expires, so this says
+        so by name, and spends no connection learning it. **Only once `CLOCK_LEEWAY` has passed
+        as well**, since the gate judges by its own clock and this one may run ahead of it:
+        until then the gate is asked, and still serves, and renews, a certificate it holds
+        current.
         """
-        if self._credentials.expired:
+        if self._credentials.expired_by(CLOCK_LEEWAY):
             raise NotAdmitted(
                 f"this client's certificate expired at {self._credentials.expires}, so the gate "
-                "refuses it: pair again"
+                "refuses it. To go on reaching the gate, pair again, since a renewal needs a "
+                "certificate that has not expired; what is stored for this one protects nothing "
+                "now, and forgetting it, which `revoke` does, takes it away"
             )
 
         name, _ = sni.new_name(self._gate_key)
@@ -533,7 +855,9 @@ class GateClient:
             self._context,
             name,
             host=self._host,
-            connection_timeout=self._connection_timeout,
+            connection_timeout=(
+                self._connection_timeout if connection_timeout is None else connection_timeout
+            ),
             max_response_bytes=self._max_response_bytes,
         ) as connection:
             return connection.send(method, path, payload)
@@ -562,6 +886,167 @@ def _expiry(value: object, *, creating: bool) -> str:
 
     allowed = "a moment, 'auto' or False" if creating else "a moment or False"
     raise ValueError(f"an expiry is {allowed}, not {value!r}")
+
+
+def _beside(directory: Path, purpose: str) -> Path:
+    """A directory next to this one, named for what it holds during a renewal."""
+    return directory.with_name(f"{directory.name}.{purpose}")
+
+
+def _held(directory: Path) -> dict[str, bytes]:
+    """The four files of the identity in a directory, as they are, before a renewal changes them."""
+    held: dict[str, bytes] = {}
+    for name in credentials_module.FILES:
+        try:
+            held[name] = (directory / name).read_bytes()
+        except OSError as error:
+            raise StorageError(f"{directory / name} will not read: {error}") from error
+
+    return held
+
+
+def _same(found: credentials_module.Credentials, live: credentials_module.Credentials) -> bool:
+    """Whether two stored identities hold one certificate, so that one is a copy of the other."""
+    try:
+        return found.admission_key == live.admission_key
+    except StorageError:
+        return False
+
+
+def _finishing(directory: Path, staging: Path) -> str:
+    """How a person puts a renewed identity left in `staging` in place, or gives it up."""
+    return (
+        f"copy the four files in {staging} over the ones in {directory} and remove {staging}, or "
+        f"give it up with `pykeepassgate revoke --directory {staging}`"
+    )
+
+
+def _put_in_place(
+    directory: Path,
+    staging: Path,
+    retired: Path,
+    renewing: credentials_module.Prepared,
+    keeping: credentials_module.Prepared,
+    live: credentials_module.Prepared,
+    kept: dict[str, bytes],
+) -> None:
+    """Copy the old identity out, write the renewed one over it, and take the staging copy away.
+
+    **Only the four files.** Writing them over in place, rather than renaming the directory, is
+    what leaves anything else a program keeps beside them where it was. Writing in place is not
+    atomic, so both identities are kept whole elsewhere first: the renewed one in `staging`, which
+    `save` wrote, and the old one in `retired`. A failure while the four are written over writes
+    the old ones back, and either way the message says where each identity is.
+
+    Every handle is closed before anything is taken away, which Windows needs.
+    """
+    try:
+        fresh = _held(staging)
+        keeping.write(kept)
+    except BaseException as error:
+        for each in (renewing, keeping, live):
+            each.close()
+        with contextlib.suppress(OSError):
+            retired.rmdir()
+        if not isinstance(error, Exception):
+            raise
+        raise StorageError(
+            f"the renewed identity is whole in {staging} and the gate admits it, and it could not "
+            f"be put in place: {error}. The one it renewed from is still in {directory} and still "
+            f"admitted. To finish, {_finishing(directory, staging)}"
+        ) from error
+
+    try:
+        live.write(fresh)
+    except BaseException as error:
+        try:
+            live.write(kept)
+        except BaseException:
+            restored = False
+        else:
+            restored = True
+
+        for each in (renewing, keeping, live):
+            each.close()
+
+        if restored:
+            # Back where it was, so the copy is no kept identity, and a later renewal that found
+            # it would otherwise give up this client's own certificate.
+            with contextlib.suppress(StorageError):
+                credentials_module.forget(retired)
+
+        if not isinstance(error, Exception):
+            raise
+
+        where = (
+            f"The one it renewed from is back in {directory} and still admitted"
+            if restored
+            else f"{directory} holds part of each, and the one it renewed from is whole in "
+            f"{retired} and still admitted, which a later renewal gives up"
+        )
+        raise StorageError(
+            f"the renewed identity is whole in {staging} and the gate admits it, and it could not "
+            f"be put in place: {error}. {where}. To finish, {_finishing(directory, staging)}"
+        ) from error
+
+    for each in (renewing, keeping, live):
+        each.close()
+
+    # A copy now, of what is in place. One left behind is recognized as a copy and forgotten by
+    # the next renewal, so failing to take it away is no reason to report a renewal as failed.
+    with contextlib.suppress(StorageError):
+        credentials_module.forget(staging)
+
+
+def _refuse_renewal(reply: transport.Response) -> None:
+    """What each refusal of a renewal means, and what to do next."""
+    if reply.status == 403:
+        raise RenewalRefused(
+            "the operator refused this renewal, and may have refused more than this once, which "
+            "the next request is answered with at once. The certificate this client holds still "
+            "works until it expires: ask again later, or pair again before then"
+        )
+
+    if reply.status == 409 and reply.error() == "this session":
+        raise RenewalRefusedThisSession(
+            "the operator refused every renewal of this certificate until KeePass exits. Ask "
+            "again after KeePass has been restarted or once the operator has allowed renewal "
+            "again on the KPG tab's clients page, or pair again, with an invitation from the "
+            "operator, before the one this client holds expires"
+        )
+
+    if reply.status == 409 and reply.error() == "forever":
+        raise RenewalRefusedForever(
+            "the operator refused every renewal of this certificate. Ask again once the operator "
+            "has allowed renewal again on the KPG tab's clients page, or pair again, with an "
+            "invitation from the operator, before the one this client holds expires"
+        )
+
+    if reply.status == 409 and reply.error() == "too early":
+        not_before = _moment(reply.json().get("notBefore"))
+        raise RenewalTooEarly(
+            f"the operator said not before {not_before:%Y-%m-%dT%H:%M:%SZ}: ask again from then. "
+            "The certificate this client holds still works until it expires",
+            not_before,
+        )
+
+    if reply.status == 504:
+        raise RenewalUnanswered(
+            "nobody answered the renewal dialog, and nothing changed: ask again when somebody is "
+            "at the screen"
+        )
+
+    _refuse(reply)
+
+
+def _moment(value: object) -> datetime:
+    """A moment the gate wrote, as RFC 3339 in UTC to the second, or a refusal to guess."""
+    if isinstance(value, str):
+        with contextlib.suppress(ValueError):
+            moment = datetime.strptime(value, "%Y-%m-%dT%H:%M:%SZ")
+            return moment.replace(tzinfo=UTC)
+
+    raise ProtocolError("the gate refused a renewal until a moment this client cannot read")
 
 
 def _refuse(reply: transport.Response) -> None:

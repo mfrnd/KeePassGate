@@ -278,7 +278,7 @@ namespace KeePassGate.Tests
         public void A_client_is_warned_about_in_the_last_third_of_its_own_life_and_thirty_days_at_most(
             int days, int hours)
         {
-            // A fixed thirty days would warn about a week-long certificate from the moment it was
+            // A fixed thirty days warned about a week-long certificate from the moment it was
             // issued. The five minutes the issuer backdates by count as part of the life, which
             // moves each uncapped third by a hundred seconds.
             using (var authority = TestAuthority.New())
@@ -362,6 +362,69 @@ namespace KeePassGate.Tests
                         AuthorityDescription.Of(reading, Listed(records), null, weekEnd.AddDays(-2)).Details);
                     Assert.That(text, Does.Contain("One client has expired."));
                     Assert.That(text, Does.Contain("One client expires within 2 days."));
+                }
+            }
+        }
+
+        [Test]
+        public void A_client_that_renewed_is_judged_by_the_certificate_that_ends_last()
+        {
+            // The record it renewed from stays until the client gives that certificate up, and
+            // counted on its own it said the client was expiring, then that it had expired,
+            // while the renewed certificate had a year left.
+            _service.Create();
+
+            using (var authority = TestAuthority.New())
+            using (var older = authority.IssueClient("agent-renewing", TimeSpan.FromDays(7)))
+            using (var renewed = authority.IssueClient("agent-renewing", TimeSpan.FromDays(365)))
+            {
+                var paired = AdmissionRecord.For(older, DateTimeOffset.UtcNow.AddDays(-1), null);
+                var records = new[]
+                {
+                    AdmissionRecord.For(renewed, DateTimeOffset.UtcNow, null, paired.ClientKey),
+                    paired
+                };
+
+                var olderEnd = new DateTimeOffset(older.NotAfter.ToUniversalTime(), TimeSpan.Zero);
+
+                using (var reading = _service.Read())
+                {
+                    var soon = string.Join(" ",
+                        AuthorityDescription.Of(reading, Listed(records), null, olderEnd.AddDays(-1)).Details);
+                    var after = string.Join(" ",
+                        AuthorityDescription.Of(reading, Listed(records), null, olderEnd.AddDays(1)).Details);
+
+                    Assert.That(soon, Does.Not.Contain("expires within"));
+                    Assert.That(after, Does.Not.Contain("has expired"));
+                }
+            }
+        }
+
+        [Test]
+        public void Two_programs_under_one_name_are_each_warned_about()
+        {
+            // Two clients that chose one name, not one client that renewed: judged by name, the one
+            // ending first was hidden behind the one ending last.
+            _service.Create();
+
+            using (var authority = TestAuthority.New())
+            using (var shorter = authority.IssueClient("agent", TimeSpan.FromDays(7)))
+            using (var longer = authority.IssueClient("agent", TimeSpan.FromDays(365)))
+            {
+                var records = new[]
+                {
+                    AdmissionRecord.For(longer, DateTimeOffset.UtcNow, null),
+                    AdmissionRecord.For(shorter, DateTimeOffset.UtcNow.AddDays(-1), null)
+                };
+
+                var shorterEnd = new DateTimeOffset(shorter.NotAfter.ToUniversalTime(), TimeSpan.Zero);
+
+                using (var reading = _service.Read())
+                {
+                    var soon = string.Join(" ",
+                        AuthorityDescription.Of(reading, Listed(records), null, shorterEnd.AddDays(-1)).Details);
+
+                    Assert.That(soon, Does.Contain("One client expires within"));
                 }
             }
         }

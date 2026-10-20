@@ -29,8 +29,6 @@ namespace KeePassGate.Host.Tests.Live
     [NonParallelizable]
     public sealed class LiveGateTests
     {
-        private static readonly TimeSpan StartTimeout = TimeSpan.FromSeconds(60);
-
         private LiveSession _session;
         private string _databaseId;
         private string _refusedDigest;
@@ -60,7 +58,7 @@ namespace KeePassGate.Host.Tests.Live
                 keePass.Admit(admitted, "ops");
 
                 var process = keePass.Start();
-                WaitUntilServing(keePass, process);
+                LiveApiTests.WaitUntilServing(keePass, process);
 
                 _paired = Ask(keePass.Port, keePass.NewGateName(), admitted, GateOperations.StatusPath);
                 _notFound = Ask(keePass.Port, keePass.NewGateName(), admitted, "/secrets");
@@ -178,52 +176,6 @@ namespace KeePassGate.Host.Tests.Live
                 .Count(line => line.Contains("refused a certificate with no admission record"));
 
             Assert.That(refusals, Is.EqualTo(1), _pluginLog);
-        }
-
-        /// <summary>
-        /// Ready is the database being served, not the socket being open.
-        /// </summary>
-        /// <remarks>
-        /// The listener starts inside the plugin's `Initialize`, and KeePass opens the database it
-        /// was given on its command line only once its plugins are initialized. In between, the
-        /// resolver has no target for the rotating name, so the connection is dropped before any
-        /// TLS answer. That is the gate being fail-closed and is correct; a fixture that asks on
-        /// `listening on` is racing the startup, and on a cold machine it loses. `serving a
-        /// database with authority` is written when the target is built, which the unlock this
-        /// file's opening does, and is the first moment a name resolves.
-        ///
-        /// Both lines, in that order, because the serving line on its own would not tell a gate
-        /// that never started from one that started and has nothing to serve yet.
-        /// </remarks>
-        private static void WaitUntilServing(ThrowawayKeePass keePass, System.Diagnostics.Process process)
-        {
-            WaitForLog(keePass, process, "listening on 127.0.0.1:" + keePass.Port,
-                "The plugin never reported a listening gate.");
-
-            WaitForLog(keePass, process, "serving a database with authority",
-                "The plugin never reported serving the database KeePass was started with.");
-        }
-
-        private static void WaitForLog(
-            ThrowawayKeePass keePass, System.Diagnostics.Process process, string marker, string failure)
-        {
-            var deadline = DateTime.UtcNow + StartTimeout;
-            while (DateTime.UtcNow < deadline)
-            {
-                if (keePass.ReadPluginLog().Contains(marker))
-                {
-                    return;
-                }
-
-                if (process.HasExited)
-                {
-                    Assert.Fail("KeePass exited during start up with code " + process.ExitCode + ". " + failure);
-                }
-
-                Thread.Sleep(250);
-            }
-
-            Assert.Fail(failure + " Log so far:" + Environment.NewLine + keePass.ReadPluginLog());
         }
 
         /// <summary>

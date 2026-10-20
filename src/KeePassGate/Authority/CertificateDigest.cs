@@ -48,5 +48,26 @@ namespace KeePassGate.Authority
             return digest.Length <= 16 ? digest : digest.Substring(0, 16);
         }
 
+        /// <summary>
+        /// Whether this is a digest as <see cref="Of(byte[])"/> writes one: sixty-four characters
+        /// of lowercase hex, and nothing else.
+        /// </summary>
+        public static bool IsDigest(string text)
+        {
+            if (text == null || text.Length != 64)
+            {
+                return false;
+            }
+
+            foreach (var c in text)
+            {
+                if (!((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f')))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
     }
 }

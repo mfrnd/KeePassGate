@@ -12,10 +12,12 @@ against output the plugin produced.
 from __future__ import annotations
 
 import base64
+import datetime as dt
 import json
 import math
 import os
 import secrets
+from datetime import timedelta
 from pathlib import Path
 from typing import Any
 
@@ -40,7 +42,7 @@ from pykeepassgate.errors import (
     RouteRefused,
     StorageError,
 )
-from pykeepassgate.pairing import Pairing
+from pykeepassgate.pairing import Pairing, lifetime_text
 from test_api_routes import resolved
 from test_reference import operations, routing_table
 
@@ -73,8 +75,8 @@ class Gate:
         #: Refusals to hand out before the real answer, one per attempt, so a test can be a gate
         #: that is busy for a while and then is not. Kept per route, because which of the two may
         #: be asked again is the whole question a retry budget raises here.
-        self.hello_refusals: list[tuple[int, str]] = []
-        self.request_refusals: list[tuple[int, str]] = []
+        self.hello_refusals: list[tuple[int, str | dict[str, str]]] = []
+        self.request_refusals: list[tuple[int, str | dict[str, str]]] = []
 
         #: Swapped for something else to play an impostor that cannot prove the token.
         self.server_proof: bytes | None = None
@@ -93,7 +95,7 @@ class Gate:
     def _hello(self, body: dict[str, Any]) -> tuple[int, str]:
         if self.hello_refusals:
             status, error = self.hello_refusals.pop(0)
-            return status, json.dumps({"error": error})
+            return status, json.dumps(error if isinstance(error, dict) else {"error": error})
 
         offered = base64.b64decode(body["proof"])
 
@@ -126,7 +128,7 @@ class Gate:
             self.binding,
             self.nonce,
             self.challenge,
-            proofs.asked(body["name"], body["profiles"]),
+            proofs.asked(body["name"], body["profiles"], body.get("lifetime")),
         )
 
         if not proofs.matches(expected, base64.b64decode(body["proof"])):
@@ -138,7 +140,7 @@ class Gate:
         # challenge is spent by then and the invitation is not.
         if self.request_refusals:
             status, error = self.request_refusals.pop(0)
-            return status, json.dumps({"error": error})
+            return status, json.dumps(error if isinstance(error, dict) else {"error": error})
 
         if self.refuse_with:
             status, error = self.refuse_with
@@ -264,6 +266,50 @@ def test_a_request_follows_its_own_hello_and_comes_back_with_a_bundle(
     assert bundle["profiles"] == ["reader"], "what was approved, not what was asked for"
 
 
+def test_a_lifetime_asked_for_is_sent_and_signed_for(gate: FakeGate, pairing_gate: Gate) -> None:
+    # The gate checks the proof over the lifetime the body carries, so this arriving at all is
+    # the two halves agreeing on what was signed; `test_protocol.py` pins the bytes.
+    pairing = Pairing(gate.port, INVITATION, connection_timeout=10.0)
+    exchange = pairing.hello()
+    pairing.request(exchange, "agent-invented", ["reader"], timedelta(days=30))
+
+    assert pairing_gate.asked is not None
+    assert pairing_gate.asked["lifetime"] == "P30D"
+
+
+@pytest.mark.parametrize(
+    "lifetime",
+    [
+        timedelta(0),
+        timedelta(days=-1),
+        timedelta(days=366),
+        timedelta(hours=36),
+        timedelta(days=30, seconds=1),
+        timedelta(days=1, microseconds=-1),
+        30,
+    ],
+)
+def test_a_lifetime_the_gate_would_refuse_never_reaches_it(
+    gate: FakeGate, pairing_gate: Gate, lifetime: Any
+) -> None:
+    # The gate refuses it as `400 malformed` before it takes the challenge, as it refuses a name,
+    # so this saves the round trip and says which rule was broken. A part of a day is refused
+    # rather than rounded, because either way it rounds is a certificate nobody asked for.
+    pairing = Pairing(gate.port, INVITATION, connection_timeout=10.0)
+    exchange = pairing.hello()
+    before = len(gate.requests)
+
+    with pytest.raises(ValueError, match="whole number of days from 1 to 365"):
+        pairing.request(exchange, "agent-invented", ["reader"], lifetime)
+
+    assert len(gate.requests) == before, "nothing was asked of the gate at all"
+
+
+@pytest.mark.parametrize(("days", "written"), [(1, "P1D"), (7, "P7D"), (365, "P365D")])
+def test_every_lifetime_the_gate_allows_is_written_as_it_reads_one(days: int, written: str) -> None:
+    assert lifetime_text(timedelta(days=days)) == written
+
+
 def test_the_request_goes_out_on_a_new_connection_with_a_new_name(
     gate: FakeGate, pairing_gate: Gate
 ) -> None:
@@ -346,7 +392,7 @@ def test_a_busy_gate_is_described_by_what_it_asks_about(
     said = str(refused.value)
     assert "Database Maintenance" in said
     assert "saving the database would stop to ask" in said
-    assert "another pairing is in front" in said
+    assert "another pairing or renewal" in said
     assert "group dialog" not in said
     assert "invitation is still good" in said
 
@@ -529,6 +575,7 @@ def test_pairing_through_the_library_passes_on_what_it_was_given(
         profiles=["reader", "writer"],
         directory=tmp_path / "kept",
         host="gate.invalid",
+        lifetime=timedelta(days=7),
     )
 
     assert built == [
@@ -541,6 +588,7 @@ def test_pairing_through_the_library_passes_on_what_it_was_given(
     ]
     assert handler.asked is not None
     assert handler.asked["profiles"] == ["reader", "writer"], "the operator is shown what was asked"
+    assert handler.asked["lifetime"] == "P7D"
     assert stored.directory == tmp_path / "kept"
     assert api.load(tmp_path / "kept").port == gate.port, "the port stored is the one paired on"
 
@@ -595,6 +643,24 @@ def test_a_pairing_with_a_setting_that_cannot_work_is_refused_before_anything_is
 
     with pytest.raises(ValueError, match=setting):
         Pairing(**{"port": gate.port, "invitation": INVITATION, **given})
+
+    assert not (tmp_path / "kept").exists()
+    assert gate.names == []
+
+
+def test_a_pairing_asking_for_a_lifetime_nobody_can_have_is_refused_before_anything_is_touched(
+    gate: FakeGate, tmp_path: Path
+) -> None:
+    # Before `prepare` and before the hello, as every other setting is: the gate would refuse the
+    # request as `400 malformed`, and only after the four files had been opened to receive it.
+    with pytest.raises(ValueError, match="lifetime"):
+        api.pair(
+            port=gate.port,
+            invitation=INVITATION,
+            name="agent-invented",
+            directory=tmp_path / "kept",
+            lifetime=timedelta(days=400),
+        )
 
     assert not (tmp_path / "kept").exists()
     assert gate.names == []
@@ -930,6 +996,53 @@ class TestWhatPairingMayRepeat:
         assert self._sent(gate, "/pair/hello") == 2, "the second try began at phase 3"
         assert self._sent(gate, "/pair/request") == 2
         assert waited == [2.0]
+
+    def test_an_approval_the_gate_holds_is_asked_for_again_without_a_busy_budget(
+        self,
+        gate: FakeGate,
+        host: Issued,
+        tmp_path: Path,
+        bundle: dict[str, Any],
+        waited: list[float],
+    ) -> None:
+        # The operator approved and KeePass was too busy to write it: the gate holds the approval
+        # for exactly this request until `heldUntil`, so not asking again loses it, and a caller
+        # that gave no budget for KeePass being busy did not mean to lose an approval.
+        until = (dt.datetime.now(dt.UTC) + dt.timedelta(minutes=5)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        answering = Gate(gate, host, bundle=bundle)
+        answering.request_refusals = [(503, {"error": "busy", "heldUntil": until})]
+        gate.handler = answering
+        gate.retry_after = "2"
+
+        stored = api.pair(
+            port=gate.port,
+            invitation=INVITATION,
+            name="agent-invented",
+            profiles=["reader"],
+            directory=tmp_path / "kept",
+        )
+
+        assert stored.subject
+        assert self._sent(gate, "/pair/request") == 2, "the same request, from a fresh hello"
+        assert answering.asked is not None and answering.asked["profiles"] == ["reader"]
+        assert waited == [2.0]
+
+    def test_an_approval_no_longer_held_is_raised_with_the_moment_it_ran_out(
+        self, gate: FakeGate, pairing_gate: Gate, tmp_path: Path, waited: list[float]
+    ) -> None:
+        ran_out = {"error": "busy", "heldUntil": "2001-02-03T04:05:06Z"}
+        pairing_gate.request_refusals = [(503, ran_out)]
+
+        with pytest.raises(GateBusy) as refused:
+            api.pair(
+                port=gate.port,
+                invitation=INVITATION,
+                name="agent-invented",
+                directory=tmp_path / "kept",
+            )
+
+        assert refused.value.held_until == dt.datetime(2001, 2, 3, 4, 5, 6, tzinfo=dt.UTC)
+        assert waited == []
 
     def test_a_pairing_waits_out_two_authorities_on_the_budget_given_for_them(
         self,

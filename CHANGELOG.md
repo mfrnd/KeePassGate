@@ -16,7 +16,16 @@ The first version, so there is nothing earlier to describe a change from: everyt
   its own certificate authority, whose authority and host certificate are issued together for a
   hundred years.
 - **Pairing**, by which a program holding an invitation from the operator becomes a client of one
-  database, approved on KeePass's own screen.
+  database, approved on KeePass's own screen, with a certificate lasting as long as the operator
+  picks, a day to a year, from what the program asks for. Its dialog, and the renewal dialog below,
+  come up in front without taking the keyboard, no key approves either, and a lock closes either as
+  unanswered.
+- **A client's certificate from start to end**: the **KPG** tab warns before one expires, a program
+  renews its own on an approval dialog like the pairing one, which the operator can refuse once,
+  in this session, until a date or forever, and the **Clients** page shows such an answer in red
+  and takes it back from the row's menu, a program can give its own up, and the records of
+  expired certificates go with the plugin's next write of its own: a pairing, a renewal, a
+  revocation or a change to the authority.
 - **Access rules** on groups and entries, written on the **KPG** tab, and an audit file of every
   decision they make, which the plugin opens with the right to append and no other.
 - **The API**, whose routes [`openapi.yaml`](src/KeePassGate/Spec/openapi.yaml) declares: a

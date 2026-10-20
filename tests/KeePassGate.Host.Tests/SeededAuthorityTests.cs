@@ -91,6 +91,25 @@ namespace KeePassGate.Host.Tests
         }
 
         /// <summary>
+        /// The written down client is a record the plugin reads, filed under its key and known by
+        /// the certificate it paired with.
+        /// </summary>
+        /// <remarks>
+        /// Asked here rather than found out from a screenshot run, for the reason the test below
+        /// gives: a record the plugin will not read is listed as one that cannot be, and every
+        /// picture of the clients page would show that.
+        /// </remarks>
+        [Test]
+        public void The_seeded_client_record_reads_as_the_client_it_was_paired_as()
+        {
+            var admissionKey = AuthorityKeys.AdmissionKeyIn(SeededAuthority.ClientKey);
+            var record = AdmissionRecord.Load(admissionKey, SeededAuthority.ClientRecord);
+
+            Assert.That(record, Is.Not.Null);
+            Assert.That(record.ClientKey, Is.EqualTo(admissionKey));
+        }
+
+        /// <summary>
         /// What the picture of the authority chooser has to show, read the way the dialog reads it.
         /// </summary>
         /// <remarks>

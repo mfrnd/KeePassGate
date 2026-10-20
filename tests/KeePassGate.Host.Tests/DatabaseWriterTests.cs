@@ -1,4 +1,5 @@
 using System;
+using KeePassGate.Authority;
 using KeePassGate.Bridge;
 using KeePassGate.Diagnostics;
 using KeePassGate.Ui;
@@ -23,10 +24,10 @@ namespace KeePassGate.Host.Tests
     /// one, which a real user interface thread produces when the work was already running.
     ///
     /// The second is a save that would stop and ask somebody. `MainForm.SaveDatabase` has three
-    /// questions that can be seen coming, `DESIGN.md` §119 says no API request may raise a dialog,
-    /// and these are the three refusals that keep that true. Two cases that must still go through
-    /// are here beside them, because a check on the file is one wrong comparison away from refusing
-    /// every write there is.
+    /// questions that can be seen coming, `DESIGN.md` §119 says no API request may raise a dialog of
+    /// KeePass's own that could have been foreseen, and these are the three refusals that keep that
+    /// true. Two cases that must still go through are here beside them, because a check on the
+    /// file is one wrong comparison away from refusing every write there is.
     /// </remarks>
     [TestFixture]
     [NonParallelizable]
@@ -646,6 +647,74 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void The_block_this_writers_own_save_raises_is_not_KeePass_being_busy()
+        {
+            // `MainForm.SaveDatabase` blocks KeePass's interaction for as long as it runs, and a
+            // pairing or a renewal asks `Blocked` from another connection while a write is saving.
+            // Read as KeePass's own work, every one of them was turned away for a write that only
+            // had to be waited for.
+            var blocked = false;
+            var keePassBusy = false;
+            string during = "never asked";
+            var savingDuring = false;
+            DatabaseWriter writer = null;
+            writer = new DatabaseWriter(
+                new RunsUiThread(),
+                db =>
+                {
+                    blocked = true;
+                    try
+                    {
+                        savingDuring = writer.Saving;
+                        during = System.Threading.Tasks.Task.Run(() => writer.Blocked(db)).Result;
+                        db.Modified = false;
+                    }
+                    finally
+                    {
+                        blocked = false;
+                    }
+                },
+                () => blocked || keePassBusy ? "KeePass is in the middle of an operation of its own" : null,
+                null,
+                null,
+                null,
+                NullGateLog.Instance);
+
+            Assert.That(writer.Change(_database.Database, () => VaultWrite.Created("abcd")).Ok, Is.True);
+
+            Assert.That(savingDuring, Is.True, "the writer knows its own save is running");
+            Assert.That(during, Is.Null, "asked from another thread during that save, it is not KeePass's");
+            Assert.That(writer.Saving, Is.False);
+
+            keePassBusy = true;
+            Assert.That(writer.Blocked(_database.Database), Is.EqualTo("KeePass is in the middle of an operation of its own"),
+                "while the same block raised by KeePass's own work still refuses");
+        }
+
+        [Test]
+        public void A_connection_waits_for_the_write_in_flight_and_no_longer_than_it_is_told()
+        {
+            var inside = new System.Threading.ManualResetEventSlim();
+            var release = new System.Threading.ManualResetEventSlim();
+            var writer = Writer(new RunsUiThread(), db =>
+            {
+                inside.Set();
+                release.Wait(TimeSpan.FromSeconds(10));
+                db.Modified = false;
+            });
+
+            var writing = System.Threading.Tasks.Task.Run(
+                () => writer.Change(_database.Database, () => VaultWrite.Created("abcd")));
+            Assert.That(inside.Wait(TimeSpan.FromSeconds(10)), Is.True);
+
+            Assert.That(writer.Quiet(TimeSpan.FromMilliseconds(50)), Is.False, "the write is still saving");
+
+            release.Set();
+            Assert.That(writer.Quiet(TimeSpan.FromSeconds(10)), Is.True, "and is waited for once it ends");
+            Assert.That(writing.Result.Ok, Is.True);
+        }
+
+        [Test]
         public void A_question_about_KeePass_that_cannot_be_answered_refuses_the_write()
         {
             // Fail closed, like every other guard here. The whole point of the question is that
@@ -722,6 +791,22 @@ namespace KeePassGate.Host.Tests
             Assert.That(undone, Is.EqualTo(1), "the change is taken back out");
             Assert.That(_database.Database.Modified, Is.False,
                 "and the file it never reached is still the one KeePass read");
+        }
+
+        [Test]
+        public void A_standing_answer_for_this_session_is_refused_before_anything_is_touched()
+        {
+            var saves = 0;
+            var writer = Writer(new RunsUiThread(), db => saves++);
+
+            var outcome = writer.RefuseRenewal(
+                _database.Database, new string('a', 64), RenewalRefusal.ThisSession());
+
+            Assert.That(outcome.IsFailed, Is.True);
+            Assert.That(outcome.Reason, Does.Contain("this session"));
+            Assert.That(saves, Is.EqualTo(0), "nothing was saved");
+            Assert.That(new AdmissionStore(new CustomDataStore(_database.Database), NullGateLog.Instance)
+                .StandingRefusal(new string('a', 64)), Is.Null, "nor written");
         }
 
         private DatabaseWriter Writer(IUiThread ui, Action<PwDatabase> save)

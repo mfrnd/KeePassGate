@@ -36,9 +36,10 @@ namespace KeePassGate.Tests
             // so the two are consecutive rather than alternatives.
             var forTheScreen = pairing.ApprovalTimeout;
             var forTheDialog = pairing.ApprovalTimeout + PairingApprovalPrompt.Grace;
+            var forKeePassToSettle = pairing.ApprovalSettle;
             var forTheWrite = DatabaseWriter.LockTimeout + DatabaseWriter.WriteTimeout;
 
-            var waits = forTheScreen + forTheDialog + forTheWrite;
+            var waits = forTheScreen + forTheDialog + forKeePassToSettle + forTheWrite;
 
             Assert.That(options.PairingBudget, Is.GreaterThan(waits),
                 "the connection budget closes the socket while the operator is still reading, and " +
@@ -52,9 +53,9 @@ namespace KeePassGate.Tests
             var options = new GateOptions();
 
             // The ordinary budget exists to stop a peer holding a thread by feeding it slowly, and
-            // it has to stay short for that. Pairing is the one exchange that is not slow but
-            // blocked on a person, which is why it is measured separately rather than by raising
-            // this for everybody.
+            // it has to stay short for that. Pairing and renewal are the two exchanges that are not
+            // slow but blocked on a person, which is why they are measured separately rather than
+            // by raising this for everybody.
             Assert.That(options.Budget, Is.LessThan(options.PairingBudget));
             Assert.That(options.Budget, Is.LessThanOrEqualTo(TimeSpan.FromMinutes(2)));
         }

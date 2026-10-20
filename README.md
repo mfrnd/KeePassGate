@@ -10,13 +10,14 @@ served only if the database holds an admission record for its certificate, so re
 that record and writes a revocation beside it, and takes effect on the next connection. **A
 stranger can become a client**: the tab hands out an invitation, the two sides prove they hold it,
 the operator approves what it may reach, and the record is saved before the certificate is handed
-over. A locked KeePass answers that it is locked rather than failing at the transport. **Routing
-is the OpenAPI document**, embedded in the plugin: handlers bind to `operationId`, bodies are
-checked against the declared schema before a handler runs, and a path the document does not
-declare has nowhere to go. **Twenty-two routes read and change groups, entries, fields and
-attachments**, each declaring the verb it needs and the node it is about, and the router refuses
-anything the admission record and the rules on that node do not both allow, writing every decision
-to an audit file outside the database.
+over. A client's certificate lasts as long as the operator picks, and the client can renew it on a
+dialog like that one or give it up itself. A locked KeePass answers that it is locked rather than
+failing at the transport. **Routing is the OpenAPI document**, embedded in the plugin: handlers bind
+to `operationId`, bodies are checked against the declared schema before a handler runs, and a path
+the document does not declare has nowhere to go. **Twenty-two routes read and
+change groups, entries, fields and attachments**, each declaring the verb it needs and the node
+it is about, and the router refuses anything the admission record and the rules on that node do
+not both allow, writing every decision to an audit file outside the database.
 
 **License: MIT.** GPLv2 is not required. KeePass is GPL-2.0-or-later and grants no plugin exception,
 but the FSF's own requirement is a GPL-compatible license, and MIT is one, so a permissive

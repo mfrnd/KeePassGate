@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Security.Cryptography.X509Certificates;
 using KeePassGate.Authority;
 using KeePassGate.Diagnostics;
@@ -20,7 +21,31 @@ namespace KeePassGate.Pairing
         {
             ChallengeLifetime = TimeSpan.FromMinutes(2);
             ApprovalTimeout = TimeSpan.FromMinutes(2);
+            ApprovalSettle = TimeSpan.FromSeconds(HttpResponse.RetryAfterSeconds);
+            ApprovalHeld = GateOptions.DefaultPairingBudget;
         }
+
+        /// <summary>
+        /// How long an approval waits for KeePass to stop being busy before it is held and the
+        /// client is answered `503 busy` with the moment it is held until.
+        /// </summary>
+        /// <remarks>
+        /// As long as the `Retry-After` the client would be told, so a busy that clears that fast
+        /// is written on the same connection rather than on a retry. What keeps the operator's
+        /// decision when a busy lasts longer is <see cref="ApprovalHeld"/>, not this.
+        /// </remarks>
+        public TimeSpan ApprovalSettle { get; set; }
+
+        /// <summary>
+        /// How long an approval that could not be written is held for the client's retry, counted
+        /// from when its request arrived.
+        /// </summary>
+        /// <remarks>
+        /// The pairing budget the request was measured against, so an approval is held for what is
+        /// left of it: a client that waits for that long, as the reference client does, has come
+        /// back by then or is not coming back.
+        /// </remarks>
+        public TimeSpan ApprovalHeld { get; set; }
 
         /// <summary>
         /// How long a client has to follow a hello with a request. Short, because the two are
@@ -75,9 +100,20 @@ namespace KeePassGate.Pairing
         private readonly AuthorityIssuer _issuer;
         private readonly Func<DateTimeOffset> _clock;
         private readonly IGateLog _log;
+        private readonly ApprovalBook _held;
 
         public PairingHandler(IInvitations invitations, IPairingApproval approval, IGateLog log)
             : this(invitations, approval, new PairingOptions(), new AuthorityIssuer(), null, log)
+        {
+        }
+
+        /// <param name="held">
+        /// The approvals held for a retry, which a lock, a close and an exit clear, or null for a
+        /// book of this handler's own.
+        /// </param>
+        public PairingHandler(
+            IInvitations invitations, IPairingApproval approval, ApprovalBook held, IGateLog log)
+            : this(invitations, approval, new PairingOptions(), new AuthorityIssuer(), null, log, held)
         {
         }
 
@@ -87,7 +123,8 @@ namespace KeePassGate.Pairing
             PairingOptions options,
             AuthorityIssuer issuer,
             Func<DateTimeOffset> clock,
-            IGateLog log)
+            IGateLog log,
+            ApprovalBook held = null)
         {
             if (invitations == null)
             {
@@ -100,6 +137,7 @@ namespace KeePassGate.Pairing
             _issuer = issuer ?? new AuthorityIssuer();
             _clock = clock ?? (() => DateTimeOffset.UtcNow);
             _log = log ?? NullGateLog.Instance;
+            _held = held ?? new ApprovalBook(_clock);
         }
 
         /// <summary>`pairHello`, once the router has decided this is the operation.</summary>
@@ -247,6 +285,10 @@ namespace KeePassGate.Pairing
         /// <summary>Phases 4 and 5. The operator decides, and then the record lands before anything is given out.</summary>
         private void Request(IGateContext context, PairingConnection connection)
         {
+            // When the pairing budget began, near enough: the request is off the wire by now, and
+            // an approval is held for what is left of that budget.
+            var arrived = _clock();
+
             var body = JsonBody.Read(context.Body);
             if (body == null)
             {
@@ -258,7 +300,15 @@ namespace KeePassGate.Pairing
             var asked = body.Array("profiles") ?? Array.Empty<string>();
             var offered = Base64(body.Text("proof"));
 
-            if (name == null || offered == null)
+            // How long the client asks its certificate to last, as it wrote it, which is what the
+            // proof below is computed over. The document holds it to one spelling and this reads
+            // it again: present and not a lifetime is the same refusal as any other body that is
+            // not what the document declares.
+            var lifetimeWritten = body.Text("lifetime");
+            var lifetime = Lifetime.Read(lifetimeWritten);
+
+            if (name == null || offered == null
+                || (body.Names.Contains("lifetime") && lifetime == null))
             {
                 context.Respond(400, HttpResponse.ErrorBody("malformed"));
                 return;
@@ -313,7 +363,7 @@ namespace KeePassGate.Pairing
                     challenge.Binding,
                     challenge.Nonce,
                     challenge.Value,
-                    PairingProof.Asked(name, asked));
+                    PairingProof.Asked(name, asked, lifetimeWritten));
 
                 if (!FixedTime.Equals(expected, offered))
                 {
@@ -327,11 +377,39 @@ namespace KeePassGate.Pairing
                 Array.Clear(token, 0, token.Length);
             }
 
-            Approve(context, connection, name, asked);
+            var key = ApprovalBook.Pairing(invitation.Id, name, asked, lifetimeWritten);
+            var held = _held.Find(key, connection.Target.DatabaseId);
+            if (held != null)
+            {
+                // Approved on an earlier connection and held because KeePass was busy then: the
+                // operator has answered exactly this, so nothing is put in front of them again.
+                _log.Info("pairing on invitation " + invitation.Id + " was approved earlier and held, " +
+                          "so it is written now without asking again");
+            }
+            else
+            {
+                held = Approve(context, connection, name, asked, lifetime, key, arrived);
+                if (held == null)
+                {
+                    return;
+                }
+            }
+
+            Write(context, connection, name, held);
         }
 
-        private void Approve(
-            IGateContext context, PairingConnection connection, string name, IReadOnlyList<string> asked)
+        /// <summary>
+        /// Puts the request to the operator, and holds their approval, or answers and says null
+        /// when there is none.
+        /// </summary>
+        private HeldApproval Approve(
+            IGateContext context,
+            PairingConnection connection,
+            string name,
+            IReadOnlyList<string> asked,
+            TimeSpan? lifetime,
+            string key,
+            DateTimeOffset arrived)
         {
             var target = connection.Target;
             var invitation = connection.Invitation;
@@ -344,7 +422,19 @@ namespace KeePassGate.Pairing
             {
                 _log.Warn("pairing refused for now: " + blocked);
                 context.Respond(503, HttpResponse.ErrorBody("busy"));
-                return;
+                return null;
+            }
+
+            // A list that will not read is not offered as one naming nothing, as a renewal's is
+            // not: every name would be shown as "(new)", names the damaged list holds among them,
+            // and approving would write a list of only the approved names over it, dropping every
+            // other client's for good and the sign that the list was damaged with them.
+            var unreadable = ProfilesUnreadable(target);
+            if (unreadable != null)
+            {
+                _log.Warn("pairing refused for now: " + unreadable);
+                context.Respond(503, HttpResponse.ErrorBody("busy"));
+                return null;
             }
 
             // Named as well as fingerprinted. The operator is being asked to let a stranger into
@@ -365,7 +455,8 @@ namespace KeePassGate.Pairing
                 once,
                 known,
                 connection.Peer,
-                Returning(target, once, known));
+                Returning(target, once, known),
+                lifetime);
 
             PairingApproval decision;
             try
@@ -376,7 +467,7 @@ namespace KeePassGate.Pairing
             {
                 _log.Error("the pairing dialog failed", error);
                 context.Respond(503, HttpResponse.ErrorBody("busy"));
-                return;
+                return null;
             }
 
             switch (decision.Decision)
@@ -385,52 +476,137 @@ namespace KeePassGate.Pairing
                     // Nothing is spent. An absent operator does not cost the invitee its invitation.
                     _log.Warn("pairing on invitation " + invitation.Id + " went unanswered");
                     context.Respond(504, HttpResponse.ErrorBody("unanswered"));
-                    return;
+                    return null;
 
                 case PairingDecision.Unavailable:
                     _log.Warn("pairing on invitation " + invitation.Id + " could not be put to anybody: " +
                               decision.Reason);
                     context.Respond(503, HttpResponse.ErrorBody("busy"));
-                    return;
+                    return null;
+
+                case PairingDecision.Locked:
+                    // Unanswered, as a timeout is, so nothing is spent; told as every connection to
+                    // a locked database is told, since that is what this one now is.
+                    _log.Warn("pairing on invitation " + invitation.Id + " was " + decision.Reason);
+                    context.Respond(503, HttpResponse.ErrorBody(LockedTarget.Error));
+                    return null;
 
                 case PairingDecision.Refused:
                     _invitations.Burn(invitation.Id);
                     _log.Warn("pairing on invitation " + invitation.Id + " was refused, and it is spent");
                     context.Respond(403, HttpResponse.ErrorBody("refused"));
-                    return;
+                    return null;
             }
 
-            // Asked again, because the answer before the dialog is as old as the dialog. KeePass
-            // locking underneath it, or Database Maintenance opened while the operator was reading,
-            // is found here while it can still be a `503` that spends nothing. Left to the write,
-            // it was found after the burn and cost the invitation the approval was for.
-            blocked = Blocked(target);
-            if (blocked != null)
-            {
-                _log.Warn("pairing on invitation " + invitation.Id + " was approved and refused for now: " +
-                          blocked);
-                context.Respond(503, HttpResponse.ErrorBody("busy"));
-                return;
-            }
-
-            // Once each here too, because what comes back is whatever the screen answered and a
-            // repeated profile would reach the certificate as a repeated claim.
-            Issue(context, connection, name, Once(decision.Profiles));
+            // Held from here until it is written, so that KeePass being busy when the operator has
+            // answered costs a retry rather than the answer. Once each here too, because what comes
+            // back is whatever the screen answered and a repeated profile would reach the
+            // certificate as a repeated claim. The lifetime is the operator's choice, which the
+            // issuer holds to `Lifetime`'s bounds once more. What the list held of the approved
+            // names is kept with it, because the write compares that under the writer's lock.
+            var approved = Once(decision.Profiles);
+            var listed = new HashSet<string>(target.KnownProfiles ?? Array.Empty<string>(), StringComparer.Ordinal);
+            return _held.Hold(
+                key,
+                target.DatabaseId,
+                approved,
+                decision.Lifetime,
+                approved.Where(listed.Contains),
+                null,
+                arrived + _options.ApprovalHeld);
         }
 
         /// <summary>
-        /// Phase 5. Issue, spend the invitation, land the record, and only then hand anything over.
+        /// Phase 5 for an approval the operator has given: waits a moment for a busy KeePass, then
+        /// issues, writes and hands over, or holds it for the client's retry.
         /// </summary>
-        private void Issue(
-            IGateContext context, PairingConnection connection, string name, IReadOnlyList<string> profiles)
+        private void Write(IGateContext context, PairingConnection connection, string name, HeldApproval held)
         {
             var target = connection.Target;
             var invitation = connection.Invitation;
 
+            // Asked again, because the answer before the dialog is as old as the dialog. Database
+            // Maintenance opened while the operator was reading, or KeePass saving, is found here
+            // while it can still be a `503` that spends nothing. A lock while the dialog stands
+            // closes the dialog instead, `PAIRING.md` §308, and a lock after it takes the held
+            // approval away, which ends this wait as the lock it is.
+            var blocked = Settled(target, _options.ApprovalSettle, Blocked, () => _held.Holds(held));
+            if (!_held.Holds(held))
+            {
+                Gone(context, held, "pairing on invitation " + invitation.Id, _log);
+                return;
+            }
+
+            if (blocked != null)
+            {
+                Busy(context, held, "pairing on invitation " + invitation.Id, blocked, _log);
+                return;
+            }
+
+            Issue(context, connection, name, held);
+        }
+
+        /// <summary>
+        /// Answers an approval that is held no longer: `503 locked` when a lock or a close took it,
+        /// and `503 busy` with nothing held when its time ran out, which raises the dialog again.
+        /// </summary>
+        internal static void Gone(IGateContext context, HeldApproval held, string what, IGateLog log)
+        {
+            if (held.Cleared)
+            {
+                log.Warn(what + " was approved, and KeePass locked or closed the database before it " +
+                          "could be written, so nothing was issued");
+                context.Respond(503, HttpResponse.ErrorBody(LockedTarget.Error));
+                return;
+            }
+
+            log.Warn(what + " was approved, and was held until its time ran out without being written");
+            context.Respond(503, HttpResponse.ErrorBody("busy"));
+        }
+
+        /// <summary>
+        /// Answers an approval that could not be written yet: `503 busy`, saying until when it is
+        /// held, so that the same request asked again before then is written without the dialog.
+        /// </summary>
+        internal static void Busy(IGateContext context, HeldApproval held, string what, string why, IGateLog log)
+        {
+            var until = Moments.Wire(held.Until);
+            log.Warn(what + " was approved and could not be written yet, so it is held until " + until +
+                      ": " + why);
+            context.Respond(503, HeldBody(until));
+        }
+
+        /// <summary>The body of a `503 busy` that holds an approval.</summary>
+        internal static string HeldBody(string until)
+        {
+            return "{\"error\":\"busy\",\"heldUntil\":" + JsonConvert.ToString(until) + "}";
+        }
+
+        /// <summary>
+        /// Phase 5. Issue, then land the record and spend the invitation together, and only then
+        /// hand anything over.
+        /// </summary>
+        private void Issue(IGateContext context, PairingConnection connection, string name, HeldApproval held)
+        {
+            var target = connection.Target;
+            var invitation = connection.Invitation;
+            var profiles = held.Profiles;
+            var lifetime = held.Lifetime;
+
+            // Outside the filter below, which names `ArgumentException` among the ways a key
+            // fails to sign: a lifetime no dialog offers is a defect here, and it travels to the
+            // connection thread's catch-all, which counts it, rather than reading as a failed
+            // issuance.
+            if (!Lifetime.IsAllowed(lifetime))
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(held), "The approval carried a lifetime no dialog offers.");
+            }
+
             X509Certificate2 certificate;
             try
             {
-                certificate = _issuer.IssueClient(target.Authority, name, profiles);
+                certificate = _issuer.IssueClient(target.Authority, name, profiles, lifetime);
             }
             catch (Exception error) when (Expected.OfIssuance(error))
             {
@@ -447,31 +623,65 @@ namespace KeePassGate.Pairing
 
             try
             {
-                if (!_invitations.Burn(invitation.Id))
-                {
-                    // Gone while the operator was reading the dialog. Somebody else spent it, and only
-                    // one of them can win, or its time ran out, and an answer given after that is too
-                    // late: `PAIRING.md` §306 has no way back from gone. The book's own line says which.
-                    _log.Warn("pairing on invitation " + invitation.Id +
-                              " lost the race to spend it, or it ran out while the operator was deciding");
-                    context.Respond(409, HttpResponse.ErrorBody("no invitation"));
-                    return;
-                }
-
                 // A profile the operator approved that this database had never named is created by
                 // their approval, and the writer does that inside the same marshaled write as the
                 // record, off the profiles the record already carries.
                 var record = AdmissionRecord.For(certificate, _clock(), profiles);
 
+                // **Asked under the writer's lock, once the database is known to be writable**,
+                // which is the one moment none of it can move before the record relies on it: the
+                // approval is still held and is used up, the database still holds what it was
+                // given against, and the invitation is spent, last, so that nothing before the
+                // record can fail once it is. Everything that can still answer busy is asked
+                // before this, so a `503` never follows a spent invitation.
+                string refused = null;
+                var spent = false;
+                Func<IKeyValueStore, string> condition = store =>
+                {
+                    if (!_held.Take(held))
+                    {
+                        refused = held.Cleared ? "locked" : "expired";
+                        return "the approval is no longer held";
+                    }
+
+                    var stale = held.Stale(store, null);
+                    if (stale == HeldStaleness.Authority)
+                    {
+                        refused = "no invitation";
+                        return "the authority it was approved under is no longer the one served";
+                    }
+
+                    if (stale != HeldStaleness.None)
+                    {
+                        refused = "stale";
+                        return "a profile it approved is not on the list as it was when the operator answered";
+                    }
+
+                    if (!_invitations.Burn(invitation.Id))
+                    {
+                        refused = "no invitation";
+                        return "the invitation was spent or ran out while the operator was deciding";
+                    }
+
+                    spent = true;
+                    return null;
+                };
+
                 AdmissionWrite written;
                 try
                 {
-                    written = target.Admit(record) ?? AdmissionWrite.Failed("nothing was reported");
+                    written = target.Admit(record, condition) ?? AdmissionWrite.Failed("nothing was reported");
                 }
                 catch (Exception error) when (Expected.OfCustomData(error) || Expected.OfUserInterface(error))
                 {
                     _log.Error("an admission record could not be written", error);
                     written = AdmissionWrite.Failed(error.Message);
+                }
+
+                if (!written.Ok && !spent)
+                {
+                    Unwritten(context, held, written, refused, "pairing on invitation " + invitation.Id);
+                    return;
                 }
 
                 if (!written.Ok)
@@ -480,7 +690,7 @@ namespace KeePassGate.Pairing
                     // issued that the database does not know about. The operator invites again.
                     //
                     // **Never 503 here, however transient the reason was.** The invitation was
-                    // spent on the line above, so a client told to try again would be turned away
+                    // spent inside the write, so a client told to try again would be turned away
                     // at the name before it reached a route at all, and dropped without a word.
                     // Whether it was worth retrying is something only the operator can act on, so
                     // that part goes in the log rather than on the wire.
@@ -506,10 +716,67 @@ namespace KeePassGate.Pairing
         }
 
         /// <summary>
-        /// What the client is given: its own certificate and key, the authority to pin from now on,
-        /// and the gate key every connection after this one is named from.
+        /// Answers a pairing whose record was not written and whose invitation was not spent.
         /// </summary>
-        private static string Bundle(
+        /// <remarks>
+        /// **Busy keeps the approval held**: the write found KeePass busy before it took anything,
+        /// so the same request asked again before the approval runs out is written without the
+        /// dialog. **Anything the write's condition refused uses the approval up**, and what the
+        /// client is told is what refused it: a lock or a close, the invitation gone, or the
+        /// database no longer holding what the operator approved, which asks them again.
+        /// </remarks>
+        private void Unwritten(
+            IGateContext context, HeldApproval held, AdmissionWrite written, string refused, string what)
+        {
+            if (written.IsBusy)
+            {
+                if (_held.Holds(held))
+                {
+                    Busy(context, held, what, written.Reason, _log);
+                    return;
+                }
+
+                Gone(context, held, what, _log);
+                return;
+            }
+
+            switch (refused)
+            {
+                case "locked":
+                case "expired":
+                    Gone(context, held, what, _log);
+                    return;
+
+                case "no invitation":
+                    // Gone while the operator was reading the dialog or while the approval was
+                    // held: somebody else spent it, and only one of them can win, or its time ran
+                    // out, and `PAIRING.md` §306 has no way back from gone.
+                    _log.Warn(what + " lost the race to spend it, or it ran out while the operator was deciding: " +
+                              written.Reason);
+                    context.Respond(409, HttpResponse.ErrorBody("no invitation"));
+                    return;
+
+                case "stale":
+                    _log.Warn(what + " was approved and not written, so the operator is asked again: " +
+                              written.Reason);
+                    context.Respond(503, HttpResponse.ErrorBody("busy"));
+                    return;
+            }
+
+            // Nothing was touched and nothing spent: the database closed under the write, or the
+            // write could not be attempted. The approval goes with it, and asking again asks the
+            // operator again.
+            _held.Take(held);
+            _log.Warn(what + " was approved and not written, and nothing was spent: " + written.Reason);
+            context.Respond(503, HttpResponse.ErrorBody("busy"));
+        }
+
+        /// <summary>
+        /// What the client is given: its own certificate and key, the authority to pin from now on,
+        /// and the gate key every connection after this one is named from. A renewal answers with
+        /// the same, so that a client stores either the same way.
+        /// </summary>
+        internal static string Bundle(
             IGateTarget target, X509Certificate2 certificate, IReadOnlyList<string> profiles)
         {
             var gateKey = target.GateKey;
@@ -636,6 +903,41 @@ namespace KeePassGate.Pairing
             return returning;
         }
 
+
+        /// <summary>
+        /// Why a record cannot be written, asked until it can, until the wait runs out or until the
+        /// approval it is for is no longer held, and the last answer, which is null once it can.
+        /// </summary>
+        /// <remarks>
+        /// **An approval let go ends the wait at once.** A lock takes every held approval away, so
+        /// one still settling when KeePass locks is answered as the lock rather than written into
+        /// the database a quick unlock opens again, after that unlock has closed its connection.
+        /// </remarks>
+        internal static string Settled(
+            IGateTarget target, TimeSpan wait, Func<IGateTarget, string> blocked, Func<bool> holding)
+        {
+            var answer = blocked(target);
+            var waited = System.Diagnostics.Stopwatch.StartNew();
+            while (answer != null && waited.Elapsed < wait && holding())
+            {
+                System.Threading.Thread.Sleep(100);
+                answer = blocked(target);
+            }
+
+            return answer;
+        }
+
+        private static string ProfilesUnreadable(IGateTarget target)
+        {
+            try
+            {
+                return target.ProfilesUnreadable;
+            }
+            catch (Exception error) when (Expected.OfCustomData(error))
+            {
+                return "the profiles this database names could not be read: " + error.Message;
+            }
+        }
 
         private string Blocked(IGateTarget target)
         {

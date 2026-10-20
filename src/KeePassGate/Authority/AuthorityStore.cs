@@ -21,7 +21,7 @@ namespace KeePassGate.Authority
     /// deleted or not chosen has a retirement beside it that is only ever added. The authorities
     /// are the documents with no retirement. Straight after a merge a retired document can be back
     /// beside its retirement, and it serves nothing whether or not anything has taken it away yet:
-    /// taking it away is <see cref="Prune"/>, which rides on writes this plugin makes anyway and
+    /// taking it away is <see cref="Prune()"/>, which rides on writes this plugin makes anyway and
     /// which nothing here depends on having happened.
     /// </remarks>
     public sealed class AuthorityStore
@@ -202,9 +202,11 @@ namespace KeePassGate.Authority
         /// every authority this database can serve and leave it serving none, under a message
         /// saying one had been kept.
         ///
-        /// The admission records are left alone. The ones issued by the authorities retired here
-        /// chain to nothing that is served, so they admit nobody, and the clients page says so on
-        /// each row; the operator can take them away from there.
+        /// The records issued by the authorities retired here stay. They chain to nothing that is
+        /// served, so they admit nobody, and the clients page says so on each row; the operator can
+        /// take them away from there. The prune every write here rides on still runs, so the
+        /// records of expired certificates go, and so does a record that came back beside its
+        /// revocation, whichever authority issued it.
         /// </remarks>
         /// <returns>How many authorities were retired.</returns>
         public int Keep(string fingerprint)
@@ -241,21 +243,32 @@ namespace KeePassGate.Authority
         }
 
         /// <summary>
-        /// Takes away every document whose authority is retired, and every admission record that
-        /// came back beside its revocation, answering with what went so that a write that does not
-        /// land can put it back.
+        /// Takes away every document whose authority is retired, every admission record that came
+        /// back beside its revocation, every record of a certificate that has expired, and every
+        /// standing answer to a renewal that no record is left to ask, answering with what went so
+        /// that a write that does not land can put it back.
         /// </summary>
         /// <remarks>
         /// **Only ever as part of a write this plugin is making anyway**: keeping one authority,
-        /// recreating or deleting it, or pairing. Opening or reading a database changes nothing in
-        /// it, so a document a merge brought back stays until then, serving nothing, because the
-        /// decision reads the retirement rather than the document; a record a merge brought back
-        /// admits nobody, because admission reads the revocation rather than the record.
+        /// recreating or deleting it, or pairing or renewing. Opening or reading a database changes
+        /// nothing in it, so a document a merge brought back stays until then, serving nothing,
+        /// because the decision reads the retirement rather than the document; a record a merge
+        /// brought back admits nobody, because admission reads the revocation rather than the
+        /// record; and a record of an expired certificate admits nobody, because the gate reads its
+        /// dates.
         /// </remarks>
         public IReadOnlyList<KeyValuePair<string, string>> Prune()
         {
+            return Prune(DateTimeOffset.UtcNow);
+        }
+
+        /// <summary>The same, at a moment the caller chose, which is what a certificate's end is measured against.</summary>
+        public IReadOnlyList<KeyValuePair<string, string>> Prune(DateTimeOffset now)
+        {
             var retired = Retired();
             var removed = new List<KeyValuePair<string, string>>(_admissions.PruneCameBack());
+            removed.AddRange(_admissions.PruneExpired(now));
+            removed.AddRange(_admissions.PruneRefusals());
 
             foreach (var key in Keys().ToList())
             {

@@ -775,12 +775,18 @@ def test_every_call_sends_what_its_operation_declares(
 def test_every_call_that_carries_a_value_is_held_to_the_document(
     document: dict[str, Any],
 ) -> None:
-    """A route with a path parameter or a body cannot arrive without a case above."""
+    """A route with a path parameter or a body cannot arrive without a case above.
+
+    Pairing and renewal are held to the document in their own files, because each is an exchange
+    rather than one request: a renewal stores what it is answered with and then gives a
+    certificate up, which is a second request after the one this checks.
+    """
     carrying = {
         name
         for name, operation in operations(document).items()
         if operation["method"] != "head"
         and not operation["path"].startswith("/pair/")
+        and name != "renewCertificate"
         and ("{" in operation["path"] or "requestBody" in operation)
     }
 

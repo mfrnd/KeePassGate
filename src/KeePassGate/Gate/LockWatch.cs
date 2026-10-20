@@ -37,6 +37,62 @@ namespace KeePassGate.Gate
     {
         /// <summary>Closes every one of them, and says how many there were.</summary>
         int CloseAll(string why);
+
+        /// <summary>
+        /// Closes every one of them except those waiting on the operator, and says how many it
+        /// closed. What a lock does, because <see cref="IApprovalScreen.Locked"/> has already
+        /// taken their question away and each answers `503 locked` itself.
+        /// </summary>
+        int CloseAllButAwaiting(string why);
+    }
+
+    /// <summary>The questions put to the operator, and their answers, as locking sees them.</summary>
+    public interface IApprovalScreen
+    {
+        /// <summary>
+        /// KeePass is locking: a pairing or renewal dialog standing closes as unanswered, and an
+        /// approval waiting to be written is let go, on KeePass's thread.
+        /// </summary>
+        void Locked();
+
+        /// <summary>
+        /// A database was closed for real: an approval waiting to be written is let go, on
+        /// KeePass's thread.
+        /// </summary>
+        void Closed();
+    }
+
+    /// <summary>Several of them, told in the order they were given.</summary>
+    public sealed class ApprovalScreens : IApprovalScreen
+    {
+        private readonly IApprovalScreen[] _screens;
+
+        public ApprovalScreens(params IApprovalScreen[] screens)
+        {
+            _screens = screens ?? Array.Empty<IApprovalScreen>();
+        }
+
+        public void Locked()
+        {
+            foreach (var screen in _screens)
+            {
+                if (screen != null)
+                {
+                    screen.Locked();
+                }
+            }
+        }
+
+        public void Closed()
+        {
+            foreach (var screen in _screens)
+            {
+                if (screen != null)
+                {
+                    screen.Closed();
+                }
+            }
+        }
     }
 
     /// <summary>
@@ -69,12 +125,21 @@ namespace KeePassGate.Gate
     /// which its deadline bounds. What the order does guarantee is that no connection arriving after
     /// the lock can reach it, and that the ones still running are being closed rather than served.
     /// The data path is closed either way, because a locked target answers no records at all.
+    ///
+    /// **A lock spares the connections waiting on the operator**, and closes the question they are
+    /// waiting on instead. A pairing or renewal dialog holds no lock off, so a lock can fall under
+    /// one, and closing its connection left the dialog offering an Approve over a locked database
+    /// while the client was told nothing at all. The screen is told first, so the dialog closes as
+    /// unanswered and its connection answers `503 locked`, `PAIRING.md` §308; every other
+    /// connection is closed as before. What the spared ones go on to do touches nothing: a locked
+    /// database writes nothing, and their deadline still bounds them.
     /// </remarks>
     public sealed class LockWatch : IDisposable
     {
         private readonly IDatabaseEvents _databases;
         private readonly ILockableTargets _targets;
         private readonly Func<IConnections> _connections;
+        private readonly IApprovalScreen _screen;
         private readonly IGateLog _log;
         private readonly GateIncidents _incidents;
         private readonly object _stateLock = new object();
@@ -83,7 +148,7 @@ namespace KeePassGate.Gate
 
         public LockWatch(
             IDatabaseEvents databases, ILockableTargets targets, IConnections connections, IGateLog log)
-            : this(databases, targets, () => connections, log, null)
+            : this(databases, targets, () => connections, log, null, null)
         {
         }
 
@@ -98,12 +163,17 @@ namespace KeePassGate.Gate
         /// KeePass's own events, so each of the three is one of the places that catch everything:
         /// what escapes here reaches the message loop and ends the password manager.
         /// </param>
+        /// <param name="screen">
+        /// The questions put to the operator, which a lock takes away, or null where there is no
+        /// screen.
+        /// </param>
         public LockWatch(
             IDatabaseEvents databases,
             ILockableTargets targets,
             Func<IConnections> connections,
             IGateLog log,
-            GateIncidents incidents)
+            GateIncidents incidents,
+            IApprovalScreen screen)
         {
             if (databases == null)
             {
@@ -118,6 +188,7 @@ namespace KeePassGate.Gate
             _databases = databases;
             _targets = targets;
             _connections = connections;
+            _screen = screen;
             _log = log ?? NullGateLog.Instance;
             _incidents = incidents ?? new GateIncidents(_log);
         }
@@ -189,7 +260,7 @@ namespace KeePassGate.Gate
 
                 if (_targets.Unlock(e.Path))
                 {
-                    Close("a database was unlocked");
+                    Close("a database was unlocked", false);
                 }
             }
             catch (Exception error)
@@ -241,6 +312,14 @@ namespace KeePassGate.Gate
 
                 if (e.IsLocking)
                 {
+                    // The question first, whichever database this is: KeePass locks every open
+                    // database at once, so a lock of any of them is a lock of the one a dialog is
+                    // about.
+                    if (_screen != null)
+                    {
+                        _screen.Locked();
+                    }
+
                     // The material is let go first, then the connections. That does not wipe it
                     // while a connection is still holding its own reference; what it does is stop
                     // any later connection reaching it, and start closing the ones that are.
@@ -249,15 +328,22 @@ namespace KeePassGate.Gate
                     // belonging to databases that are still perfectly open.
                     if (_targets.Lock(e.Path))
                     {
-                        Close("a database was locked");
+                        Close("a database was locked", true);
                     }
 
                     return;
                 }
 
+                // An approval waiting to be written goes with the database, as at a lock: one held
+                // across a close would be written into whatever is opened under that authority next.
+                if (_screen != null)
+                {
+                    _screen.Closed();
+                }
+
                 if (_targets.Forget(e.Path))
                 {
-                    Close("a database was closed");
+                    Close("a database was closed", false);
                 }
             }
             catch (Exception error)
@@ -268,7 +354,7 @@ namespace KeePassGate.Gate
             }
         }
 
-        private void Close(string why)
+        private void Close(string why, bool spareAwaiting)
         {
             if (_connections == null)
             {
@@ -283,7 +369,14 @@ namespace KeePassGate.Gate
                     return;
                 }
 
-                connections.CloseAll(why);
+                if (spareAwaiting)
+                {
+                    connections.CloseAllButAwaiting(why);
+                }
+                else
+                {
+                    connections.CloseAll(why);
+                }
             }
             catch (Exception error) when (Expected.OfConnection(error))
             {

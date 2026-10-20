@@ -259,6 +259,23 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void A_database_is_served_to_the_approval_dialogs_until_it_locks()
+        {
+            // Asked on KeePass's thread just before a pairing or renewal dialog goes up, so a
+            // request that waited for the screen while KeePass locked is never shown.
+            var databaseId = _targets.Current().Single().DatabaseId;
+
+            Assert.That(_targets.Serving(databaseId), Is.True);
+            Assert.That(_targets.Serving("0000000000000000"), Is.False, "an authority nobody serves");
+
+            _database.Database.Close();
+            _open.Clear();
+            Assume.That(_targets.Lock(_database.Path), Is.True);
+
+            Assert.That(_targets.Serving(databaseId), Is.False);
+        }
+
+        [Test]
         public void A_connection_that_lands_between_the_close_and_the_lock_leaves_it_answering()
         {
             // KeePass clears the database first and announces the lock afterwards, so a connection

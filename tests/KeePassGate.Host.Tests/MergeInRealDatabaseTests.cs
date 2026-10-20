@@ -167,6 +167,79 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void Of_two_standing_answers_made_apart_the_later_is_the_one_kept()
+        {
+            // `CA.md` §204: a standing answer is changed rather than only added, so a merge decides
+            // between two by their times, and the later stands. Written a moment apart, so the
+            // times differ by more than the second they are kept to.
+            var admissionKey = CertificateDigest.Of(_first);
+            Records(_here).Write(AdmissionRecord.For(_first, DateTimeOffset.UtcNow, new[] { "ops" }));
+            Records(_elsewhere).Write(AdmissionRecord.For(_first, DateTimeOffset.UtcNow, new[] { "ops" }));
+
+            Records(_here).RefuseRenewal(admissionKey, RenewalRefusal.Until(DateTimeOffset.UtcNow.AddDays(3)));
+            System.Threading.Thread.Sleep(1100);
+            Records(_elsewhere).RefuseRenewal(admissionKey, RenewalRefusal.Forever());
+
+            Synchronize();
+
+            Assert.That(Records(_here).StandingRefusal(admissionKey).IsForever, Is.True);
+        }
+
+        [Test]
+        public void A_standing_answer_a_merge_brings_back_beside_a_revoked_record_goes_with_the_next_write()
+        {
+            // A revocation takes the answer away with the record, and a copy that still holds the
+            // answer brings it back, since a merge never removes a key. It refuses a renewal
+            // nothing could ask for, and the next write's prune takes it away again.
+            var admissionKey = CertificateDigest.Of(_first);
+            Records(_here).Write(AdmissionRecord.For(_first, DateTimeOffset.UtcNow, new[] { "ops" }));
+            Records(_elsewhere).Write(AdmissionRecord.For(_first, DateTimeOffset.UtcNow, new[] { "ops" }));
+            Records(_elsewhere).RefuseRenewal(admissionKey, RenewalRefusal.Forever());
+
+            Assume.That(Records(_here).Remove(admissionKey), Is.True);
+            Assume.That(Records(_here).StandingRefusal(admissionKey), Is.Null);
+
+            Synchronize();
+            Assume.That(Records(_here).StandingRefusal(admissionKey), Is.Not.Null, "the merge brought it back");
+
+            Records(_here).PruneRefusals();
+
+            Assert.That(Records(_here).StandingRefusal(admissionKey), Is.Null);
+            Assert.That(Records(_here).Find(admissionKey), Is.Null, "and the client is still refused");
+        }
+
+        [Test]
+        public void The_record_of_an_expired_certificate_a_merge_brings_back_admits_nobody_and_goes_with_the_next_write()
+        {
+            var then = DateTimeOffset.UtcNow.AddDays(-7);
+            var issuer = new AuthorityIssuer(() => then);
+
+            // An authority of its own made a week ago, since this database's was made today and
+            // issues nothing that began before it.
+            using (var authority = issuer.CreateAuthority())
+            using (var ended = issuer.IssueClient(authority, "agent-ended-fictitious", new[] { "ops" }, TimeSpan.FromDays(1)))
+            {
+                var record = AdmissionRecord.For(ended, then, new[] { "ops" });
+                Records(_here).Write(record);
+                Records(_elsewhere).Write(record);
+
+                Assume.That(Records(_here).PruneExpired(DateTimeOffset.UtcNow), Is.Not.Empty);
+
+                Synchronize();
+                Assume.That(_here.Database.CustomData.Get(record.StorageKey), Is.Not.Null.And.Not.Empty,
+                    "the merge brought the record back");
+
+                Assert.That(
+                    CertificateValidity.HasExpired(new DateTimeOffset(ended.NotAfter.ToUniversalTime(), TimeSpan.Zero), DateTimeOffset.UtcNow),
+                    Is.True, "it admits nobody, since the gate reads the certificate's dates");
+
+                Records(_here).PruneExpired(DateTimeOffset.UtcNow);
+
+                Assert.That(_here.Database.CustomData.Get(record.StorageKey), Is.Null, "and the next write takes it away");
+            }
+        }
+
+        [Test]
         public void Two_authorities_made_apart_arrive_whole_and_side_by_side()
         {
             // The three parts are one key precisely so a merge cannot take a certificate from one

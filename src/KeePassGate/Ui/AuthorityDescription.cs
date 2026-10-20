@@ -283,9 +283,11 @@ namespace KeePassGate.Ui
         {
             // Two rows. The tab is 449 by 314 and every row costs the same seventeen pixels, so
             // the table holds what an operator opens this tab to ask: which authority this is, and
-            // how many programs it has let in. No date is among them. When the authority was
-            // created answers nothing anybody asks here, and the authority and its host certificate
-            // are good for a hundred years, so until when says nothing either, `CA.md` §219.
+            // how many records of programs it has let in, two for a program that renewed until it
+            // gives the old certificate up, `docs/clients.md`. No date is among them. When the
+            // authority was created answers nothing anybody asks here, and the authority and its
+            // host certificate are good for a hundred years, so until when says nothing either,
+            // `CA.md` §219.
             return new List<Fact>
             {
                 new Fact("Fingerprint", CertificateDigest.Shorten(reading.Material.AuthorityDigest)),
@@ -387,6 +389,14 @@ namespace KeePassGate.Ui
         /// refused before their end matters, and the clients page names them so; warning that one
         /// of them expires within the month had the operator looking to pair again a program the
         /// other page said had never reached the database at all.
+        ///
+        /// **By client rather than by record**, which is the client key every record carries. A
+        /// client that renewed keeps the record it renewed from until it gives that certificate
+        /// up, and counting that record warned that a client was expiring, then that it had
+        /// expired, while its renewed certificate had a year left. Each client is judged by the
+        /// reaching record that ends last. By client key and not by name, since two programs
+        /// that paired under one name are two clients, and judged by name the one ending first
+        /// went unwarned about.
         /// </remarks>
         private static void Clients(
             ICollection<string> lines,
@@ -403,15 +413,8 @@ namespace KeePassGate.Ui
             var soon = 0;
             var latest = TimeSpan.Zero;
 
-            foreach (var record in records)
+            foreach (var record in Newest(records, reaches))
             {
-                ClientReach reach;
-                if (reaches != null && reaches.TryGetValue(record.AdmissionKey, out reach)
-                    && reach != ClientReach.Reaches)
-                {
-                    continue;
-                }
-
                 using (var certificate = record.Certificate())
                 {
                     // Through `CertificateValidity`, so the tab cannot call a client expired at an
@@ -446,20 +449,58 @@ namespace KeePassGate.Ui
         }
 
         /// <summary>
+        /// For each client, by its client key, the record the gate would get as far as the dates
+        /// of that ends last.
+        /// </summary>
+        private static IEnumerable<AdmissionRecord> Newest(
+            IReadOnlyList<AdmissionRecord> records, IDictionary<string, ClientReach> reaches)
+        {
+            var newest = new Dictionary<string, AdmissionRecord>(StringComparer.Ordinal);
+            var ends = new Dictionary<string, DateTime>(StringComparer.Ordinal);
+
+            foreach (var record in records)
+            {
+                ClientReach reach;
+                if (reaches != null && reaches.TryGetValue(record.AdmissionKey, out reach)
+                    && reach != ClientReach.Reaches)
+                {
+                    continue;
+                }
+
+                DateTime end;
+                using (var certificate = record.Certificate())
+                {
+                    end = certificate.NotAfter.ToUniversalTime();
+                }
+
+                var client = record.ClientKey;
+                DateTime known;
+                if (!ends.TryGetValue(client, out known) || end > known)
+                {
+                    ends[client] = end;
+                    newest[client] = record;
+                }
+            }
+
+            return newest.Values;
+        }
+
+        /// <summary>
         /// How far ahead of this certificate's end it is warned about: the last third of its own
         /// life, and never more than <see cref="LongestClientWarning"/>.
         /// </summary>
         /// <remarks>
-        /// **Scaled to the certificate rather than fixed at thirty days**, so that a short one is
-        /// not warned about from the moment it was issued, since a warning that is always there
-        /// says nothing. A third is when ACME clients usually renew a ninety-day certificate,
-        /// thirty days before its end, which is long enough to act on without being most of the
-        /// certificate's life; the cap keeps the year every client is issued for warned about
-        /// thirty days ahead, as it was while the window was fixed.
+        /// **Scaled to the certificate, because how long one lasts is the operator's pick from what
+        /// the client asked, a day at the shortest.** A fixed thirty days warned about a week-long
+        /// certificate from the moment it was issued, and a warning that is always there says
+        /// nothing. A third is when ACME clients usually renew a
+        /// ninety-day certificate, thirty days before its end, which is long enough to act on
+        /// without being most of the certificate's life; the cap keeps a year-long certificate
+        /// warned about thirty days ahead, as every client was when every one lasted a year.
         ///
         /// Over its life as issued, `notBefore` to `notAfter`, so the five minutes the issuer
         /// backdates by count too, and a certificate cut short at its authority's end is warned
-        /// about over the life it has rather than the year it was issued for.
+        /// about over the life it has rather than the one the operator picked.
         /// </remarks>
         public static TimeSpan ClientWarning(X509Certificate2 certificate)
         {

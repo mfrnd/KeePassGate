@@ -112,6 +112,20 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void A_list_of_profiles_that_will_not_read_is_said_to_be_unreadable_rather_than_empty()
+        {
+            CreateAuthorityIn(_first);
+            var target = _targets.Current()[0];
+
+            Assert.That(target.ProfilesUnreadable, Is.Null, "no list is a list naming nothing");
+
+            _first.Database.CustomData.Set(KeePassGate.Acl.ProfileNames.CustomDataKey, "not a list at all");
+
+            Assert.That(target.ProfilesUnreadable, Is.Not.Null);
+            Assert.That(target.KnownProfiles, Is.Empty, "while every other reader still sees nothing named");
+        }
+
+        [Test]
         public void The_same_database_gives_the_same_target_until_something_changes()
         {
             // Building a target parses a PKCS#12 and mints a responder, so doing it per connection

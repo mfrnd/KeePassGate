@@ -77,7 +77,7 @@ namespace KeePassGate.Tests
 
             Assert.That(pfx, Is.Not.EqualTo(_certificate.RawData));
             Assert.Throws<ArgumentException>(() => new AdmissionRecord(
-                CertificateDigest.Of(pfx), "CN=agent-fictitious", Admitted, new[] { "ops" }, pfx));
+                CertificateDigest.Of(pfx), "CN=agent-fictitious", CertificateDigest.Of(pfx), Admitted, new[] { "ops" }, pfx));
         }
 
         [Test]
@@ -90,6 +90,7 @@ namespace KeePassGate.Tests
             Assert.That(read, Is.Not.Null);
             Assert.That(read.AdmissionKey, Is.EqualTo(record.AdmissionKey));
             Assert.That(read.Subject, Is.EqualTo("CN=agent-fictitious"));
+            Assert.That(read.ClientKey, Is.EqualTo(record.ClientKey));
             Assert.That(read.Admitted, Is.EqualTo(Admitted));
             Assert.That(read.Profiles, Is.EqualTo(new[] { "ops", "readonly" }));
             Assert.That(read.CertificateDer, Is.EqualTo(_certificate.RawData));
@@ -142,11 +143,53 @@ namespace KeePassGate.Tests
             var record = new AdmissionRecord(
                 CertificateDigest.Of(_certificate),
                 "CN=agent-fictitious",
+                CertificateDigest.Of(_certificate),
                 Admitted,
                 new[] { "ops", "default", "with space", string.Empty, "ops" },
                 _certificate.RawData);
 
             Assert.That(record.Profiles, Is.EqualTo(new[] { "ops" }));
+        }
+
+        [Test]
+        public void A_paired_client_is_known_by_its_own_certificate()
+        {
+            var record = AdmissionRecord.For(_certificate, Admitted, new[] { "ops" });
+
+            Assert.That(record.ClientKey, Is.EqualTo(record.AdmissionKey));
+            Assert.That(record.Save(), Does.Contain("\nclient=" + record.AdmissionKey + "\n"));
+        }
+
+        [Test]
+        public void A_renewed_record_keeps_the_client_key_it_was_given()
+        {
+            // A renewal is the same client under a new certificate: its record carries the key of
+            // the certificate the client paired with, not its own, and reads back with it.
+            var first = new string('c', 64);
+            var record = AdmissionRecord.For(_certificate, Admitted, new[] { "ops" }, first);
+
+            Assert.That(record.ClientKey, Is.EqualTo(first));
+            Assert.That(record.AdmissionKey, Is.EqualTo(CertificateDigest.Of(_certificate)));
+            Assert.That(AdmissionRecord.Load(record.AdmissionKey, record.Save()).ClientKey, Is.EqualTo(first));
+        }
+
+        [TestCase(null)]
+        [TestCase("")]
+        [TestCase("abc")]
+        [TestCase("CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC")]
+        [TestCase("gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg")]
+        public void A_client_key_that_is_not_a_digest_is_refused_both_ways(string clientKey)
+        {
+            // Nothing was ever distributed, so a record with no client key, or one that is not a
+            // digest, is not an older record to be read kindly: it is not a record, and like any
+            // other that is not, it admits nobody.
+            Assert.Throws<ArgumentException>(() =>
+                AdmissionRecord.For(_certificate, Admitted, new[] { "ops" }, clientKey));
+
+            var record = AdmissionRecord.For(_certificate, Admitted, new[] { "ops" });
+            var damaged = record.Save().Replace("client=" + record.ClientKey, "client=" + clientKey);
+
+            Assert.That(AdmissionRecord.Load(record.AdmissionKey, damaged), Is.Null);
         }
 
         [Test]
@@ -161,6 +204,7 @@ namespace KeePassGate.Tests
 
         [TestCase("v")]
         [TestCase("subject")]
+        [TestCase("client")]
         [TestCase("admitted")]
         [TestCase("profiles")]
         [TestCase("certificate")]
@@ -239,6 +283,7 @@ namespace KeePassGate.Tests
                 Assert.That(read.CertificateDer, Is.EqualTo(original.CertificateDer), "at " + length);
                 Assert.That(read.Profiles, Is.EqualTo(original.Profiles), "at " + length);
                 Assert.That(read.Subject, Is.EqualTo(original.Subject), "at " + length);
+                Assert.That(read.ClientKey, Is.EqualTo(original.ClientKey), "at " + length);
             }
         }
 
@@ -347,6 +392,7 @@ namespace KeePassGate.Tests
             {
                 "v=1",
                 "subject=CN=agent-fictitious",
+                "client=" + CertificateDigest.Of(certificate),
                 "admitted=2026-03-04T05:06:07Z",
                 "profiles=ops",
                 "certificate=" + Convert.ToBase64String(certificate)
@@ -362,6 +408,7 @@ namespace KeePassGate.Tests
             Assert.Throws<ArgumentException>(() => new AdmissionRecord(
                 CertificateDigest.Of(_certificate),
                 "CN=agent\nprofiles=admin",
+                CertificateDigest.Of(_certificate),
                 Admitted,
                 new[] { "ops" },
                 _certificate.RawData));
@@ -380,7 +427,7 @@ namespace KeePassGate.Tests
             // Refusing it only on the way in would let pairing write a record, report success, and
             // leave a client that is admitted by nothing and revocable by nobody.
             Assert.Throws<ArgumentException>(() => new AdmissionRecord(
-                new string('a', 64), "CN=agent-fictitious", Admitted, null, _certificate.RawData));
+                new string('a', 64), "CN=agent-fictitious", new string('a', 64), Admitted, null, _certificate.RawData));
         }
 
         [Test]
@@ -398,11 +445,13 @@ namespace KeePassGate.Tests
         public void A_record_without_the_things_that_make_it_one_is_refused_at_construction()
         {
             Assert.Throws<ArgumentException>(() =>
-                new AdmissionRecord(null, "CN=x", Admitted, null, _certificate.RawData));
+                new AdmissionRecord(null, "CN=x", new string('a', 64), Admitted, null, _certificate.RawData));
             Assert.Throws<ArgumentException>(() =>
-                new AdmissionRecord("aa", "CN=x", Admitted, null, null));
+                new AdmissionRecord("aa", "CN=x", new string('a', 64), Admitted, null, null));
             Assert.Throws<ArgumentException>(() =>
-                new AdmissionRecord("aa", "CN=x", Admitted, null, Array.Empty<byte>()));
+                new AdmissionRecord("aa", "CN=x", new string('a', 64), Admitted, null, Array.Empty<byte>()));
+            Assert.Throws<ArgumentException>(() => new AdmissionRecord(
+                CertificateDigest.Of(_certificate), "CN=x", null, Admitted, null, _certificate.RawData));
             Assert.Throws<ArgumentNullException>(() => AdmissionRecord.For(null, Admitted, null));
         }
     }

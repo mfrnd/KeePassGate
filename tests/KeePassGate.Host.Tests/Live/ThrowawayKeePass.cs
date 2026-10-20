@@ -134,6 +134,15 @@ namespace KeePassGate.Host.Tests.Live
         /// </summary>
         public static ThrowawayKeePass Create(string workingDirectory, bool withAuthority)
         {
+            return Create(workingDirectory, withAuthority, 0);
+        }
+
+        /// <summary>
+        /// The same, locking after <paramref name="lockAfterSeconds"/> of KeePass inactivity, or
+        /// never for zero, which is what every other session runs with.
+        /// </summary>
+        public static ThrowawayKeePass Create(string workingDirectory, bool withAuthority, int lockAfterSeconds)
+        {
             // No identifier here: the working directory this sits in is already one per session.
             var root = Path.Combine(workingDirectory, "keepass");
             Directory.CreateDirectory(root);
@@ -159,7 +168,7 @@ namespace KeePassGate.Host.Tests.Live
                 }
             }
 
-            WriteConfiguration(root);
+            WriteConfiguration(root, lockAfterSeconds);
 
             // Given back if anything below throws. Nothing else holds the instance until it is
             // returned, so a failure here left the reserved port bound until a collection found
@@ -531,9 +540,37 @@ namespace KeePassGate.Host.Tests.Live
         /// every later step works on, and a failure about one menu would then read as a run of
         /// failures about something else.
         /// </remarks>
-        private static void WriteConfiguration(string root)
+        private static void WriteConfiguration(string root, int lockAfterSeconds)
         {
-            File.WriteAllText(Path.Combine(root, "KeePass.config.xml"), Configuration, new UTF8Encoding(false));
+            File.WriteAllText(
+                Path.Combine(root, "KeePass.config.xml"), ConfigurationLockingAfter(lockAfterSeconds), new UTF8Encoding(false));
+        }
+
+        /// <summary>
+        /// <see cref="Configuration"/>, with KeePass's own inactivity lock set to fire after this
+        /// many seconds, or exactly it for zero.
+        /// </summary>
+        /// <remarks>
+        /// For the one fixture that runs KeePass's own lock timer. Every other session runs with
+        /// none, since a lock falling due in the middle of a fixture that did not ask for one would
+        /// read as a failure about something else.
+        /// </remarks>
+        internal static string ConfigurationLockingAfter(int lockAfterSeconds)
+        {
+            if (lockAfterSeconds <= 0)
+            {
+                return Configuration;
+            }
+
+            return Configuration.Replace(
+                "  <Integration>\r\n",
+                "  <Security>\r\n" +
+                "    <WorkspaceLocking>\r\n" +
+                "      <LockAfterTime>" + lockAfterSeconds.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+                "</LockAfterTime>\r\n" +
+                "    </WorkspaceLocking>\r\n" +
+                "  </Security>\r\n" +
+                "  <Integration>\r\n");
         }
 
         /// <summary>
@@ -825,6 +862,65 @@ namespace KeePassGate.Host.Tests.Live
             Admit(DatabasePath, certificate, profiles);
         }
 
+        /// <summary>
+        /// Admits a client whose row reads the same on every run, answering with its admission
+        /// key: issued by the database's own authority at that moment, for the year a client that
+        /// asks for nothing is given, and admitted at the same moment.
+        /// </summary>
+        /// <remarks>
+        /// For the pictures, which show the name, the profiles and both dates and nothing else of a
+        /// client: the certificate's own bytes differ every run, since the authority signs with a
+        /// random k, and nothing in a picture shows them. **Only before KeePass starts**, for the
+        /// reason <see cref="Admit(X509Certificate2, string[])"/> gives.
+        /// </remarks>
+        public string AdmitAsOf(string subject, DateTimeOffset at, params string[] profiles)
+        {
+            X509Certificate2 issued;
+            using (var reading = ReadAuthority())
+            {
+                issued = new AuthorityIssuer(() => at).IssueClient(reading.Material.Authority, subject, null);
+            }
+
+            using (issued)
+            {
+                var database = new PwDatabase();
+                try
+                {
+                    database.Open(IOConnectionInfo.FromPath(DatabasePath), NewKey(), null);
+                    new AdmissionStore(new CustomDataStore(database), NullGateLog.Instance)
+                        .Write(AdmissionRecord.For(issued, at, profiles));
+                    database.Save(null);
+                }
+                finally
+                {
+                    database.Close();
+                }
+
+                return CertificateDigest.Of(issued);
+            }
+        }
+
+        /// <summary>
+        /// Writes a standing answer to renewing one certificate into the file, as the renewal
+        /// dialog's Refuse menu has the plugin write one.
+        /// </summary>
+        /// <remarks>**Only before KeePass starts**, like everything else here.</remarks>
+        public void RefuseRenewal(string admissionKey, RenewalRefusal refusal)
+        {
+            var database = new PwDatabase();
+            try
+            {
+                database.Open(IOConnectionInfo.FromPath(DatabasePath), NewKey(), null);
+                new AdmissionStore(new CustomDataStore(database), NullGateLog.Instance)
+                    .RefuseRenewal(admissionKey, refusal);
+                database.Save(null);
+            }
+            finally
+            {
+                database.Close();
+            }
+        }
+
         /// <summary>The same, into one copy of the database among several.</summary>
         public void Admit(string path, X509Certificate2 certificate, params string[] profiles)
         {
@@ -1023,6 +1119,44 @@ namespace KeePassGate.Host.Tests.Live
                 database.Open(IOConnectionInfo.FromPath(DatabasePath), NewKey(), null);
                 return new AdmissionStore(
                     new CustomDataStore(database), NullGateLog.Instance).All().Records;
+            }
+            finally
+            {
+                database.Close();
+            }
+        }
+
+        /// <summary>
+        /// One key of the database's own custom data as the file holds it, read after KeePass has
+        /// exited, or null when the file has no such key: the raw value, for a test that has to
+        /// tell an emptied record from a revocation rather than ask the store what they add up to.
+        /// </summary>
+        public string ReadCustomData(string key)
+        {
+            var database = new PwDatabase();
+            try
+            {
+                database.Open(IOConnectionInfo.FromPath(DatabasePath), NewKey(), null);
+                return new CustomDataStore(database).Get(key);
+            }
+            finally
+            {
+                database.Close();
+            }
+        }
+
+        /// <summary>
+        /// The standing answer to renewing one certificate that the file holds, read after KeePass
+        /// has exited, or null when it holds none.
+        /// </summary>
+        public RenewalRefusal ReadStandingRefusal(string admissionKey)
+        {
+            var database = new PwDatabase();
+            try
+            {
+                database.Open(IOConnectionInfo.FromPath(DatabasePath), NewKey(), null);
+                return new AdmissionStore(
+                    new CustomDataStore(database), NullGateLog.Instance).StandingRefusal(admissionKey);
             }
             finally
             {

@@ -30,7 +30,14 @@ knows lives beside the authority, with a page of its own to manage them, and a n
 grants nothing whatever rule still names it. **And the plugin has a window of its own**, under KeePass's Tools
 menu, saying where the gate is listening and taking the port it should listen on. **And there is
 documentation for whoever runs it**: `docs/`, written in the order an operator meets the plugin,
-around screenshots a fixture takes by driving a real KeePass.
+around screenshots a fixture takes by driving a real KeePass. **And a certificate has a
+lifecycle**: the authority and its host certificate are issued together for a hundred years, a
+client's certificate lasts as long as the operator picks from what the client proposes, the records
+of expired certificates go with the plugin's next write of its own, a pairing, a renewal, a
+revocation or a change to the authority, and a client can give its own certificate
+up, or renew it on an approval dialog like the pairing one, which can refuse it once, in this
+session, until a date or forever, an answer the clients page shows in red and takes back on
+the operator's word.
 
 ## Read these before proposing anything
 
@@ -132,8 +139,20 @@ designing around them.
   its backup story was broken anyway because a DPAPI blob restores nowhere.
 - **Pairing tokens live in plugin memory only**, expiring on TTL or KeePass exit, whichever first.
   They are never written to the database. `InvitationBook` is the whole of it, under one lock, and a
-  burn cannot be reverted. The settings dialog a token was made on withdraws it unless that dialog
-  is accepted, so Cancel means Cancel for the one thing on the tab the database does not hold.
+  burn cannot be reverted. **So are approvals KeePass was too busy to write**, in `ApprovalBook`
+  beside it, the operator's ruling of 2026-10-14 over an HMAC token on the wire: keyed by a digest of
+  exactly the approved request, held for the rest of the pairing budget, used once, let go by a
+  lock, a close and an exit, and compared under the writer's lock at the write with the authority,
+  the profile list and the renewed record it was approved against. The client is told
+  `heldUntil` in its `503 busy`. And the settings dialog a token was made on withdraws it unless
+  that dialog is accepted, so Cancel means Cancel for the one thing on the tab the database does
+  not hold.
+- **The approval dialogs are not registered with `GlobalWindowManager`**, and that is the reverse of
+  every dialog KeePass shows. A registered dialog holds KeePass's inactivity lock off and drops a
+  Windows lock, a session switch or a suspend asked for while it stands, and a dialog a client can
+  raise, one after another, would then keep KeePass unlocked with nobody at the desk. So a lock goes
+  through under either dialog and closes it as unanswered, `PAIRING.md` §308. Do not register one to
+  keep it from being left over a locked database: closing it at the lock is what does that.
 - **The proofs need nothing from the transport.** `tls-server-end-point` is a hash of the
   certificate in use, so each side computes it from bytes it already holds. Do not re-propose
   `TransportContext.GetChannelBinding`: it was necessary while `SslStream` terminated the TLS and
@@ -180,9 +199,12 @@ designing around them.
   writes an admission record to the live database, and only touching the keys the operator changed
   leaves it alone.
 
-  **And `KPG.Profiles` is replayed as a difference**, because it is the one key with a second
-  writer: a pairing names an approved profile in the same write as the admission record, so the
-  tab's own list is not the only version of it. Key by key is no help there, since the tab did
+  **And `KPG.Profiles` is replayed as a difference**, because it is a key whose second writer
+  has to be merged with the tab: a pairing names an approved profile in the same write as the
+  admission record, so the tab's own list is not the only version of it. Record and revocation keys
+  have second writers too, a client revoking itself and the prune that rides on the plugin's own
+  writes, and key by key is enough for those, since a revocation reads the same whoever wrote it and
+  a pruned record had nothing left to say. Key by key is no help for the list, since the tab did
   touch that key, and the older list went over the newer one. `PendingStore.Reconcile` registers a
   merge through `ProfileNames.Merge` for it, so a name an approval added survives and a name the
   operator removed still goes, and at the ceiling a name the operator added that no longer fits is
@@ -191,6 +213,14 @@ designing around them.
   a profile the operator is part way through removing is admitted to a name OK takes off the list,
   where it grants nothing, which is why a buffered profile edit kills the invite button.
 
+  **A standing answer to a renewal is the other key with a second writer that matters.** The
+  clients page's **Allow renewal** takes one away in the buffer, and the renewal dialog writes one
+  live once an until-date passes while the settings dialog is open. That answer is the later word
+  on the certificate, so `PendingDatabase` registers a merge for every `KPG.RenewalRefused.` key,
+  through `PendingStore.Reconcile` by kind, that keeps whatever changed under the dialog. An answer
+  for this session has no key: `PendingSessionRefusals` holds the lift beside the buffer, and the
+  factory applies it to the plugin's one `SessionRefusals` on OK and drops it otherwise.
+
   One case survives all of that, deliberately: recreating or deleting the authority while a pairing
   lands leaves that record behind, inert, because its certificate chains to an authority that is
   gone. The clients page says so on the row rather than listing it as a client.
@@ -198,7 +228,9 @@ designing around them.
   **Revocation waits too, and that is a cost that was argued and accepted.** Immediacy is something
   a revocation would rather have, and an operator who revokes and leaves the dialog open has revoked
   nothing. What it buys is one model for the whole tab, because whichever model somebody assumes on
-  the page they are not looking at is the one that costs them.
+  the page they are not looking at is the one that costs them. **Allow renewal waits the same
+  way**: the client's name stops being red at once, as a revoked row goes at once, and the answer
+  is lifted, from the database and from the session alike, when the dialog is accepted.
 
 - **The tabs say `KPG` and the menu item says `KeePassGate (KPG)`**, and which form goes where is
   about space rather than style. A tab strip is not ours: KeePass puts four or five of its own tabs
@@ -489,6 +521,16 @@ a database's custom data. Each gathers what it settled in its own `RESULTS.md`. 
   with `BeginInvoke`, and `GrantPickerTests` reproduces the crash on a real shown form: revert the
   deferral and the test host dies rather than the assertion failing.
 
+- **A menu holding nothing but its items owns Enter and Escape while it is open**, which a dropdown
+  hosting a list does not. Enter clicks the highlighted item, or does nothing when none is, Escape
+  closes it, and the dialog's accept button and its own `ProcessDialogKey` see neither. Its
+  `ItemClicked` is raised before its `Closing` and `Closed`, and the item's own `Click` after them,
+  and a press outside it closes it and is then delivered to whatever it landed on. **And it must
+  not be closed by code before its window goes**: the next window's menu then closed the moment it
+  opened, as an `AppFocusChange`. `SplitButton` leans on all of it, and `SplitButtonTests` drives
+  the first three through a real message loop. The fourth is a rule rather than a test: nothing in
+  `SplitButton` closes its menu by code, and the fixture closes every menu it opened with Escape.
+
 - **A control with an `AccessibleName` reports that to UI automation as its name**, in place of
   its text. That is why the desktop tests point at a control by its `AutomationId`, which comes
   from `Name` and is ours: with the lookup keyed on the identifier, `AccessibleName` is free to
@@ -733,12 +775,12 @@ a record for, a stranger can pair, a locked database answers `503 locked`, a gra
 definite, an operator can write one from the group and entry dialogs, the router refuses anything
 the record and the rules do not both allow while recording every answer the rules give, twenty-two
 routes read and change the database, two launchers start the pinned KeePass with the plugin in it,
-a profile has a home of its own, the plugin has a window under the Tools menu, and `docs/` says how
-to use the result.
+a profile has a home of its own, the plugin has a window under the Tools menu, `docs/` says how
+to use the result, and a client's certificate can be renewed and given up.
 
 **Start with [`docs/`](docs/README.md) if the question is what this does**, and with the documents
-below if the question is why it does it that way. What is left is not a step: there is no release packaging and no
-Scoop manifest.
+below if the question is why it does it that way. What is left is not a step: there is no release
+packaging and no Scoop manifest.
 
 **The storage decision survived the thing most likely to invalidate it.** The `GroupForm` snapshot
 hazard is real and now measured rather than remembered: `SnapshotHazardTests` reads the mechanism off
@@ -799,15 +841,15 @@ database marked modified, for having been looked at.
 
 **What step 14 settled about authorization.** The intersection is structural: the profiles handed to
 the resolver are the ones the admission record carries, less any the database's list no longer
-names, so the rules can only ever answer about what the operator approved at pairing and has not
-taken away since, and there is no place where the two halves could be compared
-wrongly. The **router** asks, before the body is checked and before any handler runs, because a
-handler could forget to. A node that may not be reached and one that is not there answer the same
-404, and the audit is where the operator is told which it was. **Each client's lines are paced**, by
-`DecisionPace`: a thousand at once and ten a second after that, per admission key, and a decision
-past that waits on the caller's own connection rather than being dropped or refused, because the
-file rolls by size and a client that could fill it quickly could push its own earlier lines out of
-it. `DESIGN.md` §120 has the argument.
+names, so the rules can only ever answer about what the operator approved when the client was
+admitted, at pairing or at a renewal, and has not taken away since, and there is no place where the
+two halves could be compared wrongly. The **router** asks, before the body is checked and before any
+handler runs, because a handler could forget to. A node that may not be reached and one that is not
+there answer the same 404, and the audit is where the operator is told which it was. **Each client's
+lines are paced**, by `DecisionPace`: a thousand at once and ten a second after that, per admission
+key, and a decision past that waits on the caller's own connection rather than being dropped or
+refused, because the file rolls by size and a client that could fill it quickly could push its own
+earlier lines out of it. `DESIGN.md` §120 has the argument.
 
 **What step 12 settled about verbs.** A rule holds **six verbs and two switches**, which is
 `CRUSDLAP` and is the order they are declared, written and shown in. The verbs are create, read,
@@ -870,14 +912,16 @@ ordinary budget is what stops a peer holding a thread by feeding it slowly, and 
 on purpose, because it is blocked on a person. Closing the socket there cancels nothing: the
 invitation is still spent and the record still saved, and only the answer is lost.
 
-**The ordinary budget ends with the request, and only pairing's is a sum.** A connection's deadline
-is dropped once the whole request is off the wire, because that is where the peer stops being able
-to make the connection take longer: what is left is this plugin's own write and save. Pairing keeps
-its deadline, and that asymmetry is the argument rather than an exception to it, since a pairing's
-remaining work is a list of waits somebody wrote down: the screen, because one pairing at a time is
-put to the operator and a second waits as long again just to get in front of them, then the dialog
-and the grace on it, then the turn at the writer. `PairingBudget` is what those are added up
-against. `GateOptionsTests` still pins that one.
+**The ordinary budget ends with the request, and only pairing's and renewal's are a sum.** A
+connection's deadline is dropped once the whole request is off the wire, because that is where the
+peer stops being able to make the connection take longer: what is left is this plugin's own write
+and save. Pairing keeps its deadline, and that asymmetry is the argument rather than an exception to
+it, since a pairing's remaining work is a list of waits somebody wrote down: the screen, because one
+pairing at a time is put to the operator and a second waits as long again just to get in front of
+them, then the dialog and the grace on it, then the turn at the writer. `PairingBudget` is what
+those are added up against. `GateOptionsTests` still pins that one. A renewal waits for the same
+things on the same screen, so the listener gives it the same deadline once it has read which
+request arrived.
 
 **This used to claim a floor for both**, `DatabaseWriter.LockTimeout + DatabaseWriter.WriteTimeout`,
 and it was wrong: `WriteTimeout` bounds the wait for the marshaled call to *start*, and a call that
@@ -892,7 +936,8 @@ replaced it, over a real socket. See DESIGN.md §119.
 
 **Two things about records that cost time to learn.** They are read from the live database on every
 connection and never cached, so a record that lands takes effect with nothing having to be reloaded
-or told: the KPG tab's clients page lists every admitted client and takes one away, and from
+or told: the KPG tab's clients page lists every admitted client, names in red the ones whose
+renewals stand refused and lifts that answer from the row's menu, and takes one away, and from
 the next request onwards that client is refused. **Landing is what waits now**, see the tab's own
 entry below: the row goes at once, the revocation lands when the dialog is accepted, and the file changes
 when the database is saved. Until then the certificate still works. The press itself goes into the

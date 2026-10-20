@@ -22,6 +22,7 @@ import base64
 import json
 from collections.abc import Iterable
 from dataclasses import dataclass
+from datetime import timedelta
 from typing import Any
 
 from . import proofs, sni, transport
@@ -53,6 +54,15 @@ NAME_LENGTH = 64
 #: The most profiles one pairing may ask for: the routing document's `maxItems` on `profiles`,
 #: which the gate holds a pairing's body to before it takes the challenge, as it does the names.
 MAX_PROFILES = 32
+
+#: The shortest and the longest a certificate may be asked to last: `Lifetime.ShortestDays` and
+#: `Lifetime.LongestDays` on the plugin's side, in whole days. Mirrored as the name rules are and
+#: for the same reason: the gate refuses anything else as `400 malformed` before it takes the
+#: challenge, so refusing here saves the round trip and names the rule that was broken.
+SHORTEST_LIFETIME = timedelta(days=1)
+LONGEST_LIFETIME = timedelta(days=365)
+
+_DAY = timedelta(days=1)
 
 
 @dataclass(frozen=True)
@@ -196,12 +206,23 @@ class Pairing:
 
         return bound, nonce, reply
 
-    def request(self, exchange: Exchange, name: str, profiles: list[str]) -> dict[str, Any]:
+    def request(
+        self,
+        exchange: Exchange,
+        name: str,
+        profiles: list[str],
+        lifetime: timedelta | None = None,
+    ) -> dict[str, Any]:
         """Phases 4 and 5: ask, wait for the operator, and take the bundle if there is one.
 
         The profiles asked for are a ceiling rather than a grant. The operator can take any of them
         away in the dialog, and what comes back says what was actually approved, which is not
         always what was asked for.
+
+        **The lifetime is a proposal.** The dialog offers it preselected among its presets, and a
+        year when none is asked for, and the operator picks; the bundle's `expires` is what was
+        picked. A `timedelta` of whole days from `SHORTEST_LIFETIME` to `LONGEST_LIFETIME`, and
+        anything else is a `ValueError` here, before anything is sent.
 
         **Nothing here is ever sent twice, whatever budget the caller gave.** Two separate reasons,
         and either one alone would be enough. The challenge is spent by the gate as it reads this,
@@ -211,6 +232,7 @@ class Pairing:
         repeating had already issued a certificate and written a record. A refusal here is reported
         rather than retried, and what may be tried again is the whole exchange, which is `api.pair`.
         """
+        written = None if lifetime is None else lifetime_text(lifetime)
         _usable(name, profiles)
 
         server_name, _ = sni.new_name(self._token)
@@ -221,10 +243,14 @@ class Pairing:
             exchange.binding,
             exchange.nonce,
             exchange.challenge,
-            proofs.asked(name, profiles),
+            proofs.asked(name, profiles, written),
         )
 
-        body = _json({"name": name, "profiles": profiles, "proof": _b64(proof)})
+        asking: dict[str, Any] = {"name": name, "profiles": profiles, "proof": _b64(proof)}
+        if written is not None:
+            asking["lifetime"] = written
+
+        body = _json(asking)
 
         with transport.connect(
             self._port, context, server_name, host=self._host,
@@ -260,6 +286,26 @@ class Pairing:
 
         _refuse(reply)
         return reply.json()
+
+
+def lifetime_text(lifetime: timedelta) -> str:
+    """What the wire carries for a lifetime: an ISO 8601 duration in whole days, such as `P30D`.
+
+    Refused with `ValueError` unless it is a `timedelta` of whole days from `SHORTEST_LIFETIME` to
+    `LONGEST_LIFETIME`, which is what the document's pattern allows. A part of a day is refused
+    rather than rounded either way, because the certificate it would ask for is not the one meant.
+    """
+    if (
+        not isinstance(lifetime, timedelta)
+        or lifetime % _DAY
+        or not SHORTEST_LIFETIME <= lifetime <= LONGEST_LIFETIME
+    ):
+        raise ValueError(
+            f"lifetime is a whole number of days from {SHORTEST_LIFETIME.days} to "
+            f"{LONGEST_LIFETIME.days}, not {lifetime!r}"
+        )
+
+    return f"P{lifetime.days}D"
 
 
 def _usable(name: str, profiles: Iterable[str]) -> None:
@@ -304,13 +350,15 @@ def _refuse(reply: transport.Response) -> None:
 
     if reply.status == 503:
         # The invitation survives, and that is a property of the gate rather than a hope.
-        # `PairingHandler.Approve` answers `503` in four places and every one of them is before
-        # the invitation is burned: the blocked check before the dialog and again after it, a
-        # dialog that could not be shown, and one that never reached the screen. After the burn
-        # it answers `500` instead, in as many words, because a client told to come back would be
-        # turned away at the name. So a `503` from this route means no certificate was issued and
-        # no record was written, and `locked` and `undecided` are answered before the request is
-        # read at all.
+        # `PairingHandler` answers `503` only before the invitation is burned: the blocked check
+        # before the dialog and again after it, a dialog that could not be shown, one that never
+        # reached the screen, and the write finding KeePass busy before it spent anything, which
+        # it does under the writer's lock. After the burn it answers `500` instead, in as many
+        # words, because a client told to come back would be turned away at the name. So a `503`
+        # from this route means no certificate was issued and no record was written, and
+        # `locked` and `undecided` are answered before the request is read at all. A `busy`
+        # after the operator approved carries `heldUntil`: the approval is held until then for
+        # exactly this request, which `api.pair` asks for again by itself.
         #
         # What `busy` asks about is the writer's `Blocked`, which looks at no group dialog, and
         # the screen: so the message names those rather than guessing at a dialog the gate never
@@ -324,9 +372,9 @@ def _refuse(reply: transport.Response) -> None:
             busy=(
                 "the gate cannot put this pairing to the operator right now: KeePass is part way "
                 "through something of its own, Database Maintenance is open, saving the database "
-                "would stop to ask the operator something, another pairing is in front of them, "
-                "or there is no screen to ask on. The invitation is still good, but this exchange "
-                "is not: start again from a hello"
+                "would stop to ask the operator something, another pairing or renewal is in front "
+                "of them, or there is no screen to ask on. The invitation is still good, but this "
+                "exchange is not: start again from a hello"
             ),
             undecided=(
                 "the database holds more than one certificate authority and the operator has "

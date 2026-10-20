@@ -13,10 +13,11 @@ wrong lesson.
 
 from __future__ import annotations
 
+from datetime import timedelta
 from pathlib import Path
 
-from .client import ROOT, GateClient, Status
-from .credentials import Credentials, Prepared, default_directory, load, prepare, save
+from .client import ROOT, GateClient, Renewal, Status
+from .credentials import Credentials, Prepared, default_directory, forget, load, prepare, save
 from .errors import (
     AuthorityUndecided,
     DatabaseLocked,
@@ -31,13 +32,19 @@ from .errors import (
     PairingUnanswered,
     ProofRefused,
     ProtocolError,
+    RenewalError,
+    RenewalRefused,
+    RenewalRefusedForever,
+    RenewalRefusedThisSession,
+    RenewalTooEarly,
+    RenewalUnanswered,
     RouteRefused,
     StorageError,
     TransportError,
     Withheld,
 )
 from .model import Attachment, Entry, Field, Fields, Group
-from .pairing import Exchange, Pairing
+from .pairing import LONGEST_LIFETIME, SHORTEST_LIFETIME, Exchange, Pairing, lifetime_text
 from .transport import (
     DEFAULT_CONNECTION_TIMEOUT,
     DEFAULT_RETRY_BUSY_TIMEOUT,
@@ -58,10 +65,12 @@ __all__ = [
     "DEFAULT_RETRY_BUSY_TIMEOUT",
     "DEFAULT_RETRY_LOCKED_TIMEOUT",
     "DEFAULT_RETRY_UNDECIDED_TIMEOUT",
+    "LONGEST_LIFETIME",
     "LOOPBACK",
     "MAX_RESPONSE_BYTES",
     "PAIRING_CONNECTION_TIMEOUT",
     "ROOT",
+    "SHORTEST_LIFETIME",
     "Attachment",
     "AuthorityUndecided",
     "Credentials",
@@ -85,12 +94,20 @@ __all__ = [
     "Prepared",
     "ProofRefused",
     "ProtocolError",
+    "Renewal",
+    "RenewalError",
+    "RenewalRefused",
+    "RenewalRefusedForever",
+    "RenewalRefusedThisSession",
+    "RenewalTooEarly",
+    "RenewalUnanswered",
     "RouteRefused",
     "Status",
     "StorageError",
     "TransportError",
     "Withheld",
     "default_directory",
+    "forget",
     "load",
     "pair",
     "prepare",
@@ -110,8 +127,8 @@ def pair(
     profiles: list[str] | None = None,
     directory: Path | None = None,
     profile: str = "default",
-    # Not `DEFAULT_CONNECTION_TIMEOUT`. This is the one exchange that waits on a person, and the
-    # gate gives itself six minutes for it because its own worst case is 305 seconds. Hanging up
+    # Not `DEFAULT_CONNECTION_TIMEOUT`. This is one of the two exchanges that wait on a person, and
+    # the gate gives itself six minutes for it because its own worst case is 305 seconds. Hanging up
     # first cancels nothing: the invitation is spent and the record is written and saved
     # anyway, and only the answer is lost.
     connection_timeout: float = PAIRING_CONNECTION_TIMEOUT,
@@ -121,12 +138,23 @@ def pair(
     retry_undecided_timeout: float | None = DEFAULT_RETRY_UNDECIDED_TIMEOUT,
     allow_shared_directory: bool = False,
     max_response_bytes: int = MAX_RESPONSE_BYTES,
+    lifetime: timedelta | None = None,
 ) -> Credentials:
     """Pair with a KeePass and keep what it hands over.
 
     Blocks while the operator reads the dialog, which is the slow half and is meant to be. What
     comes back says which profiles were actually approved, and that is not always what was asked
     for: the dialog can take any of them away.
+
+    **`lifetime` is how long the certificate is asked to last**, a `timedelta` of whole days from
+    `SHORTEST_LIFETIME` to `LONGEST_LIFETIME`, and the operator picks the one it gets: `expires`
+    on what comes back says which. Leaving it out asks for nothing, and the dialog offers a year.
+
+    **An approval the gate holds is asked for again by itself.** When the operator approves and
+    KeePass is too busy to write it, the gate keeps the approval and answers `GateBusy` with
+    `held_until`, and this starts the exchange again, every `Retry-After`, until the approval is
+    written or that moment passes, without spending the busy budget and within the six minutes the
+    gate gives a pairing. The same name, profiles and lifetime are what make it the same request.
 
     **The exchange is the unit that is retried, not either half of it.** A `503` from the gate on
     this path means the invitation was not spent: `PAIRING.md` §303 refuses before the operator is
@@ -149,9 +177,16 @@ def pair(
     port_number(port)
     connection_limit(connection_timeout)
     response_limit(max_response_bytes)
+    if lifetime is not None:
+        lifetime_text(lifetime)
     where = directory or default_directory(profile)
+    # An approval the gate holds is asked for again until it stops being held, whatever the busy
+    # budget says, within the six minutes the gate gave the request: not asking loses it.
     retry = Retry(
-        busy=retry_busy_timeout, locked=retry_locked_timeout, undecided=retry_undecided_timeout
+        busy=retry_busy_timeout,
+        locked=retry_locked_timeout,
+        undecided=retry_undecided_timeout,
+        held=PAIRING_CONNECTION_TIMEOUT,
     )
 
     with prepare(where, allow_shared_directory=allow_shared_directory) as prepared:
@@ -169,7 +204,7 @@ def pair(
 
             try:
                 started = exchange.hello()
-                bundle = exchange.request(started, name, profiles or [])
+                bundle = exchange.request(started, name, profiles or [], lifetime)
             except GateUnavailable as refusal:
                 if retry.waited(refusal):
                     continue

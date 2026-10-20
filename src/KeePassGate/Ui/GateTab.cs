@@ -312,6 +312,15 @@ namespace KeePassGate.Ui
 
         public const string ApprovalProfilesListName = "KpgApprovalProfilesList";
 
+        /// <summary>The choice of how long the certificate lasts.</summary>
+        public const string ApprovalLifetimeName = "KpgApprovalLifetime";
+
+        /// <summary>
+        /// What a screen reader calls that choice, whose own text is the answer rather than the
+        /// question.
+        /// </summary>
+        public const string ApprovalLifetimeLabel = "How long the certificate lasts";
+
         public const string ApprovalCountdownName = "KpgApprovalCountdown";
 
         /// <summary>
@@ -325,7 +334,88 @@ namespace KeePassGate.Ui
         /// compile error.
         /// </remarks>
         public const string ApprovalCountdownFormat =
-            "This pairing request times out in {0} seconds, and nothing is issued if it does.";
+            "This pairing request times out in {0} seconds, and nothing gets issued.";
+
+        /// <summary>The dialog raised when an admitted client asks for a new certificate.</summary>
+        public const string RenewalFormName = "KpgRenewalForm";
+
+        public const string RenewalProfilesListName = "KpgRenewalProfilesList";
+
+        /// <summary>The line naming the profiles a renewal does not carry over.</summary>
+        public const string RenewalDroppedName = "KpgRenewalDropped";
+
+        /// <summary>The line saying the list holds more profiles than it shows at once.</summary>
+        public const string RenewalScrollingName = "KpgRenewalScrolling";
+
+        public const string RenewalCountdownName = "KpgRenewalCountdown";
+
+        /// <summary>What the renewal dialog's countdown says, with the seconds left in place.</summary>
+        public const string RenewalCountdownFormat =
+            "This renewal request times out in {0} seconds, and nothing gets issued.";
+
+        /// <summary>What the renewal dialog calls the moment the client's record was written.</summary>
+        public const string RenewalAdmittedFactName = "Admitted";
+
+        /// <summary>What it calls the end of the certificate the client holds now.</summary>
+        public const string RenewalExpiresFactName = "Its certificate expires";
+
+        /// <summary>
+        /// The menu the renewal dialog's Refuse button opens, listing what refusing can mean.
+        /// </summary>
+        public const string RefuseMenuName = "KpgRefuseMenu";
+
+        public const string RefuseOnceName = "KpgRefuseOnce";
+
+        public const string RefuseThisSessionName = "KpgRefuseThisSession";
+
+        public const string RefuseUntilName = "KpgRefuseUntil";
+
+        public const string RefuseForeverName = "KpgRefuseForever";
+
+        /// <summary>What pressing Refuse itself does, offered in the menu as well.</summary>
+        public const string RefuseOnceText = "Refuse once";
+
+        public const string RefuseThisSessionText = "Refuse in this session";
+
+        /// <summary>
+        /// The one choice that asks something more, which is what the three dots say. ASCII
+        /// rather than the ellipsis character, as every string here is.
+        /// </summary>
+        public const string RefuseUntilText = "Refuse until a date...";
+
+        /// <summary>
+        /// The same choice on a certificate's last day, when there is no day left to name, grayed
+        /// out and saying why rather than leaving the operator to guess.
+        /// </summary>
+        public const string RefuseUntilEndingText = "Refuse until a date (the certificate ends today)";
+
+        public const string RefuseForeverText = "Refuse forever";
+
+        /// <summary>
+        /// What a screen reader is told about the Refuse button beyond its caption, which says what
+        /// a press does and not what else the button offers.
+        /// </summary>
+        public const string RefuseButtonDescription =
+            "Refuses once. Alt and Down open the other ways of refusing.";
+
+        /// <summary>The dialog that asks which day renewals are refused until.</summary>
+        public const string RefuseUntilFormName = "KpgRefuseUntilForm";
+
+        public const string RefuseUntilCalendarName = "KpgRefuseUntilCalendar";
+
+        /// <summary>
+        /// What a screen reader calls the calendar, whose own text is a date rather than what the
+        /// date is for.
+        /// </summary>
+        public const string RefuseUntilCalendarLabel = "The day renewals are asked about again";
+
+        public const string RefuseUntilAcceptName = "KpgRefuseUntilAccept";
+
+        public const string RefuseUntilCancelName = "KpgRefuseUntilCancel";
+
+        public const string RefuseUntilAcceptText = "Refuse";
+
+        public const string RefuseUntilCancelText = "Cancel";
 
         public const string ApproveButtonName = "KpgApproveButton";
 

@@ -205,6 +205,10 @@ words:
   - undecorates
   - librarys
 
+  # let a client ask how long its certificate lasts, which the Python side takes as a standard
+  # library type the documentation has to name
+  - timedelta
+
 # **The British spelling of a word, refused wherever it is written.** This repository writes American
 # English, and choosing the language catches only part of that: the American dictionary accepts
 # much of the British doubled L, and a language's own dictionary accepts more of the rest. These are

@@ -36,11 +36,13 @@ namespace KeePassGate.Tests
         private byte[] _token;
         private PairingConnection _connection;
         private AuthorityIssuer _issuer;
+        private ApprovalBook _held;
 
         [SetUp]
         public void SetUp()
         {
             _issuer = null;
+            _held = new ApprovalBook();
             _target = TestAuthority.New();
             _log = new RecordingGateLog();
             _book = new InvitationBook(TimeSpan.FromMinutes(10), null, _log);
@@ -159,7 +161,7 @@ namespace KeePassGate.Tests
         public void A_request_with_no_hello_before_it_is_refused()
         {
             var context = Send(
-                "POST", PairingHandler.RequestPath, RequestBody("agent-fictitious", Array.Empty<string>(), new byte[32]),
+                "POST", PairingHandler.RequestPath, RequestBody("agent-fictitious", Array.Empty<string>(), null, new byte[32]),
                 _connection, Approving());
 
             Assert.That(context.Status, Is.EqualTo(409));
@@ -171,7 +173,7 @@ namespace KeePassGate.Tests
             Hello(ClientProof());
 
             var wrong = Send(
-                "POST", PairingHandler.RequestPath, RequestBody("agent-fictitious", Array.Empty<string>(), new byte[32]),
+                "POST", PairingHandler.RequestPath, RequestBody("agent-fictitious", Array.Empty<string>(), null, new byte[32]),
                 _connection, Approving());
 
             Assert.That(wrong.Status, Is.EqualTo(401));
@@ -195,7 +197,7 @@ namespace KeePassGate.Tests
 
                 var context = Send(
                     "POST", PairingHandler.RequestPath,
-                    RequestBody("agent-fictitious", Array.Empty<string>(), new byte[32]), other, Approving());
+                    RequestBody("agent-fictitious", Array.Empty<string>(), null, new byte[32]), other, Approving());
 
                 Assert.That(context.Status, Is.EqualTo(409));
             }
@@ -369,6 +371,21 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_lock_that_took_the_question_away_spends_nothing_and_says_the_database_is_locked()
+        {
+            // `PAIRING.md` §308: unanswered, as a timeout is, and told what every connection to a
+            // locked database is told.
+            Hello(ClientProof());
+
+            var context = Request(
+                "agent-fictitious", Array.Empty<string>(), new FakePairingApproval(PairingApproval.Locked()));
+
+            Assert.That(context.Status, Is.EqualTo(503));
+            Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody(LockedTarget.Error)));
+            Assert.That(_book.Outstanding().Count, Is.EqualTo(1));
+        }
+
+        [Test]
         public void No_screen_to_ask_spends_nothing_either()
         {
             Hello(ClientProof());
@@ -486,6 +503,97 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_lifetime_asked_for_is_put_to_the_operator()
+        {
+            var approval = Approving();
+            Hello(ClientProof());
+
+            var context = Request("agent-fictitious", Array.Empty<string>(), "P30D", approval);
+
+            Assert.That(context.Status, Is.EqualTo(200), context.Json);
+            Assert.That(approval.LastRequest.Lifetime, Is.EqualTo(TimeSpan.FromDays(30)));
+        }
+
+        [Test]
+        public void A_request_asking_for_no_lifetime_is_offered_a_year()
+        {
+            var approval = Approving();
+            Hello(ClientProof());
+
+            var context = Request("agent-fictitious", Array.Empty<string>(), approval);
+
+            Assert.That(approval.LastRequest.Lifetime, Is.Null, "nothing was asked for");
+            using (var certificate = IdentityIn(context))
+            {
+                Assert.That(Lasts(certificate), Is.EqualTo(Lifetime.Unasked).Within(TimeSpan.FromMinutes(1)));
+            }
+        }
+
+        [Test]
+        public void The_certificate_lasts_what_the_operator_picked_rather_than_what_was_asked()
+        {
+            // The client proposes and the operator picks: thirty days asked for, seven given.
+            var approval = new FakePairingApproval(
+                request => PairingApproval.Approved(request.Profiles, TimeSpan.FromDays(7)));
+            Hello(ClientProof());
+
+            var context = Request("agent-fictitious", Array.Empty<string>(), "P30D", approval);
+
+            Assert.That(context.Status, Is.EqualTo(200), context.Json);
+            using (var certificate = IdentityIn(context))
+            {
+                Assert.That(Lasts(certificate), Is.EqualTo(TimeSpan.FromDays(7)).Within(TimeSpan.FromMinutes(1)));
+            }
+
+            Assert.That(JsonBody.Read(context.Json).Text("expires"), Is.Not.Null.And.Not.Empty,
+                "and the bundle says until when");
+        }
+
+        [TestCase("P0D")]
+        [TestCase("P366D")]
+        [TestCase("P030D")]
+        [TestCase("30")]
+        [TestCase("")]
+        public void A_lifetime_that_is_not_one_is_malformed_and_spends_nothing(string written)
+        {
+            var approval = Approving();
+            Hello(ClientProof());
+
+            var context = Request("agent-fictitious", Array.Empty<string>(), written, approval);
+
+            Assert.That(context.Status, Is.EqualTo(400), context.Json);
+            Assert.That(context.Json, Does.Contain("malformed"));
+            Assert.That(approval.Asked, Is.Zero, "nobody is asked about a request that could never be issued");
+            Assert.That(_book.Outstanding().Count, Is.EqualTo(1), "and the invitation is still good");
+
+            // And so is the hello's challenge, which is spent only once the body has been read:
+            // a request that follows on it, with no hello in between, is still heard.
+            var following = Request("agent-fictitious", Array.Empty<string>(), approval);
+            Assert.That(following.Status, Is.EqualTo(200), following.Json);
+        }
+
+        [Test]
+        public void A_lifetime_changed_on_the_way_does_not_prove_itself()
+        {
+            // The operator is shown the lifetime, so it is signed for, as the name and the profiles
+            // are: a request asking for a year that was signed for a month is somebody else's.
+            var approval = Approving();
+            Hello(ClientProof());
+
+            var context = Request("agent-fictitious", Array.Empty<string>(), "P30D", "P365D", approval);
+
+            Assert.That(context.Status, Is.EqualTo(401));
+            Assert.That(context.Json, Does.Contain("proof"));
+            Assert.That(approval.Asked, Is.Zero);
+        }
+
+        /// <summary>How long a certificate was issued for, counted from now.</summary>
+        private static TimeSpan Lasts(X509Certificate2 certificate)
+        {
+            return new DateTimeOffset(certificate.NotAfter.ToUniversalTime(), TimeSpan.Zero) - DateTimeOffset.UtcNow;
+        }
+
+        [Test]
         public void The_client_is_never_told_what_is_open_on_the_operators_screen()
         {
             _target.AdmissionBlocked = "a group dialog is open on the group this would be written to";
@@ -513,23 +621,125 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void A_record_that_could_not_be_written_never_says_try_again()
+        public void An_approval_KeePass_is_too_busy_to_write_is_held_and_the_client_told_until_when()
         {
-            _target.AdmitAnswers = AdmissionWrite.Busy("another pairing is already writing");
+            // The writer found KeePass busy before it took anything, so nothing is spent: the
+            // approval is held, and the client is told when it stops being held.
+            _target.AdmitAnswers = AdmissionWrite.Busy("another admission record is already being written");
             Hello(ClientProof());
 
             var context = Request("agent-fictitious", Array.Empty<string>(), Approving());
 
-            // **Not 503, however transient the reason.** The invitation is spent before the write
-            // is attempted, so a client told to retry would be turned away at the name on its next
-            // connection and dropped without any answer at all. Whether it was worth retrying is
-            // something only the operator can act on, so it goes to the log and not to the wire.
-            Assert.That(context.Status, Is.EqualTo(500));
-            Assert.That(context.Json, Does.Contain("not recorded"));
-            Assert.That(context.Json, Does.Not.Contain("identity"));
-            Assert.That(
-                _log.Warnings.Any(w => w.Message.Contains("might have worked a moment later")), Is.True,
-                "the operator's log is where a transient failure is worth naming");
+            Assert.That(context.Status, Is.EqualTo(503));
+            var body = JsonBody.Read(context.Json);
+            Assert.That(body.Text("error"), Is.EqualTo("busy"));
+            var until = DateTimeOffset.ParseExact(
+                body.Text("heldUntil"), Moments.WireFormat, System.Globalization.CultureInfo.InvariantCulture,
+                System.Globalization.DateTimeStyles.AssumeUniversal);
+            Assert.That(until, Is.GreaterThan(DateTimeOffset.UtcNow.AddMinutes(5)).And.LessThan(DateTimeOffset.UtcNow.AddMinutes(7)),
+                "held for the pairing budget the request arrived in");
+            Assert.That(_book.Outstanding(), Has.Count.EqualTo(1), "the invitation is not spent");
+            Assert.That(_held.Count, Is.EqualTo(1));
+            Assert.That(_target.Admitted, Is.Null);
+        }
+
+        [Test]
+        public void The_same_request_asked_again_is_written_without_the_dialog()
+        {
+            var approval = Approving("ops");
+            _target.AdmitAnswers = AdmissionWrite.Busy("KeePass is saving");
+            Hello(ClientProof());
+            Assume.That(Request("agent-fictitious", new[] { "ops" }, approval).Status, Is.EqualTo(503));
+
+            _target.AdmitAnswers = null;
+            Hello(ClientProof());
+            var context = Request("agent-fictitious", new[] { "ops" }, approval);
+
+            Assert.That(context.Status, Is.EqualTo(200), context.Json);
+            Assert.That(approval.Asked, Is.EqualTo(1), "the operator answered once");
+            Assert.That(_held.Count, Is.Zero, "a landed write uses the approval up");
+            Assert.That(_book.Outstanding(), Is.Empty, "and spends the invitation");
+            Assert.That(_log.Entries.Any(line => line.Message.Contains("approved earlier and held")), Is.True,
+                "and the log says it waited");
+        }
+
+        [Test]
+        public void A_retry_that_asks_for_anything_else_is_put_to_the_operator_again()
+        {
+            var approval = Approving();
+            _target.AdmitAnswers = AdmissionWrite.Busy("KeePass is saving");
+            Hello(ClientProof());
+            Assume.That(Request("agent-fictitious", Array.Empty<string>(), approval).Status, Is.EqualTo(503));
+
+            _target.AdmitAnswers = null;
+            Hello(ClientProof());
+            var context = Request("agent-fictitious", Array.Empty<string>(), "P30D", approval);
+
+            Assert.That(context.Status, Is.EqualTo(200), context.Json);
+            Assert.That(approval.Asked, Is.EqualTo(2));
+        }
+
+        [Test]
+        public void A_lock_lets_go_of_a_held_approval_so_the_retry_asks_again()
+        {
+            var approval = Approving();
+            _target.AdmitAnswers = AdmissionWrite.Busy("KeePass is saving");
+            Hello(ClientProof());
+            Assume.That(Request("agent-fictitious", Array.Empty<string>(), approval).Status, Is.EqualTo(503));
+
+            ((IApprovalScreen)_held).Locked();
+
+            _target.AdmitAnswers = null;
+            Hello(ClientProof());
+            Assert.That(Request("agent-fictitious", Array.Empty<string>(), approval).Status, Is.EqualTo(200));
+            Assert.That(approval.Asked, Is.EqualTo(2));
+        }
+
+        [Test]
+        public void A_profile_taken_off_the_list_under_the_write_voids_the_approval_and_spends_nothing()
+        {
+            // Compared under the writer's lock: the write would put the name back on the list,
+            // with every rule naming it, after the operator took it off.
+            _target.KnownProfiles = new[] { "ops" };
+            _target.BeforeWrite = () => _target.Forget("ops");
+            Hello(ClientProof());
+
+            var context = Request("agent-fictitious", new[] { "ops" }, Approving("ops"));
+
+            Assert.That(context.Status, Is.EqualTo(503));
+            Assert.That(context.Json, Does.Not.Contain("heldUntil"), "the operator is asked again");
+            Assert.That(_book.Outstanding(), Has.Count.EqualTo(1), "the invitation is not spent");
+            Assert.That(_held.Count, Is.Zero);
+            Assert.That(_target.Admitted, Is.Null);
+        }
+
+        [Test]
+        public void A_list_of_profiles_that_will_not_read_refuses_the_pairing_before_the_operator_is_asked()
+        {
+            // As a renewal is refused: shown as naming nothing, every name would be "(new)", and
+            // approving would write a list of only the approved names over the damaged one.
+            _target.ProfilesUnreadable = "the profiles this database names will not read";
+            var approval = Approving("ops");
+            Hello(ClientProof());
+
+            var context = Request("agent-fictitious", new[] { "ops" }, approval);
+
+            Assert.That(context.Status, Is.EqualTo(503));
+            Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody("busy")));
+            Assert.That(approval.Asked, Is.Zero);
+            Assert.That(_book.Outstanding(), Has.Count.EqualTo(1), "nothing is spent");
+        }
+
+        [Test]
+        public void An_authority_recreated_under_the_write_admits_nobody()
+        {
+            _target.BeforeWrite = () => _target.Retired = true;
+            Hello(ClientProof());
+
+            var context = Request("agent-fictitious", Array.Empty<string>(), Approving());
+
+            Assert.That(context.Status, Is.EqualTo(409));
+            Assert.That(_target.Admitted, Is.Null);
         }
 
         [Test]
@@ -611,8 +821,11 @@ namespace KeePassGate.Tests
 
             var context = Request("agent-fictitious", Array.Empty<string>(), Approving());
 
-            Assert.That(context.Status, Is.EqualTo(500));
+            // Thrown before the write spent anything, so nothing is spent and the answer is one
+            // a retry can act on; one thrown after the invitation is spent is `500 not recorded`.
+            Assert.That(context.Status, Is.EqualTo(503));
             Assert.That(context.Json, Does.Not.Contain("identity"));
+            Assert.That(_book.Outstanding(), Has.Count.EqualTo(1));
         }
 
         [TestCase("")]
@@ -624,7 +837,7 @@ namespace KeePassGate.Tests
             Hello(ClientProof());
 
             var context = Send(
-                "POST", PairingHandler.RequestPath, RequestBody(name, Array.Empty<string>(), new byte[32]),
+                "POST", PairingHandler.RequestPath, RequestBody(name, Array.Empty<string>(), null, new byte[32]),
                 _connection, Approving());
 
             Assert.That(context.Status, Is.EqualTo(400));
@@ -638,7 +851,7 @@ namespace KeePassGate.Tests
             Hello(ClientProof());
 
             var context = Send(
-                "POST", PairingHandler.RequestPath, RequestBody("agent-fictitious", new[] { profile }, new byte[32]),
+                "POST", PairingHandler.RequestPath, RequestBody("agent-fictitious", new[] { profile }, null, new byte[32]),
                 _connection, Approving());
 
             Assert.That(context.Status, Is.EqualTo(400));
@@ -650,7 +863,7 @@ namespace KeePassGate.Tests
             Hello(ClientProof());
 
             Send(
-                "POST", PairingHandler.RequestPath, RequestBody("", Array.Empty<string>(), new byte[32]),
+                "POST", PairingHandler.RequestPath, RequestBody("", Array.Empty<string>(), null, new byte[32]),
                 _connection, Approving());
 
             Assert.That(_book.Outstanding().Count, Is.EqualTo(1));
@@ -696,8 +909,8 @@ namespace KeePassGate.Tests
             // The default issuer unless a test named one, which is how a clock that moves between
             // the check and the issuance is reached at all.
             return _issuer == null
-                ? new PairingHandler(_book, approval, _log)
-                : new PairingHandler(_book, approval, new PairingOptions(), _issuer, null, _log);
+                ? new PairingHandler(_book, approval, _held, _log)
+                : new PairingHandler(_book, approval, new PairingOptions(), _issuer, null, _log, _held);
         }
 
         private static FakePairingApproval Approving(params string[] profiles)
@@ -723,17 +936,33 @@ namespace KeePassGate.Tests
         /// <summary>A request that proves itself, which needs the challenge the hello came back with.</summary>
         private GateContext Request(string name, string[] profiles, IPairingApproval approval)
         {
+            return Request(name, profiles, null, approval);
+        }
+
+        /// <summary>The same, asking for a lifetime as the wire writes it, or for none.</summary>
+        private GateContext Request(string name, string[] profiles, string lifetime, IPairingApproval approval)
+        {
+            return Request(name, profiles, lifetime, lifetime, approval);
+        }
+
+        /// <summary>
+        /// The same, signing for one lifetime and sending another, which is a request altered on
+        /// the way.
+        /// </summary>
+        private GateContext Request(
+            string name, string[] profiles, string signed, string sent, IPairingApproval approval)
+        {
             var challenge = _lastChallenge;
             var proof = challenge == null
                 ? new byte[32]
                 : PairingProof.Request(
-                    _token, _binding, _nonce, challenge, PairingProof.Asked(name, profiles));
+                    _token, _binding, _nonce, challenge, PairingProof.Asked(name, profiles, signed));
 
             return Send(
-                "POST", PairingHandler.RequestPath, RequestBody(name, profiles, proof), _connection, approval);
+                "POST", PairingHandler.RequestPath, RequestBody(name, profiles, sent, proof), _connection, approval);
         }
 
-        private static string RequestBody(string name, string[] profiles, byte[] proof)
+        private static string RequestBody(string name, string[] profiles, string lifetime, byte[] proof)
         {
             var text = new System.Text.StringBuilder();
             text.Append("{\"name\":\"").Append(name).Append("\",\"profiles\":[");
@@ -748,7 +977,13 @@ namespace KeePassGate.Tests
                 text.Append('"').Append(profiles[i]).Append('"');
             }
 
-            text.Append("],\"proof\":\"").Append(Convert.ToBase64String(proof)).Append("\"}");
+            text.Append(']');
+            if (lifetime != null)
+            {
+                text.Append(",\"lifetime\":\"").Append(lifetime).Append('"');
+            }
+
+            text.Append(",\"proof\":\"").Append(Convert.ToBase64String(proof)).Append("\"}");
             return text.ToString();
         }
 

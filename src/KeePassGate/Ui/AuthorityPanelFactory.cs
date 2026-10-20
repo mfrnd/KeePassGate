@@ -1,5 +1,6 @@
 using System;
 using System.Windows.Forms;
+using KeePassGate.Authority;
 using KeePassGate.Diagnostics;
 using KeePassGate.Pairing;
 
@@ -22,13 +23,14 @@ namespace KeePassGate.Ui
 
         private readonly IAdmissionNotice _admissions;
         private readonly GateIncidents _incidents;
+        private readonly SessionRefusals _session;
 
         public AuthorityPanelFactory(
             IGateDatabaseSource databases,
             IOperatorPrompt prompt,
             IGateLog log,
             IInvitations invitations)
-            : this(databases, prompt, log, invitations, null, null)
+            : this(databases, prompt, log, invitations, null, null, new SessionRefusals())
         {
         }
 
@@ -45,6 +47,11 @@ namespace KeePassGate.Ui
         /// handler that applies what the tab held is one of the KeePass window event handlers that
         /// catch everything, and every one of those reports to the count the Tools window reads. A
         /// factory given none counts on one of its own, which is what a test builds.
+        ///
+        /// **The renewals refused in this session are the plugin's own too**, the set the renewal
+        /// handler answers from, and required for the same reason: a tab given a set of its own
+        /// would show none of the gate's answers, lift none of them, and say nothing about it. The
+        /// constructor above gives it an empty one, a session in which nothing has been refused.
         /// </remarks>
         public AuthorityPanelFactory(
             IGateDatabaseSource databases,
@@ -52,7 +59,8 @@ namespace KeePassGate.Ui
             IGateLog log,
             IInvitations invitations,
             IAdmissionNotice admissions,
-            GateIncidents incidents)
+            GateIncidents incidents,
+            SessionRefusals session)
         {
             // Refused rather than tolerated, because the alternative is a tab that reads "no
             // database open on this dialog" whether that is true or whether this was wired up
@@ -62,12 +70,18 @@ namespace KeePassGate.Ui
                 throw new ArgumentNullException(nameof(databases));
             }
 
+            if (session == null)
+            {
+                throw new ArgumentNullException(nameof(session));
+            }
+
             _databases = databases;
             _prompt = prompt;
             _log = log;
             _invitations = invitations;
             _admissions = admissions;
             _incidents = incidents ?? new GateIncidents(Log());
+            _session = session;
         }
 
         public Control CreatePanel(Form dialog)
@@ -84,15 +98,21 @@ namespace KeePassGate.Ui
             // is OK.
             var invitations = _invitations == null ? null : new PendingInvitations(_invitations);
 
+            // And so are the renewals the clients page lets through again, which are the
+            // plugin's memory rather than the database's and wait beside the buffer for the same
+            // OK.
+            var session = new PendingSessionRefusals(_session);
+
             var panel = new AuthorityPanel(
                 database,
                 _prompt,
                 _log,
                 invitations,
                 database == null ? null : new DatabaseProfiles(database, _log),
-                _admissions);
+                _admissions,
+                session);
 
-            Commit(dialog, database, invitations);
+            Commit(dialog, database, invitations, session);
             return panel;
         }
 
@@ -118,8 +138,17 @@ namespace KeePassGate.Ui
         ///
         /// **What landed is said in the log**, which is the only place left to say it: the dialog
         /// that could have is closing.
+        ///
+        /// **The answers lifted for this session go first, and whatever the buffer does.** They
+        /// are the plugin's memory and not the database's, so nothing about the file decides them:
+        /// a database that went away under the dialog, or a buffer with nothing else in it, still
+        /// leaves the operator having allowed that renewal and pressed OK.
         /// </remarks>
-        private void Commit(Form dialog, PendingDatabase database, PendingInvitations invitations)
+        private void Commit(
+            Form dialog,
+            PendingDatabase database,
+            PendingInvitations invitations,
+            PendingSessionRefusals session)
         {
             if (dialog == null || database == null)
             {
@@ -140,6 +169,12 @@ namespace KeePassGate.Ui
                             invitations.Apply();
                         }
 
+                        foreach (var key in session.Apply())
+                        {
+                            Log().Info("renewals of " + CertificateDigest.Shorten(key)
+                                + " are asked about again: the operator lifted the answer for this session");
+                        }
+
                         if (database.Apply())
                         {
                             Log().Info("what the " + GateName.Product + " tab held was put into "
@@ -155,6 +190,7 @@ namespace KeePassGate.Ui
                             + " tab was withdrawn: the dialog closed without OK");
                     }
 
+                    session.Discard();
                     database.Discard();
                 }
                 catch (Exception error)

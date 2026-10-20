@@ -35,6 +35,25 @@ namespace KeePassGate.Ui
     ///
     /// A grid rather than a list view, because one column is now a thing to press. Nothing else
     /// here is editable: every text column is read only and the grid adds no row of its own.
+    ///
+    /// **A standing answer to a client's renewals is shown on its row and lifted from it**, which
+    /// is the operator's ruling on review 3, chosen on real screenshots over a column and a button
+    /// that did not fit. There is no column for it: the client's name is drawn in the tab's own red
+    /// while an answer of any of the three kinds stands, the row's text cells say which in their
+    /// tooltip, and the row tells a screen reader the same words as its description. The row's
+    /// menu, opened by the right button, Shift and F10 or the menu key, states the answer on a
+    /// grayed first line and offers **Allow renewal** under it, beside **Revoke**. Allow renewal
+    /// waits for the dialog's OK as a revocation does, and the name stops being red at once as a
+    /// revoked row goes at once.
+    ///
+    /// **Each row's client key is in its tooltip**, whole, with the certificate's own key under
+    /// it, which is the operator's ruling of 2026-10-16: a client chooses its own name, so two rows
+    /// under one name are one client that renewed or two programs that chose it, and the key is
+    /// what tells which. The ruling asked for the key beside the name, shortened, where there is
+    /// room, and there is none: measured, a column of eight characters in the code font left the
+    /// names `GateTabFitsTests` holds the page to cut at 100, 125 and 150 percent, "agent-fictitious"
+    /// needing 76 pixels of 67 at the first, and the page does not scroll, so the tooltip is where
+    /// it went.
     /// </remarks>
     public sealed class ClientList : UserControl
     {
@@ -128,6 +147,39 @@ namespace KeePassGate.Ui
         /// </remarks>
         public const string RemovedSuffix = " (removed)";
 
+        /// <summary>The row's menu, by name.</summary>
+        public const string MenuName = "KpgClientMenu";
+
+        /// <summary>The menu's first line, stating the answer that stands, by name.</summary>
+        public const string AnswerItemName = "KpgClientAnswerItem";
+
+        /// <summary>The menu's Allow renewal, by name.</summary>
+        public const string AllowRenewalItemName = "KpgAllowRenewalItem";
+
+        /// <summary>The menu's Revoke, by name.</summary>
+        public const string RevokeItemName = "KpgRevokeItem";
+
+        /// <summary>What lifts a standing answer, with its access key.</summary>
+        public const string AllowRenewalText = "&Allow renewal";
+
+        /// <summary>What takes an admission away from the menu, as the X does, with its access key.</summary>
+        public const string RevokeText = "&Revoke";
+
+        /// <summary>
+        /// What a screen reader calls the row's menu, which has no caption of its own.
+        /// </summary>
+        public const string MenuLabel = "Client actions";
+
+        /// <summary>
+        /// The red a client's name is drawn in while an answer to its renewals stands: the tab's
+        /// own, the notice over the invite button's, 6.68 to 1 on the window's white.
+        /// </summary>
+        /// <remarks>
+        /// The foreground only, so a selected row keeps the grid's own colors, as a dimmed profile
+        /// on a selected row does: red on the selection's blue would be read by nobody.
+        /// </remarks>
+        public static readonly Color StandingColor = Color.Firebrick;
+
         private const int ClientColumn = 0;
         private const int ProfilesColumn = 1;
         private const int AdmittedColumn = 2;
@@ -135,8 +187,28 @@ namespace KeePassGate.Ui
         private const int RevokeColumn = 4;
 
         private readonly Func<string, string> _revoke;
+        private readonly Func<string, string> _allowRenewal;
         private readonly DataGridView _grid;
         private readonly Label _note;
+
+        private readonly ContextMenuStrip _menu;
+        private readonly ToolStripMenuItem _answerItem;
+        private readonly ToolStripSeparator _answerSeparator;
+        private readonly ToolStripMenuItem _allowItem;
+        private readonly ToolStripMenuItem _revokeItem;
+
+        /// <summary>
+        /// The key of the record the menu was opened on, so that a choice acts on that client
+        /// whatever a redraw has done to the rows meanwhile.
+        /// </summary>
+        private string _menuKey;
+
+        /// <summary>What was chosen while the menu was open, acted on once it has closed.</summary>
+        private ToolStripItem _chosen;
+
+        /// <summary>Each listed client's standing answer, by admission key; absent is none.</summary>
+        private readonly Dictionary<string, RenewalRefusal> _standing =
+            new Dictionary<string, RenewalRefusal>(StringComparer.Ordinal);
 
         /// <summary>The profiles the database names, or null when nobody said.</summary>
         private ICollection<string> _named;
@@ -165,13 +237,30 @@ namespace KeePassGate.Ui
         /// list does not write to a database itself: it is a list.
         /// </param>
         public ClientList(Func<string, string> revoke)
+            : this(revoke, key => "nothing here lifts an answer")
+        {
+        }
+
+        /// <param name="revoke">As above.</param>
+        /// <param name="allowRenewal">
+        /// Lifts the standing answer to renewing one certificate, by its key, and answers with why
+        /// it could not, or null when it did. Like a revocation it waits for the dialog's OK, and
+        /// like one it is the host's to do: the list reads and writes no database.
+        /// </param>
+        public ClientList(Func<string, string> revoke, Func<string, string> allowRenewal)
         {
             if (revoke == null)
             {
                 throw new ArgumentNullException(nameof(revoke));
             }
 
+            if (allowRenewal == null)
+            {
+                throw new ArgumentNullException(nameof(allowRenewal));
+            }
+
             _revoke = revoke;
+            _allowRenewal = allowRenewal;
 
             Name = ControlName;
             Dock = DockStyle.Fill;
@@ -182,6 +271,53 @@ namespace KeePassGate.Ui
             Padding = new Padding(0, Spacing.Gap, 0, 0);
 
             _grid = BuildGrid();
+
+            // **Allow renewal sits on the row's own menu, beside Revoke**, so what it acts on is
+            // the row it was opened on rather than whatever a button off to one side finds
+            // selected, which is the argument the X in each row already won. A menu holding
+            // nothing but its items owns Enter and Escape while it is open, measured for the
+            // renewal dialog's Refuse menu, so the settings dialog's OK and Cancel never see them
+            // and nothing is taken from the dialog here.
+            _menu = new ContextMenuStrip
+            {
+                Name = MenuName,
+                AccessibleName = MenuLabel,
+                ShowImageMargin = false,
+                ShowItemToolTips = true
+            };
+
+            // **The answer as the first line, grayed out**, because it is a statement rather than
+            // a command: the red on the row says that an answer stands, and this says which,
+            // straight above the item that lifts it. Shown only while one does.
+            _answerItem = new ToolStripMenuItem { Name = AnswerItemName, Enabled = false };
+            _answerSeparator = new ToolStripSeparator();
+
+            _allowItem = new ToolStripMenuItem(AllowRenewalText)
+            {
+                Name = AllowRenewalItemName,
+                ToolTipText = Tooltips.Wrapped(
+                    "Lifts the standing answer to renewing this certificate when OK is pressed. Its "
+                    + "next renewal then raises the dialog again.")
+            };
+
+            _revokeItem = new ToolStripMenuItem(RevokeText)
+            {
+                Name = RevokeItemName,
+                ToolTipText = Tooltips.Wrapped(
+                    "Takes this certificate's admission away when OK is pressed, as the X does.")
+            };
+
+            _menu.Items.AddRange(new ToolStripItem[] { _answerItem, _answerSeparator, _allowItem, _revokeItem });
+
+            // **A choice is acted on a message after the menu has closed**, as on the Refuse
+            // menu: `ItemClicked` is raised while the menu is still on screen, and what both
+            // choices do redraws the grid underneath it, which is what `GrantPanel.Finish` records
+            // a dropdown not surviving. The menu is never disposed there either; it goes with this
+            // list. And nothing closes it by code, which left the next window's menu closing as it
+            // opened.
+            _menu.ItemClicked += (sender, e) => _chosen = e.ClickedItem;
+            _menu.Closed += OnMenuClosed;
+            ((ClientGrid)_grid).MenuAsked = ShowMenu;
 
             // **One line under the grid rather than two.** There were two: one saying nobody is
             // admitted and one saying what the last gesture did, and both are gray, both sit in
@@ -325,6 +461,90 @@ namespace KeePassGate.Ui
             get { return _said.Length == 0 ? null : _said; }
         }
 
+        /// <summary>The row's menu, for the tests that open it.</summary>
+        internal ContextMenuStrip Menu
+        {
+            get { return _menu; }
+        }
+
+        /// <summary>
+        /// The standing answer to renewing one client, by its place in the list, or null when none
+        /// stands or there is no such client.
+        /// </summary>
+        public RenewalRefusal StandingAt(int index)
+        {
+            return index < 0 || index >= _records.Count ? null : Standing(_records[index]);
+        }
+
+        /// <summary>
+        /// What the row, its tooltip and its menu say about a standing answer, or null for none.
+        /// </summary>
+        /// <remarks>
+        /// **The day of an until-date is the operator's own**, read in this computer's zone, where
+        /// every other moment on this page is UTC. The dialog asked for a day on a calendar and the
+        /// answer ends where that day begins, so the day chosen is the one to give back: the same
+        /// moment in UTC would name the evening before for anybody east of Greenwich.
+        /// </remarks>
+        public static string AnswerText(RenewalRefusal standing)
+        {
+            if (standing == null)
+            {
+                return null;
+            }
+
+            if (standing.IsThisSession)
+            {
+                return "Renewal refused in this session";
+            }
+
+            return standing.IsForever
+                ? "Renewal refused forever"
+                : "Renewal refused until " + standing.NotBefore.Value.ToLocalTime()
+                    .ToString("yyyy'-'MM'-'dd", CultureInfo.InvariantCulture);
+        }
+
+        /// <summary>
+        /// Lift the standing answer to renewing one client, by its place in the list.
+        /// </summary>
+        /// <remarks>
+        /// Whichever of the three it is. Like a revocation it goes into what the dialog holds and
+        /// reaches the database and the gate when the dialog is accepted, and like a revocation the
+        /// row shows it at once: the name stops being red.
+        ///
+        /// Public rather than only wired to the menu, for the reason <see cref="Revoke"/> is.
+        /// </remarks>
+        public string AllowRenewal(int index)
+        {
+            if (index < 0 || index >= _records.Count)
+            {
+                return Said("There is no such client.");
+            }
+
+            var record = _records[index];
+            var name = Named(record);
+            if (Standing(record) == null)
+            {
+                return Said(name + " has no standing answer: its next renewal raises the dialog.");
+            }
+
+            var refused = _allowRenewal(record.AdmissionKey);
+            if (refused != null)
+            {
+                return Said("The answer to renewing that client still stands: " + refused);
+            }
+
+            // Found again rather than trusting the index, for the reason a revoked row is: a host
+            // that redraws the list in answer to the change has already drawn it without the red.
+            _standing.Remove(record.AdmissionKey);
+            var at = _records.IndexOf(record);
+            if (at >= 0 && at < _grid.Rows.Count)
+            {
+                Mark(_grid.Rows[at], record, null);
+            }
+
+            return Said("The next renewal of " + name + " raises the dialog again.");
+        }
+
         /// <summary>
         /// Take one client's admission away, by its place in the list.
         /// </summary>
@@ -360,6 +580,7 @@ namespace KeePassGate.Ui
             if (at >= 0)
             {
                 _records.RemoveAt(at);
+                _standing.Remove(record.AdmissionKey);
 
                 if (at < _grid.Rows.Count)
                 {
@@ -369,7 +590,44 @@ namespace KeePassGate.Ui
 
             UpdateEmptiness();
 
-            return Said(Describe(record) + " can no longer reach this database.");
+            var name = Named(record);
+
+            // A renewed client is two rows with one client key until it gives the older up, and
+            // taking one of them away leaves the client reaching the database through the other,
+            // so the sentence says which certificate went rather than that the client did.
+            if (_records.Exists(other => string.Equals(other.ClientKey, record.ClientKey, StringComparison.Ordinal)))
+            {
+                return Said("The certificate admitted for " + name + " at " + Stamp(record.Admitted) +
+                            " is revoked; its other certificate still reaches this database.");
+            }
+
+            return Said(name + " can no longer reach this database.");
+        }
+
+        /// <summary>
+        /// What a sentence under the list calls this record's client: its name, and the start of
+        /// its client key as well when another client listed here goes by the same name.
+        /// </summary>
+        /// <remarks>
+        /// Asked of the rows as they stand and of this record, which a revocation has just taken
+        /// off them, so that the client it named is told apart from one still listed.
+        /// </remarks>
+        private string Named(AdmissionRecord record)
+        {
+            var listed = new List<AdmissionRecord>(_records);
+            if (!listed.Contains(record))
+            {
+                listed.Add(record);
+            }
+
+            var name = Describe(record);
+            var shared = listed.Exists(other =>
+                string.Equals(Describe(other), name, StringComparison.Ordinal)
+                && !string.Equals(other.ClientKey, record.ClientKey, StringComparison.Ordinal));
+
+            return shared
+                ? name + " (" + ShortKeys(listed.ConvertAll(other => other.ClientKey))[record.ClientKey] + ")"
+                : name;
         }
 
         /// <summary>Takes away a record that will not read, which admitted nobody.</summary>
@@ -419,12 +677,37 @@ namespace KeePassGate.Ui
         public void Fill(
             AdmissionListing listing, IDictionary<string, ClientReach> reaches, ICollection<string> named)
         {
+            Fill(listing, reaches, named, null);
+        }
+
+        /// <param name="listing">As above.</param>
+        /// <param name="reaches">As above.</param>
+        /// <param name="named">As above.</param>
+        /// <param name="standing">
+        /// The standing answer to renewing each client, by admission key, the database's and this
+        /// session's asked in the order the gate asks them. A client with none is absent, and so is
+        /// one whose day has come. Null when nobody said, which shows none. Decided by the caller,
+        /// for the reason the reaches are: answering it means reading the database.
+        /// </param>
+        public void Fill(
+            AdmissionListing listing,
+            IDictionary<string, ClientReach> reaches,
+            ICollection<string> named,
+            IDictionary<string, RenewalRefusal> standing)
+        {
             _filling = true;
+
+            // A listing read from the database is the newer answer than whatever the last press
+            // said about it: a redraw a landing caused, a renewal or a client revoking itself,
+            // could otherwise leave a client listed under a line saying it can no longer reach
+            // the database. A press says its line after the redraw it causes, so it keeps it.
+            _said = string.Empty;
 
             try
             {
                 _named = named;
                 _records.Clear();
+                _standing.Clear();
                 _unreadable.Clear();
                 _grid.Rows.Clear();
 
@@ -444,8 +727,14 @@ namespace KeePassGate.Ui
                             continue;
                         }
 
+                        RenewalRefusal answer;
+                        if (standing != null && standing.TryGetValue(record.AdmissionKey, out answer) && answer != null)
+                        {
+                            _standing[record.AdmissionKey] = answer;
+                        }
+
                         _records.Add(record);
-                        _grid.Rows.Add(
+                        var row = _grid.Rows.Add(
                             Describe(record),
                             record.Profiles.Count == 0
                                 ? "nothing"
@@ -453,6 +742,7 @@ namespace KeePassGate.Ui
                             Stamp(record.Admitted),
                             Reach(record, reaches, DateTimeOffset.UtcNow),
                             RevokeMark);
+                        Mark(_grid.Rows[row], record, Standing(record));
                     }
 
                     // **One row per stored record, including those that will not read**, after the
@@ -477,9 +767,12 @@ namespace KeePassGate.Ui
 
         private DataGridView BuildGrid()
         {
-            var grid = new DataGridView
+            var grid = new ClientGrid
             {
                 Name = ListName,
+
+                // Rows that tell a screen reader the standing answer about their client.
+                RowTemplate = new ClientRow(),
                 AccessibleName = ListLabel,
                 Dock = DockStyle.Fill,
                 AllowUserToAddRows = false,
@@ -495,11 +788,12 @@ namespace KeePassGate.Ui
                 BackgroundColor = SystemColors.Window,
                 ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize,
 
-                // **One row per client, however many profiles it holds.** A client is one thing
-                // that was admitted once and is revoked once, so it is one row; what varies is how
-                // much it was admitted to. Comma separated, that ran along a column narrow enough
-                // to need reading twice, and a profile that wrapped mid-name read as two. A line
-                // each is the shape of the thing: a list.
+                // **One row per admission record, however many profiles it holds.** A record is one
+                // thing that was admitted once and is revoked once, so it is one row; what varies is
+                // how much it was admitted to. A client that renewed holds two, and is two rows
+                // with one client key until it gives the older certificate up. Comma separated,
+                // that ran along a column narrow enough to need reading twice, and a profile that
+                // wrapped mid-name read as two. A line each is the shape of the thing: a list.
                 //
                 // The row grows to hold them rather than the list being cut, and the cells are
                 // read across as well as down, so everything in the row starts at the same line:
@@ -536,8 +830,10 @@ namespace KeePassGate.Ui
                 AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells,
                 MinimumWidth = GateIcon.Room,
                 ToolTipText = Tooltips.Wrapped(
-                    "Takes this client's admission away when OK is pressed. It is then "
-                    + "refused from its next request onwards, and saving the database keeps that.")
+                    "Takes this certificate's admission away when OK is pressed. It is then "
+                    + "refused from its next request onwards, and saving the database keeps that. "
+                    + "A client listed twice with one client key, which each row's tooltip names, has "
+                    + "renewed, and keeps the other.")
             };
 
             grid.Columns.Add(revoke);
@@ -613,6 +909,343 @@ namespace KeePassGate.Ui
             }
 
             Revoke(e.RowIndex);
+        }
+
+        private RenewalRefusal Standing(AdmissionRecord record)
+        {
+            RenewalRefusal standing;
+            return _standing.TryGetValue(record.AdmissionKey, out standing) ? standing : null;
+        }
+
+        /// <summary>
+        /// Draws one client's name in red while an answer to its renewals stands, and says which
+        /// in the tooltip of every text cell and in the row's description.
+        /// </summary>
+        /// <remarks>
+        /// **The name alone is red**, and the rest of the row as it was: the operator chose that
+        /// over a whole red row on real screenshots, since the name is what the eye is looking for
+        /// and four red cells read as an error. The tooltip is on every text cell, because a
+        /// pointer resting anywhere on the row is asking about the row. The X keeps its column's
+        /// tooltip, which says what it does.
+        ///
+        /// **The tooltip always names the client key and the certificate in full**, under the
+        /// answer when one stands: nothing else on the row shows either, the client key is what
+        /// tells two clients under one name apart, and the audit file names a certificate by its
+        /// whole key. The description a screen reader is told stays the answer alone.
+        /// </remarks>
+        private static void Mark(DataGridViewRow row, AdmissionRecord record, RenewalRefusal standing)
+        {
+            var answer = AnswerText(standing);
+
+            var described = row as ClientRow;
+            if (described != null)
+            {
+                described.Answer = answer;
+            }
+
+            var tip = Tooltips.Wrapped(Identified(record, answer));
+            foreach (DataGridViewCell cell in row.Cells)
+            {
+                if (cell.ColumnIndex == RevokeColumn)
+                {
+                    continue;
+                }
+
+                cell.ToolTipText = tip;
+            }
+
+            row.Cells[ClientColumn].Style.ForeColor = answer == null ? Color.Empty : StandingColor;
+        }
+
+        /// <summary>
+        /// What a client's row says when the pointer rests on it: the standing answer, when one
+        /// stands, then the client key and the certificate's own key, each whole on a line.
+        /// </summary>
+        /// <remarks>
+        /// Broken into lines here, which `Tooltips.Wrapped` leaves as they are, because a key is
+        /// sixty-four characters with no space to fold at, and one folded onto a line of its own
+        /// would leave its label behind.
+        /// </remarks>
+        internal static string Identified(AdmissionRecord record, string answer)
+        {
+            var lines = new List<string>();
+            if (answer != null)
+            {
+                lines.Add(answer);
+            }
+
+            lines.Add("Client key " + record.ClientKey);
+            lines.Add("Certificate " + record.AdmissionKey);
+            return string.Join(Environment.NewLine, lines);
+        }
+
+        /// <summary>
+        /// Opens the row's menu: at the pointer, on the row it was pressed on, or under the
+        /// selected row's name when the keyboard asked.
+        /// </summary>
+        /// <remarks>
+        /// **The row pressed on becomes the selected one**, as in every list Windows draws, so the
+        /// highlight and the menu are about the same client. A press under the last row, or on the
+        /// headings, opens nothing: there is no client there to act on.
+        ///
+        /// **Opened from the keyboard, its first choice that can be made is highlighted**, as the
+        /// Refuse menu's is, so that Enter has something to choose. Opened by the pointer, nothing
+        /// is, which is how a menu comes up under a click.
+        ///
+        /// Run from the grid's window procedure, where whatever escapes reaches KeePass's message
+        /// loop and closes the dialog: a failure of a kind the user interface throws is said under
+        /// the list instead.
+        /// </remarks>
+        private void ShowMenu(Point? screen)
+        {
+            if (_filling || _menu.Visible)
+            {
+                return;
+            }
+
+            try
+            {
+                int row;
+                Point at;
+                if (screen.HasValue)
+                {
+                    at = _grid.PointToClient(screen.Value);
+                    row = _grid.HitTest(at.X, at.Y).RowIndex;
+                    if (row < 0)
+                    {
+                        return;
+                    }
+
+                    _grid.CurrentCell = _grid.Rows[row].Cells[ClientColumn];
+                }
+                else
+                {
+                    row = _grid.CurrentCell == null ? -1 : _grid.CurrentCell.RowIndex;
+                    if (row < 0)
+                    {
+                        return;
+                    }
+
+                    var cell = _grid.GetCellDisplayRectangle(ClientColumn, row, false);
+                    at = cell.IsEmpty ? new Point(0, _grid.ColumnHeadersHeight) : new Point(cell.Left, cell.Bottom);
+                }
+
+                var key = KeyAt(row);
+                if (key == null)
+                {
+                    return;
+                }
+
+                var answer = AnswerText(StandingAt(row));
+                _answerItem.Text = answer ?? string.Empty;
+                _answerItem.Visible = answer != null;
+                _answerSeparator.Visible = answer != null;
+                _allowItem.Enabled = answer != null;
+
+                _menuKey = key;
+                _chosen = null;
+                _menu.Show(_grid, at);
+
+                if (screen.HasValue)
+                {
+                    return;
+                }
+
+                foreach (ToolStripItem item in _menu.Items)
+                {
+                    if (item.Enabled && item.Available && item is ToolStripMenuItem)
+                    {
+                        item.Select();
+                        break;
+                    }
+                }
+            }
+            catch (Exception error) when (Expected.OfUserInterface(error))
+            {
+                Said("The menu could not be opened: " + error.Message);
+            }
+        }
+
+        /// <summary>The admission key of the row at this place, readable or not, or null.</summary>
+        private string KeyAt(int row)
+        {
+            if (row >= 0 && row < _records.Count)
+            {
+                return _records[row].AdmissionKey;
+            }
+
+            var unreadable = row - _records.Count;
+            return unreadable >= 0 && unreadable < _unreadable.Count ? _unreadable[unreadable] : null;
+        }
+
+        /// <summary>The place in the list of the row stored under this key, or -1.</summary>
+        private int RowOf(string key)
+        {
+            var at = _records.FindIndex(record => string.Equals(record.AdmissionKey, key, StringComparison.Ordinal));
+            if (at >= 0)
+            {
+                return at;
+            }
+
+            at = _unreadable.IndexOf(key);
+            return at < 0 ? -1 : _records.Count + at;
+        }
+
+        /// <summary>
+        /// Acts on what was chosen, in the message after the menu closed, on the client it was
+        /// opened on, wherever that row is now.
+        /// </summary>
+        private void OnMenuClosed(object sender, ToolStripDropDownClosedEventArgs e)
+        {
+            var chosen = _chosen;
+            var key = _menuKey;
+            _chosen = null;
+
+            if (chosen != _allowItem && chosen != _revokeItem)
+            {
+                return;
+            }
+
+            Later(() =>
+            {
+                var row = RowOf(key);
+                if (chosen == _allowItem)
+                {
+                    AllowRenewal(row);
+                }
+                else
+                {
+                    Revoke(row);
+                }
+            });
+        }
+
+        /// <summary>
+        /// Runs something once the current message is finished with, guarded where it runs.
+        /// </summary>
+        /// <remarks>
+        /// Posted work runs on KeePass's message loop after the code that posted it has returned,
+        /// where an escape is WinForms' own error dialog rather than a line under this list. Straight
+        /// through when there is no window yet, which is how a test reaches the same path.
+        /// </remarks>
+        private void Later(Action work)
+        {
+            Action guarded = () =>
+            {
+                try
+                {
+                    work();
+                }
+                catch (Exception error) when (Expected.OfUserInterface(error))
+                {
+                    Said("That could not be done: " + error.Message);
+                }
+            };
+
+            if (!IsHandleCreated || IsDisposed)
+            {
+                guarded();
+                return;
+            }
+
+            try
+            {
+                BeginInvoke(guarded);
+            }
+            catch (Exception error) when (Expected.OfUserInterface(error))
+            {
+                Said("That could not be done: " + error.Message);
+            }
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                // Not in `Controls`, so nothing else would: a menu is a window of its own.
+                _menu.Dispose();
+            }
+
+            base.Dispose(disposing);
+        }
+
+        /// <summary>
+        /// A grid that hands a request for a menu, from the pointer or the keyboard, to the list.
+        /// </summary>
+        /// <remarks>
+        /// `WM_CONTEXTMENU` is what all three send: the right button released over the grid, Shift
+        /// and F10, and the menu key, the keyboard's with no position. Taken here rather than by
+        /// giving the grid a `ContextMenuStrip`, which opens wherever the pointer is, or in the
+        /// middle of the grid for the keyboard, rather than at the row the menu is about, and acts
+        /// on no row at all.
+        /// </remarks>
+        private sealed class ClientGrid : DataGridView
+        {
+            // cspell:ignore CONTEXTMENU
+            private const int ContextMenuMessage = 0x007B;
+
+            public Action<Point?> MenuAsked { get; set; }
+
+            protected override void WndProc(ref Message m)
+            {
+                if (m.Msg == ContextMenuMessage && MenuAsked != null)
+                {
+                    // Minus one in both halves when the keyboard asked, and a point on the screen,
+                    // each half signed, when the pointer did.
+                    var position = unchecked((int)m.LParam.ToInt64());
+                    if (position == -1)
+                    {
+                        MenuAsked(null);
+                    }
+                    else
+                    {
+                        MenuAsked(new Point((short)(position & 0xFFFF), (short)((position >> 16) & 0xFFFF)));
+                    }
+
+                    return;
+                }
+
+                base.WndProc(ref m);
+            }
+        }
+
+        /// <summary>A row that tells UI automation the standing answer about its client.</summary>
+        /// <remarks>
+        /// As the row's description rather than its name, which UI automation builds from the
+        /// cells and a screen reader already reads: the answer is something more about the row,
+        /// in the words its tooltip uses.
+        /// </remarks>
+        private sealed class ClientRow : DataGridViewRow
+        {
+            public string Answer { get; set; }
+
+            public override object Clone()
+            {
+                var clone = (ClientRow)base.Clone();
+                clone.Answer = Answer;
+                return clone;
+            }
+
+            protected override AccessibleObject CreateAccessibilityInstance()
+            {
+                return new Described(this);
+            }
+
+            private sealed class Described : DataGridViewRowAccessibleObject
+            {
+                private readonly ClientRow _row;
+
+                public Described(ClientRow row)
+                    : base(row)
+                {
+                    _row = row;
+                }
+
+                public override string Description
+                {
+                    get { return _row.Answer ?? base.Description; }
+                }
+            }
         }
 
         private string[] Profiles(AdmissionRecord record)
@@ -722,6 +1355,114 @@ namespace KeePassGate.Ui
         {
             var subject = record.Subject ?? string.Empty;
             return subject.StartsWith("CN=", StringComparison.Ordinal) ? subject.Substring(3) : subject;
+        }
+
+        /// <summary>
+        /// The clients among these records, each once by its client key, sorted by name: what a
+        /// sentence or a column calling them clients counts and names.
+        /// </summary>
+        /// <remarks>
+        /// **A client is its client key**, the digest of the certificate it paired with, which is
+        /// the operator's ruling of 2026-10-16. A client that renewed holds two records until it
+        /// gives the older certificate up, both carrying its client key, so it is one client here
+        /// and named once; the rows of the Clients page stay one per record, because each is a
+        /// certificate that can be taken away on its own.
+        ///
+        /// **And one name is not always one client**: a client chooses its own name when it pairs,
+        /// and nothing holds two programs to different ones, such as one program on two machines.
+        /// Those are two clients, and where two of them share a name each is named with the start
+        /// of its client key as the Clients page shows it, "agent (3f2a9c1e)", so a sentence naming
+        /// them names two clients the operator can tell apart. Counting by name, and the count of
+        /// certificates that once followed such a name, are what this replaces.
+        /// </remarks>
+        internal static IReadOnlyList<string> ClientNames(IEnumerable<AdmissionRecord> records)
+        {
+            var clients = new Dictionary<string, string>(StringComparer.Ordinal);
+            if (records != null)
+            {
+                foreach (var record in records)
+                {
+                    if (record != null && !clients.ContainsKey(record.ClientKey))
+                    {
+                        clients[record.ClientKey] = Describe(record);
+                    }
+                }
+            }
+
+            var shared = new HashSet<string>(StringComparer.Ordinal);
+            var seen = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var name in clients.Values)
+            {
+                if (!seen.Add(name))
+                {
+                    shared.Add(name);
+                }
+            }
+
+            var shortened = ShortKeys(clients.Keys);
+            var named = new List<KeyValuePair<string, string>>(clients);
+            named.Sort((left, right) =>
+            {
+                var byName = string.CompareOrdinal(left.Value, right.Value);
+                return byName != 0 ? byName : string.CompareOrdinal(left.Key, right.Key);
+            });
+
+            var names = new List<string>();
+            foreach (var client in named)
+            {
+                names.Add(shared.Contains(client.Value)
+                    ? client.Value + " (" + shortened[client.Key] + ")"
+                    : client.Value);
+            }
+
+            return names;
+        }
+
+        /// <summary>
+        /// How many characters of a client key are shown where it is shortened, unless two shown
+        /// together would then read the same.
+        /// </summary>
+        internal const int ShortKeyLength = 8;
+
+        /// <summary>
+        /// Each of these client keys as it is shown together with the others: its first
+        /// <see cref="ShortKeyLength"/> characters, and more only where two would otherwise read
+        /// the same.
+        /// </summary>
+        /// <remarks>
+        /// Lengthened only for the keys that collide, and until they no longer do, so the ordinary
+        /// page shows eight characters everywhere. Two different keys always part somewhere, since
+        /// both are whole digests.
+        /// </remarks>
+        internal static IDictionary<string, string> ShortKeys(IEnumerable<string> clientKeys)
+        {
+            var keys = new List<string>();
+            if (clientKeys != null)
+            {
+                foreach (var key in clientKeys)
+                {
+                    if (!string.IsNullOrEmpty(key) && !keys.Contains(key))
+                    {
+                        keys.Add(key);
+                    }
+                }
+            }
+
+            var shortened = new Dictionary<string, string>(StringComparer.Ordinal);
+            foreach (var key in keys)
+            {
+                var length = Math.Min(ShortKeyLength, key.Length);
+                while (length < key.Length && keys.Exists(other =>
+                           !string.Equals(other, key, StringComparison.Ordinal)
+                           && other.StartsWith(key.Substring(0, length), StringComparison.Ordinal)))
+                {
+                    length++;
+                }
+
+                shortened[key] = key.Substring(0, length);
+            }
+
+            return shortened;
         }
 
         /// <summary>

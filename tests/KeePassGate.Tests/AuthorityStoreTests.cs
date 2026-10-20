@@ -607,6 +607,52 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void Pruning_takes_the_record_of_an_expired_certificate_as_well()
+        {
+            // The same prune, so a pairing and keeping one authority take it with them too.
+            Write();
+
+            using (var ended = TestAuthority.IssueExpiredClient("agent-nonexistent", "ops"))
+            {
+                var expired = AdmissionRecord.For(ended, DateTimeOffset.UtcNow.AddDays(-7), new[] { "ops" });
+                _values.Plant(expired.StorageKey, expired.Save());
+
+                var pruned = _store.Prune();
+
+                Assert.That(pruned.Select(p => p.Key), Is.EqualTo(new[] { expired.StorageKey }));
+                Assert.That(pruned.Single().Value, Is.EqualTo(expired.Save()), "so that a write that fails can put it back");
+            }
+        }
+
+        [Test]
+        public void The_standing_answers_of_records_pruned_in_the_same_write_go_with_them()
+        {
+            // The answers last, because what they ask is whether a record is still there: run
+            // first, they kept the answer of a record the same write then took away, and left it
+            // until some later write.
+            Write();
+
+            using (var ended = TestAuthority.IssueExpiredClient("agent-nonexistent", "ops"))
+            {
+                var expired = AdmissionRecord.For(ended, DateTimeOffset.UtcNow.AddDays(-7), new[] { "ops" });
+                _values.Plant(expired.StorageKey, expired.Save());
+                _values.Plant(AuthorityKeys.RenewalRefusalKey(expired.AdmissionKey), RenewalRefusal.ForeverValue);
+
+                var cameBack = new string('d', 64);
+                _values.Plant(AuthorityKeys.ClientRecordKey(cameBack), "a record that came back");
+                _values.Plant(AuthorityKeys.RevocationKey(cameBack), "2999-01-01T00:00:00Z");
+                _values.Plant(AuthorityKeys.RenewalRefusalKey(cameBack), RenewalRefusal.ForeverValue);
+
+                _store.Prune();
+
+                Assert.That(_values.Get(AuthorityKeys.RenewalRefusalKey(expired.AdmissionKey)), Is.Null,
+                    "the expired record's answer went with it");
+                Assert.That(_values.Get(AuthorityKeys.RenewalRefusalKey(cameBack)), Is.Null,
+                    "and so did the answer beside the record that came back");
+            }
+        }
+
+        [Test]
         public void A_document_is_never_written_twice()
         {
             using (var authority = _issuer.CreateAuthority())

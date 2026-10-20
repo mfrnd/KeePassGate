@@ -70,6 +70,24 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void A_list_of_profiles_that_will_not_read_is_never_written_over()
+        {
+            // Read, a damaged list names nothing, and a list of only the approved names written in
+            // its place drops every name it held and the sign that it was damaged.
+            const string Damaged = "{ not a list";
+            _database.Database.CustomData.Set(ProfileNames.CustomDataKey, Damaged);
+
+            using (var certificate = IssueClient())
+            {
+                var result = _writer.WriteAdmission(_database.Database, Record(certificate, "ops"));
+
+                Assert.That(result.Ok, Is.True, result.Reason);
+                Assert.That(_database.Database.CustomData.Get(ProfileNames.CustomDataKey), Is.EqualTo(Damaged));
+                Assert.That(_log.Warnings.Any(line => line.Contains("will not read")), Is.True);
+            }
+        }
+
+        [Test]
         public void A_record_is_written_and_the_database_is_saved()
         {
             using (var certificate = IssueClient())
@@ -344,6 +362,48 @@ namespace KeePassGate.Host.Tests
 
                 Assert.That(_database.Database.CustomData.Get(AuthorityKeys.ClientRecordKey(cameBack)),
                     Is.EqualTo("a record that came back"),
+                    "memory has to go on agreeing with the file the write never reached");
+                Assert.That(_database.Database.Modified, Is.False);
+            }
+        }
+
+        [Test]
+        public void A_pairing_takes_away_the_record_of_an_expired_certificate()
+        {
+            var expired = PlantExpiredRecord();
+            _database.Database.Modified = false;
+
+            var store = new AdmissionStore(new CustomDataStore(_database.Database), null);
+            Assume.That(store.Find(expired), Is.Not.Null, "the record is there, and its dates are what refuse it");
+            Assert.That(_database.Database.Modified, Is.False, "reading it marks nothing modified");
+
+            using (var certificate = IssueClient())
+            {
+                var result = _writer.WriteAdmission(_database.Database, Record(certificate, "ops"));
+                Assert.That(result.Ok, Is.True, result.Reason);
+
+                _database.SaveCloseAndReopen();
+
+                Assert.That(_database.Database.CustomData.Exists(AuthorityKeys.ClientRecordKey(expired)), Is.False,
+                    "gone from the file, not only from memory");
+                Assert.That(_database.Database.CustomData.Exists(Record(certificate, "ops").StorageKey), Is.True,
+                    "and the record the pairing wrote is the one left");
+            }
+        }
+
+        [Test]
+        public void A_pairing_that_does_not_land_puts_the_record_of_an_expired_certificate_back()
+        {
+            var writer = new DatabaseWriter(CurrentThread.Instance, database => { }, null, _dialogs, _log);
+            var expired = PlantExpiredRecord();
+            var stored = _database.Database.CustomData.Get(AuthorityKeys.ClientRecordKey(expired));
+            _database.Database.Modified = false;
+
+            using (var certificate = IssueClient())
+            {
+                Assume.That(writer.WriteAdmission(_database.Database, Record(certificate, "ops")).Ok, Is.False);
+
+                Assert.That(_database.Database.CustomData.Get(AuthorityKeys.ClientRecordKey(expired)), Is.EqualTo(stored),
                     "memory has to go on agreeing with the file the write never reached");
                 Assert.That(_database.Database.Modified, Is.False);
             }
@@ -926,7 +986,7 @@ namespace KeePassGate.Host.Tests
 
             var challenge = Convert.FromBase64String(JsonBody.Read(hello.Json).Text("challenge"));
             var proof = PairingProof.Request(
-                token, binding, nonce, challenge, PairingProof.Asked(name, profiles));
+                token, binding, nonce, challenge, PairingProof.Asked(name, profiles, null));
 
             var body = new System.Text.StringBuilder();
             body.Append("{\"name\":\"").Append(name).Append("\",\"profiles\":[");
@@ -1060,6 +1120,29 @@ namespace KeePassGate.Host.Tests
             _database.Database.CustomData.Set(AuthorityKeys.ClientRecordKey(revoked), "a record that came back");
             _database.Database.CustomData.Set(AuthorityKeys.RevocationKey(revoked), "2999-01-01T00:00:00Z");
             return revoked;
+        }
+
+        /// <summary>
+        /// The record of a client certificate that ended days ago, answering with its admission
+        /// key.
+        /// </summary>
+        /// <remarks>
+        /// From an authority of its own made a week ago, because nothing can be issued from before
+        /// its authority began and this database's was made a moment ago. Whose authority it is
+        /// does not matter to the prune, which reads the certificate's dates and nothing else.
+        /// </remarks>
+        private string PlantExpiredRecord()
+        {
+            var then = DateTimeOffset.UtcNow.AddDays(-7);
+            var issuer = new AuthorityIssuer(() => then);
+
+            using (var authority = issuer.CreateAuthority())
+            using (var certificate = issuer.IssueClient(authority, "agent-nonexistent", new[] { "ops" }, TimeSpan.FromDays(1)))
+            {
+                var record = AdmissionRecord.For(certificate, then, new[] { "ops" });
+                _database.Database.CustomData.Set(record.StorageKey, record.Save());
+                return record.AdmissionKey;
+            }
         }
 
         private DatabaseOperationsForm MaintenanceDialog()

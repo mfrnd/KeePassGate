@@ -298,6 +298,36 @@ namespace KeePassGate.Bridge
         }
 
         /// <summary>
+        /// Whether the database with this authority is served unlocked now.
+        /// </summary>
+        /// <remarks>
+        /// For the approval dialogs, asked on KeePass's thread just before one is shown. A lock
+        /// takes the database out of the cache on that same thread, so a request that waited for
+        /// the screen while KeePass locked finds it gone and is answered as locked, never shown.
+        /// </remarks>
+        public bool Serving(string databaseId)
+        {
+            if (string.IsNullOrEmpty(databaseId))
+            {
+                return false;
+            }
+
+            lock (_cacheLock)
+            {
+                foreach (var cached in _cache.Values)
+                {
+                    if (cached.Target != null
+                        && string.Equals(cached.Target.DatabaseId, databaseId, StringComparison.Ordinal))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
         /// What this database answers with once it is locked, built from what is cached for it.
         /// Null when there is no responder to answer with at all. Called with the lock held.
         /// </summary>
@@ -1073,6 +1103,34 @@ namespace KeePassGate.Bridge
             }
 
             /// <summary>
+            /// Why the list of profiles will not read now, or null when it reads or there is no
+            /// database to read it from.
+            /// </summary>
+            public string ProfilesUnreadable
+            {
+                get
+                {
+                    // Into a local first, for the reason `KnownProfiles` gives.
+                    var database = _database;
+                    if (database == null || database.RootGroup == null)
+                    {
+                        return null;
+                    }
+
+                    try
+                    {
+                        return ProfileNames.Readable(database.CustomData.Get(ProfileNames.CustomDataKey))
+                            ? null
+                            : "the profiles this database names will not read";
+                    }
+                    catch (Exception error) when (Expected.OfCustomData(error))
+                    {
+                        return "the profiles this database names could not be read: " + error.Message;
+                    }
+                }
+            }
+
+            /// <summary>
             /// The admitted clients whose records hold a profile, read now. Nobody when the
             /// database has gone or the records cannot be read, which leaves the approval dialog
             /// with no warning to give rather than a wrong one.
@@ -1094,7 +1152,7 @@ namespace KeePassGate.Bridge
                     foreach (var record in new AdmissionStore(new CustomDataStore(database), _log).All().Records)
                     {
                         // Not one whose certificate has expired: it regains nothing, being refused
-                        // before its record is read.
+                        // before its record is read, and the pairing's own write prunes it.
                         if (record != null && record.Profiles != null
                             && record.Profiles.Contains(profile, StringComparer.Ordinal)
                             && !record.HasExpired(now))
@@ -1183,25 +1241,96 @@ namespace KeePassGate.Bridge
                     // Asked on the connection thread, not the UI thread, and the part of it that
                     // asks whether KeePass is busy is safe there without a lock. It reads two
                     // scalars, `MainForm.m_uUIBlocked` and `MessageService`'s message count, each
-                    // one aligned 32-bit field that cannot be read torn. A stale answer costs
-                    // nothing: this is advisory, asked so that an invitation is not spent on a
-                    // write that would be refused, and the ask that decides is the one
-                    // `DatabaseWriter` makes again inside the marshaled call, on the UI thread,
-                    // where neither can change underneath it.
+                    // one aligned 32-bit field that cannot be read torn.
+                    //
+                    // **It is not advisory for pairing and renewal**, which act on it: a refusal
+                    // before the dialog costs a hello, and one after it costs the operator's
+                    // approval. So the block this plugin's own save raises,
+                    // while another client's write is saving, is told apart there and waited for,
+                    // and the ask that decides is still the one `DatabaseWriter` makes again inside
+                    // the marshaled call, on the UI thread, where neither can change underneath it.
                     return _writer == null
                         ? "this database is served without a way to write to it"
                         : _writer.Blocked(_database);
                 }
             }
 
-            public AdmissionWrite Admit(AdmissionRecord record)
+            /// <summary>
+            /// Revokes a client at its own request, through the writer, and says in the log what
+            /// came of it.
+            /// </summary>
+            /// <remarks>
+            /// The line names the client by the start of its admission key, as the Clients page
+            /// and the audit do, and never by the name it chose, which is somebody's own word.
+            /// </remarks>
+            public VaultWrite Revoke(string admissionKey)
+            {
+                if (_writer == null)
+                {
+                    return VaultWrite.Failed("this database is served without a way to write to it");
+                }
+
+                var written = _writer.Revoke(_database, admissionKey);
+                if (written.Ok)
+                {
+                    _log.Info("a client revoked its own certificate: " + CertificateDigest.Shorten(admissionKey));
+                }
+                else if (written.IsUnverified)
+                {
+                    // In force in the database KeePass holds, and refused from the next request,
+                    // as the audit says: only whether the file kept it is unknown.
+                    _log.Warn("a client revoked its own certificate, and the file was not verified to hold it: " +
+                              CertificateDigest.Shorten(admissionKey) + ": " + written.Reason);
+                }
+                else
+                {
+                    _log.Warn("a client asked to revoke its own certificate and it was not done: " + written.Reason);
+                }
+
+                return written;
+            }
+
+            /// <summary>
+            /// The operator's standing answer to renewing this certificate, read now. None when the
+            /// database has gone, which a renewal then finds again when it asks whether a record
+            /// can be written.
+            /// </summary>
+            /// <remarks>
+            /// **A read that fails is not answered here.** None would raise the dialog, which is the
+            /// one thing a standing answer exists to stop and the direction the store refuses for a
+            /// value it cannot read; the handler answers the failure `503 busy`, which raises
+            /// nothing and lets the client ask again.
+            /// </remarks>
+            public RenewalRefusal StandingRefusal(string admissionKey)
+            {
+                // Into a local first, for the reason `KnownProfiles` gives.
+                var database = _database;
+                if (database == null || database.RootGroup == null)
+                {
+                    return null;
+                }
+
+                return new AdmissionStore(new CustomDataStore(database), _log).StandingRefusal(admissionKey);
+            }
+
+            public VaultWrite RefuseRenewal(string admissionKey, RenewalRefusal refusal)
+            {
+                if (_writer == null)
+                {
+                    return VaultWrite.Failed("this database is served without a way to write to it");
+                }
+
+                return _writer.RefuseRenewal(_database, admissionKey, refusal);
+            }
+
+            public AdmissionWrite Admit(AdmissionRecord record, Func<IKeyValueStore, string> condition)
             {
                 if (_writer == null)
                 {
                     return AdmissionWrite.Failed("this database is served without a way to write to it");
                 }
 
-                return _writer.WriteAdmission(_database, record);
+                return _writer.WriteAdmission(_database, record, condition);
             }
 
             /// <summary>Never: a locked database is served by <see cref="LockedTarget"/> instead.</summary>
@@ -1257,11 +1386,20 @@ namespace KeePassGate.Bridge
             /// until the next connection prunes it pins that object. It pins no entries, because
             /// KeePass empties a `PwDatabase` when it locks or closes it, and the last holder to let
             /// go of the target drops the reference besides.
+            ///
+            /// **Nothing while the database no longer serves this target's authority.** A
+            /// connection holds its target for as long as it lasts, and a renewal's lasts as long
+            /// as the operator takes, so the authority can be recreated or deleted underneath it.
+            /// Every record goes with the authority, and a record that comes back afterwards, by a
+            /// merge or by a pairing that landed while the authority went, chains to an authority
+            /// that is retired. Answered as no record, so a renewal asking again after its dialog
+            /// issues nothing under an authority the database has let go of.
             /// </remarks>
             public AdmissionRecord Admission(string admissionKey)
             {
-                var root = _database == null ? null : _database.RootGroup;
-                if (root == null)
+                // Into a local first, for the reason `KnownProfiles` gives.
+                var database = _database;
+                if (database == null || database.RootGroup == null)
                 {
                     // Locked, between this and the check `Current` made, nearly always: KeePass
                     // empties the database before it says why. Not answered as no record, which
@@ -1270,7 +1408,32 @@ namespace KeePassGate.Bridge
                     throw new DatabaseShut("the database closed under this connection");
                 }
 
-                return new AdmissionStore(new CustomDataStore(_database), _log).Find(admissionKey);
+                var store = new CustomDataStore(database);
+                if (!Served(store))
+                {
+                    return null;
+                }
+
+                // A listing that failed is not an answer, because the one it would give is that
+                // this client was never admitted: a write on KeePass's thread changing the
+                // dictionary while this enumerates it is all that takes.
+                bool listed;
+                var found = new AdmissionStore(store, _log).Find(admissionKey, out listed);
+                if (!listed)
+                {
+                    throw new VaultUnsettled("the admission records could not be listed");
+                }
+
+                return found;
+            }
+
+            /// <summary>
+            /// True while the database still holds this target's authority and has not retired it.
+            /// </summary>
+            private bool Served(IKeyValueStore store)
+            {
+                return !string.IsNullOrEmpty(store.Get(AuthorityKeys.AuthorityKey(_databaseId)))
+                       && store.Get(AuthorityKeys.RetirementKey(_databaseId)) == null;
             }
         }
     }

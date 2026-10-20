@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Globalization;
 using System.Windows.Forms;
@@ -145,7 +146,7 @@ namespace KeePassGate.Ui
                 var row = new ListViewItem(option.ShortFingerprint) { Tag = option };
                 row.SubItems.Add(Stamp(option.Created));
                 row.SubItems.Add(option.CanKeep
-                    ? option.Clients.Count.ToString(CultureInfo.InvariantCulture)
+                    ? Clients(option).ToString(CultureInfo.InvariantCulture)
                     : "unreadable");
                 _authorities.Items.Add(row);
             }
@@ -369,6 +370,13 @@ namespace KeePassGate.Ui
             base.OnLoad(e);
         }
 
+        /// <summary>Kept out of screen captures when KeePass keeps its own windows out.</summary>
+        protected override void OnHandleCreated(EventArgs e)
+        {
+            base.OnHandleCreated(e);
+            CaptureGuard.Apply(this);
+        }
+
         protected override void Dispose(bool disposing)
         {
             if (disposing)
@@ -540,6 +548,22 @@ namespace KeePassGate.Ui
         {
             var frame = list.Height - list.ClientSize.Height;
             list.Height = frame + header + (row * shown);
+        }
+
+        /// <summary>
+        /// How many clients an authority has: each client once, by its client key, since a client
+        /// that renewed is listed below once per certificate and is still one client, and two
+        /// programs that paired under one name are two.
+        /// </summary>
+        private static int Clients(AuthorityOption option)
+        {
+            var clients = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var client in option.Clients)
+            {
+                clients.Add(client.ClientKey);
+            }
+
+            return clients.Count;
         }
 
         private static int MostClients(AuthorityChoice choice)

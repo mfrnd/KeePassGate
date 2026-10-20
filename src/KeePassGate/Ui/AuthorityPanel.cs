@@ -110,6 +110,12 @@ namespace KeePassGate.Ui
         /// </summary>
         private string _offered;
 
+        /// <summary>
+        /// The renewals refused in this session, as this dialog's OK would leave them, or null for
+        /// a tab that shows none.
+        /// </summary>
+        private readonly PendingSessionRefusals _sessionRefusals;
+
         /// <summary>Wakes the invitation band when its line next changes, while a code is out.</summary>
         private readonly Timer _ticking = new Timer();
 
@@ -184,6 +190,27 @@ namespace KeePassGate.Ui
             IInvitations invitations,
             IProfiles profiles,
             IAdmissionNotice admissions)
+            : this(database, prompt, log, invitations, profiles, admissions, null)
+        {
+        }
+
+        /// <summary>
+        /// The same, and showing the renewals refused in this session beside the clients they are
+        /// about.
+        /// </summary>
+        /// <remarks>
+        /// The database's standing answers are read from the database; this session's are the
+        /// plugin's memory, so they arrive here, through what the dialog holds back until OK. Null
+        /// for a tab that shows none, which is what a tab built without the plugin around it is.
+        /// </remarks>
+        public AuthorityPanel(
+            IGateDatabase database,
+            IOperatorPrompt prompt,
+            IGateLog log,
+            IInvitations invitations,
+            IProfiles profiles,
+            IAdmissionNotice admissions,
+            PendingSessionRefusals sessionRefusals)
         {
             _database = database;
             Clipboard = SystemClipboard.Instance;
@@ -192,6 +219,7 @@ namespace KeePassGate.Ui
             _log = log ?? NullGateLog.Instance;
             _invitations = invitations;
             _admissions = admissions;
+            _sessionRefusals = sessionRefusals;
 
             _service = database == null || !database.IsOpen
                 ? null
@@ -375,7 +403,7 @@ namespace KeePassGate.Ui
             // Under the widgets that hand an invitation out, because the list is what an invitation
             // turns into. The list fills what the invitation band leaves, so it goes in first:
             // docking is applied from the end of the collection backwards.
-            _clients = new ClientList(RevokeAndDescribe);
+            _clients = new ClientList(RevokeAndDescribe, AllowRenewalAndDescribe);
             _tabs.TabPages[2].Controls.Add(_clients);
             _tabs.TabPages[2].Controls.Add(invitation);
 
@@ -763,7 +791,7 @@ namespace KeePassGate.Ui
             // KeePass's message loop, which closes the dialog and reports nothing.
             try
             {
-                _clients.Fill(admitted, reaches, NamedProfiles());
+                _clients.Fill(admitted, reaches, NamedProfiles(), StandingAnswers(admitted, DateTimeOffset.UtcNow));
 
                 // The profiles page only while it is the page in front. It counts every rule in the
                 // tree and every record, which on a large database is the slowest thing on the tab,
@@ -1502,11 +1530,19 @@ namespace KeePassGate.Ui
         }
 
         /// <summary>
-        /// How many clients are admitted, read now rather than remembered.
+        /// How many clients recreating or deleting the authority cuts off, read now rather than
+        /// remembered: each client once, by its client key, and each record that will not read as
+        /// one of its own.
         /// </summary>
         /// <remarks>
-        /// This reads the whole authority to get one integer, which imports two PKCS#12 blobs and
-        /// builds the host's chain for certificates nothing here looks at. Caching it from the last
+        /// A client that renewed holds two records until it gives the older up, and was counted
+        /// as two clients that would have to pair again; two programs that paired under one name
+        /// are two clients, and counted by name were one. A listing that could not be made falls
+        /// back to counting the stored records, which says at least how many keys go.
+        ///
+        /// This reads every record to get one integer, and the whole authority when they cannot be
+        /// listed, which imports two PKCS#12 blobs and builds the host's chain for certificates
+        /// nothing here looks at. Caching it from the last
         /// `Describe` was tried and reverted: a panel can be asked to confirm before it has ever
         /// described itself, and the number would then be zero in a sentence telling the operator
         /// what they are about to lose. A wrong count there is worse than a slow one.
@@ -1520,6 +1556,12 @@ namespace KeePassGate.Ui
         /// </remarks>
         private int CountRecords()
         {
+            var admitted = AdmittedClients();
+            if (admitted.Complete)
+            {
+                return ClientList.ClientNames(admitted.Records).Count + admitted.Unreadable.Count;
+            }
+
             using (var reading = _service.Read())
             {
                 return reading.ClientRecordCount;
@@ -1564,6 +1606,132 @@ namespace KeePassGate.Ui
             }
 
             return refused;
+        }
+
+        /// <summary>
+        /// What the list lifts a standing answer through: the answer is taken away in what the
+        /// dialog holds, and the tab is read again so the row shows what OK would leave.
+        /// </summary>
+        private string AllowRenewalAndDescribe(string admissionKey)
+        {
+            var refused = AllowRenewal(admissionKey);
+            if (refused == null)
+            {
+                Describe();
+            }
+
+            return refused;
+        }
+
+        /// <summary>
+        /// Each listed client's standing answer to a renewal, asked as the gate asks it: the
+        /// database's first, then this session's. A client with none is absent, and so is one
+        /// whose day has come.
+        /// </summary>
+        /// <remarks>
+        /// **Read through what the dialog holds**, so an answer lifted on the page and waiting for
+        /// OK is already gone from it, and one the renewal dialog gave again meanwhile is back.
+        ///
+        /// **Nothing is logged here about a value that will not read.** It is answered as forever,
+        /// as the gate answers it, and the gate says so in the log every time it answers; this
+        /// runs on every redraw, and saying it again on each would bury the line that matters.
+        ///
+        /// Public, and given the moment, like `Reaches`: what the page shows beside each client is
+        /// a decision worth testing without a control tree to walk.
+        /// </remarks>
+        public IDictionary<string, RenewalRefusal> StandingAnswers(AdmissionListing admitted, DateTimeOffset now)
+        {
+            var answers = new Dictionary<string, RenewalRefusal>(StringComparer.Ordinal);
+            if (_database == null || !_database.IsOpen || admitted == null)
+            {
+                return answers;
+            }
+
+            try
+            {
+                var store = new AdmissionStore(_database.PluginCustomData, NullGateLog.Instance);
+                foreach (var record in admitted.Records)
+                {
+                    var standing = store.StandingRefusal(record.AdmissionKey);
+                    if (standing == null || !standing.Refuses(now))
+                    {
+                        standing = _sessionRefusals == null ? null : _sessionRefusals.Answer(record.AdmissionKey);
+                        if (standing != null && !standing.Refuses(now))
+                        {
+                            standing = null;
+                        }
+                    }
+
+                    if (standing != null)
+                    {
+                        answers[record.AdmissionKey] = standing;
+                    }
+                }
+            }
+            catch (Exception error) when (Expected.OfCustomData(error))
+            {
+                // Shown as none rather than guessed at: the gate reads the same key when it is
+                // asked, and answers from what it finds there, which this page cannot change.
+                _log.Warn("the standing answers to renewals could not be read: " + error.Message);
+            }
+
+            return answers;
+        }
+
+        /// <summary>
+        /// Lift the standing answer to renewing one certificate, whichever it is, so that its next
+        /// renewal raises the dialog again. Answers with why it could not, or null when it did.
+        /// </summary>
+        /// <remarks>
+        /// **It waits for the dialog's OK, like a revocation.** A stored answer, forever or until a
+        /// date, is taken away in the dialog's buffer; this session's is taken away in what the
+        /// dialog holds of the plugin's memory. Both land when the dialog is accepted, and Cancel
+        /// leaves the gate refusing as it did.
+        ///
+        /// **Both, where both stand**, which only a merge bringing in another copy's answer does:
+        /// the gate asks the database's first and the session's after it, so lifting one alone
+        /// would leave the client refused by the other and the row red after the press.
+        ///
+        /// By admission key, as a revocation is, because an answer is about one certificate and a
+        /// client that renewed is two rows with one client key.
+        /// </remarks>
+        public string AllowRenewal(string admissionKey)
+        {
+            if (string.IsNullOrEmpty(admissionKey))
+            {
+                return "there is no client to allow";
+            }
+
+            if (_database == null || !_database.IsOpen)
+            {
+                return "the database is not open";
+            }
+
+            bool stored;
+            try
+            {
+                stored = new AdmissionStore(_database.PluginCustomData, _log).LiftRenewalRefusal(admissionKey);
+            }
+            catch (Exception error) when (Expected.OfCustomData(error))
+            {
+                _log.Error("a standing answer to a renewal could not be lifted", error);
+                return error.Message;
+            }
+
+            var session = _sessionRefusals != null && _sessionRefusals.Lift(admissionKey);
+            if (!stored && !session)
+            {
+                return "no answer to its renewals stands";
+            }
+
+            if (stored)
+            {
+                _database.MarkModified();
+            }
+
+            _log.Info("the operator lifted the standing answer to renewing "
+                      + CertificateDigest.Shorten(admissionKey));
+            return null;
         }
 
         /// <summary>

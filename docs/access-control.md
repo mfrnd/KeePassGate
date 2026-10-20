@@ -55,10 +55,18 @@ profile removed only on the dropped copy comes back into force, and a profile ad
 dropped copy is lost, which the clients page then shows as removed on every client holding it.
 After merging two copies that both changed their profiles, check this page.
 
-**Adding a profile back is a full undo.** Every rule still naming it applies again, and every
-client still holding it regains it, so the page asks first: it says how many rules come back into
-force and names every client that regains the profile. A client whose certificate has expired is
-not named, since it regains nothing: the gate refuses it before its record is read.
+**Adding a profile back is a full undo.** Every rule still naming it applies again, and every client
+still holding it regains it, so the page asks first: it says how many rules come back into force and
+names every client that regains the profile, each once by its client key, the fingerprint of the
+certificate it paired with: a program that renewed and has not given the older certificate up is one
+client, and two programs that chose the same name are two, each named with the start of its key,
+"agent (3f2a9c1e)". This replaces naming such a name once with how
+many certificates it held, which could not tell the two apart. A client whose
+certificate has expired is not named, since it regains nothing: the gate refuses it before its
+record is read. The one exception is a client that [renewed](clients.md#expiry) its certificate
+while the profile was off the list: the certificate it renewed to was recorded without the profile
+and does not regain it, while the older one, until the client gives it up, still holds it and does,
+which is why the warning still names that client.
 
 As everywhere else on this tab, nothing is changed until **OK** is pressed on the settings dialog,
 and **saving the database** is what puts it on disk. Cancel discards it.

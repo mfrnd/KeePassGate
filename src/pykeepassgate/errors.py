@@ -11,6 +11,7 @@ logged, printed, and pasted into an issue.
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import ClassVar
 
 
@@ -57,9 +58,9 @@ class NotPaired(StorageError):
     """Nothing is stored for a paired client where this looked.
 
     The one state of the four files that is not damage: this client has not paired there yet, or
-    was told to look in the wrong place. A `StorageError` and nothing else, not a
-    `FileNotFoundError` as well, so `except GateError` catches it with everything else this
-    client raises and nothing outside this hierarchy is ever needed to catch it.
+    gave its identity up, or was told to look in the wrong place. A `StorageError` and nothing
+    else, not a `FileNotFoundError` as well, so `except GateError` catches it with everything
+    else this client raises and nothing outside this hierarchy is ever needed to catch it.
     """
 
 
@@ -82,6 +83,63 @@ class PairingRefused(PairingError):
 
 class PairingUnanswered(PairingError):
     """Nobody answered the dialog. The invitation is not spent, so this can be tried again."""
+
+
+class RenewalError(GateError):
+    """A renewal did not reach a new certificate, and the one this client holds is unchanged.
+
+    Its own branch rather than pairing's: nothing about an invitation applies, and what to do
+    next is a question about the certificate this client already holds, which still works until
+    it expires whatever the reason here was.
+    """
+
+
+class RenewalRefused(RenewalError):
+    """The operator refused this renewal.
+
+    The three below are the operator answering more than this one request, and each is answered
+    from then on without anybody being asked. **On the dialog's own turn the gate answers all four
+    alike**, so this may be the operator refusing in this session, until a date or forever as well
+    as only this once: asking again raises the dialog again after a refusal of this one only, and
+    otherwise is answered at once with the subclass that says which.
+    """
+
+
+class RenewalRefusedThisSession(RenewalRefused):
+    """The operator refused every renewal of this certificate until KeePass exits.
+
+    The gate holds that answer in memory and not in the database, so asking again after KeePass
+    has been restarted raises the dialog again, and so does asking once the operator has allowed
+    renewal again on the KPG tab's clients page. Until then pairing again is the other way to a new
+    certificate, and the one this client holds still works until it expires.
+    """
+
+
+class RenewalTooEarly(RenewalRefused):
+    """The operator refused renewing this certificate until `not_before`, which has not come.
+
+    Asking again before then gets this again without a dialog, unless the operator has allowed
+    renewal again on the KPG tab's clients page; from then on the operator is asked again, unless a
+    refusal in this session also stands, which is then what the gate answers.
+    """
+
+    def __init__(self, message: str, not_before: datetime) -> None:
+        """Keep the moment the gate said renewals are asked about again, in UTC."""
+        super().__init__(message)
+        self.not_before = not_before
+
+
+class RenewalRefusedForever(RenewalRefused):
+    """The operator refused every renewal of this certificate.
+
+    Short of the operator allowing renewal again on the KPG tab's clients page, pairing again is
+    the way to a new one, with an invitation from the operator, and the sooner the better: the
+    certificate this client holds still works only until it expires.
+    """
+
+
+class RenewalUnanswered(RenewalError):
+    """Nobody answered the dialog. Nothing changed, so this can be asked again."""
 
 
 class GateUnavailable(GateError):
@@ -120,9 +178,20 @@ class GateBusy(GateUnavailable):
     #: The word the gate sends with this refusal.
     word: ClassVar[str] = "busy"
 
-    def __init__(self, message: str, retry_after: float | None = None) -> None:
-        """Keep what the gate said about coming back, when it said it."""
+    def __init__(
+        self,
+        message: str,
+        retry_after: float | None = None,
+        held_until: datetime | None = None,
+    ) -> None:
+        """Keep what the gate said about coming back, and until when it holds an approval.
+
+        `held_until` is set only on `pair` and `renew`, when the operator approved and KeePass
+        was too busy to write it: the gate holds the approval until then, in UTC, and the same
+        request asked again before then is written without the dialog. `None` everywhere else.
+        """
         super().__init__(message, self.word, retry_after)
+        self.held_until = held_until
 
 
 class DatabaseLocked(GateUnavailable):
@@ -166,9 +235,13 @@ class NotAdmitted(GateError):
     """The gate does not admit this certificate: no record, a revoked one, or an expired one.
 
     Every connection is checked against the record, not against the certificate alone, so this is
-    also what a revoked client sees, immediately. A certificate that has expired is refused as one
-    with no record, and this client names it as expired, with the moment, before it dials, when
-    the expiry pairing stored has passed. Pairing again is the way back from all three.
+    also what a revoked client sees, immediately. A certificate that has expired by the gate's clock
+    is refused as one with no record, and this client names it as expired, with the moment, before
+    it dials, when this machine's clock is `client.CLOCK_LEEWAY` past the expiry stored with it: a
+    clock running behind the gate's dials and meets the `401`. Pairing again is the way back from
+    all three for a client that still wants to reach the gate, because a renewal needs a certificate
+    that is still admitted and has not expired; for one that does not, what is stored protects
+    nothing, and `forget`, or the command line's `revoke`, takes it away.
     """
 
 

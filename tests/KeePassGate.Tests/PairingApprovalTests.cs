@@ -127,6 +127,17 @@ namespace KeePassGate.Tests
                     "the dialog is wider than the smallest screen at " + scaling);
                 Assert.That(InDialog(list, dialog).Bottom, Is.LessThanOrEqualTo(Asked(dialog).Height),
                     "the list is off the bottom of the dialog at " + scaling);
+
+                // The lifetime is part of what Approve grants, so it is held to the same room.
+                var lifetime = Lifetime(dialog);
+                var row = lifetime.Parent;
+                Assert.That(InDialog(row, dialog).Bottom, Is.LessThanOrEqualTo(Asked(dialog).Height),
+                    "the lifetime is off the bottom of the dialog at " + scaling);
+                Assert.That(InDialog(row, dialog).Right, Is.LessThanOrEqualTo(Asked(dialog).Width),
+                    "the lifetime is off the side of the dialog at " + scaling);
+                Assert.That(lifetime.Width, Is.GreaterThan(
+                        lifetime.Items.Cast<string>().Max(text => TextRenderer.MeasureText(text, larger).Width)),
+                    "the longest choice is cut at " + scaling);
             }
         }
 
@@ -230,6 +241,158 @@ namespace KeePassGate.Tests
                 Assert.That(answer.Profiles, Is.Empty);
             }
         }
+
+        [Test]
+        public void The_lifetime_offered_first_is_the_one_asked_for_and_is_marked_as_asked()
+        {
+            using (var dialog = New(TimeSpan.FromDays(30), "ops"))
+            {
+                var lifetime = Lifetime(dialog);
+
+                Assert.That(lifetime.Items.Cast<string>(),
+                    Is.EqualTo(new[] { "1 day", "7 days", "30 days (asked)", "90 days", "365 days" }));
+                Assert.That(lifetime.SelectedItem, Is.EqualTo("30 days (asked)"));
+            }
+        }
+
+        [Test]
+        public void A_lifetime_asked_for_that_is_no_preset_is_offered_as_a_choice_of_its_own()
+        {
+            using (var dialog = New(TimeSpan.FromDays(45), "ops"))
+            {
+                var lifetime = Lifetime(dialog);
+
+                Assert.That(lifetime.Items.Cast<string>(),
+                    Is.EqualTo(new[] { "1 day", "7 days", "30 days", "45 days (asked)", "90 days", "365 days" }),
+                    "in its place by length, among the presets");
+                Assert.That(lifetime.SelectedItem, Is.EqualTo("45 days (asked)"));
+            }
+        }
+
+        [Test]
+        public void A_client_that_asked_for_no_lifetime_is_offered_a_year()
+        {
+            using (var dialog = New("ops"))
+            {
+                var lifetime = Lifetime(dialog);
+
+                Assert.That(lifetime.SelectedItem, Is.EqualTo("365 days"));
+                Assert.That(lifetime.Items.Cast<string>(), Has.None.Contains(LifetimeChoice.AskedSuffix),
+                    "nothing is marked as asked for when nothing was");
+            }
+        }
+
+        [Test]
+        public void A_list_with_nothing_chosen_gives_a_year_rather_than_the_shortest()
+        {
+            using (var dialog = New(TimeSpan.FromDays(30), "ops"))
+            {
+                Lifetime(dialog).SelectedIndex = -1;
+                dialog.Approve();
+
+                Assert.That(dialog.Answer().Lifetime, Is.EqualTo(Authority.Lifetime.Unasked));
+            }
+        }
+
+        [Test]
+        public void Approving_gives_the_certificate_the_lifetime_chosen()
+        {
+            // Asked for thirty days, given seven: what the client proposed is preselected and is
+            // not what is approved unless the operator leaves it.
+            using (var dialog = New(TimeSpan.FromDays(30), "ops"))
+            {
+                Lifetime(dialog).SelectedItem = "7 days";
+                dialog.Approve();
+
+                Assert.That(dialog.Answer().Lifetime, Is.EqualTo(TimeSpan.FromDays(7)));
+            }
+        }
+
+        [Test]
+        public void Approving_without_touching_the_lifetime_gives_what_was_preselected()
+        {
+            using (var asked = New(TimeSpan.FromDays(90), "ops"))
+            using (var unasked = New("ops"))
+            {
+                asked.Approve();
+                unasked.Approve();
+
+                Assert.That(asked.Answer().Lifetime, Is.EqualTo(TimeSpan.FromDays(90)));
+                Assert.That(unasked.Answer().Lifetime, Is.EqualTo(TimeSpan.FromDays(365)));
+            }
+        }
+
+        [TestCase(Keys.Enter)]
+        [TestCase(Keys.Escape)]
+        public void A_key_pressed_on_the_closed_lifetime_list_still_reaches_the_refusal(Keys key)
+        {
+            // A closed list claims neither key, so the loop hands both to the dialog's own buttons,
+            // and both of those refuse. Posted through a real loop, because the question is which
+            // control the loop decides a key belongs to, and a key sent straight to a window has
+            // skipped that question.
+            using (var dialog = New(TimeSpan.FromDays(30), "ops"))
+            {
+                var lifetime = Focused(dialog);
+
+                Press(lifetime, key);
+
+                Assert.That(dialog.Answer().Decision, Is.EqualTo(PairingDecision.Refused));
+            }
+        }
+
+        [TestCase(Keys.Enter)]
+        [TestCase(Keys.Escape)]
+        public void A_key_pressed_on_the_open_lifetime_list_is_the_lists_alone(Keys key)
+        {
+            // An open list takes Enter to pick and Escape to close, as every list does, so an
+            // operator closing the choices is not refusing the client in the same keystroke.
+            using (var dialog = New(TimeSpan.FromDays(30), "ops"))
+            {
+                var lifetime = Focused(dialog);
+                lifetime.DroppedDown = true;
+                OffScreenForm.Pump();
+
+                Press(lifetime, key);
+
+                Assert.That(lifetime.DroppedDown, Is.False, "the key closed the list");
+                Assert.That(dialog.Visible, Is.True, "and nothing else");
+                Assert.That(dialog.Answer().Decision, Is.EqualTo(PairingDecision.TimedOut),
+                    "nobody has answered yet");
+            }
+        }
+
+        /// <summary>The dialog shown where nobody sees it, with the focus on the lifetime.</summary>
+        private static ComboBox Focused(PairingApprovalForm dialog)
+        {
+            dialog.StartPosition = FormStartPosition.Manual;
+            dialog.Location = new Point(-4000, -4000);
+            dialog.ShowInTaskbar = false;
+            dialog.Show();
+            OffScreenForm.Pump();
+
+            var lifetime = Lifetime(dialog);
+            lifetime.Focus();
+            OffScreenForm.Pump();
+
+            Assert.That(lifetime.Focused, Is.True, "the key has to start where an operator would press it");
+            return lifetime;
+        }
+
+        /// <summary>Puts a key on the queue for the list, and lets the loop deliver it.</summary>
+        private static void Press(Control control, Keys key)
+        {
+            PostMessage(control.Handle, WmKeyDown, (IntPtr)(int)key, IntPtr.Zero);
+            PostMessage(control.Handle, WmKeyUp, (IntPtr)(int)key, IntPtr.Zero);
+            OffScreenForm.Pump();
+        }
+
+        private const int WmKeyDown = 0x0100;
+
+        private const int WmKeyUp = 0x0101;
+
+        [DllImport("user32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool PostMessage(IntPtr window, int message, IntPtr key, IntPtr detail);
 
         [Test]
         public void Refusing_refuses()
@@ -547,6 +710,78 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void Clients_regaining_a_name_are_counted_by_client_key_and_told_apart()
+        {
+            // A client that renewed holds the name through two records and is one client; two
+            // programs that chose one name are two, each named with the start of its client key.
+            using (var authority = TestAuthority.New())
+            using (var older = authority.IssueClient("agent-renewing"))
+            using (var renewed = authority.IssueClient("agent-renewing"))
+            using (var one = authority.IssueClient("agent"))
+            using (var other = authority.IssueClient("agent"))
+            {
+                var paired = AdmissionRecord.For(older, DateTimeOffset.UtcNow, new[] { "retired" });
+                var first = AdmissionRecord.For(one, DateTimeOffset.UtcNow, new[] { "retired" });
+                var second = AdmissionRecord.For(other, DateTimeOffset.UtcNow, new[] { "retired" });
+                var holding = new[]
+                {
+                    paired,
+                    AdmissionRecord.For(renewed, DateTimeOffset.UtcNow, new[] { "retired" }, paired.ClientKey),
+                    first,
+                    second
+                };
+
+                var request = new PairingRequest(
+                    "aaaabbbbccccdddd", "Invented Vault", "abcdef01", "agent-fictitious",
+                    new[] { "retired" }, new[] { "ops" }, "127.0.0.1:60001",
+                    new Dictionary<string, IReadOnlyList<AdmissionRecord>> { { "retired", holding } });
+
+                var apart = new[] { first.ClientKey, second.ClientKey }
+                    .OrderBy(key => key, StringComparer.Ordinal)
+                    .Select(key => "agent (" + key.Substring(0, ClientList.ShortKeyLength) + ")");
+
+                Assert.That(PairingApprovalForm.Regaining(request), Does.StartWith(
+                    "3 clients still hold retired from before and will regain it: "
+                    + string.Join(", ", apart) + ", agent-renewing."));
+            }
+        }
+
+        [Test]
+        public void Many_removed_profiles_held_by_many_clients_are_said_in_one_bounded_sentence()
+        {
+            // One sentence per profile, each naming every holder, had no bound: twelve names held
+            // by fifteen clients pushed Refuse, Approve and the countdown off the screen.
+            using (var authority = TestAuthority.New())
+            {
+                var holders = Enumerable.Range(0, 15)
+                    .Select(i => authority.IssueClient("agent-" + i.ToString("00", System.Globalization.CultureInfo.InvariantCulture)))
+                    .ToList();
+                try
+                {
+                    var removed = Enumerable.Range(0, 12).Select(i => "gone-" + i).ToArray();
+                    var records = holders.Select(c => AdmissionRecord.For(c, DateTimeOffset.UtcNow, removed)).ToList();
+                    var returning = removed.ToDictionary(
+                        name => name, name => (IReadOnlyList<AdmissionRecord>)records, StringComparer.Ordinal);
+
+                    var request = new PairingRequest(
+                        "aaaabbbbccccdddd", "Invented Vault", "abcdef01", "agent-fictitious",
+                        removed, new[] { "ops" }, "127.0.0.1:60001", returning);
+
+                    var said = PairingApprovalForm.Regaining(request);
+
+                    Assert.That(said, Does.StartWith(
+                        "12 of these profiles were removed and are still held from before by 15 clients, who will "
+                        + "regain them: agent-00, agent-01, agent-02, and 12 more."));
+                    Assert.That(said.Length, Is.LessThan(400), "bounded however many there are");
+                }
+                finally
+                {
+                    holders.ForEach(certificate => certificate.Dispose());
+                }
+            }
+        }
+
+        [Test]
         public void At_the_ceiling_the_dialog_promises_to_add_nothing_and_names_nobody_regaining()
         {
             // The writer skips a name the full list cannot take, and the pairing lands without it,
@@ -656,7 +891,7 @@ namespace KeePassGate.Tests
 
                 Assert.That(shown, Does.Contain("times out"),
                     "a dialog that answers for the operator has to say that it will");
-                Assert.That(shown, Does.Contain("nothing is issued"),
+                Assert.That(shown, Does.Contain("nothing gets issued"),
                     "and which way it answers, because the two are not the same news");
             }
         }
@@ -672,6 +907,30 @@ namespace KeePassGate.Tests
         private static PairingApprovalForm New(params string[] profiles)
         {
             return new PairingApprovalForm(Request("agent-fictitious", profiles, profiles), Timeout);
+        }
+
+        /// <summary>The same, for a client that asked for a lifetime.</summary>
+        private static PairingApprovalForm New(TimeSpan lifetime, params string[] profiles)
+        {
+            return new PairingApprovalForm(
+                new PairingRequest(
+                    "aaaabbbbccccdddd",
+                    "Invented Vault",
+                    "abcdef01",
+                    "agent-fictitious",
+                    profiles,
+                    profiles,
+                    "127.0.0.1:60001",
+                    null,
+                    lifetime),
+                Timeout);
+        }
+
+        private static ComboBox Lifetime(Control form)
+        {
+            var list = ControlTree.FindByName<ComboBox>(form, GateTab.ApprovalLifetimeName);
+            Assert.That(list, Is.Not.Null, "no choice of lifetime");
+            return list;
         }
 
         /// <summary>The same dialog, built at a font a scaled display would hand it.</summary>
@@ -745,6 +1004,17 @@ namespace KeePassGate.Tests
         public void SetUp()
         {
             _log = new RecordingGateLog();
+        }
+
+        [Test]
+        public void The_log_line_reads_as_a_sentence_for_every_answer()
+        {
+            Assert.That(PairingApprovalPrompt.Outcome(PairingDecision.TimedOut, "nobody answered"),
+                Is.EqualTo(" went unanswered"));
+            Assert.That(PairingApprovalPrompt.Outcome(PairingDecision.Refused, "refused forever"),
+                Is.EqualTo(" was refused forever"));
+            Assert.That(PairingApprovalPrompt.Outcome(PairingDecision.Approved, "approved"),
+                Is.EqualTo(" was approved"));
         }
 
         [Test]
@@ -836,6 +1106,46 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_renewal_waits_its_turn_for_the_screen_behind_a_pairing()
+        {
+            // A renewal raised inside a pairing's modal loop would gray it out exactly as a second
+            // pairing would, so the two share the one screen rather than each having one.
+            var ui = new HeldUiThread();
+            var prompt = new PairingApprovalPrompt(ui, _log);
+            var first = new Thread(() => prompt.Ask(Request(), Timeout));
+
+            first.IsBackground = true;
+            first.Start();
+
+            try
+            {
+                Assert.That(ui.Reached(Patience), Is.True, "the pairing has the screen");
+
+                var renewal = prompt.Ask(
+                    new RenewalRequest(
+                        "aaaabbbbccccdddd",
+                        "Invented Vault",
+                        "agent-fictitious",
+                        DateTimeOffset.UtcNow,
+                        DateTimeOffset.UtcNow.AddDays(30),
+                        new[] { "ops" },
+                        Array.Empty<string>(),
+                        "127.0.0.1:60001",
+                        null),
+                    TimeSpan.FromMilliseconds(50));
+
+                Assert.That(renewal.Decision, Is.EqualTo(PairingDecision.Unavailable));
+                Assert.That(ui.Asked, Is.EqualTo(1), "no second dialog behind the first");
+            }
+            finally
+            {
+                ui.Release();
+            }
+
+            Assert.That(first.Join(Patience), Is.True);
+        }
+
+        [Test]
         public void The_screen_goes_back_to_whoever_asks_next()
         {
             // The other half of the gate: a pairing that has finished must leave the lock behind
@@ -866,7 +1176,145 @@ namespace KeePassGate.Tests
         {
             var prompt = new PairingApprovalPrompt(CurrentThread.Instance, _log);
 
-            Assert.Throws<ArgumentNullException>(() => prompt.Ask(null, Timeout));
+            Assert.Throws<ArgumentNullException>(() => prompt.Ask((PairingRequest)null, Timeout));
+            Assert.Throws<ArgumentNullException>(() => prompt.Ask((RenewalRequest)null, Timeout));
+        }
+
+        [Test]
+        public void A_request_whose_database_locked_while_it_waited_is_answered_as_locked_and_never_shown()
+        {
+            // Asked on KeePass's thread just before the dialog would go up, which is the thread a
+            // lock runs on, so a request that waited for the screen while KeePass locked finds
+            // its database no longer served.
+            var shown = 0;
+            var prompt = new PairingApprovalPrompt(new FakeUiThread(), databaseId => false, _log)
+            {
+                Dialog = (request, timeout) =>
+                {
+                    shown++;
+                    return PairingApproval.Approved(new[] { "ops" });
+                },
+                RenewalDialog = (request, timeout) =>
+                {
+                    shown++;
+                    return RenewalApproval.Approved(new[] { "ops" });
+                }
+            };
+
+            Assert.That(prompt.Ask(Request(), Timeout).Decision, Is.EqualTo(PairingDecision.Locked));
+            Assert.That(prompt.Ask(Renewal(), Timeout).Decision, Is.EqualTo(PairingDecision.Locked));
+            Assert.That(shown, Is.Zero);
+        }
+
+        [Test]
+        [Apartment(ApartmentState.STA)]
+        public void A_lock_closes_the_dialog_on_the_screen_as_unanswered()
+        {
+            // `PAIRING.md` §308. The dialog holds no lock off, so a lock can fall under it, and
+            // it used to stay up offering an Approve over a locked database.
+            var prompt = new PairingApprovalPrompt(CurrentThread.Instance, _log);
+            prompt.RenewalDialog = (request, timeout) =>
+            {
+                using (var dialog = new RenewalApprovalForm(request, timeout, null, DateTime.Today, null))
+                {
+                    dialog.StartPosition = FormStartPosition.Manual;
+                    dialog.Location = new System.Drawing.Point(-4000, -4000);
+                    dialog.ShowInTaskbar = false;
+
+                    var timer = new System.Windows.Forms.Timer { Interval = 100 };
+                    timer.Tick += delegate
+                    {
+                        timer.Stop();
+                        prompt.Locked();
+                    };
+
+                    timer.Start();
+                    prompt.Show(dialog);
+                    timer.Dispose();
+                    return dialog.Answer();
+                }
+            };
+
+            var answer = prompt.Ask(Renewal(), Timeout);
+
+            Assert.That(answer.Decision, Is.EqualTo(PairingDecision.Locked));
+            Assert.That(_log.Warnings.Select(entry => entry.Message), Has.Some.Contains("closed unanswered"));
+
+            prompt.Locked();
+            Assert.That(_log.Warnings.Count(entry => entry.Message.Contains("closed unanswered")), Is.EqualTo(1),
+                "a lock with nothing on the screen closes nothing");
+        }
+
+        [Test]
+        public void A_dialog_delivered_inside_the_plugins_own_save_is_put_back_and_shown_once_the_save_ends()
+        {
+            // A dialog is a marshaled call, and a save pumps: delivered there it held the save,
+            // the writer and KeePass's interaction block for as long as the operator took. The
+            // plugin's own save is a few waits from over, so the request waits for it.
+            var writes = new ScriptedWrites { SavingFor = 2 };
+            var shown = 0;
+            var prompt = new PairingApprovalPrompt(new FakeUiThread(), null, writes, _log)
+            {
+                Dialog = (request, timeout) =>
+                {
+                    shown++;
+                    return PairingApproval.Approved(new[] { "ops" });
+                }
+            };
+
+            var answer = prompt.Ask(Request(), Timeout);
+
+            Assert.That(answer.Decision, Is.EqualTo(PairingDecision.Approved));
+            Assert.That(shown, Is.EqualTo(1), "shown once, after the save");
+            Assert.That(writes.SavingAsked, Is.EqualTo(3), "put back twice and shown on the third delivery");
+            Assert.That(writes.QuietAsked, Is.EqualTo(3), "and the save was waited for before each");
+        }
+
+        [Test]
+        public void KeePass_part_way_through_its_own_work_is_answered_busy_at_once_and_shows_nothing()
+        {
+            // Its own save, an import, a message box: not this plugin's to wait for, and answered
+            // as a write meeting them is, `503 busy`, which spends nothing.
+            var writes = new ScriptedWrites { Busy = "KeePass is importing" };
+            var shown = 0;
+            var prompt = new PairingApprovalPrompt(new FakeUiThread(), null, writes, _log)
+            {
+                Dialog = (request, timeout) =>
+                {
+                    shown++;
+                    return PairingApproval.Approved(new[] { "ops" });
+                },
+                RenewalDialog = (request, timeout) =>
+                {
+                    shown++;
+                    return RenewalApproval.Approved(new[] { "ops" });
+                }
+            };
+
+            var pairing = prompt.Ask(Request(), Timeout);
+            var renewal = prompt.Ask(Renewal(), Timeout);
+
+            Assert.That(pairing.Decision, Is.EqualTo(PairingDecision.Unavailable));
+            Assert.That(pairing.Reason, Is.EqualTo("KeePass is importing"));
+            Assert.That(renewal.Decision, Is.EqualTo(PairingDecision.Unavailable));
+            Assert.That(shown, Is.Zero);
+        }
+
+        [Test]
+        public void A_save_of_the_plugins_own_that_outlasts_the_wait_for_the_screen_shows_nothing()
+        {
+            var writes = new ScriptedWrites { Quiets = false };
+            var ui = new FakeUiThread();
+            var prompt = new PairingApprovalPrompt(ui, null, writes, _log)
+            {
+                Dialog = (request, timeout) => PairingApproval.Approved(new[] { "ops" })
+            };
+
+            var answer = prompt.Ask(Request(), Timeout);
+
+            Assert.That(answer.Decision, Is.EqualTo(PairingDecision.Unavailable));
+            Assert.That(ui.Asked, Is.Zero, "nothing was posted to KeePass's thread at all");
+            Assert.That(_log.Warnings.Select(entry => entry.Message), Has.Some.Contains("own save"));
         }
 
         [Test]
@@ -881,6 +1329,58 @@ namespace KeePassGate.Tests
         private static PairingRequest Request()
         {
             return new PairingRequest("db", "abcdef01", "agent-fictitious", Array.Empty<string>(), null);
+        }
+
+        private static RenewalRequest Renewal()
+        {
+            return new RenewalRequest(
+                "aaaabbbbccccdddd",
+                "Invented Vault",
+                "agent-fictitious",
+                DateTimeOffset.UtcNow,
+                DateTimeOffset.UtcNow.AddDays(30),
+                new[] { "ops" },
+                Array.Empty<string>(),
+                "127.0.0.1:60001",
+                null);
+        }
+
+        /// <summary>The plugin's writes, saying what a test tells them to.</summary>
+        private sealed class ScriptedWrites : IWriterState
+        {
+            public ScriptedWrites()
+            {
+                Quiets = true;
+            }
+
+            /// <summary>How many deliveries, from the first, find the plugin's save running.</summary>
+            public int SavingFor { get; set; }
+
+            /// <summary>What KeePass is part way through, or null for nothing.</summary>
+            public string Busy { get; set; }
+
+            /// <summary>Whether the write in flight ends within the wait.</summary>
+            public bool Quiets { get; set; }
+
+            public int SavingAsked { get; private set; }
+
+            public int QuietAsked { get; private set; }
+
+            public bool Saving
+            {
+                get { return ++SavingAsked <= SavingFor; }
+            }
+
+            public string Interrupting()
+            {
+                return Busy;
+            }
+
+            public bool Quiet(TimeSpan wait)
+            {
+                QuietAsked++;
+                return Quiets;
+            }
         }
 
         /// <summary>

@@ -87,6 +87,30 @@ mark off a password that has just been rotated.
 attachment or a response names what it is and shows none of what it holds, so a log line or a
 traceback carries no secret. A value is printed only by reading it.
 
+## Renew a certificate, or give one up
+
+```shell
+pykeepassgate renew --lifetime 30
+pykeepassgate revoke
+```
+
+`renew` asks the operator for a new certificate in place of the one this client holds, which they
+approve on screen as they did the pairing, so it waits while they read: six minutes, as pairing
+does, or longer when `--connection-timeout` says so. It stores the new identity where the old one
+was, by writing it whole beside the old one first and then writing the four files over, leaving
+anything else in the directory alone, and then gives the old certificate up by presenting it.
+`--lifetime` is a proposal, and the new `expires` is what the operator picked. When giving the old
+one up does not happen, the renewal has still worked: the old identity is kept beside the new one
+in a directory ending `.retired`, `renew` says so and exits 1, and `revoke --directory` on that
+directory gives it up. A later `renew` gives it up first itself, and forgets it once the gate takes
+it back, already refuses it or it has expired.
+
+`revoke` asks the gate to revoke the certificate this client presents and, once the gate says the
+revocation is saved, removes what pairing stored for it. When the gate does not confirm it,
+nothing is removed. A certificate the gate already refuses, revoked or expired, counts as given up,
+and its files are removed as well. From a program, `client.renew()` and `client.revoke_certificate()` ask the
+gate, and `api.forget(directory)` removes the files.
+
 ## What to catch
 
 Every exception says what to do next rather than what went wrong, because that is the part a caller
@@ -99,19 +123,25 @@ catches whatever this client raises of its own and nothing the standard library 
 | `GateBusy` | The gate cannot serve this right now: a write under a dialog open on what it would change, or while KeePass is busy with something of its own, or a read while the database kept changing under it. The same, with `retry_busy_timeout=`. |
 | `AuthorityUndecided` | The database holds two certificate authorities and the operator has not kept one, which KeePass asks about on its own screen. The same, with `retry_undecided_timeout=`, and pair again if the one kept is not this client's. |
 | `GateUnavailable` | The base of the three above, so catching it catches every `503`, and raised on its own for a `503` whose word this client does not know or that names none, with the word on `.error`. Nothing waits that one out. |
-| `NotAdmitted` | The gate does not admit this certificate: it was never admitted, it was revoked, or it has expired, which is named as such, with the moment, before anything is dialed. Pair again. |
+| `NotAdmitted` | The gate does not admit this certificate: it was never admitted, it was revoked, or it has expired, which is named as such, with the moment, before anything is dialed once this machine's clock is five minutes past it. To go on reaching the gate, pair again: a renewal needs a certificate that has not expired. To give the identity up, `revoke` removes what is stored for it. |
 | `ProofRefused` | During pairing: the token is wrong, or whatever answered is not the KeePass whose operator holds it. Stop. |
 | `PairingRefused` | The operator said no. The invitation is spent, so ask for another. |
 | `PairingUnanswered` | Nobody answered the dialog. The invitation is **not** spent, so this can be tried again. |
 | `PairingError` | The base of the three above, and raised on its own for the rest of what stops a pairing, with a message saying which. A name or a profile the gate would refuse, or more profiles than the 32 it takes, is caught before the request is sent: correct it and pair again. An invitation that is gone ran out or was spent: ask for another. An exchange the gate no longer holds leaves the invitation good: pair again with it. A pairing route the gate does not have is the two halves disagreeing about the wire. |
+| `RenewalRefused` | The operator refused this renewal. On the dialog's own turn every refusal reads so, including one for this session, until a date or forever, which the next request is answered with at once, without the dialog. The certificate this client holds still works until it expires: ask again later, or pair again before then. |
+| `RenewalRefusedThisSession` | The operator refused every renewal of this certificate until KeePass exits, and the gate keeps that answer in memory only. Ask again after KeePass has been restarted, or pair again before the one this client holds expires. |
+| `RenewalTooEarly` | The operator refused renewing this certificate until `.not_before`, and asking before then is answered without anybody being asked. Ask again from then. |
+| `RenewalRefusedForever` | The operator refused every renewal of this certificate. Pair again, with an invitation from the operator, before the one this client holds expires. |
+| `RenewalUnanswered` | Nobody answered the renewal dialog, and nothing changed. Ask again when somebody is at the screen. |
+| `RenewalError` | The base of the five above, for a caller that only wants to know whether the operator let the renewal happen. Never raised on its own. |
 | `RouteRefused` | Everything else the gate refuses, carrying the status and the reason it gave, usually one word: a `413` says in a sentence what was too large. A refused `head` carries the status alone, because its answer has no body to say anything in. A `404` is deliberately both "no such node" and "not yours", so a client cannot map a database by asking: if the node should be there, the rule is too narrow and the operator has to widen it. |
 | `Withheld` | A protected value this client may not read, from every way of reading one: the rule that lets it read or list the entry does not grant `P`, which the operator can add. Never `None` or an empty string in its place; `entry.withheld` and `field.withheld` name what is kept back without a `try`, so `{name: entry.fields[name] for name in entry.fields if name not in entry.withheld}` reads every value this client may read. |
 | `MalformedToken` | The text handed over is not an invitation, so nothing was sent. Check what was pasted. |
 | `ProtocolError` | Something on the wire is not what the protocol allows: an answer this client cannot read, or a request it will not send. Do not retry an answer it cannot read: the two halves disagree about the wire, which `tests/pykeepassgate/test_protocol.py` exists to stop. An answer longer than `max_response_bytes` is refused this way too, and the message says so: raise the setting rather than retry. |
-| `NotPaired` | Nothing is stored for a paired client where this looked: nothing has paired under that profile, or the directory named is not the one the pairing used. Pair, or name the profile or the directory it used. A `StorageError`, so catching that catches this as well. |
+| `NotPaired` | Nothing is stored for a paired client where this looked: nothing has paired under that profile, its identity was given up, or the directory named is not the one the pairing used. Pair, or name the profile or the directory it used. A `StorageError`, so catching that catches this as well. |
 | `StorageError` | From `pair`, before anything is sent: the directory cannot hold credentials, and the message says why. Nothing is spent, so fix that and pair again. Afterwards: what is stored for this client will not read, or could not be written, and the message names the file or the directory to look at. |
 | `TransportError` | No whole answer arrived: nothing is listening, the handshake failed, as below, or the connection broke or timed out once the request was on its way. After a read, send it again. After a write, the change may have landed, so look before sending it again: read or list what it changed, where the rules allow that, or ask the operator. |
-| `ValueError` | A setting or an argument that could not work, refused where it is given and before anything is dialed, stored or spent: a port, a timeout, a retry budget, a response cap, a profile's name or an expiry. The message names it. |
+| `ValueError` | A setting or an argument that could not work, refused where it is given and before anything is dialed, stored or spent: a port, a timeout, a retry budget, a response cap, a lifetime, a profile's name or an expiry. The message names it. |
 | `AttributeError` | Something this client never read: a listed entry's `username`, `password`, `notes`, `expires` or `custom()`, a listed group's `notes`, a listed field's `value`. Read it first. Never raised for a withheld value. |
 | `KeyError` | A name `entry.fields` or `entry.custom()` does not hold, as from any mapping. |
 

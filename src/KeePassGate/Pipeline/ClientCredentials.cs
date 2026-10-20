@@ -127,6 +127,13 @@ namespace KeePassGate.Pipeline
                 logger.Info("a certificate could not be checked, because " + error.Message);
                 return ClientIdentity.Locked(databaseId);
             }
+            catch (VaultUnsettled error)
+            {
+                // The records could not be listed just now, which says nothing about this client.
+                // Busy rather than a stranger, so it is told to ask again rather than to pair again.
+                logger.Warn("a certificate could not be checked against this database for now: " + error.Message);
+                return ClientIdentity.Unavailable(databaseId, "busy");
+            }
             catch (Exception error) when (Expected.OfCustomData(error) || Expected.OfCryptography(error))
             {
                 logger.Error("a certificate could not be checked against this database", error);
@@ -141,7 +148,10 @@ namespace KeePassGate.Pipeline
         /// **Removing a profile is taking it off the list, and this is what makes that enough.** A
         /// record keeps every name it was approved for, and a rule for a removed name can stay on a
         /// node or come back in a merge. Neither grants anything, because a name off the list never
-        /// reaches the resolver: the router and the rules see this and nothing else. Adding the name back is then a full undo, rules and clients alike.
+        /// reaches the resolver: the router and the rules see this and nothing else. Adding the
+        /// name back is then a full undo for every rule and every record still naming it; a record
+        /// a renewal wrote while the name was off the list was written without it, `PAIRING.md`
+        /// §312.
         ///
         /// Read beside the record, on every connection and never cached, for the reason the record
         /// is. A list that cannot be read is an empty one, which leaves the client admitted and

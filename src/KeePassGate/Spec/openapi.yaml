@@ -95,9 +95,10 @@ info:
     `x-kpg-verb` says what an operation does to the database: `create`, `read`, `update`, `strip`,
     `delete`, `list`, or `none` for an operation no grant governs. **Every operation declares one**,
     and one that does not stops the plugin loading, so authorization is not something a new route
-    can be added without. `none` is the status route, which reads nothing, and the two pairing
-    routes, which a person authorizes by reading a dialog rather than a grant. `list` is below
-    `read`, because knowing that an entry exists is not knowing what is in it.
+    can be added without. `none` is the status route, which reads nothing, the revocation of a
+    client's own certificate, which touches no group or entry a rule is about, and the two pairing
+    routes and the renewal, which a person authorizes by reading a dialog rather than a grant.
+    `list` is below `read`, because knowing that an entry exists is not knowing what is in it.
 
     `strip` and `delete` are two sizes of removal. `strip` takes the parts off a node, which are an
     entry's fields and its attachments. `delete` says removals are allowed here, and an operation
@@ -228,6 +229,180 @@ paths:
         "503":
           $ref: "#/components/responses/Unavailable"
 
+  /gate/certificate:
+    # A client that revokes itself grants itself nothing by it: it could already stop using its
+    # certificate, and what this adds is that nobody else can start. §509
+    delete:
+      operationId: revokeCertificate
+      summary: Revoke the certificate this request was made with.
+      description: |
+        A client giving up its own admission, for a certificate it no longer trusts or no longer
+        needs. It takes no body, because the certificate on the connection is what is revoked and
+        there is no way to name another.
+
+        It writes what the Clients page writes, a revocation beside the record and the record
+        emptied, through the single writer every change goes through, and answers once the
+        database is saved and the file read back. From the next connection on the certificate is
+        refused with `401 unpaired`, as one the operator revoked is. It is answered in the words
+        every write is: `503 busy` covers Database Maintenance open on the database as well, whose
+        write-back would put the record back without its revocation, and nothing was written, so
+        asking again is safe. `401 unpaired` is also the answer when the operator revoked the
+        certificate in the instant between this connection and its write.
+
+        `x-kpg-verb: none`, because a rule says what a profile may do to groups and entries and
+        this is neither: a client the rules let reach nothing may still give up the admission it
+        holds.
+      x-kpg-verb: none
+      responses:
+        "200":
+          $ref: "#/components/responses/Done"
+        "401":
+          $ref: "#/components/responses/Unpaired"
+        "500":
+          description: |
+            The gate failed, and the body says how. `not saved` is a revocation that was made and
+            never reached the disk, and has been taken back out: the certificate is still admitted,
+            and asking again is safe. `not verified` is one that was saved to a file KeePass then
+            read back as something else: it is kept in the database in memory, which stays marked
+            as changed, so the certificate is already refused and asking again is answered
+            `401`, and whether the file keeps it is the operator's to settle. `internal error` is
+            one that could not be attempted at all.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+
+  /gate/renew:
+    # What a renewal answers, each refusal included, for the dialog PAIRING.md §312 sets out. §510
+    post:
+      operationId: renewCertificate
+      summary: Ask for a new certificate in place of the one this request was made with.
+      description: |
+        An admitted client asking to be renewed, which the operator approves or refuses on screen
+        as a pairing is, and slow for the same reason. The certificate on the connection is what is
+        renewed. The new one is issued under the same name, for the profiles its record holds that
+        the database still names less any the operator unchecks, and for the lifetime the operator
+        picks, with the one asked for preselected and a year when none is.
+
+        Nothing is revoked by it. The old record is left as it is, and the client gives the old
+        certificate up itself with `revokeCertificate` once the new one is stored, so an answer
+        lost on the way costs nothing: the old certificate still works, and asking again raises
+        the dialog again.
+
+        It waits on a person, so it is measured against the pairing budget rather than the
+        ordinary one, and it waits its turn for the screen with every pairing. `x-kpg-verb: none`,
+        because a person decides it rather than a rule.
+
+        The body is one object whose one member is optional, so `{}` asks for nothing and no
+        body at all is malformed; a `400` is answered before anybody is asked. `401 unpaired` is
+        also the answer when the record went between the connection and the request, or while
+        the operator was deciding, in which case nothing was issued. `503 busy` covers, beside
+        what `Unavailable` names, another pairing or renewal in front of the operator, a renewal
+        of this same certificate still being answered, which is told so at once, and no screen to
+        ask on.
+      x-kpg-verb: none
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                lifetime:
+                  type: string
+                  pattern: "^P([1-9]|[1-9][0-9]|[12][0-9][0-9]|3[0-5][0-9]|36[0-5])D$"
+                  description: |
+                    How long the new certificate should last, spelled as on a pairing request. A
+                    proposal: the dialog preselects it and the operator picks, and a renewal that
+                    asks for nothing, `{}`, is offered a year.
+      responses:
+        "200":
+          description: |
+            Approved, issued, and the new record saved and read back before this was sent. The
+            bundle pairing's request answers with, for the new certificate.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  [identity, authority, gateKey, subject, database, expires, profiles]
+                additionalProperties: false
+                properties:
+                  identity:
+                    type: string
+                  authority:
+                    type: string
+                  gateKey:
+                    type: string
+                  subject:
+                    type: string
+                  database:
+                    type: string
+                  expires:
+                    type: string
+                  profiles:
+                    type: array
+                    items:
+                      type: string
+        "400":
+          $ref: "#/components/responses/Malformed"
+        "401":
+          $ref: "#/components/responses/Unpaired"
+        "403":
+          description: |
+            The operator refused. Asking again raises the dialog again, unless the operator said
+            more than once, which every later renewal of this certificate is answered `409` for.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: |
+            The operator has already answered every renewal of this certificate, so this one was
+            refused without asking anybody. `this session` holds until KeePass exits: the answer
+            is kept in the plugin's memory rather than in the database, so a renewal asked for
+            after KeePass next starts raises the dialog. `too early` is until `notBefore`, a moment
+            in UTC to the second, from which the dialog is raised again. `forever` is what it says:
+            pairing again is the way to a new certificate. Each of the three also ends when the
+            operator lifts it with **Allow renewal** on the clients page and accepts the settings
+            dialog, and the next renewal then raises the dialog again. Nothing tells the client
+            that it has: it learns by asking.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [error]
+                additionalProperties: false
+                properties:
+                  error:
+                    type: string
+                  notBefore:
+                    type: string
+        "415":
+          $ref: "#/components/responses/UnsupportedMediaType"
+        "500":
+          description: |
+            One of two, and the body names which. `not recorded`: the operator approved and the new
+            record did not land, or was saved to a file KeePass then read back as something else,
+            and it has been taken back out; nothing was handed over, and the old certificate still
+            works. `internal error`: no certificate could be issued, or the record it renews would
+            not say what it holds.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "503":
+          $ref: "#/components/responses/Approving"
+        "504":
+          description: Nobody answered. Nothing changed, and the client may ask again.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /pair/hello:
     post:
       operationId: pairHello
@@ -318,6 +493,14 @@ paths:
                     maxLength: 64
                   description: |
                     A ceiling asked for, not a grant. The operator may take any of them away.
+                lifetime:
+                  type: string
+                  pattern: "^P([1-9]|[1-9][0-9]|[12][0-9][0-9]|3[0-5][0-9]|36[0-5])D$"
+                  description: |
+                    How long the certificate should last, as an ISO 8601 duration in whole days from
+                    one to 365, `P30D` for thirty, and in that spelling alone. A proposal rather than
+                    a grant: the dialog preselects it and the operator picks, and a request without
+                    it is offered a year. The proof covers it as written.
                 proof:
                   type: string
                   maxLength: 64
@@ -353,8 +536,9 @@ paths:
           description: |
             A request that could never have been issued as asked, answered before anything is
             spent, and the body names which of three it was. `malformed` is a body that is not what
-            this declares. `name` is a name its description does not allow, and `profile` a
-            profile name that could not travel as a claim.
+            this declares, a lifetime its pattern refuses among them. `name` is a name its
+            description does not allow, and `profile` a profile name that could not travel as a
+            claim.
           content:
             application/json:
               schema:
@@ -385,7 +569,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
         "503":
-          $ref: "#/components/responses/Unavailable"
+          $ref: "#/components/responses/Approving"
         "504":
           description: Nobody answered. The invitation is not spent.
           content:
@@ -1314,10 +1498,10 @@ components:
         error:
           type: string
           description: |
-            A fixed string, matched whole rather than parsed. The three worth matching on are one
-            word each, `locked`, `undecided` and `proof`, because each is a different thing for a
-            client to do next;
-            the rest are told apart by the status and read by a person. None of them carries anything
+            A fixed string, matched whole rather than parsed. The ones worth matching on are
+            `locked`, `undecided`, `busy` and `proof`, and on a `409` from `renewCertificate`
+            `this session`, `too early` and `forever`, because each is a different thing for a
+            client to do next; the rest are told apart by the status and read by a person. None of them carries anything
             the caller sent back to it.
 
 
@@ -1691,19 +1875,43 @@ components:
       # left a truncated file.
       headers:
         Retry-After:
-          description: |
-            How long to wait before asking again, in seconds: `2`, on every `503` this gate
-            sends, whichever of them it is, and on nothing else it sends. RFC 9110 section
-            10.2.3. Which refusal it was is the body's job, and a client that treats them
-            differently reads that; the delay is a guess either way, because how long any of these
-            lasts is a person's business rather than this gate's, and two guesses would only
-            invite reading meaning into the difference.
-          schema:
-            type: integer
+          $ref: "#/components/headers/RetryAfter"
       content:
         application/json:
           schema:
             $ref: "#/components/schemas/Error"
+
+    Approving:
+      description: |
+        Not now, as `Unavailable` says, from one of the two operations that wait on the operator,
+        and with one thing more. When the operator has approved and KeePass was too busy to write
+        what they approved, the approval is held, in the plugin's memory and nowhere else, and
+        `heldUntil` says until when, in UTC to the second, as in
+        `{"error":"busy","heldUntil":"2026-10-14T09:06:00Z"}`, which is the end of the pairing
+        budget the request arrived in: the same request asked again before then, with nothing in
+        it different, is written without the dialog, and a pairing's retry starts from a hello as
+        every pairing retry does. A request that differs in anything is put to the operator
+        again. The approval is used once, by the write that lands, and what it was approved
+        against is compared at that write: the authority served, which of the approved names the
+        list holds, and for a renewal the record being renewed, still there and unrevoked, so a
+        revocation that lands in between is never overtaken. A lock, a close and KeePass exiting
+        let go of every approval held, and then the next request raises the dialog again too.
+        `heldUntil` is there only while an approval is held; every other `503` here is
+        `Unavailable`'s.
+      headers:
+        Retry-After:
+          $ref: "#/components/headers/RetryAfter"
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [error]
+            additionalProperties: false
+            properties:
+              error:
+                type: string
+              heldUntil:
+                type: string
 
     Unpaired:
       description: No admission record for this certificate. Also what revocation looks like.
@@ -1873,6 +2081,19 @@ components:
           schema:
             $ref: "#/components/schemas/Made"
 
+
+  headers:
+    RetryAfter:
+      description: |
+        How long to wait before asking again, in seconds: `2`, on every `503` this gate sends,
+        whichever of them it is, and on nothing else it sends. RFC 9110 section 10.2.3. Which
+        refusal it was is the body's job, and a client that treats them differently reads that;
+        the delay is a guess either way, because how long any of these lasts is a person's
+        business rather than this gate's, and two guesses would only invite reading meaning into
+        the difference.
+      required: true
+      schema:
+        type: integer
 
   parameters:
     # The alias is not a route of its own, since no identifier can be spelled `root`, and it is

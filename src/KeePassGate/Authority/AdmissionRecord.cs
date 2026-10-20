@@ -20,6 +20,13 @@ namespace KeePassGate.Authority
     /// claims, but only as a convenience for a human reading it. `CA.md` §209 says why: a
     /// record is what a lost snapshot takes away, so reading a ceiling from the certificate would
     /// leave a credential nobody can see and nobody can revoke.
+    ///
+    /// **A record names the client as well as the certificate**, by its <see cref="ClientKey"/>:
+    /// the admission key of the first certificate the client was issued, the one it paired with.
+    /// A renewal writes a second record for the same client and leaves the first valid until the
+    /// client gives it up, and a client chooses its own name, so neither the name nor the
+    /// certificate tells one client from another; the client key does, and every count and naming
+    /// of clients goes by it, which is the operator's ruling of 2026-10-16.
     /// </remarks>
     public sealed class AdmissionRecord
     {
@@ -30,7 +37,7 @@ namespace KeePassGate.Authority
         private static readonly HashSet<string> Fields =
             new HashSet<string>(StringComparer.Ordinal)
             {
-                "v", "subject", "admitted", "profiles", "certificate"
+                "v", "subject", "client", "admitted", "profiles", "certificate"
             };
 
         private static readonly IReadOnlyList<string> Nothing =
@@ -38,6 +45,7 @@ namespace KeePassGate.Authority
 
         private readonly string _admissionKey;
         private readonly string _subject;
+        private readonly string _clientKey;
         private readonly DateTimeOffset _admitted;
         private readonly IReadOnlyList<string> _profiles;
         private readonly byte[] _certificateDer;
@@ -51,18 +59,30 @@ namespace KeePassGate.Authority
         /// written, saved and never read back: pairing would report success and the client it
         /// admitted would be refused forever, with nothing but a warning in the log to say why.
         /// Refusing at construction makes that unwritable rather than unreadable.
+        ///
+        /// The client key is held to the shape of a digest for the same reason: one that is not
+        /// would be written, and then read back as no record at all.
         /// </remarks>
         public AdmissionRecord(
             string admissionKey,
             string subject,
+            string clientKey,
             DateTimeOffset admitted,
             IEnumerable<string> profiles,
             byte[] certificateDer)
         {
             KeyedBy(admissionKey, certificateDer);
 
+            if (!CertificateDigest.IsDigest(clientKey))
+            {
+                throw new ArgumentException(
+                    "A record names its client by the digest of the certificate it paired with.",
+                    nameof(clientKey));
+            }
+
             _admissionKey = admissionKey;
             _subject = Storable(subject);
+            _clientKey = clientKey;
             _admitted = admitted;
             _profiles = Clean(profiles);
             _certificateDer = (byte[])certificateDer.Clone();
@@ -84,6 +104,27 @@ namespace KeePassGate.Authority
         public string Subject
         {
             get { return _subject; }
+        }
+
+        /// <summary>
+        /// Which client this is: the admission key of the first certificate it was issued, the
+        /// one it paired with, lowercase hex.
+        /// </summary>
+        /// <remarks>
+        /// Pairing writes the new certificate's own key here, and a renewal copies it from the
+        /// record that asked, so every certificate a client has held carries the same one. Two
+        /// records with one client key are one client, however many certificates it holds; two
+        /// with one name and different client keys are two, which a name chosen by the client
+        /// cannot tell apart. Written once with the record and never changed, so a merge, which
+        /// never reads a value, has nothing to decide about it.
+        ///
+        /// Not checked against anything when a record is read, for the reason the subject is not:
+        /// whoever can write the file can write a whole record of their own. It names a client and
+        /// grants nothing.
+        /// </remarks>
+        public string ClientKey
+        {
+            get { return _clientKey; }
         }
 
         public DateTimeOffset Admitted
@@ -128,7 +169,8 @@ namespace KeePassGate.Authority
         /// </summary>
         /// <remarks>
         /// For the screens that say who regains a removed profile: an expired certificate regains
-        /// nothing, since the gate refuses it before any record is read.
+        /// nothing, since the gate refuses it before any record is read, and the next write the
+        /// plugin makes prunes its record.
         /// </remarks>
         public bool HasExpired(DateTimeOffset now)
         {
@@ -145,8 +187,27 @@ namespace KeePassGate.Authority
             }
         }
 
+        /// <summary>
+        /// The record a pairing writes: a new client, whose client key is this certificate's own
+        /// admission key.
+        /// </summary>
         public static AdmissionRecord For(
             X509Certificate2 certificate, DateTimeOffset admitted, IEnumerable<string> profiles)
+        {
+            if (certificate == null)
+            {
+                throw new ArgumentNullException(nameof(certificate));
+            }
+
+            return For(certificate, admitted, profiles, CertificateDigest.Of(certificate));
+        }
+
+        /// <summary>
+        /// The record a renewal writes: the same client under a new certificate, its client key
+        /// copied from the record that asked.
+        /// </summary>
+        public static AdmissionRecord For(
+            X509Certificate2 certificate, DateTimeOffset admitted, IEnumerable<string> profiles, string clientKey)
         {
             if (certificate == null)
             {
@@ -156,6 +217,7 @@ namespace KeePassGate.Authority
             return new AdmissionRecord(
                 CertificateDigest.Of(certificate),
                 certificate.Subject,
+                clientKey,
                 admitted,
                 profiles,
                 certificate.RawData);
@@ -179,6 +241,7 @@ namespace KeePassGate.Authority
             var text = new StringBuilder();
             text.Append("v=" + Version).Append('\n');
             text.Append("subject=").Append(_subject).Append('\n');
+            text.Append("client=").Append(_clientKey).Append('\n');
             text.Append("admitted=").Append(Moments.Wire(_admitted)).Append('\n');
             text.Append("profiles=").Append(string.Join(",", _profiles)).Append('\n');
             text.Append("certificate=").Append(Convert.ToBase64String(_certificateDer)).Append('\n');
@@ -187,9 +250,9 @@ namespace KeePassGate.Authority
 
         /// <summary>
         /// Reads one back. Null for anything that is not exactly a record: a missing field, an
-        /// unknown version, a repeated field, a subject with a line ending in it, a date that will
-        /// not parse, a certificate that will not decode, and one that decodes to something other
-        /// than the bytes it was stored as. A record that cannot be read admits nobody, which is
+        /// unknown version, a repeated field, a subject with a line ending in it, a client key that
+        /// is not a digest, a date that will not parse, a certificate that will not decode, and one
+        /// that decodes to something other than the bytes it was stored as. A record that cannot be read admits nobody, which is
         /// the whole point of keeping this strict.
         /// </summary>
         public static AdmissionRecord Load(string admissionKey, string stored)
@@ -243,10 +306,12 @@ namespace KeePassGate.Authority
             }
 
             string subject;
+            string client;
             string admitted;
             string profiles;
             string certificate;
             if (!fields.TryGetValue("subject", out subject) ||
+                !fields.TryGetValue("client", out client) ||
                 !fields.TryGetValue("admitted", out admitted) ||
                 !fields.TryGetValue("profiles", out profiles) ||
                 !fields.TryGetValue("certificate", out certificate))
@@ -258,6 +323,13 @@ namespace KeePassGate.Authority
             // this could never have written. Refused rather than read, for the reason the
             // constructor gives.
             if (!IsStorableSubject(subject))
+            {
+                return null;
+            }
+
+            // A record that does not say which client it is cannot be counted as one, and is
+            // refused like any other that is not exactly a record.
+            if (!CertificateDigest.IsDigest(client))
             {
                 return null;
             }
@@ -310,7 +382,7 @@ namespace KeePassGate.Authority
             // Checked once more by the constructor, which is the price of there being one place
             // that decides what a record is. It is asked here as well so that a stored value which
             // is not a record is refused rather than thrown about.
-            return new AdmissionRecord(admissionKey, subject, when, Split(profiles), der);
+            return new AdmissionRecord(admissionKey, subject, client, when, Split(profiles), der);
         }
 
         /// <summary>

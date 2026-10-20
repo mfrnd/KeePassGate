@@ -34,6 +34,23 @@ namespace KeePassGate.Host.Tests
                 "a KeePass already running would be handed the command line");
             Assert.That(read.MainWindow.EscAction, Is.EqualTo(AceEscAction.None),
                 "an Escape reaching the main window would lock the workspace");
+            Assert.That(read.Security.WorkspaceLocking.LockAfterTime, Is.Zero,
+                "no session locks by itself unless it asks to");
+        }
+
+        [Test]
+        public void KeePass_takes_the_inactivity_lock_the_timer_fixture_asks_for()
+        {
+            AppConfigEx read;
+            using (var stream = new MemoryStream(
+                       new UTF8Encoding(false).GetBytes(ThrowawayKeePass.ConfigurationLockingAfter(8))))
+            {
+                read = (AppConfigEx)new XmlSerializerEx(typeof(AppConfigEx)).Deserialize(stream);
+            }
+
+            Assert.That(read.Security.WorkspaceLocking.LockAfterTime, Is.EqualTo(8));
+            Assert.That(read.MainWindow.EscAction, Is.EqualTo(AceEscAction.None), "and everything else as before");
+            Assert.That(read.Integration.LimitToSingleInstance, Is.False);
         }
     }
 }

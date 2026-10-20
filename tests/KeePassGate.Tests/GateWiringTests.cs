@@ -3,7 +3,9 @@ using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Windows.Forms;
+using KeePassGate.Authority;
 using KeePassGate.Diagnostics;
+using KeePassGate.Pairing;
 using KeePassGate.Tests.Fakes;
 using KeePassGate.Ui;
 using NUnit.Framework;
@@ -118,7 +120,8 @@ namespace KeePassGate.Tests
             // without counting one, so the Tools window's incidents never showed it.
             var incidents = new GateIncidents(_log);
             var factory = new AuthorityPanelFactory(
-                new FakeDatabaseSource(_database), new FakePrompt(true), _log, null, null, incidents);
+                new FakeDatabaseSource(_database), new FakePrompt(true), _log, null, null, incidents,
+                new SessionRefusals());
 
             using (var form = Dialogs.WithNestedTabControl("General"))
             using (var panel = (AuthorityPanel)factory.CreatePanel(form))
@@ -138,6 +141,72 @@ namespace KeePassGate.Tests
                 Assert.That(incidents.Count, Is.EqualTo(1), "the failure was not counted");
                 Assert.That(incidents.Recent.Single(), Does.Contain("could not be written"));
             }
+        }
+
+        [TestCase("forever")]
+        [TestCase("until")]
+        [TestCase("this session")]
+        public void Allow_renewal_lifts_each_kind_of_answer_on_OK_and_leaves_it_on_Cancel(string kind)
+        {
+            // M001: Allow renewal on the clients page lifts whichever answer stands, and waits for
+            // the dialog's OK as a revocation does. The stored two are the database's, this
+            // session's is the plugin's memory, and the gate reads both.
+            var session = new SessionRefusals();
+
+            using (var issuer = TestAuthority.New())
+            using (var client = issuer.IssueClient("agent-fictitious", "reader"))
+            {
+                var store = new AdmissionStore(_database.PluginCustomData, _log);
+                store.Write(AdmissionRecord.For(client, DateTimeOffset.UtcNow, new[] { "reader" }));
+                var key = CertificateDigest.Of(client);
+
+                switch (kind)
+                {
+                    case "forever":
+                        store.RefuseRenewal(key, RenewalRefusal.Forever());
+                        break;
+                    case "until":
+                        store.RefuseRenewal(key, RenewalRefusal.Until(DateTimeOffset.UtcNow.AddDays(7)));
+                        break;
+                    default:
+                        session.Refuse(key);
+                        break;
+                }
+
+                var factory = new AuthorityPanelFactory(
+                    new FakeDatabaseSource(_database), new FakePrompt(true), _log, null, null, null,
+                    session);
+
+                AllowAndClose(factory, key, DialogResult.Cancel);
+                Assert.That(Stands(store, session, key), Is.True, "Cancel took the press away");
+
+                AllowAndClose(factory, key, DialogResult.OK);
+                Assert.That(Stands(store, session, key), Is.False, "OK lifted it");
+                Assert.That(store.Find(key), Is.Not.Null, "and the client is still admitted");
+            }
+        }
+
+        /// <summary>Presses Allow renewal on a fresh tab and closes its dialog with the answer given.</summary>
+        private static void AllowAndClose(AuthorityPanelFactory factory, string key, DialogResult result)
+        {
+            using (var form = Dialogs.WithNestedTabControl("General"))
+            using (var panel = (AuthorityPanel)factory.CreatePanel(form))
+            {
+                var list = ControlTree.FindByName<ClientList>(panel, ClientList.ControlName);
+                Assert.That(list.StandingAt(0), Is.Not.Null, "the page shows the answer");
+
+                Assert.That(panel.AllowRenewal(key), Is.Null);
+                panel.Describe();
+                Assert.That(list.StandingAt(0), Is.Null, "and stops showing it at once");
+
+                form.DialogResult = result;
+                form.RaiseClosed();
+            }
+        }
+
+        private static bool Stands(AdmissionStore store, SessionRefusals session, string key)
+        {
+            return store.StandingRefusal(key) != null || session.Refuses(key);
         }
     }
 }

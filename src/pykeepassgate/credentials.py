@@ -32,11 +32,12 @@ from __future__ import annotations
 
 import base64
 import contextlib
+import hashlib
 import json
 import os
 import stat
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from types import TracebackType
 from typing import Any
@@ -53,9 +54,10 @@ AUTHORITY_FILE = "authority.pem"
 GATE_KEY_FILE = "gate.key"
 DETAILS_FILE = "client.json"
 
-#: In the order they are written, so that `client.json`, which `load` reads first and refuses
-#: without, is the last thing to change.
-_FILES = (IDENTITY_FILE, GATE_KEY_FILE, AUTHORITY_FILE, DETAILS_FILE)
+#: The four files an identity is, in the order they are written, so that `client.json`, which
+#: `load` reads first and refuses without, is the last thing to change. Nothing else in a directory
+#: is this client's: a renewal moves these four and leaves anything beside them where it is.
+FILES = (IDENTITY_FILE, GATE_KEY_FILE, AUTHORITY_FILE, DETAILS_FILE)
 
 #: The reparse tags of a link on Windows, `IO_REPARSE_TAG_SYMLINK` and
 #: `IO_REPARSE_TAG_MOUNT_POINT`, which is a junction. Written out because `stat` names them only on
@@ -153,12 +155,61 @@ class Credentials:
         cannot read as well, which leaves the gate to say: a client refused on a guess would be
         one refused for nothing.
         """
+        return self.expired_by(timedelta(0))
+
+    def expired_by(self, margin: timedelta) -> bool:
+        """Whether the certificate expired more than `margin` ago by this machine's clock.
+
+        What a client asks before refusing to dial, with the leeway a clock running ahead of the
+        gate's is owed; False for an `expires` this cannot read, as `expired` is.
+        """
         try:
             ends = datetime.strptime(self.expires, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=UTC)
         except ValueError:
             return False
 
-        return ends < datetime.now(UTC)
+        return ends + margin < datetime.now(UTC)
+
+    @property
+    def admission_key(self) -> str:
+        """SHA-256 over this client's certificate, in lower case hex: what the gate knows it by.
+
+        The plugin keys this client's admission record on the same digest, and its audit file
+        names this client by it on every line, so a person holding both can tell which lines are
+        this client's. Read off the certificate in `identity.pem` rather than stored beside it, so
+        it cannot disagree with the certificate this client presents; nothing about the key is
+        read, so an encrypted one needs no password here.
+        """
+        try:
+            certificate = x509.load_pem_x509_certificate(self.identity.read_bytes())
+        except (OSError, ValueError) as error:
+            raise StorageError(
+                f"{self.identity} holds no certificate this client can read"
+            ) from error
+
+        return hashlib.sha256(certificate.public_bytes(serialization.Encoding.DER)).hexdigest()
+
+
+def forget(directory: Path) -> None:
+    """Take away what pairing stored in a directory, and the directory if that empties it.
+
+    For an identity nothing can use any more, which is one whose certificate has been revoked: a
+    private key kept for a certificate the gate refuses protects nothing and is one more copy of a
+    key to look after. Only the four files this client writes are touched, so a directory holding
+    anything else is left holding it, and a file already gone is not an error.
+    """
+    for name in FILES:
+        path = directory / name
+        try:
+            path.unlink()
+        except FileNotFoundError:
+            continue
+        except OSError as error:
+            raise StorageError(f"{path} could not be removed: {error}") from error
+
+    # Only an empty one, which `rmdir` refuses to be anything else about.
+    with contextlib.suppress(OSError):
+        directory.rmdir()
 
 
 def save(
@@ -218,7 +269,7 @@ class Prepared:
         Not before: the handles are opened while the pairing may yet be refused, and an existing
         identity is the working one until there is another to put in its place.
         """
-        for name in _FILES:
+        for name in FILES:
             _write(self.directory / name, self._handles[name], contents[name])
 
         self._written = True
@@ -482,12 +533,12 @@ def prepare(directory: Path, allow_shared_directory: bool = False) -> Prepared:
                 "allow_shared_directory, or --allow-shared-directory on pair, accepts it"
             )
 
-    for name in _FILES:
+    for name in FILES:
         _replaceable(directory / name)
 
     prepared = Prepared(directory)
     try:
-        for name in _FILES:
+        for name in FILES:
             prepared.open(name)
     except BaseException:
         prepared.close()

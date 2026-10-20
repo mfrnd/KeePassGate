@@ -105,9 +105,13 @@ namespace KeePassGate.Ui
         /// from somewhere else entirely while this dialog is open, so a number kept here would be
         /// wrong about the client the operator approved a moment ago.
         ///
-        /// **The records are what is counted, not the certificates.** What a client may reach is
+        /// **The records are what is read, not the certificates.** What a client may reach is
         /// read from its record rather than from its certificate everywhere else in this plugin,
-        /// and a count that disagreed with that would be a count of something else.
+        /// and a count that disagreed with that would be a count of something else. **And each
+        /// client is counted once**, by the client key every one of its records carries: a client
+        /// that renewed holds two records until it gives the older up, and is one client holding
+        /// the profile if either of them does, while two programs that paired under one name are
+        /// two clients.
         ///
         /// **Every profile from one reading of the records**, for the reason the rules are counted
         /// in one walk: each reading parses every record's certificate, and the page asks for a
@@ -127,6 +131,7 @@ namespace KeePassGate.Ui
                 // A listing that could not be made counts nobody, which shows this profile as
                 // held by no client rather than claiming it is held by one. The tab's own line
                 // is where a failed read is reported.
+                var holders = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
                 foreach (var record in new AdmissionStore(_database.PluginCustomData, _log).All().Records)
                 {
                     if (record == null || record.Profiles == null)
@@ -134,18 +139,29 @@ namespace KeePassGate.Ui
                         continue;
                     }
 
-                    // A set, because a record naming a profile twice is still one client.
-                    foreach (var held in new HashSet<string>(record.Profiles, StringComparer.Ordinal))
+                    foreach (var held in record.Profiles)
                     {
                         if (string.IsNullOrEmpty(held))
                         {
                             continue;
                         }
 
-                        int counted;
-                        found.TryGetValue(held, out counted);
-                        found[held] = counted + 1;
+                        HashSet<string> clients;
+                        if (!holders.TryGetValue(held, out clients))
+                        {
+                            clients = new HashSet<string>(StringComparer.Ordinal);
+                            holders[held] = clients;
+                        }
+
+                        // A set of client keys, because a record naming a profile twice is still
+                        // one client, and so is a client holding it through two records.
+                        clients.Add(record.ClientKey);
                     }
+                }
+
+                foreach (var pair in holders)
+                {
+                    found[pair.Key] = pair.Value.Count;
                 }
             }
             catch (Exception error) when (Expected.OfCustomData(error))
@@ -236,14 +252,19 @@ namespace KeePassGate.Ui
         /// A listing that cannot be made names nobody, as the count does; the tab's own line is
         /// where a failed read is reported, and a warning that could not name the clients still
         /// says what comes back of the rules.
+        ///
+        /// Each client once, by its client key, so a client that renewed and still holds the record
+        /// it renewed from is named once, and two that share a name are named apart. It regains
+        /// the name through whichever of its certificates holds it, which while it holds two can be
+        /// the older one alone.
         /// </remarks>
-        private List<string> Holders(string name)
+        private IReadOnlyList<string> Holders(string name)
         {
-            var found = new List<string>();
+            var found = new List<AdmissionRecord>();
 
             if (_database.PluginCustomData == null)
             {
-                return found;
+                return ClientList.ClientNames(found);
             }
 
             try
@@ -251,12 +272,13 @@ namespace KeePassGate.Ui
                 var now = DateTimeOffset.UtcNow;
                 foreach (var record in new AdmissionStore(_database.PluginCustomData, _log).All().Records)
                 {
-                    // Not one whose certificate has expired, which regains nothing.
+                    // Not one whose certificate has expired, which regains nothing and goes with
+                    // the plugin's next write.
                     if (record != null && record.Profiles != null
                         && record.Profiles.Contains(name, StringComparer.Ordinal)
                         && !record.HasExpired(now))
                     {
-                        found.Add(ClientList.Describe(record));
+                        found.Add(record);
                     }
                 }
             }
@@ -265,8 +287,7 @@ namespace KeePassGate.Ui
                 _log.Warn("the clients holding " + name + " could not be listed: " + error.Message);
             }
 
-            found.Sort(StringComparer.Ordinal);
-            return found;
+            return ClientList.ClientNames(found);
         }
 
         public string Remove(string name)
@@ -301,8 +322,10 @@ namespace KeePassGate.Ui
         /// <remarks>
         /// The rules are said to stay because they do, and so are the clients, and both are news:
         /// an operator who removed a name and later adds it back gets every one of those rules in
-        /// force again, for every one of those clients. Counted from what could be read, like the
-        /// columns, which are the only counts there are.
+        /// force again, for every one of those clients whose record still holds it then. One that
+        /// renewed in between was written without the name, since a renewal carries over only the
+        /// names the list holds. Counted from what could be read, like the columns, which are the
+        /// only counts there are.
         ///
         /// Internal rather than private so that `GateTabFitsTests` can measure the longest one
         /// against the page it is shown on.
