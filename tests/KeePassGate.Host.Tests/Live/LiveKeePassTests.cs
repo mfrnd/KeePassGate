@@ -150,6 +150,12 @@ namespace KeePassGate.Host.Tests.Live
 
         public static LiveSession Begin()
         {
+            return Begin(false);
+        }
+
+        /// <summary>With an authority already in the database, for a test about the gate.</summary>
+        public static LiveSession Begin(bool withAuthority)
+        {
             string reason;
             if (!KeePassDev.MatchesTheAssemblyUnderTest(out reason))
             {
@@ -161,7 +167,7 @@ namespace KeePassGate.Host.Tests.Live
                 "KeePassGateLive",
                 Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(directory);
-            return new LiveSession(directory, ThrowawayKeePass.Create(directory));
+            return new LiveSession(directory, ThrowawayKeePass.Create(directory, withAuthority));
         }
 
         /// <summary>Every line the plugin logged as a warning or an error, which should be none.</summary>

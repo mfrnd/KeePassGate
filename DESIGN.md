@@ -144,6 +144,34 @@ disappears**. The hack the old transport needed existed only because something e
 stream, and it died the moment we took it, one step before the TLS itself stopped being the
 platform's.
 
+### Why the TLS is not the platform's §133
+
+**Reversed, on a measurement.** The transport used `SslStream` until it turned out that SChannel
+will not serve with a key that has not been written to the user's profile: an `EphemeralKeySet`
+certificate is refused with `SEC_E_NO_CREDENTIALS`, as a server and as a client. Serving therefore
+meant a host key on the disk for as long as a database was open, which contradicts the one thing
+this design says about where an authority lives.
+
+So `Org.BouncyCastle.Tls` terminates TLS instead. It parses the stored PKCS#12 itself, so the key is
+an object on the heap and nothing else. Measured in `ManagedTlsProbe`: TLS 1.3 both ways, a client
+certificate seen, an OpenSSL client interoperating, and no key file at any point.
+
+| | |
+| --- | --- |
+| License | MIT, so a compiled release carries no copyleft obligation |
+| Liveness | 2.7.0 released 2026-07-30, with releases every few months |
+| Reach | targets `net461` directly; the C# port of the most widely deployed cryptography library in the Java world |
+| Cost | 4.9 MB beside the plugin, and about 100 lines of `DefaultTlsServer` |
+
+Three things come with it beyond the key. **The offer is decided here**, so TLS 1.3 stops depending
+on the operating system's version rather than on our policy. **Whether a client certificate is asked
+for is decided here**, so serving a stranger on the pairing path no longer depends on
+`ClientCertificateRequired`, whose plain reading is the opposite of what it does. And the platform's
+two measured traps stop applying at all.
+
+What is given up: SChannel is more exercised than any managed stack, and a bug in this one is ours.
+Against that, the two TLS defects this project has actually hit were both SChannel's.
+
 ### Why no HTTP dependency is taken §107
 
 Three candidates were vendored and measured on the `spikes/http-lib-measurements` branch, taken from
@@ -154,8 +182,66 @@ ranking, so it is worth being explicit rather than inheriting the old answer.
 | | License | Reach | Fits the new seam | Cost now |
 | --- | --- | --- | --- | --- |
 | **uHttpSharp** | **LGPL-2.1** | 112 stars, untouched since 2021 | **natively.** `IClient` exposes a `Stream`; the port needed **0 changed lines** | a copyleft obligation, on an unmaintained tree |
-| websocket-sharp | MIT | 6000 stars, widely used | only via `HttpRequest.ReadRequest`, an `internal static` | submodule, from-source build, reflection |
+| websocket-sharp | MIT | 6000 stars, widely used | only via `HttpRequest.ReadRequest`, an `internal static` | reflection into the shipped assembly, and it is the wrong parser |
 | managed `HttpListener` | MIT | Microsoft | yes, but it needed **116** changed lines and 7 stub files | the most work of the three |
+
+**The websocket-sharp row above said "submodule, from-source build, reflection" and that was
+wrong.** Reflection into the released assembly reaches `HttpRequest.ReadRequest` on its own; the
+submodule is needed only for the `HttpConnection` path, which builds its own `SslStream` and cannot
+be reached any other way. Correcting it makes the option look cheaper, and the real reasons it is
+refused are stronger than the price ever was:
+
+- **It is the WebSocket handshake parser, not a server parser.** Its parse is about twenty lines:
+  split the request line, take a substring for the version, set headers. No method token check, no
+  target length check, and a request line whose third field is shorter than five characters throws
+  out of that substring instead of yielding a 400.
+- **The body read has no ceiling.** It reads whatever `Content-Length` says. The refusal table below
+  promises the opposite, and `/pair/*` is reachable without a client certificate, so the peer that
+  could drive that allocation is any process which completes TLS on the loopback port.
+- **It accepts folded headers**, which this reader refuses deliberately.
+- **It loses the distinction between failures.** Everything becomes one exception type, so
+  malformed, timed out and disconnected arrive as the same thing.
+- **It does not deliver `Expect: 100-continue`**, which lives only on the server path.
+
+### The libraries that were looked at, and why they do not fit §134
+
+The seam is "parse a request off a stream that is already authenticated", not "serve HTTP". That is
+what rules most of them out before license is reached, and it is recorded so that the next person
+asking does not repeat the search.
+
+| | License | net48 | Fits the seam |
+| --- | --- | --- | --- |
+| EmbedIO | MIT | yes | **no.** Its listener is the Mono and websocket-sharp lineage, so it owns socket, accept loop and TLS |
+| Watson.Lite | **unverified**; its predecessor `HttpServerLite` is MIT | stated on the package | **no.** Sits on `CavemanTcp` and does its own TLS from a supplied certificate |
+| HttpMachine | MIT | original yes, the live fork is netstandard2.0 and later | **yes.** A state machine fed byte buffers, owning no socket |
+| managed `HttpListener` | MIT | yes | yes, at 116 changed lines and 7 stub files |
+
+HttpMachine is the only genuine match and still a bad trade: it would replace roughly 90 of the
+lines in `HttpRequestReader`, the request line and the header block, and none of the target
+splitting, the percent decoding, the token rules or the caps, in exchange for a generated state
+machine unmaintained since about 2013. Harder to audit than what it replaces, on the component that
+is the whole attack surface behind TLS.
+
+### Keep-alive, and why the tunnel argues against it §135
+
+Considered for the remote-access case and refused. What it would buy is amortizing a TLS 1.3
+handshake, roughly two round trips including TCP, which matters for a chatty client, and this API is
+deliberately not chatty.
+
+Against it: middleboxes reap idle connections after thirty to a hundred and twenty seconds, so reuse
+introduces "connection reset on reuse" as a new failure, and a `POST` that may already have been
+received is not safe to retry, which connection-per-request never has to think about. A tunnel
+usually wraps the stream again, so two idle policies would have to agree. Connections are served by
+thread pool threads doing blocking reads inside the KeePass process, so N idle clients would hold N
+of them. And `Connection: close` is what keeps message boundaries from mattering to a hand-written
+parser.
+
+**If handshake latency is ever measured to matter, the answer is TLS session resumption**, not
+keep-alive, with two caveats: the ticket cache is flushed on both lock transitions for the same
+reason every connection is closed there, and 0-RTT early data stays off because it is replayable.
+Revocation is unaffected either way, since the admission record is read from the live database per
+request rather than per connection. The thing that would genuinely force a held connection is
+**push**, and both ways of doing that are already the documented trigger to reopen this question.
 
 **uHttpSharp is the one built for this**, and an earlier draft of this section reached the opposite
 conclusion by comparing only against websocket-sharp, whose costs are not uHttpSharp's. Its seam is
@@ -172,8 +258,10 @@ ranked first because it terminated TLS for us, configured through `SslConfigurat
 TLS ourselves now, so that convenience is worth nothing, and what remains is reflection into an
 `internal static` for a parser.
 
-**Decision: the parser is ours.** Roughly 150 lines, bounded the way websocket-sharp bounds its own:
-read to the CRLF CRLF that ends a head, under a hard cap, reject `Transfer-Encoding`, cap the body by `Content-Length`,
+**Decision: the parser is ours.** That decision is unchanged by taking a TLS dependency: what ruled
+uHttpSharp out was its license and its liveness, and Bouncy Castle fails neither test. A few
+hundred lines, bounded the way websocket-sharp bounds its own: read to the CRLF CRLF that ends a head,
+under a hard cap, reject `Transfer-Encoding`, cap the body by `Content-Length`,
 never offer keep-alive or upgrade. That is a smaller and better understood liability than either
 alternative, and it sits behind the gate and behind TLS, unlike the ClientHello parser we already
 have to write.
@@ -189,6 +277,7 @@ is the one to answer first, because the fit was never in doubt.
 | An unresolvable SNI | the gate, before any TLS work |
 | Any request with `Transfer-Encoding` | header parse, before the body is read |
 | Bodies over 1 MB | by `Content-Length`, before reading |
+| An `Expect` that is not `100-continue` | before the body, 417 |
 | A header block over 8 KB | during the parse |
 | WebSocket upgrade | never implemented |
 | Keep-alive | responses always close |
@@ -201,14 +290,15 @@ manager's API on a network interface, and no amount of authentication makes that
 this process when a tunnel does the same job outside it.
 
 **Availability is not defended at this boundary, and that is a concession rather than an
-oversight.** A connection takes one of a fixed number of slots when its socket is
+oversight.** A connection takes one of `GateOptions.MaxConnections` slots when its socket is
 accepted, before the ClientHello is read and before any name resolves, so a peer holding no gate
 key, no certificate and no invitation takes one by connecting, and enough of them, reopened as each
 is cut, keep every admitted client out. A per-source cap would mean nothing here, since the gate
 binds loopback and every peer arrives from `127.0.0.1`, whatever arrives through a tunnel included. Closing it
 would mean reserving slots for connections whose name has resolved, or evicting the oldest that
 has not, and that is a decision this design has not taken. What it costs is availability and
-nothing else: no secret and no write is reachable from a slot.
+nothing else: no secret and no write is reachable from a slot. `GateListener.Take` carries the same
+concession beside the code.
 
 ## 5. Identity, and what a certificate means §111
 
@@ -383,7 +473,7 @@ So the rules here:
 - **No API request ever raises a dialog.** An unattended agent must not be able to prompt somebody's
   screen, so anything behind the spec router that would need a human answer is refused with a
   distinct status instead.
-- **Pairing is the one deliberate exception, and it is a real one.** Its request exists to ask
+- **Pairing is the one deliberate exception, and it is a real one.** `/pair/request` exists to ask
   the operator, and issuance writes the admission record and saves it before the certificate is
   handed over, because a certificate must not leave here until its record is on disk.
   [`PAIRING.md`](PAIRING.md) phase 5 is the sequence.
@@ -397,7 +487,7 @@ So the rules here:
   pairing rather than waiting on it.
 
   **A pairing connection is also given a longer socket deadline**, which is a third correction. The
-  transport closes a connection that takes more than its budget, and phase 4 exceeds that
+  transport closes a connection that takes more than `GateOptions.Budget`, and phase 4 exceeds that
   by design because it is waiting on a person rather than on the wire. Closing the socket there does
   not cancel anything: the invitation is still spent and the record still saved, and only the answer
   is lost. A pairing budget of its own covers the whole of what a pairing waits for, and a test is
@@ -501,9 +591,9 @@ either.
 
 The opposite, here. The server offers TLS 1.3 and nothing else, decided in `GateTlsServer` rather
 than by the operating system's version, which is the same offer a library would make with one less
-layer between the setting and the wire. What we add is the ClientHello peek in front of it, and
-that is unavoidable: no library on .NET Framework can select a certificate by SNI, because the
-platform exposes no hook for it.
+layer between the setting and the wire. §133 records why the stack under it is Bouncy Castle. What
+we add is the ClientHello peek in front of it, and that is unavoidable: no library on
+.NET Framework can select a certificate by SNI, because the platform exposes no hook for it.
 
 The genuine new risk is the peek itself, which parses unauthenticated bytes. It is bounded, total,
 and returns no name rather than throwing; `SniProbe.cs` is the evidence it works and
@@ -583,7 +673,19 @@ Each step is refusable, and each ends with something that runs.
    answer for. Two things step 7 inherits early: `AnchorPin`, because telling a stored pair apart by
    issuer name turned out to accept a foreign authority, and the gate key.
 6. **Gate and transport**: accept loop, ClientHello peek, SNI resolution, TLS 1.3, our request
-   parser, one route. `IGateContext` lands here.
+   parser, one route. `IGateContext` lands here. **Done.** A real client reaches a real KeePass over
+   mutual TLS 1.3 and is answered, with the host certificate chosen from the name in the
+   ClientHello and read out of the database it belongs to. The refusals are all in place and
+   tested: a connection that is not TLS costs five bytes, a name that resolves to nothing is
+   dropped without a response, two databases answering to one name are both refused, and a client
+   whose certificate does not chain to that database's authority is told it is unpaired rather
+   than served. The request parser refuses transfer encodings, folded headers, two content
+   lengths, a head over 8 KB, a body over 1 MB and a path that climbs.
+
+   Two things landed early because the transport could not be built without them. `AuthorityIssuer`
+   can issue a client certificate, which pairing will call for real in step 8. And identity is
+   already checked with the anchor pin and an explicit extended key usage check, which leaves step 7
+   the admission record and the validity window rather than the whole of validation.
 7. **Validation**: anchor pin, EKU check, admission record lookup, and a test that a foreign
    authority's certificate is refused.
 8. **Pairing**: invitation in memory, the proof exchange, the approval dialog, issuance with the
@@ -595,6 +697,10 @@ Each step is refusable, and each ends with something that runs.
    because a second implementation is what turns a specification into a contract: where the two
    disagree one of them is wrong, and a disagreement should fail a test rather than a pairing.
 11. **Spec router**: the document, `operationId` binding, schema validation, startup assertion.
+   Decide `HEAD` here: today a `HEAD` on a declared route gets 405, because the router requires the
+   declared method exactly. That is honest and fail closed rather than a defect, but HTTP says a
+   `HEAD` should be served wherever a `GET` is, so the document is the place to say which methods
+   exist.
 12. **The ACL**: the model in section 7, resolving against a real database.
 13. **The editor**: the grant UI, the largest single piece and the last thing needed.
 14. **Intersection and audit**: the two answers combined, every decision recorded.

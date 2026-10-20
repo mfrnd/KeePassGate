@@ -5,7 +5,7 @@ fails in a way that names its own cause.
 
 | | Project | Needs | Runs in | What it proves |
 | --- | --- | --- | --- | --- |
-| **Unit** | `tests/KeePassGate.Tests` | nothing but a compiler | under a second | the logic, against stand-ins shaped like KeePass |
+| **Unit** | `tests/KeePassGate.Tests` | nothing but a compiler, and a loopback socket | under a minute | the logic, and the whole transport, against stand-ins shaped like KeePass |
 | **Host** | `tests/KeePassGate.Host.Tests` | a KeePass to reference | about a second | the same code against real KeePass types, dialogs and events |
 | **End to end** | the same project, category `Live` | a desktop, and the machine to itself | under a minute | the plugin loading into a KeePass a user could have started |
 
@@ -19,14 +19,19 @@ fails in a way that names its own cause.
 
 Everything above the KeePass boundary is written against small interfaces: `IWindowEventSource`
 announces dialogs, `IFormMatcher` recognizes them, `IFormDecorator` decorates them,
-`IGatePanelFactory` fills them, `IKeyValueStore` stores things, and `IGateLog` records all of it.
-Two things touch KeePass: `KeePassGateExt`, which KeePass itself instantiates, and everything under
+`IGatePanelFactory` fills them, `IKeyValueStore` stores things, `IGateTargets` says what can be
+served, `IGateContext` is one request, and `IGateLog` records all of it. Two things touch KeePass:
+`KeePassGateExt`, which KeePass itself instantiates, and everything under
 `src/KeePassGate/Bridge`. `grep -rlE '^using (KeePass|KeePassLib)[.;]' src` is the check, and it is
 a check rather than a claim. Anchored, because the plugin's own namespaces begin `KeePassGate` and a
 bare `using KeePass` matches every file that imports one of them.
 
 The consequence worth having: the unit project **cannot** compile against KeePass, so a dependency
 that creeps up into the pipeline shows up as a build error rather than as a design argument.
+
+**The transport is tested there too**, over a real loopback socket with real TLS 1.3 and real
+certificates, because none of that needs a password manager. `GateListenerTests` is the one to read
+first: it is where the pieces stop being separately correct and start being a server.
 
 ## What the host tier is for
 
@@ -60,6 +65,12 @@ settings dialog, and stops cleanly.
 there, with the same fingerprint, after the database has been saved and KeePass has been closed and
 started again. That second session is the whole point. Everything else in the suite proves the
 plugin writes what it means to write; only this proves KeePass keeps it.
+
+**Step 6**, in `LiveGateTests`: a real client, in the test process, reaches a real KeePass over
+mutual TLS 1.3 and is answered. It issues itself a certificate from the authority inside the
+database file, because it holds the file and its password, which is exactly what the design says
+possession of the file means. Nothing about this one uses the desktop, so it is the fastest of the
+three.
 
 It builds a **throwaway KeePass** under `%ProgramData%\KeePassGateLive` rather than the temporary
 directory, whose path names the account that ran it: a copy of the program, a local

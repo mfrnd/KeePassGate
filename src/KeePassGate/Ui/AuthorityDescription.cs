@@ -34,6 +34,7 @@ namespace KeePassGate.Ui
         private readonly bool _canCreate;
         private readonly bool _canRecreate;
         private readonly bool _canDelete;
+        private readonly bool _isServed;
 
         private AuthorityDescription(
             string headline,
@@ -42,6 +43,18 @@ namespace KeePassGate.Ui
             bool canCreate,
             bool canRecreate,
             bool canDelete)
+            : this(headline, facts, details, canCreate, canRecreate, canDelete, false)
+        {
+        }
+
+        private AuthorityDescription(
+            string headline,
+            IEnumerable<Fact> facts,
+            IEnumerable<string> details,
+            bool canCreate,
+            bool canRecreate,
+            bool canDelete,
+            bool isServed)
         {
             _headline = headline;
             _facts = facts == null ? new List<Fact>() : new List<Fact>(facts);
@@ -49,6 +62,7 @@ namespace KeePassGate.Ui
             _canCreate = canCreate;
             _canRecreate = canRecreate;
             _canDelete = canDelete;
+            _isServed = isServed;
         }
 
         public string Headline
@@ -89,6 +103,20 @@ namespace KeePassGate.Ui
             get { return _canDelete; }
         }
 
+        /// <summary>
+        /// Whether the gate would serve this database as it stands.
+        /// </summary>
+        /// <remarks>
+        /// True for a whole authority and for nothing else, which is the same test
+        /// `OpenDatabaseTargets` applies before it builds a target. Separate from the buttons on
+        /// purpose: `CanRecreate` is true for a damaged authority as well, so a line that asked it
+        /// this question told the operator a database was reachable that nothing could reach.
+        /// </remarks>
+        public bool IsServed
+        {
+            get { return _isServed; }
+        }
+
         public static AuthorityDescription NoDatabase()
         {
             return new AuthorityDescription(NoDatabaseHeadline, null, null, false, false, false);
@@ -118,7 +146,7 @@ namespace KeePassGate.Ui
 
                 default:
                     return new AuthorityDescription(
-                        PresentHeadline, FactsOf(reading), Warnings(reading, now), false, true, true);
+                        PresentHeadline, FactsOf(reading), Warnings(reading, now), false, true, true, true);
             }
         }
 

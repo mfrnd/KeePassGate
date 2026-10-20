@@ -32,6 +32,10 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+    <!-- The TLS server. Taken so that the host key never has to be written to the user's profile,
+         which is what SChannel requires and what the design forbids. MIT, and it ships beside the
+         plugin: KeePass loads plugins with Assembly.LoadFrom, which probes their own directory. -->
+    <PackageReference Include="BouncyCastle.Cryptography" Version="2.7.0" />
     <!-- Reading and writing JSON: one assembly, MIT, and nothing arrives with it.
          `System.Text.Json` was measured at nine on this framework, one of them
          `System.Runtime.CompilerServices.Unsafe`, which wants a binding redirect a plugin cannot

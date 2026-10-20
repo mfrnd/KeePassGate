@@ -35,6 +35,7 @@ namespace KeePassGate.Tests
             Assert.That(description.CanCreate, Is.False);
             Assert.That(description.CanRecreate, Is.False);
             Assert.That(description.CanDelete, Is.False);
+            Assert.That(description.IsServed, Is.False);
         }
 
         [Test]
@@ -48,6 +49,7 @@ namespace KeePassGate.Tests
                 Assert.That(description.CanCreate, Is.True);
                 Assert.That(description.CanRecreate, Is.False);
                 Assert.That(description.CanDelete, Is.False);
+                Assert.That(description.IsServed, Is.False);
             }
         }
 
@@ -77,6 +79,7 @@ namespace KeePassGate.Tests
                 Assert.That(description.CanCreate, Is.False);
                 Assert.That(description.CanRecreate, Is.True);
                 Assert.That(description.CanDelete, Is.True);
+                Assert.That(description.IsServed, Is.True);
             }
         }
 
@@ -218,6 +221,8 @@ namespace KeePassGate.Tests
                 Assert.That(description.CanCreate, Is.False, "Creating over damage would hide it.");
                 Assert.That(description.CanRecreate, Is.True);
                 Assert.That(description.CanDelete, Is.True);
+                Assert.That(description.IsServed, Is.False,
+                    "damage is served to nobody, whatever the buttons offer");
             }
         }
 
@@ -239,6 +244,70 @@ namespace KeePassGate.Tests
         public void A_missing_reading_is_refused()
         {
             Assert.Throws<ArgumentNullException>(() => AuthorityDescription.Of(null, Now));
+        }
+    }
+
+    /// <summary>
+    /// The one line telling an operator whether anything can reach a database at all. It is the
+    /// difference between "nothing has paired yet" and "nothing can".
+    /// </summary>
+    [TestFixture]
+    public sealed class GateStatusTextTests
+    {
+        [Test]
+        public void A_listening_gate_with_an_authority_says_where_it_is()
+        {
+            Assert.That(GateStatusText.For(new Gate(true, 51776), true), Is.EqualTo("Listening on 127.0.0.1:51776."));
+        }
+
+        [Test]
+        public void A_listening_gate_without_an_authority_says_that_it_serves_nothing_here()
+        {
+            var text = GateStatusText.For(new Gate(true, 51776), false);
+
+            Assert.That(text, Does.StartWith("Listening on 127.0.0.1:51776."));
+            Assert.That(text, Does.Contain("until this database has an authority"));
+        }
+
+        [Test]
+        public void A_gate_that_is_not_listening_says_so_and_says_where_to_look()
+        {
+            Assert.That(GateStatusText.For(new Gate(false, 0), true), Is.EqualTo(GateStatusText.NotListening));
+        }
+
+        [Test]
+        public void No_gate_at_all_says_nothing_rather_than_guessing()
+        {
+            Assert.That(GateStatusText.For(null, true), Is.Empty);
+        }
+
+        [Test]
+        public void The_port_is_written_the_same_way_in_every_language()
+        {
+            var culture = System.Threading.Thread.CurrentThread.CurrentCulture;
+            try
+            {
+                System.Threading.Thread.CurrentThread.CurrentCulture = new System.Globalization.CultureInfo("de-DE");
+
+                Assert.That(GateStatusText.For(new Gate(true, 51776), true), Does.Contain("51776"));
+            }
+            finally
+            {
+                System.Threading.Thread.CurrentThread.CurrentCulture = culture;
+            }
+        }
+
+        private sealed class Gate : IGateStatus
+        {
+            public Gate(bool listening, int port)
+            {
+                IsListening = listening;
+                Port = port;
+            }
+
+            public bool IsListening { get; private set; }
+
+            public int Port { get; private set; }
         }
     }
 }

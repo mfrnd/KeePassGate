@@ -1,5 +1,4 @@
 using System;
-using System.Linq;
 using System.Security.Cryptography.X509Certificates;
 using KeePassGate.Diagnostics;
 
@@ -27,6 +26,41 @@ namespace KeePassGate.Authority
         /// any longer chain is either not ours or not one we would accept.
         /// </summary>
         private const int LeafAndAnchor = 2;
+
+        /// <summary>
+        /// The shortest time the chain engine may spend fetching, which is as close to forbidding
+        /// it as .NET Framework allows.
+        /// </summary>
+        /// <remarks>
+        /// Measured, and this too would have shipped. When the engine cannot find the issuer it
+        /// reads the leaf's authority information access extension and downloads what the leaf
+        /// says signed it, RFC 5280 section 4.2.2.1, before `Build` returns. The leaf here is the
+        /// peer's, so the address is the peer's: a stranger who reaches this code makes the
+        /// KeePass process fetch a URL of their choosing and holds the connection thread until the
+        /// engine gives up, measured at 15.0 s for one unreachable address. `CA.md` §217 rejects
+        /// CRL and OCSP as infrastructure a local plugin has no business needing, and this is the
+        /// same network arriving through a door nobody opened.
+        ///
+        /// Nothing worth fetching exists. The hierarchy is a leaf and the authority that signed
+        /// it, `CA.md` §207, and that authority is handed in through `ExtraStore` a line above, so
+        /// a download can only ever be the engine looking for an issuer this pin is about to
+        /// refuse anyway.
+        ///
+        /// `X509ChainPolicy.DisableCertificateDownloads` says exactly that and is .NET 5 and
+        /// later, as `X509ChainTrustMode.CustomRootTrust` is above. What this framework offers is
+        /// the timeout, where zero is the default the policy already carries and means the
+        /// platform's fifteen seconds, so the smallest positive value is the whole of the
+        /// vocabulary. Measured: the same leaf is refused in 79 ms rather than 15.0 s, and this
+        /// plugin's own client still chains, because it never needed the network.
+        ///
+        /// What that leaves is a millisecond, and saying so is more use than claiming the door is
+        /// shut. The engine may still open the request before abandoning it, and against a
+        /// loopback address the connection sometimes lands, which the test reports rather than
+        /// asserts. Against anything further away a millisecond buys a packet and no answer. The
+        /// wait and the completed download are what the bound takes away, and they are what the
+        /// stall was made of.
+        /// </remarks>
+        private static readonly TimeSpan NoTimeToFetch = TimeSpan.FromMilliseconds(1);
 
         /// <summary>
         /// True when the leaf chains to the anchor and to nothing else.
@@ -76,6 +110,7 @@ namespace KeePassGate.Authority
                     }
 
                     chain.ChainPolicy.ExtraStore.Add(anchor);
+                    chain.ChainPolicy.UrlRetrievalTimeout = NoTimeToFetch;
 
                     // A build that fails is an answer, not a refusal to answer: a host signed
                     // by another authority gives a partial chain and lands here, which is the
@@ -91,8 +126,15 @@ namespace KeePassGate.Authority
                         return false;
                     }
 
+                    // `FixedTime.Equals` rather than a comparison that stops at the first
+                    // difference, which is what `CA.md` §214 writes down. It defends nothing on
+                    // its own: an anchor is a public certificate and every client that can reach
+                    // this code was handed a copy of it at pairing. It is here because every
+                    // comparison of certificate bytes in this plugin goes through that one door,
+                    // and one that did not would be a question a reader has to answer again. The
+                    // load-bearing part is comparing the anchor's bytes at all.
                     var root = chain.ChainElements[chain.ChainElements.Count - 1].Certificate;
-                    return root.RawData.SequenceEqual(anchor.RawData);
+                    return FixedTime.Equals(root.RawData, anchor.RawData);
                 }
             }
             catch (Exception error) when (Expected.OfCryptography(error))

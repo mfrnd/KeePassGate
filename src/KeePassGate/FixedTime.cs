@@ -1,4 +1,5 @@
 using System;
+using Org.BouncyCastle.Utilities;
 
 namespace KeePassGate
 {
@@ -8,7 +9,9 @@ namespace KeePassGate
     /// <remarks>
     /// Used wherever an attacker chooses one side of the comparison: the gate tag they send, the
     /// certificate digest they present. .NET Framework has no `CryptographicOperations.FixedTimeEquals`,
-    /// so it is written here, once, rather than approximated at each call site.
+    /// so the bytes go to BouncyCastle, which is here already for the keys and the TLS. The text
+    /// is written out because nothing referenced compares two strings this way, and it is one
+    /// door either way: a caller should not have to know which half has a library behind it.
     ///
     /// The length is not secret and leaks by construction, which is fine for everything here: a
     /// digest and a tag are both of a known size.
@@ -27,25 +30,13 @@ namespace KeePassGate
     /// </remarks>
     public static class FixedTime
     {
+        /// <summary>
+        /// BouncyCastle's, which refuses a null on either side and a length mismatch before the
+        /// loop, exactly as this did while it was written out here.
+        /// </summary>
         public static bool Equals(byte[] left, byte[] right)
         {
-            if (left == null || right == null)
-            {
-                return false;
-            }
-
-            if (left.Length != right.Length)
-            {
-                return false;
-            }
-
-            var difference = 0;
-            for (var i = 0; i < left.Length; i++)
-            {
-                difference |= left[i] ^ right[i];
-            }
-
-            return difference == 0;
+            return Arrays.FixedTimeEquals(left, right);
         }
 
         /// <summary>

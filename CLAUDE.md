@@ -8,10 +8,12 @@ Guidance for anyone, human or AI assistant, working in this repository.
 mutual TLS, so that automation and AI agents can each be given a narrow, revocable, audited slice of
 a database.
 
-**Status: the design is settled and steps 1 to 5 of the build order are done.** The plugin loads
-into KeePass, puts a KPG tab on the database settings dialog, and that tab creates, recreates and
-deletes the database's own certificate authority. It serves no API and opens no socket. Step 6, the
-gate and the transport, is next.
+**Status: the design is settled and steps 1 to 6 of the build order are done.** The plugin loads
+into KeePass, puts a KPG tab on the database settings dialog, that tab creates, recreates and
+deletes the database's own certificate authority, and the gate listens on loopback and answers one
+route over mutual TLS 1.3 to a client that authority issued. Step 7, validation, is next: the
+anchor pin and the extended key usage check are already in, so what is left there is the admission
+record and the validity window.
 
 ## Read these before proposing anything
 
@@ -99,12 +101,23 @@ designing around them.
   the locked answer and dropping the key at lock arrive with step 9.
 - **We own the transport.** Accept loop, ClientHello peek, TLS termination, request parser, body
   read, response write. Selecting a host certificate by SNI makes this unavoidable, because
-  .NET Framework exposes no server-side SNI hook.
+  .NET Framework exposes no server-side SNI hook. Which TLS stack terminates it is the bullet
+  below.
 - **No third-party HTTP dependency.** `uHttpSharp` fits the seam natively with zero changes and is
   ruled out on **license** (LGPL-2.1) and liveness (no commits since 2021), not on fit. Wanting
   WebSocket, HTTP/2 or chunked bodies flips this; nothing else does.
+- **The TLS is Bouncy Castle, not SChannel**, and that reverses an earlier decision on a
+  measurement: SChannel will not serve with a key that has not been written to the user's profile,
+  so the platform's own TLS meant a host key on the disk. `Org.BouncyCastle.Tls` is MIT, alive, and
+  parses the stored PKCS#12 itself. Do not re-propose `SslStream` for the server without measuring
+  `EphemeralKeyProbe.cs` on `spikes/tls-and-certificates` again first.
 - **Spec-first routing.** The OpenAPI document is the routing table and handlers bind to
   `operationId`, so an undeclared path has nowhere to go.
+- **The JSON grammar is `Newtonsoft.Json`'s and the policy is ours**, which is the split worth
+  keeping. `JsonBody` decides what this wire may carry, which is one flat object of strings and
+  arrays of strings, and parses none of it. Three alternatives were measured and refused, on
+  assembly count and on license. The counts are on `spikes/json-reading`, and re-proposing one means
+  arguing with them.
 - **A plain DLL on .NET Framework 4.8**, not a `.plgx`.
 - **The access control model is one document per node**, and its types arrive with step 12.
   Grants live under a `KPG` key, which is this plugin's own namespace and touches nothing another
@@ -127,6 +140,14 @@ fail while nothing is wrong. Each gathers what it settled in its own `RESULTS.md
   accepts a certificate from a completely foreign authority. `X509ChainTrustMode.CustomRootTrust`
   would fix it and is .NET 5 and later. **Byte-compare the chain's last element** and require exactly
   two elements. `ChainProbe`.
+- **`X509Chain` goes out on the network for a certificate somebody else chose.** When the issuer is
+  not in `ExtraStore`, CryptoAPI follows the `caIssuers` URLs written into the leaf before `Build`
+  returns, so a peer names the address and the process fetches it. Measured at 15.0 seconds for one
+  unanswered address, on a connection thread, with the request really arriving.
+  `X509ChainPolicy.DisableCertificateDownloads` would forbid it and is .NET 5 and later, so on this
+  framework `UrlRetrievalTimeout` is the whole of the vocabulary: zero means the platform's fifteen
+  seconds, and a millisecond takes away the wait and the answer rather than the first packet.
+  `AnchorPinTests.A_foreign_leaf_that_names_a_download_is_refused_without_waiting_for_it`.
 - **`ClientCertificateRequired = false` is what breaks optional client certificates.** Under TLS 1.3
   the server then sends no `CertificateRequest` at all, so a client holding a good certificate never
   offers one. Under TLS 1.2 it does, so testing on 1.2 and shipping on 1.3 is a silent
@@ -260,9 +281,9 @@ here can hang or crash the password manager.
 
 ## Where to start
 
-[`DESIGN.md`](DESIGN.md) §132 ends with a multi-step build order. **Steps 4 and 5 are done.** The skeleton
-loads and shows a KPG tab, and that tab creates, recreates and deletes the authority, with the
-certificates and the gate key in the database's own `CustomData`.
+[`DESIGN.md`](DESIGN.md) §132 ends with a multi-step build order. **Steps 1 to 6 are done.** The skeleton
+loads and shows a KPG tab, that tab creates, recreates and deletes the authority, and the gate
+serves one route over mutual TLS to a client the authority issued.
 
 **The storage decision survived the thing most likely to invalidate it.** The `GroupForm` snapshot
 hazard is real and now measured rather than remembered: `SnapshotHazardTests` reads the mechanism off
@@ -271,6 +292,17 @@ step 8 has to build on: the settings dialog the KPG tab lives on carries **no** 
 buttons are safe from their own dialog, and anything written while a **group** dialog is open is
 destroyed by its OK.
 
-**Step 6 is the gate and the transport**: accept loop, ClientHello peek, SNI resolution, TLS 1.3,
-our request parser, one route, and `IGateContext` landing. The gate key is already stored, and
-`AnchorPin` is already written and tested, so step 7 inherits both.
+**Step 7 is validation**, and it is smaller than the build order implies. The anchor pin and the
+extended key usage check are already in `ClientCredentials`, because a transport with no identity is
+not testable. What is left is the admission record lookup, the profiles that come from it, and the
+validity window with its five minutes of skew on `notBefore` only.
+
+**One thing to know before touching the transport.** An `EphemeralKeySet` certificate signs happily
+and SChannel will not do TLS with it in either direction. That is why `Org.BouncyCastle.Tls`
+terminates the transport, and why every key the plugin loads can stay off the disk.
+`HostCertificateHandshakeTests` pins both halves, including the SChannel refusal, so a tidy-up that
+goes back to `SslStream` fails loudly rather than quietly writing keys to somebody's profile.
+
+**A dependency ships beside the plugin.** `build.ps1 -Task Deploy` copies every DLL from the build
+output into the plugins directory, because KeePass loads plugins with `Assembly.LoadFrom`, which
+probes the plugin's own directory rather than KeePass's.

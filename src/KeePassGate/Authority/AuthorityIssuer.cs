@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 
@@ -46,6 +47,19 @@ namespace KeePassGate.Authority
         public static readonly TimeSpan AuthorityLifetime = TimeSpan.FromDays(3652);
 
         public static readonly TimeSpan HostLifetime = TimeSpan.FromDays(1826);
+
+        /// <summary>One year for a client, as `CA.md` §207 specifies.</summary>
+        public static readonly TimeSpan ClientLifetime = TimeSpan.FromDays(365);
+
+        /// <summary>The claim a profile travels as. The database is not named: the issuer is.</summary>
+        public const string ProfileClaimPrefix = "kpg://profile/";
+
+        /// <summary>
+        /// What a client may be called. Deliberately narrow: the name arrives from outside at
+        /// pairing, it ends up in a distinguished name and in an audit log, and neither is a place
+        /// for arbitrary text. TODO(step 14): the audit log arrives with the intersection.
+        /// </summary>
+        public const int MaxSubjectLength = 64;
 
         /// <summary>
         /// A certificate is backdated slightly, so that a clock a few seconds behind ours does not
@@ -145,6 +159,166 @@ namespace KeePassGate.Authority
                     return Roundtrip(withKey);
                 }
             }
+        }
+
+        /// <summary>
+        /// A client certificate: `clientAuth`, one year, and the approved profiles as claims.
+        /// </summary>
+        /// <remarks>
+        /// The claims are a convenience for a human reading a certificate and nothing more. What a
+        /// client may reach is read from its admission record in the database, so a certificate
+        /// whose record is missing grants nothing at all.
+        /// </remarks>
+        public X509Certificate2 IssueClient(X509Certificate2 authority, string subjectName, IEnumerable<string> profiles)
+        {
+            if (authority == null)
+            {
+                throw new ArgumentNullException(nameof(authority));
+            }
+
+            if (!authority.HasPrivateKey)
+            {
+                throw new ArgumentException("The authority cannot sign without its key.", nameof(authority));
+            }
+
+            if (!IsUsableSubjectName(subjectName))
+            {
+                throw new ArgumentException(
+                    "A client name is 1 to " + MaxSubjectLength +
+                    " characters of letters, digits, space, dot, dash or underscore.", nameof(subjectName));
+            }
+
+            // Disposed rather than dropped, for the reason `CreateAuthority` gives: this is an
+            // NCrypt key handle, and pairing is the path an agent drives repeatedly. The scope has
+            // to cover the extension building as well, because an unusable profile name throws
+            // after the key exists.
+            using (var key = ECDsa.Create(ECCurve.NamedCurves.nistP256))
+            {
+                var request = new CertificateRequest(
+                    new X500DistinguishedName("CN=" + subjectName), key, HashAlgorithmName.SHA256);
+
+                request.CertificateExtensions.Add(new X509BasicConstraintsExtension(false, false, 0, true));
+                request.CertificateExtensions.Add(new X509KeyUsageExtension(
+                    X509KeyUsageFlags.DigitalSignature, true));
+                request.CertificateExtensions.Add(new X509EnhancedKeyUsageExtension(
+                    new OidCollection { new Oid(ClientAuthOid) }, false));
+                request.CertificateExtensions.Add(new X509SubjectKeyIdentifierExtension(request.PublicKey, false));
+                request.CertificateExtensions.Add(AuthorityKeyIdentifierOf(authority));
+
+                var claims = ProfileClaims(profiles);
+                if (claims != null)
+                {
+                    request.CertificateExtensions.Add(claims);
+                }
+
+                var now = _clock();
+                var notBefore = now - Backdate;
+                var notAfter = Clamp(now + ClientLifetime, authority.NotAfter);
+
+                // Against `now`, not `notBefore`, for the reason `IssueHost` records: comparing
+                // with the backdated start lets an authority that expired within the last five
+                // minutes mint a client that is already expired, which `Read` then accepts because
+                // it ignores expiry and every connection afterwards refuses.
+                if (notAfter <= now)
+                {
+                    throw new InvalidOperationException(
+                        "The authority has expired, so it can issue nothing that is valid.");
+                }
+
+                using (var issued = request.Create(authority, notBefore, notAfter, NewSerialNumber()))
+                using (var withKey = issued.CopyWithPrivateKey(key))
+                {
+                    return Roundtrip(withKey);
+                }
+            }
+        }
+
+        /// <summary>
+        /// A profile name that can travel as a claim. No empty names, nothing that would need
+        /// escaping, and never the ACL's own `default`, which is a rule rather than a grant.
+        /// </summary>
+        public static bool IsUsableProfileName(string profile)
+        {
+            if (string.IsNullOrEmpty(profile) || profile.Length > 64)
+            {
+                return false;
+            }
+
+            if (string.Equals(profile, "default", StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            foreach (var c in profile)
+            {
+                var allowed = (c >= 'a' && c <= 'z')
+                              || (c >= 'A' && c <= 'Z')
+                              || (c >= '0' && c <= '9')
+                              || c == '-' || c == '_';
+
+                if (!allowed)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        public static bool IsUsableSubjectName(string subjectName)
+        {
+            if (string.IsNullOrEmpty(subjectName) || subjectName.Length > MaxSubjectLength)
+            {
+                return false;
+            }
+
+            // Measured: `X500DistinguishedName` strips the space either end, so `CN=agent`,
+            // `CN= agent` and `CN=agent ` encode to the same bytes, and a name of nothing but
+            // spaces encodes to an empty common name. Two clients would then carry one identity in
+            // a log line and in an admission record, which is the one thing a name is for.
+            if (subjectName[0] == ' ' || subjectName[subjectName.Length - 1] == ' ')
+            {
+                return false;
+            }
+
+            foreach (var c in subjectName)
+            {
+                var allowed = (c >= 'a' && c <= 'z')
+                              || (c >= 'A' && c <= 'Z')
+                              || (c >= '0' && c <= '9')
+                              || c == '-' || c == '_' || c == '.' || c == ' ';
+
+                if (!allowed)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private static X509Extension ProfileClaims(IEnumerable<string> profiles)
+        {
+            if (profiles == null)
+            {
+                return null;
+            }
+
+            var builder = new SubjectAlternativeNameBuilder();
+            var any = false;
+
+            foreach (var profile in profiles)
+            {
+                if (!IsUsableProfileName(profile))
+                {
+                    throw new ArgumentException("A profile name is not usable as a claim: " + profile, nameof(profiles));
+                }
+
+                builder.AddUri(new Uri(ProfileClaimPrefix + profile));
+                any = true;
+            }
+
+            return any ? builder.Build(false) : null;
         }
 
         /// <summary>

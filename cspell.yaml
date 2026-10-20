@@ -46,6 +46,9 @@ ignoreRegExpList:
   - "/\\b[A-Za-z0-9+/_-]{20,}={0,2}\\b/g"
   # A URL, whose path is somebody else's spelling.
   - "/https?:\\/\\/[^\\s)\"'`]+/g"
+  # A code point written as an escape, which is a number rather than a word. It appears in C# and
+  # in the JSON this serves, and both spell it the same way.
+  - "/\\\\u[0-9a-fA-F]{4}/g"
 
 words:
 
@@ -112,9 +115,11 @@ words:
 
   # More of the platform, and of the wire
   - Ecas
+  - HMACSHA
   - keybd
   - nameof
   - netsh
+  - nosniff
   - OCSP
   - oids
   - SPIFFE
@@ -124,6 +129,8 @@ words:
   # Words this project uses on purpose. Each is the shortest way to say the thing, and each has
   # earned its place by appearing in more than one document.
   - desync
+  - interoperating
+  - middleboxes
   - recompiler
   - refusable
   - reimplementations

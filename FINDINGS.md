@@ -97,6 +97,7 @@ Recorded because a reader who only sees conclusions will re-make the same mistak
 | Vendored code should be subset hard, deleting what is unwanted | Deleting is a dangerous edit in the most dangerous place, and it makes upstream fixes hard to port. Minimum divergence, refuse from outside |
 | The HTTP server would have to be hand-written | Every objection was about packaging, none applies to source |
 | websocket-sharp was disqualified | Ten lines |
+| **An `EphemeralKeySet` certificate can serve TLS** | It cannot, in either direction. The probe that said so imported the same PKCS#12 with a persisted container first and an ephemeral one second, and the second borrowed the key the first had left. Measuring the ephemeral case on its own gives `SEC_E_NO_CREDENTIALS` for a server and a dropped handshake for a client. The probe now runs that case first, alone |
 | uHttpSharp supported spec-first binding "decisively" | Both do. It judged websocket-sharp by one facade |
 
 ## 6. Providing the KeePass everything is built against
@@ -165,7 +166,24 @@ worth doing; showing them does not. So the snapshot hazard is measured in two ha
 by reflection over the real types, and the behavior by reproducing it with KeePass's own
 `CloneDeep` and a real `PwGroup`.
 
-## 9. Reconstruction
+## 9. The gate and the transport
+
+Established while building step 6.
+
+| Fact | How it was established |
+| --- | --- |
+| A ClientHello arrives in one TLS record from every client tried, and the record header is enough to know how much to read | the transport reads exactly one record and has never needed a second |
+| **A connection that is not TLS costs five bytes.** The record header is enough to refuse it, so a stray browser or a port scanner never reaches the parser | fed the listener a plain HTTP request and watched it drop with no response |
+| A TLS server accepts a stream that replays already-read bytes, so peeking at the hello costs nothing at the handshake | the whole transport suite runs through `PrependingStream` |
+| **`SslPolicyErrors` is unusable as the verdict**, exactly as `CA.md` §214 says: a correct client sees `RemoteCertificateChainErrors` and `RemoteCertificateNameMismatch` on every connection, because the authority is in no store and the name rotates | every test client accepts and records what it was shown |
+| A client certificate loaded from a PKCS#12 needs a persisted key too, or `AuthenticateAsClient` never presents it and the server sees nobody | `EphemeralKeyProbe` case A |
+| **A managed TLS stack removes the whole problem.** `Org.BouncyCastle.Tls` serves TLS 1.3 with a key parsed out of the PKCS#12 by itself, sees a client certificate, and writes nothing anywhere | `ManagedTlsProbe`, counting key files either side of a handshake |
+| **An OpenSSL client reaches it**, which matters more than the .NET one, since that is what agents will use | Python's `ssl` on OpenSSL 3.0.11 negotiated TLS 1.3 with `TLS_AES_256_GCM_SHA384` and was answered |
+| A plugin's dependency belongs **beside the plugin**, not beside KeePass: `Assembly.LoadFrom` probes the loaded assembly's own directory | the live gate test runs a real KeePass whose plugins directory holds the plugin and Bouncy Castle, and it serves |
+| **And in a directory of its own under `plugins`**, not in `plugins` itself: KeePass finds a plugin in any directory under it, while a flat install shares each dependency by file name with every other plugin installed flat, and with no binding redirect but KeePass's own, one `Newtonsoft.Json.dll` of another major version breaks whichever plugin was there first | a scratch probe replaying KeePass 2.61.1's plugin loading in a fresh process per layout and preparing all 1613 methods: flat beside a foreign Newtonsoft.Json 10.0.2, 21 failed for want of 13.0.0.0; in `plugins\KeePassGate` with the foreign copy in `plugins` or in a sibling plugin's directory, none |
+| KeePass's `MainForm.DocumentManager.GetOpenDatabases()` is reachable from a background thread and is what the gate resolves names against | the live gate test answers a request from a separate process |
+
+## 10. Reconstruction
 
 The proofs were deleted once they had answered their questions. To rebuild any of them:
 
@@ -185,7 +203,25 @@ The proofs were deleted once they had answered their questions. To rebuild any o
 `TlsProbe.cs` on `spikes/tls-and-certificates` is kept because it answers the TLS question in
 isolation and is the cheapest way to re-check it on a new machine.
 
-## 10. The gate, and where it can run
+## 11. What KeePass does with a change, measured
+
+**A `.kdbx` silently drops 2,079 of the 65,536 code points in the basic multilingual plane.** KeePass
+writes every unprotected string through `StrUtil.SafeXmlString`, which removes what XML 1.0 cannot
+represent and reports nothing: the 29 control characters other than tab, carriage return and line
+feed, the 2,048 surrogates when they arrive without a pair, and `U+FFFE` and `U+FFFF`. A surrogate
+pair survives, including the pairs whose halves look like those last two, so `U+1FFFE` is stored as
+it was sent. Measured by calling that method on KeePass 2.61.1 once per code point and comparing
+what came back, which is also what `JsonBody.IsUsable` is now written against: the two agree on all
+65,536.
+
+**A lone surrogate reaches a body reader only as `U+FFFD`.** Json.NET substitutes the replacement
+character for an escaped half while it is reading, so `{"a":"one\uD800two"}` comes out of
+`JObject.Load` carrying `U+FFFD` and nothing downstream can tell it from a caller that sent one. A
+surrogate written raw in the text is passed through untouched, which is why the refusal is still
+worth having: `JsonBody` also reads documents out of a `.kdbx` this plugin did not write. Measured
+against the Json.NET this builds against, by printing the code points that came back.
+
+## 12. The gate, and where it can run
 
 **A warning is not a failure, and under `Stop` it becomes one.** A native command writing to stderr
 raises a terminating error as soon as anything upstream merges the streams, which is what capturing

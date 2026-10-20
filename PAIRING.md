@@ -61,8 +61,8 @@ entirely under TLS 1.3, so a client holding a good certificate never offers one,
 requires nothing, because a certificate-less client completes the handshake regardless. The plain
 reading of that flag is the opposite of what it does in both directions, and under TLS 1.2 it
 behaves as its name suggests, so testing there and shipping on 1.3 was a silent authentication
-bypass. It is one reason the TLS became managed code, which is what took the flag out of this
-picture altogether.
+bypass. [`DESIGN.md`](DESIGN.md) §133 is why the TLS became managed code, which is what took the
+flag out of this picture altogether.
 
 ---
 

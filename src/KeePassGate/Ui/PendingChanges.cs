@@ -64,7 +64,8 @@ namespace KeePassGate.Ui
             // The store is asked for on every access rather than taken once here. A database that
             // is locked and opened again while this dialog is up comes back with a different root
             // group behind the same handle, and a store captured in a constructor would go on
-            // reading and writing the group that was replaced.
+            // reading and writing the group that was replaced. `OpenDatabaseTargets` rebuilds its
+            // own per read for the same reason.
             _store = new PendingStore(() => database.PluginCustomData);
         }
 

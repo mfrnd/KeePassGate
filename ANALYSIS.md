@@ -14,6 +14,11 @@
 >   beside the plugin. Admission records now live in the database, keyed by SHA-256 over the
 >   certificate DER, and are required on every connection. See [`CA.md`](CA.md) §204 and §217.
 > - **No HTTP dependency is taken.** See [`DESIGN.md`](DESIGN.md) §107.
+> - **The TLS is Bouncy Castle's, so a cryptography library is taken.** Sections 3 and 5a conclude
+>   that the server is written over `SslStream` and needs no cryptography library, and section 8
+>   repeats both. SChannel will not serve with a key that was never written to the user's
+>   profile, so `Org.BouncyCastle.Tls` terminates the TLS and ships beside the plugin. See
+>   [`DESIGN.md`](DESIGN.md) §133.
 > - **A certificate carries no ceiling.** Section 4a settles that a `kpg://` entry bounds what a
 >   client may ask for, and section 8 counts that among the decisions taken. The admission record
 >   is the only ceiling instead, and nothing reads a claim: a certificate whose record is missing

@@ -13,25 +13,20 @@ namespace KeePassGate.Authority
     /// cryptography written by us over cryptography that already works. See `CA.md` §202.
     ///
     /// PKCS#12 is RFC 7292. https://www.rfc-editor.org/rfc/rfc7292 It is used here only as the
-    /// format .NET reads and writes without help, never as a security boundary.
+    /// format .NET and Bouncy Castle both read, never as a security boundary.
     ///
-    /// Measured, and the reason <see cref="LoadFlags"/> reads the way it does: importing a PKCS#12
-    /// on .NET Framework writes a key file into the user's profile unless `EphemeralKeySet` is
-    /// asked for, which would put the authority's private key on disk outside the database that is
-    /// supposed to be the only place it lives. With the flag, nothing touches the disk.
-    ///
-    /// **It does not follow that SChannel will serve with one.** Measured: an `EphemeralKeySet`
-    /// certificate signs, and SChannel refuses TLS with it in either direction, a server getting
-    /// `SEC_E_NO_CREDENTIALS`. That is why the transport is Bouncy Castle rather than
-    /// `SslStream`. `FINDINGS.md` records the measurement and the reversal.
+    /// **Everything is loaded with `EphemeralKeySet`, so no key this plugin holds ever reaches the
+    /// disk.** That is only possible because the TLS server is managed code: a certificate loaded
+    /// this way cannot be used with SChannel at all, in either direction, which is measured in
+    /// `EphemeralKeyProbe.cs` on `spikes/tls-and-certificates` and is why `Org.BouncyCastle.Tls`
+    /// terminates the transport.
+    /// Bouncy Castle parses the stored bytes itself, so a host key is an object on the heap and
+    /// nothing more.
     /// </remarks>
     public static class CertificateBlob
     {
-        /// <summary>
-        /// `EphemeralKeySet` keeps the private key out of the user's profile. `Exportable` is what
-        /// lets the same material be written back out again.
-        /// </summary>
-        public const X509KeyStorageFlags LoadFlags =
+        /// <summary>Nothing reaches the disk, which is what every key this plugin holds needs.</summary>
+        public const X509KeyStorageFlags SigningFlags =
             X509KeyStorageFlags.Exportable | X509KeyStorageFlags.EphemeralKeySet;
 
         public static string Save(X509Certificate2 certificate)
@@ -56,6 +51,40 @@ namespace KeePassGate.Authority
         /// </summary>
         public static X509Certificate2 Load(string blob)
         {
+            return Load(blob, SigningFlags);
+        }
+
+        /// <summary>The stored bytes, for the TLS server to parse itself. Null when unreadable.</summary>
+        public static byte[] Bytes(string blob)
+        {
+            if (string.IsNullOrEmpty(blob))
+            {
+                return null;
+            }
+
+            try
+            {
+                return Convert.FromBase64String(blob);
+            }
+            catch (FormatException)
+            {
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// The same, with the storage flags chosen by the caller.
+        /// </summary>
+        /// <remarks>
+        /// **Nothing in the plugin calls this, and nothing should.** It is here for the test
+        /// client, which drives SChannel, and SChannel will not do TLS with an `EphemeralKeySet`
+        /// key in either direction. A client that has to be the platform's own therefore loads
+        /// without the flag and pays for it with a key file under the profile for as long as the
+        /// certificate is held. Production loads through <see cref="Load(string)"/>, where the
+        /// guarantee that no key reaches the disk is not a parameter anybody can pass.
+        /// </remarks>
+        public static X509Certificate2 Load(string blob, X509KeyStorageFlags flags)
+        {
             if (string.IsNullOrEmpty(blob))
             {
                 return null;
@@ -74,7 +103,7 @@ namespace KeePassGate.Authority
             X509Certificate2 certificate = null;
             try
             {
-                certificate = new X509Certificate2(bytes, (string)null, LoadFlags);
+                certificate = new X509Certificate2(bytes, (string)null, flags);
                 if (!certificate.HasPrivateKey)
                 {
                     certificate.Reset();

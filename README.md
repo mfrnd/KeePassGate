@@ -3,9 +3,11 @@
 A KeePass 2.x plugin that serves a small, specification-defined HTTP API over mutual TLS, so that
 automation and AI agents can each be given a narrow, revocable, audited slice of a database.
 
-**Design settled. The plugin loads, and every database can now be its own certificate authority**:
-the KPG tab on the database settings dialog creates, recreates and deletes one, and what it writes
-survives a save and a restart. It serves no API and opens no socket yet.
+**Design settled, and the first six steps are built.** The plugin loads into KeePass, the KPG tab
+on the database settings dialog creates, recreates and deletes the database's own certificate
+authority, and the gate listens on loopback and answers a client that authority issued, over mutual
+TLS 1.3, with the certificate chosen from the rotating name in the ClientHello. One route exists so
+far, and it reads nothing out of the database.
 
 **License: MIT.** GPLv2 is not required. KeePass is GPL-2.0-or-later and grants no plugin exception,
 but the FSF's own requirement is a GPL-compatible license, and MIT is one, so a permissive
@@ -40,8 +42,11 @@ KeePassGate is sound under the strict reading of the linking question as well as
 - **No third-party HTTP dependency.** Selecting a certificate by SNI means owning the accept loop,
   so all that was left to buy was a header parser. The one that fits the seam natively is LGPL-2.1
   and unmaintained; `DESIGN.md` §107 records the trade and what would reopen it.
+- **The TLS is Bouncy Castle**, taken so that no private key is ever written to the user's profile.
+  The platform's own TLS refuses to serve with a key that has not been, which would have put the
+  host key on the disk for as long as a database was open.
 - **`IGateContext`** is the seam. The router, authorization and audit never see the transport, which
-  is how it stays replaceable. TODO(step 6): `IGateContext` arrives with the transport.
+  is how it stays replaceable.
 - **Spec-first routing.** The OpenAPI document is the routing table and handlers bind to
   `operationId`, so an undeclared path has nowhere to go.
 - **A plain DLL on .NET Framework 4.8**, not a `.plgx`, because the packaging format is what forces

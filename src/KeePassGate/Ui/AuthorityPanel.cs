@@ -44,6 +44,8 @@ namespace KeePassGate.Ui
         private readonly IGateDatabase _database;
         private readonly IOperatorPrompt _prompt;
         private readonly IGateLog _log;
+        private readonly IGateStatus _gate;
+        private readonly GateIncidents _incidents;
         private readonly AuthorityService _service;
         private readonly Font _titleFont;
         private readonly Font _valueFont;
@@ -52,6 +54,7 @@ namespace KeePassGate.Ui
         /// <summary>The labels that wrap, which are the ones a narrow tab has to be told about.</summary>
         private readonly List<Label> _wrapping = new List<Label>();
 
+        private readonly Label _serving;
         private readonly Label _status;
         private readonly TableLayoutPanel _facts;
         private readonly Label _detail;
@@ -61,6 +64,23 @@ namespace KeePassGate.Ui
         private readonly Button _delete;
 
         public AuthorityPanel(IGateDatabase database, IOperatorPrompt prompt, IGateLog log, string version)
+            : this(database, prompt, log, version, null)
+        {
+        }
+
+        public AuthorityPanel(
+            IGateDatabase database, IOperatorPrompt prompt, IGateLog log, string version, IGateStatus gate)
+            : this(database, prompt, log, version, gate, null)
+        {
+        }
+
+        public AuthorityPanel(
+            IGateDatabase database,
+            IOperatorPrompt prompt,
+            IGateLog log,
+            string version,
+            IGateStatus gate,
+            GateIncidents incidents)
         {
             if (version == null)
             {
@@ -70,6 +90,8 @@ namespace KeePassGate.Ui
             _database = database;
             _prompt = prompt ?? new MessageBoxPrompt();
             _log = log ?? NullGateLog.Instance;
+            _gate = gate;
+            _incidents = incidents;
             _service = database == null || !database.IsOpen
                 ? null
                 : new AuthorityService(database.PluginCustomData, _log);
@@ -98,8 +120,12 @@ namespace KeePassGate.Ui
             _titleFont = new Font(Font, FontStyle.Bold);
             _valueFont = new Font(Font, FontStyle.Bold);
 
-            // The name and the version share a line rather than taking two.
-            var heading = NewRow(new Padding(0, 0, 0, Spacing.Gap));
+            // The name and the version share a line rather than taking two, and the line about
+            // the socket goes tight under them: all three answer questions about the plugin
+            // rather than about this database, so they read as one band and are separated from
+            // what follows once rather than twice. The room that buys is what the headline
+            // under it spends on having air above as well as below.
+            var heading = NewRow(new Padding(0, 0, 0, Spacing.Tight));
             heading.Controls.Add(new TextLabel
             {
                 Name = GateTab.TitleLabelName,
@@ -118,11 +144,13 @@ namespace KeePassGate.Ui
             });
 
             _layout.Controls.Add(heading);
+            _serving = NewTextLabel(GateTab.ServingLabelName, new Padding(0, 0, 0, Spacing.Gap));
+            _layout.Controls.Add(_serving);
 
-            // Air above as well as below, because this is the first line of what the tab is
-            // actually about and the heading over it is not. The same amount on both sides is
-            // what makes it read as an opening sentence rather than as a caption on the row
-            // above or a label on the table below.
+            // Air above as well as below, so it reads as the opening sentence of the page
+            // rather than as a caption on whatever is over it or a label on the table under
+            // it. A first line pressed against the top edge reads as one of those two, and
+            // which one is not something the page gets to choose.
             _status = NewTextLabel(GateTab.StatusLabelName, new Padding(0, Spacing.Gap, 0, Spacing.Gap));
 
             // A table rather than sentences, because these are scanned rather than read. Two
@@ -226,6 +254,8 @@ namespace KeePassGate.Ui
             try
             {
                 var description = DescribeNow();
+                _serving.Text = GateStatusText.For(
+                    _gate, description.IsServed, _incidents == null ? null : _incidents.Summary);
                 _status.Text = description.Headline;
                 Draw(description.Facts);
                 _detail.Text = string.Join(Environment.NewLine, description.Details);

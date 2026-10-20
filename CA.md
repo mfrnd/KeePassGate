@@ -74,8 +74,10 @@ the file already holds every secret the authority protects.
 | Leaf certificate | 393 bytes |
 | Serial | 16 random bytes, high bit cleared so the INTEGER encodes positive |
 
-No third-party cryptography: `CertificateRequest` and `SubjectAlternativeNameBuilder` cover
-everything an authority does here.
+Issuing takes no third-party cryptography: `CertificateRequest` and `SubjectAlternativeNameBuilder`
+mint every certificate here. The rest of the cryptography is Bouncy Castle's: it terminates the
+TLS, `DESIGN.md` §133, and it is the fixed-time comparison every certificate's bytes go through,
+§214, which .NET Framework does not have.
 
 ---
 
@@ -154,18 +156,26 @@ a passphrase here would be cryptography written by us over cryptography that alr
 key is base64 of the 32 raw bytes. Sizes are unremarkable: roughly 1.3 KB of base64 for the
 authority.
 
-**They are loaded with `EphemeralKeySet`, and that is load bearing.** Measured in
-`EphemeralKeyProbe.cs`: importing a PKCS#12 without it writes a key file into
-`%APPDATA%\Microsoft\Crypto\Keys` for as long as the certificate is loaded, which would put the
-authority's private key on a disk outside the database that is meant to be the only place it lives.
-With the flag nothing touches the disk.
+**Nothing here is ever written to the disk, and that is what decided the transport.** Importing a
+PKCS#12 on .NET Framework writes a key file into `%APPDATA%\Microsoft\Crypto\Keys` for as long as
+the certificate is loaded, unless `EphemeralKeySet` is asked for. Everything the plugin loads asks
+for it.
 
-**It does not follow that SChannel will serve with one, and an earlier draft of this document
-said it would.** Measured afterwards: an `EphemeralKeySet` certificate signs, and SChannel
-refuses TLS with it in either direction, a server getting `SEC_E_NO_CREDENTIALS` and a client
-never getting its certificate onto the wire. That is what put `Org.BouncyCastle.Tls` under the
-transport, which does serve with them, so no key this plugin loads reaches the disk.
-`FINDINGS.md` records the measurement.
+That is only possible because the TLS server is managed code. An ephemeral key **signs perfectly
+well and cannot be used with SChannel at all**, in either direction, so serving with the platform's
+own TLS would have meant putting the host key on the disk for as long as a database was open.
+`DESIGN.md` §133 records the reversal; `EphemeralKeyProbe.cs` and `ManagedTlsProbe.cs` are the two
+halves of the measurement.
+
+So all three secrets live in the database and in memory, and nowhere else the plugin puts them: the
+authority that can mint identities, the host key that authenticates a server, and the gate key.
+
+**KeePass can put them somewhere else.** Its own File, Export, KeePass XML (2.x) writes the
+database's custom data in the clear with everything else, so an exported file holds the authority's
+private key, the host key, the gate key and every admission record, and KeePass announces an export
+to no plugin. Such a file is the unlocked database: it is kept as one, and if it leaves the
+operator's hands the answer is recreating the authority, which [`PAIRING.md`](PAIRING.md) §301
+names as the recovery from a leaked authority key.
 
 **Reading is total and fails closed.** Anything that will not decode leaves the authority *damaged*
 rather than absent, and the two are never conflated: an absent authority is created, a damaged one
@@ -335,7 +345,7 @@ Order matters, and every failure is a refusal.
 
 1. **The gate resolves the SNI**, before any TLS work. Section 8.
 2. **TLS 1.3 offered and nothing older**, so the handshake fails rather than falling back.
-3. **A certificate is always asked for**, decided in the gate's own TLS server rather than by an
+3. **A certificate is always asked for**, decided in `GateTlsServer` rather than by an
    SChannel flag, with a callback that tolerates absence. Measured:
    `false` makes the server send no `CertificateRequest` under TLS 1.3, so a client holding a good
    certificate never offers one; and `true` requires nothing, since a certificate-less client
@@ -369,10 +379,34 @@ chain.Build(presented)
 if (!chain.Build(presented)) return false;
 if (chain.ChainElements.Count != 2) return false;               // no intermediates in this hierarchy
 byte[] root = chain.ChainElements[chain.ChainElements.Count - 1].Certificate.RawData;
-if (!FixedTimeEquals(root, resolved.AuthorityDer)) return false;   // the load-bearing line
+if (!FixedTime.Equals(root, anchor.RawData)) return false;      // the load-bearing line
 ```
 
 With the pin: our client `True`, foreign client `False`.
+
+**The load-bearing part is the comparison, not its timing.** `FixedTime.Equals` is what does it,
+because every comparison of certificate bytes in this plugin goes through that one door and one
+that did not would be a question a reader has to answer again. On its own it defends nothing here:
+an anchor is a public certificate, and every client that can reach this code was handed a copy of
+it at pairing. What is load bearing is that the anchor's own bytes are compared at all, which is
+the line the platform will not write.
+
+**And the engine goes out on the way to `False`, which nothing here asked it to do.** When it cannot
+find the issuer it reads the leaf's authority information access extension, RFC 5280 section
+4.2.2.1, and downloads whatever that names before `Build` returns. The leaf belongs to whoever
+opened the connection, so the address does too: measured, one address that accepts and answers
+nothing holds the connection thread for 15.0 s, and the request really is issued by the KeePass
+process. Nothing worth fetching exists here. The anchor is handed in through `ExtraStore` and the
+hierarchy is a leaf and the certificate above it, so a download can only ever be the engine looking
+for an issuer the pin is about to refuse.
+
+`X509ChainPolicy.DisableCertificateDownloads` says exactly that and is .NET 5 and later, like
+`CustomRootTrust` above. What this framework has is `UrlRetrievalTimeout`, where zero is the default
+the policy already carries and means fifteen seconds, so the pin sets the smallest positive value
+and the same leaf is refused in 79 ms. A millisecond is still a millisecond: the request may be
+opened before it is abandoned, so what the bound takes away is the wait and the answer rather than
+the first packet. §217 declines to depend on the network at all, and this is that network arriving
+through a door nobody opened, closed here as far as the platform allows.
 
 `SslPolicyErrors.None` is the **wrong** test. The authority is deliberately in no machine store, so
 a correct deployment always reports `RemoteCertificateChainErrors`, and since the SNI rotates it
@@ -472,6 +506,8 @@ Storing the certificate rather than only its digest is what makes any of this po
   approval is what stands there.
 - **Two copies of one database open at once.** They share an authority and a `SniKey` and are
   genuinely indistinguishable, so the plugin refuses to serve and logs how many answered.
+- **An export KeePass makes.** Its XML export writes everything the database holds in the clear,
+  the authority's key included, and tells no plugin it did; §222 says what such a file is.
 
 ---
 
@@ -493,6 +529,7 @@ Recorded because a reader seeing only this version will not know which parts wer
 | One host certificate | two, the second memory only | so a locked KeePass answers `503 locked` without holding a privileged key |
 | Signing requests accepted | the issuer generates the key and every extension | a request carries extensions, and copying them lets a client choose its own claims |
 | No `keyUsage`, SKI, AKI or `pathLen` | all specified, and `notAfter` clamped | |
-| The stored form was unspecified | base64 PKCS#12, no password, loaded with `EphemeralKeySet` | without the flag the key is written to the user's profile, which contradicts "inside the database and nowhere else" |
+| The stored form was unspecified | base64 PKCS#12, no password | the database's own encryption is what guards it |
+| Everything loaded with `EphemeralKeySet`, on SChannel | still everything, on a managed TLS stack | measured: SChannel cannot use an ephemeral key, so keeping the platform's TLS would have meant writing the host key to the disk |
 | A stored pair was to be checked by issuer name | checked with the anchor pin | every authority shares one subject, so names match where bytes do not |
 | SAN read loosely | ASN.1 tags, reject rather than repair | measured three ways to smuggle a claim past a renderer |
