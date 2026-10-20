@@ -248,6 +248,45 @@ def _parser() -> argparse.ArgumentParser:
     _dialed(groups)
     groups.set_defaults(run=_groups)
 
+    group = commands.add_parser(
+        "group",
+        help="read one group, its notes included",
+        description="Needs `read` on the group, where listing it needs `list` on the one above.",
+    )
+    group.add_argument("uuid", help="the group's identifier, or root")
+    _shared(group)
+    _dialed(group)
+    group.set_defaults(run=_group_read)
+
+    add_group = commands.add_parser("add-group", help="create a group inside another")
+    add_group.add_argument("--name", required=True, help="what to call it")
+    add_group.add_argument(
+        "--parent", default=api.ROOT, help="where to put it, by identifier or root"
+    )
+    add_group.add_argument("--notes", help="the notes")
+    _shared(add_group)
+    _dialed(add_group)
+    add_group.set_defaults(run=_add_group)
+
+    update_group = commands.add_parser(
+        "update-group", help="rename a group, or change its notes"
+    )
+    update_group.add_argument("uuid", help="the group's identifier, or root")
+    update_group.add_argument("--name", help="what to call it from now on")
+    update_group.add_argument("--notes", help="the notes")
+    _shared(update_group)
+    _dialed(update_group)
+    update_group.set_defaults(run=_update_group)
+
+    remove_group = commands.add_parser(
+        "remove-group",
+        help="delete a group, which the gate refuses while it holds anything",
+    )
+    remove_group.add_argument("uuid", help="the group's identifier")
+    _shared(remove_group)
+    _dialed(remove_group)
+    remove_group.set_defaults(run=_remove_group)
+
     entries = commands.add_parser(
         "entries",
         help="list the entries this client may see",
@@ -1182,6 +1221,78 @@ def _groups(arguments: argparse.Namespace) -> int:
         [_group(group) for group in found],
         [f"{group.uuid}  {_printable(group.name)}" for group in found],
     )
+    return 0
+
+
+def _group_read(arguments: argparse.Namespace) -> int:
+    client = api.GateClient.open(
+        arguments.directory,
+        arguments.profile,
+        host=arguments.host,
+        key_password=_key_password(arguments),
+        **_dialing(arguments),
+    )
+    found = client.group(arguments.uuid)
+
+    # The root has nothing above it, which is said rather than printed as a blank. The notes are
+    # escaped as an entry's are in `show`, so notes over several lines print on one.
+    lines = [
+        f"uuid:   {found.uuid}",
+        f"name:   {_printable(found.name)}",
+        f"parent: {found.parent or 'none'}",
+        f"notes:  {_printable(found.notes)}",
+    ]
+
+    _emit(arguments, _group(found), lines)
+    return 0
+
+
+def _add_group(arguments: argparse.Namespace) -> int:
+    client = api.GateClient.open(
+        arguments.directory,
+        arguments.profile,
+        host=arguments.host,
+        key_password=_key_password(arguments),
+        **_dialing(arguments),
+    )
+    uuid = client.create_group(arguments.name, parent=arguments.parent, notes=arguments.notes)
+
+    # The identifier alone, as `add` prints it, so `$(...)` is what addresses the new group.
+    _emit(arguments, {"uuid": uuid}, [uuid])
+    return 0
+
+
+def _update_group(arguments: argparse.Namespace) -> int:
+    # Refused before anything is dialed, as `update` refuses it: success for a body naming
+    # nothing is one a script cannot tell from a change.
+    if arguments.name is None and arguments.notes is None:
+        print("update-group needs something to change: --name or --notes", file=sys.stderr)
+        return 2
+
+    client = api.GateClient.open(
+        arguments.directory,
+        arguments.profile,
+        host=arguments.host,
+        key_password=_key_password(arguments),
+        **_dialing(arguments),
+    )
+    client.update_group(arguments.uuid, name=arguments.name, notes=arguments.notes)
+
+    _emit(arguments, {"uuid": arguments.uuid}, [f"updated {arguments.uuid}"])
+    return 0
+
+
+def _remove_group(arguments: argparse.Namespace) -> int:
+    client = api.GateClient.open(
+        arguments.directory,
+        arguments.profile,
+        host=arguments.host,
+        key_password=_key_password(arguments),
+        **_dialing(arguments),
+    )
+    client.delete_group(arguments.uuid)
+
+    _emit(arguments, {"uuid": arguments.uuid}, [f"removed {arguments.uuid}"])
     return 0
 
 

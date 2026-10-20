@@ -444,11 +444,13 @@ ones out, judged by the gate as KeePass judges one.
 
 ```shell
 pykeepassgate groups
+pykeepassgate group <uuid>
 pykeepassgate entries --group <uuid>
 pykeepassgate entries --no-include-expired
 pykeepassgate show <uuid>
 ```
 
+`group` reads one group, its notes included, which needs `R` on it where `groups` needs `L`.
 `show` prints every string the entry holds, one to a line, and when it expires: notes written over
 several lines print on one, with `\n` where each break was. The protected ones arrive only when the
 rule grants `protected`. It is the one command that puts a password on a terminal.
@@ -543,6 +545,25 @@ expiry off, as rotating an expired password wants. Left out, a new entry does no
 update leaves the expiry as it is. A moment is sent in UTC to the second, and one with no time zone
 is refused with `ValueError` before anything is sent, because which instant it names would be a
 guess.
+
+Groups are written the same way:
+
+```python
+inner = client.create_group("Automation", parent=api.ROOT, notes="For the build agent.")
+client.update_group(inner, name="Build agents")
+client.delete_group(inner)
+```
+
+```shell
+pykeepassgate add-group --name Automation --notes "For the build agent."
+pykeepassgate update-group <uuid> --name "Build agents"
+pykeepassgate remove-group <uuid>
+```
+
+`add-group` puts the group under `--parent`, the root unless told another, and prints its
+identifier, as `add` does. `update-group` renames a group or changes its notes, and refuses to run
+with neither named. A group that still holds anything is refused rather than removed with what is
+in it.
 
 Each of these needs the matching verb on the node it touches: `C` to create, `U` to update, `D` to
 delete. See [`access-control.md`](access-control.md).
