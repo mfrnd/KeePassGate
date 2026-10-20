@@ -99,7 +99,20 @@ Recorded because a reader who only sees conclusions will re-make the same mistak
 | websocket-sharp was disqualified | Ten lines |
 | uHttpSharp supported spec-first binding "decisively" | Both do. It judged websocket-sharp by one facade |
 
-## 6. Reconstruction
+## 6. Providing the KeePass everything is built against
+
+Established while replacing a KeePass copied there by hand with a pinned download.
+
+| Fact | How it was established |
+| --- | --- |
+| **The obvious SourceForge URL returns a web page, not the file.** `downloads.sourceforge.net/project/keepass/...` answers 200 with 137 KB of HTML to a browser-shaped request, and the plausible size is what makes it dangerous | downloaded it and looked at the first four bytes |
+| The canonical `sourceforge.net/projects/keepass/files/.../download` form answers with the archive when the user agent is not a browser: 2,898,806 bytes for 2.61.1, starting `PK` | downloaded it and hashed it |
+| **`KeePass.exe` is Authenticode signed**, valid, by `CN="Open Source Developer, Dominik Reichl"`. So an archive can be checked for being KeePass rather than only for being the bytes somebody pinned | `Get-AuthenticodeSignature` on the extracted file and on an independently installed copy |
+| The portable archive extracts flat, with `KeePass.exe` at the top, which is the shape `KeePassDevDir` already wanted | extracted it |
+| **Scoop's manifest would not have helped.** `extras/keepass` fetches the **installer** from the same SourceForge host, verifies a **SHA-1**, and carries only the current version, so pinning an old one means the versions bucket or manifest history | read the manifest |
+| KeePass publishes a version feed at `keepass.info/update/version2x.txt`, on its own domain, signed, and it names the current release as `KeePass:<version>` | fetched it |
+
+## 7. Reconstruction
 
 The proofs were deleted once they had answered their questions. To rebuild any of them:
 
@@ -119,7 +132,7 @@ The proofs were deleted once they had answered their questions. To rebuild any o
 `TlsProbe.cs` on `spikes/tls-and-certificates` is kept because it answers the TLS question in
 isolation and is the cheapest way to re-check it on a new machine.
 
-## 7. The gate, and where it can run
+## 8. The gate, and where it can run
 
 **A warning is not a failure, and under `Stop` it becomes one.** A native command writing to stderr
 raises a terminating error as soon as anything upstream merges the streams, which is what capturing

@@ -51,7 +51,13 @@ words:
 
 
 
+  # provide keepass as a pinned, verified portable install
+  - Authenticode
+  - pscustomobject
 
+  # KeePass's author, whose Authenticode signature is what a download is checked against
+  - Dominik
+  - Reichl
 
 
 
