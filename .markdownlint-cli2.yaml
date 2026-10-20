@@ -1,0 +1,67 @@
+# Markdown rules and file selection, in one file.
+#
+# A larger repository would split the rules from the file selection so that each project could
+# extend a shared set. This one holds one plugin and one client, so there is nothing to extend and
+# nothing to resolve upwards: one static config, at the root, is the whole of it. Run it with
+# `npm run lint:md`, or through `build.ps1 -Task Lint`, which is the gate.
+# TODO(step 2): that script arrives with step 2.
+#
+# markdownlint's defaults are the baseline. Only the deviations are written down, and each says why.
+
+config:
+  # Prose here is hand-wrapped at about 100, but one document is historical and frozen
+  # (`ANALYSIS.md`) and reflowing it would churn text nobody should edit. 120
+  # accommodates what is already written while still catching a line that has genuinely run away.
+  #
+  # Tables, code and headings are exempt because wrapping them is impossible rather than merely
+  # inconvenient: a table row, a shell command and a mermaid edge are each one logical line.
+  MD013:
+    line_length: 120
+    tables: false
+    code_blocks: false
+    headings: false
+
+  # OFF. Every finding in this repository is a wrapped prose line that happens to begin with `+ `
+  # or `- `, which CommonMark reads as a nested bullet. The rule calls that a marker style, and its
+  # fix rewrites the marker, which keeps the broken bullet and damages the sentence. The real fix is
+  # to rewrap the line, so the rule is off rather than left to do the wrong one automatically.
+  MD004: false
+
+  # The documents lean on mermaid fences and a small amount of inline HTML for diagram labels.
+  # Nothing else here needs raw HTML.
+  MD033:
+    allowed_elements:
+      - br
+      - details
+      - summary
+
+  # Duplicate headings are fine when they sit under different parents: several documents have a
+  # "What this changed" under more than one section, and renaming them would make them worse.
+  MD024:
+    siblings_only: true
+
+  # The first line of every document is its title.
+  MD041: true
+
+  # OFF. `DESIGN.md` is two documents in one file on purpose: the design, and a second top-level
+  # part that attacks it. The attack is not a subsection of the thing it argues with, and demoting
+  # it would put it on a level with the design's own sections.
+  MD025: false
+
+globs:
+  - "**/*.md"
+
+# **What git ignores is not this repository's prose.** A directory a tool makes can carry a README
+# of its own, and a list of directories names only what somebody thought of: the one it forgets is
+# linted on a machine that has it and not on one that does not, which is two definitions of clean.
+# `.gitignore` already says what is not ours, and it is maintained for its own reasons. The list
+# below stays, since it costs nothing and keeps the walk out of the largest of them.
+gitignore: true
+
+ignores:
+  - "node_modules/**"
+  - ".tmp/**"
+  - "**/bin/**"
+  - "**/obj/**"
+  # The scratch directory a session works in. Gitignored, and not prose anybody reads twice.
+  - "scratchpad/**"

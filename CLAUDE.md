@@ -1,0 +1,226 @@
+# CLAUDE.md
+
+Guidance for anyone, human or AI assistant, working in this repository.
+
+## What this is
+
+**A KeePass 2.x plugin, written from scratch**, serving a small specification-defined HTTP API over
+mutual TLS, so that automation and AI agents can each be given a narrow, revocable, audited slice of
+a database.
+
+**Status: the design is settled and nothing is built.** There is no project file, no source and no
+CI. The first commit of real code is still ahead.
+
+## Read these before proposing anything
+
+| | |
+| --- | --- |
+| [`DESIGN.md`](DESIGN.md) | what to build, and a section attacking it. **The contract.** |
+| [`CA.md`](CA.md) | the certificate authority: issuance, claims, validation, revocation |
+| [`PAIRING.md`](PAIRING.md) | how a stranger becomes a client, with the flow diagrams |
+| [`FINDINGS.md`](FINDINGS.md) | what was measured rather than assumed, and what turned out wrong |
+
+**One document is historical and says so at the top.** [`ANALYSIS.md`](ANALYSIS.md) is the argument
+that was made, and several of its conclusions were later reversed; it opens with a banner naming
+them. **Do not build from it.** It is kept because the reasoning is worth having and because a
+reversal without its argument is just an assertion.
+
+**The code those two measured is not on any mainline branch.** `spikes/http-lib-measurements`, taken
+from `master` and never merged, keeps the three vendored HTTP proofs and gathers what they settled
+in its own `RESULTS.md`. A spike lives on its own branch so that no mainline history has to carry it
+being added and deleted again.
+
+**The measurements the transport rests on are on two more.** `spikes/tls-and-certificates` holds
+what was measured about TLS and X.509 on .NET Framework, and `spikes/build-environment` whether the
+gate can fail while nothing is wrong. Both are kept runnable rather than retired, because each is a
+claim about somebody else's code that a later release could make false. What they settled is under
+"Measured facts that cost time if rediscovered".
+
+**Whether CI needs a machine of its own was settled on a seventh.** `spikes/hosted-runner-desktop`
+drives a desktop GUI on `windows-latest` and answers yes: the end to end tier runs on a hosted
+runner, with no self-hosted machine and no container. It is a claim about somebody else's runner
+image, so it is kept runnable too.
+
+## Visibility
+
+**The secrecy rule is in [`CONVENTIONS.md`](CONVENTIONS.md)** and holds on every branch: write every
+file as if it were already public, and nothing about the author's actual database reaches any of
+them. That holds whatever the repository's setting says on a given day: it is written to be
+published, and a file pushed while it was private is in the history on the day it is not, where
+only a rewrite takes it back out.
+
+**License: MIT.** KeePass is GPL-2.0-or-later and grants no plugin exception, but the FSF's own
+requirement is a GPL-compatible license and MIT is one. This is deliberate and it constrains
+dependencies: see the LGPL note under "already decided".
+
+## Things that are already decided
+
+These came out of a long design discussion and several rounds of adversarial review. Treat them as
+settled unless there is new evidence, and where there is, say so explicitly rather than quietly
+designing around them.
+
+- **Every database is its own certificate authority**, stored inside itself under `KPG` keys in the
+  database's own `CustomData`. A malicious `.kdbx` therefore vouches only for itself. An earlier design
+  put one authority on the host with a registry beside it, and that registry had to name databases,
+  which an attacker-supplied file could forge. **Do not re-propose a host-level authority or
+  registry.**
+- **The database's own `CustomData`, never the root group's**, and it was the root group's until a
+  merge was measured. KeePass stamps each key of `PwDatabase.CustomData` with a modification time
+  and merges those key by key; a group's dictionary carries no stamps at all, so
+  `PwGroup.AssignProperties` replaces the whole of it from whichever replica's group was touched
+  last. Records shaped one-per-client to survive a merge did not. Two consequences worth keeping
+  straight. The authority's three parts are **one key**, because there the
+  argument runs the other way: merged apart, a certificate from one replica and a private key from
+  another read as damage. And **a revocation is written empty rather than removed**, since a merge
+  carries a newer value and carries nothing for a key that went. See CA.md §204.
+- **The authority takes the file to KDBX 4.1**, because a per-key modification time is a 4.1
+  field. A database saved with an authority in it is a 4.1 file before anything has paired with
+  it, and a record keeps it there. That is a format and not a gate: KeePass 2.47
+  opens it and saves it back as 4.0 without the per-key times a revocation needs to travel, and so
+  does KeePassXC. See CA.md §204.
+- **The admission record is load bearing.** A certificate that chains, passes its EKU check and has
+  no record in the database is refused, and the permitted profiles are read from the **record**, not
+  from the certificate's SAN. This is not belt and braces: it is what makes a lost record fail
+  closed. See the `GroupForm` trap below.
+- **Claims carry profile names only**: `kpg://profile/<name>`. No database identifier, because the
+  issuing authority already identifies it. **There is no `kpg://any` wildcard**, and re-proposing one
+  reopens a measured escalation.
+- **The authority key has no passphrase.** It is protected by the kdbx encryption. An earlier draft
+  wrapped it in Argon2 over AES-CBC with an encrypt-then-MAC construction and DPAPI; all deleted, and
+  its backup story was broken anyway because a DPAPI blob restores nowhere.
+- **Pairing tokens live in plugin memory only**, expiring on TTL or KeePass exit, whichever first.
+  They are never written to the database.
+- **Two host certificates per database**: a normal one in the kdbx, and a short-lived responder
+  minted at unlock and held in memory so a locked KeePass can answer `503 locked` rather than failing at
+  the transport. The normal host key is actively dropped at lock. TODO(step 9): the responder,
+  the locked answer and dropping the key at lock arrive with step 9.
+- **We own the transport.** Accept loop, ClientHello peek, `SslStream`, request parser, body read,
+  response write. Selecting a host certificate by SNI makes this unavoidable, because .NET Framework
+  exposes no server-side SNI hook.
+- **No third-party HTTP dependency.** `uHttpSharp` fits the seam natively with zero changes and is
+  ruled out on **license** (LGPL-2.1) and liveness (no commits since 2021), not on fit. Wanting
+  WebSocket, HTTP/2 or chunked bodies flips this; nothing else does.
+- **Spec-first routing.** The OpenAPI document is the routing table and handlers bind to
+  `operationId`, so an undeclared path has nowhere to go.
+- **A plain DLL on .NET Framework 4.8**, not a `.plgx`.
+- **The access control model is one document per node**, and its types arrive with step 12.
+  Grants live under a `KPG` key, which is this plugin's own namespace and touches nothing another
+  plugin owns.
+
+  **There is no per-subject opt-in, and adding one would be a defect.** The ACL guards every route
+  there is, because there is one API generation and no legacy to exempt. A setting that let a
+  subject out of the ACL could only ever be wrong here, however sensible it looks in a design that
+  has something older to carry.
+
+## Measured facts that cost time if rediscovered
+
+Every one of these was established by running code, and most contradict what the documentation
+suggests. The code is on branches of its own: `spikes/tls-and-certificates` holds the nine that
+measured TLS and X.509, and `spikes/build-environment` the one that measured whether the gate can
+fail while nothing is wrong. Each gathers what it settled in its own `RESULTS.md`. Run them from
+**Windows PowerShell**, not PowerShell 7, which is .NET Core and answers a different question.
+
+- **`X509Chain` does not pin an anchor.** `ExtraStore` plus `AllowUnknownCertificateAuthority`
+  accepts a certificate from a completely foreign authority. `X509ChainTrustMode.CustomRootTrust`
+  would fix it and is .NET 5 and later. **Byte-compare the chain's last element** and require exactly
+  two elements. `ChainProbe`.
+- **`ClientCertificateRequired = false` is what breaks optional client certificates.** Under TLS 1.3
+  the server then sends no `CertificateRequest` at all, so a client holding a good certificate never
+  offers one. Under TLS 1.2 it does, so testing on 1.2 and shipping on 1.3 is a silent
+  authentication bypass. And `= true` requires nothing, since a certificate-less client completes the
+  handshake anyway. `OptionalClientCertProbe`.
+- **`SslPolicyErrors.None` is the wrong test.** A correct deployment always reports
+  `RemoteCertificateChainErrors` (the authority is in no machine store) and
+  `RemoteCertificateNameMismatch` (the SNI rotates). The callback ignores it entirely.
+- **`X509Certificate2.Thumbprint` is SHA-1**, 40 hex characters. Admission keys on SHA-256 over
+  `RawData`. `ChainProbe` prints it.
+- **Never parse a SAN with `X509Extension.Format` or `GetNameInfo`.** `AddDnsName` accepts text that
+  renders as a URI claim, the labels are localized, and `GetNameInfo` returns one entry. Read the
+  ASN.1 tags: `0x86` URI, `0x82` dNSName, `0x81` rfc822Name. `SanProbe`.
+- **There is no RFC 5705 exporter** on .NET Framework, but
+  `TransportContext.GetChannelBinding(ChannelBindingKind.Endpoint)` works on both sides under TLS 1.3
+  and both agree. Take the application-data portion by its documented offsets, not the whole blob.
+  `ChannelBindingKind.Unique` returns something under TLS 1.3 where tls-unique is undefined; ignore
+  it. `BindingProbe`.
+- **The SNI needs two labels.** 64 hex characters exceed the 63-octet DNS label limit.
+- **C# 7.3 is available, and the packaging is why.** A `.plgx` would be recompiled by KeePass's
+  in-box CodeDOM provider, which caps the language at C# 5. This ships a plain DLL and escapes that
+  entirely; the probes are conservative only because `Add-Type` compiles them.
+
+### The trap that shaped the design
+
+**`GroupForm` takes a copy of a group's `CustomData` when it opens and writes that copy back on OK.**
+A value written to the live group therefore **survives Cancel and is destroyed by OK**, silently and
+completely.
+
+Two consequences here. The admission record is checked on every connection precisely so that losing
+one to a stale snapshot makes the certificate inert rather than invisible and irrevocable. And
+**testing any `CustomData` work means pressing OK, not just looking**: make the change, press OK,
+reopen the dialog, and only then believe it. Do the same after saving and reloading the file, because
+those are two different failures.
+
+Equally load bearing: **KeePass's save reports nothing to its caller.** `MainForm.SaveDatabase` is
+`void`, shows its own warnings, and leaves the caller no way to ask whether anything reached the
+disk. What it does say is `PwDatabase.Modified`, which a successful save clears, so that is what a
+write is believed on. Every write waits for its save on KeePass's thread and reads back what it
+wrote, pairing's among them rather than pairing's alone as this once said, and it waits through
+`BeginInvoke` and a bounded wait, never `Invoke`, which has none. `DESIGN.md` §119 says why that
+wait is safe.
+
+## Build and toolchain
+
+**Nothing builds yet.** When a project file lands it targets `net48`, because that is what
+KeePass runs on. Visual Studio 2019 Community is installed; `msbuild` is not on `PATH`, so locate
+it:
+
+```powershell
+$vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+$msbuild = & $vswhere -latest -requires Microsoft.Component.MSBuild -find "MSBuild\**\Bin\MSBuild.exe"
+```
+
+**`%USERPROFILE%\KeePassDEV\` must exist and contain `KeePass.exe`.** Everything here references
+KeePass through that path. It is not in any repo and nothing creates it; populate it by
+copying an installed KeePass. A KeePass launched from there writes its own `KeePass.config.xml` next
+to the exe, which is why testing there cannot damage the real configuration.
+
+**There is no CI and no branch protection.** Neither exists yet. Do not assume a gate
+exists.
+
+## Testing against a live plugin
+
+Never against the author's real database. Build a throwaway KDBX4 with `pykeepass` (ephemerally, via
+`uv run --no-project --with pykeepass`), open it with `KeePass.exe <db> -pw:<password>`, and test
+against that. Keep the database and any driver scripts in the session scratchpad; a
+`.kdbx` must never be committed, and `-pw:` puts the password in the process list, so it is only ever
+acceptable for a dummy.
+
+## Conventions
+
+**The rules that hold on every branch are in [`CONVENTIONS.md`](CONVENTIONS.md)**: secrecy, branch
+layout, prose and commits. What follows is what this branch adds, because each of these depends on
+the tools this branch carries.
+
+- **Docs stay with code.** A behavior or architecture change updates the design documents in the
+  same pass, and reversals are recorded rather than edited away.
+
+## Security posture
+
+This plugin guards every secret the author has, and it runs inside the KeePass UI process, so a bug
+here can hang or crash the password manager.
+
+- **Fail closed, always.** A malformed marker, an unknown subject, an unparseable claim, a missing
+  record: all deny. There is no permissive default anywhere.
+- **The threat model includes the caller.** AI agents are intended consumers and can be
+  prompt-injected, so the ACL is not defending against a hostile network, it is defending against a
+  legitimate client asking for more than it should.
+- **Local code execution as the user is conceded**, throughout. Do not add a control that only
+  defends against it, and do not claim one does.
+
+## Where to start
+
+[`DESIGN.md`](DESIGN.md) §132 ends with a multi-step build order. Step 4 is a plugin skeleton that loads,
+shows a KPG tab and stops cleanly.
+
+**Step 5 is the authority, deliberately early**, because the `GroupForm` snapshot hazard is the thing
+most likely to invalidate the storage decision, and discovering that under five layers of transport
+would be expensive.
