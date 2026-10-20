@@ -556,7 +556,7 @@ Each step is refusable, and each ends with something that runs.
 2. **Continuous integration**: the gate script, the four checks nothing else can make, and the
    workflow that runs whatever a branch declares. Nothing compiles yet, so the only thing to check is
    the prose, and that is the argument for putting it here rather than later: a gate has to exist
-   before there is anything for it to judge, and one added afterwards has never refused anything.
+   before there is anything for it to judge, and one added afterwards has never refused anything. **Done.**
    `build.ps1 -ListGates` is what the workflow reads, so a task added to the script is checked
    without anybody editing YAML and the two lists cannot disagree. That a hosted runner can run every
    one of them, including the end to end tier that drives a real KeePass across a desktop, is

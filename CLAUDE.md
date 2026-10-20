@@ -8,8 +8,10 @@ Guidance for anyone, human or AI assistant, working in this repository.
 mutual TLS, so that automation and AI agents can each be given a narrow, revocable, audited slice of
 a database.
 
-**Status: the design is settled and nothing is built.** There is no project file, no source and no
-CI. The first commit of real code is still ahead.
+**Status: the design is settled, nothing is built, and the gate that will judge it exists.** There
+is no project file and no source at all, but `build.ps1` and the workflow that runs it are
+here, checking the only thing there is to check so far, which is the prose. The first commit of real
+code is still ahead.
 
 ## Read these before proposing anything
 
@@ -169,7 +171,17 @@ wait is safe.
 
 ## Build and toolchain
 
-**Nothing builds yet.** When a project file lands it targets `net48`, because that is what
+**`build.ps1` is the entry point, and it is the gate.** Run it before every commit; CI runs the
+same script on every pull request and on every push to `master`, because there is one definition
+of clean and it is in that file. Today it has one task, `Lint`, and the list grows with the
+repository.
+
+**`build.ps1 -ListGates` is what CI asks for.** The workflow builds one job per name it returns, so
+a task added to the script is checked without anybody editing `.github/workflows/gate.yml`. The
+jobs are never written there, so what changes in that file is the commit each action is pinned
+to, which its header says as well.
+
+**Nothing compiles yet.** When a project file lands it targets `net48`, because that is what
 KeePass runs on. Visual Studio 2019 Community is installed; `msbuild` is not on `PATH`, so locate
 it:
 
@@ -183,8 +195,11 @@ KeePass through that path. It is not in any repo and nothing creates it; populat
 copying an installed KeePass. A KeePass launched from there writes its own `KeePass.config.xml` next
 to the exe, which is why testing there cannot damage the real configuration.
 
-**There is no CI and no branch protection.** Neither exists yet. Do not assume a gate
-exists.
+**There is CI, and there is no branch protection.** The workflow runs every gate on every pull
+request and on every push to `master`, and no check is required before a merge. A red check
+therefore reports and does not block: read it before merging, because nothing else will. Requiring
+the gate is one setting on a public repository, and GitHub offers it on a private one only under a
+paid plan.
 
 ## Testing against a live plugin
 

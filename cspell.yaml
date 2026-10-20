@@ -86,6 +86,7 @@ words:
   - autonumber
   - LASTEXITCODE
   - noresult
+  - pathspec
   - USERPROFILE
 
   # Names of other people's projects, spelled the way they spell them
@@ -100,6 +101,7 @@ words:
 
   # More of the platform, and of the wire
   - Ecas
+  - keybd
   - nameof
   - netsh
   - OCSP
