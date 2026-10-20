@@ -107,6 +107,10 @@ prints an entry that way.
 attachment or a response names what it is and shows none of what it holds, so a log line or a
 traceback carries no secret. A value is printed only by reading it.
 
+**Every command takes `-o json`** for a program, such as `pykeepassgate entries -o json | jq`, and
+`plain`, lines for a person, unless told otherwise. Both name a withheld value as withheld rather
+than printing it empty, and a failure is a sentence on standard error and an exit code in either.
+
 ## Renew a certificate, or give one up
 
 ```shell

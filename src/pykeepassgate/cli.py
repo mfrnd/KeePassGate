@@ -11,6 +11,13 @@ is when the rule granted `P`, and prints `(withheld)` when it did not.
 
 Exit codes are the point of a command line: `0` worked, `1` the gate refused or could not be
 reached, `2` the arguments were wrong. A script can branch on that without reading English.
+
+**What a command prints is chosen with `-o`/`--output`**, on every command: `plain`, lines for a
+person, and `json`, one document for a program such as `jq`. A choice rather than a `--json`
+switch, so that another format is one more choice. Both say the same things under the same rules:
+a value the rule withholds is named as withheld and never printed as empty, and what the gate did
+not say is left out rather than printed as nothing. Only what a command found is formatted; a
+failure is a sentence on standard error and an exit code either way.
 """
 
 from __future__ import annotations
@@ -19,11 +26,12 @@ import argparse
 import ctypes
 import getpass
 import importlib
+import json
 import math
 import os
 import sys
 import unicodedata
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Literal, TypedDict
@@ -31,13 +39,17 @@ from typing import Literal, TypedDict
 from . import api, pairing, refs, transport
 from .credentials import IDENTITY_FILE
 from .errors import GateError, ProtocolError, StorageError
-from .model import TITLE
+from .model import TITLE, URL
 
 #: Everything went wrong that this program knows how to be wrong about.
 FAILED = 1
 
 #: Where `pair` dials without `--port`: the library's own default, so the two cannot differ.
 DEFAULT_PORT = api.DEFAULT_PORT
+
+#: What `-o`/`--output` chooses between, the default first: lines for a person, as every command
+#: has always printed, and one JSON document for a program.
+OUTPUTS = ("plain", "json")
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -357,7 +369,66 @@ def _parser() -> argparse.ArgumentParser:
     _dialed(fetch)
     fetch.set_defaults(run=_fetch)
 
+    # Every command, by construction rather than by remembering it on each, so a command added
+    # later cannot be the one a program has no way to read.
+    for command in commands.choices.values():
+        _formatted(command)
+
     return parser
+
+
+def _formatted(parser: argparse.ArgumentParser) -> None:
+    """How a command prints what it found, which `_emit` reads."""
+    parser.add_argument(
+        "-o",
+        "--output",
+        choices=OUTPUTS,
+        default=OUTPUTS[0],
+        help=(
+            "what to print: plain, lines for a person, which is the default, or json, one "
+            "document for a program such as jq"
+        ),
+    )
+
+
+def _emit(arguments: argparse.Namespace, document: object, lines: Iterable[str]) -> None:
+    """What a command found, in the format `--output` chose.
+
+    `lines` is the plain form, every name and value in it already through `_printable`, and
+    `document` the JSON one, which needs no such care: the encoder escapes every character that
+    would break a line, and `ensure_ascii` keeps the document readable on a console whose code
+    page holds less than the database does.
+    """
+    if arguments.output == "json":
+        print(json.dumps(document, indent=2))
+        return
+
+    for line in lines:
+        print(line)
+
+
+def _moment(when: datetime) -> str:
+    """A moment as the gate writes one, RFC 3339 in UTC to the second."""
+    return f"{when:%Y-%m-%dT%H:%M:%SZ}"
+
+
+def _said(document: dict[str, object], key: str, when: datetime | None) -> None:
+    """A moment the gate may not have said, set only when it did: absent is not empty."""
+    if when is not None:
+        document[key] = _moment(when)
+
+
+def _stored(credentials: api.Credentials) -> dict[str, object]:
+    """What a pairing or a renewal stored, as `-o json` prints it, and nothing it holds."""
+    return {
+        "subject": credentials.subject,
+        "clientKey": credentials.client_key,
+        "admissionKey": credentials.admission_key,
+        "database": credentials.database,
+        "profiles": list(credentials.profiles),
+        "expires": credentials.expires,
+        "directory": str(credentials.directory),
+    }
 
 
 def _shared(parser: argparse.ArgumentParser) -> None:
@@ -842,14 +913,20 @@ def _pair(arguments: argparse.Namespace) -> int:
         **_dialing(arguments),
     )
 
-    print(f"paired as {credentials.subject} with database {credentials.database}")
-    # What the audit file names this client by on every line from now on, and what the operator
-    # finds beside the approval there, so the two ends can name the same client.
-    print(f"admission key: {credentials.admission_key}")
-    print(f"profiles approved: {', '.join(credentials.profiles) or 'none'}")
-    # What the operator picked, which is not always the lifetime that was asked for.
-    print(f"expires: {credentials.expires}")
-    print(f"stored in {credentials.directory}")
+    _emit(
+        arguments,
+        _stored(credentials),
+        [
+            f"paired as {credentials.subject} with database {credentials.database}",
+            # What the audit file names this client by on every line from now on, and what the
+            # operator finds beside the approval there, so the two ends can name the same client.
+            f"admission key: {credentials.admission_key}",
+            f"profiles approved: {', '.join(credentials.profiles) or 'none'}",
+            # What the operator picked, which is not always the lifetime that was asked for.
+            f"expires: {credentials.expires}",
+            f"stored in {credentials.directory}",
+        ],
+    )
     return 0
 
 
@@ -862,7 +939,16 @@ def _status(arguments: argparse.Namespace) -> int:
         **_dialing(arguments),
     )
     status = client.status()
-    print(f"gate {status.version} serving database {status.database}")
+    _emit(
+        arguments,
+        {
+            "ok": status.ok,
+            "database": status.database,
+            "version": status.version,
+            "revision": status.revision,
+        },
+        [f"gate {status.version} serving database {status.database}"],
+    )
     return 0 if status.ok else FAILED
 
 
@@ -880,12 +966,24 @@ def _renew(arguments: argparse.Namespace) -> int:
     )
 
     renewed = renewal.credentials
-    print(f"renewed {renewed.subject} with database {renewed.database}")
-    # A new certificate is a new key, which the audit's line for this renewal names as issued.
-    print(f"admission key: {renewed.admission_key}")
-    print(f"profiles approved: {', '.join(renewed.profiles) or 'none'}")
-    print(f"expires: {renewed.expires}")
-    print(f"stored in {renewed.directory}")
+    # Where the identity it renewed from is still kept, when it is: the sentence on standard
+    # error below says why, and a program reads where.
+    document = _stored(renewed) | {
+        "retired": None if renewal.retired is None else str(renewal.retired)
+    }
+    _emit(
+        arguments,
+        document,
+        [
+            f"renewed {renewed.subject} with database {renewed.database}",
+            # A new certificate is a new key, which the audit's line for this renewal names as
+            # issued.
+            f"admission key: {renewed.admission_key}",
+            f"profiles approved: {', '.join(renewed.profiles) or 'none'}",
+            f"expires: {renewed.expires}",
+            f"stored in {renewed.directory}",
+        ],
+    )
 
     if renewal.retired is None:
         return 0
@@ -946,13 +1044,24 @@ def _revoke(arguments: argparse.Namespace) -> int:
         client.revoke_certificate()
     except api.NotAdmitted:
         api.forget(where)
-        print(f"the gate already refuses {named}, so there was nothing left to revoke")
+        already = True
+        said = f"the gate already refuses {named}, so there was nothing left to revoke"
     else:
         api.forget(where)
-        print(f"revoked {named}")
+        already = False
+        said = f"revoked {named}"
 
-    print(f"admission key: {key}")
-    print(f"removed what was stored in {where}")
+    _emit(
+        arguments,
+        {
+            "subject": client.credentials.subject,
+            "database": client.credentials.database,
+            "admissionKey": key,
+            "alreadyRefused": already,
+            "removed": str(where),
+        },
+        [said, f"admission key: {key}", f"removed what was stored in {where}"],
+    )
     return 0
 
 
@@ -967,16 +1076,29 @@ def _identity(arguments: argparse.Namespace) -> int:
         # Said rather than shown as though it were an answer: every other command leaves this to
         # the gate, which judges by the certificate itself.
         expired = " (not a moment this client can read, so the gate decides)"
-    key = "encrypted" if credentials.key_encrypted else "not encrypted"
-    print(f"subject:       {credentials.subject}")
-    print(f"client key:    {credentials.client_key}")
-    print(f"admission key: {credentials.admission_key}")
-    print(f"database:      {credentials.database}")
-    print(f"profiles:      {', '.join(credentials.profiles) or 'none'}")
-    print(f"expires:       {credentials.expires}{expired}")
-    print(f"key:           {key}")
-    print(f"port:          {credentials.port}")
-    print(f"stored:        {credentials.directory}")
+    encrypted = credentials.key_encrypted
+    key = "encrypted" if encrypted else "not encrypted"
+    document = _stored(credentials) | {
+        # `null` for a moment this client cannot read, which leaves the gate to judge, as above.
+        "expired": None if credentials.expiry is None else credentials.expired,
+        "keyEncrypted": encrypted,
+        "port": credentials.port,
+    }
+    _emit(
+        arguments,
+        document,
+        [
+            f"subject:       {credentials.subject}",
+            f"client key:    {credentials.client_key}",
+            f"admission key: {credentials.admission_key}",
+            f"database:      {credentials.database}",
+            f"profiles:      {', '.join(credentials.profiles) or 'none'}",
+            f"expires:       {credentials.expires}{expired}",
+            f"key:           {key}",
+            f"port:          {credentials.port}",
+            f"stored:        {credentials.directory}",
+        ],
+    )
     return 0
 
 
@@ -990,14 +1112,30 @@ def _whoami(arguments: argparse.Namespace) -> int:
     )
     found = client.identity()
 
+    # Under the names the gate answers with, so a program reading this reads what the route
+    # documents.
+    document = {
+        "subject": found.subject,
+        "clientKey": found.client_key,
+        "admissionKey": found.admission_key,
+        "expires": _moment(found.expires),
+        "profiles": list(found.profiles),
+        "removedProfiles": list(found.removed_profiles),
+    }
     # Escaped as every name the gate answers with is, though the plugin allows no character in a
     # subject or a profile that would need it: what is printed is what was answered.
-    print(f"subject:          {_printable(found.subject)}")
-    print(f"client key:       {_printable(found.client_key)}")
-    print(f"admission key:    {_printable(found.admission_key)}")
-    print(f"expires:          {found.expires:%Y-%m-%dT%H:%M:%SZ}")
-    print(f"profiles:         {_listed(found.profiles)}")
-    print(f"removed profiles: {_listed(found.removed_profiles)}")
+    _emit(
+        arguments,
+        document,
+        [
+            f"subject:          {_printable(found.subject)}",
+            f"client key:       {_printable(found.client_key)}",
+            f"admission key:    {_printable(found.admission_key)}",
+            f"expires:          {_moment(found.expires)}",
+            f"profiles:         {_listed(found.profiles)}",
+            f"removed profiles: {_listed(found.removed_profiles)}",
+        ],
+    )
     return 0
 
 
@@ -1021,9 +1159,11 @@ def _access(arguments: argparse.Namespace) -> int:
     )
 
     # The mask first, since every one is eight characters, so the profiles line up after them.
-    for profile, mask in found.grants.items():
-        print(f"{mask}  {_printable(profile)}")
-
+    _emit(
+        arguments,
+        {"grants": dict(found.grants)},
+        [f"{mask}  {_printable(profile)}" for profile, mask in found.grants.items()],
+    )
     return 0
 
 
@@ -1037,10 +1177,23 @@ def _groups(arguments: argparse.Namespace) -> int:
     )
     found = client.subgroups(arguments.under) if arguments.under else client.groups()
 
-    for group in found:
-        print(f"{group.uuid}  {_printable(group.name)}")
-
+    _emit(
+        arguments,
+        [_group(group) for group in found],
+        [f"{group.uuid}  {_printable(group.name)}" for group in found],
+    )
     return 0
+
+
+def _group(group: api.Group) -> dict[str, object]:
+    """A group as `-o json` prints it: notes only when it was read, which a listing is not."""
+    document: dict[str, object] = {"uuid": group.uuid, "name": group.name, "parent": group.parent}
+    _said(document, "created", group.created)
+    _said(document, "modified", group.modified)
+    if group.is_read:
+        document["notes"] = group.notes
+
+    return document
 
 
 def _entries(arguments: argparse.Namespace) -> int:
@@ -1052,13 +1205,31 @@ def _entries(arguments: argparse.Namespace) -> int:
         **_dialing(arguments),
     )
 
-    for entry in client.entries(arguments.group, include_expired=arguments.include_expired):
+    found = client.entries(arguments.group, include_expired=arguments.include_expired)
+
+    lines = []
+    for entry in found:
         # A withheld title is not a title, and reading one raises. Asked first rather than
         # caught, so one withheld title does not end the listing.
         title = "(withheld)" if TITLE in entry.withheld else _printable(entry.title)
-        print(f"{entry.uuid}  {title}")
+        lines.append(f"{entry.uuid}  {title}")
 
+    _emit(arguments, [_listed_entry(entry) for entry in found], lines)
     return 0
+
+
+def _listed_entry(entry: api.Entry) -> dict[str, object]:
+    """A listed entry as `-o json` prints it: a withheld title or URL is named, never empty."""
+    document: dict[str, object] = {"uuid": entry.uuid, "group": entry.group}
+    if TITLE not in entry.withheld:
+        document["title"] = entry.title
+    if URL not in entry.withheld:
+        document["url"] = entry.url
+
+    _said(document, "created", entry.created)
+    _said(document, "modified", entry.modified)
+    document["withheld"] = list(entry.withheld)
+    return document
 
 
 def _show(arguments: argparse.Namespace) -> int:
@@ -1081,13 +1252,17 @@ def _show(arguments: argparse.Namespace) -> int:
         if name not in entry.withheld
     }
 
-    print(f"uuid:  {entry.uuid}")
-    print(f"group: {entry.group}")
+    lines = [f"uuid:  {entry.uuid}", f"group: {entry.group}"]
+    document: dict[str, object] = {"uuid": entry.uuid, "group": entry.group}
+    _said(document, "created", entry.created)
+    _said(document, "modified", entry.modified)
 
     # `hasattr` is how the read model says whether the gate said anything at all, and a gate that
     # said nothing about an expiry has not said the entry never expires.
     if hasattr(entry, "expires"):
-        print(f"expires: {_shown(entry.expires, entry.expired)}")
+        lines.append(f"expires: {_shown(entry.expires, entry.expired)}")
+        document["expires"] = None if entry.expires is None else _moment(entry.expires)
+        document["expired"] = entry.expired
 
     for name in sorted(strings):
         guarded = " (protected)" if name in entry.protected else ""
@@ -1095,8 +1270,14 @@ def _show(arguments: argparse.Namespace) -> int:
         # a line feed in the notes would otherwise print a `Password:` row of its own, above the
         # real one, written by whoever may change the notes and not the password.
         shown = "(withheld)" if name in entry.withheld else _printable(values[name])
-        print(f"{_printable(name)}: {shown}{guarded}")
+        lines.append(f"{_printable(name)}: {shown}{guarded}")
 
+    # The values as they are, which `json` escapes itself, and a withheld one only by its name.
+    document["fields"] = {name: values[name] for name in sorted(values)}
+    document["protected"] = list(entry.protected)
+    document["withheld"] = list(entry.withheld)
+
+    _emit(arguments, document, lines)
     return 0
 
 
@@ -1125,7 +1306,8 @@ def _add(arguments: argparse.Namespace) -> int:
         expires=arguments.expires,
     )
 
-    print(uuid)
+    # The identifier alone, so `$(pykeepassgate add ...)` is what addresses the new entry.
+    _emit(arguments, {"uuid": uuid}, [uuid])
     return 0
 
 
@@ -1165,7 +1347,7 @@ def _update(arguments: argparse.Namespace) -> int:
         expires=arguments.expires,
     )
 
-    print(f"updated {arguments.uuid}")
+    _emit(arguments, {"uuid": arguments.uuid}, [f"updated {arguments.uuid}"])
     return 0
 
 
@@ -1178,7 +1360,7 @@ def _remove(arguments: argparse.Namespace) -> int:
         **_dialing(arguments),
     )
     client.delete_entry(arguments.uuid)
-    print(f"removed {arguments.uuid}")
+    _emit(arguments, {"uuid": arguments.uuid}, [f"removed {arguments.uuid}"])
     return 0
 
 
@@ -1191,9 +1373,13 @@ def _attachments(arguments: argparse.Namespace) -> int:
         **_dialing(arguments),
     )
 
-    for attachment in client.attachments(arguments.uuid):
-        print(f"{attachment.size:>10}  {_printable(attachment.name)}")
+    found = client.attachments(arguments.uuid)
 
+    _emit(
+        arguments,
+        [{"name": attachment.name, "size": attachment.size} for attachment in found],
+        [f"{attachment.size:>10}  {_printable(attachment.name)}" for attachment in found],
+    )
     return 0
 
 
@@ -1225,7 +1411,16 @@ def _fetch(arguments: argparse.Namespace) -> int:
         print(str(error), file=sys.stderr)
         return 2
 
-    print(f"wrote {len(content)} bytes to {arguments.to}")
+    _emit(
+        arguments,
+        {
+            "uuid": arguments.uuid,
+            "name": arguments.name,
+            "size": len(content),
+            "path": str(arguments.to),
+        },
+        [f"wrote {len(content)} bytes to {arguments.to}"],
+    )
     return 0
 
 

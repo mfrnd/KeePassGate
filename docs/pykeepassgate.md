@@ -614,6 +614,31 @@ needs `D` here and in the group the node would leave, which is that group's answ
 `client.group_access()` asks about a group, the root unless told another, and `access.grants` holds
 the masks by profile. [`access-control.md`](access-control.md) says what each letter is worth.
 
+## Read what a command prints from a program
+
+```shell
+pykeepassgate entries -o json | jq -r '.[] | select(.title == "Invented Service") | .uuid'
+pykeepassgate show <uuid> --output json | jq -r '.fields.UserName'
+```
+
+Every command takes `-o` or `--output`. `plain`, the default, is the lines shown everywhere else on
+this page, written for a person: one item to a line, with a line break or another control
+character inside a name or a value written as its escape, so that nothing can print a row that is
+not there. `json` prints one document for a program, an array for a listing and an object for
+anything else, with every value exactly as stored, and only ASCII, so a console whose code page
+holds less than the database does still prints it.
+
+**The same rules hold in both.** A value the rule withholds is never printed as empty: `show` and
+`entries` leave it out and name it in `withheld`, as `entry.withheld` does in the library, beside
+`protected` for the values the database protects. What the gate did not say is left out rather
+than printed as nothing, so `show` has no `expires` when the gate said nothing about one, and
+`null` when it said the entry never expires. Members are named as the gate names them, so
+`whoami -o json` prints what `GET /gate/whoami` answered. A write prints what it addressed, such as
+`{"uuid": "..."}` from `add`.
+
+**A failure is never a document.** It is the sentence on standard error and the exit code, `1` or
+`2`, whichever format was asked for, so a pipe into `jq` reads nothing rather than half an answer.
+
 ## What to catch
 
 Every exception says what to do next rather than what went wrong, because that is the part a caller
