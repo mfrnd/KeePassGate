@@ -13,8 +13,8 @@ namespace KeePassGate.Ui
     /// asks for it; a button's border, a grid's border and the edge of a page do not. So a
     /// paragraph placed at the same left edge as the button above it and the list below it is drawn
     /// four pixels to the right of both, and the page reads as though somebody indented the prose
-    /// on purpose. Measured rather than guessed: the labels inked at x=12 with everything else at
-    /// x=8.
+    /// on purpose. Measured rather than guessed: on the clients page the labels inked at x=12 with
+    /// everything else at x=8.
     ///
     /// `TextFormatFlags.NoPadding` takes it off, which means painting and measuring here rather
     /// than leaving both to the base class. Measuring is the half that is easy to forget: a label

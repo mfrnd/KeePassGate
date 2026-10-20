@@ -15,6 +15,8 @@ using KeePassGate.Gate;
 using KeePassGate.Transport;
 using NUnit.Framework;
 
+using KeePassGate.Testing;
+
 namespace KeePassGate.Host.Tests
 {
     /// <summary>
@@ -225,90 +227,91 @@ namespace KeePassGate.Host.Tests
         [Test]
         public void Serving_a_real_database_writes_no_key_anywhere()
         {
+            // Locked against every other test process this account runs, so that a key one of
+            // them writes never lands inside this window: `PrivateKeyFiles.Lock` says why.
+            using (PrivateKeyFiles.Lock())
+            {
+                Serving_a_real_database_writes_no_key_anywhere_while_locked();
+            }
+        }
+
+        private void Serving_a_real_database_writes_no_key_anywhere_while_locked()
+        {
             // The claim the whole design rests on, checked at the end of the chain rather than at
             // the start: a key that came out of a KDBX file and into a handshake, and no file.
-            CreateAuthorityIn(_first);
-            var host = _targets.Current()[0].Host;
+            //
+            // **A guard rather than a test with a live mutant, and the difference matters to
+            // whoever reads a green run here.** The serving path is BouncyCastle, which parses the
+            // stored PKCS#12 itself and never asks CryptoAPI for anything, so no key file can
+            // appear on it however the loading flags are set. Taking `EphemeralKeySet` off
+            // `CertificateBlob` fails `CertificateBlobTests` in the unit tier and leaves this one
+            // green, because that flag governs a path this one does not use. What this catches is
+            // a return to `SslStream` and SChannel for the server, which would put the host key in
+            // the user profile for as long as a database was open, and which `DESIGN.md` 133 says
+            // was measured and rejected. It is worth its three handshakes for that alone.
+            //
+            // **Asked more than once, because the directories are not ours.** Both belong to the
+            // whole logon session, so anything else running can put a file in one inside the
+            // window and read exactly like a regression here. That is not hypothetical: it failed
+            // against the other test assembly, run beside this one by `dotnet test` on the
+            // solution, and passed alone immediately after.
+            //
+            // What tells the two apart is repetition rather than a quiet moment afterwards. A gate
+            // that writes a key writes one every time it serves, so a single clean attempt is
+            // enough to acquit it; something else on the machine has to interfere with every
+            // attempt in a row to convict it. The earlier version watched an idle window after the
+            // fact instead, which only ever caught interference that was still going on, and it
+            // failed rather than saying it could not tell.
+            //
+            // Each attempt mints its own authority, so none of them is a second handshake with a
+            // key the first one already put somewhere.
+            var appeared = new List<string>();
 
-            var before = KeyFiles();
-            var clock = System.Diagnostics.Stopwatch.StartNew();
-            Assert.That(Handshake(host), Is.EqualTo("ok"));
-            clock.Stop();
-
-            var appeared = Appeared(before);
-            if (appeared.Length == 0)
+            for (var attempt = 0; attempt < Attempts; attempt++)
             {
-                return;
+                CreateAuthorityIn(_first);
+                var host = _targets.Current()[0].Host;
+
+                var before = PrivateKeyFiles.Names();
+                Assert.That(Handshake(host), Is.EqualTo("ok"));
+
+                var written = PrivateKeyFiles.Appeared(before);
+                if (written.Length == 0)
+                {
+                    return;
+                }
+
+                appeared.AddRange(written);
             }
 
-            // Something arrived, and on a quiet machine that is this plugin writing a key. But
-            // both directories belong to the whole logon session, so anything else running can put
-            // a file in one inside the same window and read exactly like a regression here. That
-            // is not hypothetical: this failed once against the other test assembly, run beside
-            // this one by `dotnet test` on the solution, and passed alone immediately after.
-            //
-            // So the machine is asked directly, with a window of the same shape and no handshake
-            // in it. Keys appearing in that one too means this run cannot tell the two apart, and
-            // saying so is worth more than accusing the code or quietly passing.
-            var idle = KeyFiles();
-            Thread.Sleep(clock.Elapsed < MinimumControl ? MinimumControl : clock.Elapsed);
+            // Every attempt saw one, which is either the gate or a machine writing keys throughout.
+            // One last look at an idle window separates those, and saying the run cannot tell is
+            // worth more than accusing the code or quietly passing.
+            var idle = PrivateKeyFiles.Names();
+            Thread.Sleep(IdleWindow);
 
-            if (Appeared(idle).Length > 0)
+            if (PrivateKeyFiles.Appeared(idle).Length > 0)
             {
                 Assert.Inconclusive(
-                    "something else on this machine is writing private keys, so this run cannot" +
-                    " tell whether the gate wrote one");
+                    "something else on this machine is writing private keys throughout, so this" +
+                    " run cannot tell whether the gate wrote one");
             }
 
-            Assert.Fail("a private key reached the disk: " + string.Join(", ", appeared));
+            Assert.Fail("a private key reached the disk on every attempt: " +
+                        string.Join(", ", appeared));
         }
 
         /// <summary>
-        /// How long to watch an idle machine before believing it wrote nothing, when the handshake
-        /// itself was quicker than that.
-        /// </summary>
-        private static readonly TimeSpan MinimumControl = TimeSpan.FromMilliseconds(250);
-
-        /// <summary>
-        /// The names of every private key file this account holds, in both places Windows keeps
-        /// them.
+        /// How many handshakes have to write a key before the gate is the one being accused.
         /// </summary>
         /// <remarks>
-        /// **Names rather than a count, and both directories**, for the reason `PrivateKeyFiles`
-        /// in the unit tier gives: these are shared by the whole logon session, so a count changes
-        /// when anything else on the machine touches a key, and `Crypto\Keys` is CNG only. Written
-        /// twice because that assembly cannot reference KeePass and this one must.
+        /// Three. A regression writes one every time, so this costs three handshakes in the failing
+        /// case and one in the passing case, which is the run everybody has.
         /// </remarks>
-        private static HashSet<string> KeyFiles()
-        {
-            var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-            var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        private const int Attempts = 3;
 
-            foreach (var directory in new[] { @"Microsoft\Crypto\Keys", @"Microsoft\Crypto\RSA" })
-            {
-                var path = System.IO.Path.Combine(appData, directory);
-                if (!System.IO.Directory.Exists(path))
-                {
-                    continue;
-                }
-
-                foreach (var file in System.IO.Directory.GetFiles(
-                    path, "*", System.IO.SearchOption.AllDirectories))
-                {
-                    names.Add(file);
-                }
-            }
-
-            return names;
-        }
-
-        /// <summary>What appeared, which is the only direction that means anything.</summary>
-        private static string[] Appeared(HashSet<string> before)
-        {
-            var after = KeyFiles();
-            after.ExceptWith(before);
-            return after.ToArray();
-        }
+        /// <summary>How long to watch an idle machine before believing it wrote nothing.</summary>
+        private static readonly TimeSpan IdleWindow = TimeSpan.FromMilliseconds(250);
 
         private static string Handshake(HostKeyMaterial host)
         {

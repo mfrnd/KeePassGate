@@ -447,19 +447,23 @@ What the platform actually requires, measured rather than assumed:
 | Operation | Thread | Why |
 | --- | --- | --- |
 | Read databases, entries, strings, binaries | **connection thread** | `DocumentManager.GetOpenDatabases()` answers from a background thread, which the end to end tests exercise from another process |
-| Mutate in memory | **connection thread** | the same objects, and nothing about them is thread-affine |
+| Mutate in memory | **UI thread**, with the save | nothing about the objects is thread-affine, and this row said connection thread until the writer was built: a change and the save that keeps it are one marshaled call, so that nothing can open a dialog on the node between them |
 | **Persist** | UI thread | `MainForm.SaveDatabase` blocks interaction, shows warnings and touches the window; disassembling it is what settled that |
 | Ask the operator a question | UI thread | it puts a window on the screen |
 
 So the rules here:
 
-- **Reads and in-memory mutations happen on the request thread.** This is what is proven, and
-  marshaling them would buy a theoretical safety that KeePass's own object model does not document
-  anyway, at the cost of making liveness depend on the UI thread.
+- **Reads happen on the request thread.** This is what is proven, and marshaling them would buy a
+  theoretical safety that KeePass's own object model does not document anyway, at the cost of
+  making liveness depend on the UI thread. **An in-memory mutation travels with its save**, which
+  is a correction to an earlier draft of this list rather than a refinement of it: the objects are
+  as thread-agnostic as the reads are, but a change made on the request thread and saved on the UI
+  thread has an instant between them for a dialog to open on the node, and the whole of the
+  writer's argument is that there must not be one.
 - **Persistence marshals with `BeginInvoke` and then waits on the handle**, never `Control.Invoke`,
   which has no timeout. One writer owns every write, so a request thread does wait on the UI thread.
   What that buys is a wait that ends: a marshal that does not complete fails the request rather than
-  deadlocking it. Pairing's writer is that writer while pairing is the only thing writing; the
+  deadlocking it. `AdmissionWriter` is that writer while pairing is the only thing writing; the
   database API brings `DatabaseWriter` and the same rule.
 
   **The bound has two halves, and only one of them is a timeout.** Work still sitting in the queue
@@ -467,8 +471,12 @@ So the rules here:
   alternative is a write that lands minutes after the client was refused and its certificate
   destroyed. Work that has already begun cannot be withdrawn, and there the wait runs to completion
   rather than to the clock, because releasing the writer's lock while its own write is still going
-  on is the race the single writer exists to prevent. That half is bounded by the work instead: a
-  file save, and a dialog that closes itself.
+  on is the race the single writer exists to prevent. That half is bounded by the work instead,
+  which for almost every write is a file save and a dialog that closes itself. **Two saves that
+  have already gone wrong are the exception**: both put a message box on the screen and both wait
+  on a person, so a request that provokes one holds its thread and the writer's lock until
+  somebody presses OK. Nothing here bounds that, and pretending otherwise is what this paragraph
+  used to do.
 - **A plugin-wide write lock.** It closes the one race this design can close cheaply: two requests
   mutating the same entry at once. It does nothing about a user editing in the UI at the same
   moment, which stays exactly as unprotected as it is today.
@@ -479,6 +487,12 @@ So the rules here:
   the operator, and issuance writes the admission record and saves it before the certificate is
   handed over, because a certificate must not leave here until its record is on disk.
   [`PAIRING.md`](PAIRING.md) phase 5 is the sequence.
+
+  **Built as `MainForm.SaveDatabase(db, null)` rather than `UIFileSave`**, which is a correction
+  to the sentence above rather than a departure from it: `UIFileSave` saves whichever document is
+  active, and pairing has to save the database the connection resolved to. Both are the same save
+  underneath, and neither tells its caller anything, so what "it worked" is made of is the record
+  still being there afterwards and the database no longer saying it has unsaved changes.
 
   So the deadlock case is **mitigated rather than absent**, and earlier versions of this section
   claimed otherwise twice over: first that it was absent, then that pairing was the only path that
@@ -492,8 +506,8 @@ So the rules here:
   transport closes a connection that takes more than `GateOptions.Budget`, and phase 4 exceeds that
   by design because it is waiting on a person rather than on the wire. Closing the socket there does
   not cancel anything: the invitation is still spent and the record still saved, and only the answer
-  is lost. A pairing budget of its own covers the whole of what a pairing waits for, and a test is
-  to pin it against the four timeouts it has to outlast.
+  is lost. `GateOptions.PairingBudget` covers the whole of what a pairing waits for, and a test pins
+  it against the four timeouts it has to outlast.
 - **Nothing throws to the transport.** A handler failure becomes a 500 with an audited reason,
   because an unhandled exception in this process takes KeePass with it.
 - Distribution is a **plain DLL** targeting .NET Framework 4.8, not a `.plgx`, which is what allows
@@ -697,7 +711,14 @@ Each step is refusable, and each ends with something that runs.
    connection. Dates are checked here rather than by the chain build, so the allowance for a wrong
    clock is exactly five minutes and only on `notBefore`.
 8. **Pairing**: invitation in memory, the proof exchange, the approval dialog, issuance with the
-   record written and saved before the certificate is handed over.
+   record written and saved before the certificate is handed over. **Done.** The gate resolves an
+   invitation exactly as it resolves a database, so a token reaches `/pair/*` and nothing else, and
+   an invitation that has run out is dropped without a word. The proofs need no transport interface
+   at all: `tls-server-end-point` is a hash of the certificate in use, which both sides already
+   hold. And the ordering is the whole of it, so it is worth naming: a dialog holding a copy of what
+   would be written refuses before anybody is disturbed, the certificate is issued, the invitation is spent, the
+   record is written and saved on the user interface thread and read back, and only then is anything
+   handed over.
 9. **Lock and unlock**: the responder certificate, dropping the privileged key, closing connections
    on both transitions.
 10. **The reference client**: `PyKeePassGate`, pairing and every route the gate serves, with the

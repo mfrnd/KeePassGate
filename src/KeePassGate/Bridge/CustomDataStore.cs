@@ -23,8 +23,7 @@ namespace KeePassGate.Bridge
     ///
     /// Nothing here touches the root group, which is what takes this store out of the way of the
     /// group dialog's snapshot. The maintenance dialog holds the equivalent copy of this
-    /// dictionary, and `GroupDialogs` is where that is watched for. TODO(step 8): the watch
-    /// arrives with the first write it guards, an admission record.
+    /// dictionary, and `GroupDialogs` is where that is watched for.
     /// </remarks>
     public sealed class CustomDataStore : IKeyValueStore
     {

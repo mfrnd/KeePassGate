@@ -5,6 +5,7 @@ using System.Windows.Forms;
 using KeePassGate.Authority;
 using KeePassGate.Bridge;
 using KeePassGate.Diagnostics;
+using KeePassGate.Pairing;
 using KeePassGate.Ui;
 using NUnit.Framework;
 
@@ -22,6 +23,7 @@ namespace KeePassGate.Host.Tests
         private TemporaryDatabase _database;
         private Form _form;
         private TabPageInjector _injector;
+        private InvitationBook _book;
         private IReadOnlyList<string> _originalCaptions;
 
         [SetUp]
@@ -30,13 +32,16 @@ namespace KeePassGate.Host.Tests
             _database = TemporaryDatabase.New();
             _form = KeePassDialogs.NewDatabaseSettingsForm();
             KeePassDialogs.InitializeFor(_form, _database.Database);
+            _book = new InvitationBook(NullGateLog.Instance);
 
             _injector = new TabPageInjector(
                 new AuthorityPanelFactory(
                     new DialogDatabases(NullGateLog.Instance),
                     new AlwaysConfirms(),
                     NullGateLog.Instance,
-                    "1.2.3"),
+                    "1.2.3",
+                    null,
+                    _book),
                 NullGateLog.Instance);
 
             _originalCaptions = Captions();
@@ -47,6 +52,7 @@ namespace KeePassGate.Host.Tests
         {
             _injector.DetachAll();
             _form.Dispose();
+            _book.Dispose();
             _database.Dispose();
         }
 
@@ -117,6 +123,36 @@ namespace KeePassGate.Host.Tests
 
             Assert.That(_database.Database.Modified, Is.True,
                 "Without this KeePass has no reason to write the authority to disk.");
+        }
+
+        [Test]
+        public void Canceling_the_dialog_takes_back_the_invitation_made_on_it()
+        {
+            // An invitation is not the database's, so the buffer that makes Cancel mean Cancel for
+            // everything else on the tab never held it, and a code copied before Cancel used to
+            // stay good for its whole lifetime.
+            new AuthorityService(new CustomDataStore(_database.Database), NullGateLog.Instance).Create();
+            _injector.Attach(_form);
+
+            Panel().InviteClient();
+            Assert.That(_book.Outstanding(), Has.Count.EqualTo(1),
+                "the code is good while the dialog is open, so a program can pair before OK");
+
+            KeePassDialogs.Cancel(_form);
+
+            Assert.That(_book.Outstanding(), Is.Empty);
+        }
+
+        [Test]
+        public void Accepting_the_dialog_keeps_the_invitation_made_on_it()
+        {
+            new AuthorityService(new CustomDataStore(_database.Database), NullGateLog.Instance).Create();
+            _injector.Attach(_form);
+
+            Panel().InviteClient();
+            KeePassDialogs.Accept(_form);
+
+            Assert.That(_book.Outstanding(), Has.Count.EqualTo(1));
         }
 
         [Test]

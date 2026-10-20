@@ -29,6 +29,13 @@ namespace KeePassGate.Tests.Fakes
 
         public Exception ThrowOnWrite { get; set; }
 
+        /// <summary>
+        /// What a read throws, for the case where the database itself refuses. Nothing above this
+        /// can produce that, and a tab that keeps showing what it read last time is exactly what
+        /// nobody notices.
+        /// </summary>
+        public Exception ThrowOnRead { get; set; }
+
         public int Count
         {
             get { return _values.Count; }
@@ -36,6 +43,11 @@ namespace KeePassGate.Tests.Fakes
 
         public string Get(string key)
         {
+            if (ThrowOnRead != null)
+            {
+                throw ThrowOnRead;
+            }
+
             string value;
             return _values.TryGetValue(key, out value) ? value : null;
         }

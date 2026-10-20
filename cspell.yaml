@@ -114,6 +114,7 @@ words:
   - libwasmtime
 
   # More of the platform, and of the wire
+  - Consolas
   - Ecas
   - HMACSHA
   - keybd
@@ -131,6 +132,7 @@ words:
   - desync
   - interoperating
   - middleboxes
+  - readback
   - recompiler
   - refusable
   - reimplementations
@@ -139,3 +141,4 @@ words:
   - unadmitted
   - unparseable
   - unpayable
+  - unshown

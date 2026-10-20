@@ -245,11 +245,21 @@ namespace KeePassGate.Tests
             Assert.That(Matches("OfConnection", ours), Is.True);
         }
 
-        [TestCase("OfCryptography")]
-        [TestCase("OfCustomData")]
-        [TestCase("OfReflection")]
-        [TestCase("OfUserInterface")]
-        [TestCase("OfConnection")]
+        [Test]
+        public void Issuance_covers_an_authority_whose_own_dates_have_passed()
+        {
+            // `AuthorityIssuer` refuses one with an `InvalidOperationException`, and that is the
+            // state of an old database rather than a defect here: a site that issues without naming
+            // it reports somebody's ten year old file as a fault in this plugin.
+            Assert.That(Matches("OfIssuance", new InvalidOperationException()), Is.True);
+            Assert.That(Matches("OfIssuance", new CryptographicException()), Is.True,
+                "and everything a stored authority can be unusable in");
+
+            Assert.That(Matches("OfCryptography", new InvalidOperationException()), Is.False,
+                "the list it widens still does not, because nothing else reading a key issues one");
+        }
+
+        [TestCaseSource(nameof(EveryFilter))]
         public void Nothing_matches_the_failures_that_mean_there_is_a_defect(string filter)
         {
             // The whole point of the exercise. A handler that swallowed these would turn a defect
@@ -269,6 +279,34 @@ namespace KeePassGate.Tests
             Assert.That(Matches("OfReflection", new SocketException()), Is.False);
             Assert.That(Matches("OfConnection", new MissingMethodException()), Is.False);
             Assert.That(Matches("OfCryptography", new SocketException()), Is.False);
+        }
+
+        /// <summary>
+        /// Every filter `Expected` declares, found rather than listed.
+        /// </summary>
+        /// <remarks>
+        /// A list written out here named six filters while `Expected` held eleven, so widening one
+        /// of the other five to take a `NullReferenceException` passed. Found by reflection, a
+        /// filter added later is asked the same question the day it arrives. None found is an
+        /// error rather than nothing to ask.
+        /// </remarks>
+        private static string[] EveryFilter()
+        {
+            var names = Filters == null
+                ? Array.Empty<string>()
+                : Filters.GetMethods(BindingFlags.Public | BindingFlags.Static)
+                    .Where(method => method.ReturnType == typeof(bool) &&
+                                     method.GetParameters().Length == 1 &&
+                                     method.GetParameters()[0].ParameterType == typeof(Exception))
+                    .Select(method => method.Name)
+                    .ToArray();
+
+            if (names.Length == 0)
+            {
+                throw new InvalidOperationException("No filter was found on Expected, so nothing would be asked.");
+            }
+
+            return names;
         }
 
         private static bool Matches(string filter, Exception error)

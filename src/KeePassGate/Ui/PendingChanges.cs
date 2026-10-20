@@ -13,7 +13,6 @@ namespace KeePassGate.Ui
     /// though the database were the database, which is the point of the decorator; the clients page
     /// is different because what it invites somebody into is answered by the gate, out of the live
     /// file, and the gate cannot see anything that is still waiting here.
-    /// TODO(step 8): that page is what the pairing step puts on the tab; nothing asks this yet.
     /// </remarks>
     public interface IPendingChanges
     {

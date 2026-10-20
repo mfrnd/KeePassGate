@@ -131,8 +131,8 @@ namespace KeePassGate.Authority
         /// Keys rather than readable records, which is the count the authority's own summary has
         /// always meant: a record that will not parse is still a record somebody has to be told
         /// about, and reporting it as absent would hide the damage rather than show it. A record
-        /// beside its revocation is not counted, because it admits nobody and is counted apart, as
-        /// one that came back.
+        /// beside its revocation is not counted, because it admits nobody and the clients page
+        /// counts it apart, as one that came back.
         /// </remarks>
         public int Count(out bool listed)
         {
@@ -326,7 +326,7 @@ namespace KeePassGate.Authority
         /// database changes nothing in it, so a record a merge brought back stays until then. It
         /// admits nobody meanwhile, because <see cref="Find"/> reads the revocation rather than
         /// waiting for this, and the clients page counts it under the list rather than listing
-        /// it as a client. TODO(step 8): the clients page arrives with the invitation control.
+        /// it as a client.
         ///
         /// Deleted rather than emptied. The revocation beside it is what refuses it and is never
         /// changed, so the record has nothing left to say, and a stale copy that brings it back

@@ -3,6 +3,7 @@ using KeePass.Plugins;
 using KeePassGate.Bridge;
 using KeePassGate.Diagnostics;
 using KeePassGate.Gate;
+using KeePassGate.Pairing;
 using KeePassGate.Pipeline;
 using KeePassGate.Transport;
 using KeePassGate.Ui;
@@ -31,6 +32,18 @@ namespace KeePassGate
         private GateIncidents _incidents;
         private GlobalWindowManagerWindows _windows;
         private GateHost _host;
+        private GroupDialogs _groupDialogs;
+        private InvitationBook _invitations;
+
+        /// <summary>
+        /// What the writer says a landed record into and every KPG tab listens to.
+        /// </summary>
+        /// <remarks>
+        /// One for the plugin rather than one per dialog, because the writer is built once
+        /// and outlives every tab: a tab subscribes when it is injected and lets go when its
+        /// dialog closes.
+        /// </remarks>
+        private readonly AdmissionNotice _admissions = new AdmissionNotice();
         private OpenDatabaseTargets _targets;
         private GateListener _listener;
 
@@ -109,6 +122,16 @@ namespace KeePassGate
             try
             {
                 _pluginHost = host;
+
+                // KeePass's own icons, lent to the tabs for as long as this plugin is loaded. The
+                // columns that remove things head themselves with its waste bin, and without a
+                // KeePass to borrow from they simply have no icon.
+                var main = host.MainWindow;
+                if (main != null)
+                {
+                    GateIcon.Borrow(main.ClientIcons);
+                }
+
                 _log = new TraceGateLog();
                 _incidents = new GateIncidents(_log);
                 _log.Info("initializing version " + GateVersion.Current);
@@ -117,15 +140,34 @@ namespace KeePassGate
                 // log, rather than failing wherever the plugin first uses it.
                 Dependencies.Load();
 
+                // The window events come first, because the gate refuses to write an admission
+                // record while a group dialog is open and has to have been watching from the start
+                // to know whether one is.
+                _windows = new GlobalWindowManagerWindows();
+                _groupDialogs = new GroupDialogs(_windows, _incidents, _log);
+
+                if (!_groupDialogs.Start())
+                {
+                    // Reported rather than ignored, and the plugin still loads: everything except
+                    // pairing works without this. What a watch that never started means is that
+                    // `GroupDialogs.Blocking` refuses every write from here on, so the gate serves
+                    // and reads and admits nobody, which is the safe half of being wrong.
+                    _log.Error(
+                        "the group dialogs could not be watched, so no client can be paired with " +
+                        "this session", null);
+                }
+
+                _invitations = new InvitationBook(_log);
+
                 StartListening(host);
 
-                _windows = new GlobalWindowManagerWindows();
                 _host = new GateHost(
                     _windows,
                     new TypeNameFormMatcher(KeePassContract.DatabaseSettingsFormTypeName),
                     new TabPageInjector(
                         new AuthorityPanelFactory(
-                            new DialogDatabases(_log, () => Changed(host)), _log, _listener, _incidents),
+                            new DialogDatabases(_log, () => Changed(host)),
+                            _log, _listener, _invitations, _incidents, _admissions),
                         _log,
                         KeePassContract.DatabaseSettingsTabControlName,
                         Icon),
@@ -168,6 +210,8 @@ namespace KeePassGate
             // well and nothing orders the two.
             try
             {
+                GateIcon.Return();
+
                 if (_host != null)
                 {
                     _host.Stop();
@@ -190,6 +234,34 @@ namespace KeePassGate
             catch (Exception error)
             {
                 Report("failed to stop listening", error);
+            }
+
+            try
+            {
+                if (_invitations != null)
+                {
+                    // KeePass exiting takes every outstanding invitation with it, which is what
+                    // holding them in memory means and what stops a spent one coming back.
+                    _invitations.Dispose();
+                    _invitations = null;
+                }
+            }
+            catch (Exception error)
+            {
+                Report("failed to drop the outstanding invitations", error);
+            }
+
+            try
+            {
+                if (_groupDialogs != null)
+                {
+                    _groupDialogs.Dispose();
+                    _groupDialogs = null;
+                }
+            }
+            catch (Exception error)
+            {
+                Report("failed to stop watching the group dialogs", error);
             }
 
             try
@@ -259,13 +331,27 @@ namespace KeePassGate
                 return;
             }
 
+            var ui = new ControlUiThread(mainWindow);
+
+            // The one writer, shared by every database, because pairing is a single writer by
+            // design rather than by luck. `SaveDatabase` rather than `UIFileSave`: the second
+            // saves whichever document is active, and pairing names the database it wrote to.
             _targets = new OpenDatabaseTargets(
-                delegate { return mainWindow.DocumentManager.GetOpenDatabases(); }, _log);
+                delegate { return mainWindow.DocumentManager.GetOpenDatabases(); },
+                new AdmissionWriter(
+                    ui,
+                    database => mainWindow.SaveDatabase(database, null),
+                    _admissions.Raise,
+                    _groupDialogs,
+                    _log),
+                _log);
 
             _listener = new GateListener(
                 GateOptions.FromEnvironment(),
-                new GateResolver(_targets, _log),
-                new GateRouter(GateVersion.Current),
+                new GateResolver(_targets, _invitations, _log),
+                new GateRouter(
+                    GateVersion.Current,
+                    new PairingHandler(_invitations, new PairingApprovalPrompt(ui, _log), _log)),
                 _incidents,
                 _log);
 

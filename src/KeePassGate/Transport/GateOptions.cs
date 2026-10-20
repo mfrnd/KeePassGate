@@ -29,6 +29,7 @@ namespace KeePassGate.Transport
             MaxConnections = 32;
             Timeout = TimeSpan.FromSeconds(10);
             Budget = TimeSpan.FromSeconds(30);
+            PairingBudget = TimeSpan.FromMinutes(5);
         }
 
         public int Port { get; set; }
@@ -63,6 +64,26 @@ namespace KeePassGate.Transport
         /// seconds.
         /// </remarks>
         public TimeSpan Budget { get; set; }
+
+        /// <summary>
+        /// How long a whole connection may take once it turns out to be a pairing, which is the one
+        /// exchange that waits on a person.
+        /// </summary>
+        /// <remarks>
+        /// **A pairing connection is not slow, it is blocked on somebody reading a dialog**, and
+        /// <see cref="Budget"/> cannot tell those apart. Measured against the ordinary budget it is
+        /// always over: the operator is given two minutes to decide, the prompt waits a little
+        /// longer than that, and the write and save that follow have timeouts of their own. Closing
+        /// the socket underneath all that does not stop the pairing. The invitation is still spent
+        /// and the record still saved; it only throws away the answer, leaving a record on disk for
+        /// a certificate nobody ever received.
+        ///
+        /// So it has to exceed `ApprovalTimeout + PairingApprovalPrompt.Grace +
+        /// AdmissionWriter.LockTimeout + AdmissionWriter.WriteTimeout`, and
+        /// `GateOptionsTests.The_pairing_budget_outlasts_everything_a_pairing_waits_for` is what
+        /// keeps the five numbers from drifting apart.
+        /// </remarks>
+        public TimeSpan PairingBudget { get; set; }
 
         /// <summary>The defaults, with the port taken from the environment when one is named there.</summary>
         public static GateOptions FromEnvironment()

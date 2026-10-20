@@ -70,13 +70,24 @@ plugin writes what it means to write; only this proves KeePass keeps it.
 over mutual TLS 1.3 and is answered, and a second certificate from the same authority is refused
 because the database holds no record for it. It issues itself both certificates from the authority
 inside the database file, because it holds the file and its password, which is exactly what the
-design says possession of the file means. Nothing about this one uses the desktop, so it is the
-fastest of the three.
+design says possession of the file means. Nothing about this one uses the desktop.
 
 Note what it does **not** do: write a record while KeePass is running. A running KeePass serves the
 database it holds in memory, so a record written to the file underneath it is invisible and would be
-overwritten. Pairing writes through the plugin for that reason. TODO(step 8): step 8 is where that is
-tested.
+overwritten. Pairing writes through the plugin for that reason, which is what `LivePairingTests`
+covers.
+
+**Step 8**, in `LivePairingTests`, and it is the longest chain in the suite. The operator presses
+the invite button on the real tab; the token is read off the real screen; a client holding nothing
+but that token and a port number derives its own connection names, proves itself and is proved to;
+the approval dialog is a real window, approved by a real button press on a thread that is not the
+one waiting for the answer; the certificate that comes back is then used on the very next
+connection; and the record is looked for in the `.kdbx` after KeePass has exited. A refusal is
+driven the same way, and leaves nothing behind.
+
+The client half of pairing lives in `tests/Shared/PairingClient.cs` and is compiled into **both**
+test assemblies. That is deliberate: if the loopback tests and the end to end test each had their
+own client, either could pass against a protocol only it knew.
 
 It builds a **throwaway KeePass** under `%ProgramData%\KeePassGateLive` rather than the temporary
 directory, whose path names the account that ran it: a copy of the program, a local
@@ -142,11 +153,14 @@ is shared by the whole process or the whole account:
 - `Trace.Listeners`, and anything counting the lines that reach them;
 - the time zone, which every chain build and every `NotAfter` reads;
 - a shown window, the focus, a posted key or a menu left open, since a window another fixture shows
-  takes the activation and closes the menu;
+  takes the activation and closes the menu. Another test process shows its windows on the same
+  screen, and no mark reaches it, so such a fixture carries `[Desktop]` as well, which holds the
+  screen against every other test process for each of its tests;
 - a static the plugin lends out for a while and takes back;
 - the account's key directories: a certificate loaded without `EphemeralKeySet` writes its key
   there, which every fixture issuing a client does, so a test asserting that none appeared is
-  marked and the writers are not;
+  marked and the writers are not. Another test process writes there too, and no mark reaches it,
+  so `PrivateKeyFiles.Lock` is held by a test while it watches and by a helper while it loads;
 - a timing written tight enough that a loaded machine misses it, which is better widened than
   marked.
 

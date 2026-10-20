@@ -3,6 +3,7 @@ using System.IO;
 using System.Net;
 using System.Text;
 using KeePassGate.Diagnostics;
+using KeePassGate.Pairing;
 using KeePassGate.Pipeline;
 
 namespace KeePassGate.Transport
@@ -21,7 +22,7 @@ namespace KeePassGate.Transport
         public static void Serve(
             Stream stream, ClientIdentity client, IGateHandler handler, GateOptions options, IGateLog log)
         {
-            Serve(stream, client, handler, options, log, null);
+            Serve(stream, client, handler, options, log, null, null);
         }
 
         /// <summary>
@@ -33,6 +34,7 @@ namespace KeePassGate.Transport
             IGateHandler handler,
             GateOptions options,
             IGateLog log,
+            PairingConnection pairing,
             GateIncidents incidents)
         {
             if (stream == null)
@@ -83,6 +85,10 @@ namespace KeePassGate.Transport
             }
 
             var context = new GateContext(head, body, client);
+            if (pairing != null)
+            {
+                pairing.PutOn(context);
+            }
 
             try
             {

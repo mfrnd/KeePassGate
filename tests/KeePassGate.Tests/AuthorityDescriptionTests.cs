@@ -211,6 +211,41 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void An_authority_that_has_expired_is_one_nobody_can_be_invited_to()
+        {
+            // A narrower question than the three buttons on the first page answer. Recreating and
+            // deleting are both offered here, because recreating is the remedy; what cannot be
+            // offered is a code, since `PAIRING.md` §311 refuses a request on this authority
+            // before anybody is asked anything.
+            var longAgo = DateTimeOffset.UtcNow - TimeSpan.FromDays(4000);
+            var service = new AuthorityService(_values, new AuthorityIssuer(() => longAgo), null);
+            service.Create();
+
+            using (var reading = service.Read())
+            {
+                var description = AuthorityDescription.Of(reading, null, DateTimeOffset.UtcNow);
+
+                Assert.That(description.HasExpired, Is.True);
+                Assert.That(description.CanInvite, Is.False);
+                Assert.That(description.CanRecreate, Is.True, "recreating is the way out of it");
+            }
+        }
+
+        [Test]
+        public void An_authority_inside_its_dates_is_one_anybody_can_be_invited_to()
+        {
+            _service.Create();
+
+            using (var reading = _service.Read())
+            {
+                var description = AuthorityDescription.Of(reading, null, DateTimeOffset.UtcNow);
+
+                Assert.That(description.HasExpired, Is.False);
+                Assert.That(description.CanInvite, Is.True);
+            }
+        }
+
+        [Test]
         public void Damage_is_shown_with_what_is_wrong_and_what_it_costs()
         {
             _values.Plant(AuthorityKeys.AuthorityKey(new string('d', 64)), "rubbish");
@@ -229,6 +264,39 @@ namespace KeePassGate.Tests
                 Assert.That(description.CanDelete, Is.True);
                 Assert.That(description.IsServed, Is.False,
                     "damage is served to nobody, whatever the buttons offer");
+                Assert.That(description.CanInvite, Is.False,
+                    "an authority that cannot be read cannot issue either");
+                Assert.That(description.HasExpired, Is.False,
+                    "and its dates are not what is wrong with it");
+            }
+        }
+
+        [Test]
+        public void Several_authorities_say_that_nothing_is_served_and_offer_no_creation()
+        {
+            _service.Create();
+            string first;
+            using (var reading = _service.Read())
+            {
+                first = AuthorityKeys.AuthorityKey(reading.Material.AuthorityDigest);
+            }
+
+            var document = _values.Get(first);
+            _values.Remove(first);
+            _service.Create();
+            _values.Plant(first, document);
+
+            using (var reading = _service.Read())
+            {
+                var description = AuthorityDescription.Of(reading, null, Now);
+
+                Assert.That(description.Headline, Is.EqualTo(AuthorityDescription.UndecidedHeadline));
+                Assert.That(description.Facts, Is.Empty, "there is no one authority to describe");
+                Assert.That(string.Join(" ", description.Details), Does.Contain("2 authorities"));
+                Assert.That(description.CanCreate, Is.False, "there is no absence to fill");
+                Assert.That(description.CanRecreate, Is.True, "recreating retires every one of them");
+                Assert.That(description.CanDelete, Is.True);
+                Assert.That(description.CanInvite, Is.False, "a code for any one of them would resolve to a refusal");
             }
         }
 

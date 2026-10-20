@@ -99,6 +99,7 @@ Recorded because a reader who only sees conclusions will re-make the same mistak
 | websocket-sharp was disqualified | Ten lines |
 | **An `EphemeralKeySet` certificate can serve TLS** | It cannot, in either direction. The probe that said so imported the same PKCS#12 with a persisted container first and an ephemeral one second, and the second borrowed the key the first had left. Measuring the ephemeral case on its own gives `SEC_E_NO_CREDENTIALS` for a server and a dropped handshake for a client. The probe now runs that case first, alone |
 | uHttpSharp supported spec-first binding "decisively" | Both do. It judged websocket-sharp by one facade |
+| **The channel binding needs `TransportContext.GetChannelBinding`** | It needs no transport interface at all. `tls-server-end-point` is defined as a hash of the server's certificate, so each side computes it from bytes it already holds: the server from the certificate it chose, the client from the one it was just sent. `BindingProbe` answered a question that mattered while `SslStream` terminated the TLS, and the question went away with `SslStream`. The offset warning it left behind is now unreachable |
 
 ## 6. Providing the KeePass everything is built against
 
@@ -183,7 +184,26 @@ Established while building step 6.
 | **And in a directory of its own under `plugins`**, not in `plugins` itself: KeePass finds a plugin in any directory under it, while a flat install shares each dependency by file name with every other plugin installed flat, and with no binding redirect but KeePass's own, one `Newtonsoft.Json.dll` of another major version breaks whichever plugin was there first | a scratch probe replaying KeePass 2.61.1's plugin loading in a fresh process per layout and preparing all 1613 methods: flat beside a foreign Newtonsoft.Json 10.0.2, 21 failed for want of 13.0.0.0; in `plugins\KeePassGate` with the foreign copy in `plugins` or in a sibling plugin's directory, none |
 | KeePass's `MainForm.DocumentManager.GetOpenDatabases()` is reachable from a background thread and is what the gate resolves names against | the live gate test answers a request from a separate process |
 
-## 10. Reconstruction
+## 10. Pairing
+
+Established while building step 8. The first two cost an hour each, and both fail by producing
+something plausible rather than by failing.
+
+| Fact | How it was established |
+| --- | --- |
+| **A control with an `AccessibleName` reports that name to UI automation instead of its text.** A label set up for one kind of test then reads as `KpgApprovalDetailLabel` to the other | the end to end test found the approval dialog, read every text on it, and got the control names back. Set `Name` for the in-process tests, and leave `AccessibleName` off anything whose text is read from the desktop |
+| **`Button.PerformClick()` does nothing on a form that was never shown.** `CanSelect` walks the parents, and an unshown form is not visible, so the click is dropped in silence and the test asserts against a dialog nobody pressed | the dialog answered `TimedOut` after being "clicked". What the button does is public on the form now, exactly as the tab's buttons are, so a test can reach the decision without a window |
+| **`MainForm.SaveDatabase(PwDatabase, object)` is public and saves the database it is given.** `UIFileSave` saves whichever document is active, which is not necessarily the one a connection resolved to | enumerated `MainForm`, then disassembled it: it takes the active database only when handed null, and falls through to Save As when the database has no path |
+| **KeePass's save reports nothing, and `PwDatabase.Modified` going false is the signal.** It is what the pairing write reads back | measured against a real KDBX4 in the host tier, and asserted there, so a KeePass that stops clearing it fails a test rather than a pairing |
+| **A `GroupForm` can be given its group without being shown**, with `InitEx(group, false, null, database)`, which is what sets the field the watcher reads | the group dialog watcher is tested against the real dialog and the real window notifications |
+| **A modal dialog shown from inside a marshaled call still pumps messages**, so UI automation can press its buttons while the connection thread that raised it waits on the answer | the end to end test approves and refuses real pairing requests this way |
+| `Control.BeginInvoke` plus a wait on the returned handle is a synchronous marshal with a bound on it, and `EndInvoke` brings anything the work threw back to the waiting thread | the pairing write and the approval dialog both use it; the case that cannot be arranged with a real user interface is covered by a stand-in that never runs the work |
+| **`BeginInvoke` cannot be taken back, so a timeout on it means "not yet" unless something else is added.** The work stays in the queue and runs whenever the user interface next drains it, which for pairing is a record saved after the client was refused, or an approval dialog for a client that was turned away minutes ago | `UiThreadTests` posts work onto a real form that is not pumping, lets the caller give up, and only then pumps. Without the latch that refuses to start work already called off, the count goes up after the caller was told it never ran |
+| **In a custom format string a bare `-` and `:` are the current culture's date and time separators**, not literals, so `"yyyy-MM-dd HH:mm:ss"` writes `2026.08.26 11.04.07` on a machine set to a culture that uses dots. It is correct only for as long as every caller remembers `InvariantCulture` | one of four copies of two timestamp formats had them unquoted. `Moments` is now the only place either format is written down, and both quote their separators |
+| **An exception thrown by work posted with `BeginInvoke` and left unobserved reaches `Application.ThreadException`**, whose default handler is a modal dialog. In a test host that pumps messages, that is a hang rather than a failure | a test that asserted `EndInvoke` rethrows never finished; it was deleted, because it was pinning behavior that predates the fix it was written beside |
+| **The desktop tests find a box by its `AccessibleName`, so that string has two jobs and only one right value.** The rule above says to leave `AccessibleName` off anything the desktop reads, and a `TextBox` is the case it does not cover: it has no caption, so with nothing set there is no name to search by at all. What goes there has to be the phrase a screen reader should say, and the driver has to look the box up by that | setting it to the lookup name instead announced `KpgInvitationBox` to a screen reader; setting it to the words broke `LivePairingTests` until the driver was pointed at the same constant. `Name` stays the lookup key for the in-process tests, which match on it and not on the accessible name |
+
+## 11. Reconstruction
 
 The proofs were deleted once they had answered their questions. To rebuild any of them:
 
@@ -203,7 +223,7 @@ The proofs were deleted once they had answered their questions. To rebuild any o
 `TlsProbe.cs` on `spikes/tls-and-certificates` is kept because it answers the TLS question in
 isolation and is the cheapest way to re-check it on a new machine.
 
-## 11. What KeePass does with a change, measured
+## 12. What KeePass does with a change, measured
 
 **A `.kdbx` silently drops 2,079 of the 65,536 code points in the basic multilingual plane.** KeePass
 writes every unprotected string through `StrUtil.SafeXmlString`, which removes what XML 1.0 cannot
@@ -221,7 +241,7 @@ surrogate written raw in the text is passed through untouched, which is why the 
 worth having: `JsonBody` also reads documents out of a `.kdbx` this plugin did not write. Measured
 against the Json.NET this builds against, by printing the code points that came back.
 
-## 12. The gate, and where it can run
+## 13. The gate, and where it can run
 
 **A warning is not a failure, and under `Stop` it becomes one.** A native command writing to stderr
 raises a terminating error as soon as anything upstream merges the streams, which is what capturing

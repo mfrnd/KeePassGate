@@ -19,6 +19,7 @@ an expensive recovery.
 | Authority private key | nobody outside the host, protected by the kdbx encryption | mint any certificate for that database. Recovery is recreating the authority, which revokes every client at once |
 | The gate key | every paired client, indefinitely, shipped in the trust bundle | an outsider reaches the TLS layer. Recovery is a rotation that re-keys the whole fleet |
 | Pairing token | one invitee, briefly, over a second channel. **Plugin memory only, never written to disk** | an outsider may *ask* to pair. The operator still has to approve. Recovery is revoking it, or waiting for the TTL |
+| Client certificate | one paired client, until it expires | whatever the record admits it to. Recovery is revoking that client from the KPG tab, which takes effect on its next request |
 
 A prompt-injected agent is an intended consumer of this API and holds the gate key. That is
 precisely why it must not also be the thing that authorizes pairing.
@@ -103,11 +104,12 @@ sequenceDiagram
 
     Note over OP,CL: Phase 4. Approval, on the KeePass screen
     CL->>KPG: POST /pair/request + wanted profiles
-    KPG->>OP: dialog: database, label, name, profiles, peer, remote
+    KPG->>KPG: 503 if a dialog is open that would take the record back
+    Note right of KPG: before the dialog, so the invitation is<br/>not spent and a new hello can still work
+    KPG->>OP: dialog: database, fingerprint, name, invitation id, profiles, peer
     OP-->>KPG: approve, confirming the profiles
 
     Note over KPG,CL: Phase 5. Issuance. Single writer, on the UI thread, under one lock
-    KPG->>KPG: 503 if Edit Group is open on this root group
     KPG->>KPG: generate the key pair, issue from that database's authority
     KPG->>MEM: burn the token, under the plugin's own lock
     KPG->>DB: write the admission record
@@ -121,7 +123,7 @@ seconds from accept to answer, which is what stops a peer holding a thread by fe
 time. Phase 4 blows through that on purpose: the operator is given two minutes to read the dialog,
 the prompt waits a little longer than the dialog does, and the write and save that follow have
 timeouts of their own. So the moment the name resolves to an invitation, the connection's deadline
-is set again to the pairing budget.
+is set again to `GateOptions.PairingBudget`.
 
 Closing the socket underneath phase 4 does not stop the pairing, which is what makes this worth
 saying. Everything after the dialog still happens: the certificate is issued, the invitation is
@@ -136,7 +138,11 @@ as long as it was going to give the operator anyway, and answers `503 busy` if i
 screen. Nothing is spent by that, so the invitee can simply ask again.
 
 Both proofs are bound to the RFC 5929 `tls-server-end-point` channel binding, which both sides
-derive independently and which hashes the certificate actually in use.
+derive independently and which hashes the certificate actually in use. **It needs no interface from
+the transport on either side**, because it is defined as a hash of the server's certificate: the
+server has the one it chose, and the client has the one it was just sent. An earlier draft reached
+for `TransportContext.GetChannelBinding`, which was necessary while `SslStream` terminated the TLS
+and stopped being necessary when the transport became managed code.
 
 ---
 
@@ -198,8 +204,9 @@ stateDiagram-v2
     Outstanding --> Outstanding: proof fails, no dialog raised
     Outstanding --> Outstanding: operator absent, request times out
     Outstanding --> Burned: approved
-    Outstanding --> Burned: refused
+    Outstanding --> Burned: refused, including by closing the dialog
     Outstanding --> Gone: TTL passes
+    Outstanding --> Gone: settings dialog canceled
     Outstanding --> Gone: KeePass exits
     Burned --> [*]
     Gone --> [*]: whichever comes first
@@ -208,6 +215,18 @@ stateDiagram-v2
 The whole lifetime is in memory, under the plugin's own lock, so a burn cannot be reverted and a
 race cannot double spend. A timeout does not burn the token, so an absent operator does not cost the
 invitee their invitation. A refusal does.
+
+**Closing the dialog is a refusal, not a timeout**, whether by the close box, by Alt with F4, from
+the window menu or from the taskbar. An operator who dismisses the question has answered it, and the
+answer a dismissal means is no: the invitation is spent and the program has to be invited again. Only
+the countdown running out is a timeout, and that is the one case where the dialog closes itself
+rather than being closed.
+
+**The settings dialog an invitation was made on takes it back unless that dialog is accepted.**
+The code is good the moment it is shown, so a program can pair before OK, but Cancel, or closing the
+dialog any other way, withdraws it if nobody has used it yet. That is the dialog's OK and Cancel
+meaning what they say for the one thing on the tab that the database does not hold. A code already
+spent stays spent, since the record it led to is the database's and a revocation takes that back.
 
 ---
 
@@ -260,7 +279,9 @@ while the watch is running.
 **Two cryptographic findings were raised but their refutation never ran**, so they are neither
 confirmed nor cleared. The substantive one is that `tls-server-end-point` is a per-certificate
 constant rather than a per-session value, so the proofs carried no freshness. Binding them to the
-SNI nonce and adding a server challenge costs nothing and is folded into phase 3 above.
+SNI nonce and adding a server challenge costs nothing and is folded into phase 3 above, and that is
+what was built: the nonce the client chose makes the server's proof fresh to the client, and the
+challenge the server chose makes the request fresh to the server.
 
 ---
 
@@ -307,10 +328,101 @@ proved anything to.
 
 ---
 
-## 9. What this deliberately does not defend §310
+## 9. What is on the wire §311
 
-- **Local code execution as the user.** It reads the host key, the client key and the token as
-  typed. Conceded everywhere in this design.
+Built in step 8, and small enough to state completely. Two routes, reachable only on a connection
+that arrived on an invitation and presented no certificate the database admits. Any other is refused
+the way an undeclared path is: `404 no such route` to a client the database admits, and
+`401 unpaired` to anybody else. This used to be a plain `404` for everybody, on the argument that a
+paired client had no business learning that these exist; they are declared in a document that ships
+inside the plugin, so their existence was never the secret, and what is kept instead is that a
+caller which may not use a route is refused as it is refused everywhere.
+
+Bodies are one flat JSON object of strings and arrays of strings, read strictly: nesting, numbers,
+booleans, `null`, a repeated name or anything after the closing brace is not a body, it is a
+refusal. Binary travels as base64.
+
+```text
+POST /pair/hello
+  { "proof": "<HMAC-SHA256(token, "kpg-client-proof" | binding | nonce)>" }
+->  200 { "challenge": "<32 bytes>",
+          "proof": "<HMAC-SHA256(token, "kpg-server-proof" | binding | nonce | challenge)>",
+          "expires": "<when the challenge stops being usable>" }
+
+POST /pair/request
+  { "name": "agent-fictitious",
+    "profiles": ["ops"],
+    "proof": "<HMAC-SHA256(token, "kpg-request-proof" | binding | nonce | challenge | name,profiles)>" }
+->  200 { "identity": "<PKCS#12: the certificate and its key>",
+          "authority": "<DER: what to pin from now on>",
+          "gateKey": "<32 bytes: what to name every later connection from>",
+          "subject": "CN=agent-fictitious",
+          "profiles": ["ops"],
+          "expires": "...", "database": "..." }
+```
+
+Every part is length prefixed before it is signed, so no two different sets of parts produce the
+same bytes, and each proof carries its own label, so none of them can be replayed as another.
+
+**The exchange spans two connections**, because this transport answers one request per connection
+and closes. The challenge is what carries it across: it is held on the invitation in memory,
+together with the binding and the nonce it was issued against, and it is spent the moment it is
+taken. So a request has to follow a hello that really happened, on a connection served with the same
+certificate, and a second hello takes the first one's challenge away rather than running beside it.
+
+**So a request spends its challenge, whatever it is answered.** A request that names something
+that could be issued, on an invitation that is still there, takes the challenge its hello left, and
+every answer after that leaves nothing for a second request to follow: trying again means a new
+hello, which the invitation allows for as long as it is not spent. Where the table below says that
+nothing is spent, it means the invitation. A hello whose proof fails spends nothing at all, and
+nor does an answer given before a request is read.
+
+What a refusal says, and deliberately no more:
+
+| | |
+| --- | --- |
+| `401 unpaired` | the connection did not arrive on an invitation. Every route answers a caller the database does not admit this way, and nothing is spent |
+| `404 no such route` | the caller is a client the database already admits, which has nothing to pair. Answered as an undeclared path is, and nothing is spent |
+| `401 proof` | the proof did not verify. No dialog was raised and nothing was spent |
+| `409 no exchange` | there was no hello, or it was answered by a different certificate |
+| `409 no invitation` | it was spent or it ran out between the gate and here |
+| `400 name` / `400 profile` / `400 malformed` | it could never have been issued as asked |
+| `403 refused` | the operator said no, and the invitation is spent |
+| `504 unanswered` | nobody was at the screen. **Nothing is spent** |
+| `503 busy` | a dialog is open on the group, another pairing is already in front of the operator, or there is no screen to ask. **Nothing is spent**, and the client is never told which |
+| `500 not recorded` | the operator approved and the record did not reach the disk. **The invitation is spent** |
+| `500 internal error` | the operator approved and no certificate could be issued: the authority ran out while the dialog was open, or its key would not sign. **The invitation is not spent**, and the client starts again from a hello |
+| `500 expired host` | the host certificate this database answers with has run out, so no client paired now could connect. **Nothing is spent**, and no dialog was raised |
+| `500 expired authority` | this database's authority has run out, so it can sign nothing valid. **Nothing is spent**, and no dialog was raised |
+
+The `503` row is the one to be careful with. A caller learns that it should try later and nothing
+about what is open on somebody's desk.
+
+**Every `503` is raised before the invitation is spent, and that is what makes it honest.** The
+group-dialog check and the wait for the screen both happen before the burn, so a caller that retries
+is retrying something that can still work. Once the invitation is burned there is no retryable
+answer left: a write that fails after that point is a `500` however transient its cause was, because
+the same code will be turned away at the name on its next connection and dropped without any answer
+at all. Whether it was worth retrying goes to the operator's log, which is where somebody can act on
+it.
+
+**The `500`s are not the same kind of thing, and only the status they share is.** A record that
+did not land is this plugin failing partway through something it had started, and the invitation is
+gone with it. An authority that has run out is the ordinary state of a database nobody has touched
+for ten years, and it is refused where the other retryable conditions are, before the operator is
+disturbed and before anything is spent: an authority that signs nothing valid cannot end in a
+certificate, so raising a dialog would spend somebody's attention on an outcome already decided. It
+is not a `503` because retrying changes nothing until a person has acted, and what they have to do
+is recreate the authority, which is not something a client can wait out. A host certificate that has
+run out is the same state five years in, since it lives half as long, and is refused the same way:
+every later connection is served with it, and `CA.md` §219 has no reissue. `internal error` is that
+same check arriving late: the authority ran out, or would not sign, after the operator approved and
+before anything was issued, so the approval is lost and the invitation is not.
+
+## 10. What this deliberately does not defend §310
+
+- **Local code execution as the user.** It reads the host key, the client key, the token as typed,
+  and the clipboard the tab's copy button puts it on. Conceded everywhere in this design.
 - **A compromised second channel.** Whoever holds the token may ask. That is what the operator's
   approval is for, and it is the only thing standing there.
 - **A KeePass that has never been unlocked since starting.** No responder certificate has been
@@ -318,6 +430,11 @@ proved anything to.
   with `503 locked`.
 - **Two copies of one database open at once.** They share an authority and a `SniKey` and are
   genuinely indistinguishable, so the plugin refuses to serve and logs how many answered.
+- **A spent exchange.** The name a client connects under travels in the clear and can be replayed,
+  so whoever sees it can connect under it too and send a request of its own, which takes the
+  challenge the client's hello left: the client's own request is then answered `409 no exchange`
+  and begins again with a hello. That is all it can do. Without the token its proof fails, so no
+  dialog is raised and the invitation is untouched.
 
 Two consequences of holding invitations in memory, neither a defect but both easy to trip over.
 **An invitation does not replicate**, so a client must pair against the host where it was issued,

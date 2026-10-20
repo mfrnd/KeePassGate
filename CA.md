@@ -146,8 +146,8 @@ emptied record is still written, and is still that losing kind of mark: a stale 
 back, and the revocation beside it is what refuses it when it does.
 
 **A record that comes back is taken away by the plugin's next write.** It admits nobody meanwhile,
-since admission reads the revocation rather than waiting for this, and the clients page is to count
-it under the list rather than listing it as a client. The write it rides on is one this plugin makes
+since admission reads the revocation rather than waiting for this, and the clients page counts it
+under the list rather than listing it as a client. The write it rides on is one this plugin makes
 anyway: a revocation, a pairing, keeping one authority, recreating or deleting it. Opening or
 reading a database changes nothing in it.
 
@@ -192,7 +192,7 @@ copy would carry.
 the database, and saving or merging in one can quietly bring back a revoked client, a retired
 authority or a removed profile, because their merges replace or drop keys: KeePassXC 2.7.12, the
 one read from source, replaces the whole dictionary. Nothing here detects that. After any change
-made outside KeePass, the authority, and the clients page once pairing brings it, are where to look.
+made outside KeePass, the clients page and the authority are where to look.
 
 ### How each value is written §222
 
@@ -514,6 +514,18 @@ record is refused, and so is one with a revocation beside it. Revoking adds that
 empties the record, §204, which takes effect on the next connection,
 offline and immediately: the record is read from the live database per connection and never cached
 beside the certificates, so nothing has to be reloaded for a revocation to bite.
+
+**The operator revokes from the KPG tab's clients page**, which lists every client the database has
+admitted with what each one may reach, and takes one away. It is a list rather than a bare set of
+names because revoking is a decision about access, and a name on its own does not say what is being
+taken. It sits under the widgets that hand an invitation out, on the same page, because a list of
+clients is what an invitation turns into and the operator letting somebody in is the one who should
+see who is already in. It writes the way the rest of that tab writes: the row goes at once, the
+revocation lands when the dialog is accepted, and saving is what keeps it. Cancel discards it.
+
+Recreating the authority is the other way, and it is the blunt one: it revokes every client at once
+and each has to pair again. That is a recovery from a compromised authority, not a way to remove one
+client.
 
 **The key is SHA-256 over the certificate's `RawData`**, compared in fixed time, stored lowercase
 hex. `X509Certificate2.Thumbprint` is **SHA-1**, measured at 40 hex characters, and a design that

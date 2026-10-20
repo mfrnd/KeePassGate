@@ -8,12 +8,13 @@ Guidance for anyone, human or AI assistant, working in this repository.
 mutual TLS, so that automation and AI agents can each be given a narrow, revocable, audited slice of
 a database.
 
-**Status: the design is settled and steps 1 to 7 of the build order are done.** The plugin loads
+**Status: the design is settled and steps 1 to 8 of the build order are done.** The plugin loads
 into KeePass, the KPG tab creates, recreates and deletes the database's own certificate authority,
-the gate listens on loopback and answers one route over mutual TLS 1.3, and a client is served only
-if the database holds an admission record for its certificate. Step 8, pairing, is next: it is what
-writes those records, and it is the one path that has to write while a dialog may be holding a
-snapshot.
+the gate listens on loopback and answers over mutual TLS 1.3, a client is served only if
+the database holds an admission record for its certificate, and **a stranger can now become one**:
+the tab hands out an invitation, both sides prove they hold it, the operator approves what it may
+reach, and the record is written and saved before the certificate is handed over. Step 9, lock and
+unlock, is next.
 
 ## Read these before proposing anything
 
@@ -103,7 +104,13 @@ designing around them.
   wrapped it in Argon2 over AES-CBC with an encrypt-then-MAC construction and DPAPI; all deleted, and
   its backup story was broken anyway because a DPAPI blob restores nowhere.
 - **Pairing tokens live in plugin memory only**, expiring on TTL or KeePass exit, whichever first.
-  They are never written to the database.
+  They are never written to the database. `InvitationBook` is the whole of it, under one lock, and a
+  burn cannot be reverted. The settings dialog a token was made on withdraws it unless that dialog
+  is accepted, so Cancel means Cancel for the one thing on the tab the database does not hold.
+- **The proofs need nothing from the transport.** `tls-server-end-point` is a hash of the
+  certificate in use, so each side computes it from bytes it already holds. Do not re-propose
+  `TransportContext.GetChannelBinding`: it was necessary while `SslStream` terminated the TLS and
+  the reason went away with it.
 - **Two host certificates per database**: a normal one in the kdbx, and a short-lived responder
   minted at unlock and held in memory so a locked KeePass can answer `503 locked` rather than failing at
   the transport. The normal host key is actively dropped at lock. TODO(step 9): the responder,
@@ -197,11 +204,24 @@ a database's custom data. Each gathers what it settled in its own `RESULTS.md`. 
   `ChannelBindingKind.Unique` returns something under TLS 1.3 where tls-unique is undefined; ignore
   it. `BindingProbe`.
 - **The SNI needs two labels.** 64 hex characters exceed the 63-octet DNS label limit.
+- **`MainForm.SaveDatabase(db, null)` saves a named database**; `UIFileSave` saves whichever document
+  is active. Pairing names its database, so it uses the first. Neither reports anything, so a write
+  is believed only after reading the record back and finding `PwDatabase.Modified` false.
+- **A control with an `AccessibleName` reports that to UI automation as its name**, in place of
+  its text. That is why the desktop tests point at a control by its `AutomationId`, which comes
+  from `Name` and is ours: with the lookup keyed on the identifier, `AccessibleName` is free to
+  be the phrase a screen reader should say, and is set only where a control has no text of its
+  own to say it. Keying the lookup on the name instead is what made the two collide.
+- **`Button.PerformClick()` does nothing on a form that was never shown**, silently. What a button
+  does is public on the form, as it is on the tab, so tests reach the decision rather than the
+  control.
 - **C# 7.3 is available, and the packaging is why.** A `.plgx` would be recompiled by KeePass's
   in-box CodeDOM provider, which caps the language at C# 5. This ships a plain DLL and escapes that
   entirely; the probes are conservative only because `Add-Type` compiles them.
 
 ### The trap that shaped the design
+
+**Two dialogs take a copy of custom data and write it back, and the second is easier to miss.**
 
 **`GroupForm` takes a copy of a group's `CustomData` when it opens and writes that copy back on OK.**
 A value written to the live group therefore **survives Cancel and is destroyed by OK**, silently and
@@ -212,6 +232,14 @@ one to a stale snapshot makes the certificate inert rather than invisible and ir
 **testing any `CustomData` work means pressing OK, not just looking**: make the change, press OK,
 reopen the dialog, and only then believe it. Do the same after saving and reloading the file, because
 those are two different failures.
+
+**`DatabaseOperationsForm`, under Tools then Database Maintenance, does the same to
+`PwDatabase.CustomData`**, which is where this plugin's own keys now live. Worse in two ways than
+the group dialog. Its write-back is conditional on the key count differing rather than on anything
+the operator did, so a pairing landing while it is open is destroyed with the Plugin Data tab never
+opened. And its one button is both the accept and the cancel button, with `DialogResult.Cancel`, so
+there is no way to decline it. `GroupDialogs` watches for it and `AdmissionWriter` refuses while it
+is open.
 
 Equally load bearing: **KeePass's save reports nothing to its caller.** `MainForm.SaveDatabase` is
 `void`, shows its own warnings, and leaves the caller no way to ask whether anything reached the
@@ -311,25 +339,46 @@ here can hang or crash the password manager.
 
 ## Where to start
 
-[`DESIGN.md`](DESIGN.md) §132 ends with a multi-step build order. **Steps 1 to 7 are done.** The skeleton
+[`DESIGN.md`](DESIGN.md) §132 ends with a multi-step build order. **Steps 1 to 8 are done.** The skeleton
 loads and shows a KPG tab, that tab creates, recreates and deletes the authority, and the gate
 serves one route over mutual TLS to a client the database holds an admission record for.
 
 **The storage decision survived the thing most likely to invalidate it.** The `GroupForm` snapshot
 hazard is real and now measured rather than remembered: `SnapshotHazardTests` reads the mechanism off
 the real KeePass and reproduces the behavior with KeePass's own types. What it established, and what
-step 8 has to build on: the settings dialog the KPG tab lives on carries **no** snapshot, so those
+step 8 built on: the settings dialog the KPG tab lives on carries **no** snapshot, so those
 buttons are safe from their own dialog, and anything written while a **group** dialog is open is
 destroyed by its OK.
 
-**Step 8 is pairing**, and everything it writes already exists: `AdmissionRecord` is the thing it
-creates, `AuthorityIssuer.IssueClient` is what it hands over, and `AdmissionStore` is where it goes.
-What pairing adds is the invitation in memory, the proof exchange, the operator's approval, and the
-ordering that matters: the record is written and saved **before** the certificate is handed over,
-because a certificate whose record never landed is one nobody can revoke.
+**Step 9 is lock and unlock**, and `PAIRING.md` §308 is the specification: a second host
+certificate minted at unlock and held only in memory, the authority key and the records dropped at
+lock, the `KPG.SniKey` deliberately kept because the gate resolves names before any TLS work, and
+every connection closed on **both** transitions, because one that shook hands with the
+responder certificate was authenticated against nothing.
+
+What step 8 leaves it. `AdmissionWriter` is the single writer, and the only place a request writes
+to a database. `GroupDialogs` watches for the dialog that would take a write back, and it tracks
+specific `GroupForm` instances rather than counting windows, because the question is per node and a
+count cannot answer it, and because a count would also depend on what this plugin's own dialogs
+register with `GlobalWindowManager`. **It refuses while it is not watching**, which is a different answer from
+seeing nothing open and is the fail-closed direction on the one guard this design rests on.
+`IGateTarget` now has `Admit`, `AdmissionBlocked` and `DatabaseName` on it, so anything that serves
+a database can also be paired with and can say what to call it on the approval dialog, and
+`OpenDatabaseTargets` is where locking will have to start refusing.
+
+**A pairing connection is measured against `GateOptions.PairingBudget` rather than `Budget`.** The
+ordinary thirty seconds is what stops a peer holding a thread by feeding it slowly, and phase 4
+exceeds it on purpose, because it is blocked on a person. Closing the socket there cancels nothing:
+the invitation is still spent and the record still saved, and only the answer is lost.
 
 **Two things about records that cost time to learn.** They are read from the live database on every
-connection and never cached, which is what makes revocation immediate. And a record written into the
+connection and never cached, so a record that changes takes effect with nothing having to be
+reloaded or told: the KPG tab's clients page lists every admitted client and takes one away, and
+from the next request onwards that client is refused. **Landing is what waits**, because the clients
+page obeys the same rule as the rest of the tab: the row goes at once, the revocation lands when the
+dialog is accepted, and the file changes when the database is saved. Until then the certificate
+still works. The press itself goes into the dialog's buffer and cannot fail there. And a record
+written into the
 `.kdbx` file underneath a running KeePass is invisible to it and will be overwritten by its next
 save: KeePass serves the database it holds in memory, which is why pairing writes through the plugin
 rather than through the file.

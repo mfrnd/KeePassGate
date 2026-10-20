@@ -175,7 +175,7 @@ namespace KeePassGate.Authority
         /// with an older copy would carry. The retirement is that mark now, and it marks the
         /// authority rather than each client: a record a stale copy brings back chains to an
         /// authority that is retired, so it admits nobody, and the clients page names it for what
-        /// it is. TODO(step 8): the clients page arrives with the invitation control.
+        /// it is.
         ///
         /// A damaged document is retired by the digest its key is filed under, which is the one
         /// thing about it that can always be read.
@@ -204,8 +204,7 @@ namespace KeePassGate.Authority
         ///
         /// The admission records are left alone. The ones issued by the authorities retired here
         /// chain to nothing that is served, so they admit nobody, and the clients page says so on
-        /// each row; the operator can take them away from there. TODO(step 8): the clients page
-        /// arrives with the invitation control.
+        /// each row; the operator can take them away from there.
         /// </remarks>
         /// <returns>How many authorities were retired.</returns>
         public int Keep(string fingerprint)

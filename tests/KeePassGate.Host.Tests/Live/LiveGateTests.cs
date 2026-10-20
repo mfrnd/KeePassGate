@@ -1,12 +1,6 @@
-using System.Globalization;
 using System;
-using System.IO;
-using System.Net.Security;
-using System.Net.Sockets;
-using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 using System.Linq;
-using System.Text;
 using System.Threading;
 using KeePassGate.Authority;
 using KeePassGate.Gate;
@@ -58,7 +52,7 @@ namespace KeePassGate.Host.Tests.Live
             // Both certificates are issued and one is admitted before KeePass starts, because a
             // running KeePass serves the database it holds in memory: a record written to the file
             // underneath it would be invisible and then overwritten. Pairing writes through the
-            // plugin for exactly that reason. TODO(step 8): it is step 8.
+            // plugin for exactly that reason, and it is step 8.
             using (var admitted = keePass.IssueClientCertificate("agent-fictitious"))
             using (var never = keePass.IssueClientCertificate("agent-unadmitted"))
             {
@@ -245,6 +239,24 @@ namespace KeePassGate.Host.Tests.Live
             Assert.Fail("KeePass never showed " + name + " open. Its title read: " + title);
         }
 
+        /// <summary>
+        /// One request against the gate. `LiveGateClient` is the client, shared with the pairing
+        /// test so that both of them are talking to the same server in the same way.
+        /// </summary>
+        private static Reply Ask(int port, string serverName, X509Certificate2 certificate, string path)
+        {
+            var answer = LiveGateClient.Get(port, serverName, certificate, path);
+
+            return new Reply
+            {
+                Answered = answer.Answered,
+                Status = answer.Status,
+                Body = answer.Body,
+                ServerSubject = answer.ServerSubject,
+                Failure = answer.Failure
+            };
+        }
+
         /// <summary>What came back from the gate, or why nothing did.</summary>
         private sealed class Reply
         {
@@ -257,99 +269,6 @@ namespace KeePassGate.Host.Tests.Live
             public string ServerSubject { get; set; }
 
             public string Failure { get; set; }
-        }
-
-        /// <summary>
-        /// An ordinary TLS 1.3 client. It accepts whatever certificate arrives, because a real
-        /// client pins the authority it was paired with and this one is testing the server.
-        /// </summary>
-        private static Reply Ask(int port, string serverName, X509Certificate2 certificate, string path)
-        {
-            var reply = new Reply();
-            var request = Encoding.ASCII.GetBytes(
-                "GET " + path + " HTTP/1.1\r\nHost: " + serverName + "\r\n\r\n");
-
-            try
-            {
-                using (var tcp = new TcpClient())
-                {
-                    tcp.Connect("127.0.0.1", port);
-                    tcp.ReceiveTimeout = 15000;
-                    tcp.SendTimeout = 15000;
-
-                    var certificates = new X509Certificate2Collection();
-                    if (certificate != null)
-                    {
-                        certificates.Add(certificate);
-                    }
-
-                    using (var tls = new SslStream(
-                        tcp.GetStream(),
-                        false,
-                        delegate(object sender, X509Certificate presented, X509Chain chain, SslPolicyErrors errors)
-                        {
-                            if (presented != null)
-                            {
-                                reply.ServerSubject = presented.Subject;
-                            }
-
-                            return true;
-                        },
-                        delegate { return certificate; }))
-                    {
-                        tls.AuthenticateAsClient(serverName, certificates, SslProtocols.Tls13, false);
-                        tls.Write(request, 0, request.Length);
-                        tls.Flush();
-
-                        var raw = ReadToEnd(tls);
-                        if (raw.Length == 0)
-                        {
-                            reply.Failure = "the connection was closed without an answer";
-                            return reply;
-                        }
-
-                        reply.Answered = true;
-                        reply.Status = int.Parse(
-                            raw.Substring(9, 3), CultureInfo.InvariantCulture);
-                        var blank = raw.IndexOf("\r\n\r\n", StringComparison.Ordinal);
-                        reply.Body = blank < 0 ? string.Empty : raw.Substring(blank + 4);
-                    }
-                }
-            }
-            catch (Exception error)
-            {
-                reply.Failure = error.GetType().Name + ": " + error.Message;
-            }
-
-            return reply;
-        }
-
-        private static string ReadToEnd(Stream stream)
-        {
-            var buffer = new byte[4096];
-            var text = new StringBuilder();
-
-            while (true)
-            {
-                int read;
-                try
-                {
-                    read = stream.Read(buffer, 0, buffer.Length);
-                }
-                catch (IOException)
-                {
-                    break;
-                }
-
-                if (read <= 0)
-                {
-                    break;
-                }
-
-                text.Append(Encoding.UTF8.GetString(buffer, 0, read));
-            }
-
-            return text.ToString();
         }
     }
 }

@@ -1,6 +1,7 @@
 using System;
 using System.Windows.Forms;
 using KeePassGate.Diagnostics;
+using KeePassGate.Pairing;
 
 namespace KeePassGate.Ui
 {
@@ -18,32 +19,36 @@ namespace KeePassGate.Ui
         private readonly IGateLog _log;
         private readonly string _version;
         private readonly IGateStatus _gate;
+        private readonly IInvitations _invitations;
         private readonly GateIncidents _incidents;
 
-        public AuthorityPanelFactory(IGateDatabaseSource databases, IGateLog log)
-            : this(databases, new MessageBoxPrompt(), log, GateVersion.Current, null)
-        {
-        }
+        private readonly IAdmissionNotice _admissions;
 
         public AuthorityPanelFactory(
-            IGateDatabaseSource databases, IGateLog log, IGateStatus gate, GateIncidents incidents)
-            : this(databases, new MessageBoxPrompt(), log, GateVersion.Current, gate, incidents)
+            IGateDatabaseSource databases,
+            IGateLog log,
+            IGateStatus gate,
+            IInvitations invitations,
+            GateIncidents incidents)
+            : this(databases, new MessageBoxPrompt(), log, GateVersion.Current, gate, invitations, incidents)
         {
         }
 
-        public AuthorityPanelFactory(IGateDatabaseSource databases, IGateLog log, IGateStatus gate)
-            : this(databases, new MessageBoxPrompt(), log, GateVersion.Current, gate)
+        /// <summary>The same, and handed the notice every panel it builds should listen to.</summary>
+        public AuthorityPanelFactory(
+            IGateDatabaseSource databases,
+            IGateLog log,
+            IGateStatus gate,
+            IInvitations invitations,
+            GateIncidents incidents,
+            IAdmissionNotice admissions)
+            : this(databases, new MessageBoxPrompt(), log, GateVersion.Current, gate, invitations,
+                   incidents, admissions)
         {
         }
 
         public AuthorityPanelFactory(IGateDatabaseSource databases, IOperatorPrompt prompt, IGateLog log, string version)
-            : this(databases, prompt, log, version, null)
-        {
-        }
-
-        public AuthorityPanelFactory(
-            IGateDatabaseSource databases, IOperatorPrompt prompt, IGateLog log, string version, IGateStatus gate)
-            : this(databases, prompt, log, version, gate, null)
+            : this(databases, prompt, log, version, null, null)
         {
         }
 
@@ -53,7 +58,40 @@ namespace KeePassGate.Ui
             IGateLog log,
             string version,
             IGateStatus gate,
+            IInvitations invitations)
+            : this(databases, prompt, log, version, gate, invitations, null)
+        {
+        }
+
+        public AuthorityPanelFactory(
+            IGateDatabaseSource databases,
+            IOperatorPrompt prompt,
+            IGateLog log,
+            string version,
+            IGateStatus gate,
+            IInvitations invitations,
             GateIncidents incidents)
+            : this(databases, prompt, log, version, gate, invitations, incidents, null)
+        {
+        }
+
+        /// <summary>
+        /// The same, and telling every panel it builds what to listen to for a record landing.
+        /// </summary>
+        /// <remarks>
+        /// One notice for the whole plugin, handed to each panel as it is built. A panel drops it
+        /// when it is disposed, so the dialog being opened and closed all afternoon leaves nothing
+        /// behind.
+        /// </remarks>
+        public AuthorityPanelFactory(
+            IGateDatabaseSource databases,
+            IOperatorPrompt prompt,
+            IGateLog log,
+            string version,
+            IGateStatus gate,
+            IInvitations invitations,
+            GateIncidents incidents,
+            IAdmissionNotice admissions)
         {
             if (databases == null)
             {
@@ -70,7 +108,9 @@ namespace KeePassGate.Ui
             _log = log ?? NullGateLog.Instance;
             _version = version;
             _gate = gate;
+            _invitations = invitations;
             _incidents = incidents;
+            _admissions = admissions;
         }
 
         public Control CreatePanel(Form dialog)
@@ -82,8 +122,14 @@ namespace KeePassGate.Ui
             // on a tab that would otherwise write the moment a button was pressed.
             var database = found == null ? null : new PendingDatabase(found, _log);
 
-            var panel = new AuthorityPanel(database, _prompt, _log, _version, _gate, _incidents);
-            Commit(dialog, database);
+            // And so are the invitations made on it, which are the plugin's memory rather than the
+            // database's: good the moment they are made, and taken back unless the dialog's answer
+            // is OK.
+            var invitations = _invitations == null ? null : new PendingInvitations(_invitations);
+
+            var panel = new AuthorityPanel(
+                database, _prompt, _log, _version, _gate, invitations, _incidents, _admissions);
+            Commit(dialog, database, invitations);
             return panel;
         }
 
@@ -102,8 +148,12 @@ namespace KeePassGate.Ui
         /// is the buffer the panel wrote into, which outlives it. Subscribed while the panel is
         /// built only because that is when the buffer exists, and before the injector's own
         /// handler, which finds nothing left to take away.
+        ///
+        /// **The invitations made on the dialog go first when it is not accepted**, before the
+        /// buffer is discarded, because a code still out is the one thing here a stranger can act
+        /// on. Every answer that is not OK withdraws them: Cancel, the close box and Escape alike.
         /// </remarks>
-        private void Commit(Form dialog, PendingDatabase database)
+        private void Commit(Form dialog, PendingDatabase database, PendingInvitations invitations)
         {
             if (dialog == null || database == null)
             {
@@ -119,8 +169,19 @@ namespace KeePassGate.Ui
                 {
                     if (dialog.DialogResult == DialogResult.OK)
                     {
+                        if (invitations != null)
+                        {
+                            invitations.Apply();
+                        }
+
                         database.Apply();
                         return;
+                    }
+
+                    if (invitations != null && invitations.Discard() > 0)
+                    {
+                        _log.Info("the invitation made on the " + GateTab.Text
+                            + " tab was withdrawn: the dialog closed without OK");
                     }
 
                     database.Discard();

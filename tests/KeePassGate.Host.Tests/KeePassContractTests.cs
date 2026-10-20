@@ -106,6 +106,68 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void The_maintenance_dialog_still_has_the_name_pairing_watches_for()
+        {
+            // Recognized by this name alone, so a KeePass that renamed the dialog would have it go
+            // unnoticed: nothing would refuse a record while it is open, and its Close would put
+            // back its stale copy of the database's custom data over the one that landed.
+            var type = KeePassAssembly.GetType(KeePassContract.MaintenanceFormTypeName, false);
+
+            Assert.That(type, Is.Not.Null,
+                KeePassContract.MaintenanceFormTypeName + " is gone, so an admission record could be "
+                + "written while it is open and destroyed when it closes.");
+            Assert.That(typeof(Form).IsAssignableFrom(type), Is.True);
+        }
+
+        [Test]
+        public void The_maintenance_dialog_still_names_the_database_it_is_working_on()
+        {
+            var type = KeePassAssembly.GetType(KeePassContract.MaintenanceFormTypeName, false);
+            var field = type.GetField(
+                KeePassContract.MaintenanceFormDatabaseField, BindingFlags.NonPublic | BindingFlags.Instance);
+
+            Assert.That(field, Is.Not.Null,
+                "Without this, no record may be written while that dialog is open on any database, "
+                + "which is safe and useless.");
+            Assert.That(field.FieldType, Is.EqualTo(typeof(KeePassLib.PwDatabase)));
+        }
+
+        [Test]
+        public void The_group_dialog_still_has_the_name_pairing_watches_for()
+        {
+            var type = KeePassAssembly.GetType(KeePassContract.GroupFormTypeName, false);
+
+            Assert.That(type, Is.Not.Null,
+                KeePassContract.GroupFormTypeName + " is gone, so nothing would ever be recognized as one.");
+            Assert.That(typeof(Form).IsAssignableFrom(type), Is.True);
+        }
+
+        [Test]
+        public void The_group_dialog_still_names_the_group_it_is_editing()
+        {
+            var type = KeePassAssembly.GetType(KeePassContract.GroupFormTypeName, false);
+            var field = type.GetField(
+                KeePassContract.GroupFormGroupField, BindingFlags.NonPublic | BindingFlags.Instance);
+
+            Assert.That(field, Is.Not.Null,
+                "Without this, pairing refuses while any group dialog is open, which is safe and useless.");
+            Assert.That(field.FieldType, Is.EqualTo(typeof(KeePassLib.PwGroup)));
+        }
+
+        [Test]
+        public void The_main_window_can_still_save_a_named_database()
+        {
+            // Not `UIFileSave`, which saves whichever document is active. Pairing writes to the
+            // database the connection resolved to and has to save that one.
+            var save = typeof(KeePass.Forms.MainForm).GetMethod(
+                KeePassContract.MainFormSaveDatabaseMethod,
+                new[] { typeof(KeePassLib.PwDatabase), typeof(object) });
+
+            Assert.That(save, Is.Not.Null,
+                "KeePass no longer takes a database to save, so pairing cannot make a record durable.");
+        }
+
+        [Test]
         public void The_KeePass_under_test_is_the_one_the_plugin_was_built_against()
         {
             var version = KeePassAssembly.GetName().Version;

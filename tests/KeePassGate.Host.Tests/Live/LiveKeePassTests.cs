@@ -46,7 +46,7 @@ namespace KeePassGate.Host.Tests.Live
 
             var tab = keePass.SelectGateTab(dialog);
             _tabWasFound = tab != null;
-            _tabsOnTheDialog = Uia.Describe(dialog, ControlType.TabItem);
+            _tabsOnTheDialog = Uia.DescribeTabs(dialog);
 
             if (tab != null)
             {

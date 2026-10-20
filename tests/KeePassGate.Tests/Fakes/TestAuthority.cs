@@ -38,7 +38,20 @@ namespace KeePassGate.Tests.Fakes
 
         public static TestAuthority New()
         {
-            var issuer = new AuthorityIssuer();
+            return New(null);
+        }
+
+        /// <summary>
+        /// The same database, minted by a clock the caller chooses, which is the only way to get
+        /// the one state a test cannot wait for: an authority whose ten years have run out.
+        /// </summary>
+        /// <remarks>
+        /// Such a database is served like any other, because `AuthorityStore.Read` ignores expiry
+        /// on purpose, and only issuing finds out. `CA.md` §219.
+        /// </remarks>
+        public static TestAuthority New(Func<DateTimeOffset> clock)
+        {
+            var issuer = new AuthorityIssuer(clock);
             var authority = issuer.CreateAuthority();
 
             // Kept in both forms: the key material the managed TLS server serves with, and a
@@ -89,8 +102,45 @@ namespace KeePassGate.Tests.Fakes
         }
 
         /// <summary>
-        /// Admits a client. Without this a certificate this authority issued opens nothing, which
-        /// is the point of step 7. TODO(step 8): pairing is what does this for real.
+        /// What the approval dialog calls this database. Empty by default, which is what a database
+        /// KeePass has never been told a name for answers.
+        /// </summary>
+        public string DatabaseName { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Set to refuse the write, which is how a test stands in for a group dialog being open.
+        /// </summary>
+        public string AdmissionBlocked { get; set; }
+
+        /// <summary>Set to fail the write after it was allowed to start.</summary>
+        public AdmissionWrite AdmitAnswers { get; set; }
+
+        /// <summary>Set to have the write throw rather than answer, which must not reach the client.</summary>
+        public Exception AdmitThrows { get; set; }
+
+        /// <summary>What the last pairing wrote, so a test can look at it.</summary>
+        public AdmissionRecord Admitted { get; private set; }
+
+        public AdmissionWrite Admit(AdmissionRecord record)
+        {
+            if (AdmitThrows != null)
+            {
+                throw AdmitThrows;
+            }
+
+            if (AdmitAnswers != null)
+            {
+                return AdmitAnswers;
+            }
+
+            _admissions.Write(record);
+            Admitted = record;
+            return AdmissionWrite.Done();
+        }
+
+        /// <summary>
+        /// Admits a client, which is what pairing will do for real. Without this a certificate this
+        /// authority issued opens nothing, which is the point of step 7.
         /// </summary>
         public void Admit(X509Certificate2 certificate, params string[] profiles)
         {
@@ -127,6 +177,7 @@ namespace KeePassGate.Tests.Fakes
             // any more: only the client side of these tests still goes through SChannel.
             X509Certificate2 certificate;
             using (var issued = new AuthorityIssuer().IssueClient(_authority, subject, profiles))
+            using (KeePassGate.Testing.PrivateKeyFiles.Lock())
             {
                 certificate = CertificateBlob.Load(CertificateBlob.Save(issued), X509KeyStorageFlags.Exportable);
             }
@@ -142,7 +193,12 @@ namespace KeePassGate.Tests.Fakes
         /// </summary>
         public X509Certificate2 HostCertificateAsClient()
         {
-            var certificate = CertificateBlob.Load(_hostBlob, X509KeyStorageFlags.Exportable);
+            X509Certificate2 certificate;
+            using (KeePassGate.Testing.PrivateKeyFiles.Lock())
+            {
+                certificate = CertificateBlob.Load(_hostBlob, X509KeyStorageFlags.Exportable);
+            }
+
             _issued.Add(certificate);
             return certificate;
         }

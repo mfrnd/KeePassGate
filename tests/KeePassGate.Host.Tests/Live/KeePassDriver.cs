@@ -107,8 +107,23 @@ namespace KeePassGate.Host.Tests.Live
         /// <summary>Brings the KPG tab to the front, which is what puts its contents in the tree.</summary>
         public AutomationElement SelectGateTab(AutomationElement dialog)
         {
+            return SelectTab(dialog, GateTab.Text);
+        }
+
+        /// <summary>
+        /// Brings one of the KPG tab's own pages to the front, which is what an operator does
+        /// before touching anything on it. A control on a page behind another is not there as far
+        /// as UI automation is concerned.
+        /// </summary>
+        public AutomationElement SelectPage(AutomationElement dialog, string text)
+        {
+            return SelectTab(dialog, text);
+        }
+
+        private static AutomationElement SelectTab(AutomationElement dialog, string text)
+        {
             var tab = Uia.WaitForOrNull(
-                () => Uia.Descendant(dialog, ControlType.TabItem, name => name == GateTab.Text),
+                () => Uia.Descendant(dialog, ControlType.TabItem, name => name == text),
                 TimeSpan.FromSeconds(10));
 
             if (tab == null)
@@ -153,6 +168,40 @@ namespace KeePassGate.Host.Tests.Live
                 TimeSpan.FromSeconds(5));
 
             return element == null ? null : Uia.Name(element);
+        }
+
+        /// <summary>
+        /// The contents of a text box, found by the name the plugin gives it. A label reports its
+        /// text as its name and a box does not, so this reads the value pattern instead.
+        /// </summary>
+        public string ValueOf(AutomationElement dialog, string controlName)
+        {
+            var box = Uia.WaitForOrNull(
+                () => Uia.Descendant(dialog, ControlType.Edit, name => name == controlName),
+                TimeSpan.FromSeconds(10));
+
+            if (box == null)
+            {
+                _diagnostics.AppendLine("no box called '" + controlName + "'. Boxes: " +
+                                        Uia.Describe(dialog, ControlType.Edit));
+                return null;
+            }
+
+            object pattern;
+            return box.TryGetCurrentPattern(ValuePattern.Pattern, out pattern)
+                ? ((ValuePattern)pattern).Current.Value
+                : null;
+        }
+
+        /// <summary>
+        /// A window of this KeePass whose title says what it is, or null if none appears in time.
+        /// The pairing dialog arrives on its own while a connection thread waits for it.
+        /// </summary>
+        public AutomationElement WaitForWindow(string titlePart, TimeSpan timeout)
+        {
+            return Uia.WaitForOrNull(
+                () => Window(_process, title => title.IndexOf(titlePart, StringComparison.OrdinalIgnoreCase) >= 0),
+                timeout);
         }
 
         /// <summary>

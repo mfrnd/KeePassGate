@@ -522,12 +522,13 @@ namespace KeePassGate.Host.Tests.Live
 
         /// <summary>
         /// A client certificate issued by the database's own authority, loaded so that TLS can
-        /// present it. TODO(step 8): this is what pairing will do for real in step 8.
+        /// present it. Pairing issues one the same way, from inside the plugin.
         /// </summary>
         public X509Certificate2 IssueClientCertificate(string subject)
         {
             using (var reading = ReadAuthority())
             using (var issued = new AuthorityIssuer().IssueClient(reading.Material.Authority, subject, null))
+            using (KeePassGate.Testing.PrivateKeyFiles.Lock())
             {
                 // With a key container, because the client in these tests is an SslStream and
                 // SChannel will not present an ephemeral key. The plugin itself no longer asks for
@@ -539,7 +540,7 @@ namespace KeePassGate.Host.Tests.Live
 
         /// <summary>
         /// Writes an admission record into the file, which is what pairing does from inside the
-        /// plugin. TODO(step 8): that step is still ahead.
+        /// plugin, through `AdmissionWriter.Write`.
         /// </summary>
         /// <remarks>
         /// **Only before KeePass starts.** A running KeePass holds the database in memory and
@@ -558,6 +559,26 @@ namespace KeePassGate.Host.Tests.Live
                     .Write(AdmissionRecord.For(certificate, DateTimeOffset.UtcNow, profiles));
 
                 database.Save(null);
+            }
+            finally
+            {
+                database.Close();
+            }
+        }
+
+        /// <summary>
+        /// The admission records in the file, read after KeePass has exited. This is the only way to
+        /// find out whether pairing really made one durable, because everything KeePass reports
+        /// about a save it reports to itself.
+        /// </summary>
+        public IReadOnlyList<AdmissionRecord> ReadAdmissions()
+        {
+            var database = new PwDatabase();
+            try
+            {
+                database.Open(IOConnectionInfo.FromPath(DatabasePath), NewKey(), null);
+                return new AdmissionStore(
+                    new CustomDataStore(database), NullGateLog.Instance).All().Records;
             }
             finally
             {
