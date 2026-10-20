@@ -3,7 +3,7 @@
 A KeePass 2.x plugin that serves a small, specification-defined HTTP API over mutual TLS, so that
 automation and AI agents can each be given a narrow, revocable, audited slice of a database.
 
-**Design settled, and the first eleven steps are built.** The plugin loads into KeePass, the KPG tab
+**Design settled, and the first twelve steps are built.** The plugin loads into KeePass, the KPG tab
 creates, recreates and deletes the database's own certificate authority, and the gate answers over
 mutual TLS 1.3 with the host certificate chosen from the rotating name in the ClientHello. A client
 is served only if the database holds an admission record for its certificate, so revoking one
@@ -14,7 +14,9 @@ reach, and the record is saved before the certificate is handed over. A locked K
 `503 locked` rather than failing at the transport. **Routing is the OpenAPI document**, embedded in the
 plugin: handlers bind to `operationId`, bodies are checked against the declared schema before a
 handler runs, and a path the document does not declare has nowhere to go. Beyond pairing one route
-exists, and it reads nothing out of the database.
+exists, and it reads nothing out of the database. **And what a grant means is settled**: rules live
+in group and entry `CustomData`, the nearest one to a node wins per profile, and every operation
+declares the verb it needs or the plugin does not load. Nothing asks them yet.
 
 **License: MIT.** GPLv2 is not required. KeePass is GPL-2.0-or-later and grants no plugin exception,
 but the FSF's own requirement is a GPL-compatible license, and MIT is one, so a permissive

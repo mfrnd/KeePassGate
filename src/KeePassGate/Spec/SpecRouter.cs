@@ -44,7 +44,7 @@ namespace KeePassGate.Spec
     /// body, against the declared schema, so nothing is reported about a body on a route the
     /// caller may not reach.
     /// TODO(step 14): authorization, the admission record intersected with the rules, goes between
-    /// the guard and the body. `x-kpg-verb` is declared for it and read by nothing yet.
+    /// the guard and the body. `x-kpg-verb` is declared for it, and decides no request yet.
     ///
     /// **HEAD follows GET.** It is declared beside every `get` and bound to the same handler, and
     /// served by running that handler and discarding what it wrote. RFC 9110 section 9.3.2 asks for the same header

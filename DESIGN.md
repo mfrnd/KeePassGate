@@ -392,9 +392,16 @@ carries them, but only as a convenience for a human reading a certificate: a cli
 valid certificate whose record is missing is refused outright rather than falling back to the SAN.
 [`CA.md`](CA.md) §206 says why that is the only arrangement that survives a lost record.
 
-The ACL is `AclDocument`, `AclResolver`, `AclProfiles`, `AclGrant`, `AclVerb`, `AclDefault`,
-`AclVerbView` and `KdbxFormat`. It stays authoritative, so access can always be taken away by editing
-the database rather than by reissuing a certificate.
+The ACL is `AclDocument`, `AclResolver`, `AclGrant`, `AclVerb` and `AclDefault`, with `KdbxNodes`
+adapting a `PwGroup` or a `PwEntry` to the one seam the rules need. It stays authoritative, so access
+can always be taken away by editing the database rather than by reissuing a certificate.
+
+An earlier draft of this list also named `AclProfiles`, `AclVerbView` and `KdbxFormat`. Two of those
+turned out not to be types. The format is `AclDocument.Read` and `AclDocument.Write`, which is what
+`KdbxFormat` would have held and nothing else, and a set of profiles is an `IEnumerable<string>`
+argument rather than a class. `AclVerbView` was real work that had not happened when this was written, and has not
+happened yet. TODO(step 13): the editor does that job, because how a person is shown a verb
+is a different question from how one is decided.
 
 Grants live in group and entry `CustomData` under **`KPG`**, a single key holding a JSON document,
 which is this plugin's own namespace. Sharing a key with another plugin would couple two schemas
@@ -403,8 +410,145 @@ through a file format permanently.
 One key holding one document, rather than a key per concern, because `CustomData` is a flat string
 dictionary and a document keeps a group's rules readable and atomic to write.
 
-Every failure denies: an unreadable document, an unknown default, a missing chain, an unparseable
-claim, a database that is not open.
+### The document §136
+
+One flat object of strings and arrays of strings, which is exactly what `JsonBody` already reads, so
+the ACL brings no parser with it:
+
+```json
+{"default":"deny","reader":["read"],"editor":["read","update"]}
+```
+
+A rule holds **six verbs and two switches**, which is `CRUSDLAP` and is the order the editor shows
+them in. The verbs are create, read, update, strip, delete and list. `list` is below `read` because
+knowing an entry exists is not knowing what is in it, and an agent that may search a database without
+opening it is a useful thing to be able to describe. `strip` sits beside `delete` for a related
+reason: taking a field off an entry and taking the entry away are two sizes of loss, and with one
+letter for both there is no way to allow the smaller one.
+
+**`strip` is may remove the parts inside this node**, which are an entry's fields and its
+attachments. It is one question asked at one node, because a field has no rule of its own.
+
+**`delete` is removals are allowed here**, and removing a node asks for it **on both sides of the
+move**: from the group the node is leaving, and from the node itself. A delete is literally a move,
+which is what makes that the honest shape rather than a contrivance. A group that grants it has
+removable contents; a node that does not grant it cannot be removed, and that is how one node is
+held back from a rule that frees its siblings.
+
+So `....D...` on a group is a client that may create and remove entries and subgroups inside it,
+including ones it creates after the rule was written, while the group itself stands, because nothing
+above it allows removals. And `...S....` written on one entry leaves its fields open to stripping
+and the entry itself exempt, while its siblings go on being removed under the group's rule.
+
+**Which means `delete` is granted on the container whose contents may churn**, rather than broadly
+at the root. Granting it at the root is what would create the need for exemptions, and under this
+reading that instinct is simply wrong: a rule saying removals are allowed here says where.
+
+**A group is removed only once it is already empty.** A recursive delete would destroy entries that
+were never individually decided or recorded, so a subtree comes apart one node at a time, each
+removal asked on both sides and written to the audit on its own. An entry goes in one act, with its
+fields and its attachments.
+
+**Two costs, neither hidden.** A node removal is decided twice, so the audit says which side refused;
+the resolver already answers with the node that decided, and the design already intersects two
+independent answers for admission, so an AND here is the existing idiom rather than a new one. And
+protecting a group freezes what is under it, since the exemption and the permission are the same
+letter: the contents' container no longer allows removals. That reading is right for "this subtree is
+off limits", and the case it cannot express, a protected group whose contents still churn while its
+parent allows removals, is written instead by not granting `delete` on that parent.
+
+**A switch is not a verb.** Each says how far the verbs a rule already grants reach, so a rule
+holding switches and no verb grants nothing at all: it is a scope over nothing.
+
+**`attachments` reaches the attachments inside an entry** as well as its fields; without it they
+reach the fields only, so an attachment is not listed, read, added or replaced however much else
+the rule allows. So `.R...LA.` is read and list over entries and over the attachments inside
+them, and `.R...L..` is the same two over the fields alone.
+
+**`protected` reaches the values the database protects.** KeePass marks a string protected and keeps
+it encrypted in memory; the password is one by default and any field can be another. Without the
+switch, a rule that grants `read` still answers with the entry, its title, its dates, the names of
+every field it holds and the values of the ones nothing protects, and the protected values come back
+as `null`. With it, they come back as themselves.
+
+**Neither switch is asked about for a removal.** They say how far the verbs a rule grants see or
+change inside an entry, and removing something shows nobody anything. A rule that may remove an
+entry already takes every attachment and every protected value with it, so asking for a scope before
+one of them can be stripped on its own would forbid the smaller act while allowing the larger.
+`...S....` strips an attachment and a protected field alike, and a removal takes both away with the
+entry around them.
+
+**It governs writing too.** A rule holding `update` without `protected` may change a URL and may not
+overwrite a password, and one holding `create` without it may add a field but not a protected one.
+That half matters more than it first looks: reading a credential is the attack everybody pictures,
+and replacing one with a credential the caller already knows is the quieter one, invisible in a log
+that records only that an update happened.
+
+**What it is keyed on is the database's own mark, not on what reads like a secret.** A password
+somebody unprotected is not covered, and notes full of secrets that nobody protected are not covered
+either. The alternative is this plugin deciding what is confidential on somebody's behalf, which it
+would get wrong in both directions and could not explain.
+
+**`.R...L.P` is the shape this exists for.** An agent that has to recognize an entry from its context
+needs more than `list` gives it and less than a credential: a title, a URL, the field names, the
+unprotected values. `read` on its own overshot that, and `list` undershot it, and there was nothing
+in between to grant.
+
+Both are stored alongside the verbs rather than in members of their own, because a rule is one list
+of what it grants and a reader who has to look in three places for one answer will look in one.
+
+A grant is a **set**, not a rung on a ladder. A ladder where naming a verb carried everything weaker
+would make for a smaller editor, and it would leave no way to say `create` without `read`, which is
+exactly the shape an append-only agent wants.
+
+`default` is the one reserved member, and it cannot collide with a profile because `default` was
+already refused as a profile name by the authority that puts profiles into certificates, before this
+format existed. It is `inherit` unless it says `deny`, and it is written out either way so a document
+says what it does with what it does not name.
+
+**An empty array is a rule, not an absence.** `{"reader":[]}` says this profile may do nothing from
+here down, which is how a grant made at the root is taken away in one group without a deny syntax to
+get wrong. A profile the document does not mention is a different thing: that is silence, and silence
+is what `default` answers.
+
+The reader's ceilings are the format's ceilings, and reaching one denies rather than truncates: a
+node carries the default and 31 profiles, and a 32nd makes the whole document unreadable and
+everything under that node refused. That is the right way round, but it is worth knowing about
+rather than discovering.
+
+### Resolution §137
+
+**Nearest wins, per profile.** The walk runs from the entry up through its groups to the root and
+stops at the first document with a rule about that profile. What that rule says is the answer, even
+when something further up said more.
+
+**Each profile is resolved on its own, and then they are combined with or.** A client holding two
+profiles is permitted when either of them is. Resolving them together would let the nearest rule
+about one profile decide for another, so holding an extra profile could take a permission away.
+
+**Every failure denies**: an unreadable document, an unknown default, an unknown verb, a node with no
+chain to a root, a client holding no profiles, a database that is not open. A document that will not
+read is refused where it is found rather than skipped, because carrying on up the tree would answer
+with a permission the broken rule may have been taking away.
+
+**How far in is asked at the same time as what.** An operation reaching an attachment needs the verb
+and the switch from the same rule, so a rule granting `read` without the switch refuses where it is
+found rather than sending the walk up to a rule that would have allowed it. `protected` is answered
+the same way and at a different moment: an attachment is a route of its own, so the router asks
+before dispatch, while a protected value arrives inside an answer to a route that is allowed. That
+one question is asked on the way out, in a single place between the handler and the response, for
+the reason every other question is asked once: twenty-five call sites write field values, and a
+check each of them has to remember is a check one of them will not.
+
+The verb comes from the routing table, as `x-kpg-verb`, and **an operation that declares none stops
+the plugin loading**. That is what keeps authorization from being something a new route can be added
+without: there is no permissive default to fall into, only a document that does not parse. `none` is
+a decision and it is written down, for the status route, which reads nothing, and for the two pairing
+routes, which a person authorizes by reading a dialog rather than by a grant.
+
+`AclResolver` returns why as well as whether, naming the node whose rule decided by its identifier
+and never by its title, because those reasons reach the audit log in step 14 and a log is meant to be
+readable by somebody not entitled to know what the database holds.
 
 ## 7. Spec-first routing §118
 
@@ -439,8 +583,9 @@ separately and bound to one handler, which is what makes RFC 9110 section 9.3.2'
 GET, except no content" true by construction rather than by two implementations agreeing.
 Deriving it instead would have left this document an incomplete account of what the API answers,
 which is the one thing it is for; refusing it would have left an HTTP requirement unmet for no
-gain. **A pair carries one verb between them.** The plugin refuses to load a `get` with no `head`,
-or a pair whose `x-kpg-verb` differs, because a `head` governed differently would answer whether
+gain. **A pair carries one verb between them**, one reach, one answer about needing a certificate
+and one about carrying a body. The plugin refuses to load a `get` with no `head`, or a pair that
+disagrees about any of them, because a `head` governed differently would answer whether
 a node exists to a caller its own `get` would have refused, which is an oracle rather than a
 route. The answer carries no length, which section 9.3.2 permits: it asks for the same header
 fields as GET and allows omitting the ones determined while generating the content.
@@ -767,7 +912,14 @@ Each step is refusable, and each ends with something that runs.
    is decided: every `GET` declares one, and both reach the same handler. **Done.** Bodies are
    checked against the declared schema by a checker over the subset this wire carries, which is
    what §118 settles and why no schema library is taken.
-12. **The ACL**: the model in section 7, resolving against a real database.
+12. **The ACL**: the model in §114, resolving against a real database. **Done.** The rules are
+    decided against `IAclNode`, a seam of a document and a parent, so what a grant means is settled
+    without a password manager in the room and `KdbxNodes` is the only part that needs one. What the
+    host tier adds is the two things only KeePass can answer: an entry carries custom data at all,
+    which is a KDBX4 feature, and the parent chain really does reach the root from an entry. The
+    verb an operation needs is now read out of the routing table as an `AclVerb` rather than a
+    string, and an operation that declares none stops the plugin loading. Nothing is enforced yet:
+    this step is what a grant means, not where it is asked.
 13. **The editor**: the grant UI, the largest single piece and the last thing needed.
 14. **Intersection and audit**: the two answers combined, every decision recorded.
 15. **The database API**: the routes that read and change groups, entries, fields and attachments.

@@ -287,7 +287,8 @@ namespace KeePassGate.Tests
         {
             var document = SpecDocument.Parse(
                 "{\"openapi\":\"3.0.3\",\"info\":{\"title\":\"t\",\"version\":\"1\"},\"paths\":{" +
-                "\"/a\":{\"post\":{\"operationId\":\"writeA\",\"requestBody\":{\"required\":true," +
+                "\"/a\":{\"post\":{\"operationId\":\"writeA\",\"x-kpg-verb\":\"update\"," +
+                "\"requestBody\":{\"required\":true," +
                 "\"content\":{\"application/json\":{\"schema\":" + schema + "}}}," +
                 "\"responses\":{\"200\":{\"description\":\"o\"},\"415\":{\"description\":\"m\"}}}}}}");
 

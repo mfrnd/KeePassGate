@@ -218,7 +218,24 @@ something plausible rather than by failing.
 | **An exception thrown by work posted with `BeginInvoke` and left unobserved reaches `Application.ThreadException`**, whose default handler is a modal dialog. In a test host that pumps messages, that is a hang rather than a failure | a test that asserted `EndInvoke` rethrows never finished; it was deleted, because it was pinning behavior that predates the fix it was written beside |
 | **The desktop tests find a box by its `AccessibleName`, so that string has two jobs and only one right value.** The rule above says to leave `AccessibleName` off anything the desktop reads, and a `TextBox` is the case it does not cover: it has no caption, so with nothing set there is no name to search by at all. What goes there has to be the phrase a screen reader should say, and the driver has to look the box up by that | setting it to the lookup name instead announced `KpgInvitationBox` to a screen reader; setting it to the words broke `LivePairingTests` until the driver was pointed at the same constant. `Name` stays the lookup key for the in-process tests, which match on it and not on the accessible name |
 
-## 12. Reconstruction
+## 12. Grants in a real tree
+
+Established while building step 12. The rules themselves need no password manager; these are the
+three things about KeePass that the rules depend on and could not be reasoned out.
+
+| Fact | How it was established |
+| --- | --- |
+| **A `PwEntry` carries custom data of its own**, so a grant can be written on a single entry rather than only on the group holding it. It is a KDBX4 feature and there would be nowhere to put one in a KDBX3 file | wrote a document on an entry in a real KDBX4, saved, closed, opened the file again and resolved against it |
+| **An absent key reads back as null, not as an empty string**, on both a group and an entry, and both are the same `StringDictionaryEx` | asserted in the host tier, which is where a KeePass that changes it will say so. The resolver treats an empty string as absence anyway, because a key left blank rather than removed must not become a rule that will not read |
+| **`ParentGroup` is set by `AddEntry` and `AddGroup` with `takeOwnership` true**, on entries and groups alike, which is the whole of what inheritance walks | resolved a grant written on the root group from an entry three groups down |
+
+Two things this section deliberately does not claim. Nothing here was measured about **where** a rule
+is asked, because step 12 does not ask one: the resolver is not wired to the router. TODO(step 14): step 14 is
+where the two answers are combined. And the `GroupForm` snapshot hazard in section 9 applies to
+grants exactly as it applies to everything else in custom data. TODO(step 13): that is why the editor is step 13
+and not this one.
+
+## 13. Reconstruction
 
 The proofs were deleted once they had answered their questions. To rebuild any of them:
 
@@ -238,7 +255,7 @@ The proofs were deleted once they had answered their questions. To rebuild any o
 `TlsProbe.cs` on `spikes/tls-and-certificates` is kept because it answers the TLS question in
 isolation and is the cheapest way to re-check it on a new machine.
 
-## 13. What KeePass does with a change, measured
+## 14. What KeePass does with a change, measured
 
 **A `.kdbx` silently drops 2,079 of the 65,536 code points in the basic multilingual plane.** KeePass
 writes every unprotected string through `StrUtil.SafeXmlString`, which removes what XML 1.0 cannot
@@ -256,7 +273,7 @@ surrogate written raw in the text is passed through untouched, which is why the 
 worth having: `JsonBody` also reads documents out of a `.kdbx` this plugin did not write. Measured
 against the Json.NET this builds against, by printing the code points that came back.
 
-## 14. The gate, and where it can run
+## 15. The gate, and where it can run
 
 **A warning is not a failure, and under `Stop` it becomes one.** A native command writing to stderr
 raises a terminating error as soon as anything upstream merges the streams, which is what capturing

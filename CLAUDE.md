@@ -8,7 +8,7 @@ Guidance for anyone, human or AI assistant, working in this repository.
 mutual TLS, so that automation and AI agents can each be given a narrow, revocable, audited slice of
 a database.
 
-**Status: the design is settled and steps 1 to 11 of the build order are done.** The plugin loads
+**Status: the design is settled and steps 1 to 12 of the build order are done.** The plugin loads
 into KeePass, the KPG tab creates, recreates and deletes the database's own certificate authority,
 the gate listens on loopback and answers over mutual TLS 1.3, a client is served only if
 the database holds an admission record for its certificate, and **a stranger can now become one**:
@@ -16,8 +16,11 @@ the tab hands out an invitation, both sides prove they hold it, the operator app
 reach, and the record is written and saved before the certificate is handed over, and **a locked
 KeePass now answers `503 locked`** with a second host certificate held only in memory. **The routing
 table is now the OpenAPI document itself**: handlers bind to `operationId`, an undeclared path has
-nowhere to go, and a document that disagrees with the handlers stops the plugin loading. Step 12, the
-access control model, is next.
+nowhere to go, and a document that disagrees with the handlers stops the plugin loading. **What a
+grant means is now settled**: rules live in group and entry `CustomData`, nearest wins per profile,
+and every operation declares the verb it needs or the plugin does not load. Step 13, the editor an
+operator writes a rule with, is next, and step 14 is where the rules start being enforced: nothing
+asks them until the intersection with the admission record lands.
 
 ## Read these before proposing anything
 
@@ -161,9 +164,16 @@ designing around them.
   differently. The answer omits `Content-Length` rather than sending a wrong one, which
   RFC 9110 section 9.3.2 permits.
 - **A plain DLL on .NET Framework 4.8**, not a `.plgx`.
-- **The access control model is one document per node**, and its types arrive with step 12.
-  Grants live under a `KPG` key, which is this plugin's own namespace and touches nothing another
-  plugin owns.
+- **The access control model is one document per node**: `AclDocument`, `AclResolver`, `AclGrant`,
+  `AclVerb`, `AclDefault`, with `KdbxNodes` adapting a `PwGroup` or a `PwEntry`. Grants live under
+  a `KPG` key, which is this plugin's own namespace and touches nothing another plugin owns. The
+  document is one flat object of strings and arrays of strings, which is what `JsonBody` already
+  reads, so no parser arrives with the ACL.
+
+  **Nearest wins, per profile**, and profiles are combined with or. An empty array is a rule
+  granting nothing from there down; a profile the document does not name is silence, answered by
+  `default`. A document that will not read refuses where it is found rather than being skipped,
+  because walking past it would answer with a permission it may have been taking away.
 
   **There is no per-subject opt-in, and adding one would be a defect.** The ACL guards every route
   there is, because there is one API generation and no legacy to exempt. A setting that let a
@@ -426,9 +436,11 @@ here can hang or crash the password manager.
 
 ## Where to start
 
-[`DESIGN.md`](DESIGN.md) §132 ends with a multi-step build order. **Steps 1 to 11 are done.** The skeleton
-loads and shows a KPG tab, that tab creates, recreates and deletes the authority, and the gate
-serves one route over mutual TLS to a client the database holds an admission record for.
+[`DESIGN.md`](DESIGN.md) §132 ends with a multi-step build order. **Steps 1 to 12 are done.** The skeleton
+loads and shows a KPG tab, that tab creates, recreates and deletes the authority, the gate serves
+the document's routes over mutual TLS to a client the authority issued and the database holds a
+record for, a stranger can pair, a locked database answers `503 locked`, and a grant now means something
+definite even though nothing asks it yet.
 
 **The storage decision survived the thing most likely to invalidate it.** The `GroupForm` snapshot
 hazard is real and now measured rather than remembered: `SnapshotHazardTests` reads the mechanism off
@@ -437,11 +449,37 @@ step 8 built on: the settings dialog the KPG tab lives on carries **no** snapsho
 buttons are safe from their own dialog, and anything written while a **group** dialog is open is
 destroyed by its OK.
 
-**Step 12 is the ACL**: the model in `DESIGN.md` §114, resolving against a real database. What
-step 11 leaves it is `x-kpg-verb`, declared on every operation, all of them `none` so far, and
-carried through to `SpecOperation.Verb`, which nothing reads yet but the check holding a `head` to
-its `get`. That is where the authorization layer reads what an operation may do, so it never becomes
-an attribute in code that the document could disagree with.
+**Step 14 is the intersection and the audit**: the profiles from the admission record and the answer
+from the ACL, combined, and every decision recorded. Both halves are built and neither is wired to
+the other, which is the whole of what step 14 is. `AclDecision` already carries why as well as
+whether, and it names the node that decided by its UUID rather than by its title, because that is
+what a log can safely hold.
+
+**What step 12 settled about verbs.** A rule holds **six verbs and two switches**, which is
+`CRUSDLAP` and is the order they are declared, written and shown in. The verbs are create, read,
+update, strip, delete and list, and `list` sits below `read` because knowing an entry exists is not
+knowing what is in it. Removal is two verbs rather than one: `strip` is may remove the parts inside
+a node, `delete` is removals are allowed here, and removing a node asks for `delete` from the group
+it leaves and from itself.
+
+**A switch is not a verb**, and getting that wrong is the mistake worth naming: `attachments` does
+not mean "may read attachments" and `protected` does not mean "may read passwords". Each means "and
+those too", for whichever verbs the same rule grants. `.R...LA.` is read and list over entries and
+over the attachments inside them, and `.R...L.P` is read and list with the protected values in them.
+A rule holding switches and no verb grants nothing. **Neither switch is asked about for a removal**,
+because removing shows nobody anything and a rule that may remove an entry already takes everything
+in it, so `...S....` strips an attachment and a protected field alike. The routing table says
+separately, as `x-kpg-attachments`, whether an operation reaches that far, and declaring the switch
+as a verb stops the plugin loading, because no operation does attachments.
+
+A grant is a **set** rather than a rung on a ladder, so `create` without `read` is expressible, which
+is what an append-only agent wants.
+
+`x-kpg-verb` is read out of the document as an `AclVerb`, and an operation that declares none stops
+the plugin loading. It stays in the document rather than becoming an attribute in code so that the
+two cannot disagree, and `none` is a decision written down rather than a field left absent: the
+status route reads nothing, and pairing is authorized by a person reading a dialog rather than by a
+grant, because a client that is pairing holds no profiles yet.
 
 **Three things about the router that are decisions rather than details.** A caller with no
 certificate is refused the same way everywhere, so an undeclared path and one it may not use answer
