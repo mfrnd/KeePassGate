@@ -17,6 +17,7 @@
       Live     run the end to end tests, which start a throwaway KeePass on this desktop
       All      Test then Live
       Deploy   copy the plugin into the KeePass used for development
+      Run      deploy, then start that KeePass with the plugin in it
       Clean    remove build output
 
 .PARAMETER Task
@@ -40,7 +41,7 @@
 
 [CmdletBinding()]
 param(
-    [ValidateSet('KeePass', 'Build', 'Lint', 'Client', 'Unit', 'Host', 'Coverage', 'Test', 'Live', 'All', 'Deploy', 'Clean')]
+    [ValidateSet('KeePass', 'Build', 'Lint', 'Client', 'Unit', 'Host', 'Coverage', 'Test', 'Live', 'All', 'Deploy', 'Run', 'Clean')]
     [string] $Task = 'Test',
 
     [ValidateSet('Debug', 'Release')]
@@ -66,7 +67,7 @@ Set-StrictMode -Version Latest
 # Which tasks are not checks: a prerequisite, the two that only compose others, and the ones that
 # change something rather than judging it. Everything else is a check, which is the way round that
 # fails closed, because a task added and forgotten about is then checked rather than skipped.
-$notGates = @('KeePass', 'Test', 'All', 'Deploy', 'Clean')
+$notGates = @('KeePass', 'Test', 'All', 'Deploy', 'Run', 'Clean')
 
 # **A PowerShell 7 on the machine can leave this one unable to find its own cmdlets.** `pwsh` puts
 # its module directories at the front of `PSModulePath` and a Windows PowerShell started from it
@@ -815,6 +816,98 @@ function Invoke-Deploy {
     Write-Host "Deployed to $target" -ForegroundColor Green
 }
 
+# Deploy, then start the KeePass that was deployed into. The one thing this does that a person
+# doing it by hand forgets is starting the *provided* KeePass rather than whichever one is on the
+# `PATH`, which is how a plugin gets tested against a version nobody pinned.
+function Invoke-Run {
+    Invoke-Deploy
+    $keePass = Resolve-KeePass
+    $exe = Join-Path $keePass 'KeePass.exe'
+
+    # **An enforced configuration outranks every other**, the per-user one included, and this is the
+    # first task that executes out of that directory rather than only compiling against it. The
+    # pinned archive ships none, so one being there means somebody put it there, and KeePass would
+    # honor whatever it declares. What it can declare includes triggers that run programs.
+    # Refused rather than removed: deleting a file this script did not write is the worse of the
+    # two answers.
+    $enforced = Join-Path $keePass 'KeePass.config.enforced.xml'
+    if (Test-Path $enforced) {
+        throw "$enforced is not part of the pinned KeePass, and an enforced configuration outranks every other. Remove it, or name a different KeePass with -KeePassDir."
+    }
+
+    # **A configuration beside the executable**, which is the thing that keeps this KeePass off the
+    # one somebody keeps their real database in. The archive ships none, so without this there is
+    # no configuration in the application directory at all. KeePass then falls back to the per-user
+    # file for reading *and* for writing, and a launcher promising isolation would open an
+    # unreleased build inside the operator's own settings and save them back on the way out.
+    #
+    # Both settings are the end to end fixture's, for the reasons it gives: the update check blocks
+    # behind a modal dialog before any plugin loads, and single instance handling would hand the
+    # command line to a KeePass that is already running, so this would exit at once having started
+    # nothing.
+    $configPath = Join-Path $keePass 'KeePass.config.xml'
+    if (-not (Test-Path $configPath)) {
+        $document = @'
+<?xml version="1.0" encoding="utf-8"?>
+<Configuration>
+  <Application>
+    <Start>
+      <CheckForUpdate>false</CheckForUpdate>
+      <CheckForUpdateConfigured>true</CheckForUpdateConfigured>
+    </Start>
+  </Application>
+  <Integration>
+    <LimitToSingleInstance>false</LimitToSingleInstance>
+  </Integration>
+</Configuration>
+'@
+        Set-Content -Path $configPath -Value $document -Encoding UTF8
+    }
+
+    Write-Host ''
+    Write-Host "Starting $exe" -ForegroundColor Cyan
+
+    # The plugin's own two files, beside the KeePass being started rather than in this account's
+    # application data. Unset, both go where a real deployment on this machine writes its own, and
+    # a development session's lines push genuine ones out of files that roll.
+    #
+    # Put back afterwards, because `build.ps1` runs in the caller's own session and an environment
+    # this script set for one child should not outlive it.
+    $previousAudit = $env:KEEPASSGATE_AUDIT_FILE
+    $previousLog = $env:KEEPASSGATE_LOG_FILE
+    $log = Join-Path $keePass 'keepassgate.log'
+
+    try {
+        $env:KEEPASSGATE_AUDIT_FILE = Join-Path $keePass 'keepassgate-audit.jsonl'
+        $env:KEEPASSGATE_LOG_FILE = $log
+
+        # Started detached rather than waited on, because this is a launcher: the point is to get a
+        # KeePass with the plugin in it and hand the desktop back.
+        $process = Start-Process -FilePath $exe -WorkingDirectory $keePass -PassThru
+    }
+    finally {
+        $env:KEEPASSGATE_AUDIT_FILE = $previousAudit
+        $env:KEEPASSGATE_LOG_FILE = $previousLog
+    }
+
+    if (-not $process) {
+        throw "Nothing started from $exe."
+    }
+
+    # Asked rather than announced. A configuration KeePass will not read and a plugin that takes
+    # the process down both make it start and die at once, and that printed the same green line as
+    # a KeePass that is running. Telling those apart is the whole reason this task exists.
+    Start-Sleep -Milliseconds 750
+
+    if ($process.HasExited) {
+        throw "KeePass started and exited at once, with code $($process.ExitCode). $log is where the plugin would have said why."
+    }
+
+    Write-Host "KeePass $($process.Id) is running with the $Configuration build." -ForegroundColor Green
+    Write-Host 'Open a database, then look for the KPG tab under File, Database Settings.'
+    Write-Host "The plugin writes its log to $log."
+}
+
 function Invoke-Clean {
     # The coverage reports go too: they are what the tests wrote, as the binaries are what the
     # build wrote.
@@ -859,6 +952,7 @@ switch ($Task) {
     'Live' { Invoke-Live }
     'All' { Invoke-Test; Invoke-Live }
     'Deploy' { Invoke-Deploy }
+    'Run' { Invoke-Run }
     'Clean' { Invoke-Clean }
     default { throw "There is no case for task '$Task'. Every name the Task parameter allows needs one here, or a task would report success having run nothing." }
 }

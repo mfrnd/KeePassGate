@@ -1141,7 +1141,11 @@ Each step is refusable, and each ends with something that runs.
     verb in the document, a node selector beside the handler, and the router does the rest.
     [`API.md`](API.md) is the account of them, and `openapi.yaml` is the contract.
 16. **Running it**: two launchers that build, deploy and start the pinned KeePass with the plugin in
-    it, one per configuration.
+    it, one per configuration. **Done.** They exist because the step somebody does by hand between
+    a build and a look is the step they get wrong: starting whichever KeePass is on the `PATH`
+    rather than the one this repository pins and verifies, which is how a plugin comes to be judged
+    against a version nobody chose. Deploying is not enough on its own, since a plugin that is
+    present and not loaded looks exactly like one that is loaded and doing nothing.
 17. **A profile gets a home**: the set of names a database knows, stored with the authority, with a page
     of its own on the tab to manage them and a purge that takes a deleted one out of every rule.
 18. **The plugin's own window**: one item under KeePass's Tools menu, opening a window that says
