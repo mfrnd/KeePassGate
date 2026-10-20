@@ -40,8 +40,8 @@ The first version, so there is nothing earlier to describe a change from: everyt
   it hands back prints a value; its key can be kept under a password; a program can make the
   connection it goes over; field references are followed as KeePass follows them, under the
   client's own rules; `pykeepassgate.testing` is a stand-in gate for the tests of a program
-  built on it; and every command prints lines for a person or, with `-o json`, one document for a
-  program. Until the first release is published it is installed from a checkout.
+  built on it; and the command line has a command for every route, each printing lines for a
+  person or, with `-o json`, one document for a program. Until the first release is published it is installed from a checkout.
 - **A package for the release**: `build.ps1 -Task Package` zips the plugin and everything it loads,
   with its license and notices, beside a `SHA256SUMS`.
 

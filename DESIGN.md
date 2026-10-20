@@ -1547,6 +1547,12 @@ Each step is refusable, and each ends with something that runs.
     adding, changing and stripping an entry's fields, and adding, replacing and stripping its
     attachments; and `-o`/`--output` on every command, `plain` for what it prints today and
     `json` for a program, so that another format is one more choice rather than another switch.
+    **Done.** Until here a program driving the command line had the twelve routes it reached and
+    lines written for a person to read them from. What this settles is that the command line is
+    held to the routing table as the library is, a route with no command failing a test as a route
+    with no method does, and that both formats follow the read model's rules: a withheld value is
+    named and never printed as empty, and what the gate did not say is left out. `field`, which a
+    script reads one value with, fails on a withheld one rather than printing a word in its place.
 
 Steps 5 to 8 are the ones that prove the design. Step 5 is deliberately early, because the
 `CustomData` dialog hazard is the thing most likely to invalidate the storage decision, and finding
