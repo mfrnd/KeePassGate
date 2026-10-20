@@ -54,11 +54,11 @@ namespace KeePassGate.Diagnostics
         /// bytes and a key it may not be able to sign with, plus `InvalidOperationException`, which
         /// is what `AuthorityIssuer` refuses an authority whose own dates have passed with.
         ///
-        /// **That refusal is the ordinary state of an old database, not a defect here.**
-        /// `AuthorityStore.Read` ignores expiry deliberately, so an authority past its ten years is
-        /// served and reaches every site that issues. A site that does not name this lets the
+        /// **That refusal is the state of a database that old, not a defect here.**
+        /// `AuthorityStore.Read` ignores expiry deliberately, so an authority past its hundred years
+        /// is served and reaches every site that issues. A site that does not name this lets the
         /// exception travel to a catch-all, which reports it as something this plugin got wrong and
-        /// counts it on the KPG tab, while the operator is the only one who can act on
+        /// counts it on the operator's window, while the operator is the only one who can act on
         /// it: `CA.md` §219 has no reissue, and recreating the authority is what replaces one.
         /// </remarks>
         public static bool OfIssuance(Exception error)

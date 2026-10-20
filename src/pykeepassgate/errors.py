@@ -11,6 +11,8 @@ logged, printed, and pasted into an issue.
 
 from __future__ import annotations
 
+from typing import ClassVar
+
 
 class GateError(Exception):
     """Anything this library refuses or cannot do."""
@@ -82,41 +84,82 @@ class PairingUnanswered(PairingError):
     """Nobody answered the dialog. The invitation is not spent, so this can be tried again."""
 
 
-class GateBusy(GateError):
-    """The gate cannot serve this right now and the caller should try again.
+class GateUnavailable(GateError):
+    """The gate answered `503`: not now, and nothing was done.
 
-    A dialog open on the group or entry being written is the usual reason: the plugin
-    refuses a write that the dialog would take straight back off again when it is accepted.
+    The gate refuses with a `503` before it acts, every time, so this is the one refusal that says
+    nothing happened, and the only one this client will wait out. Why is the gate's word, kept as
+    `error`, and each word the gate is known to send has a class of its own below, because each
+    ends differently and a caller willing to wait out one is not necessarily willing to wait out
+    another. A word this client does not know, or none at all, is this class itself, and it is
+    never waited out: nothing here knows what ends it.
     """
 
-    def __init__(self, message: str, retry_after: float | None = None) -> None:
-        """Keep what the gate said about coming back, when it said it.
+    def __init__(self, message: str, error: str = "", retry_after: float | None = None) -> None:
+        """Keep the gate's word, and what the gate said about coming back, when it said it.
 
         On the exception rather than only on the response, because the response is gone by the
         time a caller sees this and because a retry loop that had to reach for it would be
-        inventing a delay instead. `None` is a refusal that said nothing readable.
+        inventing a delay instead. `None` is a refusal that said nothing readable, and an empty
+        `error` one that named no word.
         """
         super().__init__(message)
+        self.error = error
         self.retry_after = retry_after
 
 
-class DatabaseLocked(GateError):
-    """Every route answers this while the database is locked.
+class GateBusy(GateUnavailable):
+    """`503 busy`: KeePass is in the middle of something, and this waits until it is not.
+
+    A dialog open on the group or entry being written is the usual reason: the plugin refuses a
+    write that the dialog would take straight back off again when it is accepted. KeePass part way
+    through a save or an import, and a save that would stop to ask the operator something, are
+    the others, and a read meets it when the database kept changing while it was being read.
+    """
+
+    #: The word the gate sends with this refusal.
+    word: ClassVar[str] = "busy"
+
+    def __init__(self, message: str, retry_after: float | None = None) -> None:
+        """Keep what the gate said about coming back, when it said it."""
+        super().__init__(message, self.word, retry_after)
+
+
+class DatabaseLocked(GateUnavailable):
+    """`503 locked`: every route answers this while the database is locked.
 
     It names the lock and nothing else, deliberately: not which database, not whether the caller
     would have been admitted. A client learns that it should wait, which is the only thing it can
     act on.
+
+    Raised as well before anything is sent, when the handshake was answered with the responder
+    certificate only a locked database has, and then it says nothing about coming back, because
+    there is no response to have read a delay off at all. Its word is the same either way.
     """
 
-    def __init__(self, message: str, retry_after: float | None = None) -> None:
-        """Keep what the gate said about coming back, when it said it.
+    #: The word the gate sends with this refusal.
+    word: ClassVar[str] = "locked"
 
-        Often nothing: a locked database answers the handshake with a responder certificate, and
-        that is refused before a request is sent, so there is no response to have read a delay
-        off at all.
-        """
-        super().__init__(message)
-        self.retry_after = retry_after
+    def __init__(self, message: str, retry_after: float | None = None) -> None:
+        """Keep what the gate said about coming back, when it said it."""
+        super().__init__(message, self.word, retry_after)
+
+
+class AuthorityUndecided(GateUnavailable):
+    """`503 undecided`: the database holds more than one authority, and nobody has kept one.
+
+    Two copies of one database that each made an authority meet in a synchronize, and the
+    operator is asked at KeePass which to keep. Until somebody answers, every route answers this,
+    pairing included. It ends only when a person chooses, and it can end with the authority this
+    client belongs to not kept, after which this client reaches nothing and pairs again.
+    """
+
+    #: The word the gate sends with this refusal.
+    word: ClassVar[str] = "undecided"
+
+    def __init__(self, message: str, retry_after: float | None = None) -> None:
+        """Keep what the gate said about coming back, when it said it."""
+        super().__init__(message, self.word, retry_after)
 
 
 class NotAdmitted(GateError):

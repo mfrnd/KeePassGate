@@ -41,20 +41,7 @@ namespace KeePassGate.Tests.Fakes
 
         public static TestAuthority New()
         {
-            return New(null);
-        }
-
-        /// <summary>
-        /// The same database, minted by a clock the caller chooses, which is the only way to get
-        /// the one state a test cannot wait for: an authority whose ten years have run out.
-        /// </summary>
-        /// <remarks>
-        /// Such a database is served like any other, because `AuthorityStore.Read` ignores expiry
-        /// on purpose, and only issuing finds out. `CA.md` §219.
-        /// </remarks>
-        public static TestAuthority New(Func<DateTimeOffset> clock)
-        {
-            var issuer = new AuthorityIssuer(clock);
+            var issuer = new AuthorityIssuer();
             var authority = issuer.CreateAuthority();
 
             // Kept in both forms: the key material the managed TLS server serves with, and a
@@ -180,6 +167,12 @@ namespace KeePassGate.Tests.Fakes
             get { return false; }
         }
 
+        /// <summary>Never: this one is always served.</summary>
+        public string Unavailable
+        {
+            get { return null; }
+        }
+
         /// <summary>Set to fail the write after it was allowed to start.</summary>
         public AdmissionWrite AdmitAnswers { get; set; }
 
@@ -250,6 +243,41 @@ namespace KeePassGate.Tests.Fakes
             using (KeePassGate.Testing.PrivateKeyFiles.Lock())
             {
                 certificate = CertificateBlob.Load(CertificateBlob.Save(issued), X509KeyStorageFlags.Exportable);
+            }
+
+            _issued.Add(certificate);
+            return certificate;
+        }
+
+        /// <summary>A client certificate from this authority, lasting as long as the caller says.</summary>
+        /// <remarks>
+        /// Signed here rather than by the issuer, which gives every client a year: the warning on
+        /// the Certificate Authority page is drawn over a certificate's own life, so a test of it
+        /// needs lives the issuer does not give. Backdated as the issuer backdates, so the life is
+        /// the one an issued certificate would have.
+        /// </remarks>
+        public X509Certificate2 IssueClient(string subject, TimeSpan lifetime)
+        {
+            var now = DateTimeOffset.UtcNow;
+            X509Certificate2 certificate;
+
+            using (var key = ECDsa.Create(ECCurve.NamedCurves.nistP256))
+            {
+                var request = new CertificateRequest(
+                    new X500DistinguishedName("CN=" + subject), key, HashAlgorithmName.SHA256);
+
+                request.CertificateExtensions.Add(new X509BasicConstraintsExtension(false, false, 0, true));
+                request.CertificateExtensions.Add(new X509KeyUsageExtension(X509KeyUsageFlags.DigitalSignature, true));
+                request.CertificateExtensions.Add(new X509EnhancedKeyUsageExtension(
+                    new OidCollection { new Oid(AuthorityIssuer.ClientAuthOid) }, false));
+                request.CertificateExtensions.Add(AuthorityIssuer.AuthorityKeyIdentifierOf(_authority));
+
+                using (var issued = request.Create(
+                    _authority, now - AuthorityIssuer.Backdate, now + lifetime, AuthorityIssuer.NewSerialNumber()))
+                using (var withKey = issued.CopyWithPrivateKey(key))
+                {
+                    certificate = CertificateBlob.Load(CertificateBlob.Save(withKey), X509KeyStorageFlags.Exportable);
+                }
             }
 
             _issued.Add(certificate);
@@ -369,6 +397,12 @@ namespace KeePassGate.Tests.Fakes
                 if (locked != null)
                 {
                     locked.Retain();
+                }
+
+                var undecided = target as UndecidedTarget;
+                if (undecided != null)
+                {
+                    undecided.Retain();
                 }
             }
 

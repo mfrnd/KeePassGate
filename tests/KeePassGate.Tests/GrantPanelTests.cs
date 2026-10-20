@@ -301,6 +301,66 @@ namespace KeePassGate.Tests
             }
         }
 
+        [Test]
+        public void A_grant_the_seal_refuses_is_drawn_as_refused_rather_than_as_one_in_force()
+        {
+            // Sealing a node does not take away what a group above grants, it stops it arriving,
+            // and the row stays so that the operator can see what the seal is refusing. Drawn like
+            // every other inherited row it read as a permission in force, beside a check box whose
+            // whole text says it is not one.
+            var above = TestNode.Root("root").Granting("reader", AclVerb.Read, AclVerb.List);
+
+            using (var panel = Panel(new FakeGrantStore("{\"default\":\"deny\"}"), above))
+            {
+                var grid = ControlTree.FindByName<DataGridView>(panel, GrantTab.GridControlName);
+                var refused = Row(grid, "reader").Cells[GrantTab.MaskColumn];
+
+                Assert.That(refused.Style.Font, Is.Not.Null,
+                    "drawn in exactly the font of a rule that arrives");
+                Assert.That(refused.Style.Font.Strikeout, Is.True);
+
+                Assert.That(refused.ToolTipText, Does.Contain("no longer arrives"));
+                Assert.That(refused.ToolTipText, Does.Not.Contain("narrow"),
+                    "and narrowing is the opposite of what a rule written here would do");
+            }
+        }
+
+        [Test]
+        public void A_grant_rules_here_that_will_not_read_refuse_points_at_discarding_them()
+        {
+            // Refused as under a seal, but a rule cannot be chosen here until the unreadable one
+            // is discarded, so offering to choose one would offer a button that is not there.
+            var above = TestNode.Root("root").Granting("reader", AclVerb.Read, AclVerb.List);
+
+            using (var panel = Panel(new FakeGrantStore("{\"reader\":[\"purge\"]}"), above))
+            {
+                var grid = ControlTree.FindByName<DataGridView>(panel, GrantTab.GridControlName);
+                var refused = Row(grid, "reader").Cells[GrantTab.MaskColumn];
+
+                Assert.That(refused.Style.Font.Strikeout, Is.True);
+                Assert.That(refused.ToolTipText, Does.Contain("Discard"));
+                Assert.That(refused.ToolTipText, Does.Not.Contain("Choose a rule"));
+            }
+        }
+
+        [Test]
+        public void An_inherited_grant_that_does_arrive_is_drawn_plainly()
+        {
+            // The other half, or the mask would be struck through on every inherited row and say
+            // nothing about any of them.
+            var above = TestNode.Root("root").Granting("reader", AclVerb.Read, AclVerb.List);
+
+            using (var panel = Panel(new FakeGrantStore(null), above))
+            {
+                var grid = ControlTree.FindByName<DataGridView>(panel, GrantTab.GridControlName);
+                var arriving = Row(grid, "reader").Cells[GrantTab.MaskColumn];
+
+                Assert.That(arriving.Style.Font, Is.Null, "nothing is drawn through this one");
+                Assert.That(arriving.ToolTipText, Does.Contain("replace it"),
+                    "a rule chosen here replaces this one whether it grants less or more");
+            }
+        }
+
         private static DataGridViewRow Row(DataGridView grid, string profile)
         {
             foreach (DataGridViewRow row in grid.Rows)
@@ -496,6 +556,60 @@ namespace KeePassGate.Tests
 
                 Assert.That(panel.Lines, Is.EqualTo(new[] { "editor .R......" }));
                 Assert.That(panel.ProfileChoices, Is.EqualTo(new[] { "reader" }));
+            }
+        }
+
+        [Test]
+        public void A_rule_for_a_profile_the_database_no_longer_names_is_drawn_as_granting_nothing()
+        {
+            // Removing a profile leaves its rules where they were, and a client holds only the
+            // names the database still names, so this rule reaches nobody. It stays on the table,
+            // because adding the name again puts it back in force.
+            var above = TestNode.Root("root").Granting("retired", AclVerb.Read);
+
+            using (var panel = Panel(new FakeGrantStore("{\"ops\":[\"read\",\"list\"]}"), above))
+            {
+                var grid = ControlTree.FindByName<DataGridView>(panel, GrantTab.GridControlName);
+
+                foreach (var profile in new[] { "ops", "retired" })
+                {
+                    var inert = Row(grid, profile).Cells[GrantTab.MaskColumn];
+
+                    Assert.That(inert.Style.Font, Is.Not.Null, profile);
+                    Assert.That(inert.Style.Font.Strikeout, Is.True, profile);
+                    Assert.That(inert.ToolTipText, Does.Contain("grants nothing"), profile);
+                }
+
+                Assert.That(panel.ProfileChoices, Does.Not.Contain("ops").And.Not.Contain("retired"),
+                    "and the pick list still offers only what the database names");
+            }
+        }
+
+        [Test]
+        public void A_rule_stored_for_no_profile_is_drawn_as_granting_nothing_and_says_why()
+        {
+            // Struck through like every rule that reaches nobody, but not with their sentence,
+            // which says adding the profile again puts the rule back in force: no name can be
+            // added to put back a rule for no profile at all.
+            using (var panel = Panel(new FakeGrantStore("{\"\":[\"read\"]}"), null))
+            {
+                var grid = ControlTree.FindByName<DataGridView>(panel, GrantTab.GridControlName);
+                var mask = grid.Rows[0].Cells[GrantTab.MaskColumn];
+
+                Assert.That(mask.Style.Font, Is.Not.Null);
+                Assert.That(mask.Style.Font.Strikeout, Is.True);
+                Assert.That(mask.ToolTipText, Is.EqualTo(Tooltips.Wrapped(GrantTab.RuleWithoutProfile)));
+            }
+        }
+
+        [Test]
+        public void A_rule_for_a_profile_the_database_names_is_drawn_plainly()
+        {
+            using (var panel = Panel(new FakeGrantStore("{\"reader\":[\"read\"]}"), null))
+            {
+                var grid = ControlTree.FindByName<DataGridView>(panel, GrantTab.GridControlName);
+
+                Assert.That(Row(grid, "reader").Cells[GrantTab.MaskColumn].Style.Font, Is.Null);
             }
         }
 

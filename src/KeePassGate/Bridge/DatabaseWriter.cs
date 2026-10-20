@@ -55,7 +55,9 @@ namespace KeePassGate.Bridge
     ///   ends in `UpdateUIState`, which redraws the title bar and the menus and rebuilds neither
     ///   the group tree nor the entry list, so without this an operator watching the window sees
     ///   the database as it was before the request. `DESIGN.md` §119 has the argument and the
-    ///   seven arguments the redraw is made with.
+    ///   seven arguments the redraw is made with. **And so does a change taken back out**, whose
+    ///   failed save redrew the title bar while the change was still there: what it drew was a
+    ///   database with something to save.
     /// </remarks>
     public sealed class DatabaseWriter
     {
@@ -68,7 +70,7 @@ namespace KeePassGate.Bridge
         private readonly IUiThread _ui;
         private readonly Action<PwDatabase> _save;
         private readonly Func<string> _busy;
-        private readonly Action _redraw;
+        private readonly Action<PwDatabase, bool> _redraw;
         private readonly GroupDialogs _dialogs;
         private readonly IGateLog _log;
         private readonly Action _admitted;
@@ -76,13 +78,20 @@ namespace KeePassGate.Bridge
         private readonly object _writing = new object();
 
         /// <param name="redraw">
-        /// What tells KeePass that the tree and the list it is showing are out of date, run on the
-        /// user interface thread after a change has been made and saved. Null where there is no
-        /// window to tell, which is every test that is not about this and a host with no main
-        /// window.
+        /// What tells KeePass that its window is out of date about a database, run on the user
+        /// interface thread. It is handed the database, and whether the tree and the list are out of
+        /// date as well as the title bar and the menus: they are after a change that was made and
+        /// saved, and they are not after one that was taken back out, where the one thing wrong is
+        /// the mark saying there is something to save. Which database the window is showing is its
+        /// own business. Null where there is no window to tell, which is every test that is not
+        /// about this and a host with no main window.
         /// </param>
         public DatabaseWriter(
-            IUiThread ui, Action<PwDatabase> save, Action redraw, GroupDialogs dialogs, IGateLog log)
+            IUiThread ui,
+            Action<PwDatabase> save,
+            Action<PwDatabase, bool> redraw,
+            GroupDialogs dialogs,
+            IGateLog log)
             : this(ui, save, redraw, null, dialogs, log)
         {
         }
@@ -98,7 +107,7 @@ namespace KeePassGate.Bridge
         public DatabaseWriter(
             IUiThread ui,
             Action<PwDatabase> save,
-            Action redraw,
+            Action<PwDatabase, bool> redraw,
             Action admitted,
             GroupDialogs dialogs,
             IGateLog log)
@@ -122,7 +131,7 @@ namespace KeePassGate.Bridge
             IUiThread ui,
             Action<PwDatabase> save,
             Func<string> busy,
-            Action redraw,
+            Action<PwDatabase, bool> redraw,
             Action admitted,
             GroupDialogs dialogs,
             IGateLog log)
@@ -632,6 +641,95 @@ namespace KeePassGate.Bridge
             }
         }
 
+        /// <summary>
+        /// Keeps one of several authorities, retiring the rest and taking their documents away,
+        /// and marks the database modified without saving it.
+        /// </summary>
+        /// <remarks>
+        /// **The operator's answer in the authority chooser, and the one write here nobody waits on
+        /// from a connection.** It still goes through the same lock and the same questions as
+        /// every other write, because what it writes is exactly what Database Maintenance's
+        /// write-back undoes: a retirement written while that dialog is open is lost when it
+        /// closes, and a prune beside it is what turns a lucky key count into a write-back. So it
+        /// is refused while that dialog is open or while KeePass is part way through something of
+        /// its own, and the operator is told why.
+        ///
+        /// **Not saved, which is operator answer 5**: the database is marked, the window says so,
+        /// and the operator saves as they would any other change. Serving starts at once all the
+        /// same, because the gate reads the database in memory.
+        /// </remarks>
+        public AuthorityChange Keep(PwDatabase database, string fingerprint)
+        {
+            if (database == null || !database.IsOpen)
+            {
+                return AuthorityChange.Refused("the database is not open");
+            }
+
+            // Not waited for. This runs on KeePass's own thread, from the chooser, and a write
+            // holding the lock is waiting for exactly that thread to run its marshaled half: a
+            // wait here is the two waiting on each other until the timeout, with KeePass frozen.
+            if (!Monitor.TryEnter(_writing, TimeSpan.Zero))
+            {
+                return AuthorityChange.Refused("another change is being written, so choose again in a moment");
+            }
+
+            try
+            {
+                AuthorityChange outcome = null;
+
+                bool ran;
+                try
+                {
+                    ran = _ui.Run(() => outcome = KeepOnTheUiThread(database, fingerprint), WriteTimeout);
+                }
+                catch (Exception error) when (Expected.OfUserInterface(error) || Expected.OfCustomData(error))
+                {
+                    _log.Error("an authority could not be kept", error);
+                    return AuthorityChange.Refused(error.Message);
+                }
+
+                if (!ran && outcome == null)
+                {
+                    return AuthorityChange.Refused("the user interface did not answer in time");
+                }
+
+                return outcome ?? AuthorityChange.Refused("nothing was written");
+            }
+            finally
+            {
+                Monitor.Exit(_writing);
+            }
+        }
+
+        private AuthorityChange KeepOnTheUiThread(PwDatabase database, string fingerprint)
+        {
+            var interrupting = Interrupting();
+            if (interrupting != null)
+            {
+                return AuthorityChange.Refused(interrupting);
+            }
+
+            if (_dialogs != null)
+            {
+                var open = _dialogs.BlockingRecords(database);
+                if (open != null)
+                {
+                    return AuthorityChange.Refused(open);
+                }
+            }
+
+            var kept = new AuthorityService(new CustomDataStore(database), _log).Keep(fingerprint);
+            if (kept.Succeeded)
+            {
+                // The title bar and the menus only: a choice changes the database's own custom
+                // data, which the tree and the list do not show.
+                database.Modified = true;
+                Redraw(database, false);
+            }
+
+            return kept;
+        }
+
         private VaultWrite ChangeOnTheUiThread(PwDatabase database, Func<VaultChange> change)
         {
             if (!database.IsOpen)
@@ -774,28 +872,34 @@ namespace KeePassGate.Bridge
                     "the file on disk does not hold what KeePass wrote to it");
             }
 
-            // Last, and only here. Every path above either changed nothing or has just put its
-            // change back, and in both cases the window is already showing the database as it now
-            // is: neither the tree nor the list is rebuilt between the change and the undo, since
-            // nothing on this thread reads a `PwGroup` again until something asks it to.
-            Redraw();
+            // Last, and the only place the tree and the list are asked for. Every path above
+            // either changed nothing or has just put its change back, and in both cases they
+            // already show the database as it now is: neither is rebuilt between the change and
+            // the undo, since nothing on this thread reads a `PwGroup` again until something asks
+            // it to. What a put back does leave wrong is the mark saying there is something to
+            // save, which `PutBack` redraws on its own.
+            Redraw(database, true);
 
             return decided.Outcome;
         }
 
         /// <summary>
-        /// Tells KeePass that the tree and the list it is showing are out of date.
+        /// Tells KeePass that what its window shows of this database is out of date.
         /// </summary>
         /// <remarks>
         /// On this thread, which is the user interface one, and inside the writer's lock, so the
         /// window is redrawn from the database exactly as the change left it.
+        ///
+        /// <paramref name="lists"/> is whether the group tree and the entry list are out of date as
+        /// well as the title bar and the menus. Whether they are shown at all is the window's
+        /// question, since only the database in front has either on screen.
         ///
         /// **A window that will not redraw never fails the request.** By the time this runs the
         /// change is made and the file is written, and a client told its write failed writes again:
         /// that is a second entry under an identifier it was never given. A repaint that did not
         /// happen is a log line and an operator pressing something.
         /// </remarks>
-        private void Redraw()
+        private void Redraw(PwDatabase database, bool lists)
         {
             if (_redraw == null)
             {
@@ -804,7 +908,7 @@ namespace KeePassGate.Bridge
 
             try
             {
-                _redraw();
+                _redraw(database, lists);
             }
             catch (Exception error) when (Expected.OfUserInterface(error))
             {
@@ -858,6 +962,12 @@ namespace KeePassGate.Bridge
                     if (TheFileIsAsKeePassLeftIt(database, out what))
                     {
                         database.Modified = false;
+
+                        // The save that failed ended in `UpdateUIState` while the change was still
+                        // in, so the title bar and the save button say there is something to save.
+                        // Nothing is, now, and a window left saying so sends the operator looking
+                        // for a change the client was told did not happen, or saving to keep it.
+                        Redraw(database, false);
                     }
                     else
                     {
@@ -1096,14 +1206,15 @@ namespace KeePassGate.Bridge
         /// deciding, and a page told about a record that was taken out again would list a client
         /// the next request refuses.
         ///
-        /// **A page that fails to redraw never fails the write.** By the time this runs the record
-        /// is on the disk and the client is about to be handed its certificate, so a page that
-        /// failed to redraw is a page an operator can bring forward again; failing the pairing
-        /// over it would spend the invitation and give nothing back. What is caught is what
-        /// drawing can throw, the list `Expected.OfUserInterface` keeps. Anything else is a
-        /// defect in the listener and is not caught here, because this is not one of the places
-        /// that catch everything: it reaches the connection thread's, which counts it, and the
-        /// pairing ends with its record saved and no certificate handed over.
+        /// **A page that fails to redraw never fails the write.** By the time this runs the record is
+        /// on the disk and the client is about to be handed its certificate, so a page that failed
+        /// to redraw is a page an operator can bring forward again; failing the pairing over it
+        /// would spend the invitation and give nothing back. What is caught is what drawing can
+        /// throw, the list `Expected.OfUserInterface` keeps. Anything else is a defect in the
+        /// listener and is not caught here, because this is not one of the four places that catch
+        /// everything: it reaches the connection thread's, which counts it, and the pairing ends
+        /// with its record saved and no certificate handed over. The tab listens only once it is
+        /// whole, so the one listener there is cannot be told about a record half built.
         /// </remarks>
         private void Admitted()
         {
@@ -1192,6 +1303,10 @@ namespace KeePassGate.Bridge
                     if (TheFileIsAsKeePassLeftIt(database, out what))
                     {
                         database.Modified = false;
+
+                        // The title bar and the save button only, for the reason `PutBack` gives:
+                        // a save that failed drew the database as having something to save.
+                        Redraw(database, false);
                     }
                     else
                     {

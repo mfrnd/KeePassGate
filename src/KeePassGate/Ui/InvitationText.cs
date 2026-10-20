@@ -32,6 +32,16 @@ namespace KeePassGate.Ui
         public const string Copied = "The code is on the clipboard.";
 
         /// <summary>
+        /// Said when the copy button is pressed over a code that is no longer outstanding.
+        /// </summary>
+        /// <remarks>
+        /// It has run out or been spent since the page last looked, and the gate drops a
+        /// connection that presents it without saying anything, so nothing is copied and the box
+        /// is emptied: handing it over would send somebody off to fail.
+        /// </remarks>
+        public const string NotCopied = "That code is no longer outstanding, so nothing was copied.";
+
+        /// <summary>
         /// The clipboard is one lock the whole desktop shares, so any program can be holding it
         /// when we ask. The box is still on screen, so there is something the operator can do.
         /// </summary>

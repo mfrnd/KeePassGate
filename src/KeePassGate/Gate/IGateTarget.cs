@@ -129,6 +129,17 @@ namespace KeePassGate.Gate
         /// told to pair and the other is told to wait. `PAIRING.md` §308.
         /// </remarks>
         bool IsLocked { get; }
+
+        /// <summary>
+        /// The one word every connection to this database is answered with under `503`, or null
+        /// when it is served.
+        /// </summary>
+        /// <remarks>
+        /// `locked` for a locked database, and `undecided` for one holding several authorities
+        /// while the operator has not chosen between them. Both are answered before a request is
+        /// judged at all, because each has the same answer for every path, method and body.
+        /// </remarks>
+        string Unavailable { get; }
     }
 
     /// <summary>

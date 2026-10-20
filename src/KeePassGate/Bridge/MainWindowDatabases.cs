@@ -55,6 +55,10 @@ namespace KeePassGate.Bridge
             _mainWindow.FileCreated += OnFileCreated;
             _mainWindow.FileClosingPre += OnFileClosing;
             _mainWindow.FileClosed += OnFileClosed;
+
+            // A synchronize is announced only by the save it ends with, and that is what the
+            // authority chooser needs: the first moment a merge may have brought in a second one.
+            _mainWindow.FileSaved += OnFileSaved;
         }
 
         public event EventHandler<GateDatabaseEventArgs> Opened;
@@ -62,6 +66,8 @@ namespace KeePassGate.Bridge
         public event EventHandler Closing;
 
         public event EventHandler<GateDatabaseEventArgs> Closed;
+
+        public event EventHandler Saved;
 
         public void Dispose()
         {
@@ -79,10 +85,23 @@ namespace KeePassGate.Bridge
             _mainWindow.FileCreated -= OnFileCreated;
             _mainWindow.FileClosingPre -= OnFileClosing;
             _mainWindow.FileClosed -= OnFileClosed;
+            _mainWindow.FileSaved -= OnFileSaved;
 
             Opened = null;
             Closing = null;
             Closed = null;
+            Saved = null;
+        }
+
+        private void OnFileSaved(object sender, FileSavedEventArgs e)
+        {
+            var handler = Saved;
+            if (handler == null || e == null || !e.Success)
+            {
+                return;
+            }
+
+            handler(this, EventArgs.Empty);
         }
 
         private void OnFileCreated(object sender, FileCreatedEventArgs e)

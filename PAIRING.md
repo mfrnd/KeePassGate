@@ -118,12 +118,27 @@ sequenceDiagram
     CL->>CL: store, then discard the token
 ```
 
-**A pairing connection is measured against a budget of its own.** Every other connection has thirty
-seconds from accept to answer, which is what stops a peer holding a thread by feeding it a byte at a
-time. Phase 4 blows through that on purpose: the operator is given two minutes to read the dialog,
-the prompt waits a little longer than the dialog does, and the write and save that follow have
-timeouts of their own. So the moment the name resolves to an invitation, the connection's deadline
-is set again to `GateOptions.PairingBudget`.
+**A pairing connection is measured against a budget of its own.** Every other connection has a
+fixed span from accept to the end of its request, which is what stops a peer holding a thread by
+feeding it a byte at a time, and no deadline at all after that: what is left there is a write and a
+save that no number bounds, so a deadline could only ever close the socket while a write that is
+still going to land is landing.
+
+Phase 4 blows through it on purpose, and by more than one wait. The operator is given two minutes to
+read the dialog; a second pairing waits that long again just to get in front of them, since only one
+is put to the operator at a time; the prompt waits a little longer than the dialog does; and the
+write and save that follow have timeouts of their own. So the moment the request is off the wire,
+the connection's deadline is set again to `GateOptions.PairingBudget`, which outlasts all of them
+together: where every other connection's deadline is dropped at that point, a pairing's is raised.
+**That is the whole of the difference**: a pairing's remaining work is a list of waits somebody
+wrote down, so a number for it means something, where an ordinary write's remaining work is a save
+of unknown length.
+
+**Not when the name resolves**, which is earlier and asks for less. The reason for the longer
+budget is that the connection is about to wait on a person, and a connection that has named an
+invitation and sent nothing waits on nobody: granted there, one invitation would buy thirty-two
+silent connections six minutes of the gate each, which is the harm the locked case is guarded
+against, reachable all along against a database that was open.
 
 Closing the socket underneath phase 4 does not stop the pairing, which is what makes this worth
 saying. Everything after the dialog still happens: the certificate is issued, the invitation is
@@ -427,13 +442,12 @@ What a refusal says, and deliberately no more:
 | `400 name` / `400 profile` / `400 malformed` | it could never have been issued as asked |
 | `403 refused` | the operator said no, and the invitation is spent |
 | `504 unanswered` | nobody was at the screen. **Nothing is spent** |
-| `503 busy` | a dialog is open that would take the record back, KeePass is part way through a save, an import, a synchronize, an export or a message box of its own, or shows its progress window for one such as XML Replace, another pairing is already in front of the operator, or there is no screen to ask. **Nothing is spent**, and the client is never told which |
+| `503 busy` | a dialog is open that would take the record back, KeePass is part way through a save, an import, a synchronize, an export or a message box of its own, or shows its progress window for one such as XML Replace, saving the database would stop to ask the operator something, such as what to do about a file on disk that is not the one KeePass read, another pairing is already in front of the operator, or there is no screen to ask. **Nothing is spent**, and the client is never told which |
 | `500 not recorded` | the operator approved and the record did not reach the disk. **The invitation is spent** |
-| `500 internal error` | the operator approved and no certificate could be issued: the authority ran out while the dialog was open, or its key would not sign. **The invitation is not spent**, and the client starts again from a hello |
-| `500 expired host` | the host certificate this database answers with has run out, so no client paired now could connect. **Nothing is spent**, and no dialog was raised |
-| `500 expired authority` | this database's authority has run out, so it can sign nothing valid. **Nothing is spent**, and no dialog was raised |
+| `500 internal error` | the operator approved and no certificate could be issued: the authority's key would not sign, or the authority has outlived its hundred years. **The invitation is not spent**, and the client starts again from a hello |
+| `503 undecided` | the database holds more than one authority and the operator has not kept one. Answered before the request is read, as `503 locked` is, so **nothing is spent** |
 
-The `503` row is the one to be careful with. A caller learns that it should try later and nothing
+The `503 busy` row is the one to be careful with. A caller learns that it should try later and nothing
 about what is open on somebody's desk.
 
 **Every `503` is raised before the invitation is spent, and that is what makes it honest.** The
@@ -444,18 +458,17 @@ the same code will be turned away at the name on its next connection and dropped
 at all. Whether it was worth retrying goes to the operator's log, which is where somebody can act on
 it.
 
-**The `500`s are not the same kind of thing, and only the status they share is.** A record that
-did not land is this plugin failing partway through something it had started, and the invitation is
-gone with it. An authority that has run out is the ordinary state of a database nobody has touched
-for ten years, and it is refused where the other retryable conditions are, before the operator is
-disturbed and before anything is spent: an authority that signs nothing valid cannot end in a
-certificate, so raising a dialog would spend somebody's attention on an outcome already decided. It
-is not a `503` because retrying changes nothing until a person has acted, and what they have to do
-is recreate the authority, which is not something a client can wait out. A host certificate that has
-run out is the same state five years in, since it lives half as long, and is refused the same way:
-every later connection is served with it, and `CA.md` §219 has no reissue. `internal error` is that
-same check arriving late: the authority ran out, or would not sign, after the operator approved and
-before anything was issued, so the approval is lost and the invitation is not.
+**The two `500`s are not the same kind of thing, and only the status they share is.** A record
+that did not land is this plugin failing partway through something it had started, and the
+invitation is gone with it. `internal error` is a certificate that could not be issued once the
+operator had approved: the authority's key would not sign, or the authority has outlived its hundred
+years, which nothing refuses ahead of because nothing warns ahead of it either, `CA.md` §219.
+Nothing was issued, so the approval is lost and the invitation is not.
+
+**This replaces two refusals made before the dialog**, `500 expired authority` and
+`500 expired host`, which answered a ten-year authority and a five-year host certificate running
+out before anybody was disturbed. Issued together for a century, neither is a state a database
+reaches while anybody is minding it, and a check for it would be code that never runs.
 
 ## 10. What this deliberately does not defend §310
 

@@ -82,7 +82,7 @@ dotnet_diagnostic.CA5359.severity = none
 
 # CA2201: do not raise a reserved exception type. `GateIncidentsTests` constructs exactly
 # these, and does not raise them: they are handed to the `Expected` filters to prove that
-# the catch-alls report what nobody predicted rather than swallowing it. The rule
+# the four catch-alls report what nobody predicted rather than swallowing it. The rule
 # fires on the construction as much as on a throw, which is why it is off here rather than
 # left to the call site.
 dotnet_diagnostic.CA2201.severity = none

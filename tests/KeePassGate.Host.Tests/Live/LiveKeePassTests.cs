@@ -29,7 +29,8 @@ namespace KeePassGate.Host.Tests.Live
 
         private bool _tabWasFound;
         private string _tabsOnTheDialog;
-        private string _versionText;
+        private bool _statusWindowOpened;
+        private string _textOnTheStatusWindow;
         private string _statusText;
         private string _textOnTheTab;
         private bool _exited;
@@ -50,12 +51,24 @@ namespace KeePassGate.Host.Tests.Live
 
             if (tab != null)
             {
-                _versionText = keePass.TextStartingWith(dialog, "Version ");
                 _statusText = keePass.TextStartingWith(dialog, "This database ");
                 _textOnTheTab = Uia.Describe(dialog, ControlType.Text);
             }
 
             keePass.CloseDialog(dialog);
+
+            // The plugin's own window, from KeePass's own Tools menu, which is where the listening
+            // socket lives. The version is deliberately not repeated there, which is what the test
+            // further down this file asserts. Reached without a database dialog in the way, which is the point
+            // of it being there.
+            var status = keePass.OpenStatusWindow();
+            _statusWindowOpened = status != null;
+            if (status != null)
+            {
+                _textOnTheStatusWindow = Uia.Describe(status, ControlType.Text);
+                keePass.CloseDialog(status);
+            }
+
             _exited = keePass.ShutDown();
             _exitCode = keePass.ExitCode;
             _pluginLog = _session.KeePass.ReadPluginLog();
@@ -87,10 +100,27 @@ namespace KeePassGate.Host.Tests.Live
         }
 
         [Test]
-        public void The_tab_reports_the_version_that_was_loaded()
+        public void The_tools_menu_opens_the_plugin_s_own_window()
         {
-            Assert.That(_versionText, Is.EqualTo("Version " + GateVersion.Current),
-                "Text on the dialog was: " + _textOnTheTab);
+            Assert.That(_statusWindowOpened, Is.True,
+                "KeePass showed no " + GateTab.MenuItemText + " item under Tools, or it opened nothing.");
+        }
+
+        [Test]
+        public void That_window_does_not_repeat_what_KeePass_already_reports()
+        {
+            // It used to say which version was loaded. KeePass has a plugins dialog of its own that
+            // lists every plugin with its version, which is where somebody checking one looks and
+            // where the answer is right for all of them at once.
+            Assert.That(_textOnTheStatusWindow, Does.Not.Contain(GateVersion.Current),
+                "Text on the status window was: " + _textOnTheStatusWindow);
+        }
+
+        [Test]
+        public void That_window_says_where_the_gate_is_listening()
+        {
+            Assert.That(_textOnTheStatusWindow, Does.Contain("127.0.0.1:"),
+                "Text on the status window was: " + _textOnTheStatusWindow);
         }
 
         [Test]

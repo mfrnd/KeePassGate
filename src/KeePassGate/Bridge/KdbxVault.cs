@@ -966,7 +966,8 @@ namespace KeePassGate.Bridge
         /// An enumerator that sees that throws, and so does a copy being built out of a tree that
         /// grows underneath it.
         /// Neither is a defect here, and neither should reach the catch-all that reports one: an
-        /// agent reading while somebody types answered `500` and recorded a false incident.
+        /// agent reading while somebody types answered `500` and put a false incident on the
+        /// plugin's own window.
         ///
         /// **Taken again rather than locked**, because the lock that would settle this is
         /// KeePass's and there is not one to take. `Expected.OfCustomData` already names this race

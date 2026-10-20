@@ -173,9 +173,9 @@ namespace KeePassGate.Host.Tests
 
         /// <summary>The same measurement with visual styles on, in a domain made for it.</summary>
         /// <remarks>
-        /// **In a domain of its own**, because visual styles are turned on for a whole domain and
-        /// cannot be turned off again, so turning them on here would change what every later test
-        /// in this process measures.
+        /// **In a domain of its own**, for the reason `ChooserListsFitTests` gives: visual styles
+        /// are turned on for a whole domain and cannot be turned off again, so turning them on here
+        /// would change what every later test in this process measures.
         /// </remarks>
         private static GridFit[] Themed(float scaling)
         {

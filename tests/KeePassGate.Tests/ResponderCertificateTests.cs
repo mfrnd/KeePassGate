@@ -120,7 +120,7 @@ namespace KeePassGate.Tests
         {
             var life = _responder.NotAfter - _responder.NotBefore;
 
-            Assert.That(life, Is.LessThan(AuthorityIssuer.HostLifetime), "a responder is not a host certificate");
+            Assert.That(life, Is.LessThan(AuthorityIssuer.AuthorityLifetime), "a responder is not a host certificate");
             Assert.That(life.TotalDays, Is.EqualTo(
                 (AuthorityIssuer.ResponderLifetime + AuthorityIssuer.Backdate).TotalDays).Within(1));
 

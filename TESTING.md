@@ -16,6 +16,14 @@ fails in a way that names its own cause.
 .\build.ps1 -Task All      # everything
 ```
 
+**One category inside the unit tier draws rather than asserts.** `Gallery` builds each surface at
+the states that change its shape and writes a picture of it, into `.gallery` beside the solution or
+wherever `KPG_GALLERY_DIR` says. It runs with the ordinary tests, because it needs no KeePass, no
+desktop and no network, and because a picture nobody generates is a picture nobody looks at. Two
+things follow from its writing files: the directory is gitignored, and everything in it is rewritten
+on every run, so nothing meant to be kept belongs there. `docs/images` is the set that is committed,
+and a task of its own draws those.
+
 ## Why the unit tier does not reference KeePass
 
 Everything above the KeePass boundary is written against small interfaces: `IWindowEventSource`
@@ -129,6 +137,14 @@ group at that moment, so a rule written anywhere else would be destroyed exactly
 longer the only one that does. It is also the only one that moves the pointer, because neither
 column on that table can be typed into and a list is not something the accessibility tree can be
 asked to operate.
+
+**The authority chooser**, in `LiveAuthorityChooserTests`: two copies of one database each replace
+the authority they share and admit a client of their own, the copy KeePass opens is merged with the
+other through File, Synchronize, and the dialog that raises is answered through its own buttons. It
+is the one test that runs what the chooser's timing was read off KeePass to be: that a synchronize
+announces itself only by the save it ends with. While the dialog is open both clients are told
+`503 undecided`; once one authority is kept it serves at once, the other copy's client reaches
+nothing, and the database is marked changed and left unsaved until the test saves it.
 
 The client half of pairing lives in `tests/Shared/PairingClient.cs` and is compiled into **both**
 test assemblies. That is deliberate: if the loopback tests and the end to end test each had their

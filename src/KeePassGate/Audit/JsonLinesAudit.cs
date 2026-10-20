@@ -1,5 +1,8 @@
 using System;
+using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
+using System.Security.AccessControl;
 using System.Text;
 using KeePassGate.Diagnostics;
 using IoPath = System.IO.Path;
@@ -39,6 +42,11 @@ namespace KeePassGate.Audit
     ///
     /// **Where it is writing is said as it opens**, and so is having nowhere to write. See the
     /// constructor.
+    ///
+    /// **It asks for the right to append and no other**, so it goes on working on a file an
+    /// administrator has made append only, where it can no longer set the file aside. See
+    /// <see cref="Append"/>. That is an arrangement it works under rather than a protection it
+    /// gives, since code running as the user is conceded throughout.
     /// </remarks>
     public sealed class JsonLinesAudit : IGateAudit
     {
@@ -207,7 +215,7 @@ namespace KeePassGate.Audit
                         Directory.CreateDirectory(directory);
                     }
 
-                    File.AppendAllText(_path, line + Environment.NewLine, new UTF8Encoding(false));
+                    Append(line + Environment.NewLine);
                 }
                 catch (Exception error) when (Expected.OfStorage(error))
                 {
@@ -234,6 +242,142 @@ namespace KeePassGate.Audit
                               Decisions(_unrecorded) + " made while it could not be are not in it");
                     _unrecorded = 0;
                 }
+            }
+        }
+
+        /// <summary>
+        /// When each of these clients was last written down, from the file and the one set aside
+        /// before it, or null when neither could be read.
+        /// </summary>
+        /// <remarks>
+        /// **For a person choosing between authorities, and for nothing that decides anything.**
+        /// Which clients still use an authority is the best evidence of which one to keep, and the
+        /// audit is the only place that says. A client absent from the answer made no request the
+        /// two files still hold, which is not the same as never having connected, and whatever
+        /// shows this says so.
+        ///
+        /// **Cheap because the files are bounded**, which is what makes reading them on the user
+        /// interface thread acceptable: at most <see cref="RollAt"/> each, read once, line by line,
+        /// with the two members this needs found by position rather than by parsing the line.
+        /// `at` is always the first member and `client` is always written, so neither search can
+        /// be fooled by anything a node or a reason could hold: both are this plugin's own text.
+        ///
+        /// Shared for reading and writing both, so a decision being appended while this reads is
+        /// neither blocked nor lost.
+        /// </remarks>
+        public static IDictionary<string, DateTimeOffset> LastSeen(string path, ICollection<string> clients)
+        {
+            var seen = new Dictionary<string, DateTimeOffset>(StringComparer.Ordinal);
+            if (string.IsNullOrEmpty(path) || clients == null || clients.Count == 0)
+            {
+                return seen;
+            }
+
+            var wanted = new HashSet<string>(clients, StringComparer.Ordinal);
+            var read = false;
+
+            foreach (var file in new[] { path + ".1", path })
+            {
+                try
+                {
+                    if (!File.Exists(file))
+                    {
+                        continue;
+                    }
+
+                    using (var stream = new FileStream(
+                               file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
+                    using (var reader = new StreamReader(stream, Encoding.UTF8))
+                    {
+                        read = true;
+                        string line;
+                        while ((line = reader.ReadLine()) != null)
+                        {
+                            Seen(line, wanted, seen);
+                        }
+                    }
+                }
+                catch (Exception error) when (Expected.OfStorage(error))
+                {
+                    // One file that will not open says nothing about the other, and an answer from
+                    // one of them is still an answer.
+                }
+            }
+
+            return read ? seen : null;
+        }
+
+        private const string AtMember = "{\"at\":\"";
+        private const string ClientMember = "\"client\":\"";
+
+        private static void Seen(string line, HashSet<string> wanted, IDictionary<string, DateTimeOffset> seen)
+        {
+            if (!line.StartsWith(AtMember, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            var client = line.IndexOf(ClientMember, StringComparison.Ordinal);
+            if (client < 0)
+            {
+                return;
+            }
+
+            var keyStart = client + ClientMember.Length;
+            var keyEnd = line.IndexOf('"', keyStart);
+            var atEnd = line.IndexOf('"', AtMember.Length);
+            if (keyEnd < 0 || atEnd < 0)
+            {
+                return;
+            }
+
+            var key = line.Substring(keyStart, keyEnd - keyStart);
+            if (!wanted.Contains(key))
+            {
+                return;
+            }
+
+            DateTimeOffset at;
+            if (!DateTimeOffset.TryParseExact(
+                    line.Substring(AtMember.Length, atEnd - AtMember.Length),
+                    Moments.WireFormat,
+                    CultureInfo.InvariantCulture,
+                    DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal,
+                    out at))
+            {
+                return;
+            }
+
+            DateTimeOffset known;
+            if (!seen.TryGetValue(key, out known) || at > known)
+            {
+                seen[key] = at;
+            }
+        }
+
+        /// <summary>Adds text to the end of the file, asking for the right to append and no other.</summary>
+        /// <remarks>
+        /// **So that it works on a file an administrator has made append only.** Such a file gives
+        /// the account KeePass runs as the right to append and nothing else, beside the two rights
+        /// Windows asks for on every open, synchronize and read attributes. `File.AppendAllText`,
+        /// which this used, opens with `FileAccess.Write`, every write right at once: on that file
+        /// it was refused, and every decision went unrecorded for as long as the plugin ran. A
+        /// stream asking for `FileSystemRights.AppendData` alone is let in, and writes at the end.
+        /// Measured on .NET Framework 4.8 and pinned by
+        /// `A_file_that_allows_only_appending_refuses_AppendAllText_and_takes_the_append_right_alone`.
+        ///
+        /// It asks for no more on an ordinary file either, since appending is all this does. The
+        /// file is shared for reading, as `File.AppendAllText` shared it, so that whatever follows
+        /// the log can go on reading it.
+        /// </remarks>
+        private void Append(string text)
+        {
+            var bytes = new UTF8Encoding(false).GetBytes(text);
+
+            using (var stream = new FileStream(
+                       _path, FileMode.Append, FileSystemRights.AppendData, FileShare.Read, 4096, FileOptions.None))
+            {
+                stream.Write(bytes, 0, bytes.Length);
             }
         }
 

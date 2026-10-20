@@ -51,7 +51,7 @@ namespace KeePassGate.Host.Tests
             using (var panel = NewPanel())
             {
                 Assume.That(panel.AdmittedClients().Records.Count, Is.EqualTo(1));
-                Assert.That(panel.Revoke(record), Is.Null);
+                Assert.That(panel.Revoke(record.AdmissionKey), Is.Null);
             }
 
             // What the tab does is change the database and say there is something to save. This is
@@ -75,7 +75,7 @@ namespace KeePassGate.Host.Tests
 
             using (var panel = NewPanel())
             {
-                Assume.That(panel.Revoke(record), Is.Null);
+                Assume.That(panel.Revoke(record.AdmissionKey), Is.Null);
             }
 
             _database.CloseAndReopenWithoutSaving();
@@ -88,7 +88,7 @@ namespace KeePassGate.Host.Tests
 
         private AuthorityPanel NewPanel()
         {
-            return new AuthorityPanel(new OpenDatabase(_database.Database), null, NullGateLog.Instance, "1.2.3");
+            return new AuthorityPanel(new OpenDatabase(_database.Database), null, NullGateLog.Instance);
         }
 
         private AdmissionRecord Admit()

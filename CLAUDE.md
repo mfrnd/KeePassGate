@@ -8,7 +8,7 @@ Guidance for anyone, human or AI assistant, working in this repository.
 mutual TLS, so that automation and AI agents can each be given a narrow, revocable, audited slice of
 a database.
 
-**Status: steps 1 to 17 of the build order are done and the API is served.** The plugin loads
+**Status: steps 1 to 18 of the build order are done and the API is served.** The plugin loads
 into KeePass, the KPG tab creates, recreates and deletes the database's own certificate authority,
 the gate listens on loopback and answers over mutual TLS 1.3, a client is served only if
 the database holds an admission record for its certificate, and **a stranger can now become one**:
@@ -27,7 +27,8 @@ outside the database. **And there is an API**: twenty-two routes over groups,
 entries, fields and attachments, every one declaring the verb it needs and the node it is about, with
 `PyKeePassGate` covering all of them. **And a profile has a home**: the set of names a database
 knows lives beside the authority, with a page of its own to manage them, and a name taken off it
-grants nothing whatever rule still names it.
+grants nothing whatever rule still names it. **And the plugin has a window of its own**, under KeePass's Tools
+menu, saying where the gate is listening and taking the port it should listen on.
 
 ## Read these before proposing anything
 
@@ -96,11 +97,14 @@ designing around them.
   `KPG.Revoked.<key>` beside the emptied record, never changed and pruned once the certificate has
   expired; an authority is one key per authority, `KPG.Authority.<fp>`, written once, and one
   recreated or deleted gets `KPG.RetiredAuthority.<fp>` beside it, so which one is served is decided
-  by the retirements and never by counting documents. **This reverses two rules**: a revocation used
-  to be written empty rather than removed and the only authority lived under one key, both resting
-  on a merge carrying the newer value, which a dropped time, a slow clock or an import defeats. A
-  record that comes back beside its revocation is deleted by the plugin's next write, and recreating
-  or deleting the authority removes every record and every revocation with it. See CA.md §204.
+  by the retirements and never by counting documents. More than one authority with no retirement
+  serves nothing: every connection is answered `503 undecided`, and KeePass asks the operator which
+  to keep in a dialog over its main window, never raised from a connection. **This reverses two
+  rules**: a revocation used to be written empty rather than removed and the only authority lived
+  under one key, both resting on a merge carrying the newer value, which a dropped time, a slow
+  clock or an import defeats. A record that comes back beside its revocation is deleted by the
+  plugin's next write of its own, and recreating or deleting the authority removes every record
+  and every revocation with it. See CA.md §204.
 - **The authority takes the file to KDBX 4.1**, because a per-key modification time is a 4.1
   field. A database saved with an authority in it is a 4.1 file before anything has paired with
   it, and a record keeps it there. That is a format and not a gate: KeePass 2.47
@@ -141,10 +145,17 @@ designing around them.
   .NET Framework exposes no server-side SNI hook. Which TLS stack terminates it is the bullet
   below.
 - **Handlers catch what they named.** `Diagnostics/Expected` holds the lists, used as exception
-  filters. A few places catch everything, because in each of them an escaping exception ends
-  KeePass: the plugin entry point, the KeePass window event handlers, and the connection thread.
-  Those report through `GateIncidents`, which counts on the KPG tab and
-  logs at `UNEXPECTED`.
+  filters. Four places catch everything, because in those four an escaping exception ends KeePass:
+  the plugin entry point, the handlers of KeePass's window events, the settings dialog's close
+  among them, the Tools menu item, and the connection thread.
+  Those report through `GateIncidents`, which counts on the plugin's window under Tools and
+  logs at `UNEXPECTED`. Two more roots are kept safe another way: the accept thread and a
+  connection's deadline timer have nothing above them either, and rather than catching
+  everything, every call they make is total or filtered. `GateListener.Drop` says what keeps
+  that true. And two places catch everything without being a fifth, since each keeps what was
+  thrown and throws it again where one of the four sees it: `GateTlsServer`'s callbacks, because
+  Bouncy Castle turns whatever a callback throws into a fatal alert, and the call `ControlUiThread`
+  marshals, because WinForms would answer one escaping it with a dialog of its own.
 - **Everything on the KPG settings tab waits for that dialog's OK**, and this reverses an
   earlier decision rather than refining it. The tab used to write the moment a button was pressed,
   which was safe, because KeePass's database settings dialog holds no copy of the custom data this
@@ -186,19 +197,26 @@ designing around them.
   on those dialogs and any other plugin may add one, so every character spent there is width taken
   from everybody, and the icon does the work a long caption was doing. A menu item is a line of its
   own, costs nobody anything, and is the only place that can teach the abbreviation. `GateName` has
-  all three forms and every caption reads one of them. TODO(step 18): the menu item arrives with
-  the plugin's own window.
+  all three forms and every caption reads one of them.
 
-- **The plugin's own name carries KeePass's icon 29, `TerminalEncrypted`**, on all three tabs. Read
-  off `MainWindow.ClientIcons` rather than shipped as a resource, so it matches the window it is in
-  and follows a KeePass that restyles its icons, and copied every time because each copy is handed
-  to an image list that disposes it. **A tab strip shows
+- **The plugin's own name carries KeePass's icon 29, `TerminalEncrypted`**, on the Tools menu item
+  and on all three tabs. Read off `MainWindow.ClientIcons` rather than shipped as a resource, so it
+  matches the window it is in and follows a KeePass that restyles its icons, and copied every time
+  because each copy is handed to a menu or an image list that disposes it. **A tab strip shows
   pictures only if the whole control has an `ImageList`**, and none of the three dialogs brings one,
   so `TabPageInjector` gives it one and takes it away again on detach: that makes every tab on
   those dialogs a little taller, which WinForms offers no way around. `GateIconTests` pins both the
   icon's identity and the fact that KeePass brings no list of its own, because a KeePass that
   started putting icons on its own tabs would have us appending to somebody else's list.
 
+- **What is about the plugin is not on the KPG tab.** The listening socket and the port live
+  on the window `Plugin.GetMenuItem` puts under Tools, because that answer is the same whichever
+  database is open and is wanted when none is. The tab carries what is about the database it is on,
+  and nothing else. **The version is not shown on either**, which is a deletion rather than an
+  oversight: KeePass's own plugins dialog lists every plugin with its version, which is where
+  somebody checking one looks and where the answer is right for all of them at once. The menu item
+  is given a mnemonic of its own: `K`, since KeePass spends g, l, t, d, a, r, p and o on that
+  menu's own items.
 - **Nothing on a tab scrolls.** The content is held to 449 by 314 and has to fit it; horizontal
   scrolling is never acceptable. That is KeePass's own first page on the settings dialog, inside a
   padding of 3. The page this plugin adds has no padding and is laid out to the tab control's whole
@@ -352,6 +370,16 @@ a database's custom data. Each gathers what it settled in its own `RESULTS.md`. 
   disagreement, or a record admits a certificate whose stored bytes nobody ever checked and quietly
   carries a private key besides. `AdmissionRecord` does exactly that; measured by feeding a PFX to
   the byte constructor on .NET Framework 4.8 and printing all three numbers.
+- **`X509Certificate2.NotAfter` cannot hold a certificate that never expires.** RFC 5280 writes
+  "no well-defined expiration" as `99991231235959Z`, and `CertificateRequest` encodes it exactly
+  so. Read back, `NotAfter` converts to local time, and ahead of UTC that moment falls in the year
+  10000, which no `DateTime` holds: what comes back is `DateTime.MaxValue`, which converted back to
+  UTC is up to fourteen hours early, and nothing throws. Measured in this machine's own zone as
+  well as in simulated ones. The client's half is the same fact: `cryptography` reads the value
+  exactly, and moving that `datetime` into a zone ahead of UTC raises `OverflowError`. A hundred
+  years, the fallback the operator named, is read exactly by every reader on the path in every
+  zone tried. `LongLivedCertificateTests` on this side, and
+  `test_an_authority_and_a_host_good_for_a_hundred_years_are_accepted` on the client's.
 - **A KeePass merge of `PwDatabase.CustomData` visits the source's keys and no others, and never
   reads a value.** `PwDatabase.MergeInDbProperties` is the whole of it, run at the end of every
   `MergeIn`, which is File then Synchronize and File then Import alike. So no method removes a key
@@ -377,6 +405,24 @@ a database's custom data. Each gathers what it settled in its own `RESULTS.md`. 
   `ChannelBindingKind.Unique` returns something under TLS 1.3 where tls-unique is undefined; ignore
   it. `BindingProbe`.
 - **The SNI needs two labels.** 64 hex characters exceed the 63-octet DNS label limit.
+- **Bouncy Castle turns whatever a server callback throws into a fatal alert.** Its record layer
+  catches every exception on the way through and raises a `TlsFatalAlert` made from it, so a defect
+  in the plugin's own handshake code reaches the connection thread looking exactly like a peer
+  whose handshake failed, and was logged at `Info` as one. `GateTlsServer` keeps the first
+  exception its callbacks throw, in `Failure`, and the listener counts a handshake that failed with
+  one as an incident.
+  `GateListenerTests.A_handshake_this_side_fails_is_counted_rather_than_put_down_to_the_peer`.
+- **A `TcpClient` closed before its stream is taken answers `Client` with null.** `Dispose` clears
+  it on .NET Framework 4.8, so the timeout setters then throw `NullReferenceException` and
+  `GetStream` reads `Client` again: a lock closing an accepted connection before its thread's first
+  line was counted as a defect. `GateListener.Opened` reads the socket once, and null is a
+  connection that ended.
+  `GateListenerTests.A_connection_closed_before_its_thread_starts_is_one_that_ended`.
+- **Under TLS 1.3 a refused handshake's alert can lose the race to the reset behind it.** The gate
+  refuses and closes with the client's request unread, so the client's first read after the
+  handshake meets either the alert or the reset: a client half a second late to read lost the
+  alert five times in five. A test that asks why a handshake was refused reads the gate's log,
+  never what the client read, which is how the tests over `BouncyCastleGateClient` ask it.
 - **A locked document's close carries no path, and the document is what still knows it.** The lock
   ran `PwDatabase.Close` already, which resets the connection, so both `FileClosingPre` and
   `FileClosed` announce that document with an empty path. `PwDocument.LockedIoc` is where KeePass
@@ -448,6 +494,25 @@ a database's custom data. Each gathers what it settled in its own `RESULTS.md`. 
 - **`Button.PerformClick()` does nothing on a form that was never shown**, silently. What a button
   does is public on the form, as it is on the tab, so tests reach the decision rather than the
   control.
+- **A control made visible before its parent has a window gets a window of its own at once**, and
+  when the parent's arrives WinForms moves the control in `Controls` to where its window lands,
+  straight after the last sibling that already had one. Docking and flow order read `Controls`, so
+  they change with nothing in the code having asked: the two lines under the clients list swapped
+  places that way. `ClientList.OnLayout` puts its children back before docking reads them.
+- **GDI+ answers a font family it does not have with Microsoft Sans Serif**, and says nothing. A
+  font asked for by name is checked by name afterwards, which is how `AuthorityPanel.CodeFont`
+  settles on Consolas where it is installed and a monospaced family where it is not.
+- **`ToolTip` reads a tip right to left whenever the top-level form does**, whatever the control
+  under the pointer says, so a tip on a panel pinned left to right is still drawn right to left
+  under a right-to-left translation. `Tooltips.Wrapped` marks both ends of every line left to
+  right, and `TooltipsTests` pins the flag and the drawing.
+- **`dotnet test` with a filter that matches nothing exits 0**, having run nothing, and its trx
+  counts nothing. A gate that believes the exit code is green over an empty run, so `build.ps1`
+  reads each tier's trx and refuses one in which nothing executed, `Assert-Executed`.
+- **Windows PowerShell 5.1 passes an argument ending in a backslash so that the backslash escapes
+  the closing quote.** `-p:KeePassDevDir=C:\Program Files\KeePass\` reaches `dotnet` as one
+  argument that swallows the `--nologo` after it. `Resolve-KeePass` trims a trailing separator for
+  that reason, keeping it only on a drive root.
 - **C# 7.3 is available, and the packaging is why.** A `.plgx` would be recompiled by KeePass's
   in-box CodeDOM provider, which caps the language at C# 5. This ships a plain DLL and escapes that
   entirely; the probes are conservative only because `Add-Type` compiles them.
@@ -598,6 +663,11 @@ the tools this branch carries.
   file at a time under other work.
 - **Docs stay with code.** A behavior or architecture change updates the design documents in the
   same pass, and reversals are recorded rather than edited away.
+- **American English is checked, not only asked for.** cspell's own `en_US` dictionary accepts the
+  British doubled L, the past tense of cancel or dial spelled with two, and its language
+  dictionaries accept a British spelling or two in code, so `cspell.yaml` refuses about 250 British
+  spellings by name, in `flagWords`. A name that is somebody else's keeps its own spelling behind a
+  `cspell:ignore` where it is quoted.
 
 ## Security posture
 
@@ -614,7 +684,7 @@ here can hang or crash the password manager.
 
 ## Where to start
 
-[`DESIGN.md`](DESIGN.md) §132 ends with a multi-step build order. **Steps 1 to 17 are done.** The skeleton
+[`DESIGN.md`](DESIGN.md) §132 ends with a multi-step build order. **Steps 1 to 18 are done.** The skeleton
 loads and shows a KPG tab, that tab creates, recreates and deletes the authority, the gate serves
 the document's routes over mutual TLS to a client the authority issued and the database holds a
 record for, a stranger can pair, a locked database answers `503 locked`, a grant means something
@@ -623,8 +693,7 @@ anything the record and the rules do not both allow, recording every decision ei
 twenty-two routes read and change groups, entries, fields and attachments, and two launchers start
 the pinned KeePass with the plugin in it.
 
-**What is left**: the plugin's own window under the Tools menu, and the documentation for whoever
-runs it.
+**What is left**: the documentation for whoever runs it.
 
 **The storage decision survived the thing most likely to invalidate it.** The `GroupForm` snapshot
 hazard is real and now measured rather than remembered: `SnapshotHazardTests` reads the mechanism off
@@ -651,11 +720,12 @@ one is done on the row that is already there.
 
 **And the list decides what a client holds.** A client is given the profiles its record holds less
 every name not on the list, read beside the record on every request, so removing a profile touches
-the list and nothing else: a rule still naming it grants nothing, and adding the name back restores
-every rule and every client holding it, which the Profiles page and the approval dialog both say
-before it happens. This reverses a purge that took a removed name out of every rule, revisions
-included, and still lost to a stale copy merged in; see DESIGN.md §139. An unreadable list is an
-empty one, so every client stays admitted and reaches nothing.
+the list and nothing else: a rule still naming it grants nothing and the grant editor strikes it
+through, and adding the name back restores every rule and every client holding it, which the
+Profiles page and the approval dialog both say before it happens. This reverses a purge that took a
+removed name out of every rule, revisions included, and still lost to a stale copy merged in; see
+DESIGN.md §139. An unreadable list is an empty one, so every client stays admitted and reaches
+nothing.
 
 **What step 13 settled about the editor.** The tab is captioned `KPG` with the plugin's icon, and
 not "Access control", because another plugin may well put an access control page on the same dialogs
@@ -671,10 +741,16 @@ verb presses OK on the group dialog and closes it with the rule half made.
 A rule is a `CRUSDLAP` mask in a monospaced column rather than a row of check boxes, so two rules
 differ in the place the eye is already looking. Inherited rules are shown among the local ones in
 gray, because a table listing only what this node grants reports nothing for
-an entry that a group above already opens wide. And the editor never writes the same rules in other
-words. A node's custom data keeps no modification time, but the entry dialog compares the entry it
-hands back with the one it was given, so a rule respelled by a byte is a changed entry, with a
-revision in its history and the database marked modified, for having been looked at.
+an entry that a group above already opens wide. **A third state was missing and is now drawn**: a
+seal does not take away what a group above grants, it stops it arriving, so an inherited row the
+seal refuses keeps its place and carries a line through the mask. Gray was already spent saying the
+rule comes from elsewhere, which stays true either way, and the mask is where the eye already is.
+Its tooltip is replaced rather than extended, because the inherited one offers to replace a rule
+that arrives, and on that row nothing arrives: naming the profile is what lets the grant through
+again. And the editor never writes the same rules in other words. A node's custom data keeps no
+modification time, but the entry dialog compares the entry it hands back with the one it was
+given, so a rule respelled by a byte is a changed entry, with a revision in its history and the
+database marked modified, for having been looked at.
 
 **What step 14 settled about authorization.** The intersection is structural: the profiles handed to
 the resolver are the ones the admission record carries, less any the database's list no longer
@@ -745,9 +821,29 @@ request bodies strictly and says in its own comments where it stops being enough
 where step 11 began.
 
 **A pairing connection is measured against `GateOptions.PairingBudget` rather than `Budget`.** The
-ordinary thirty seconds is what stops a peer holding a thread by feeding it slowly, and phase 4
-exceeds it on purpose, because it is blocked on a person. Closing the socket there cancels nothing:
-the invitation is still spent and the record still saved, and only the answer is lost.
+ordinary budget is what stops a peer holding a thread by feeding it slowly, and phase 4 exceeds it
+on purpose, because it is blocked on a person. Closing the socket there cancels nothing: the
+invitation is still spent and the record still saved, and only the answer is lost.
+
+**The ordinary budget ends with the request, and only pairing's is a sum.** A connection's deadline
+is dropped once the whole request is off the wire, because that is where the peer stops being able
+to make the connection take longer: what is left is this plugin's own write and save. Pairing keeps
+its deadline, and that asymmetry is the argument rather than an exception to it, since a pairing's
+remaining work is a list of waits somebody wrote down: the screen, because one pairing at a time is
+put to the operator and a second waits as long again just to get in front of them, then the dialog
+and the grace on it, then the turn at the writer. `PairingBudget` is what those are added up
+against. `GateOptionsTests` still pins that one.
+
+**This used to claim a floor for both**, `DatabaseWriter.LockTimeout + DatabaseWriter.WriteTimeout`,
+and it was wrong: `WriteTimeout` bounds the wait for the marshaled call to *start*, and a call that
+has started is waited out with no clock on it. No sum of this plugin's timeouts bounds a save, which
+is a whole-database write of whatever size the database is on whatever storage it sits on: 201 MiB
+of attachments measured 80.6 seconds here, and a heavy KDF adds eight seconds a save. What the
+deadline destroyed was never the peer's grip on the thread but the answer to a write that landed
+anyway, leaving an agent to retry and make a second entry under an identifier it never saw. The test
+that pinned the floor is gone rather than rewritten, because what it asserted was a relation between
+two constants that bounded nothing; `GateListenerTests.A_write_that_outlasts_the_budget_is_still_answered`
+replaced it, over a real socket. See DESIGN.md §119.
 
 **Two things about records that cost time to learn.** They are read from the live database on every
 connection and never cached, so a record that lands takes effect with nothing having to be reloaded
@@ -755,7 +851,8 @@ or told: the KPG tab's clients page lists every admitted client and takes one aw
 the next request onwards that client is refused. **Landing is what waits now**, see the tab's own
 entry below: the row goes at once, the revocation lands when the dialog is accepted, and the file changes
 when the database is saved. Until then the certificate still works. The press itself goes into the
-dialog's buffer and cannot fail there. And a record written into the
+dialog's buffer and cannot fail there, so whether a revocation reached the database is said in the
+log when the dialog is accepted, not on the page. And a record written into the
 `.kdbx` file underneath a running KeePass is invisible to it and will be overwritten by its next
 save: KeePass serves the database it holds in memory, which is why pairing writes through the plugin
 rather than through the file.

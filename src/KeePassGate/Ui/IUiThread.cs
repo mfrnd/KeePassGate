@@ -43,7 +43,7 @@ namespace KeePassGate.Ui
         /// **Whatever the work threw is thrown here, on the calling thread**, rather than being
         /// reported as an answer, because there is no answer a failed write or a dialog that never
         /// opened could honestly give: true would claim it ran to completion and false would claim
-        /// it never started. Every caller already stands under one of the catch-alls, so an
+        /// it never started. Every caller already stands under one of the four catch-alls, so an
         /// exception nothing on the way up names is counted and logged there; the implementation
         /// over a `Control` says why it has to carry it rather than let it travel.
         /// </remarks>
@@ -142,7 +142,7 @@ namespace KeePassGate.Ui
         /// another: with a handler registered it fired on the user interface thread before
         /// `EndInvoke` was ever called, and with none registered WinForms went modal instead.
         ///
-        /// Nothing is absorbed here, which is what separates this from the places that catch
+        /// Nothing is absorbed here, which is what separates this from the four places that catch
         /// everything: the exception is carried to the thread that asked for the work and thrown
         /// there by `Rethrow`, which is where a filter can name it or a catch-all can count it.
         /// Recording it here instead would take a `GateFailure` a caller names away from the caller

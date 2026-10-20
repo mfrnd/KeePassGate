@@ -5,6 +5,11 @@
 # wherever a package happens to live.
 
 /.tmp/
+
+# What the gallery fixtures draw, for somebody to look at and nobody to keep. Rewritten on every
+# run and never published: `docs/images` is the set that is committed, because those are the ones a
+# reader of the documentation sees.
+/.gallery/
 /.vs/
 
 # What the coverage collector writes, one report per test assembly per run.

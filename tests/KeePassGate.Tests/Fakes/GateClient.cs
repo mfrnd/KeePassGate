@@ -5,6 +5,7 @@ using System.Net.Sockets;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
+using System.Threading;
 
 namespace KeePassGate.Tests.Fakes
 {
@@ -52,6 +53,41 @@ namespace KeePassGate.Tests.Fakes
 
         public static GateReply Send(int port, string serverName, X509Certificate2 certificate, byte[] request)
         {
+            return Send(port, serverName, certificate, request, TimeSpan.Zero);
+        }
+
+        /// <summary>
+        /// The same request, a byte at a time with a gap between them: the peer the connection
+        /// budget exists for, whose every read arrives inside the socket's timeout and whose
+        /// request is never finished.
+        /// </summary>
+        public static GateReply Dribble(
+            int port, string serverName, X509Certificate2 certificate, string request, TimeSpan gap)
+        {
+            return Send(port, serverName, certificate, Encoding.ASCII.GetBytes(request), gap, 0);
+        }
+
+        /// <summary>
+        /// Sends the head at once and the body after it a byte at a time, which is a peer that
+        /// announced a body and then feeds it slowly.
+        /// </summary>
+        public static GateReply DribbleBody(
+            int port, string serverName, X509Certificate2 certificate, string head, string body, TimeSpan gap)
+        {
+            var bytes = Encoding.ASCII.GetBytes(head + body);
+            return Send(port, serverName, certificate, bytes, gap, Encoding.ASCII.GetByteCount(head));
+        }
+
+        private static GateReply Send(
+            int port, string serverName, X509Certificate2 certificate, byte[] request, TimeSpan gap)
+        {
+            return Send(port, serverName, certificate, request, gap, 0);
+        }
+
+        /// <param name="promptly">How many bytes from the start go at once, before the gap applies.</param>
+        private static GateReply Send(
+            int port, string serverName, X509Certificate2 certificate, byte[] request, TimeSpan gap, int promptly)
+        {
             var reply = new GateReply();
 
             try
@@ -88,8 +124,15 @@ namespace KeePassGate.Tests.Fakes
                     {
                         tls.AuthenticateAsClient(serverName, certificates, SslProtocols.Tls13, false);
 
-                        tls.Write(request, 0, request.Length);
-                        tls.Flush();
+                        if (promptly > 0)
+                        {
+                            tls.Write(request, 0, promptly);
+                            tls.Flush();
+                        }
+
+                        var rest = new byte[request.Length - promptly];
+                        Array.Copy(request, promptly, rest, 0, rest.Length);
+                        Write(tls, rest, gap);
 
                         reply.Raw = ReadToEnd(tls);
                     }
@@ -117,6 +160,20 @@ namespace KeePassGate.Tests.Fakes
         /// <summary>Sends bytes that are not TLS at all, to see what the gate does with them.</summary>
         public static GateReply SendRaw(int port, byte[] bytes)
         {
+            return SendRaw(port, bytes, TimeSpan.Zero);
+        }
+
+        /// <summary>
+        /// The same, a byte at a time: a peer that has not offered a whole ClientHello yet and is
+        /// in no hurry to.
+        /// </summary>
+        public static GateReply DribbleRaw(int port, byte[] bytes, TimeSpan gap)
+        {
+            return SendRaw(port, bytes, gap);
+        }
+
+        private static GateReply SendRaw(int port, byte[] bytes, TimeSpan gap)
+        {
             var reply = new GateReply();
 
             try
@@ -128,8 +185,7 @@ namespace KeePassGate.Tests.Fakes
                     reply.Connected = true;
 
                     var stream = tcp.GetStream();
-                    stream.Write(bytes, 0, bytes.Length);
-                    stream.Flush();
+                    Write(stream, bytes, gap);
 
                     reply.Raw = ReadToEnd(stream);
                     reply.Answered = !string.IsNullOrEmpty(reply.Raw);
@@ -141,6 +197,33 @@ namespace KeePassGate.Tests.Fakes
             }
 
             return reply;
+        }
+
+        /// <summary>
+        /// Writes it all at once, or a byte at a time when there is a gap to keep between them.
+        /// </summary>
+        /// <remarks>
+        /// One byte per write rather than one per record or per read, because what is being
+        /// measured is a peer that keeps a connection alive by sending as little as it can as
+        /// slowly as it likes. The write is what fails when the gate gives up on it.
+        /// </remarks>
+        private static void Write(Stream stream, byte[] bytes, TimeSpan gap)
+        {
+            if (gap <= TimeSpan.Zero)
+            {
+                stream.Write(bytes, 0, bytes.Length);
+                stream.Flush();
+                return;
+            }
+
+            var single = new byte[1];
+            foreach (var b in bytes)
+            {
+                single[0] = b;
+                stream.Write(single, 0, 1);
+                stream.Flush();
+                Thread.Sleep(gap);
+            }
         }
 
         private static string ReadToEnd(Stream stream)

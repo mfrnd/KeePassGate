@@ -86,6 +86,26 @@ namespace KeePassGate.Host.Tests.Live
                 .FirstOrDefault(e => string.Equals(Identifier(e), id, StringComparison.Ordinal));
         }
 
+        /// <summary>
+        /// A descendant by the name the plugin gave the control, whatever it reports itself as.
+        /// </summary>
+        /// <remarks>
+        /// For a control whose type is the provider's business rather than ours. A `ListView` in
+        /// details view is reported as a `DataGrid`, not a `List`, so the chooser's list looked for
+        /// as a `List` was not found at all.
+        /// </remarks>
+        public static AutomationElement ById(AutomationElement root, string id)
+        {
+            if (root == null)
+            {
+                return null;
+            }
+
+            return root.FindFirst(
+                TreeScope.Descendants,
+                new PropertyCondition(AutomationElement.AutomationIdProperty, id));
+        }
+
         public static string Identifier(AutomationElement element)
         {
             try
@@ -166,6 +186,51 @@ namespace KeePassGate.Host.Tests.Live
                 .Where(n => !string.IsNullOrEmpty(n));
 
             return string.Join(", ", names);
+        }
+
+        /// <summary>
+        /// Every descendant as its control type, its identifier and the start of its name, for a
+        /// failure message that has to say what is there when what was expected is not.
+        /// </summary>
+        /// <remarks>
+        /// All three, because a lookup can miss on any of them, and a description of one type only
+        /// cannot say so: the chooser's list was looked for as a `List`, and the lists on the
+        /// dialog were described as nothing, while a `DataGrid` with the right identifier sat there.
+        /// </remarks>
+        public static string Inventory(AutomationElement root)
+        {
+            if (root == null)
+            {
+                return "(no window)";
+            }
+
+            var entries = root
+                .FindAll(TreeScope.Descendants, Condition.TrueCondition)
+                .Cast<AutomationElement>()
+                .Select(Entry);
+
+            return string.Join(", ", entries);
+        }
+
+        private static string Entry(AutomationElement element)
+        {
+            try
+            {
+                var current = element.Current;
+                var type = current.ControlType.ProgrammaticName.Replace("ControlType.", string.Empty);
+                var id = string.IsNullOrEmpty(current.AutomationId) ? "(no id)" : current.AutomationId;
+                var name = current.Name ?? string.Empty;
+                if (name.Length > 40)
+                {
+                    name = name.Substring(0, 40) + "...";
+                }
+
+                return name.Length == 0 ? type + " " + id : type + " " + id + " '" + name + "'";
+            }
+            catch (ElementNotAvailableException)
+            {
+                return "(gone)";
+            }
         }
 
         /// <summary>Everything visible, for a failure message that says what was actually there.</summary>

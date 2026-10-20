@@ -1,6 +1,7 @@
 using System;
 using System.Threading;
 using System.Windows.Forms;
+using KeePassGate.Tests.Fakes;
 using KeePassGate.Ui;
 using NUnit.Framework;
 
@@ -193,56 +194,15 @@ namespace KeePassGate.Tests
         }
 
         /// <summary>
-        /// Both ways a marshaled failure can arrive on the user interface thread instead of on the
-        /// thread that asked for the work.
-        /// </summary>
-        private sealed class Escapes
-        {
-            /// <summary>What WinForms caught in the window procedure and handed on.</summary>
-            public Exception Unhandled;
-
-            /// <summary>What came straight out of the message pump instead.</summary>
-            public Exception Loose;
-        }
-
-        /// <summary>
         /// Runs the message loop until the caller is finished, watching where a failure goes.
         /// </summary>
         /// <remarks>
-        /// The handler is registered for the length of the pump so that WinForms routes an escaped
-        /// marshaled exception into an assertion rather than into its own modal error dialog, which
-        /// would hang the run instead of failing it. That dialog on KeePass's thread is the defect
-        /// being pinned: KeePass registers no handler of its own, so an escape ends up in front of
-        /// the operator with a Quit button on it.
+        /// The watch itself is shared with the fixture over `Unattended`, because the two are
+        /// pinning the same escape from either side of it.
         /// </remarks>
         private static Escapes PumpWatchingForEscapes(Thread caller)
         {
-            var escapes = new Escapes();
-            ThreadExceptionEventHandler watch = (sender, e) => escapes.Unhandled = e.Exception;
-
-            Application.ThreadException += watch;
-            try
-            {
-                var until = DateTime.UtcNow + Patience;
-                while (!caller.Join(10) && DateTime.UtcNow < until)
-                {
-                    try
-                    {
-                        Application.DoEvents();
-                    }
-                    catch (Exception error)
-                    {
-                        // The other route out. WinForms leaves the exception in the window
-                        // procedure where a debugger is attached, and then the pump is what raises
-                        // it.
-                        escapes.Loose = error;
-                    }
-                }
-            }
-            finally
-            {
-                Application.ThreadException -= watch;
-            }
+            var escapes = Escapes.PumpUntil(() => caller.Join(10), Patience);
 
             Assert.That(caller.Join(Patience), Is.True, "the caller never came back");
             return escapes;

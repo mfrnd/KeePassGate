@@ -17,7 +17,7 @@ namespace KeePassGate.Ui
     /// and to whoever else adds a tab: five of KeePass's own are already on the entry dialog. The
     /// line at the top of the page says what the page is for, which is the job a longer caption
     /// would have been doing, and the item under the Tools menu is where the abbreviation is spelled
-    /// out. TODO(step 18): that menu item is what the plugin's own window step adds.
+    /// out.
     /// </remarks>
     public static class GrantTab
     {
@@ -123,6 +123,20 @@ namespace KeePassGate.Ui
         /// </remarks>
         public const string ProfileIsSettled =
             "A rule's profile cannot be changed, only removed and recreated.";
+
+        /// <summary>
+        /// What the mask of a rule for a profile the database no longer names says, which is why
+        /// it is struck through.
+        /// </summary>
+        /// <remarks>
+        /// A client holds only the names its record carries that the database still names, so a
+        /// rule for any other name reaches nobody. It stays on the node, and on the table, because
+        /// adding the name again puts it back in force, and that is worth seeing before doing it.
+        /// </remarks>
+        public const string ProfileNotNamed =
+            "This database no longer names this profile, so this rule grants nothing. Adding the "
+            + "profile again on the " + GateName.OnATab + " tab of the database settings puts it "
+            + "back in force.";
 
         public const string MaskColumnName = "KpgGrantMaskColumn";
 

@@ -3,7 +3,7 @@
 A KeePass 2.x plugin that serves a small, specification-defined HTTP API over mutual TLS, so that
 automation and AI agents can each be given a narrow, revocable, audited slice of a database.
 
-**Design settled, and the first seventeen steps are built.** The plugin loads into KeePass, the KPG tab
+**Design settled, and the first eighteen steps are built.** The plugin loads into KeePass, the KPG tab
 creates, recreates and deletes the database's own certificate authority, and the gate answers over
 mutual TLS 1.3 with the host certificate chosen from the rotating name in the ClientHello. A client
 is served only if the database holds an admission record for its certificate, so revoking one
@@ -107,6 +107,9 @@ uv sync
 uv run pykeepassgate pair --port 45678 --name agent-invented --profile-name reader
 uv run pykeepassgate status
 ```
+
+`45678` stands for the port the gate is listening on, which its window under **Tools**,
+**KeePassGate (KPG)**, shows: 51776 unless another has been chosen.
 
 The question a `pykeepass` user asks first is answered on `spikes/pykeepass-compatibility`, taken from
 `master` and never merged. Short version: not as a `PyKeePass` object, because that is a decrypted

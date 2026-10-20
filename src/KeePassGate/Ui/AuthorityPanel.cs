@@ -1,11 +1,15 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Linq;
+using System.Security.Cryptography.X509Certificates;
 using System.Windows.Forms;
 using KeePassGate.Acl;
+using KeePassGate.Audit;
 using KeePassGate.Authority;
 using KeePassGate.Diagnostics;
 using KeePassGate.Pairing;
+using KeePassGate.Pipeline;
 
 namespace KeePassGate.Ui
 {
@@ -72,12 +76,42 @@ namespace KeePassGate.Ui
         private readonly AuthorityService _service;
         private readonly Font _valueFont;
 
-        private readonly Font _tokenFont;
+        /// <summary>The invitation box's own font, built again whenever the panel's changes.</summary>
+        private Font _tokenFont;
+
         private readonly TabControl _tabs;
         private readonly FlowLayoutPanel _inviting;
 
         /// <summary>The labels that wrap, which are the ones a narrow tab has to be told about.</summary>
         private readonly List<Label> _wrapping = new List<Label>();
+
+        /// <summary>
+        /// What the anchor and the usage answered for each record's certificate, by admission key,
+        /// under the authority named by <see cref="_judgedBy"/>.
+        /// </summary>
+        /// <remarks>
+        /// Kept, because asking builds a chain per record, which was most of a redraw with a few
+        /// hundred clients, and because nothing changes the answer but the two certificates: the
+        /// admission key is the digest of the certificate its record holds, which loading the
+        /// record checks, and the authority is named by its own digest. Emptied whenever that
+        /// digest changes, and never given an answer from an engine that could not evaluate the
+        /// chain, which is a failure to be asked again rather than a fact. The dates are asked on
+        /// every redraw, since a clock does change them.
+        /// </remarks>
+        private readonly Dictionary<string, ClientReach> _judged =
+            new Dictionary<string, ClientReach>(StringComparer.Ordinal);
+
+        /// <summary>The digest of the authority <see cref="_judged"/> answers for, or null for none.</summary>
+        private string _judgedBy;
+
+        /// <summary>
+        /// The digest of the authority the invitation band was last drawn against, or null for
+        /// none, kept so that the band can follow the clock without reading the database again.
+        /// </summary>
+        private string _offered;
+
+        /// <summary>Wakes the invitation band when its line next changes, while a code is out.</summary>
+        private readonly Timer _ticking = new Timer();
 
         private readonly Label _status;
         private readonly TableLayoutPanel _facts;
@@ -86,15 +120,12 @@ namespace KeePassGate.Ui
         private readonly Button _create;
         private readonly Button _recreate;
         private readonly Button _delete;
+        private readonly Button _choose;
         private readonly Button _invite;
         private readonly TextBox _token;
         private readonly Button _copy;
         private readonly ToolTip _tips;
         private readonly Label _invitation;
-        private readonly IGateStatus _gate;
-        private readonly GateIncidents _incidents;
-        private readonly Font _titleFont;
-        private readonly Label _serving;
         private readonly ClientList _clients;
         private readonly Label _notice;
         private readonly ProfileList _profiles;
@@ -106,38 +137,33 @@ namespace KeePassGate.Ui
         /// </summary>
         internal IClipboard Clipboard { get; set; }
 
-        public AuthorityPanel(IGateDatabase database, IOperatorPrompt prompt, IGateLog log, string version)
-            : this(database, prompt, log, version, null, null, null, null, null)
+        public AuthorityPanel(IGateDatabase database, IOperatorPrompt prompt, IGateLog log)
+            : this(database, prompt, log, null, null)
         {
         }
 
         public AuthorityPanel(
-            IGateDatabase database, IOperatorPrompt prompt, IGateLog log, string version, IGateStatus gate)
-            : this(database, prompt, log, version, gate, null, null, null, null)
+            IGateDatabase database, IOperatorPrompt prompt, IGateLog log, IInvitations invitations)
+            : this(database, prompt, log, invitations, null)
         {
         }
 
-        public AuthorityPanel(
-            IGateDatabase database,
-            IOperatorPrompt prompt,
-            IGateLog log,
-            string version,
-            IGateStatus gate,
-            IInvitations invitations)
-            : this(database, prompt, log, version, gate, invitations, null, null, null)
-        {
-        }
-
+        /// <summary>
+        /// The tab, for one database.
+        /// </summary>
+        /// <remarks>
+        /// It takes what it is about and nothing else. The plugin's version and whether the gate is
+        /// listening used to arrive here too, and they were answers about the plugin rather than
+        /// about this database: they are the same whichever one is open, and are wanted when none
+        /// is. They live on the window the Tools menu opens, and this is what stopped needing them.
+        /// </remarks>
         public AuthorityPanel(
             IGateDatabase database,
             IOperatorPrompt prompt,
             IGateLog log,
-            string version,
-            IGateStatus gate,
             IInvitations invitations,
-            GateIncidents incidents,
             IProfiles profiles)
-            : this(database, prompt, log, version, gate, invitations, incidents, profiles, null)
+            : this(database, prompt, log, invitations, profiles, null)
         {
         }
 
@@ -155,39 +181,24 @@ namespace KeePassGate.Ui
             IGateDatabase database,
             IOperatorPrompt prompt,
             IGateLog log,
-            string version,
-            IGateStatus gate,
             IInvitations invitations,
-            GateIncidents incidents,
             IProfiles profiles,
             IAdmissionNotice admissions)
         {
-            if (version == null)
-            {
-                throw new ArgumentNullException(nameof(version));
-            }
-
             _database = database;
             Clipboard = SystemClipboard.Instance;
+            AskWhichToKeep = ShowChooser;
             _prompt = prompt ?? new MessageBoxPrompt();
             _log = log ?? NullGateLog.Instance;
-            _gate = gate;
-            _incidents = incidents;
             _invitations = invitations;
             _admissions = admissions;
-
-            if (_admissions != null)
-            {
-                _admissions.Landed += OnAdmitted;
-            }
 
             _service = database == null || !database.IsOpen
                 ? null
                 : new AuthorityService(database.PluginCustomData, _log);
 
-            _titleFont = new Font(SystemFonts.DefaultFont, FontStyle.Bold);
-
             Name = GateTab.PanelControlName;
+            AccessibleName = GateTab.PanelAccessibleLabel;
             Dock = DockStyle.Fill;
             Padding = new Padding(Spacing.Gap);
 
@@ -197,7 +208,13 @@ namespace KeePassGate.Ui
             // that outgrows the tab fails a test rather than appearing on somebody's screen.
             AutoScroll = false;
 
-            _valueFont = new Font(SystemFonts.DefaultFont, FontStyle.Bold);
+            // The prototype is disposed, because `SystemFonts.DefaultFont` hands back a new font
+            // every time it is read and `new Font(prototype, style)` copies rather than adopts.
+            // Without the `using`, every settings dialog opened leaves one behind.
+            using (var prototype = SystemFonts.DefaultFont)
+            {
+                _valueFont = new Font(prototype, FontStyle.Bold);
+            }
 
             _tabs = new TabControl
             {
@@ -228,39 +245,7 @@ namespace KeePassGate.Ui
                 PerformLayout();
             };
 
-            // What the plugin is and whether it is serving, above both pages, because neither
-            // answer depends on which page is in front.
-            var header = NewColumn(DockStyle.Top);
-
-            // The name and the version share a line rather than taking two, and the line about
-            // the socket goes tight under them: all three answer questions about the plugin
-            // rather than about this database, so they read as one band and are separated from
-            // what follows once rather than twice. The room that buys is what the headline
-            // under it spends on having air above as well as below.
-            var heading = NewRow(new Padding(0, 0, 0, Spacing.Tight));
-            heading.Controls.Add(new TextLabel
-            {
-                Name = GateTab.TitleLabelName,
-                Text = "KeePassGate",
-                Font = _titleFont,
-                AutoSize = true,
-                Margin = new Padding(0, 0, Spacing.Gap, 0)
-            });
-
-            heading.Controls.Add(new TextLabel
-            {
-                Name = GateTab.VersionLabelName,
-                Text = "Version " + version,
-                AutoSize = true,
-                Margin = new Padding(0)
-            });
-
-            header.Controls.Add(heading);
-
-            _serving = NewTextLabel(GateTab.ServingLabelName, new Padding(0, 0, 0, Spacing.Gap));
-            header.Controls.Add(_serving);
-
-            var authority = NewColumn(DockStyle.Fill);
+            var authority = NewColumn("KpgAuthorityColumn", DockStyle.Fill);
 
             // Air above as well as below, so it reads as the opening sentence of the page
             // rather than as a caption on whatever is over it or a label on the table under
@@ -290,10 +275,17 @@ namespace KeePassGate.Ui
             authority.Controls.Add(_facts);
             authority.Controls.Add(_detail);
 
-            var buttons = NewRow(new Padding(0, 0, 0, Spacing.Tight));
+            var buttons = NewRow("KpgAuthorityButtonRow", new Padding(0, 0, 0, Spacing.Tight));
             _create = NewButton(GateTab.CreateButtonName, GateTab.CreateButtonText, OnCreate);
             _recreate = NewButton(GateTab.RecreateButtonName, GateTab.RecreateButtonText, OnRecreate);
             _delete = NewButton(GateTab.DeleteButtonName, GateTab.DeleteButtonText, OnDelete);
+
+            // In Create's place rather than beside it, and shown only while there is a choice to
+            // make: Create has nothing to do in that state, and a fourth button in a row the page
+            // is barely wide enough for three of would not fit.
+            _choose = NewButton(GateTab.ChooseButtonName, GateTab.ChooseButtonText, OnChoose);
+            _choose.Visible = false;
+            buttons.Controls.Add(_choose);
             buttons.Controls.Add(_create);
             buttons.Controls.Add(_recreate);
             buttons.Controls.Add(_delete);
@@ -304,16 +296,16 @@ namespace KeePassGate.Ui
             // The button, the token it produces and the copy button sit on one line, and the box
             // takes whatever width is left over, so nothing here has a size that a wider or
             // narrower tab breaks.
-            var invitation = NewColumn(DockStyle.Top);
+            var invitation = NewColumn("KpgInvitationColumn", DockStyle.Top);
 
-            // A docked band is laid out edge to edge against what it is given, so its margin
-            // is never consulted and the space above it has to be padding.
+            // A docked band is laid out edge to edge against what it is given, so its margin is
+            // never consulted and the space above it has to be padding.
             invitation.Padding = new Padding(0, Spacing.Gap, 0, 0);
 
-            // Tight above, because the line over it is about the code this row hands out and
-            // the two read as one thing. Nothing below: what follows this band brings its own
-            // space.
-            _inviting = NewRow(new Padding(0, Spacing.Tight, 0, 0));
+            // Tight above, because the lines over it are about the code this row hands out and
+            // the three read as one thing. Nothing below: the list is what separates itself from
+            // this band, with its own top padding.
+            _inviting = NewRow("KpgInvitingRow", new Padding(0, Spacing.Tight, 0, 0));
             _invite = NewButton(GateTab.InviteButtonName, GateTab.InviteButtonText, OnInvite);
             _invite.Margin = new Padding(0, 0, Spacing.Gap, 0);
 
@@ -351,6 +343,8 @@ namespace KeePassGate.Ui
 
             _tips = new ToolTip();
             Tooltips.Set(_tips, _copy, GateTab.CopyButtonLabel);
+
+            _ticking.Tick += OnTick;
 
             _inviting.Controls.Add(_invite);
             _inviting.Controls.Add(_token);
@@ -395,7 +389,7 @@ namespace KeePassGate.Ui
             // an invitation, a copy and a revocation, and while this label lived on the authority
             // page an invitation that could not be made reported itself onto a page the operator
             // was not looking at.
-            var footer = NewColumn(DockStyle.Bottom);
+            var footer = NewColumn("KpgAuthorityFooter", DockStyle.Bottom);
             _result = NewTextLabel(GateTab.ResultLabelName, new Padding(0, Spacing.Gap, 0, 0));
 
             // Nothing to say means no room taken. The band sizes itself to its content, so an
@@ -417,10 +411,16 @@ namespace KeePassGate.Ui
             Controls.Add(_tabs);
             Controls.Add(footer);
 
-            // Last, so docking gives it the top band: what is added later takes its edge first.
-            Controls.Add(header);
-
             Describe();
+
+            // **Last, once there is a whole panel to tell.** The notice lives as long as the
+            // plugin, and a constructor that failed after subscribing left a panel nobody would
+            // ever dispose listening to it: the next pairing then drew into controls that were
+            // never built, with its record already on the disk.
+            if (_admissions != null)
+            {
+                _admissions.Landed += OnAdmitted;
+            }
         }
 
         /// <summary>
@@ -471,6 +471,56 @@ namespace KeePassGate.Ui
         }
 
         /// <summary>
+        /// Asks which of several authorities to keep, in the dialog KeePass's main window raises
+        /// for the same question, and keeps the answer. Nothing happens if none is kept.
+        /// </summary>
+        /// <remarks>
+        /// **The choice waits for this dialog's OK**, like everything else on the tab, and that is
+        /// a difference from the same dialog raised over the main window, whose choice is written
+        /// at once. A button on a tab inside a dialog with OK and Cancel on it that acted
+        /// immediately would be the one gesture here that Cancel does not undo, and the page reads
+        /// its own buffered writes, so it shows the kept authority straight away all the same.
+        /// </remarks>
+        public void ChooseAuthority()
+        {
+            Act(() =>
+            {
+                AuthorityChoice choice;
+                using (var reading = _service.Read())
+                {
+                    if (reading.Presence != AuthorityPresence.Undecided)
+                    {
+                        return null;
+                    }
+
+                    choice = AuthorityChoice.From(
+                        reading,
+                        new AdmissionStore(_database.PluginCustomData, _log).All(),
+                        clients => JsonLinesAudit.LastSeen(JsonLinesAudit.DefaultPath(), clients),
+                        _log);
+                }
+
+                var chosen = AskWhichToKeep(choice, _database.Name);
+                return chosen == null ? null : _service.Keep(chosen);
+            });
+        }
+
+        /// <summary>
+        /// Shows the chooser and answers with the digest kept, or null. Settable for the reason
+        /// <see cref="Clipboard"/> is: a test that put a modal dialog up would wait for somebody.
+        /// </summary>
+        internal Func<AuthorityChoice, string, string> AskWhichToKeep { get; set; }
+
+        private string ShowChooser(AuthorityChoice choice, string databaseName)
+        {
+            using (var form = new AuthorityChooserForm(choice, databaseName))
+            {
+                form.ShowDialog(FindForm());
+                return form.Chosen;
+            }
+        }
+
+        /// <summary>
         /// Creates an invitation and shows the token.
         /// </summary>
         /// <remarks>
@@ -512,7 +562,6 @@ namespace KeePassGate.Ui
             try
             {
                 string databaseId;
-                bool ended;
                 using (var reading = _service.Read())
                 {
                     if (!reading.IsPresent)
@@ -521,31 +570,7 @@ namespace KeePassGate.Ui
                         return;
                     }
 
-                    // **Nor against an authority that has run out.** `PAIRING.md` §311 refuses a
-                    // request on one before the operator is disturbed, so a code minted here is a
-                    // code its holder is told to throw away, and the operator finds that out from
-                    // whoever was setting the program up rather than from the page they made it
-                    // on. The button is dead in this state; this is what answers a clock that
-                    // crossed the expiry after the page was last drawn.
-                    //
-                    // Nor against a host certificate that has, for the same reason: the request is
-                    // refused before the dialog, and no client paired over it could connect.
-                    var now = DateTimeOffset.UtcNow;
-                    ended = CertificateValidity.HasExpired(reading.Material.Authority, now)
-                            || CertificateValidity.HasExpired(reading.Material.Host, now);
                     databaseId = reading.Material.AuthorityDigest;
-                }
-
-                // **Answered by the notice over the button, and by nothing under the pages.**
-                // Drawing the page again puts the notice up and kills the button, and the notice
-                // says which date passed, what fixes it and what that costs. The line under the
-                // pages used to say the same sentence, and from the next redraw it sat under the
-                // notice saying it again.
-                if (ended)
-                {
-                    Said(string.Empty);
-                    Describe();
-                    return;
                 }
 
                 var invitation = _invitations.Invite(databaseId);
@@ -604,6 +629,18 @@ namespace KeePassGate.Ui
                 return;
             }
 
+            // **Asked again at the press**, because the code in the box can have run out, or been
+            // spent, since the band was last brought up to date, and a copy of it is a code the
+            // gate drops without a word. The band is brought up to date instead, which empties the
+            // box and says there is no code.
+            var outstanding = OutstandingCodes(DateTimeOffset.UtcNow);
+            if (!outstanding.Any)
+            {
+                ShowOutstanding(outstanding);
+                Said(InvitationText.NotCopied);
+                return;
+            }
+
             try
             {
                 Clipboard.Set(_token.Text);
@@ -619,41 +656,60 @@ namespace KeePassGate.Ui
         /// <summary>Reads the database again and redraws. Safe to call at any time.</summary>
         public void Describe()
         {
-            // Settled where the database can be read and used where the page is drawn, which are
-            // two blocks with two different sets of failures. A describe that threw leaves this
-            // false and the notice hidden, which is the honest answer: an authority nobody could
-            // read is not an authority anybody can say has expired.
-            var expired = false;
-            var hostExpired = false;
+            // **Read once for the whole redraw**: the authority, the records, and how far each
+            // record gets with the gate. The page reads again every time it is asked to, because
+            // the database changes while this dialog is open; what it stopped doing is reading the
+            // same things several times over in one redraw. The authority was read three times and
+            // the records twice, and a chain was built for every record, which with two hundred
+            // clients was about 0.4 seconds on KeePass's own thread for every page switch, every
+            // button and every pairing that landed.
+            using (var reading = Read())
+            {
+                var admitted = AdmittedClients();
+                var reaches = Reaches(admitted, reading, DateTimeOffset.UtcNow);
 
+                DescribeAuthority(reading, admitted, reaches);
+                DescribeClients(admitted, reaches);
+            }
+        }
+
+        /// <summary>Whether the profiles page is the one showing.</summary>
+        /// <remarks>
+        /// False before the pages have a window, which is while the panel is being built: the page
+        /// has just drawn itself then, and nothing is in front of anybody yet.
+        /// </remarks>
+        private bool ProfilesInFront
+        {
+            get
+            {
+                var page = _tabs.SelectedTab;
+                return page != null && string.Equals(page.Name, GateTab.ProfilesPageName, StringComparison.Ordinal);
+            }
+        }
+
+        /// <summary>The first page, the invitation band and the buttons, from one reading.</summary>
+        private void DescribeAuthority(
+            AuthorityReading reading,
+            AdmissionListing admitted,
+            IDictionary<string, ClientReach> reaches)
+        {
             try
             {
-                var description = DescribeNow();
+                var description = DescribeNow(reading, admitted, reaches);
                 _status.Text = description.Headline;
 
-                // Written before the table is rebuilt rather than after it. `Draw` tears down and
-                // repopulates a `TableLayoutPanel` and is the likeliest thing on this path to
-                // throw; a header left saying where the gate was listening some minutes ago is a
-                // worse answer than one briefly ahead of the facts under it.
-                _serving.Text = GateStatusText.For(
-                    _gate, description.IsServed, _incidents == null ? null : _incidents.Summary);
-
                 Draw(description.Facts);
-                _detail.Text = string.Join(Environment.NewLine, description.Details);
+                _detail.Text = description.DetailText;
                 _create.Enabled = description.CanCreate;
                 _recreate.Enabled = description.CanRecreate;
                 _delete.Enabled = description.CanDelete;
+                _choose.Visible = description.CanChoose;
+                _create.Visible = !description.CanChoose;
 
-                // Carried out of this block, because what explains a dead invite button is drawn
-                // in the next one.
-                expired = description.HasExpired;
-                hostExpired = description.HostHasExpired;
-
-                // Inviting needs an authority that can still issue, which is narrower than
-                // what recreating and deleting need: `CanRecreate` is true of a damaged
-                // authority and of one past its own dates, and a code handed out in either is
-                // a code whose redemption answers with a failure about a state only the
-                // operator can do anything about.
+                // Inviting needs an authority that can issue, which is narrower than what
+                // recreating and deleting need: `CanRecreate` is true of a damaged authority, and
+                // a code handed out for one is a code whose redemption answers with a failure
+                // about a state only the operator can do anything about.
                 //
                 // And an authority the gate can see. One that is still waiting for this dialog's
                 // OK would hand out a code that cannot be spent, or worse, on a recreate, one that
@@ -673,32 +729,8 @@ namespace KeePassGate.Ui
                 // against one of the things it can say missed the other two, and the case it missed
                 // by name was a deleted authority, where the box kept a code for something that no
                 // longer exists.
-                var outstanding = OutstandingCodes();
-                _invitation.Text = outstanding.Text;
-
-                // Offering to renew a code only while there is one to renew: the first press
-                // renews nothing, and the line just set says so.
-                var caption = outstanding.Any ? GateTab.RenewInviteButtonText : GateTab.InviteButtonText;
-                if (!string.Equals(_invite.Text, caption, StringComparison.Ordinal))
-                {
-                    _invite.Text = caption;
-
-                    // The box beside it takes whatever width the button leaves, and that is worked
-                    // out in this panel's own layout, which a caption changing inside a row further
-                    // down is not guaranteed to reach.
-                    PerformLayout();
-                }
-
-                if (!outstanding.Any)
-                {
-                    _token.Text = string.Empty;
-                }
-
-                // Last, and after the box has been settled. Copying needs something to copy, which
-                // is a different question from whether a new invitation can be made, and reading it
-                // before the line above left the button enabled over an empty box: pressing it then
-                // did nothing at all, said nothing, and looked exactly like a clipboard failure.
-                _copy.Enabled = !string.IsNullOrEmpty(_token.Text);
+                _offered = reading != null && reading.IsPresent ? reading.Material.AuthorityDigest : null;
+                ShowOutstanding(OutstandingCodes(DateTimeOffset.UtcNow));
             }
             catch (Exception error) when (Expected.OfCustomData(error)
                                           || Expected.OfCryptography(error)
@@ -713,24 +745,37 @@ namespace KeePassGate.Ui
                 _delete.Enabled = false;
                 _invite.Enabled = false;
                 _copy.Enabled = !string.IsNullOrEmpty(_token.Text);
+                _ticking.Stop();
             }
+        }
 
-            // Outside the catch above, because a tab that failed to describe its authority and went
-            // on showing the clients it listed a minute ago would be lying about who can reach this
-            // database. Reading the records has its own refusal and answers with nobody, and so
-            // does reading the profiles.
+        /// <summary>The clients page, the profiles page and the notice, from the same reading.</summary>
+        private void DescribeClients(AdmissionListing admitted, IDictionary<string, ClientReach> reaches)
+        {
+            // Apart from the first page's catch, because a tab that failed to describe its
+            // authority and went on showing the clients it listed a minute ago would be lying about
+            // who can reach this database. Reading the records has its own refusal and answers
+            // with nobody, and so does reading the profiles.
             //
-            // Inside one of its own, though, because drawing is not reading a database: rows and
-            // window handles fail for reasons of their own, and this runs on the click of every
+            // Inside a catch of its own, though, because drawing is not reading a database: rows
+            // and window handles fail for reasons of their own, and this runs on the click of every
             // button on the tab. An exception leaving here would leave a click handler and reach
             // KeePass's message loop, which closes the dialog and reports nothing.
             try
             {
-                var admitted = AdmittedClients();
-                _clients.Fill(admitted, Strangers(admitted), NamedProfiles());
-                _profiles.Describe();
+                _clients.Fill(admitted, reaches, NamedProfiles());
 
-                _notice.Text = InviteNotice(expired, hostExpired);
+                // The profiles page only while it is the page in front. It counts every rule in the
+                // tree and every record, which on a large database is the slowest thing on the tab,
+                // and like every page it is read again whenever it is brought forward. Drawn on
+                // every redraw, it was counted for each button on the other two pages and twice as
+                // the dialog was built, once by its own constructor and once by this panel's.
+                if (ProfilesInFront)
+                {
+                    _profiles.Describe();
+                }
+
+                _notice.Text = InviteNotice();
                 _notice.Visible = _notice.Text.Length > 0;
             }
             catch (Exception error) when (Expected.OfUserInterface(error) || Expected.OfCustomData(error))
@@ -744,37 +789,20 @@ namespace KeePassGate.Ui
         /// </summary>
         /// <remarks>
         /// **One band, whichever reason applies**, because they answer one question and the page
-        /// is 449 by 314. Four of them share it: an authority waiting for this dialog's OK, a
-        /// profile list waiting for the same, an authority that has run out, and a host
-        /// certificate that has. All four are said, because a dead button with no sentence
-        /// anywhere on the tab about it leaves the operator nothing to act on.
+        /// is 449 by 314. Two of them share it: an authority waiting for this dialog's OK, and a
+        /// profile list waiting for the same. Both are said, because a dead button with no
+        /// sentence anywhere on the tab about it leaves the operator nothing to act on.
         ///
-        /// The two that are waiting come first, because they are the reasons that go away by
-        /// pressing OK, and the authority before the profiles because it is the one that stops a
-        /// code resolving at all. Waiting and expiry cannot both be true anyway: this page reads
-        /// its own unapplied writes, so an authority recreated a moment ago is current here while
-        /// it waits, and one waiting to be deleted is absent here rather than expired. When both
-        /// dates have passed the authority's is the one said, since the remedy is the same and
-        /// its date is the one the first page puts first.
+        /// The authority comes first, because it is the one that stops a code resolving at all.
         /// </remarks>
-        private string InviteNotice(bool expired, bool hostExpired)
+        private string InviteNotice()
         {
             if (AuthorityIsWaiting)
             {
                 return GateTab.PendingAuthorityNotice;
             }
 
-            if (ProfilesAreWaiting)
-            {
-                return GateTab.PendingProfilesNotice;
-            }
-
-            if (expired)
-            {
-                return GateTab.ExpiredAuthorityNotice;
-            }
-
-            return hostExpired ? GateTab.ExpiredHostNotice : string.Empty;
+            return ProfilesAreWaiting ? GateTab.PendingProfilesNotice : string.Empty;
         }
 
         /// <summary>Whether a profile edit is buffered and the list is about to change under a client.</summary>
@@ -826,62 +854,170 @@ namespace KeePassGate.Ui
         }
 
         /// <summary>
+        /// Puts what is outstanding on the clients page: the line, the caption, the box and the
+        /// copy button, and when the line next has to change.
+        /// </summary>
+        private void ShowOutstanding(Outstanding outstanding)
+        {
+            _invitation.Text = outstanding.Text;
+
+            // Offering to renew a code only while there is one to renew: the first press
+            // renews nothing, and the line just set says so.
+            var caption = outstanding.Any ? GateTab.RenewInviteButtonText : GateTab.InviteButtonText;
+            if (!string.Equals(_invite.Text, caption, StringComparison.Ordinal))
+            {
+                _invite.Text = caption;
+
+                // The box beside it takes whatever width the button leaves, and that is worked
+                // out in this panel's own layout, which a caption changing inside a row further
+                // down is not guaranteed to reach.
+                PerformLayout();
+            }
+
+            // A code that is no longer outstanding is a code that has been spent, has run out,
+            // or belonged to an authority that has since been deleted or replaced. In every one
+            // of those the box stops showing it: leaving it there put a code on screen beside a
+            // line saying there is none, and the one on screen was the one that no longer
+            // works, which is exactly the string somebody would copy and hand over.
+            //
+            // **Asked of the invitations rather than of the sentence.** Comparing the line
+            // against one of the things it can say missed the other two, and the case it missed
+            // by name was a deleted authority, where the box kept a code for something that no
+            // longer exists.
+            if (!outstanding.Any)
+            {
+                _token.Text = string.Empty;
+            }
+
+            // Last, and after the box has been settled. Copying needs something to copy, which
+            // is a different question from whether a new invitation can be made, and reading it
+            // before the line above left the button enabled over an empty box: pressing it then
+            // did nothing at all, said nothing, and looked exactly like a clipboard failure.
+            _copy.Enabled = !string.IsNullOrEmpty(_token.Text);
+
+            Schedule(outstanding);
+        }
+
+        /// <summary>
+        /// Wakes the clients page when its line next changes, for as long as a code is out.
+        /// </summary>
+        /// <remarks>
+        /// **The line counts down and the box empties on the clock, not only on a redraw.** It
+        /// used to be worked out when the page was drawn and at no other time, so an operator who
+        /// handed out a code and left the page in front was told it was good for ten more minutes
+        /// at minute eleven, with the code in the box and the copy button alive: the gate had
+        /// swept it by then and dropped every connection that used it, without a word. The line
+        /// counts whole minutes rounding up, so it changes as what is left crosses a whole minute,
+        /// and the code goes when nothing is left; the timer is set for the next of those and a
+        /// moment more. It stops when nothing is outstanding and when the panel goes. What
+        /// `AdmissionNotice` says against polling is about records, which only the writer can say
+        /// have landed; nothing announces a clock.
+        /// </remarks>
+        private void Schedule(Outstanding outstanding)
+        {
+            _ticking.Stop();
+
+            if (!outstanding.Any || outstanding.Expires == null)
+            {
+                return;
+            }
+
+            var left = outstanding.Expires.Value - DateTimeOffset.UtcNow;
+            var next = TimeSpan.FromTicks(Math.Max(0, left.Ticks) % TimeSpan.TicksPerMinute);
+            if (next <= TimeSpan.Zero)
+            {
+                next = TimeSpan.FromMinutes(1);
+            }
+
+            _ticking.Interval = (int)Math.Max(1, next.TotalMilliseconds + Late.TotalMilliseconds);
+            _ticking.Start();
+        }
+
+        /// <summary>
+        /// How long after a line's change or a code's end the page wakes, so that what it reads
+        /// then is on the far side of it.
+        /// </summary>
+        private static readonly TimeSpan Late = TimeSpan.FromMilliseconds(200);
+
+        /// <summary>
+        /// Brings the invitation band up to date with the clock. What the timer does, and public
+        /// for the reason every button's work is: a test cannot wait on a timer that no message
+        /// loop is running.
+        /// </summary>
+        /// <remarks>
+        /// Asks the invitations again, which is memory, and not the database: the authority's
+        /// digest is kept from the last reading.
+        /// </remarks>
+        public void Tick()
+        {
+            _ticking.Stop();
+
+            if (IsDisposed || Disposing)
+            {
+                return;
+            }
+
+            try
+            {
+                ShowOutstanding(OutstandingCodes(DateTimeOffset.UtcNow));
+            }
+            catch (Exception error) when (Expected.OfUserInterface(error))
+            {
+                _log.Warn("the invitation on the clients page could not be brought up to date: " + error.Message);
+            }
+        }
+
+        private void OnTick(object sender, EventArgs e)
+        {
+            Tick();
+        }
+
+        /// <summary>
         /// What the clients page says about outstanding codes, and whether there is one at all.
         /// </summary>
         /// <remarks>
         /// Two answers rather than one sentence, because the caller has to decide whether the box
         /// may go on showing a code and cannot work that out by reading the sentence: three
         /// different ones mean "nothing is outstanding", and testing for one of them missed the
-        /// other two.
+        /// other two. Against what the last reading found, kept in <see cref="_offered"/>.
         /// </remarks>
-        private Outstanding OutstandingCodes()
+        private Outstanding OutstandingCodes(DateTimeOffset now)
         {
             if (_invitations == null || _service == null)
             {
-                return new Outstanding(string.Empty, false);
+                return new Outstanding(string.Empty, false, null);
             }
 
-            using (var reading = _service.Read())
+            if (_offered == null)
             {
-                if (!reading.IsPresent)
-                {
-                    return new Outstanding(InvitationText.NoAuthority, false);
-                }
-
-                // **An authority that has run out is the same answer as one that is gone.** The
-                // invitation is still in the book and still live by its own clock, so a page that
-                // asked the book alone would count a code down with the copy button alive beside
-                // it; `PAIRING.md` §311 refuses the redemption, so what an operator copied and
-                // handed over would be answered with `500 expired authority`, and a host
-                // certificate that has run out is the same answer under `500 expired host`.
-                // Nothing burns it here, because a recreated authority has a different digest and
-                // this one is swept on its own expiry: what changes is only what the page offers.
-                //
-                // Said as nothing outstanding rather than as a reason. This line is about what is
-                // on offer, and an authority that cannot issue is what the button under it
-                // already refuses.
-                if (CertificateValidity.HasExpired(reading.Material.Authority, DateTimeOffset.UtcNow)
-                    || CertificateValidity.HasExpired(reading.Material.Host, DateTimeOffset.UtcNow))
-                {
-                    return new Outstanding(InvitationText.None, false);
-                }
-
-                var live = _invitations.For(reading.Material.AuthorityDigest);
-                return new Outstanding(
-                    InvitationText.For(live, DateTimeOffset.UtcNow), live != null && live.Count > 0);
+                return new Outstanding(InvitationText.NoAuthority, false, null);
             }
+
+            var live = _invitations.For(_offered);
+            if (live == null || live.Count == 0)
+            {
+                return new Outstanding(InvitationText.For(live, now), false, null);
+            }
+
+            var soonest = live.Min(invitation => invitation.Expires);
+            return new Outstanding(InvitationText.For(live, now), true, soonest);
         }
 
-        /// <summary>What the tab says about outstanding codes, and whether any of them is live.</summary>
+        /// <summary>
+        /// What the tab says about outstanding codes, whether any of them is live, and when the
+        /// soonest of them runs out.
+        /// </summary>
         private sealed class Outstanding
         {
             private readonly string _text;
             private readonly bool _any;
+            private readonly DateTimeOffset? _expires;
 
-            public Outstanding(string text, bool any)
+            public Outstanding(string text, bool any, DateTimeOffset? expires)
             {
                 _text = text ?? string.Empty;
                 _any = any;
+                _expires = expires;
             }
 
             public string Text
@@ -893,7 +1029,14 @@ namespace KeePassGate.Ui
             {
                 get { return _any; }
             }
+
+            /// <summary>When the soonest outstanding code runs out, or null when none is out.</summary>
+            public DateTimeOffset? Expires
+            {
+                get { return _expires; }
+            }
         }
+
 
         /// <summary>
         /// A record landed in some database, so what this tab draws from the records is stale.
@@ -909,8 +1052,10 @@ namespace KeePassGate.Ui
         ///
         /// The whole tab rather than the clients page alone, because a pairing writes a profile
         /// name beside the record whenever it approved one this database did not have, so the
-        /// profiles page is stale in exactly the same moment. Nothing here is typed into by the
-        /// operator: `ProfileList.Describe` rebuilds its grid and leaves the name box alone.
+        /// profiles page is stale in exactly the same moment: it is drawn again here when it is the
+        /// page in front, and when it is brought forward otherwise, like every page. Nothing here is
+        /// typed into by the operator: `ProfileList.Describe` rebuilds its grid and leaves the name
+        /// box alone.
         /// </remarks>
         private void OnAdmitted(object sender, EventArgs e)
         {
@@ -945,11 +1090,6 @@ namespace KeePassGate.Ui
                     _admissions.Landed -= OnAdmitted;
                 }
 
-                if (_titleFont != null)
-                {
-                    _titleFont.Dispose();
-                }
-
                 if (_valueFont != null)
                 {
                     _valueFont.Dispose();
@@ -961,14 +1101,48 @@ namespace KeePassGate.Ui
                 }
 
                 // A `ToolTip` is a component rather than a control, so it is not in `Controls` and
-                // nothing disposes it for us.
+                // nothing disposes it for us. The timer is one too, and stopping it is what keeps a
+                // tick from arriving at a panel that has gone.
                 if (_tips != null)
                 {
                     _tips.Dispose();
                 }
+
+                _ticking.Stop();
+                _ticking.Dispose();
             }
 
             base.Dispose(disposing);
+        }
+
+        /// <summary>
+        /// Gives the invitation box a monospaced font at the panel's new size.
+        /// </summary>
+        /// <remarks>
+        /// The box's font is its own, and a font set on a control is not one it inherits: built
+        /// once, it stayed at the size the panel had in its constructor while everything around it
+        /// followed the panel's font. A panel is given a larger font by a dialog whose font is not
+        /// the system's, as the page is attached, and by the scaled fit test, which measured the
+        /// row holding the box with the box at the unscaled size nobody sees. Nothing happens
+        /// before the box exists, because the constructor sets properties that lay the panel out.
+        /// </remarks>
+        protected override void OnFontChanged(EventArgs e)
+        {
+            base.OnFontChanged(e);
+
+            if (_token == null)
+            {
+                return;
+            }
+
+            var before = _tokenFont;
+            _tokenFont = CodeFont(Font.Size);
+            _token.Font = _tokenFont;
+
+            if (before != null)
+            {
+                before.Dispose();
+            }
         }
 
         /// <summary>
@@ -1099,10 +1273,11 @@ namespace KeePassGate.Ui
         }
 
         /// <summary>A stack of things, one under the next, that never wraps and never scrolls.</summary>
-        private static FlowLayoutPanel NewColumn(DockStyle dock)
+        private static FlowLayoutPanel NewColumn(string name, DockStyle dock)
         {
             return new FlowLayoutPanel
             {
+                Name = name,
                 Dock = dock,
                 FlowDirection = FlowDirection.TopDown,
                 WrapContents = false,
@@ -1115,10 +1290,11 @@ namespace KeePassGate.Ui
             };
         }
 
-        private static FlowLayoutPanel NewRow(Padding margin)
+        private static FlowLayoutPanel NewRow(string name, Padding margin)
         {
             return new FlowLayoutPanel
             {
+                Name = name,
                 FlowDirection = FlowDirection.LeftToRight,
                 AutoSize = true,
                 AutoSizeMode = AutoSizeMode.GrowAndShrink,
@@ -1260,8 +1436,8 @@ namespace KeePassGate.Ui
 
                 for (var at = 0; at < facts.Count; at++)
                 {
-                    _facts.Controls.Add(NewFactLabel(facts[at].Name, false), 0, at);
-                    _facts.Controls.Add(NewFactLabel(facts[at].Value, true), 1, at);
+                    _facts.Controls.Add(NewFactLabel(facts[at], false), 0, at);
+                    _facts.Controls.Add(NewFactLabel(facts[at], true), 1, at);
                 }
             }
             finally
@@ -1270,11 +1446,12 @@ namespace KeePassGate.Ui
             }
         }
 
-        private Label NewFactLabel(string text, bool value)
+        private Label NewFactLabel(Fact fact, bool value)
         {
             return new TextLabel
             {
-                Text = text,
+                Name = fact.ControlName(value),
+                Text = value ? fact.Value : fact.Name,
                 AutoSize = true,
                 Font = value ? _valueFont : Font,
 
@@ -1290,55 +1467,56 @@ namespace KeePassGate.Ui
             };
         }
 
-        private AuthorityDescription DescribeNow()
+        /// <summary>
+        /// The authority as the database holds it now, or null when there is no database to read.
+        /// </summary>
+        /// <remarks>
+        /// **Asked of the database, not of the store it hands out.** The database can be gone by
+        /// now: KeePass locks or closes it while this dialog is open, which is a state
+        /// `PendingDatabase.Apply` names and answers. What that leaves is a store over nothing,
+        /// never a null one, because every implementation here builds one on demand and the tab's
+        /// own buffer wraps whatever that answers with. Reading through it finds no keys, which
+        /// reads exactly like a database that has no authority yet, so the tab offered Create for a
+        /// database that was not there. `IsOpen` is the question with an answer, and
+        /// `AdmittedClients` and `Revoke` were already asking it.
+        /// </remarks>
+        private AuthorityReading Read()
         {
-            if (_service == null)
-            {
-                return AuthorityDescription.NoDatabase();
-            }
+            return _service == null || !_database.IsOpen ? null : _service.Read();
+        }
 
-            // **Asked of the database, not of the store it hands out.** The database can be gone
-            // by now: KeePass locks or closes it while this dialog is open, which is a state
-            // `PendingDatabase.Apply` names and answers. What that leaves is a store over nothing,
-            // never a null one, because every implementation here builds one on demand and the
-            // tab's own buffer wraps whatever that answers with. Reading through it finds no keys,
-            // which reads exactly like a database that has no authority yet, so the tab offered
-            // Create for a database that was not there. `IsOpen` is the question with an answer,
-            // and `AdmittedClients` and `Revoke` were already asking it.
-            if (!_database.IsOpen)
-            {
-                return AuthorityDescription.NoDatabase();
-            }
-
-            // Asked for again rather than remembered, for the reason `OpenDatabase` gives: a
-            // database that is locked and opened again comes back with its custom data replaced.
-            var store = _database.PluginCustomData;
-
-            using (var reading = _service.Read())
-            {
-                // The records only. What this builds is the expiry warnings, and a listing that
-                // The listing itself, not its records: whether it could be made at all is what
-                // tells a database that admitted nobody from one this could not read, and the two
-                // say opposite things to an operator deciding whether to recreate the authority.
-                return AuthorityDescription.Of(
-                    reading, new AdmissionStore(store, _log).All(), DateTimeOffset.UtcNow);
-            }
+        /// <summary>What the first page says, from the redraw's one reading.</summary>
+        /// <remarks>
+        /// The listing itself rather than its records: whether it could be made at all is what
+        /// tells a database that admitted nobody from one this could not read, and the two say
+        /// opposite things to an operator deciding whether to recreate the authority. And how far
+        /// each record gets with the gate, so that the expiry warnings count the records the
+        /// clients page lists as clients and no others.
+        /// </remarks>
+        private static AuthorityDescription DescribeNow(
+            AuthorityReading reading, AdmissionListing admitted, IDictionary<string, ClientReach> reaches)
+        {
+            return reading == null
+                ? AuthorityDescription.NoDatabase()
+                : AuthorityDescription.Of(reading, admitted, reaches, DateTimeOffset.UtcNow);
         }
 
         /// <summary>
         /// How many clients are admitted, read now rather than remembered.
         /// </summary>
         /// <remarks>
-        /// This reads the whole authority to get one integer, which imports two PKCS#12 blobs to
-        /// parse certificates nothing here looks at. Caching it from the last `Describe` was
-        /// tried and reverted: a panel can be asked to confirm before it has ever described
-        /// itself, and the number would then be zero in a sentence telling the operator what
-        /// they are about to lose. A wrong count there is worse than a slow one.
+        /// This reads the whole authority to get one integer, which imports two PKCS#12 blobs and
+        /// builds the host's chain for certificates nothing here looks at. Caching it from the last
+        /// `Describe` was tried and reverted: a panel can be asked to confirm before it has ever
+        /// described itself, and the number would then be zero in a sentence telling the operator
+        /// what they are about to lose. A wrong count there is worse than a slow one.
         ///
-        /// It is also not slow. An import off a warm runtime is about 0.13 ms on .NET Framework
-        /// 4.8, measured over two hundred of them, so the two here cost a quarter of a millisecond
-        /// and the whole tab's worth costs a few. That number is written down because it is the
-        /// reason not to cache this later either, and rediscovering it means measuring again.
+        /// **It is not cheap, and this remark used to say it was**: a quarter of a millisecond,
+        /// counting the two imports alone. Measured whole, a read of the authority is about 44
+        /// milliseconds on the machine the review ran on. That is still the right price for one
+        /// press of Recreate or Delete, which is when this runs. What was not affordable was the
+        /// redraw reading the authority three times and building a chain for every record, and
+        /// `Describe` reads it once and keeps what the chains answered.
         /// </remarks>
         private int CountRecords()
         {
@@ -1363,6 +1541,11 @@ namespace KeePassGate.Ui
             DeleteAuthority();
         }
 
+        private void OnChoose(object sender, EventArgs e)
+        {
+            ChooseAuthority();
+        }
+
         private void OnInvite(object sender, EventArgs e)
         {
             InviteClient();
@@ -1372,9 +1555,9 @@ namespace KeePassGate.Ui
         /// What the list revokes through: the revocation is added, and the tab is read again so the
         /// count on the authority page stops naming a client that is no longer admitted.
         /// </summary>
-        private string RevokeAndDescribe(AdmissionRecord record)
+        private string RevokeAndDescribe(string admissionKey)
         {
-            var refused = Revoke(record);
+            var refused = Revoke(admissionKey);
             if (refused == null)
             {
                 Describe();
@@ -1406,8 +1589,9 @@ namespace KeePassGate.Ui
                 ordered.Sort((left, right) => right.Admitted.CompareTo(left.Admitted));
 
                 // Sorting does not make an incomplete listing complete, so the answer is
-                // carried through rather than re-decided here.
-                return new AdmissionListing(ordered, found.CameBack, found.Complete);
+                // carried through rather than re-decided here, and so are the records that will
+                // not read, which the clients page lists after the rest.
+                return new AdmissionListing(ordered, found.Unreadable, found.CameBack, found.Complete);
             }
             catch (Exception error) when (Expected.OfCustomData(error))
             {
@@ -1447,62 +1631,74 @@ namespace KeePassGate.Ui
         }
 
         /// <summary>
-        /// Which of those records this database's authority did not issue, by admission key.
+        /// How far each of those records' certificates gets with the gate before the gate looks
+        /// at the record itself, by admission key.
         /// </summary>
         /// <remarks>
-        /// **Asked through `AnchorPin`, because that is the first thing the gate asks.**
-        /// `ClientCredentials` pins the anchor before the usage, the dates and the record itself,
-        /// so a certificate chaining to some other authority is refused whatever else is true of
-        /// it. The clients page listed those rows as admitted clients with a date in the future
-        /// beside them, which is a page promising access nobody has. They arrive by a recreate or
-        /// a delete landing while a pairing does, and by a merge or a partial restore carrying
-        /// records past the authority that made sense of them.
+        /// **Asked in the gate's order, through the gate's own questions.** `ClientCredentials`
+        /// pins the anchor, then asks for client authentication, then the dates, and only then
+        /// looks the record up, so a certificate any of the first three refuses is refused
+        /// whatever its record says. The clients page asked the first alone, and a record
+        /// carrying this authority's own host certificate, or a certificate not valid yet, was
+        /// listed as a client admitted until next year: a page promising access nobody has. Such
+        /// records arrive by a recreate or a delete landing while a pairing does, by a merge or a
+        /// partial restore carrying records past the authority that made sense of them, by a file
+        /// edited by hand, and, for the dates, by a clock that is wrong on one of two machines
+        /// sharing a file. The last date, the end, is the one the list shows, and it says
+        /// "expired" through `CertificateValidity` as the gate does.
         ///
-        /// **An absent or damaged authority makes every record one**, and that is an answer rather
-        /// than a gap: nothing is served for such a database at all, so no record in it reaches
-        /// anything. The first page says the same in words, and the two agreeing is the point.
+        /// **An absent, damaged or undecided authority makes every record a stranger**, and that
+        /// is an answer rather than a gap: nothing is served for such a database at all, so no
+        /// record in it reaches anything. The first page says the same in words, and the two
+        /// agreeing is the point.
         ///
         /// **An engine that could not evaluate the chain is not an answer**, which is the
         /// distinction `AnchorPin` takes an `out` parameter for. A locked down machine store or a
         /// CryptoAPI that will not load says nothing about where a certificate came from, and
         /// calling a healthy record foreign here points the operator at Recreate, which destroys
-        /// the authority and every record with it.
+        /// the authority and every record with it. Such a record is asked the other questions.
         ///
         /// Public, like the listing it judges, because what the operator is shown is worth testing
         /// without a control tree to walk to reach it.
         /// </remarks>
-        public ICollection<string> Strangers(AdmissionListing listing)
+        public IDictionary<string, ClientReach> Reaches(AdmissionListing listing)
         {
-            var strangers = new HashSet<string>(StringComparer.Ordinal);
+            using (var reading = Read())
+            {
+                return Reaches(listing, reading, DateTimeOffset.UtcNow);
+            }
+        }
+
+        /// <summary>The same, against a reading the caller already holds.</summary>
+        private IDictionary<string, ClientReach> Reaches(
+            AdmissionListing listing, AuthorityReading reading, DateTimeOffset now)
+        {
+            var reaches = new Dictionary<string, ClientReach>(StringComparer.Ordinal);
 
             if (_service == null || listing == null || listing.Records.Count == 0)
             {
-                return strangers;
+                return reaches;
+            }
+
+            var authority = reading != null && reading.IsPresent ? reading.Material.Authority : null;
+            var digest = authority == null ? null : reading.Material.AuthorityDigest;
+
+            if (!string.Equals(digest, _judgedBy, StringComparison.Ordinal))
+            {
+                _judged.Clear();
+                _judgedBy = digest;
             }
 
             try
             {
-                using (var reading = _service.Read())
+                foreach (var record in listing.Records)
                 {
-                    var authority = reading.IsPresent ? reading.Material.Authority : null;
-
-                    foreach (var record in listing.Records)
+                    if (record == null)
                     {
-                        if (record == null)
-                        {
-                            continue;
-                        }
-
-                        using (var certificate = record.Certificate())
-                        {
-                            bool evaluated;
-                            if (!AnchorPin.Chains(certificate, authority, true, out evaluated)
-                                && evaluated)
-                            {
-                                strangers.Add(record.AdmissionKey);
-                            }
-                        }
+                        continue;
                     }
+
+                    reaches[record.AdmissionKey] = Reach(record, authority, now);
                 }
             }
             catch (Exception error) when (Expected.OfCryptography(error) || Expected.OfCustomData(error))
@@ -1510,7 +1706,39 @@ namespace KeePassGate.Ui
                 _log.Error("the admitted clients could not be checked against this authority", error);
             }
 
-            return strangers;
+            return reaches;
+        }
+
+        /// <summary>What the gate asks of one record's certificate before the record, in its order.</summary>
+        private ClientReach Reach(AdmissionRecord record, X509Certificate2 authority, DateTimeOffset now)
+        {
+            using (var certificate = record.Certificate())
+            {
+                ClientReach judged;
+                if (!_judged.TryGetValue(record.AdmissionKey, out judged))
+                {
+                    bool evaluated;
+                    judged = !AnchorPin.Chains(certificate, authority, true, out evaluated) && evaluated
+                        ? ClientReach.Stranger
+                        : ClientCredentials.IsForClientAuthentication(certificate)
+                            ? ClientReach.Reaches
+                            : ClientReach.NotForClients;
+
+                    if (evaluated)
+                    {
+                        _judged[record.AdmissionKey] = judged;
+                    }
+                }
+
+                if (judged != ClientReach.Reaches)
+                {
+                    return judged;
+                }
+
+                return !CertificateValidity.IsCurrent(certificate, now) && !CertificateValidity.HasExpired(certificate, now)
+                    ? ClientReach.NotYetValid
+                    : ClientReach.Reaches;
+            }
         }
 
         /// <summary>
@@ -1531,10 +1759,14 @@ namespace KeePassGate.Ui
         /// **Once accepted it takes effect at once, and saving is what keeps it**: a record is
         /// read from the live database on every connection, so the client is refused from the next
         /// request onwards without anything being told.
+        ///
+        /// **By admission key**, which is how every record is stored and the one thing a record
+        /// that will not read still has; the clients page lists those too, and this is how their X
+        /// takes them away.
         /// </remarks>
-        public string Revoke(AdmissionRecord record)
+        public string Revoke(string admissionKey)
         {
-            if (record == null)
+            if (string.IsNullOrEmpty(admissionKey))
             {
                 return "there is no client to revoke";
             }
@@ -1553,7 +1785,13 @@ namespace KeePassGate.Ui
                 // the write did not land is the one wrong answer here that nothing notices until
                 // that client connects again. A false can also mean the record was already gone,
                 // which is the operator's intent either way, so the two are told apart by looking.
-                if (!store.Remove(record.AdmissionKey) && store.Find(record.AdmissionKey) != null)
+                //
+                // **On the tab this is the dialog's buffer**, where the read back finds what was
+                // just written and a write cannot fail, so the press itself is refused only for a
+                // database that has gone from under the dialog. Whether the revocation reached the
+                // database is decided when the dialog is accepted, and said in the log there. The
+                // read back and the catch below are for a panel handed a database of its own.
+                if (!store.Remove(admissionKey) && Holds(store, admissionKey))
                 {
                     _log.Error("an admission record would not go away", null);
                     return "the record is still in the database";
@@ -1568,6 +1806,20 @@ namespace KeePassGate.Ui
             _database.MarkModified();
             _log.Info("an admission record was removed by the operator");
             return null;
+        }
+
+        /// <summary>
+        /// Whether a record is still stored under this key and not revoked, readable or not.
+        /// </summary>
+        /// <remarks>
+        /// Not `Find` alone, which answers null for a record that will not read: a removal of one of
+        /// those that did not land would be reported as one that did, and its row would go while
+        /// the record stayed.
+        /// </remarks>
+        private static bool Holds(AdmissionStore store, string admissionKey)
+        {
+            return store.Find(admissionKey) != null
+                   || store.All().Unreadable.Contains(admissionKey, StringComparer.Ordinal);
         }
 
         private void OnCopy(object sender, EventArgs e)
@@ -1657,12 +1909,37 @@ namespace KeePassGate.Ui
         /// store threw, and so does the sentence this page composes after a failure. Cutting at
         /// each site meant the two that were missed were exactly the two that could not be
         /// bounded, and it meant the band's own limit was whatever the last author remembered.
-        /// One setter, one bound, and `Clipped.Message` is where the bound is written down.
+        /// One setter, one bound, and <see cref="LongestResult"/> is that bound written down for
+        /// the test that measures the band.
         /// </remarks>
         private void Said(string line)
         {
             _result.Text = Clipped.Message(line);
         }
 
+        /// <summary>
+        /// The longest line the band under the pages can ever hold.
+        /// </summary>
+        /// <remarks>
+        /// For measurement, like <see cref="DrawFacts"/>. What has to fit the tab is the longest
+        /// this band can be, which is a refusal carrying somebody else's exception message, rather
+        /// than a sentence a third of that. A band measured against the short one fits while the
+        /// long one arrives on somebody's screen, and the room for the long one is what the gate's
+        /// address and the version leaving this tab pay for.
+        ///
+        /// The words are ordinary words in ordinary lengths rather than a run of one character,
+        /// because what is being measured is how many lines the band wraps to and a string with
+        /// nowhere to break does not wrap at all.
+        ///
+        /// It is the longest there is only while it is long enough to be cut, which is why a test
+        /// holds it to the length <see cref="Said"/> cuts at rather than trusting the words.
+        /// </remarks>
+        public static string LongestResult()
+        {
+            return Clipped.Message(
+                "The authority could not be recreated: the key set for this certificate is not "
+                + "available on this machine, and the profile it would have been written to could "
+                + "not be loaded either. Ask whoever administers this computer.");
+        }
     }
 }

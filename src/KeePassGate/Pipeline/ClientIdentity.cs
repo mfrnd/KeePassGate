@@ -39,6 +39,7 @@ namespace KeePassGate.Pipeline
         private readonly IReadOnlyList<string> _profiles;
         private readonly IReadOnlyList<string> _removed;
         private readonly string _refusal;
+        private readonly string _unavailable;
 
         private ClientIdentity(
             bool isPaired,
@@ -48,11 +49,13 @@ namespace KeePassGate.Pipeline
             string databaseId,
             IReadOnlyList<string> profiles,
             string refusal,
+            string unavailable = null,
             IReadOnlyList<string> removed = null)
         {
             _removed = removed ?? Nothing;
             _isPaired = isPaired;
             _isLocked = isLocked;
+            _unavailable = unavailable ?? (isLocked ? Gate.LockedTarget.Error : null);
             _subject = subject;
             _admissionKey = admissionKey;
             _databaseId = databaseId;
@@ -163,6 +166,31 @@ namespace KeePassGate.Pipeline
         }
 
         /// <summary>
+        /// Somebody who reached a database that is served by nobody for now, for the reason the
+        /// word gives. A locked database is one; one holding several authorities is the other.
+        /// </summary>
+        public static ClientIdentity Unavailable(string databaseId, string error)
+        {
+            if (string.IsNullOrEmpty(error))
+            {
+                throw new ArgumentException("An unavailable database says why.", nameof(error));
+            }
+
+            return error == Gate.LockedTarget.Error
+                ? Locked(databaseId)
+                : new ClientIdentity(false, false, null, null, databaseId, Nothing, null, error);
+        }
+
+        /// <summary>
+        /// The one word this connection is answered with under `503` before anything it asked is
+        /// read, or null when the database it reached is served.
+        /// </summary>
+        public string UnavailableError
+        {
+            get { return _unavailable; }
+        }
+
+        /// <summary>
         /// A client whose certificate this database's authority issued, holding these profiles,
         /// and holding on its record these others that the database no longer lists.
         /// </summary>
@@ -184,6 +212,7 @@ namespace KeePassGate.Pipeline
                 CertificateDigest.Of(certificate),
                 databaseId,
                 profiles,
+                null,
                 null,
                 removed);
         }

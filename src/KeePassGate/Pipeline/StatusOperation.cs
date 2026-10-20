@@ -17,14 +17,23 @@ namespace KeePassGate.Pipeline
     ///
     /// The database is named by the first characters of its authority's digest, which says which
     /// database without saying anything about it.
+    ///
+    /// **The build is named by its version and by the commit it was made from**, as two members,
+    /// because they answer two questions: the version says which release a client is talking to,
+    /// and the revision says which build, which is what tells two builds of one version apart
+    /// when somebody is asking which one they are running. Neither reads anything out of the
+    /// database either.
     /// </remarks>
     public sealed class StatusOperation
     {
         private readonly string _version;
+        private readonly string _revision;
 
-        public StatusOperation(string version)
+        /// <param name="revision">The commit the build was made from, or empty for none.</param>
+        public StatusOperation(string version, string revision)
         {
             _version = version ?? string.Empty;
+            _revision = revision ?? string.Empty;
         }
 
         public void Handle(IGateContext context)
@@ -33,7 +42,8 @@ namespace KeePassGate.Pipeline
 
             context.Respond(200,
                 "{\"ok\":true,\"database\":" + JsonConvert.ToString(database) +
-                ",\"version\":" + JsonConvert.ToString(_version) + "}");
+                ",\"version\":" + JsonConvert.ToString(_version) +
+                ",\"revision\":" + JsonConvert.ToString(_revision) + "}");
         }
     }
 }

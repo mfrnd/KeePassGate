@@ -119,6 +119,30 @@ namespace KeePassGate.Transport
             get { return _running; }
         }
 
+        /// <summary>Why the port was not taken, or null while it was.</summary>
+        public string Refusal { get; private set; }
+
+        /// <summary>
+        /// Records why this listener is never started, for a port refused before the socket was
+        /// asked for it. A listener that is already running keeps listening and ignores this.
+        /// </summary>
+        /// <remarks>
+        /// Kept here rather than beside the listener, because this is the one place that answers
+        /// why nothing is listening, and a port that was never tried is the same answer to that
+        /// question as a port that could not be taken: nothing tries again in this process, so it
+        /// is what the plugin's own window shows for the rest of the session.
+        /// </remarks>
+        public void Refuse(string reason)
+        {
+            lock (_stateLock)
+            {
+                if (!_running)
+                {
+                    Refusal = reason;
+                }
+            }
+        }
+
         /// <summary>
         /// Binds and starts accepting. False when the port is taken, which is reported rather than
         /// thrown: a plugin that cannot listen must still leave KeePass working.
@@ -137,11 +161,17 @@ namespace KeePassGate.Transport
                     _listener = new TcpListener(IPAddress.Loopback, _options.Port);
                     _listener.Start();
                     Port = ((IPEndPoint)_listener.LocalEndpoint).Port;
+                    Refusal = null;
                 }
                 catch (SocketException error)
                 {
                     _log.Error("could not listen on 127.0.0.1:" + _options.Port, error);
                     _listener = null;
+
+                    // Kept rather than only logged. Nothing will try this port again in this
+                    // process, so the reason has to outlive the attempt: it is what the plugin's
+                    // own window has to show for the rest of the session.
+                    Refusal = "127.0.0.1:" + _options.Port + " could not be taken: " + error.Message;
                     return false;
                 }
 
@@ -256,10 +286,11 @@ namespace KeePassGate.Transport
                         // `_running` before it closes the listener, so an accept that fails while
                         // the flag is still set is the case the `finally` below names: one nobody
                         // chose. Saying nothing there was the whole of the report. The gate stops
-                        // listening for the rest of the session, and the log, which is the one
-                        // place a reason could be, had the reason and threw it away. An accept
-                        // refused for want of buffers or of handles is what this is for, and the
-                        // socket error code is the whole of what distinguishes one.
+                        // listening for the rest of the session, the plugin's own window says only
+                        // that it is not listening, and the log, which is the one place a reason
+                        // could be, had the reason and threw it away. An accept refused for want
+                        // of buffers or of handles is what this is for, and the socket error code
+                        // is the whole of what distinguishes one.
                         if (_running)
                         {
                             _log.Error(
@@ -341,6 +372,28 @@ namespace KeePassGate.Transport
         /// Whether there is room for another conversation. A connection past the ceiling is closed
         /// at once rather than queued, because queuing it is what would hold the thread.
         /// </summary>
+        /// <remarks>
+        /// **The slot is counted before anything is known about the peer**, and that is a
+        /// concession rather than an oversight. It is taken when the socket is accepted, which is
+        /// before the ClientHello is read and before any name resolves, so a peer holding no gate
+        /// key, no certificate and no invitation takes one by connecting, and about thirty-two of
+        /// them, reopened as each is cut, keep every admitted client out. What an admitted client
+        /// gets then is this: the socket closed before TLS, no status, and a warning in a log
+        /// nobody is watching.
+        ///
+        /// It is conceded because the remedies do not remedy it. A per-source cap has nothing to
+        /// tell apart, since the gate binds loopback and every peer arrives from `127.0.0.1`,
+        /// tunneled traffic included. A shorter deadline before the name resolves only makes the
+        /// attacker reconnect more often, and `Converse` has one for that reason and no other.
+        /// Closing it means reserving slots for connections whose name has resolved, or evicting
+        /// the oldest that has not, and that is a design decision rather than a fix.
+        ///
+        /// What it costs is availability and nothing else: no secret is reachable from a slot and
+        /// no write, and the ceiling goes on doing what it is for, which is keeping KeePass's
+        /// thread pool out of a stranger's hands. The peer it leaves is one under another Windows
+        /// account, or a user on the far end of the tunnel the documentation recommends, since
+        /// local code running as the operator is conceded throughout anyway.
+        /// </remarks>
         private bool Take(TcpClient client)
         {
             if (Interlocked.Increment(ref _conversations) <= _options.MaxConnections)
@@ -461,14 +514,36 @@ namespace KeePassGate.Transport
                         // for as long as the caps allow, which is hours. Closing the socket is what
                         // ends that peer's connection, and the failure it raises is one the paths
                         // below already expect.
-                        using (var deadline = new Deadline(client, _options.Budget))
-                        {
-                            var timeout = (int)_options.Timeout.TotalMilliseconds;
-                            client.ReceiveTimeout = timeout;
-                            client.SendTimeout = timeout;
-                            client.NoDelay = true;
+                        //
+                        // **The budget is for a peer that keeps sending, not one that stops.** A
+                        // read blocked with no traffic at all does not return when the close is
+                        // made, only once it lands behind the read, so a peer that sends nothing
+                        // is bounded by `Timeout` on the socket and not by this. Nothing relies on
+                        // the budget against silence: `Timeout` already ends it.
+                        //
+                        // **It is granted in stages, and this is the first of them.** Until a name
+                        // resolves there is nothing owed but a ClientHello, which a client sends
+                        // in one packet, so this phase gets the shorter of a single read and the
+                        // whole budget rather than the whole budget. A peer holding no gate key,
+                        // no certificate and no invitation takes a connection slot the moment it
+                        // connects, which `Take` concedes, and what this bounds is how long one
+                        // costs: a peer that dribbles a byte inside each read window used
+                        // to keep a slot for the ninety seconds an admitted client's whole
+                        // conversation is worth.
+                        var unnamed = _options.Timeout < _options.Budget
+                            ? _options.Timeout
+                            : _options.Budget;
 
-                            var raw = client.GetStream();
+                        using (var deadline = new Deadline(client, unnamed))
+                        {
+                            Socket socket;
+                            var raw = Opened(client, (int)_options.Timeout.TotalMilliseconds, out socket);
+                            if (raw == null)
+                            {
+                                // Closed by a lock or a stop before this thread began: see `Opened`.
+                                _log.Info("a connection was closed before it was served");
+                                return;
+                            }
 
                             var peek = ClientHelloReader.Read(raw);
                             if (peek == null)
@@ -490,22 +565,44 @@ namespace KeePassGate.Transport
                                     return;
                                 }
 
-                                // Not while locked: the name a pairing resolves by survives the lock,
-                                // so a holder of a still-valid invitation could otherwise hold every
-                                // connection slot for the whole pairing budget against a database that
-                                // will only ever answer `503`, with no dialog and nobody asked.
-                                if (resolution.IsPairing && !resolution.Target.IsLocked)
-                                {
-                                    // The caller named an invitation, so this connection is about to
-                                    // wait on the operator rather than on the wire. The ordinary budget
-                                    // would close the socket while the dialog is still up, and
-                                    // everything after that point still happens: the invitation is
-                                    // spent and the record is written and saved, with nothing left to
-                                    // hand the certificate back on.
-                                    deadline.Extend(_options.PairingBudget);
-                                }
+                                // The second stage: the name resolved, so the connection is one
+                                // somebody could have meant, and the budget the design writes
+                                // down begins here. Counted from now rather than from the accept,
+                                // which gives a connection that has named something the whole of
+                                // it however long its hello took.
+                                deadline.Extend(_options.Budget);
 
-                                Serve(raw, peek, resolution, Peer(client));
+                                // The third and last stage, taken when the whole request is off
+                                // the wire. For an ordinary connection that is no deadline at all:
+                                // what is left is this plugin's own work and no number bounds it,
+                                // see `Deadline.Disarm`. For a pairing it is a longer one, because
+                                // there the remaining work is a sum somebody wrote down: the
+                                // screen, the dialog, the grace on it, and the write. The
+                                // ordinary budget would close the socket while the dialog was
+                                // still up. Everything after that point happens anyway: the
+                                // invitation is spent and the record is written and saved, with
+                                // nothing left to hand the certificate back on.
+                                //
+                                // **Granted where phase 4 begins, not where the name resolves.**
+                                // The reason for the longer budget is that the connection is about
+                                // to wait on a person, and that becomes true when a request has
+                                // been read rather than when an invitation has been named. A
+                                // connection that has sent no request waits on nobody, and it used
+                                // to be handed six minutes of a connection slot for naming a secret
+                                // it held: a holder of one invitation could take every slot with
+                                // thirty-two slow connections, each sending a byte inside every
+                                // read window, and hold them for as long as the invitation lived
+                                // and six minutes more. That is the harm the locked case was
+                                // guarded against, and it was reachable against an unlocked
+                                // database all along. The locked case cannot reach this at all
+                                // now, because `GateConversation.Locked` answers `503` without
+                                // reading a request, so the guard is the shape of the code rather
+                                // than a condition beside it.
+                                Serve(
+                                    raw, peek, resolution, Peer(socket),
+                                    resolution.IsPairing
+                                        ? (Action)delegate { deadline.Extend(_options.PairingBudget); }
+                                        : deadline.Disarm);
                             }
                         }
                     }
@@ -528,7 +625,7 @@ namespace KeePassGate.Transport
             }
             catch (Exception error)
             {
-                // One of the catch-alls. This runs on a thread pool thread, so an exception
+                // One of the four catch-alls. This runs on a thread pool thread, so an exception
                 // that escapes it is an unhandled exception in the password manager's process, and
                 // the process is what would end. A client chooses when this happens, which is why
                 // what it caught is counted where the operator can see it.
@@ -578,15 +675,52 @@ namespace KeePassGate.Transport
             /// Gives the connection a longer budget, counted again from now.
             /// </summary>
             /// <remarks>
-            /// For the one exchange that waits on a person. The budget exists to stop a peer
-            /// holding a thread by feeding it slowly, and a pairing sitting in front of an approval
-            /// dialog is neither slow nor a peer's doing, so it is measured against a budget of its
-            /// own. Only ever called after the name resolved to an invitation, which is a secret the
-            /// caller had to hold, so nothing an unknown peer can say reaches this.
+            /// **The budget is granted in stages**, because a connection that has named nothing
+            /// has said nothing anybody could have meant: it is owed a ClientHello and no more,
+            /// and it is holding a connection slot while it says it. This is where a connection
+            /// that has named a database is given the span the design writes down for a whole
+            /// conversation, and where the one exchange that waits on a person is given the
+            /// longer span written down for that. A peer that named nothing reaches neither.
+            ///
+            /// The pairing budget exists because the budget is there to stop a peer holding a
+            /// thread by feeding it slowly, and a pairing sitting in front of an approval dialog
+            /// is neither slow nor a peer's doing.
             /// </remarks>
             public void Extend(TimeSpan budget)
             {
                 _timer.Change(budget, Timeout.InfiniteTimeSpan);
+            }
+
+            /// <summary>
+            /// Stops the connection being closed at all, once there is nothing left to wait for
+            /// the peer to send.
+            /// </summary>
+            /// <remarks>
+            /// **The budget bounds what the peer controls, and that ends with the body.** After
+            /// the request is read the thread is blocked on this plugin rather than on the socket,
+            /// and closing the socket frees nothing: not the thread, which runs on to the end of
+            /// its write and its save, and not the connection slot, which is given back when that
+            /// thread finishes rather than when the socket closes. All it does is destroy the
+            /// answer. A write that outlasts the budget then lands, is saved, and is reported to
+            /// nobody: the client is told the connection closed without an answer, holds no
+            /// identifier for what it created, and a retry makes a second one.
+            ///
+            /// **And there is no number that would do instead**, which is why this is a disarm
+            /// rather than a longer budget. What is left is a marshaled write whose save is a
+            /// whole-database write of whatever size the database is, over whatever storage it is
+            /// on, and on a failure a message box that waits on a person. None of that is knowable
+            /// before it runs. `DatabaseWriter.WriteTimeout` bounds the wait for the marshaled
+            /// call to *start*, not the call, so no sum of this plugin's timeouts bounds it either.
+            /// The answer write that follows is bounded by the socket's own `SendTimeout`.
+            ///
+            /// **Not for a pairing**, which is the one connection whose remaining work is a sum
+            /// somebody wrote down: the screen, the dialog, the grace on it, and the write.
+            /// <see cref="GateOptions.PairingBudget"/> outlasts those together, so there the
+            /// deadline still means something.
+            /// </remarks>
+            public void Disarm()
+            {
+                _timer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
             }
 
             public void Dispose()
@@ -621,11 +755,42 @@ namespace KeePassGate.Transport
                 resolution.Invitation, target, PairingProof.Binding(target.Host.CertificateDer), nonce, peer);
         }
 
-        private static string Peer(TcpClient client)
+        /// <summary>
+        /// The connection's stream, with its timeouts set, or null when it was closed before this
+        /// thread reached it.
+        /// </summary>
+        /// <remarks>
+        /// **A lock can close a connection whose thread has not started.** The accept loop tracks a
+        /// connection before it queues its thread, so that `CloseAll` reaches every one, and a lock
+        /// or an unlock landing in between closes it there. A `TcpClient` closed before its stream
+        /// was taken lets go of its socket and answers `Client` with null, so every property that
+        /// goes through it, the timeouts first, raised a `NullReferenceException` that no filter
+        /// names: a lock the operator took was counted on the plugin's window as a defect. The
+        /// socket is read once here instead. Null is a connection that ended before it began, and a
+        /// socket closed after that raises `ObjectDisposedException` or an `IOException`, which the
+        /// conversation already reads as a client that left. The stream is made on that socket
+        /// rather than asked of the client, because `GetStream` reads `Client` again, and so does
+        /// anything else that is handed the client rather than the socket.
+        /// </remarks>
+        internal static NetworkStream Opened(TcpClient client, int timeout, out Socket socket)
+        {
+            socket = client.Client;
+            if (socket == null)
+            {
+                return null;
+            }
+
+            socket.ReceiveTimeout = timeout;
+            socket.SendTimeout = timeout;
+            socket.NoDelay = true;
+            return new NetworkStream(socket, true);
+        }
+
+        private static string Peer(Socket socket)
         {
             try
             {
-                var endpoint = client.Client.RemoteEndPoint;
+                var endpoint = socket.RemoteEndPoint;
                 return endpoint == null ? string.Empty : endpoint.ToString();
             }
             catch (Exception error) when (Expected.OfConnection(error))
@@ -635,7 +800,12 @@ namespace KeePassGate.Transport
             }
         }
 
-        private void Serve(System.IO.Stream raw, ClientHelloPeek peek, GateResolution resolution, string peer)
+        private void Serve(
+            System.IO.Stream raw,
+            ClientHelloPeek peek,
+            GateResolution resolution,
+            string peer,
+            Action arrived)
         {
             var target = resolution.Target;
             var replayed = new PrependingStream(peek.Bytes, raw);
@@ -693,6 +863,16 @@ namespace KeePassGate.Transport
                     return;
                 }
 
+                if (client.UnavailableError != null)
+                {
+                    // Served by nobody for now, for the reason the word gives, and answered the
+                    // same way as a lock and for the same reason.
+                    _log.Info("connection to " + CertificateDigest.Shorten(target.DatabaseId) +
+                              " while it is " + client.UnavailableError);
+                    GateConversation.Unavailable(protocol.Stream, client.UnavailableError, _options, _log);
+                    return;
+                }
+
                 // The invitation first, and both facts when both hold. A client can arrive holding
                 // an admitted certificate on an invitation's name, and that connection reaches
                 // nothing at all: the router counts it as admitted only while no invitation
@@ -712,7 +892,7 @@ namespace KeePassGate.Transport
 
                 GateConversation.Serve(
                     protocol.Stream, client, _handler, _options, _log,
-                    Pairing(resolution, peek, target, peer), _incidents, target.Vault);
+                    Pairing(resolution, peek, target, peer), _incidents, target.Vault, arrived);
             }
             finally
             {

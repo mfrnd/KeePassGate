@@ -69,7 +69,7 @@ namespace KeePassGate.Diagnostics
     /// <remarks>
     /// Its own type so that a handler can answer it as busy. Left as the `InvalidOperationException`
     /// it started as, it reaches the catch-all that treats anything escaping a handler as a defect
-    /// in this plugin. That put a 500 and a false incident on the KPG tab for the
+    /// in this plugin. That put a 500 and a false incident on the operator's window for the
     /// ordinary case of an agent reading while somebody edits.
     /// </remarks>
     [Serializable]

@@ -168,7 +168,11 @@ servers:
     variables:
       port:
         default: "51776"
-        description: Chosen at startup, or set with KEEPASSGATE_PORT.
+        description: |
+          The port the operator set on the plugin's window under KeePass's Tools menu, taken when
+          KeePass starts. `KEEPASSGATE_PORT` is read only when no port is set there, and has to
+          name one from 1024 to 65535: set to anything else, it stops the gate from listening at
+          all. This default is taken only when neither names a port.
 
 paths:
   /gate/status:
@@ -186,7 +190,7 @@ paths:
             application/json:
               schema:
                 type: object
-                required: [ok, database, version]
+                required: [ok, database, version, revision]
                 additionalProperties: false
                 properties:
                   ok:
@@ -198,6 +202,12 @@ paths:
                       without naming it.
                   version:
                     type: string
+                  revision:
+                    type: string
+                    description: |
+                      The commit the plugin was built from, in full, or empty for a build that
+                      carries none. Every build between two releases carries the same version, and
+                      this is what tells them apart.
         "401":
           $ref: "#/components/responses/Unpaired"
         "503":
@@ -365,13 +375,10 @@ paths:
           $ref: "#/components/responses/UnsupportedMediaType"
         "500":
           description: |
-            One of four, and the body names which. `not recorded`: the record did not land, so
-            nothing was handed over and the invitation is spent. `expired authority`: this
-            database's authority has expired, which is refused before anybody is asked and spends
-            nothing. `expired host`: the host certificate this database answers with has expired,
-            so no client paired now could connect, refused the same way. `internal error`: the
-            operator approved and no certificate could be issued, because the authority ran out
-            while the dialog was open or its key would not sign; the invitation is not spent, and
+            One of two, and the body names which. `not recorded`: the record did not land, so
+            nothing was handed over and the invitation is spent. `internal error`: the operator
+            approved and no certificate could be issued, because the authority's key would not
+            sign or the authority has outlived its hundred years; the invitation is not spent, and
             the client starts again from a hello.
           content:
             application/json:
@@ -1307,8 +1314,9 @@ components:
         error:
           type: string
           description: |
-            A fixed string, matched whole rather than parsed. The two worth matching on are one word
-            each, `locked` and `proof`, because each is a different thing for a client to do next;
+            A fixed string, matched whole rather than parsed. The three worth matching on are one
+            word each, `locked`, `undecided` and `proof`, because each is a different thing for a
+            client to do next;
             the rest are told apart by the status and read by a person. None of them carries anything
             the caller sent back to it.
 
@@ -1623,9 +1631,9 @@ components:
     # keeps the line its decision got. §502
     Unavailable:
       description: |
-        Not now, and worth trying again shortly, where a refusal is not. The body carries `locked`
-        or `busy`, and `busy` covers everything the password manager is doing that this request
-        cannot be served underneath.
+        Not now, and worth trying again shortly, where a refusal is not. The body carries
+        `locked`, `undecided` or `busy`, and `busy` covers everything the password manager is doing
+        that this request cannot be served underneath.
 
         `locked` is the database being locked, answered before a route is chosen at all, by a
         second host certificate held only in memory so that a locked KeePass answers rather than
@@ -1636,6 +1644,13 @@ components:
         the database stays open is the `404` any absent node gets. The exception is a write whose
         handler has already run: the change is handed to the writer, which finds nothing open to
         change and answers `500 internal error`, because the change could not be attempted.
+
+        `undecided` is a database holding more than one certificate authority that nobody has
+        chosen between, which is two copies that each made one meeting in a synchronize. It is
+        answered before a route is chosen too, with each authority's own host certificate, so a
+        client of either reaches it, pairing included, and it lasts until the operator keeps one of
+        them, which KeePass asks for on its own screen. The clients of the authorities not kept are
+        refused from then on and pair again.
 
         `busy` is five things, and a read meets the first as readily as a write meets the others.
         The tree moved while it was being read, which is somebody using KeePass rather than a
@@ -1649,9 +1664,8 @@ components:
         thread to take it, so `busy` for either can take close to a minute to arrive, and a client
         waiting less gives up on a write that may still land. One KeePass has started is bounded
         by its save rather than by these waits, and is answered when the save is over, which takes
-        as long as the database's size and its storage make it, unless the save outlasts what is
-        left of the connection's budget, which closes it with no answer; for a database KeePass
-        opened from a URL the storage is a server, and a save waits on it for as long as KeePass's
+        as long as the database's size and its storage make it; for a database KeePass opened
+        from a URL the storage is a server, and a save waits on it for as long as KeePass's
         network timeouts allow. And a save that would stop and ask: KeePass answers three
         conditions with a question on the operator's screen rather than by writing, which are
         saving disallowed by policy, a database with no file yet, and a file on disk that is not
@@ -1680,7 +1694,7 @@ components:
           description: |
             How long to wait before asking again, in seconds: `2`, on every `503` this gate
             sends, whichever of them it is, and on nothing else it sends. RFC 9110 section
-            10.2.3. Which refusal it was is the body's job, and a client that treats the two
+            10.2.3. Which refusal it was is the body's job, and a client that treats them
             differently reads that; the delay is a guess either way, because how long any of these
             lasts is a person's business rather than this gate's, and two guesses would only
             invite reading meaning into the difference.

@@ -8,16 +8,14 @@ namespace KeePassGate
     /// database settings dialog, the tab on the group and entry dialogs, the item under KeePass's
     /// Tools menu, and the title of the window that item opens. All of them read it from here, so
     /// renaming the plugin is one edit and there is no way for three of them to agree while the
-    /// fourth does not. TODO(step 18): the Tools menu item and its window arrive then; the two
-    /// tabs read this already.
+    /// fourth does not.
     ///
     /// **Three forms, and which one goes where is about space rather than about style.** A tab strip
     /// is shared: KeePass puts four or five of its own tabs on those dialogs and any other plugin
     /// may add one, so a long caption there is width taken from everybody. The short form and the
     /// icon together are enough to say whose tab it is. A menu item is a line of its own and costs
     /// nobody anything, so it says the name in full and the short form after it, which is what
-    /// tells a reader that the `KPG` on those tabs is this. TODO(step 18): the menu item arrives
-    /// with the plugin's own window.
+    /// tells a reader that the `KPG` on those tabs is this.
     ///
     /// This is not the assembly's product name. That one has to be exactly `KeePass Plugin`, which
     /// KeePass reads out of the file before it opens the assembly and silently skips anything else.

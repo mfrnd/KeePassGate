@@ -1,5 +1,12 @@
 using System;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
+using System.Net.Security;
+using System.Text;
+using System.Threading;
+using System.Net.Sockets;
+using System.Security.Authentication;
 using KeePassGate.Authority;
 using KeePassGate.Diagnostics;
 using KeePassGate.Gate;
@@ -27,7 +34,6 @@ namespace KeePassGate.Tests
     /// what is being tested here is the protocol. The end to end tier pairs against the real thing.
     /// </remarks>
     [TestFixture]
-    [NonParallelizable]
     public sealed class PairingGateTests
     {
         private TestAuthority _target;
@@ -259,8 +265,9 @@ namespace KeePassGate.Tests
         public void An_operator_who_outlasts_the_ordinary_budget_still_pairs()
         {
             // `PAIRING.md` §303: phase 4 waits on a person rather than on the wire, so the
-            // connection is measured against `PairingBudget` from the moment the name resolves to
-            // an invitation. Closing it at the ordinary budget cancels nothing, because the
+            // connection is measured against `PairingBudget` from the moment its request is off
+            // the wire, which is where phase 4 begins and where every other connection's deadline
+            // is dropped. Closing it at the ordinary budget cancels nothing, because the
             // invitation is spent and the record written and saved either way. All that is lost is
             // the answer, which leaves a record on file for a certificate nobody ever received and
             // a client with nothing to try again with.
@@ -285,16 +292,90 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void An_invitation_named_and_no_request_made_is_worth_the_ordinary_budget_and_no_more()
+        {
+            // The longer budget is for a connection that is about to wait on a person, and a
+            // connection that has made no request waits on nobody. Granted on the name instead,
+            // one invitation buys every connection slot for six minutes each, held by a peer that
+            // feeds the gate a byte at a time: the harm the locked case is guarded against,
+            // against a database that was open.
+            //
+            // The ordinary budget is a generous five seconds, because the handshake is inside it
+            // and a loaded machine can take seconds over one, and the pairing budget is a minute.
+            var options = new GateOptions
+            {
+                Port = 0,
+                Budget = TimeSpan.FromSeconds(5),
+                PairingBudget = TimeSpan.FromSeconds(60),
+            };
+
+            using (var listener = Listening(_operator, options))
+            {
+                byte[] nonce;
+                var name = new PairingClient(listener.Port, _invitation.Text).NewName(out nonce);
+
+                // A real handshake under the invitation's name, so the gate has resolved it and is
+                // waiting for a request, and then a head a byte at a time, padded to take a minute.
+                // Every read is satisfied well inside the read timeout, so nothing but a deadline
+                // can end this, and which deadline it is is what the clock reports.
+                var spent = Stopwatch.StartNew();
+
+                using (var tcp = new TcpClient())
+                {
+                    tcp.Connect("127.0.0.1", listener.Port);
+                    tcp.ReceiveTimeout = 60000;
+
+                    using (var tls = new SslStream(
+                        tcp.GetStream(), false, delegate { return true; }, delegate { return null; }))
+                    {
+                        tls.AuthenticateAsClient(name, null, SslProtocols.Tls13, false);
+
+                        var head = Encoding.ASCII.GetBytes(
+                            "POST " + PairingHandler.HelloPath + " HTTP/1.1\r\nHost: x\r\n" +
+                            "X-Padding: " + new string('a', 190) + "\r\n\r\n");
+
+                        try
+                        {
+                            foreach (var b in head)
+                            {
+                                tls.Write(new[] { b }, 0, 1);
+                                tls.Flush();
+                                Thread.Sleep(250);
+                            }
+                        }
+                        catch (IOException)
+                        {
+                            // The write is what fails when the gate gives up on it, which is the
+                            // outcome being timed.
+                        }
+                    }
+                }
+
+                spent.Stop();
+
+                Assert.That(spent.Elapsed, Is.LessThan(TimeSpan.FromSeconds(20)),
+                    "a connection that named an invitation and asked nothing kept its slot for the " +
+                    "budget that waits on a person");
+            }
+        }
+
+        [Test]
         public void A_database_whose_authority_has_run_out_refuses_and_reports_no_defect()
         {
-            // What an old kdbx looks like from the outside: the authority is read, the database is
-            // served, the handshake succeeds and the proofs verify, and the pairing reaches the one
-            // thing an expired authority cannot do. The client is told which, and the plugin does
-            // not report itself as broken for the age of somebody's database.
+            // What a kdbx a century old looks like from the outside: the authority is read, the
+            // database is served, the handshake succeeds and the proofs verify, and the pairing
+            // reaches the one thing an expired authority cannot do. Nothing refuses ahead of that,
+            // `CA.md` §219, so the operator is asked, and the plugin does not report itself as
+            // broken for the age of somebody's database.
+            //
+            // The century is the issuer's clock rather than the authority's age, because
+            // `CertificateRequest` refuses to write a date before 1950 at all.
             var incidents = new GateIncidents(_log);
+            var aCenturyOn = new AuthorityIssuer(
+                () => DateTimeOffset.UtcNow + AuthorityIssuer.AuthorityLifetime + TimeSpan.FromDays(1));
 
-            using (var old = TestAuthority.New(() => DateTimeOffset.UtcNow - TimeSpan.FromDays(4000)))
-            using (var listener = Listening(new FakeGateTargets(old), incidents))
+            using (var old = TestAuthority.New())
+            using (var listener = Listening(new FakeGateTargets(old), incidents, aCenturyOn))
             {
                 var invitation = _book.Invite(old.DatabaseId);
                 var client = new PairingClient(listener.Port, invitation.Text);
@@ -303,12 +384,11 @@ namespace KeePassGate.Tests
                 var reply = client.Request("agent-fictitious");
 
                 Assert.That(reply.Status, Is.EqualTo(500), reply.ToString());
-                Assert.That(reply.Body, Does.Contain("expired authority"));
+                Assert.That(reply.Body, Does.Contain("internal error"));
                 Assert.That(client.Identity, Is.Null, "and nothing was issued from it");
                 Assert.That(incidents.Count, Is.Zero,
                     "an incident is this plugin doing something wrong, which the age of a database is not");
-                Assert.That(_operator.Asked, Is.Zero,
-                    "nobody was asked to approve a pairing that could not have ended in a certificate");
+                Assert.That(_operator.Asked, Is.EqualTo(1), "nothing refused the request before the dialog");
             }
         }
 
@@ -384,15 +464,17 @@ namespace KeePassGate.Tests
         }
 
         /// <summary>
-        /// The same gate over other databases, counting what escapes a handler, which is the only
-        /// place a test can see a refusal being reported as a defect in this plugin.
+        /// The same gate over other databases, issuing on a clock of the test's choosing and
+        /// counting what escapes a handler, which is the only place a test can see a refusal being
+        /// reported as a defect in this plugin.
         /// </summary>
-        private GateListener Listening(FakeGateTargets targets, GateIncidents incidents)
+        private GateListener Listening(FakeGateTargets targets, GateIncidents incidents, AuthorityIssuer issuer)
         {
             var listener = new GateListener(
                 new GateOptions { Port = 0 },
                 new GateResolver(targets, _book, _log),
-                GateOperations.Router("9.9.9", new PairingHandler(_book, _operator, _log)),
+                GateOperations.Router(
+                    "9.9.9", new PairingHandler(_book, _operator, new PairingOptions(), issuer, null, _log)),
                 incidents,
                 _log);
 

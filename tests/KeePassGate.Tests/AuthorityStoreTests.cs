@@ -520,6 +520,41 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void The_most_one_authority_is_reported_with_is_what_the_tab_is_measured_against()
+        {
+            // J031: the tab is measured against `LongestProblems`, which says which problems can
+            // arrive together. This document carries the most that can without anything throwing:
+            // a gate key of the wrong length, filed under a digest that is not its own, and a host
+            // from another authority. A check added to `ReadOne` that can arrive beside these
+            // makes one more, and this says so.
+            var written = Write();
+            Damage(AuthorityDocument.SniKeyPartKey, Convert.ToBase64String(new byte[8]));
+            using (var foreign = _issuer.CreateAuthority())
+            using (var foreignHost = _issuer.IssueHost(foreign))
+            {
+                Damage(AuthorityDocument.HostPartKey, CertificateBlob.Save(foreignHost));
+            }
+
+            var document = _values.Get(AuthorityKeys.AuthorityKey(written.Fingerprint));
+            _values.Remove(AuthorityKeys.AuthorityKey(written.Fingerprint));
+            _values.Plant(AuthorityKeys.AuthorityKey(Unreadable), document);
+
+            // A message long enough to be cut, which is what the tab is measured with.
+            var longest = AuthorityStore.LongestProblems(new string('x', 200));
+
+            using (var reading = _store.Read())
+            {
+                Assume.That(reading.Presence, Is.EqualTo(AuthorityPresence.Damaged));
+                Assert.That(reading.Problems.Count, Is.EqualTo(longest.Count), string.Join(" | ", reading.Problems));
+
+                for (var i = 0; i < longest.Count; i++)
+                {
+                    Assert.That(reading.Problems[i].Length, Is.LessThanOrEqualTo(longest[i].Length), reading.Problems[i]);
+                }
+            }
+        }
+
+        [Test]
         public void Deleting_retires_every_authority_there_is_including_one_that_will_not_read()
         {
             var first = Write();

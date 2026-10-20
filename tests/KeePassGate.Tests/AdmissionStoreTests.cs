@@ -316,6 +316,47 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_damaged_record_is_named_by_its_key_so_that_it_can_be_taken_away()
+        {
+            // K024: listed nowhere, it was counted and warned about and could not be removed short
+            // of recreating the authority. Named, the clients page gives it a row and an X.
+            using (var good = _authority.IssueClient("agent-one"))
+            using (var other = _authority.IssueClient("agent-two"))
+            {
+                var damaged = CertificateDigest.Of(other);
+                _store.Write(AdmissionRecord.For(good, DateTimeOffset.UtcNow, new[] { "ops" }));
+                _values.Plant(AuthorityKeys.ClientPrefix + damaged, "rubbish");
+
+                Assert.That(_store.All().Unreadable, Is.EqualTo(new[] { damaged }));
+
+                Assert.That(_store.Remove(damaged), Is.True, "the X that removes it is the ordinary revocation");
+
+                var after = _store.All();
+                Assert.That(after.Unreadable, Is.Empty);
+                Assert.That(after.CameBack, Is.Zero);
+                Assert.That(after.Records.Count, Is.EqualTo(1));
+                Assert.That(_store.Count(out _), Is.EqualTo(1));
+                Assert.That(_values.Get(AuthorityKeys.RevocationKey(damaged)), Is.Empty,
+                    "with no date to be pruned by");
+            }
+        }
+
+        [Test]
+        public void A_damaged_record_beside_its_revocation_came_back_rather_than_being_listed()
+        {
+            // The revocation is asked about first, as it is for a readable record: what refuses it
+            // is the revocation, and the next write this plugin makes takes it away.
+            var damaged = new string('f', 64);
+            _values.Plant(AuthorityKeys.ClientRecordKey(damaged), "rubbish");
+            _values.Plant(AuthorityKeys.RevocationKey(damaged), string.Empty);
+
+            var listing = _store.All();
+
+            Assert.That(listing.Unreadable, Is.Empty);
+            Assert.That(listing.CameBack, Is.EqualTo(1));
+        }
+
+        [Test]
         public void Nothing_that_belongs_to_somebody_else_is_read_as_a_record()
         {
             _values.Plant("AnotherPlugin.Something", "not ours");

@@ -512,15 +512,80 @@ namespace KeePassGate.Host.Tests.Live
         }
 
         /// <summary>
+        /// A second copy of the database file, beside the first, as a second machine holding the
+        /// same database has one. Answers with its path.
+        /// </summary>
+        /// <remarks>
+        /// **Copied rather than created**, because a copy is what makes the two one database to
+        /// KeePass: the same root group, which is what a synchronize matches groups by, and the
+        /// same master key, which is what a synchronize opens the other file with before it asks
+        /// for one. Each copy can then change on its own, as two machines do between merges.
+        ///
+        /// **Only before KeePass starts**, like everything else here.
+        /// </remarks>
+        public string CopyDatabase(string fileName)
+        {
+            var path = Path.Combine(_root, fileName);
+            File.Copy(DatabasePath, path);
+            return path;
+        }
+
+        /// <summary>
+        /// Replaces the authority in one copy of the database, as its Recreate button does once the
+        /// settings dialog is accepted, and answers with the new authority's digest.
+        /// </summary>
+        /// <remarks>
+        /// Through `AuthorityService`, so the copy holds exactly what the plugin leaves: the old
+        /// authority retired, its document and every admission record gone, and the new one under
+        /// a key of its own. Minted rather than written down, so it differs on every run, which
+        /// costs nothing to a test that reads back the digest it is given.
+        ///
+        /// **Only before KeePass starts.**
+        /// </remarks>
+        public string RecreateAuthority(string path)
+        {
+            var database = new PwDatabase();
+            try
+            {
+                database.Open(IOConnectionInfo.FromPath(path), NewKey(), null);
+
+                var authority = new AuthorityService(new CustomDataStore(database), NullGateLog.Instance);
+                var recreated = authority.Recreate();
+                if (!recreated.Succeeded)
+                {
+                    throw new InvalidOperationException(
+                        "The copy's authority was not recreated: " + recreated.Message);
+                }
+
+                database.Save(null);
+
+                using (var reading = authority.Read())
+                {
+                    return reading.Material.AuthorityDigest;
+                }
+            }
+            finally
+            {
+                database.Close();
+            }
+        }
+
+        /// <summary>
         /// Opens the database the way anybody holding the file could, which is how a test issues
         /// itself a client certificate and works out a name the gate will answer to.
         /// </summary>
         public AuthorityReading ReadAuthority()
         {
+            return ReadAuthority(DatabasePath);
+        }
+
+        /// <summary>The same, for one copy of the database among several.</summary>
+        public AuthorityReading ReadAuthority(string path)
+        {
             var database = new PwDatabase();
             try
             {
-                database.Open(IOConnectionInfo.FromPath(DatabasePath), NewKey(), null);
+                database.Open(IOConnectionInfo.FromPath(path), NewKey(), null);
                 return new AuthorityStore(new CustomDataStore(database), NullGateLog.Instance).Read();
             }
             finally
@@ -563,7 +628,13 @@ namespace KeePassGate.Host.Tests.Live
         /// </summary>
         public X509Certificate2 IssueClientCertificate(string subject)
         {
-            using (var reading = ReadAuthority())
+            return IssueClientCertificate(DatabasePath, subject);
+        }
+
+        /// <summary>The same, from the authority one copy of the database holds.</summary>
+        public X509Certificate2 IssueClientCertificate(string path, string subject)
+        {
+            using (var reading = ReadAuthority(path))
             using (var issued = new AuthorityIssuer().IssueClient(reading.Material.Authority, subject, null))
             using (KeePassGate.Testing.PrivateKeyFiles.Lock())
             {
@@ -587,10 +658,16 @@ namespace KeePassGate.Host.Tests.Live
         /// </remarks>
         public void Admit(X509Certificate2 certificate, params string[] profiles)
         {
+            Admit(DatabasePath, certificate, profiles);
+        }
+
+        /// <summary>The same, into one copy of the database among several.</summary>
+        public void Admit(string path, X509Certificate2 certificate, params string[] profiles)
+        {
             var database = new PwDatabase();
             try
             {
-                database.Open(IOConnectionInfo.FromPath(DatabasePath), NewKey(), null);
+                database.Open(IOConnectionInfo.FromPath(path), NewKey(), null);
 
                 new AdmissionStore(new CustomDataStore(database), NullGateLog.Instance)
                     .Write(AdmissionRecord.For(certificate, DateTimeOffset.UtcNow, profiles));

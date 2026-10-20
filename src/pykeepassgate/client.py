@@ -24,7 +24,7 @@ from urllib.parse import quote
 
 from . import credentials as credentials_module
 from . import sni, transport
-from .errors import DatabaseLocked, GateBusy, NotAdmitted, ProtocolError, RouteRefused
+from .errors import GateUnavailable, NotAdmitted, ProtocolError, RouteRefused
 from .model import EXPIRES, Attachment, Entry, Field, Group, made
 
 STATUS_PATH = "/gate/status"
@@ -50,11 +50,17 @@ def _segment(text: str) -> str:
 
 @dataclass(frozen=True)
 class Status:
-    """What the gate says about itself and the database this client reached."""
+    """What the gate says about itself and the database this client reached.
+
+    `version` is the plugin's release, which this client and the routing document share, and
+    `revision` the commit the plugin was built from, in full, or empty for a build that carries
+    none: every build between two releases carries the same version, and this tells them apart.
+    """
 
     ok: bool
     database: str
     version: str
+    revision: str
 
 
 class GateClient:
@@ -67,15 +73,18 @@ class GateClient:
         host: str = transport.LOOPBACK,
         retry_busy_timeout: float | None = transport.DEFAULT_RETRY_BUSY_TIMEOUT,
         retry_locked_timeout: float | None = transport.DEFAULT_RETRY_LOCKED_TIMEOUT,
+        retry_undecided_timeout: float | None = transport.DEFAULT_RETRY_UNDECIDED_TIMEOUT,
         max_response_bytes: int = transport.MAX_RESPONSE_BYTES,
     ) -> None:
         """Take a paired identity, how long to wait on its socket, and where to dial it.
 
-        The two retry budgets are how long this client will go on waiting out a `503`, one per
-        kind, and both are `None` here: nothing retries unless a caller says so, and the refusal
-        is raised exactly as it was before there was anything to say. They are separate because a
-        busy KeePass is in the middle of something and a locked one is waiting for a person.
-        Either can be overridden on one call, which `send` takes.
+        The three retry budgets are how long this client will go on waiting out a `503`, one per
+        word, and all three are `None` here: nothing retries unless a caller says so, and the
+        refusal is raised exactly as it was before there was anything to say. They are separate
+        because each ends differently: a busy KeePass is in the middle of something, a locked one
+        is waiting for a person to come back, and an undecided one for a person to choose between
+        two authorities, which may not be this client's. A `503` with a word none of them names
+        is never waited out. Any of them can be overridden on one call, which `send` takes.
 
         `max_response_bytes` is how much of one answer this client will read, and an answer over
         it fails whole with `ProtocolError` naming the setting, rather than arriving cut short.
@@ -106,6 +115,9 @@ class GateClient:
         self._retry_locked_timeout = transport.retry_limit(
             "retry_locked_timeout", retry_locked_timeout
         )
+        self._retry_undecided_timeout = transport.retry_limit(
+            "retry_undecided_timeout", retry_undecided_timeout
+        )
         self._max_response_bytes = transport.response_limit(max_response_bytes)
         self._context = transport.paired_context(credentials.authority, credentials.identity)
 
@@ -125,6 +137,7 @@ class GateClient:
         connection_timeout: float = transport.DEFAULT_CONNECTION_TIMEOUT,
         retry_busy_timeout: float | None = transport.DEFAULT_RETRY_BUSY_TIMEOUT,
         retry_locked_timeout: float | None = transport.DEFAULT_RETRY_LOCKED_TIMEOUT,
+        retry_undecided_timeout: float | None = transport.DEFAULT_RETRY_UNDECIDED_TIMEOUT,
         max_response_bytes: int = transport.MAX_RESPONSE_BYTES,
     ) -> GateClient:
         """Load a paired identity from where `pair` put it.
@@ -141,6 +154,7 @@ class GateClient:
             host=host,
             retry_busy_timeout=retry_busy_timeout,
             retry_locked_timeout=retry_locked_timeout,
+            retry_undecided_timeout=retry_undecided_timeout,
             max_response_bytes=max_response_bytes,
         )
 
@@ -165,15 +179,18 @@ class GateClient:
         A client can use it to answer three questions at once: whether the gate is listening,
         whether this certificate is still admitted, and whether the database is unlocked.
 
-        The three members are read as the document declares them, as every other answer's are:
-        `bool` would read the text "false" as true, and `str` a `null` as the word "None".
+        Every member is read as the document declares it, as every other answer's are: `bool`
+        would read the text "false" as true, and `str` a `null` as the word "None".
         """
         body = self.get(STATUS_PATH)
-        ok, database, version = body.get("ok"), body.get("database"), body.get("version")
-        if not isinstance(ok, bool) or not (isinstance(database, str) and isinstance(version, str)):
+        ok, database = body.get("ok"), body.get("database")
+        version, revision = body.get("version"), body.get("revision")
+        if not isinstance(ok, bool) or not (
+            isinstance(database, str) and isinstance(version, str) and isinstance(revision, str)
+        ):
             raise ProtocolError("the gate answered its status in a form this client cannot read")
 
-        return Status(ok=ok, database=database, version=version)
+        return Status(ok=ok, database=database, version=version, revision=revision)
 
     # Groups
 
@@ -395,6 +412,7 @@ class GateClient:
         *,
         retry_busy_timeout: transport.Given = transport.KEEP,
         retry_locked_timeout: transport.Given = transport.KEEP,
+        retry_undecided_timeout: transport.Given = transport.KEEP,
     ) -> None:
         """Whether a route answers, and whether this client may reach it, without the answer.
 
@@ -414,6 +432,7 @@ class GateClient:
             path,
             retry_busy_timeout=retry_busy_timeout,
             retry_locked_timeout=retry_locked_timeout,
+            retry_undecided_timeout=retry_undecided_timeout,
         )
 
     def get(
@@ -422,6 +441,7 @@ class GateClient:
         *,
         retry_busy_timeout: transport.Given = transport.KEEP,
         retry_locked_timeout: transport.Given = transport.KEEP,
+        retry_undecided_timeout: transport.Given = transport.KEEP,
     ) -> dict[str, Any]:
         """One GET, on its own connection, under a name built for it."""
         return self.send(
@@ -429,6 +449,7 @@ class GateClient:
             path,
             retry_busy_timeout=retry_busy_timeout,
             retry_locked_timeout=retry_locked_timeout,
+            retry_undecided_timeout=retry_undecided_timeout,
         )
 
     def send(
@@ -439,6 +460,7 @@ class GateClient:
         *,
         retry_busy_timeout: transport.Given = transport.KEEP,
         retry_locked_timeout: transport.Given = transport.KEEP,
+        retry_undecided_timeout: transport.Given = transport.KEEP,
     ) -> dict[str, Any]:
         """One request, on its own connection, retried for as long as a budget allows.
 
@@ -449,17 +471,19 @@ class GateClient:
         **This is also where a retry budget is overridden for one call**, and the reason it is
         here rather than on each of the twenty-two methods above is that a call to the gate is a
         request: every one of those methods is one call to this, so `send` is where a caller can
-        say that this request in particular is worth waiting for. Two more arguments on each of
+        say that this request in particular is worth waiting for. Three more arguments on each of
         them would say the same thing twenty-two times over and turn the file that is meant to
         read as the list of what the gate serves into a file about timeouts.
 
-        Nothing but a `503` is retried. A refusal a client cannot fix by waiting must not be sent
-        round a loop, and a write that failed for any other reason may well have landed. A budget
-        given for one call is refused as the client's own are, before anything is dialed.
+        Nothing but a `503` is retried, and a `503` only when its word is one a budget names. A
+        refusal a client cannot fix by waiting must not be sent round a loop, and a write that
+        failed for any other reason may well have landed. A budget given for one call is refused
+        as the client's own are, before anything is dialed.
         """
         retry = transport.Retry(
             busy=transport.given(retry_busy_timeout, self._retry_busy_timeout),
             locked=transport.given(retry_locked_timeout, self._retry_locked_timeout),
+            undecided=transport.given(retry_undecided_timeout, self._retry_undecided_timeout),
         )
 
         payload = "" if body is None else json.dumps(body, separators=(",", ":"))
@@ -468,10 +492,11 @@ class GateClient:
             try:
                 reply = self._once(method, path, payload)
                 _refuse(reply)
-            except (GateBusy, DatabaseLocked) as refusal:
-                # Safe to repeat whichever of the two it was: the gate refuses before it acts, so
-                # a `503` is the one refusal that says nothing happened. A `DatabaseLocked` read
-                # off the certificate is safer still, since the request was never sent.
+            except GateUnavailable as refusal:
+                # Safe to repeat whichever it was: the gate refuses before it acts, so a `503` is
+                # the one refusal that says nothing happened. A `DatabaseLocked` read off the
+                # certificate is safer still, since the request was never sent. Whether to repeat
+                # it at all is the budget for its word, and a word with none is raised as it came.
                 if retry.waited(refusal):
                     continue
 
@@ -546,16 +571,23 @@ def _refuse(reply: transport.Response) -> None:
     if reply.status in (200, 201):
         return
 
-    error = reply.error()
-
-    if reply.status == 503 and error == "locked":
-        raise DatabaseLocked(
-            "the database is locked, so every route answers this until it is not",
-            reply.retry_after,
+    if reply.status == 503:
+        raise transport.unavailable(
+            reply,
+            locked="the database is locked, so every route answers this until it is not",
+            busy=(
+                "the gate cannot serve this right now: KeePass is busy, with a dialog open on "
+                "what this would change or with something of its own. Nothing was done, so "
+                "asking again shortly is safe"
+            ),
+            undecided=(
+                "the database holds more than one certificate authority and the operator has "
+                "not kept one, which KeePass asks about on its own screen. If the one kept is "
+                "not this client's, this client reaches nothing afterwards and pairs again"
+            ),
         )
 
-    if reply.status == 503:
-        raise GateBusy("the gate cannot serve this right now", reply.retry_after)
+    error = reply.error()
 
     if reply.status == 401:
         # The record is read from the live database on every connection and never cached, so this

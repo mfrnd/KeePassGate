@@ -141,17 +141,31 @@ namespace KeePassGate.Spec
             return Router(version, pairing, new AccessCheck(NullGateAudit.Instance));
         }
 
+        /// <summary>
+        /// The same, for a build that carries no revision, which is what a router assembled outside
+        /// the plugin is.
+        /// </summary>
+        public static SpecRouter Router(string version, PairingHandler pairing, AccessCheck access)
+        {
+            return Router(version, string.Empty, pairing, access);
+        }
+
         /// <summary>The router this plugin runs.</summary>
+        /// <param name="revision">
+        /// The commit the build was made from, which the status route answers beside the version,
+        /// or empty for a build that carries none.
+        /// </param>
         /// <param name="access">
         /// The record and the rules, combined. Every route that touches the database asks it,
         /// through `Nodes()`. The status route and the two pairing routes do not: the status route
         /// reads nothing, and pairing is authorized by a person reading a dialog rather than by a
         /// grant, since a client that is pairing holds no profiles yet.
         /// </param>
-        public static SpecRouter Router(string version, PairingHandler pairing, AccessCheck access)
+        public static SpecRouter Router(
+            string version, string revision, PairingHandler pairing, AccessCheck access)
         {
             return new SpecRouter(
-                Document, Handlers(version, pairing), Guards(pairing), Nodes(), access);
+                Document, Handlers(version, revision, pairing), Guards(pairing), Nodes(), access);
         }
 
         /// <summary>
@@ -217,10 +231,11 @@ namespace KeePassGate.Spec
         /// <summary>
         /// The bindings, without the document, because a test that wants one rarely wants both.
         /// </summary>
+        /// <param name="revision">The commit the build was made from, or empty for none.</param>
         public static IReadOnlyDictionary<string, OperationHandler> Handlers(
-            string version, PairingHandler pairing)
+            string version, string revision, PairingHandler pairing)
         {
-            var status = new StatusOperation(version);
+            var status = new StatusOperation(version, revision);
 
             return new Dictionary<string, OperationHandler>(StringComparer.Ordinal)
             {

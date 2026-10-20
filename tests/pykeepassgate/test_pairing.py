@@ -27,8 +27,10 @@ from pykeepassgate import api, proofs, sni, transport
 from pykeepassgate import pairing as pairing_module
 from pykeepassgate import token as token_module
 from pykeepassgate.errors import (
+    AuthorityUndecided,
     DatabaseLocked,
     GateBusy,
+    GateUnavailable,
     MalformedToken,
     PairingError,
     PairingRefused,
@@ -301,6 +303,8 @@ def test_a_request_with_no_hello_behind_it_cannot_be_built(gate: FakeGate) -> No
     [
         (503, "locked", DatabaseLocked, "wait for the operator to unlock it"),
         (503, "busy", GateBusy, "a group dialog is open, so retry"),
+        (503, "undecided", AuthorityUndecided, "wait for the operator to keep an authority"),
+        (503, "teapot", GateUnavailable, "a word nobody knows, which nothing waits out"),
         (504, "unanswered", PairingUnanswered, "nobody answered, and nothing is spent"),
         (403, "refused", PairingRefused, "the operator said no, and it is spent"),
         (409, "no invitation", PairingError, "it expired or somebody else spent it"),
@@ -321,8 +325,30 @@ def test_every_refusal_becomes_the_thing_a_caller_has_to_do_about_it(
     exchange = pairing.hello()
     pairing_gate.refuse_with = (status, error)
 
-    with pytest.raises(expected):
+    with pytest.raises(expected) as refused:
         pairing.request(exchange, "agent-invented", []), why
+
+    assert type(refused.value) is expected, "the class that names the word, and no other"
+
+
+def test_a_busy_gate_is_described_by_what_it_asks_about(
+    gate: FakeGate, pairing_gate: Gate
+) -> None:
+    # The gate's check before the dialog looks at no group dialog, so a message guessing at one
+    # sends whoever reads it looking for a window that cannot be the cause.
+    pairing = Pairing(gate.port, INVITATION, connection_timeout=10.0)
+    exchange = pairing.hello()
+    pairing_gate.refuse_with = (503, "busy")
+
+    with pytest.raises(GateBusy) as refused:
+        pairing.request(exchange, "agent-invented", [])
+
+    said = str(refused.value)
+    assert "Database Maintenance" in said
+    assert "saving the database would stop to ask" in said
+    assert "another pairing is in front" in said
+    assert "group dialog" not in said
+    assert "invitation is still good" in said
 
 
 @pytest.mark.parametrize(
@@ -398,8 +424,8 @@ def test_a_request_that_reaches_its_own_hello_is_served(gate: FakeGate, pairing_
 
 
 def test_a_pairing_waits_longer_than_the_gate_may_take(gate: FakeGate) -> None:
-    # Not the ordinary timeout. The plugin gives this one exchange five minutes because its own
-    # worst case is 185 seconds, and a client that hangs up first throws away the answer to a
+    # Not the ordinary timeout. The plugin gives this one exchange six minutes because its own
+    # worst case is 305 seconds, and a client that hangs up first throws away the answer to a
     # pairing whose invitation is already spent and whose record is already written.
     assert (
         Pairing(gate.port, INVITATION)._connection_timeout
@@ -545,6 +571,7 @@ def test_a_pairing_with_a_cap_nothing_fits_under_is_refused_before_anything_is_t
         ("connection_timeout", math.nan),
         ("retry_busy_timeout", math.nan),
         ("retry_locked_timeout", -1.0),
+        ("retry_undecided_timeout", math.inf),
     ],
 )
 def test_a_pairing_with_a_setting_that_cannot_work_is_refused_before_anything_is_touched(
@@ -775,6 +802,43 @@ class TestWhatPairingMayRepeat:
         ).hello()
         assert waited == [2.0]
 
+    def test_an_undecided_database_is_waited_out_on_its_own_budget(
+        self, gate: FakeGate, pairing_gate: Gate, waited: list[float]
+    ) -> None:
+        # And not on the busy one: two authorities wait for a person to keep one of them.
+        pairing_gate.hello_refusals = [(503, "undecided")]
+        gate.retry_after = "2"
+
+        with pytest.raises(AuthorityUndecided):
+            Pairing(gate.port, INVITATION, connection_timeout=10.0, retry_busy_timeout=30.0).hello()
+        assert waited == []
+
+        pairing_gate.hello_refusals = [(503, "undecided")]
+        assert Pairing(
+            gate.port, INVITATION, connection_timeout=10.0, retry_undecided_timeout=30.0
+        ).hello()
+        assert waited == [2.0]
+
+    def test_a_word_no_budget_names_is_never_waited_out(
+        self, gate: FakeGate, pairing_gate: Gate, tmp_path: Path, waited: list[float]
+    ) -> None:
+        pairing_gate.hello_refusals = [(503, "teapot")]
+
+        with pytest.raises(GateUnavailable) as refused:
+            api.pair(
+                port=gate.port,
+                invitation=INVITATION,
+                name="agent-invented",
+                directory=tmp_path / "kept",
+                retry_busy_timeout=300.0,
+                retry_locked_timeout=300.0,
+                retry_undecided_timeout=300.0,
+            )
+
+        assert refused.value.error == "teapot"
+        assert self._sent(gate, "/pair/hello") == 1
+        assert waited == []
+
     def test_a_hello_with_no_budget_reports_the_refusal_as_it_always_did(
         self, gate: FakeGate, pairing_gate: Gate, waited: list[float]
     ) -> None:
@@ -865,6 +929,30 @@ class TestWhatPairingMayRepeat:
         assert stored.subject
         assert self._sent(gate, "/pair/hello") == 2, "the second try began at phase 3"
         assert self._sent(gate, "/pair/request") == 2
+        assert waited == [2.0]
+
+    def test_a_pairing_waits_out_two_authorities_on_the_budget_given_for_them(
+        self,
+        gate: FakeGate,
+        host: Issued,
+        tmp_path: Path,
+        bundle: dict[str, Any],
+        waited: list[float],
+    ) -> None:
+        answering = Gate(gate, host, bundle=bundle)
+        answering.hello_refusals = [(503, "undecided")]
+        gate.handler = answering
+        gate.retry_after = "2"
+
+        stored = api.pair(
+            port=gate.port,
+            invitation=INVITATION,
+            name="agent-invented",
+            directory=tmp_path / "kept",
+            retry_undecided_timeout=30.0,
+        )
+
+        assert stored.subject
         assert waited == [2.0]
 
     def test_the_budget_is_held_in_one_place_rather_than_multiplied_by_two(

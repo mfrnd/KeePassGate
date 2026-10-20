@@ -12,12 +12,14 @@ it does not do is a statement too: a route with no method here is a route the ga
 from __future__ import annotations
 
 from .api import (
+    AuthorityUndecided,
     Credentials,
     DatabaseLocked,
     Exchange,
     GateBusy,
     GateClient,
     GateError,
+    GateUnavailable,
     MalformedToken,
     NotAdmitted,
     NotPaired,
@@ -38,12 +40,14 @@ from .api import (
 __version__ = "0.1.0"
 
 __all__ = [
+    "AuthorityUndecided",
     "Credentials",
     "DatabaseLocked",
     "Exchange",
     "GateBusy",
     "GateClient",
     "GateError",
+    "GateUnavailable",
     "MalformedToken",
     "NotAdmitted",
     "NotPaired",

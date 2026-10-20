@@ -22,12 +22,76 @@ namespace KeePassGate.Ui
 
         public const string PanelControlName = "KpgTabPanel";
 
-        public const string TitleLabelName = "KpgTitleLabel";
+        /// <summary>
+        /// What the item under the Tools menu says: the name in full, and the short form after it.
+        /// </summary>
+        /// <remarks>
+        /// A menu item is a line of its own and costs nobody any width, so this is the one place
+        /// that can afford to say both. It is also the only place that can teach the abbreviation:
+        /// somebody who has seen `KPG` on three tabs finds out here what it stands for.
+        /// </remarks>
+        public const string MenuItemText = GateName.Full;
 
-        public const string VersionLabelName = "KpgVersionLabel";
+        public const string MenuItemName = "KpgToolsMenuItem";
 
-        /// <summary>Whether the gate is listening, and where.</summary>
-        public const string ServingLabelName = "KpgServingLabel";
+        /// <summary>The table on that window: where the gate is listening, and what has gone wrong.</summary>
+        public const string StatusFactsName = "KpgStatusFacts";
+
+        /// <summary>The line under it saying what to do about what it says.</summary>
+        public const string StatusAdviceName = "KpgStatusAdvice";
+
+        /// <summary>Where the operator types the port the gate should listen on.</summary>
+        public const string StatusPortBoxName = "KpgStatusPortBox";
+
+        /// <summary>
+        /// The addresses the gate binds, as a list of choices with exactly one choice on it.
+        /// </summary>
+        /// <remarks>
+        /// **A list rather than a line of text, and that is about what comes next.** Loopback is
+        /// the only address this plugin will bind, and the reason is the threat model rather than
+        /// the code: everything here concedes local code execution as the user and defends against
+        /// a legitimate client asking for more than it should, and an address another machine can
+        /// reach is a different argument that has not been made.
+        ///
+        /// Saying so as a list with one entry that cannot be turned off says two true things at
+        /// once: that this is a choice the plugin makes rather than a fact of the network, and that
+        /// there is exactly one option today. A second entry, when a threat model arrives that
+        /// allows one, is then a row rather than a redesign.
+        /// </remarks>
+        public const string StatusAddressListName = "KpgStatusAddressList";
+
+        public const string StatusAddressLabelText = "Listen on";
+
+        /// <summary>The one address there is, and the only one there has ever been.</summary>
+        public const string LoopbackAddress = "127.0.0.1";
+
+        public const string StatusAddressHelp =
+            "Loopback only. Nothing outside this computer can reach the gate, which is what the "
+            + "rest of the plugin's security is written against. Other interfaces would need a "
+            + "threat model that admits them, and there is not one yet.";
+
+        /// <summary>
+        /// The two buttons that end this window, in the order and the place every other dialog
+        /// puts them.
+        /// </summary>
+        /// <remarks>
+        /// **OK and Cancel, and nothing else**, which is a deletion rather than a rename. This
+        /// window had Apply and Close: Apply acted at once and Close did nothing, so the pair said
+        /// that a setting was already live and that leaving was free. Neither is a thing a dialog
+        /// with two buttons in the bottom right corner is read as saying, and everything else this
+        /// plugin puts in front of an operator is a dialog with two buttons in the bottom right
+        /// corner. One shape for all of them, and it is Windows's shape rather than one of ours.
+        /// </remarks>
+        public const string StatusOkButtonName = "KpgStatusOkButton";
+
+        public const string StatusOkButtonText = "OK";
+
+        public const string StatusCancelButtonName = "KpgStatusCancelButton";
+
+        public const string StatusCancelButtonText = "Cancel";
+
+        /// <summary>What the last press of OK did.</summary>
+        public const string StatusResultLabelName = "KpgStatusResultLabel";
 
         /// <summary>One sentence saying what state the authority is in.</summary>
         public const string StatusLabelName = "KpgStatusLabel";
@@ -122,28 +186,16 @@ namespace KeePassGate.Ui
         /// <summary>The icon button beside the box, which puts the token on the clipboard.</summary>
         public const string CopyButtonName = "KpgCopyButton";
 
-        /// <summary>
-        /// What a screen reader calls the tab's contents, which have no caption.
-        /// TODO(step 18): nothing reads this yet. The panel is found by `Name` today, and setting
-        /// an `AccessibleName` on it would replace the name the desktop tests look it up by.
-        /// </summary>
+        /// <summary>What a screen reader calls the tab's contents, which have no caption.</summary>
         public const string PanelAccessibleLabel = "KeePassGate settings for this database";
 
         /// <summary>What a screen reader calls the box holding an invitation code.</summary>
         public const string InvitationBoxLabel = "Invitation code";
 
-        /// <summary>
-        /// What a screen reader calls the list of addresses to listen on.
-        /// TODO(step 18): the window under the Tools menu is to carry these, and to take over
-        /// saying where the gate listens from the tab, because that answer is the same whichever
-        /// database is open.
-        /// </summary>
+        /// <summary>What a screen reader calls the list of addresses to listen on.</summary>
         public const string StatusAddressListLabel = "Addresses to listen on";
 
-        /// <summary>
-        /// What a screen reader calls the port box.
-        /// TODO(step 18): as above.
-        /// </summary>
+        /// <summary>What a screen reader calls the port box.</summary>
         public const string StatusPortBoxLabel = "Port to listen on";
 
         /// <summary>What a screen reader calls the profiles being approved.</summary>
@@ -165,7 +217,7 @@ namespace KeePassGate.Ui
         /// <remarks>
         /// One band for every such reason rather than one band each, because they answer the same
         /// question and the page is 449 by 314. It was named for the only reason it had, which
-        /// stopped being true when an expired authority became a second one.
+        /// stopped being true when a second one arrived.
         ///
         /// **Every reason is one line**, and that is a measurement. The band sits over the client
         /// list, which takes whatever the band leaves, and on the most crowded page the longest
@@ -198,8 +250,7 @@ namespace KeePassGate.Ui
         /// `KPG.Profiles` is the one key this tab and pairing both write, and they write it
         /// differently: the tab holds its version until OK, pairing writes live and saves. A
         /// client approved while an edit is buffered is approved against a list that is about to
-        /// change under it, so the invite button is dead for that span, and this is the third
-        /// reason it can be dead and the last one that said nothing.
+        /// change under it, so the invite button is dead for that span, and this is what says so.
         ///
         /// The remedy is the remedy above, because the state is the same state: something on this
         /// tab has not reached the database, and OK is what puts it there.
@@ -208,45 +259,17 @@ namespace KeePassGate.Ui
             "The profile change is not applied yet. Press OK and reopen this dialog to pair.";
 
         /// <summary>
-        /// What it says when this database's authority has run out.
-        /// </summary>
-        /// <remarks>
-        /// The remedy is named because there is only one and it is not on this page, and what the
-        /// remedy costs is named with it because "Recreate authority" reads like a repair and is
-        /// not: `CA.md` §219 has no reissue, so a new authority invalidates every certificate the
-        /// old one signed and takes every admission record with it. An operator who reads this,
-        /// presses that, and finds the clients list empty afterwards was told the wrong thing.
-        ///
-        /// It says nothing about pressing OK, because a recreate on the first page raises the
-        /// waiting notice above and that one says it.
-        /// </remarks>
-        public const string ExpiredAuthorityNotice =
-            "This authority has expired. Recreate it on the first page; every client pairs again.";
-
-        /// <summary>
-        /// What it says when the host certificate has run out and the authority has not.
-        /// </summary>
-        /// <remarks>
-        /// The same remedy at the same cost, for the reason the notice above gives: `CA.md` §219
-        /// has no reissue for a host certificate either. Its own sentence rather than the one
-        /// above, because an operator told the authority had expired would look at the wrong date
-        /// on the first page and find it years away.
-        /// </remarks>
-        public const string ExpiredHostNotice =
-            "The host certificate has expired. Recreate the authority; every client pairs again.";
-
-        /// <summary>
         /// The longest of them, which is what the tab has to be measured against.
         /// </summary>
         /// <remarks>
         /// Here rather than in the test that measures it, so that a further reason to say
         /// something above the invite button is measured by adding it to this rather than by
-        /// somebody remembering to. `GateTabFitsTests` is what reads it. It went from two
-        /// candidates to three the first time that happened, which is why the comparison is over a
-        /// list rather than written out.
+        /// somebody remembering to. `GateTabFitsTests` is what reads it. How many reasons there are
+        /// has changed more than once, which is why the comparison is over a list rather than
+        /// written out.
         /// </remarks>
         public static readonly string LongestInviteNotice = Longest(
-            PendingAuthorityNotice, PendingProfilesNotice, ExpiredAuthorityNotice, ExpiredHostNotice);
+            PendingAuthorityNotice, PendingProfilesNotice);
 
         private static string Longest(params string[] candidates)
         {
@@ -283,5 +306,38 @@ namespace KeePassGate.Ui
         public const string ApproveButtonText = "Approve";
 
         public const string RefuseButtonText = "Refuse";
+
+        /// <summary>
+        /// The authority page's button for a database holding several authorities, in the place
+        /// Create has, since that one has nothing to do in that state.
+        /// </summary>
+        public const string ChooseButtonName = "KpgChooseButton";
+
+        public const string ChooseButtonText = "Choose authority";
+
+        /// <summary>The dialog that asks which of several authorities to keep.</summary>
+        public const string ChooserFormName = "KpgChooserForm";
+
+        public const string ChooserAuthorityListName = "KpgChooserAuthorityList";
+
+        public const string ChooserAuthorityListLabel = "Authorities this database holds";
+
+        public const string ChooserFingerprintBoxName = "KpgChooserFingerprintBox";
+
+        public const string ChooserFingerprintBoxLabel = "Full fingerprint of the selected authority";
+
+        public const string ChooserDetailLabelName = "KpgChooserDetailLabel";
+
+        public const string ChooserClientListName = "KpgChooserClientList";
+
+        public const string ChooserClientListLabel = "Clients the selected authority admitted";
+
+        public const string KeepButtonName = "KpgKeepButton";
+
+        public const string KeepButtonText = "Keep this one";
+
+        public const string ChooserCancelButtonName = "KpgChooserCancelButton";
+
+        public const string ChooserCancelButtonText = "Cancel";
     }
 }

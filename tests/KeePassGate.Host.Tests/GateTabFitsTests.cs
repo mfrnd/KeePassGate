@@ -2,6 +2,8 @@ using System;
 using System.Globalization;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows.Forms;
 using KeePassGate.Authority;
@@ -42,6 +44,8 @@ namespace KeePassGate.Host.Tests
         private const int MinimumPageHeight = 200;
 
         private TemporaryDatabase _database;
+        private TemporaryDatabase _several;
+        private TemporaryDatabase _damaged;
         private Form _dialog;
         private TabPage _page;
         private ImageList _icons;
@@ -84,6 +88,18 @@ namespace KeePassGate.Host.Tests
             }
 
             _database.Dispose();
+
+            if (_several != null)
+            {
+                _several.Dispose();
+                _several = null;
+            }
+
+            if (_damaged != null)
+            {
+                _damaged.Dispose();
+                _damaged = null;
+            }
         }
 
         [Test]
@@ -173,6 +189,14 @@ namespace KeePassGate.Host.Tests
 
                         Assert.That(panel.Padding.Left, Is.EqualTo((int)Math.Round(Spacing.Gap * scale.Width)),
                             state.Description + " kept an unscaled inset at " +
+                            scaling.ToString("0.00", CultureInfo.InvariantCulture) + " scaling");
+
+                        // The invitation box has a font of its own, and the row holding it is
+                        // measured below: at the size the panel was built at, it was measured
+                        // smaller than any operator sees it (K087).
+                        var box = ControlTree.FindByName<TextBox>(panel, GateTab.InvitationBoxName);
+                        Assert.That(box.Font.SizeInPoints, Is.EqualTo(scaled.Font.SizeInPoints).Within(0.01f),
+                            state.Description + ": the invitation box kept the unscaled font at " +
                             scaling.ToString("0.00", CultureInfo.InvariantCulture) + " scaling");
 
                         foreach (var column in Columns(panel))
@@ -355,6 +379,131 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        [TestCase(1.00f)]
+        [TestCase(1.25f)]
+        [TestCase(1.50f)]
+        [TestCase(2.00f)]
+        public void The_line_counting_revoked_clients_a_merge_brought_back_fits_under_the_list(float scaling)
+        {
+            // A band this page has only after a merge, under the list and above the line a gesture
+            // answers on. Both are shown at once with the longest thing each can say, a count four
+            // digits wide and the sentence for a listing that could not be read, and the list still
+            // has to be a list. At every scaling, because the room grows with the display and a
+            // band of ours that did not would be the one thing measured against the wrong room.
+            using (var scaled = scaling > 1.00f ? ScaledDialog(scaling) : null)
+            {
+                var area = scaled == null ? _page.DisplayRectangle.Size : PageOf(scaled.Dialog);
+                var where = " at " + scaling.ToString("0.00", CultureInfo.InvariantCulture) + " scaling";
+
+                foreach (var state in States())
+                {
+                    using (var panel = state.Panel)
+                    {
+                        if (scaled != null)
+                        {
+                            panel.Font = scaled.Font;
+                        }
+
+                        LayOut(panel, area);
+
+                        var clients = ControlTree.FindByName<ClientList>(panel, ClientList.ControlName);
+                        Assert.That(clients, Is.Not.Null);
+
+                        // The page in front first, because bringing it forward reads the database
+                        // again and fills the list with what is really there.
+                        Show(clients);
+                        clients.Fill(new AdmissionListing(Array.Empty<AdmissionRecord>(), 9999, true), null, null);
+                        Show(clients, ClientList.ResultLabelName, ClientList.UnreadableText);
+                        clients.PerformLayout();
+
+                        var line = ControlTree.FindByName<Label>(clients, ClientList.ReappearedLabelName);
+                        Assert.That(line, Is.Not.Null);
+                        Assert.That(clients.Reappeared, Is.EqualTo(ClientList.ReappearedText(9999)));
+
+                        var grid = ControlTree.FindFirst<DataGridView>(clients);
+                        var needed = line.GetPreferredSize(new Size(line.Width, 0));
+
+                        TestContext.Out.WriteLine(state.Description + where + ": the line is " + line.Size +
+                                                  " needing " + needed.Height + ", the list has " + grid.Height);
+
+                        Assert.That(line.Right, Is.LessThanOrEqualTo(clients.ClientSize.Width),
+                            state.Description + where + ": the line runs off the side of the page.");
+                        Assert.That(line.Height, Is.GreaterThanOrEqualTo(needed.Height),
+                            state.Description + where + ": the line is cut short.");
+                        Assert.That(grid.Height, Is.GreaterThanOrEqualTo(MinimumListHeight),
+                            state.Description + where + " leaves the list " + grid.Height +
+                            " pixels, which is not a list.");
+                    }
+                }
+            }
+        }
+
+        [Test]
+        [TestCase(1.00f)]
+        [TestCase(1.25f)]
+        [TestCase(1.50f)]
+        [TestCase(2.00f)]
+        public void The_notice_over_the_invite_button_leaves_the_list_its_room(float scaling)
+        {
+            // The band over the invite button says why a code handed out now could not be
+            // redeemed, and the client list under it takes whatever the band leaves. Bringing the
+            // page forward reads the database again and hides a notice this database has no reason
+            // for, and every measurement of the page brings it forward first, so no fit test had a
+            // notice on screen. Each one is put back afterwards, on the most crowded page it can
+            // really be on: beside the longest line it can share the band with, over the two lines
+            // a merge adds under the list, and above the longest answer the footer holds.
+            //
+            // Both reasons are a change waiting for OK, and either can sit beside a code still
+            // counting down, handed out before the change was made.
+            using (var scaled = scaling > 1.00f ? ScaledDialog(scaling) : null)
+            {
+                var area = scaled == null ? _page.DisplayRectangle.Size : PageOf(scaled.Dialog);
+                var where = " at " + scaling.ToString("0.00", CultureInfo.InvariantCulture) + " scaling";
+
+                foreach (var notice in new[] { GateTab.PendingAuthorityNotice, GateTab.PendingProfilesNotice })
+                {
+                    using (var panel = NewPanel(true, true))
+                    {
+                        // Scaled as `TabPageInjector` scales the page it attaches, which is the
+                        // page a scaled display shows.
+                        if (scaled != null)
+                        {
+                            panel.Scale(Spacing.ScaleOf(scaled.Dialog));
+                            panel.Font = scaled.Font;
+                        }
+
+                        LayOut(panel, area);
+
+                        var clients = ControlTree.FindByName<ClientList>(panel, ClientList.ControlName);
+                        Assert.That(clients, Is.Not.Null);
+                        Show(clients);
+
+                        Set(panel, GateTab.InvitationLabelName, LongestInvitationLine(panel));
+                        Show(panel, GateTab.InviteNoticeName, notice);
+                        Set(panel, GateTab.ResultLabelName, AuthorityPanel.LongestResult());
+                        clients.Fill(new AdmissionListing(Array.Empty<AdmissionRecord>(), 9999, false), null, null);
+
+                        panel.PerformLayout();
+                        Page(clients).PerformLayout();
+                        clients.PerformLayout();
+
+                        var shown = ControlTree.FindByName<Label>(panel, GateTab.InviteNoticeName);
+                        var grid = ControlTree.FindFirst<DataGridView>(clients);
+
+                        TestContext.Out.WriteLine("\"" + notice + "\"" + where + ": the notice is " +
+                                                  shown.Size + ", the list has " + grid.Height);
+
+                        Assert.That(shown.Visible, Is.True, "the notice is not on screen, so nothing here measures it");
+                        Assert.That(clients.Reappeared, Is.Not.Null, "and neither is the line a merge adds");
+                        Assert.That(grid.Height, Is.GreaterThanOrEqualTo(MinimumListHeight),
+                            "\"" + notice + "\"" + where + " leaves the list " + grid.Height +
+                            " pixels, which is not a list.");
+                    }
+                }
+            }
+        }
+
+        [Test]
         public void The_profiles_page_keeps_room_for_the_list_under_the_line_that_adds_one()
         {
             // The same shape as the clients page and the same hazard: the row that adds a profile
@@ -468,49 +617,272 @@ namespace KeePassGate.Host.Tests
             }
         }
 
+        [Test]
+        [TestCase(1.00f)]
+        [TestCase(1.25f)]
+        [TestCase(1.50f)]
+        [TestCase(2.00f)]
+        public void The_invitation_box_shows_the_whole_of_a_code(float scaling)
+        {
+            // The hazard the test above leaves alone. A box wide enough to read out of still cut
+            // the last character off at 100 percent, which is what the row left it beside "Renew
+            // invite", and nothing here noticed: a narrower box fits the page as well as a wide
+            // one. So the edit control itself is asked, with a code in it, where it puts the last
+            // character, against the room it draws text in.
+            using (var scaled = scaling > 1.00f ? ScaledDialog(scaling) : null)
+            {
+                var area = scaled == null ? _page.DisplayRectangle.Size : PageOf(scaled.Dialog);
+                var where = " at " + scaling.ToString("0.00", CultureInfo.InvariantCulture) + " scaling";
+
+                foreach (var state in States())
+                {
+                    using (var panel = state.Panel)
+                    {
+                        // Scaled as `TabPageInjector` scales the page it attaches, which is the
+                        // page a scaled display shows.
+                        if (scaled != null)
+                        {
+                            panel.Scale(Spacing.ScaleOf(scaled.Dialog));
+                            panel.Font = scaled.Font;
+                        }
+
+                        LayOut(panel, area);
+
+                        var box = ControlTree.FindByName<TextBox>(panel, GateTab.InvitationBoxName);
+                        Assert.That(box, Is.Not.Null);
+                        Show(box);
+
+                        // Any code will do in a monospaced font, since every one is as wide as
+                        // every other, and a letter this wide makes one whatever the font.
+                        box.Text = new string('W', PairingToken.TextLength);
+                        box.Select(0, 0);
+                        box.ScrollToCaret();
+
+                        var room = new EditRect();
+                        SendMessage(box.Handle, GetRect, IntPtr.Zero, ref room);
+
+                        var first = PositionOf(box, 0);
+                        var last = PositionOf(box, box.TextLength - 1) + (PositionOf(box, 1) - first);
+
+                        TestContext.Out.WriteLine(state.Description + where + ": the code runs from " + first +
+                                                  " to " + last + " in a box drawing text from " +
+                                                  room.Left + " to " + room.Right);
+
+                        Assert.That(first, Is.GreaterThanOrEqualTo(room.Left),
+                            state.Description + where + ": the box has scrolled the start of the code away.");
+                        Assert.That(last, Is.LessThanOrEqualTo(room.Right),
+                            state.Description + where + ": the invitation box cuts the code off at " +
+                            room.Right + ", where its last character ends at " + last + ".");
+                    }
+                }
+            }
+        }
+
+        /// <summary>Where an edit control draws one of its characters, from its left edge.</summary>
+        private static int PositionOf(TextBox box, int index)
+        {
+            return (short)(SendMessage(box.Handle, PositionFromCharacter, new IntPtr(index), IntPtr.Zero).ToInt64() & 0xFFFF);
+        }
+
+        /// <summary>The message asking an edit control for the rectangle it draws its text in.</summary>
+        private const int GetRect = 0x00B2;
+
+        /// <summary>The message asking it where it draws one character.</summary>
+        private const int PositionFromCharacter = 0x00D6;
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct EditRect
+        {
+            public int Left;
+            public int Top;
+            public int Right;
+            public int Bottom;
+        }
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr SendMessage(IntPtr window, int message, IntPtr wide, ref EditRect low);
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr SendMessage(IntPtr window, int message, IntPtr wide, IntPtr low);
+
         /// <summary>
         /// Every state the tab has, because the tallest one is what has to fit. An authority makes
         /// it longer, and an invitation longer still.
         /// </summary>
         private PanelState[] States()
         {
-            return new[]
+            var states = new List<PanelState>
             {
                 new PanelState("A tab with no authority", NewPanel(false, false)),
                 new PanelState("A tab with an authority", NewPanel(true, false)),
-                new PanelState("A tab with an invitation outstanding", NewPanel(true, true)),
-                new PanelState("A tab showing the longest of everything", Worst())
+                new PanelState("A tab with an invitation outstanding", NewPanel(true, true))
             };
+
+            // One under each headline, because which of them is tallest is not something to
+            // assume: each with the longest detail that headline comes with.
+            foreach (var longest in AuthorityDescription.LongestDescriptions())
+            {
+                states.Add(new PanelState(
+                    "A tab showing the longest of everything under \"" + longest.Headline + "\"",
+                    Worst(longest)));
+            }
+
+            states.Add(new PanelState("A tab holding several authorities", Undecided()));
+            states.Add(new PanelState("A tab holding an authority that cannot be used", Damaged()));
+
+            return states.ToArray();
         }
 
         /// <summary>
-        /// The tab with the longest text every one of its labels can ever hold, all at once. What
-        /// fits today is not the question: an authority about to expire, a fleet of expired clients
-        /// and a long answer from the last button press can all be on screen together, and that is
-        /// the state that has to fit.
+        /// A database whose one authority will not read, on a database of its own for the reason
+        /// <see cref="Undecided"/> gives.
         /// </summary>
-        private AuthorityPanel Worst()
+        /// <remarks>
+        /// Drawn by the panel rather than told what to say. The states above set their longest
+        /// text by hand, which measures words; this is the page a damaged reading really draws,
+        /// with the buttons it really offers, which no state measured before.
+        /// </remarks>
+        private AuthorityPanel Damaged()
+        {
+            _damaged?.Dispose();
+            _damaged = TemporaryDatabase.New();
+            new CustomDataStore(_damaged.Database).Set(AuthorityKeys.AuthorityKey(new string('d', 64)), "not an authority");
+
+            var panel = new AuthorityPanel(new OpenDatabase(_damaged.Database), null, NullGateLog.Instance);
+            Assert.That(ControlTree.FindByName<Label>(panel, GateTab.StatusLabelName).Text,
+                Is.EqualTo(AuthorityDescription.DamagedHeadline), "the state is not the one it is named for");
+
+            Set(panel, GateTab.ResultLabelName, AuthorityPanel.LongestResult());
+            return panel;
+        }
+
+        /// <summary>
+        /// A database holding two authorities nobody has chosen between, on a database of its own
+        /// so that the other states go on reading theirs: a page brought forward reads again.
+        /// </summary>
+        private AuthorityPanel Undecided()
+        {
+            // The last one first, since the measurement that is only ever run by hand asks for
+            // every state once per text size, and its panels are gone by then.
+            _several?.Dispose();
+            _several = TemporaryDatabase.New();
+            var store = new CustomDataStore(_several.Database);
+            var service = new AuthorityService(store, NullGateLog.Instance);
+
+            Assert.That(service.Create().Succeeded, Is.True);
+            var first = store.Keys.Single(k => AuthorityKeys.FingerprintInAuthority(k) != null);
+            var document = store.Get(first);
+            store.Remove(first);
+            Assert.That(service.Create().Succeeded, Is.True);
+            store.Set(first, document);
+
+            var panel = new AuthorityPanel(new OpenDatabase(_several.Database), null, NullGateLog.Instance);
+            Set(panel, GateTab.ResultLabelName, AuthorityPanel.LongestResult());
+            return panel;
+        }
+
+        /// <summary>
+        /// The tab with the longest text every one of its labels can ever hold, all at once, under
+        /// one headline and the longest detail it comes with. What fits today is not the question:
+        /// an authority about to expire, a fleet of expired clients and a long answer from the last
+        /// button press can all be on screen together, and that is the state that has to fit.
+        /// </summary>
+        /// <remarks>
+        /// The facts are drawn whatever the headline, which is more than a damaged page ever
+        /// shows, so this measures more than can happen rather than less.
+        /// </remarks>
+        private AuthorityPanel Worst(AuthorityDescription longest)
         {
             var panel = NewPanel(true, true);
 
-            Set(panel, GateTab.ServingLabelName, GateStatusText.NotListening);
-            Set(panel, GateTab.StatusLabelName, AuthorityDescription.DamagedHeadline);
-            Set(panel, GateTab.DetailLabelName, AuthorityDescription.LongestDetail());
+            Set(panel, GateTab.StatusLabelName, longest.Headline);
+            Set(panel, GateTab.DetailLabelName, longest.DetailText);
             panel.DrawFacts(AuthorityDescription.LongestFacts());
-            Set(panel, GateTab.ResultLabelName,
-                "The authority was recreated. 16 clients lost their admission.");
-            Set(panel, GateTab.InvitationLabelName,
-                "The in-memory code is good for another 10 minutes until the first client "
-                + "consumes it or it gets renewed. "
-                + "The approval dialog will call it 0123456789abcdef.");
+            Set(panel, GateTab.ResultLabelName, AuthorityPanel.LongestResult());
+
+            // Written again whenever a page is brought forward, which every measurement of the
+            // clients page does first: the panel reads the database again then and puts back the
+            // countdown of the code it really holds, under whatever digits happened to name it.
+            // Handlers run in the order they were added, so this runs after the panel's own.
+            var line = LongestInvitationLine(panel);
+            Set(panel, GateTab.InvitationLabelName, line);
+            ControlTree.FindFirst<TabControl>(panel).SelectedIndexChanged +=
+                delegate { Set(panel, GateTab.InvitationLabelName, line); };
 
             // Shown, because it can be: an operator who created an authority and went straight to
             // the clients page is looking at this and at everything above it at the same time.
             // Whichever of its sentences is longer, since the band holds one at a time and the
             // question here is how much room the longest one needs.
+            //
+            // **Put back whenever a page comes forward, as the line is**, because that reads the
+            // database again and hides it: nothing in this one is waiting or has run out. Left
+            // hidden, no measurement of the clients page had it on, and at three lines it left the
+            // client list 72 of its 90 pixels under the two lines a merge adds. Each notice beside
+            // what it can really share the page with is measured by
+            // `The_notice_over_the_invite_button_leaves_the_list_its_room`.
             Show(panel, GateTab.InviteNoticeName, GateTab.LongestInviteNotice);
+            ControlTree.FindFirst<TabControl>(panel).SelectedIndexChanged +=
+                delegate { Show(panel, GateTab.InviteNoticeName, GateTab.LongestInviteNotice); };
 
             return panel;
+        }
+
+        /// <summary>
+        /// The longest sentence the invitation line can hold, which is the countdown under a code
+        /// that has just been made.
+        /// </summary>
+        /// <remarks>
+        /// **Composed by `InvitationText.For` rather than typed here**, so that a longer wording, a
+        /// lifetime with more digits or a longer identifier is what this measures on the day it
+        /// arrives. The code runs out a whole `DefaultLifetime` from now, which is the most minutes
+        /// the line ever counts, and its identifier is as long as the book makes one and spelled in
+        /// whichever hex digit is widest in the line's own font. The fixed sentences are measured
+        /// against it, since the line holds one of those instead whenever there is nothing to count
+        /// down, and the widest of them all is what the line is given.
+        /// </remarks>
+        private static string LongestInvitationLine(Control panel)
+        {
+            var font = ControlTree.FindByName<Label>(panel, GateTab.InvitationLabelName).Font;
+
+            int length;
+            using (var book = new InvitationBook(NullGateLog.Instance))
+            {
+                length = book.Invite("measured").Id.Length;
+            }
+
+            var digit = '0';
+            foreach (var candidate in "0123456789abcdef")
+            {
+                if (WidthOf(new string(candidate, length), font) > WidthOf(new string(digit, length), font))
+                {
+                    digit = candidate;
+                }
+            }
+
+            var now = DateTimeOffset.UtcNow;
+            string longest;
+            using (var invitation = new Invitation(
+                new string(digit, length), "measured", PairingToken.New(), now, now + InvitationBook.DefaultLifetime))
+            {
+                longest = InvitationText.For(new[] { invitation }, now);
+            }
+
+            foreach (var field in typeof(InvitationText).GetFields(
+                System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static))
+            {
+                var said = field.IsLiteral ? field.GetRawConstantValue() as string : null;
+                if (said != null && WidthOf(said, font) > WidthOf(longest, font))
+                {
+                    longest = said;
+                }
+            }
+
+            return longest;
+        }
+
+        private static int WidthOf(string text, Font font)
+        {
+            return TextRenderer.MeasureText(text, font).Width;
         }
 
         /// <summary>A label that hides itself when it has nothing to say, made to say it.</summary>
@@ -548,8 +920,7 @@ namespace KeePassGate.Host.Tests
                 }
             }
 
-            var panel = new AuthorityPanel(
-                new OpenDatabase(_database.Database), null, NullGateLog.Instance, "1.2.3", null, book);
+            var panel = new AuthorityPanel(new OpenDatabase(_database.Database), null, NullGateLog.Instance, book);
 
             if (withInvitation)
             {

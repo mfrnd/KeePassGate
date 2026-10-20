@@ -27,8 +27,8 @@ namespace KeePassGate.Diagnostics
         /// <remarks>
         /// Its own level rather than another error, because these are the only lines in the log
         /// that mean "there is a defect here or KeePass has changed under us". They are counted on
-        /// the KPG tab as well, so that a failure inside a socket thread is not something only a
-        /// log reader ever learns about.
+        /// the plugin's own window under the Tools menu as well, so that a failure inside a socket
+        /// thread is not something only a log reader ever learns about.
         /// </remarks>
         void Unexpected(string message, Exception error);
     }

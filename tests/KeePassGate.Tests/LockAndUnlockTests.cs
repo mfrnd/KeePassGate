@@ -317,7 +317,7 @@ namespace KeePassGate.Tests
 
             Assert.DoesNotThrow(() => _events.RaiseClosed("C:\\invented\\one.kdbx", true));
             Assert.That(_incidents.Count, Is.EqualTo(1),
-                "one of the catch-alls, so it is counted rather than only logged");
+                "one of the four catch-alls, so it is counted rather than only logged");
             Assert.That(_log.Surprises, Is.Not.Empty);
         }
 
@@ -380,6 +380,13 @@ namespace KeePassGate.Tests
             public event EventHandler Closing;
 
             public event EventHandler<GateDatabaseEventArgs> Closed;
+
+            /// <summary>Never raised: the lock watch has nothing to do with a save.</summary>
+            public event EventHandler Saved
+            {
+                add { }
+                remove { }
+            }
 
             public void RaiseClosing()
             {

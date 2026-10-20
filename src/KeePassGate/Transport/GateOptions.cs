@@ -1,4 +1,6 @@
 using System;
+using System.Globalization;
+using System.Text;
 
 namespace KeePassGate.Transport
 {
@@ -16,8 +18,7 @@ namespace KeePassGate.Transport
         /// <summary>
         /// Overrides the port. Read from the environment so that a test can take a free one
         /// without touching anybody's settings, and the only answer there is until an operator has
-        /// somewhere to give one. TODO(step 18): the window under the Tools menu is where that
-        /// setting is edited.
+        /// somewhere to give one. The window under the Tools menu is where that setting is edited.
         /// </summary>
         public const string PortVariable = "KEEPASSGATE_PORT";
 
@@ -28,8 +29,8 @@ namespace KeePassGate.Transport
             MaxBodyBytes = 1024 * 1024;
             MaxConnections = 32;
             Timeout = TimeSpan.FromSeconds(10);
-            Budget = TimeSpan.FromSeconds(30);
-            PairingBudget = TimeSpan.FromMinutes(5);
+            Budget = TimeSpan.FromSeconds(90);
+            PairingBudget = TimeSpan.FromMinutes(6);
         }
 
         public int Port { get; set; }
@@ -62,6 +63,22 @@ namespace KeePassGate.Transport
         /// conversation: a peer sending a byte just inside it satisfies every read and still never
         /// finishes, which is a thread held for as long as the caps allow rather than for ten
         /// seconds.
+        ///
+        /// **It bounds what the peer controls and stops there.** The connection's deadline is
+        /// dropped the moment the whole request is off the wire, because after that the thread is
+        /// blocked on this plugin rather than on the socket and closing the socket frees neither
+        /// the thread nor the connection slot: all it does is destroy the answer to a write that
+        /// lands anyway, leaving a client that has to guess whether its create happened and holds
+        /// no identifier for the entry if it did. `GateListener.Deadline.Disarm` is where that is,
+        /// with the argument.
+        ///
+        /// **It used to be said to have a floor**, and the floor was `DatabaseWriter.LockTimeout`
+        /// plus `DatabaseWriter.WriteTimeout`, on the ground that the second of those bounds the
+        /// marshaled write and save. It does not: it bounds the wait for that call to *start*, and
+        /// a call that has started is waited out with no clock on it at all. So the sum was not an
+        /// upper bound on anything a writing request can spend, and no number is: a save is a
+        /// whole-database write of whatever size the database is, over whatever storage it is on.
+        /// A raised budget made the loss rarer and nothing more.
         /// </remarks>
         public TimeSpan Budget { get; set; }
 
@@ -78,33 +95,120 @@ namespace KeePassGate.Transport
         /// and the record still saved; it only throws away the answer, leaving a record on disk for
         /// a certificate nobody ever received.
         ///
-        /// So it has to exceed `ApprovalTimeout + PairingApprovalPrompt.Grace +
-        /// DatabaseWriter.LockTimeout + DatabaseWriter.WriteTimeout`, and
+        /// **There are two waits on the screen and not one**, which is what the number was short
+        /// by. `PairingApprovalPrompt` lets one pairing at a time in front of the operator, and a
+        /// second one waits for the screen for as long as it was going to give the operator anyway
+        /// before it can start giving it. So a pairing that takes the screen just inside that wait
+        /// still has the whole of the dialog ahead of it.
+        ///
+        /// **And this is the one connection that keeps a deadline after its request is read**,
+        /// where <see cref="Budget"/> drops it. The difference is that the rest of a pairing is a
+        /// sum somebody can write down, so a number for it means something; the rest of an
+        /// ordinary write is a save of unknown length, so a number for it can only cut a landing
+        /// write off from its answer. The last of the waits added up below is the same
+        /// `DatabaseWriter.WriteTimeout` that does not bound a started save, and it is kept here
+        /// because this budget only has to outlast the waits, not bound them.
+        ///
+        /// So it has to exceed `ApprovalTimeout` for the screen, then `ApprovalTimeout +
+        /// PairingApprovalPrompt.Grace` for the dialog, then `DatabaseWriter.LockTimeout +
+        /// DatabaseWriter.WriteTimeout` for the write, and
         /// `GateOptionsTests.The_pairing_budget_outlasts_everything_a_pairing_waits_for` is what
         /// keeps the five numbers from drifting apart.
         /// </remarks>
         public TimeSpan PairingBudget { get; set; }
 
-        /// <summary>The defaults, with the port taken from the environment when one is named there.</summary>
-        public static GateOptions FromEnvironment()
+        /// <summary>
+        /// What the environment gives <see cref="PortVariable"/>, exactly as it gives it, or null
+        /// when it gives nothing.
+        /// </summary>
+        /// <remarks>
+        /// The text rather than a number, because whether it is a port is the question
+        /// <see cref="PortToTake"/> has to answer and then report. A policy that forbids reading the
+        /// environment is an environment that names nothing.
+        /// </remarks>
+        public static string PortFromEnvironment()
         {
-            var options = new GateOptions();
-
             try
             {
-                var text = Environment.GetEnvironmentVariable(PortVariable);
-                int port;
-                if (!string.IsNullOrEmpty(text) && int.TryParse(text, out port) && port >= 0 && port <= 65535)
-                {
-                    options.Port = port;
-                }
+                return Environment.GetEnvironmentVariable(PortVariable);
             }
             catch (System.Security.SecurityException)
             {
-                // A policy that forbids reading the environment. The default port stands.
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// The port the gate takes as KeePass starts, or zero, with the reason, when the
+        /// environment names something that is not a port.
+        /// </summary>
+        /// <param name="chosen">What the operator chose on the Tools window, or zero for nothing.</param>
+        /// <param name="named">What <see cref="PortFromEnvironment"/> read, or null when it read nothing.</param>
+        /// <param name="refused">Why nothing may be taken, or null when a port may.</param>
+        /// <remarks>
+        /// **The operator's choice first**, because it is the only one of the three a person made
+        /// deliberately; then the variable, which is how a test takes a free port without touching
+        /// anybody's settings; then <see cref="DefaultPort"/>. The variable is read only when
+        /// nothing is chosen, so a chosen port stands whatever the variable holds.
+        ///
+        /// **A variable naming something that is not a port stops the gate**, and it used to be
+        /// passed over for the default instead. The variable is read by the plugin, so a value in
+        /// it that is not a port is a mistake in something somebody configured, and serving on a
+        /// port nobody named hides that mistake behind a gate that looks healthy while every
+        /// client set up with the intended port fails to connect. A port is what
+        /// `GatePort` allows an operator to type, 1024 to 65535, written as digits and nothing
+        /// else: a sign, a space, an empty value and a number out of range are all refused,
+        /// because each is somebody's mistake rather than a port.
+        /// </remarks>
+        public static int PortToTake(int chosen, string named, out string refused)
+        {
+            refused = null;
+
+            if (GatePort.Refuse(chosen) == null)
+            {
+                return chosen;
             }
 
-            return options;
+            if (named == null)
+            {
+                return DefaultPort;
+            }
+
+            int port;
+            if (int.TryParse(named, NumberStyles.None, CultureInfo.InvariantCulture, out port)
+                && GatePort.Refuse(port) == null)
+            {
+                return port;
+            }
+
+            refused = PortVariable
+                + (named.Length == 0 ? " is set but empty" : " is set to \"" + Shown(named) + "\"")
+                + ", which is not a port the gate may listen on: a port is a number from "
+                + GatePort.Lowest.ToString(CultureInfo.InvariantCulture) + " to "
+                + GatePort.Highest.ToString(CultureInfo.InvariantCulture)
+                + ", so the gate is not listening until the variable names one or is removed.";
+
+            return 0;
         }
+
+        /// <summary>
+        /// A value somebody set, as it can be quoted in one line: control characters as spaces,
+        /// and cut once it is longer than any port could be written.
+        /// </summary>
+        private static string Shown(string value)
+        {
+            var shown = new StringBuilder(value.Length);
+            foreach (var character in value)
+            {
+                shown.Append(char.IsControl(character) ? ' ' : character);
+            }
+
+            return shown.Length <= ShownLength
+                ? shown.ToString()
+                : shown.ToString(0, ShownLength) + "...";
+        }
+
+        /// <summary>How much of a refused value is quoted back.</summary>
+        private const int ShownLength = 32;
     }
 }

@@ -147,7 +147,7 @@ evening, because it fails without a message.
 
 ### Driving KeePass through the desktop
 
-Six traps, all of which look like the plugin failing rather than the harness.
+Seven traps, all of which look like the plugin failing rather than the harness.
 
 | Fact | How it was established |
 | --- | --- |
@@ -157,6 +157,7 @@ Six traps, all of which look like the plugin failing rather than the harness.
 | `SetForegroundWindow` is refused to a process that does not already hold the foreground, which a test runner does not. Attaching to the foreground thread's input queue for the duration lifts the refusal | measured by comparing `GetForegroundWindow` before and after |
 | Access keys are readable from the accessibility tree, `Alt+f` for the File menu and `d` for Database Settings, so the keyboard route needs no hard-coded English | read `AutomationElement.Current.AccessKey` |
 | An accessible name set on a label **replaces** the text a reader gets back, so identifying controls that way hides the very text a test wants to assert | the end to end test read `KpgVersionLabel` where `Version 0.1.0` was expected |
+| **A `ListView` in details view is a `DataGrid` to UI automation, not a `List`**, with `Selection`, `Grid` and `Table` patterns, and its rows are `DataItem`s named by their first column. Looked for as a `List` it is not there, and a description of the window's lists says it has none | the authority chooser's list was not found in a live run; the same dialog, shown off screen and read by a .NET Framework client as the test host reads it, reported a `DataGrid` |
 
 So the shape that works: discover the keys through the accessibility tree with the menu opened and
 closed through it, then drive the menu purely from synthesized keystrokes, then read the result back

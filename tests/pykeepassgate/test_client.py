@@ -16,8 +16,10 @@ from pykeepassgate import credentials as credentials_module
 from pykeepassgate import sni, transport
 from pykeepassgate.client import GateClient
 from pykeepassgate.errors import (
+    AuthorityUndecided,
     DatabaseLocked,
     GateBusy,
+    GateUnavailable,
     NotAdmitted,
     ProtocolError,
     RouteRefused,
@@ -38,13 +40,30 @@ def test_the_status_route_says_what_the_gate_and_the_database_are(
 ) -> None:
     gate.handler = lambda path, body, client: (
         200,
-        json.dumps({"ok": True, "database": "abcdef01", "version": "0.1.0"}),
+        json.dumps(
+            {"ok": True, "database": "abcdef01", "version": "0.1.0", "revision": "0123abcd"}
+        ),
     )
 
     status = paired.status()
 
-    assert (status.ok, status.database, status.version) == (True, "abcdef01", "0.1.0")
+    assert (status.ok, status.database, status.version, status.revision) == (
+        True, "abcdef01", "0.1.0", "0123abcd"
+    )
     assert gate.requests == [("GET", "/gate/status")]
+
+
+def test_a_build_carrying_no_commit_is_read_as_an_empty_revision(
+    gate: FakeGate, paired: GateClient
+) -> None:
+    # Empty is an answer, and the member is still required: a gate leaving it out is answering in
+    # a form the document does not declare.
+    gate.handler = lambda path, body, client: (
+        200,
+        json.dumps({"ok": True, "database": "abcdef01", "version": "0.1.0", "revision": ""}),
+    )
+
+    assert paired.status().revision == ""
 
 
 def test_every_request_is_named_from_the_gate_key(gate: FakeGate, paired: GateClient) -> None:
@@ -102,6 +121,8 @@ def test_an_empty_answer_is_an_empty_object_rather_than_a_failure(
     [
         (503, "locked", DatabaseLocked),
         (503, "busy", GateBusy),
+        (503, "undecided", AuthorityUndecided),
+        (503, "teapot", GateUnavailable),
         (401, "unpaired", NotAdmitted),
         (404, "no such route", RouteRefused),
         (405, "method not allowed", RouteRefused),
@@ -126,8 +147,38 @@ def test_every_refusal_becomes_something_a_caller_can_act_on(
     with pytest.raises(expected) as raised:
         paired.status()
 
+    assert type(raised.value) is expected, "the class that names the word, and no other"
     if isinstance(raised.value, RouteRefused):
         assert (raised.value.status, raised.value.error) == (status, error)
+
+
+@pytest.mark.parametrize("error", ["locked", "busy", "undecided", "teapot"])
+def test_a_503_keeps_the_word_and_the_delay_the_gate_gave(
+    gate: FakeGate, paired: GateClient, error: str
+) -> None:
+    # The word is what a caller catching the base reads, which a word this client does not know
+    # needs most of all: it is the whole of what that refusal says.
+    gate.handler = lambda path, body, client: (503, json.dumps({"error": error}))
+    gate.retry_after = "2"
+
+    with pytest.raises(GateUnavailable) as raised:
+        paired.status()
+
+    assert (raised.value.error, raised.value.retry_after) == (error, 2.0)
+
+
+@pytest.mark.parametrize("body", ["{}", "", "not json at all"], ids=["no word", "empty", "text"])
+def test_a_503_that_names_no_word_is_the_family_itself(
+    gate: FakeGate, paired: GateClient, body: str
+) -> None:
+    gate.handler = lambda path, sent, client: (503, body)
+
+    with pytest.raises(GateUnavailable) as raised:
+        paired.status()
+
+    assert type(raised.value) is GateUnavailable
+    assert raised.value.error == ""
+    assert "named no word" in str(raised.value)
 
 
 def test_nothing_is_asked_of_the_identity_a_locked_database_answers_with(
@@ -143,10 +194,11 @@ def test_nothing_is_asked_of_the_identity_a_locked_database_answers_with(
         json.dumps({"uuid": "abc", "title": "invented", "password": "fabricated"}),
     )
 
-    with pytest.raises(DatabaseLocked, match="responder identity"):
+    with pytest.raises(DatabaseLocked, match="responder identity") as refused:
         paired.entry("abc")
 
     assert gate.requests == [], "nothing reached the gate at all"
+    assert refused.value.error == "locked", "the same word a `503 locked` carries"
 
 
 def test_a_revoked_client_and_one_that_never_paired_look_the_same(
@@ -221,7 +273,9 @@ def test_a_client_is_one_identity_for_as_long_as_it_lives(
     client = GateClient(stored, connection_timeout=10.0)
     gate.handler = lambda path, body, certificate: (
         200,
-        json.dumps({"ok": True, "database": "abcdef01", "version": "0.1.0"}),
+        json.dumps(
+            {"ok": True, "database": "abcdef01", "version": "0.1.0", "revision": "0123abcd"}
+        ),
     )
 
     client.status()
@@ -368,7 +422,7 @@ def test_a_head_this_client_may_not_reach_is_refused_like_any_other(
 
 
 class TestWaitingOutARefusal:
-    """The two retry budgets, which are `None` unless a caller says otherwise."""
+    """The three retry budgets, which are `None` unless a caller says otherwise."""
 
     @pytest.fixture
     def waited(self, monkeypatch: pytest.MonkeyPatch) -> list[float]:
@@ -387,7 +441,9 @@ class TestWaitingOutARefusal:
                 left[0] -= 1
                 return 503, json.dumps({"error": error})
 
-            return 200, json.dumps({"ok": True, "database": "abcdef01", "version": "0.1.0"})
+            return 200, json.dumps(
+                {"ok": True, "database": "abcdef01", "version": "0.1.0", "revision": "0123abcd"}
+            )
 
         gate.handler = answer
         gate.retry_after = "2"
@@ -397,12 +453,14 @@ class TestWaitingOutARefusal:
         stored: credentials_module.Credentials,
         retry_busy_timeout: float | None = None,
         retry_locked_timeout: float | None = None,
+        retry_undecided_timeout: float | None = None,
     ) -> GateClient:
         return GateClient(
             stored,
             connection_timeout=10.0,
             retry_busy_timeout=retry_busy_timeout,
             retry_locked_timeout=retry_locked_timeout,
+            retry_undecided_timeout=retry_undecided_timeout,
         )
 
     def test_a_client_with_no_budget_raises_the_refusal_exactly_as_it_always_did(
@@ -472,6 +530,46 @@ class TestWaitingOutARefusal:
         assert self._client(stored, retry_locked_timeout=30.0).status().ok
         assert waited == [2.0]
 
+        self._refusing(gate, 1, "busy")
+        with pytest.raises(GateBusy):
+            self._client(stored, retry_locked_timeout=30.0).status()
+
+    def test_an_undecided_database_is_waited_out_on_its_own_budget(
+        self, tmp_path: Path, bundle: dict[str, Any], gate: FakeGate, waited: list[float]
+    ) -> None:
+        # Not on the busy one, which used to be spent on it: `undecided` waits for a person to
+        # choose between two authorities, and may end with this client's not kept.
+        stored = credentials_module.save(tmp_path / "kept", gate.port, bundle)
+        self._refusing(gate, 1, "undecided")
+
+        with pytest.raises(AuthorityUndecided):
+            self._client(stored, retry_busy_timeout=30.0, retry_locked_timeout=30.0).status()
+        assert waited == []
+
+        self._refusing(gate, 1, "undecided")
+        assert self._client(stored, retry_undecided_timeout=30.0).status().ok
+        assert waited == [2.0]
+
+    def test_a_word_no_budget_names_is_never_waited_out(
+        self, tmp_path: Path, bundle: dict[str, Any], gate: FakeGate, waited: list[float]
+    ) -> None:
+        # Nothing here knows what ends it, so no budget a caller gave was given for it.
+        stored = credentials_module.save(tmp_path / "kept", gate.port, bundle)
+        self._refusing(gate, 1, "teapot")
+        everything = self._client(
+            stored,
+            retry_busy_timeout=300.0,
+            retry_locked_timeout=300.0,
+            retry_undecided_timeout=300.0,
+        )
+
+        with pytest.raises(GateUnavailable) as refused:
+            everything.status()
+
+        assert refused.value.error == "teapot"
+        assert len(gate.requests) == 1
+        assert waited == []
+
     def test_a_locked_budget_waits_out_the_identity_a_locked_database_answers_with(
         self, tmp_path: Path, bundle: dict[str, Any], gate: FakeGate, responder: Issued,
         waited: list[float],
@@ -531,6 +629,7 @@ class TestWaitingOutARefusal:
         ("retry_busy_timeout", math.nan),
         ("retry_locked_timeout", -1.0),
         ("retry_locked_timeout", math.inf),
+        ("retry_undecided_timeout", math.nan),
         ("max_response_bytes", 1.5),
     ],
 )
@@ -561,6 +660,9 @@ def test_a_budget_given_for_one_call_is_held_to_the_same_rule(
     with pytest.raises(ValueError, match="retry_locked_timeout"):
         paired.head("/gate/status", retry_locked_timeout=-1.0)
 
+    with pytest.raises(ValueError, match="retry_undecided_timeout"):
+        paired.send("GET", "/gate/status", retry_undecided_timeout=math.inf)
+
     assert gate.names == []
 
 
@@ -589,11 +691,13 @@ def test_an_identity_cut_short_opens_no_client_and_says_which_file(
 @pytest.mark.parametrize(
     "answer",
     [
-        {"ok": "false", "database": "abcdef01", "version": "0.1.0"},
-        {"ok": True, "database": None, "version": "0.1.0"},
-        {"ok": True, "database": "abcdef01"},
+        {"ok": "false", "database": "abcdef01", "version": "0.1.0", "revision": "0123abcd"},
+        {"ok": True, "database": None, "version": "0.1.0", "revision": "0123abcd"},
+        {"ok": True, "database": "abcdef01", "revision": "0123abcd"},
+        {"ok": True, "database": "abcdef01", "version": "0.1.0"},
+        {"ok": True, "database": "abcdef01", "version": "0.1.0", "revision": None},
     ],
-    ids=["ok as text", "a null database", "no version"],
+    ids=["ok as text", "a null database", "no version", "no revision", "a null revision"],
 )
 def test_a_status_this_client_cannot_read_is_a_protocol_error(
     answer: dict[str, Any], gate: FakeGate, paired: GateClient

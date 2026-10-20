@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Security.Cryptography;
@@ -65,16 +66,35 @@ namespace KeePassGate.Tests
         [Test]
         public void A_refused_revocation_leaves_the_client_where_it_was()
         {
-            // The refusal that matters is a dialog open on the group, which is temporary. A list
-            // that dropped the row anyway would be showing the operator a database that does not
-            // exist, and the client would be back on the next look.
+            // On the tab a revocation goes into the dialog's buffer, so the press is refused only
+            // for a database gone from under the dialog, and what reaches the database is decided
+            // at OK. A list that dropped the row anyway would be showing the operator a database
+            // that does not exist, and the client would be back on the next look.
             using (var list = ListOf(Refuses, Record("agent-fictitious", "ops")))
             {
                 var said = list.Revoke(0);
 
                 Assert.That(list.Clients.Count, Is.EqualTo(1));
                 Assert.That(said, Does.Contain("still admitted"));
-                Assert.That(said, Does.Contain("a dialog is open"), "the operator is told what to do about it");
+                Assert.That(said, Does.Contain("the database is not open"), "the operator is told why");
+            }
+        }
+
+        [Test]
+        public void A_refusal_carrying_somebody_elses_message_is_cut_to_what_the_page_can_hold()
+        {
+            // K088: the band under the pages and the detail on the first page cut what they are
+            // given, and this third place a refusal lands did not. Nothing on the tab scrolls.
+            var rambling = string.Join(" ", Enumerable.Repeat("the store said something long", 30));
+
+            using (var list = ListOf(key => rambling, Record("agent-fictitious", "ops")))
+            {
+                var said = list.Revoke(0);
+
+                Assert.That(said, Does.StartWith("That client is still admitted:"));
+                Assert.That(said, Does.EndWith("..."));
+                Assert.That(said.Length, Is.LessThanOrEqualTo(Clipped.Limit + 3));
+                Assert.That(list.Result, Is.EqualTo(said));
             }
         }
 
@@ -191,7 +211,7 @@ namespace KeePassGate.Tests
 
             using (var list = new ClientList(Allows))
             {
-                list.Fill(new AdmissionListing(new[] { record }, true), new[] { record.AdmissionKey }, null);
+                list.Fill(new AdmissionListing(new[] { record }, true), Judged(record, ClientReach.Stranger), null);
 
                 Assert.That(Reach(list, 0), Is.EqualTo(ClientList.StrangerText));
 
@@ -208,6 +228,100 @@ namespace KeePassGate.Tests
                 Assert.That(Reach(list, 0), Is.Not.EqualTo(ClientList.StrangerText),
                     "a record nobody called a stranger is answered with its dates");
             }
+        }
+
+        [TestCase(ClientReach.NotForClients, ClientList.NotForClientsText)]
+        [TestCase(ClientReach.NotYetValid, ClientList.NotYetValidText)]
+        public void What_the_gate_refuses_before_the_dates_is_said_where_a_date_would_be(ClientReach reach, string said)
+        {
+            // H055 and J064: the gate asks for client authentication and for a certificate that
+            // has begun before it looks at the record, and the page asked neither, so a record
+            // carrying a host certificate, or one not valid yet, read as a client admitted until
+            // next year.
+            var record = Record("agent-fictitious", "ops");
+
+            using (var list = new ClientList(Allows))
+            {
+                list.Fill(new AdmissionListing(new[] { record }, true), Judged(record, reach), null);
+
+                Assert.That(Reach(list, 0), Is.EqualTo(said));
+                Assert.That(list.Clients.Count, Is.EqualTo(1), "and it is still a record to take away");
+            }
+        }
+
+        [Test]
+        public void A_record_that_will_not_read_is_listed_by_its_key_and_its_X_takes_it_away()
+        {
+            // K024: a stored record that will not read admits nobody, and it had no row, so the
+            // warning on the authority page named something this page never showed and the one way
+            // to be rid of it on the tab was to recreate the authority. It is listed after the
+            // clients, by the start of its key, and taken away by that key.
+            var client = Record("agent-fictitious", "ops");
+            var damaged = new string('a', 64);
+            var asked = new List<string>();
+
+            using (var list = new ClientList(key =>
+            {
+                asked.Add(key);
+                return null;
+            }))
+            {
+                list.Fill(new AdmissionListing(new[] { client }, new[] { damaged }, 0, true), null, null);
+
+                Assert.That(list.Clients.Count, Is.EqualTo(1), "a record that will not read is no client");
+                Assert.That(list.Unreadable, Is.EqualTo(new[] { damaged }));
+                Assert.That(Rows(list), Is.EqualTo(2), "one row per stored record");
+                Assert.That(Cell(list, 1, 0), Is.EqualTo(CertificateDigest.Shorten(damaged)));
+                Assert.That(Reach(list, 1), Is.EqualTo(ClientList.UnreadableRecordText));
+
+                var said = list.Revoke(1);
+
+                Assert.That(asked, Is.EqualTo(new[] { damaged }), "taken away by its key");
+                Assert.That(said, Does.Contain("taken away"));
+                Assert.That(list.Unreadable, Is.Empty);
+                Assert.That(Rows(list), Is.EqualTo(1), "and its row went with it");
+                Assert.That(list.Clients.Count, Is.EqualTo(1), "the client beside it was not touched");
+            }
+        }
+
+        [Test]
+        public void A_refused_removal_of_a_record_that_will_not_read_leaves_its_row()
+        {
+            var damaged = new string('b', 64);
+
+            using (var list = new ClientList(Refuses))
+            {
+                list.Fill(
+                    new AdmissionListing(Array.Empty<AdmissionRecord>(), new[] { damaged }, 0, true), null, null);
+
+                var said = list.Revoke(0);
+
+                Assert.That(said, Does.StartWith("That record is still there:"));
+                Assert.That(said, Does.Contain("the database is not open"), "the operator is told why");
+                Assert.That(list.Unreadable, Is.EqualTo(new[] { damaged }));
+                Assert.That(Rows(list), Is.EqualTo(1));
+            }
+        }
+
+        [Test]
+        public void A_list_of_records_that_will_not_read_is_not_called_empty()
+        {
+            // Nobody is admitted by such a record, and a sentence under its row saying nobody ever
+            // was would contradict the row it sits under.
+            using (var list = new ClientList(Allows))
+            {
+                list.Fill(
+                    new AdmissionListing(Array.Empty<AdmissionRecord>(), new[] { new string('c', 64) }, 0, true),
+                    null,
+                    null);
+
+                Assert.That(NoteOn(list), Is.Not.EqualTo(ClientList.NobodyText));
+            }
+        }
+
+        private static IDictionary<string, ClientReach> Judged(AdmissionRecord record, ClientReach reach)
+        {
+            return new Dictionary<string, ClientReach> { { record.AdmissionKey, reach } };
         }
 
         [Test]
@@ -337,17 +451,33 @@ namespace KeePassGate.Tests
         /// </remarks>
         private static string Reach(ClientList list, int row)
         {
+            return Cell(list, row, 3);
+        }
+
+        /// <summary>What one cell says, read off the grid.</summary>
+        private static string Cell(ClientList list, int row, int column)
+        {
+            return Convert.ToString(Grid(list).Rows[row].Cells[column].Value, CultureInfo.InvariantCulture);
+        }
+
+        /// <summary>How many rows the grid holds, which is what the operator counts.</summary>
+        private static int Rows(ClientList list)
+        {
+            return Grid(list).Rows.Count;
+        }
+
+        private static DataGridView Grid(ClientList list)
+        {
             var grid = ControlTree.FindByName<DataGridView>(list, ClientList.ListName);
             Assert.That(grid, Is.Not.Null, "the list has no grid on it");
-
-            return Convert.ToString(grid.Rows[row].Cells[3].Value, CultureInfo.InvariantCulture);
+            return grid;
         }
 
         /// <summary>
         /// A list with those clients on it. Filling is separate from constructing because the tab
         /// builds the list once and reads the database many times.
         /// </summary>
-        private static ClientList ListOf(Func<AdmissionRecord, string> revoke, params AdmissionRecord[] records)
+        private static ClientList ListOf(Func<string, string> revoke, params AdmissionRecord[] records)
         {
             var list = new ClientList(revoke);
             list.Fill(new AdmissionListing(records, true), null, null);
@@ -363,14 +493,14 @@ namespace KeePassGate.Tests
             return list.Controls.Find(ClientList.ResultLabelName, true).Single().Text;
         }
 
-        private static string Allows(AdmissionRecord record)
+        private static string Allows(string admissionKey)
         {
             return null;
         }
 
-        private static string Refuses(AdmissionRecord record)
+        private static string Refuses(string admissionKey)
         {
-            return "a dialog is open on the group";
+            return "the database is not open";
         }
 
         private static AdmissionRecord Record(string name, params string[] profiles)

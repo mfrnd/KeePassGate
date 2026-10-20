@@ -59,7 +59,9 @@ if ($full -like '*.md') {
 
 $out = & npx --no-install cspell lint --no-progress --no-summary -- $full 2>&1
 if ($LASTEXITCODE -ne 0) {
-    $findings += ($out | Where-Object { $_ -match 'Unknown word' })
+    # A word `cspell.yaml` refuses is reported as forbidden rather than unknown, and kept here the
+    # same way: filtered out, it would fail nothing and be seen only at the gate.
+    $findings += ($out | Where-Object { $_ -match '(Unknown|Forbidden) word' })
 }
 
 if ($findings.Count -gt 0) {

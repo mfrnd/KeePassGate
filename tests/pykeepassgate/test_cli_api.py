@@ -454,10 +454,10 @@ def test_at_a_terminal_the_password_is_asked_for_and_shown_as_stars(
 def test_the_retry_budgets_reach_the_client_and_nothing_is_passed_for_what_was_not_given(
     gate: FakeGate, kept: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Both new options, and the silence that is the default.
+    """All three options, and the silence that is the default.
 
     Passing nothing for an option nobody gave is what lets each caller keep its own default, and
-    for these two the default is a decision rather than a number: `None` means do not retry.
+    for these three the default is a decision rather than a number: `None` means do not retry.
     """
     answering(gate, {"groups": []})
     asked: list[dict[str, Any]] = []
@@ -485,10 +485,19 @@ def test_the_retry_budgets_reach_the_client_and_nothing_is_passed_for_what_was_n
             "30",
             "--retry-locked-timeout",
             "60",
+            "--retry-undecided-timeout",
+            "90",
         ]
     ) == 0
 
-    assert asked == [{}, {"retry_busy_timeout": 30.0, "retry_locked_timeout": 60.0}]
+    assert asked == [
+        {},
+        {
+            "retry_busy_timeout": 30.0,
+            "retry_locked_timeout": 60.0,
+            "retry_undecided_timeout": 90.0,
+        },
+    ]
 
 
 def test_pairing_takes_the_retry_budgets_as_well(
@@ -517,10 +526,13 @@ def test_pairing_takes_the_retry_budgets_as_well(
             str(tmp_path / "kept"),
             "--retry-busy-timeout",
             "45",
+            "--retry-undecided-timeout",
+            "600",
         ]
     ) == 1
 
     assert asked["retry_busy_timeout"] == 45.0
+    assert asked["retry_undecided_timeout"] == 600.0
     assert "retry_locked_timeout" not in asked
 
 
@@ -619,6 +631,7 @@ def test_a_cap_that_is_not_a_positive_number_of_bytes_is_refused_as_an_argument(
         ("--retry-busy-timeout", "-1"),
         ("--retry-busy-timeout", "nan"),
         ("--retry-locked-timeout", "inf"),
+        ("--retry-undecided-timeout", "-0.5"),
     ],
 )
 def test_a_timeout_that_is_not_a_number_of_seconds_is_refused_as_an_argument(
@@ -673,6 +686,8 @@ def test_the_edges_of_every_numeric_option_are_accepted() -> None:
             "0",
             "--retry-locked-timeout",
             "3600",
+            "--retry-undecided-timeout",
+            "86400",
         ]
     )
 
@@ -680,6 +695,7 @@ def test_the_edges_of_every_numeric_option_are_accepted() -> None:
     assert parsed.connection_timeout == 0.5
     assert parsed.retry_busy_timeout == 0.0
     assert parsed.retry_locked_timeout == 3600.0
+    assert parsed.retry_undecided_timeout == 86400.0
     assert cli._parser().parse_args(["pair", "--port", "1", "--name", "agent"]).port == 1
 
 
@@ -694,6 +710,7 @@ REFUSED_BY_BOTH: list[tuple[str, str]] = [
     ("--retry-busy-timeout", "-1"),
     ("--retry-busy-timeout", "nan"),
     ("--retry-locked-timeout", "inf"),
+    ("--retry-undecided-timeout", "nan"),
     ("--max-response-bytes", "0"),
     ("--max-response-bytes", "-5"),
 ]
@@ -705,6 +722,9 @@ LIBRARY: dict[str, Callable[[str], object]] = {
     "--retry-busy-timeout": lambda text: transport.retry_limit("retry_busy_timeout", float(text)),
     "--retry-locked-timeout": lambda text: transport.retry_limit(
         "retry_locked_timeout", float(text)
+    ),
+    "--retry-undecided-timeout": lambda text: transport.retry_limit(
+        "retry_undecided_timeout", float(text)
     ),
     "--max-response-bytes": lambda text: transport.response_limit(int(text)),
 }

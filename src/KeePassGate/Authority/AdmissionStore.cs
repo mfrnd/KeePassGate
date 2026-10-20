@@ -92,10 +92,11 @@ namespace KeePassGate.Authority
         }
 
         /// <summary>
-        /// Every record that can be read, and whether the listing that found them was itself read.
-        /// One record that cannot be read is reported and skipped; a listing that cannot be made
-        /// is reported and answered, which is not the same as answering that there are none. A
-        /// record with a revocation beside it is not listed, only counted, as one that came back.
+        /// Every record that can be read, the keys of those that cannot, and whether the listing
+        /// that found them was itself read. A record that cannot be read is reported, admits
+        /// nobody, and is named by its key; a listing that cannot be made is reported and
+        /// answered, which is not the same as answering that there are none. A record with a
+        /// revocation beside it is not listed, only counted, as one that came back.
         /// </summary>
         public AdmissionListing All()
         {
@@ -103,11 +104,13 @@ namespace KeePassGate.Authority
             var stored = Stored(out listed);
             var revoked = Revoked(stored);
             var records = new List<AdmissionRecord>();
+            var unreadable = new List<string>();
             var cameBack = 0;
 
             foreach (var key in RecordKeys(stored))
             {
-                if (revoked.Contains(AuthorityKeys.AdmissionKeyIn(key)))
+                var admissionKey = AuthorityKeys.AdmissionKeyIn(key);
+                if (revoked.Contains(admissionKey))
                 {
                     cameBack++;
                     continue;
@@ -117,10 +120,15 @@ namespace KeePassGate.Authority
                 if (record != null)
                 {
                     records.Add(record);
+                    continue;
                 }
+
+                // Listed with something stored, and not a record: damaged by a merge, edited by
+                // hand, or written by a later format. Named, so that it can be taken away.
+                unreadable.Add(admissionKey);
             }
 
-            return new AdmissionListing(records, cameBack, listed);
+            return new AdmissionListing(records, unreadable, cameBack, listed);
         }
 
         /// <summary>
