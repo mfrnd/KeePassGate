@@ -45,6 +45,7 @@
     <Compile Include="..\Shared\HttpAnswer.cs" Link="Shared\HttpAnswer.cs" />
     <Compile Include="..\Shared\PairingClient.cs" Link="Shared\PairingClient.cs" />
     <Compile Include="..\Shared\PrivateKeyFiles.cs" Link="Shared\PrivateKeyFiles.cs" />
+    <Compile Include="..\Shared\CertificateUris.cs" Link="Shared\CertificateUris.cs" />
   </ItemGroup>
 
   <ItemGroup>
@@ -53,6 +54,12 @@
     <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
       <_Parameter1>KeePassDevDir</_Parameter1>
       <_Parameter2>$(KeePassDevDir)</_Parameter2>
+    </AssemblyAttribute>
+    <!-- And the release `keepass.version` names, which the contract tests hold the referenced
+         KeePass to: a directory given on the command line can hold any release. -->
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>KeePassPinnedVersion</_Parameter1>
+      <_Parameter2>$(KeePassPinnedVersion)</_Parameter2>
     </AssemblyAttribute>
   </ItemGroup>
 

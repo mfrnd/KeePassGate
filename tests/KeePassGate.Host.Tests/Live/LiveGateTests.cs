@@ -59,8 +59,7 @@ namespace KeePassGate.Host.Tests.Live
                 keePass.Admit(admitted, "ops");
 
                 var process = keePass.Start();
-                WaitForListening(keePass, process);
-                WaitForDatabase(keePass, process);
+                WaitUntilServing(keePass, process);
 
                 _paired = Ask(keePass.Port, keePass.NewGateName(), admitted, GateRouter.StatusPath);
                 _notFound = Ask(keePass.Port, keePass.NewGateName(), admitted, "/secrets");
@@ -180,63 +179,50 @@ namespace KeePassGate.Host.Tests.Live
             Assert.That(refusals, Is.EqualTo(1), _pluginLog);
         }
 
-        private static void WaitForListening(ThrowawayKeePass keePass, System.Diagnostics.Process process)
-        {
-            var deadline = DateTime.UtcNow + StartTimeout;
-            while (DateTime.UtcNow < deadline)
-            {
-                if (keePass.ReadPluginLog().Contains("listening on 127.0.0.1:" + keePass.Port))
-                {
-                    return;
-                }
-
-                if (process.HasExited)
-                {
-                    Assert.Fail("KeePass exited during start up with code " + process.ExitCode + ".");
-                }
-
-                Thread.Sleep(250);
-            }
-
-            Assert.Fail("The plugin never reported a listening gate. Log so far:" +
-                        Environment.NewLine + keePass.ReadPluginLog());
-        }
-
         /// <summary>
-        /// Ready is the database being open, not the socket.
+        /// Ready is the database being served, not the socket being open.
         /// </summary>
         /// <remarks>
         /// The listener starts inside the plugin's `Initialize`, and KeePass opens the database it
         /// was given on its command line only once its plugins are initialized. In between, the
         /// resolver has no target for the rotating name, so the connection is dropped before any
         /// TLS answer. That is the gate being fail-closed and is correct; a fixture that asks on
-        /// `listening on` is racing the startup, and on a cold machine it loses. The plugin writes
-        /// nothing at that moment, since it builds a target only when a connection asks for one,
-        /// so what says it is KeePass's title bar, which names the file once it is open.
+        /// `listening on` is racing the startup, and on a cold machine it loses. `serving a
+        /// database with authority` is written when the target is built, which the unlock this
+        /// file's opening does, and is the first moment a name resolves.
+        ///
+        /// Both lines, in that order, because the serving line on its own would not tell a gate
+        /// that never started from one that started and has nothing to serve yet.
         /// </remarks>
-        private static void WaitForDatabase(ThrowawayKeePass keePass, System.Diagnostics.Process process)
+        private static void WaitUntilServing(ThrowawayKeePass keePass, System.Diagnostics.Process process)
         {
-            var name = System.IO.Path.GetFileName(keePass.DatabasePath);
-            var title = string.Empty;
+            WaitForLog(keePass, process, "listening on 127.0.0.1:" + keePass.Port,
+                "The plugin never reported a listening gate.");
+
+            WaitForLog(keePass, process, "serving a database with authority",
+                "The plugin never reported serving the database KeePass was started with.");
+        }
+
+        private static void WaitForLog(
+            ThrowawayKeePass keePass, System.Diagnostics.Process process, string marker, string failure)
+        {
             var deadline = DateTime.UtcNow + StartTimeout;
             while (DateTime.UtcNow < deadline)
             {
-                if (process.HasExited)
-                {
-                    Assert.Fail("KeePass exited during start up with code " + process.ExitCode + ".");
-                }
-
-                process.Refresh();
-                title = process.MainWindowTitle;
-                if (title.Contains(name))
+                if (keePass.ReadPluginLog().Contains(marker))
                 {
                     return;
+                }
+
+                if (process.HasExited)
+                {
+                    Assert.Fail("KeePass exited during start up with code " + process.ExitCode + ". " + failure);
                 }
 
                 Thread.Sleep(250);
             }
 
-            Assert.Fail("KeePass never showed " + name + " open. Its title read: " + title);
+            Assert.Fail(failure + " Log so far:" + Environment.NewLine + keePass.ReadPluginLog());
         }
 
         /// <summary>

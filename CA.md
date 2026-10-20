@@ -275,7 +275,7 @@ fail-open in a design that fails closed everywhere else.
 | --- | --- | --- | --- | --- |
 | Authority | 10 years | CA true, **pathLen 0** | keyCertSign, cRLSign | **none** |
 | Host, normal | 5 years | CA false | digitalSignature, keyAgreement | serverAuth |
-| Host, responder | short, re-minted each unlock | CA false | digitalSignature | serverAuth, plus a KPG marker |
+| Host, responder | 90 days, re-minted at every unlock and at every lock | CA false | digitalSignature | serverAuth, plus a KPG marker |
 | Client | 1 year | CA false | digitalSignature | clientAuth |
 
 Every certificate carries a **subject key identifier** and every leaf an **authority key
@@ -290,8 +290,9 @@ A locked KeePass has closed its database, so the authority, the admission record
 host key are gone. Without help there is nothing to complete a handshake with, and a client gets a
 bare connection failure indistinguishable from a wrong port, a stopped KeePass, or an attack.
 
-The **responder certificate** is minted at unlock and held only in plugin memory. While locked it is
-the only identity available and it can do nothing but answer "locked".
+The **responder certificate** is minted at unlock and again at the lock it answers, and held only in
+plugin memory. While locked it is the only identity available and it can do nothing but answer
+"locked".
 
 - **The normal host key must be actively dropped at lock**, or two certificates buy nothing: memory
   disclosure while locked would otherwise yield the full host identity.
@@ -305,6 +306,17 @@ the only identity available and it can do nothing but answer "locked".
 - **The gate key must stay resident too**, or the gate never resolves and the responder is never
   reached. Of the three secrets it is the right one to keep: it authenticates nothing, and every
   paired client already holds it.
+- **Its life has to cover the lock, not the session**, and that is a correction rather than a
+  detail. It was seven days, minted at unlock, on the reasoning that a responder only has to
+  outlive one session. A lock is unbounded: a machine locked over a holiday presented an expired
+  certificate, the client refused it, and what the operator got was the bare handshake failure this
+  certificate exists to replace, which is the one failure it was built for. So it is minted again
+  at the lock it answers, leaving its whole life ahead of that lock, and the life is ninety days.
+  What a shorter one buys is a bound on how long a leaked responder key is still accepted, and that
+  key can do one thing, which is to claim a database is locked; the marker above is what stops a
+  client acting on anything else it says, and the marker carries that argument rather than the
+  dates. Ninety days is still a bound, so a lock that outlasts it presents a responder that has
+  expired and meets the bare failure again, which is the price of there being a bound at all.
 
 A KeePass that has never been unlocked since starting has no responder, so that case really is a
 bare connection failure.
@@ -330,13 +342,26 @@ security critical and become hygiene.
 
 ### Parsing rules §210
 
+**One thing is ever read out of a subject alternative name and it is the responder marker of
+§208**, which is what §212 leaves, and the client is what reads it: the plugin writes subject
+alternative names and reads none. So one of these rules belongs to that reader and the rest belong
+to the two places that write.
+
 - **Never read the extension with `X509Extension.Format`, and never use `GetNameInfo`.** Both were
   measured against a hostile SAN and both fail. Parse the ASN.1 and take only entries tagged
-  `[6] uniformResourceIdentifier`.
-- **Reject a claim containing a percent escape.** A newline inside a URI path survives issuance as
-  `%0A`.
-- **Reject rather than repair.** Anything that is not exactly `kpg://profile/<name>` is dropped.
-  Empty names, and the ACL's own `default`, are never accepted from a certificate.
+  `[6] uniformResourceIdentifier`. PyKeePassGate asks its decoder for exactly those, and a
+  certificate whose extension the decoder refuses is not a responder, which is safe precisely
+  because the question is whether one particular URI is there.
+- **The reader compares and never takes a claim apart.** The question asked of it is whether one
+  exact URI is present, compared byte for byte, so a percent escape, a trailing slash and a near
+  miss all fail to match without any rule of their own. There is nothing that parses `kpg://profile/<name>`,
+  because §212 leaves nothing to parse one for.
+- **Reject rather than repair, at the two places that write.** Issuance refuses a profile name that
+  is not one to sixty-four characters of letters, digits, dash and underscore, and refuses the
+  ACL's own `default` whatever case it is written in, so a claim carrying a percent escape, an
+  empty name or a smuggled newline is one this authority will not mint. Reading an admission record
+  drops a profile that could not have been issued as a claim, §223, so a record edited by hand
+  grants nothing strange either.
 
 ### The measurement behind those rules §211
 

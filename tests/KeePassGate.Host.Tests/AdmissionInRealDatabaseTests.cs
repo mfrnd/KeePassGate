@@ -234,6 +234,32 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void A_client_whose_database_closed_under_its_connection_is_told_it_is_locked()
+        {
+            // KeePass empties the database before it says why, so a connection resolved a moment
+            // earlier holds a target whose records are gone. Answered as no record, an admitted
+            // and unrevoked client was told `401 unpaired`, which says to pair again.
+            var databases = new[] { _database.Database }.ToList();
+            using (var targets = new OpenDatabaseTargets(delegate { return databases; }, NullGateLog.Instance))
+            {
+                _admissions.Write(AdmissionRecord.For(_client, DateTimeOffset.UtcNow, new[] { "ops" }));
+
+                using (var held = targets.Current().Single())
+                {
+                    Assume.That(KeePassGate.Pipeline.ClientCredentials.For(_client, held, NullGateLog.Instance).IsPaired, Is.True);
+
+                    _database.Database.Close();
+
+                    var identity = KeePassGate.Pipeline.ClientCredentials.For(_client, held, NullGateLog.Instance);
+
+                    Assert.That(identity.IsPaired, Is.False);
+                    Assert.That(identity.IsLocked, Is.True, "answered as the lock it is");
+                    Assert.Throws<DatabaseShut>(() => held.Admission(CertificateDigest.Of(_client)));
+                }
+            }
+        }
+
+        [Test]
         public void The_gate_reads_the_custom_data_a_locked_and_unlocked_database_came_back_with()
         {
             // The lock cycle a cached target survives. Nothing prunes the cache but a connection,

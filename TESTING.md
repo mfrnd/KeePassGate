@@ -77,6 +77,12 @@ database it holds in memory, so a record written to the file underneath it is in
 overwritten. Pairing writes through the plugin for that reason, which is what `LivePairingTests`
 covers.
 
+**The lock**, in `LiveLockTests`: a real KeePass locked from its own shortcut, and a client answered
+a moment before is told `503 locked`, by the responder the plugin kept in memory for exactly this.
+It is the one place the chain from KeePass's own lock to an answer on a socket runs whole. The host
+tier drives the plugin's half with the events in the order KeePass raises them, which is a model
+read off one KeePass; this is what notices a KeePass that raises them differently.
+
 **Step 8**, in `LivePairingTests`, and it is the longest chain in the suite. The operator presses
 the invite button on the real tab; the token is read off the real screen; a client holding nothing
 but that token and a port number derives its own connection names, proves itself and is proved to;

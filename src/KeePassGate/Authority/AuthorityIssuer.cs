@@ -25,15 +25,38 @@ namespace KeePassGate.Authority
     {
         public const string AuthoritySubject = "CN=KeePassGate authority";
         public const string HostSubject = "CN=KeePassGate host";
+        public const string ResponderSubject = "CN=KeePassGate responder";
+
+        /// <summary>
+        /// What marks a responder certificate, so a client can tell one without reading a subject
+        /// name. `CA.md` §207 requires a marker in an extension rather than a convention,
+        /// because a client has to be able to refuse to send real requests over this identity.
+        /// </summary>
+        /// <remarks>
+        /// A URI in the subject alternative name rather than a private extension, and that is a
+        /// measurement rather than a preference. A custom OID needs an arc: the UUID arc `2.25`
+        /// encodes on .NET Framework but does not survive being read back, and anything under
+        /// `1.3.6.1.4.1` would be squatting on somebody else's enterprise number. The `kpg://`
+        /// namespace is already this design's own and needs nothing from anybody.
+        ///
+        /// It is not a claim and grants nothing. Claims are read from admission records, and only
+        /// client certificates have them at all.
+        ///
+        /// The shape is deliberate and was measured: `kpg://responder` is a URI with an authority
+        /// and no path, and `System.Uri` normalizes that to `kpg://responder/` on the way into the
+        /// certificate, so what a client reads back is not what was written. A form with a path,
+        /// like the profile claims, survives unchanged. The first label after the scheme says what
+        /// kind of thing this is, which is the same convention <c>kpg://profile/{name}</c> uses.
+        /// </remarks>
+        public const string ResponderClaim = "kpg://host/responder";
 
         /// <summary>`id-kp-serverAuth`, RFC 5280 section 4.2.1.12.</summary>
         public const string ServerAuthOid = "1.3.6.1.5.5.7.3.1";
 
         /// <summary>
-        /// `id-kp-clientAuth`, from the same list. This and the one above are what will separate a
-        /// host certificate from a client certificate under an authority that signs both, and
-        /// hostname verification is deliberately abandoned here, so they carry more weight than
-        /// usual.
+        /// `id-kp-clientAuth`, from the same list. This and the one above are what separate a host
+        /// certificate from a client certificate under an authority that signs both, and hostname
+        /// verification is deliberately abandoned here, so they carry more weight than usual.
         /// </summary>
         public const string ClientAuthOid = "1.3.6.1.5.5.7.3.2";
 
@@ -50,6 +73,25 @@ namespace KeePassGate.Authority
 
         /// <summary>One year for a client, as `CA.md` §207 specifies.</summary>
         public static readonly TimeSpan ClientLifetime = TimeSpan.FromDays(365);
+
+        /// <summary>
+        /// Long enough to cover a lock, which is the only thing it has to cover.
+        /// </summary>
+        /// <remarks>
+        /// It was seven days, on the reasoning that a responder is re-minted at every unlock and
+        /// only has to outlive one session. What it has to outlive is the lock, and a lock is
+        /// unbounded: a machine left locked over a holiday presented an expired certificate, a
+        /// client that reads `PAIRING.md` §304 refused it, and the operator got the bare handshake
+        /// failure this certificate exists to replace. Failing at exactly the case it was built for
+        /// is worse than the window being wider.
+        ///
+        /// What a short window buys is a bound on how long a responder key that leaked is still
+        /// accepted, and that key can do one thing: claim a database is locked. `CA.md` §208 is
+        /// where the marker stops a client acting on anything else it says, and the marker is what
+        /// carries that argument, not the dates. Ninety days is longer than any lock this should
+        /// fail on and a twentieth of the host certificate it stands in for.
+        /// </remarks>
+        public static readonly TimeSpan ResponderLifetime = TimeSpan.FromDays(90);
 
         /// <summary>The claim a profile travels as. The database is not named: the issuer is.</summary>
         public const string ProfileClaimPrefix = "kpg://profile/";
@@ -153,6 +195,77 @@ namespace KeePassGate.Authority
 
                 // `issued` is a certificate context of its own and is disposed with the rest: it
                 // carries no key, and only the copy below is returned.
+                using (var issued = request.Create(authority, notBefore, notAfter, NewSerialNumber()))
+                using (var withKey = issued.CopyWithPrivateKey(key))
+                {
+                    return Roundtrip(withKey);
+                }
+            }
+        }
+
+        /// <summary>
+        /// The second host certificate: what a locked KeePass answers with.
+        /// </summary>
+        /// <remarks>
+        /// `CA.md` §207 and `PAIRING.md` §308. Locking closes the database, and with it
+        /// the authority, the records and the normal host key. Without this there is nothing left to
+        /// complete a handshake with, and a client gets a bare connection failure indistinguishable
+        /// from a wrong port, a stopped KeePass, or an attack.
+        ///
+        /// It is minted while the database is open and kept only in memory, and it can do nothing
+        /// but answer "locked": the authority it would need to validate a client certificate is
+        /// exactly what has been dropped. The marker is what lets a client tell it apart and refuse
+        /// to send real requests over it, because an impostor holding this key reads nothing but
+        /// could answer with a fabricated secret, and an agent acting on a forged answer is worse
+        /// than an agent that fails.
+        ///
+        /// No `keyAgreement`, unlike the normal host certificate. It signs a handshake and does
+        /// nothing else.
+        /// </remarks>
+        public X509Certificate2 IssueResponder(X509Certificate2 authority)
+        {
+            if (authority == null)
+            {
+                throw new ArgumentNullException(nameof(authority));
+            }
+
+            if (!authority.HasPrivateKey)
+            {
+                throw new ArgumentException("The authority cannot sign without its key.", nameof(authority));
+            }
+
+            // Disposed, as in the siblings: an NCrypt handle per unlock adds up in a process that
+            // runs for days.
+            using (var key = ECDsa.Create(ECCurve.NamedCurves.nistP256))
+            {
+                var request = new CertificateRequest(
+                    new X500DistinguishedName(ResponderSubject), key, HashAlgorithmName.SHA256);
+
+                request.CertificateExtensions.Add(new X509BasicConstraintsExtension(false, false, 0, true));
+                request.CertificateExtensions.Add(new X509KeyUsageExtension(
+                    X509KeyUsageFlags.DigitalSignature, true));
+                request.CertificateExtensions.Add(new X509EnhancedKeyUsageExtension(
+                    new OidCollection { new Oid(ServerAuthOid) }, false));
+                request.CertificateExtensions.Add(new X509SubjectKeyIdentifierExtension(request.PublicKey, false));
+                request.CertificateExtensions.Add(AuthorityKeyIdentifierOf(authority));
+
+                var marker = new SubjectAlternativeNameBuilder();
+                marker.AddUri(new Uri(ResponderClaim));
+                request.CertificateExtensions.Add(marker.Build(false));
+
+                var now = _clock();
+                var notBefore = now - Backdate;
+                var notAfter = Clamp(now + ResponderLifetime, authority.NotAfter);
+
+                // Against `now`, as in `IssueHost`. This method was written from that one before its
+                // guard was corrected, and comparing with the backdated start let an authority that
+                // expired within the last five minutes mint a responder that was already expired.
+                if (notAfter <= now)
+                {
+                    throw new InvalidOperationException(
+                        "The authority has expired, so it can issue nothing that is valid.");
+                }
+
                 using (var issued = request.Create(authority, notBefore, notAfter, NewSerialNumber()))
                 using (var withKey = issued.CopyWithPrivateKey(key))
                 {

@@ -720,7 +720,13 @@ Each step is refusable, and each ends with something that runs.
    record is written and saved on the user interface thread and read back, and only then is anything
    handed over.
 9. **Lock and unlock**: the responder certificate, dropping the privileged key, closing connections
-   on both transitions.
+   on both transitions. **Done.** A locked database is still served, by a target that has the gate
+   key and the responder and nothing else: no authority, so every caller is a stranger by
+   construction rather than by a check somebody has to remember, no records, and nothing may be
+   written. Every route answers `503 locked`, pairing included, and names nothing else. The
+   responder carries its own marker so a client can refuse to send real requests over it, and that
+   marker is a `kpg://host/responder` URI rather than a private extension because a custom OID needs
+   an arc nobody has allocated us.
 10. **The reference client**: `PyKeePassGate`, pairing and every route the gate serves, with the
    protocol pieces pinned against the plugin's own output. It arrives here rather than at the end
    because a second implementation is what turns a specification into a contract: where the two

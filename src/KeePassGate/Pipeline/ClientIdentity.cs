@@ -23,15 +23,22 @@ namespace KeePassGate.Pipeline
         private static readonly string[] Nothing = Array.Empty<string>();
 
         private readonly bool _isPaired;
+        private readonly bool _isLocked;
         private readonly string _subject;
         private readonly string _admissionKey;
         private readonly string _databaseId;
         private readonly IReadOnlyList<string> _profiles;
 
         private ClientIdentity(
-            bool isPaired, string subject, string admissionKey, string databaseId, IReadOnlyList<string> profiles)
+            bool isPaired,
+            bool isLocked,
+            string subject,
+            string admissionKey,
+            string databaseId,
+            IReadOnlyList<string> profiles)
         {
             _isPaired = isPaired;
+            _isLocked = isLocked;
             _subject = subject;
             _admissionKey = admissionKey;
             _databaseId = databaseId;
@@ -42,6 +49,15 @@ namespace KeePassGate.Pipeline
         public bool IsPaired
         {
             get { return _isPaired; }
+        }
+
+        /// <summary>
+        /// The database this connection reached is locked, so nothing about the caller could be
+        /// established: the authority that would have validated its certificate is not loaded.
+        /// </summary>
+        public bool IsLocked
+        {
+            get { return _isLocked; }
         }
 
         /// <summary>The certificate's subject, for a log line at pairing. Null for a stranger.</summary>
@@ -74,7 +90,16 @@ namespace KeePassGate.Pipeline
         /// </summary>
         public static ClientIdentity Stranger(string databaseId)
         {
-            return new ClientIdentity(false, null, null, databaseId, Nothing);
+            return new ClientIdentity(false, false, null, null, databaseId, Nothing);
+        }
+
+        /// <summary>
+        /// Somebody who reached a locked database. Not a stranger: a stranger can pair, and this
+        /// caller cannot do anything at all until somebody unlocks KeePass.
+        /// </summary>
+        public static ClientIdentity Locked(string databaseId)
+        {
+            return new ClientIdentity(false, true, null, null, databaseId, Nothing);
         }
 
         /// <summary>A client whose certificate this database's authority issued.</summary>
@@ -88,6 +113,7 @@ namespace KeePassGate.Pipeline
 
             return new ClientIdentity(
                 true,
+                false,
                 certificate.Subject,
                 CertificateDigest.Of(certificate),
                 databaseId,

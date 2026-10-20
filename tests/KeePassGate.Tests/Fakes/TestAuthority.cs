@@ -112,6 +112,12 @@ namespace KeePassGate.Tests.Fakes
         /// </summary>
         public string AdmissionBlocked { get; set; }
 
+        /// <summary>Never: a locked database is a `LockedTarget`, which this is not.</summary>
+        public bool IsLocked
+        {
+            get { return false; }
+        }
+
         /// <summary>Set to fail the write after it was allowed to start.</summary>
         public AdmissionWrite AdmitAnswers { get; set; }
 
@@ -283,14 +289,22 @@ namespace KeePassGate.Tests.Fakes
                 throw Throws;
             }
 
-            // One reference per caller, as the real source takes. Whoever asked gives them
-            // back, and the fixture keeps holding its own until teardown.
+            // One reference per caller, as the real source takes, locked targets included: handing
+            // one out bare is the defect the real source was fixed for, and a fake that did it
+            // would let that fix go without a test noticing. Whoever asked gives them back, and
+            // the fixture keeps holding its own until teardown.
             foreach (var target in _targets)
             {
                 var counted = target as TestAuthority;
                 if (counted != null)
                 {
                     counted.Retain();
+                }
+
+                var locked = target as LockedTarget;
+                if (locked != null)
+                {
+                    locked.Retain();
                 }
             }
 

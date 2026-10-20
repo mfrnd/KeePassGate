@@ -68,7 +68,15 @@ namespace KeePassGate.Host.Tests
         {
             Save();
             _database.Close();
+            Reopen();
+        }
 
+        /// <summary>
+        /// Opens the file again without saving first, which is what an unlock is: KeePass closed
+        /// the database and is now reading the same file back.
+        /// </summary>
+        public void Reopen()
+        {
             var reopened = new PwDatabase();
             reopened.Open(IOConnectionInfo.FromPath(Path), KeyFor(), null);
             _database = reopened;

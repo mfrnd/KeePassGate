@@ -8,13 +8,14 @@ Guidance for anyone, human or AI assistant, working in this repository.
 mutual TLS, so that automation and AI agents can each be given a narrow, revocable, audited slice of
 a database.
 
-**Status: the design is settled and steps 1 to 8 of the build order are done.** The plugin loads
+**Status: the design is settled and steps 1 to 9 of the build order are done.** The plugin loads
 into KeePass, the KPG tab creates, recreates and deletes the database's own certificate authority,
 the gate listens on loopback and answers over mutual TLS 1.3, a client is served only if
 the database holds an admission record for its certificate, and **a stranger can now become one**:
 the tab hands out an invitation, both sides prove they hold it, the operator approves what it may
-reach, and the record is written and saved before the certificate is handed over. Step 9, lock and
-unlock, is next.
+reach, and the record is written and saved before the certificate is handed over, and **a locked
+KeePass now answers `503 locked`** with a second host certificate held only in memory. Step 10, the
+reference client, is next.
 
 ## Read these before proposing anything
 
@@ -111,14 +112,25 @@ designing around them.
   certificate in use, so each side computes it from bytes it already holds. Do not re-propose
   `TransportContext.GetChannelBinding`: it was necessary while `SslStream` terminated the TLS and
   the reason went away with it.
-- **Two host certificates per database**: a normal one in the kdbx, and a short-lived responder
-  minted at unlock and held in memory so a locked KeePass can answer `503 locked` rather than failing at
-  the transport. The normal host key is actively dropped at lock. TODO(step 9): the responder,
-  the locked answer and dropping the key at lock arrive with step 9.
+- **Two host certificates per database**: a normal one in the kdbx, and a responder held only in
+  memory, minted at unlock and again at the lock it answers and good for ninety days, so a locked
+  KeePass can answer `503 locked` rather than failing at the transport. It was seven days and minted
+  at unlock until a long lock outlived it. The normal host key is let go at lock, and `CA.md` §208
+  is exact about how much of that is erasure: the gate key and the stored PKCS#12 are overwritten,
+  while the key the TLS server signs with is a BouncyCastle value over an immutable integer that
+  offers nothing to overwrite, so the last reference goes and nothing more. The responder is marked by a
+  `kpg://host/responder` URI in its subject alternative name, **not** a private OID: the UUID arc
+  `2.25` encodes on .NET Framework and does not survive being read back, and `1.3.6.1.4.1` would be
+  squatting on somebody else's enterprise number.
 - **We own the transport.** Accept loop, ClientHello peek, TLS termination, request parser, body
   read, response write. Selecting a host certificate by SNI makes this unavoidable, because
   .NET Framework exposes no server-side SNI hook. Which TLS stack terminates it is the bullet
   below.
+- **Handlers catch what they named.** `Diagnostics/Expected` holds the lists, used as exception
+  filters. A few places catch everything, because in each of them an escaping exception ends
+  KeePass: the plugin entry point, the KeePass window event handlers, and the connection thread.
+  Those report through `GateIncidents`, which counts on the KPG tab and
+  logs at `UNEXPECTED`.
 - **No third-party HTTP dependency.** `uHttpSharp` fits the seam natively with zero changes and is
   ruled out on **license** (LGPL-2.1) and liveness (no commits since 2021), not on fit. Wanting
   WebSocket, HTTP/2 or chunked bodies flips this; nothing else does.
@@ -197,13 +209,28 @@ a database's custom data. Each gathers what it settled in its own `RESULTS.md`. 
   the times lost on either side.
 - **Never parse a SAN with `X509Extension.Format` or `GetNameInfo`.** `AddDnsName` accepts text that
   renders as a URI claim, the labels are localized, and `GetNameInfo` returns one entry. Read the
-  ASN.1 tags: `0x86` URI, `0x82` dNSName, `0x81` rfc822Name. `SanProbe`.
+  ASN.1 tags: `0x86` URI, `0x82` dNSName, `0x81` rfc822Name. `SanProbe`. **The plugin reads
+  none**: it writes the profile claims and the responder marker, and the marker is for the peer to
+  read, `CA.md` §208. Its tests read what the authority wrote through Bouncy Castle's
+  `GeneralNames`, which is here for the keys and the TLS.
 - **There is no RFC 5705 exporter** on .NET Framework, but
   `TransportContext.GetChannelBinding(ChannelBindingKind.Endpoint)` works on both sides under TLS 1.3
   and both agree. Take the application-data portion by its documented offsets, not the whole blob.
   `ChannelBindingKind.Unique` returns something under TLS 1.3 where tls-unique is undefined; ignore
   it. `BindingProbe`.
 - **The SNI needs two labels.** 64 hex characters exceed the 63-octet DNS label limit.
+- **A locked document's close carries no path, and the document is what still knows it.** The lock
+  ran `PwDatabase.Close` already, which resets the connection, so both `FileClosingPre` and
+  `FileClosed` announce that document with an empty path. `PwDocument.LockedIoc` is where KeePass
+  moved the file it was locked from, reachable through `MainForm.DocumentManager.FindDocument`.
+  Anything that fills the gap from a single remembered string instead names whichever database last
+  closed with a name. `MainWindowDatabasesTests` drives the four handlers in KeePass's own order.
+- **KeePass tells two database paths apart by lowering them in the current culture**,
+  `Trim().ToLower()`, so under a Turkish culture `I` and `i` are different letters and two paths
+  differing only there are two databases. A path matched against one of KeePass's has to be
+  compared the same way, which is `KeePassPaths`, taking the culture of KeePass's own thread once;
+  `OrdinalIgnoreCase` would join what KeePass keeps apart.
+  `LockInRealDatabaseTests.Two_spellings_KeePass_keeps_apart_are_kept_apart_here_too`, under tr-TR.
 - **`MainForm.SaveDatabase(db, null)` saves a named database**; `UIFileSave` saves whichever document
   is active. Pairing names its database, so it uses the first. Neither reports anything, so a write
   is believed only after reading the record back and finding `PwDatabase.Modified` false.
@@ -339,7 +366,7 @@ here can hang or crash the password manager.
 
 ## Where to start
 
-[`DESIGN.md`](DESIGN.md) §132 ends with a multi-step build order. **Steps 1 to 8 are done.** The skeleton
+[`DESIGN.md`](DESIGN.md) §132 ends with a multi-step build order. **Steps 1 to 9 are done.** The skeleton
 loads and shows a KPG tab, that tab creates, recreates and deletes the authority, and the gate
 serves one route over mutual TLS to a client the database holds an admission record for.
 
@@ -350,21 +377,21 @@ step 8 built on: the settings dialog the KPG tab lives on carries **no** snapsho
 buttons are safe from their own dialog, and anything written while a **group** dialog is open is
 destroyed by its OK.
 
-**Step 9 is lock and unlock**, and `PAIRING.md` §308 is the specification: a second host
-certificate minted at unlock and held only in memory, the authority key and the records dropped at
-lock, the `KPG.SniKey` deliberately kept because the gate resolves names before any TLS work, and
-every connection closed on **both** transitions, because one that shook hands with the
-responder certificate was authenticated against nothing.
+**Step 11 is the spec router**: the OpenAPI document as the routing table, handlers bound to
+`operationId`, schema validation, and a startup assertion that the document and the handlers agree.
+`GateRouter` is what it replaces, and the shape to keep is the one already there: identity is
+refused in one place before dispatch, and a locked database is refused before even that.
 
-What step 8 leaves it. `AdmissionWriter` is the single writer, and the only place a request writes
-to a database. `GroupDialogs` watches for the dialog that would take a write back, and it tracks
+What steps 8 and 9 leave it. `AdmissionWriter` is the single writer, and the only place a request
+writes to a database. `GroupDialogs` watches for the dialog that would take a write back, tracking
 specific `GroupForm` instances rather than counting windows, because the question is per node and a
 count cannot answer it, and because a count would also depend on what this plugin's own dialogs
 register with `GlobalWindowManager`. **It refuses while it is not watching**, which is a different answer from
 seeing nothing open and is the fail-closed direction on the one guard this design rests on.
-`IGateTarget` now has `Admit`, `AdmissionBlocked` and `DatabaseName` on it, so anything that serves
-a database can also be paired with and can say what to call it on the approval dialog, and
-`OpenDatabaseTargets` is where locking will have to start refusing.
+`LockWatch` drives both lock transitions against seams rather than KeePass, and
+`OpenDatabaseTargets` is where a database becomes a `LockedTarget` and back. `JsonBody` reads
+request bodies strictly and says in its own comments where it stops being enough, which is exactly
+where step 11 begins.
 
 **A pairing connection is measured against `GateOptions.PairingBudget` rather than `Budget`.** The
 ordinary thirty seconds is what stops a peer holding a thread by feeding it slowly, and phase 4

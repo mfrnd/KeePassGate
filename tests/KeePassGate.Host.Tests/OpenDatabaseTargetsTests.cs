@@ -215,6 +215,18 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void Locking_a_database_nobody_served_names_its_file_and_not_where_it_is()
+        {
+            // The log is a file an operator may send with a support request, and a full path says
+            // where somebody keeps their passwords.
+            Assert.That(_targets.Lock(_first.Path), Is.False);
+
+            var said = string.Join("\n", _log.Infos);
+            Assert.That(said, Does.Contain(System.IO.Path.GetFileName(_first.Path)));
+            Assert.That(said, Does.Not.Contain(System.IO.Path.GetDirectoryName(_first.Path)));
+        }
+
+        [Test]
         public void A_host_certificate_out_of_a_real_database_can_complete_a_handshake()
         {
             CreateAuthorityIn(_first);
@@ -384,8 +396,11 @@ namespace KeePassGate.Host.Tests
         {
             public List<string> Errors { get; } = new List<string>();
 
+            public List<string> Infos { get; } = new List<string>();
+
             public void Info(string message)
             {
+                Infos.Add(message);
             }
 
             public void Warn(string message)

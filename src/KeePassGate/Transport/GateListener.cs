@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
@@ -37,7 +38,7 @@ namespace KeePassGate.Transport
     ///
     /// It binds loopback only. Reaching this from another machine is a tunnel's job.
     /// </remarks>
-    public sealed class GateListener : IGateStatus, IDisposable
+    public sealed class GateListener : IGateStatus, IConnections, IDisposable
     {
         private readonly GateOptions _options;
         private readonly GateResolver _resolver;
@@ -61,6 +62,20 @@ namespace KeePassGate.Transport
         private TimeSpan _saidRefusedAt;
         private bool _saidRefused;
         private int _refusedSince;
+
+        /// <summary>
+        /// Every connection being served right now, so that all of them can be closed at once.
+        /// </summary>
+        /// <remarks>
+        /// `PAIRING.md` §308 requires this on **both** lock transitions, and unlock is the
+        /// interesting one. Closing at lock is obvious: a socket thread must not be reading a
+        /// database the user interface thread is closing. Closing at unlock is about privilege, and
+        /// it is the half that is easy to miss: a connection that completed its handshake against
+        /// the responder certificate was authenticated against nothing, because validating a client
+        /// certificate needs the authority, which was not loaded. Letting it survive into the
+        /// unlocked state would promote it to an authority it never proved anything to.
+        /// </remarks>
+        private readonly HashSet<TcpClient> _live = new HashSet<TcpClient>();
 
         public GateListener(GateOptions options, GateResolver resolver, IGateHandler handler, IGateLog log)
             : this(options, resolver, handler, null, log)
@@ -155,6 +170,12 @@ namespace KeePassGate.Transport
 
             Retire();
 
+            // What the class remark has always said happens here. `Retire` closes the listener and
+            // nothing else: conversations already running kept their target references and ran on
+            // to their own deadline, up to the pairing budget, so a pairing could still hand out a
+            // certificate after the plugin had been told to stop.
+            CloseAll("the gate is stopping");
+
             if (accepting != null)
             {
                 // Long enough for the accept call to notice, short enough that KeePass is never
@@ -168,6 +189,48 @@ namespace KeePassGate.Transport
         public void Dispose()
         {
             Stop();
+        }
+
+        /// <summary>
+        /// Closes every connection being served, without stopping the listener. What a lock and an
+        /// unlock both do.
+        /// </summary>
+        /// <remarks>
+        /// Closing the socket is what ends the conversation: the thread serving it is blocked in a
+        /// read, and it wakes with a failure it already knows how to treat as a client that hung
+        /// up. Nothing is joined, because this runs on the user interface thread during a lock and
+        /// waiting on a socket thread there is how a password manager stops responding.
+        /// </remarks>
+        public int CloseAll(string why)
+        {
+            TcpClient[] closing;
+
+            lock (_stateLock)
+            {
+                closing = new TcpClient[_live.Count];
+                _live.CopyTo(closing);
+                _live.Clear();
+            }
+
+            foreach (var client in closing)
+            {
+                try
+                {
+                    client.Close();
+                }
+                catch (Exception error) when (Expected.OfConnection(error))
+                {
+                    // Already gone, which is the outcome being asked for.
+                }
+            }
+
+            if (closing.Length > 0)
+            {
+                _log.Info("closed " + closing.Length + " connection" +
+                          (closing.Length == 1 ? "" : "s") + ": " + (why ?? "no reason given"));
+            }
+
+            return closing.Length;
         }
 
         private void Accept()
@@ -221,10 +284,45 @@ namespace KeePassGate.Transport
                     }
 
                     var accepted = client;
+
+                    // Tracked before it is queued. `Converse` takes it out again in a finally,
+                    // and `Stop` closes whatever is still in here, so a connection that was
+                    // never added would outlive the listener that accepted it.
+                    //
+                    // And dropped rather than tracked once the gate has stopped, which is the
+                    // same guarantee read from the other end. This thread can already be past
+                    // `AcceptTcpClient` when `Stop` runs, and `Stop` empties `_live` once: a
+                    // connection registered after that is one nothing will ever close, and it is
+                    // served to its own deadline with the listener gone. `Retire` clears
+                    // `_running` under this lock before `CloseAll` takes it, so asking here, with
+                    // the set, is what closes the window rather than narrowing it.
+                    bool stopped;
+                    lock (_stateLock)
+                    {
+                        stopped = !_running;
+                        if (!stopped)
+                        {
+                            _live.Add(accepted);
+                        }
+                    }
+
+                    if (stopped)
+                    {
+                        // Nothing will run, so nothing will give the place back.
+                        Interlocked.Decrement(ref _conversations);
+                        Drop(accepted);
+                        return;
+                    }
+
                     if (!ThreadPool.QueueUserWorkItem(delegate { Converse(accepted); }))
                     {
                         // Nothing will run, so nothing will give the place back.
                         Interlocked.Decrement(ref _conversations);
+                        lock (_stateLock)
+                        {
+                            _live.Remove(accepted);
+                        }
+
                         Drop(accepted);
                     }
                 }
@@ -351,50 +449,72 @@ namespace KeePassGate.Transport
             try
             {
                 using (client)
-
-                // The whole connection, not one read of it. `Timeout` on the socket bounds a single
-                // read, so a peer sending one byte just inside it holds a thread for as long as the
-                // caps allow, which is hours. Closing the socket is what ends that peer's
-                // connection, and the failure it raises is one the paths below already expect.
-                using (var deadline = new Deadline(client, _options.Budget))
                 {
-                    var timeout = (int)_options.Timeout.TotalMilliseconds;
-                    client.ReceiveTimeout = timeout;
-                    client.SendTimeout = timeout;
-                    client.NoDelay = true;
-
-                    var raw = client.GetStream();
-
-                    var peek = ClientHelloReader.Read(raw);
-                    if (peek == null)
+                    // Registered by the accept loop before this thread starts, and forgotten here
+                    // however it ends, so a connection that finished normally is not closed twice.
+                    // Outside the `Deadline`, because a timer that will not start would otherwise
+                    // leave this client registered for the life of the process.
+                    try
                     {
-                        // Not TLS. Five bytes, and nothing said back.
-                        return;
+                        // The whole connection, not one read of it. `Timeout` on the socket bounds
+                        // a single read, so a peer sending one byte just inside it holds a thread
+                        // for as long as the caps allow, which is hours. Closing the socket is what
+                        // ends that peer's connection, and the failure it raises is one the paths
+                        // below already expect.
+                        using (var deadline = new Deadline(client, _options.Budget))
+                        {
+                            var timeout = (int)_options.Timeout.TotalMilliseconds;
+                            client.ReceiveTimeout = timeout;
+                            client.SendTimeout = timeout;
+                            client.NoDelay = true;
+
+                            var raw = client.GetStream();
+
+                            var peek = ClientHelloReader.Read(raw);
+                            if (peek == null)
+                            {
+                                // Not TLS. Five bytes, and nothing said back.
+                                return;
+                            }
+
+                            // In a `using`, because a resolved target arrives holding a reference
+                            // taken for this connection. Giving it back here is what lets the cache
+                            // release the material the moment nothing is serving from it.
+                            using (var resolution = _resolver.Resolve(peek.ServerName))
+                            {
+                                if (!resolution.IsResolved)
+                                {
+                                    _log.Info(
+                                        "dropped a connection: " +
+                                        resolution.Outcome.ToString().ToLowerInvariant());
+                                    return;
+                                }
+
+                                // Not while locked: the name a pairing resolves by survives the lock,
+                                // so a holder of a still-valid invitation could otherwise hold every
+                                // connection slot for the whole pairing budget against a database that
+                                // will only ever answer `503`, with no dialog and nobody asked.
+                                if (resolution.IsPairing && !resolution.Target.IsLocked)
+                                {
+                                    // The caller named an invitation, so this connection is about to
+                                    // wait on the operator rather than on the wire. The ordinary budget
+                                    // would close the socket while the dialog is still up, and
+                                    // everything after that point still happens: the invitation is
+                                    // spent and the record is written and saved, with nothing left to
+                                    // hand the certificate back on.
+                                    deadline.Extend(_options.PairingBudget);
+                                }
+
+                                Serve(raw, peek, resolution, Peer(client));
+                            }
+                        }
                     }
-
-                    // In a `using`, because a resolved target arrives holding a reference taken
-                    // for this connection. Releasing it here is what lets the cache retire the
-                    // material at the moment nothing is serving from it any more.
-                    using (var resolution = _resolver.Resolve(peek.ServerName))
+                    finally
                     {
-                        if (!resolution.IsResolved)
+                        lock (_stateLock)
                         {
-                            _log.Info(
-                                "dropped a connection: " + resolution.Outcome.ToString().ToLowerInvariant());
-                            return;
+                            _live.Remove(client);
                         }
-
-                        if (resolution.IsPairing)
-                        {
-                            // The caller named an invitation, so this connection is about to wait
-                            // on the operator rather than on the wire. The ordinary budget would
-                            // close the socket while the dialog is still up, and everything after
-                            // that point still happens: the invitation is spent and the record is
-                            // written and saved, with nothing left to hand the certificate back on.
-                            deadline.Extend(_options.PairingBudget);
-                        }
-
-                        Serve(raw, peek, resolution, Peer(client));
                     }
                 }
             }
@@ -544,6 +664,17 @@ namespace KeePassGate.Transport
                 }
 
                 var client = ClientCredentials.For(server.PresentedCertificate, target, _log);
+                if (client.IsLocked)
+                {
+                    // Here rather than in the router, so that nothing of what the client asked is
+                    // read: see `GateConversation.Locked`. The identity is still built first,
+                    // because building one is what refuses to look at the certificate at all.
+                    _log.Info("connection to " + CertificateDigest.Shorten(target.DatabaseId) +
+                              " while it is locked");
+                    GateConversation.Locked(protocol.Stream, _options, _log);
+                    return;
+                }
+
                 _log.Info("connection to " + CertificateDigest.Shorten(target.DatabaseId) +
                           (client.IsPaired
                               ? " from " + CertificateDigest.Shorten(client.AdmissionKey)
