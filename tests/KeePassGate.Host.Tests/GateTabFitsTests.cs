@@ -592,8 +592,7 @@ namespace KeePassGate.Host.Tests
             // This pins the arithmetic rather than the hazard. A page that has never been in front
             // is sized differently by a real dialog than by a panel a test built and laid out, so
             // the way this actually went wrong is only visible on the desktop, which is what
-            // `DocumentationScreenshots` walks into every time it runs. TODO(step 19): that fixture
-            // arrives with the documentation.
+            // `DocumentationScreenshots` walks into every time it runs.
             foreach (var state in States())
             {
                 using (var panel = state.Panel)

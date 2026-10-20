@@ -183,6 +183,19 @@ namespace KeePassGate.Ui
         /// </summary>
         public const string InvitationBoxName = "KpgInvitationBox";
 
+        /// <summary>What the approval dialog calls the invitation this request is against.</summary>
+        /// <remarks>
+        /// Here rather than at the one place that says it, because `Fact.ControlName` derives the
+        /// control's identifier from this text and the screenshot fixture has to cover that
+        /// control. A caption reworded in the dialog and copied by hand into the fixture leaves
+        /// the fixture matching nothing, and matching nothing is silent: no bar is painted, no
+        /// test fails, and the next regeneration publishes a value that moves on every run.
+        /// </remarks>
+        public const string InvitationIdFactName = "Invitation id";
+
+        /// <summary>What the same dialog calls the address the client reached the gate from.</summary>
+        public const string PeerFactName = "Connected from";
+
         /// <summary>The icon button beside the box, which puts the token on the clipboard.</summary>
         public const string CopyButtonName = "KpgCopyButton";
 
@@ -298,6 +311,21 @@ namespace KeePassGate.Ui
         public const string ApprovalRegainingName = "KpgApprovalRegaining";
 
         public const string ApprovalProfilesListName = "KpgApprovalProfilesList";
+
+        public const string ApprovalCountdownName = "KpgApprovalCountdown";
+
+        /// <summary>
+        /// What the countdown says, with the seconds left in place of the placeholder.
+        /// </summary>
+        /// <remarks>
+        /// Here rather than inside the dialog, because the documentation fixture waits for this
+        /// sentence to read a particular number before it opens the shutter. A fixture that spelled
+        /// the sentence out a second time would go on matching a wording that had changed
+        /// underneath it, and the failure would be a picture nobody could take rather than a
+        /// compile error.
+        /// </remarks>
+        public const string ApprovalCountdownFormat =
+            "This pairing request times out in {0} seconds, and nothing is issued if it does.";
 
         public const string ApproveButtonName = "KpgApproveButton";
 

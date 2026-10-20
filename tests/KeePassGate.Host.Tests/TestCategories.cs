@@ -12,5 +12,12 @@ namespace KeePassGate.Host.Tests
         /// takes seconds rather than milliseconds, and cannot run beside another copy of itself.
         /// </summary>
         public const string Live = "Live";
+
+        /// <summary>
+        /// Drives the same real KeePass and screenshots it for the documentation. Also `Live`, so
+        /// that the tiers which exclude the desktop exclude this too, and separately named so that
+        /// an ordinary end to end run does not rewrite the images checked into `docs/`.
+        /// </summary>
+        public const string Screenshots = "Screenshots";
     }
 }

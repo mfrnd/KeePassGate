@@ -3,9 +3,26 @@
 from __future__ import annotations
 
 import inspect
+import re
+from pathlib import Path
+
+import pytest
 
 import pykeepassgate
 from pykeepassgate import api, errors
+
+#: Where the repository is, if these tests are in one, as `test_reference.py` finds it.
+REPOSITORY = Path(__file__).resolve().parents[2]
+
+#: The two pages a caller reads to learn what to catch: the documentation and the package's own.
+TABLES = {
+    "docs": REPOSITORY / "docs" / "pykeepassgate.md",
+    "README": REPOSITORY / "src" / "pykeepassgate" / "README.md",
+}
+
+#: What the client raises from the standard library, each for a mistake in the calling program
+#: rather than anything the gate said.
+STANDARD = {"ValueError", "AttributeError", "KeyError"}
 
 
 def test_everything_this_library_raises_has_one_root() -> None:
@@ -50,6 +67,25 @@ def test_everything_this_library_raises_is_exported_from_the_package_as_well() -
     for name in raised:
         assert name in pykeepassgate.__all__
         assert getattr(pykeepassgate, name) is getattr(errors, name)
+
+
+@pytest.mark.parametrize("page", list(TABLES.values()), ids=list(TABLES))
+def test_each_table_of_what_to_catch_names_everything_this_client_raises(page: Path) -> None:
+    # A row for every class `errors.py` defines but the root, which the text above each table
+    # names instead, and one for each of the standard library's that a caller can meet. A class
+    # added without a row fails here, and so does a row left behind by a class taken away.
+    if not page.exists():  # pragma: no cover, only outside the repository
+        pytest.skip(f"no page at {page} to hold to this module")
+
+    section = page.read_text("utf-8").split("## What to catch", 1)[1].split("\n## ", 1)[0]
+    rows = set(re.findall(r"^\| `(\w+)` \|", section, flags=re.MULTILINE))
+    raised = {
+        name
+        for name, value in inspect.getmembers(errors, inspect.isclass)
+        if issubclass(value, Exception) and value.__module__ == errors.__name__
+    }
+
+    assert rows == (raised - {"GateError"}) | STANDARD
 
 
 def test_the_pairing_failures_are_one_family() -> None:

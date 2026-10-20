@@ -1,10 +1,14 @@
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Security.AccessControl;
+using System.Security.Principal;
 using System.Threading;
 using System.Windows.Automation;
 using KeePassGate.Ui;
 using NUnit.Framework;
+using NUnit.Framework.Interfaces;
 
 namespace KeePassGate.Host.Tests.Live
 {
@@ -192,12 +196,180 @@ namespace KeePassGate.Host.Tests.Live
                 Assert.Ignore(reason);
             }
 
-            var directory = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-                "KeePassGateLive",
-                Guid.NewGuid().ToString("N"));
-            Directory.CreateDirectory(directory);
+            var directory = Path.Combine(Root(), SessionName());
+            EndOrphans();
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, true);
+            }
+
+            CreatePrivately(directory);
             return new LiveSession(directory, ThrowawayKeePass.Create(directory, withAuthority));
+        }
+
+        /// <summary>
+        /// Creates the session directory so that only this account, the administrators and the
+        /// system can put anything in it or below it.
+        /// </summary>
+        /// <remarks>
+        /// **The common application data directory lets every local account add folders and files
+        /// below it**, and what a session puts there is a copy of KeePass that this account then
+        /// starts. KeePass loads every assembly beside its program and in `plugins` below it, so
+        /// another account that dropped one in between the copy and the start, or while a fixture
+        /// restarts KeePass, would have its code run as whoever ran the tests. The data here is
+        /// invented, which is not the point: the code is.
+        ///
+        /// **Created with its own list and inheriting nothing**, so there is no moment when the
+        /// directory is open: nothing is in it before the list is. **Checked afterwards**, because
+        /// a directory somebody else made at that path in the meantime keeps its own list and
+        /// creating it again succeeds without a word. **And a root owned by another account is
+        /// refused**, since an owner can put a directory of its own in place of any directory
+        /// inside it, whatever that directory's list says.
+        /// </remarks>
+        private static void CreatePrivately(string directory)
+        {
+            var root = Root();
+            Directory.CreateDirectory(root);
+
+            var owner = Directory.GetAccessControl(root).GetOwner(typeof(SecurityIdentifier));
+            if (!IsTrusted(owner))
+            {
+                Assert.Fail(root + " is owned by " + Named(owner) + ", which can replace anything a " +
+                            "session puts in it. Delete it, and run again.");
+            }
+
+            var security = new DirectorySecurity();
+            security.SetAccessRuleProtection(true, false);
+            foreach (var who in Trusted())
+            {
+                security.AddAccessRule(new FileSystemAccessRule(
+                    who,
+                    FileSystemRights.FullControl,
+                    InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit,
+                    PropagationFlags.None,
+                    AccessControlType.Allow));
+            }
+
+            Directory.CreateDirectory(directory, security);
+
+            var created = Directory.GetAccessControl(directory);
+            if (!created.AreAccessRulesProtected || !IsTrusted(created.GetOwner(typeof(SecurityIdentifier))))
+            {
+                Assert.Fail(directory + " was made by somebody else while this session was creating it.");
+            }
+        }
+
+        /// <summary>This account, the administrators and the system: who may own or change a session.</summary>
+        private static SecurityIdentifier[] Trusted()
+        {
+            return new[]
+            {
+                WindowsIdentity.GetCurrent().User,
+                new SecurityIdentifier(WellKnownSidType.BuiltinAdministratorsSid, null),
+                new SecurityIdentifier(WellKnownSidType.LocalSystemSid, null)
+            };
+        }
+
+        private static bool IsTrusted(IdentityReference owner)
+        {
+            return owner != null && Trusted().Contains(owner);
+        }
+
+        private static string Named(IdentityReference owner)
+        {
+            try
+            {
+                return owner == null ? "nobody" : owner.Translate(typeof(NTAccount)).Value;
+            }
+            catch (IdentityNotMappedException)
+            {
+                return owner.Value;
+            }
+        }
+
+        /// <summary>
+        /// The directory this session works in, named after the fixture that asked for it.
+        /// </summary>
+        /// <remarks>
+        /// **A name rather than an identifier, because this path is published.** KeePass puts the
+        /// open database's path in the banner of its settings dialog, most of the documentation
+        /// screenshots are of that dialog, and they are committed. Anything fresh per run would
+        /// mean regenerating them produced a diff whether or not the screen had changed, which is
+        /// the one thing that would make the diff worth reading.
+        ///
+        /// The fixture's own name keeps two of them out of one directory. A leftover from an
+        /// interrupted run is deleted rather than worked around: the live tier needs the desktop to
+        /// itself, so two sessions of one fixture at once is not a case that exists.
+        /// </remarks>
+        private static string SessionName()
+        {
+            var name = TestContext.CurrentContext.Test.ClassName ?? string.Empty;
+            var dot = name.LastIndexOf('.');
+            var bare = dot < 0 ? name : name.Substring(dot + 1);
+            return string.IsNullOrEmpty(bare) ? "session" : bare;
+        }
+
+        /// <summary>
+        /// Where a session builds its throwaway KeePass, chosen so a picture of it can be published.
+        /// </summary>
+        /// <remarks>
+        /// **Not the temporary directory, and the reason is secrecy rather than tidiness.** KeePass
+        /// puts the open database's path in the banner of its settings dialog, and `%TEMP%` on
+        /// Windows is inside the user's own profile, so that path carries their account name. The
+        /// documentation screenshots are of that dialog and they are committed and published: a
+        /// session under `%TEMP%` puts whoever ran the build into a file in the repository.
+        ///
+        /// The common application data directory is on every Windows, is there before anybody asks
+        /// for it, and names nobody.
+        /// </remarks>
+        private static string Root()
+        {
+            return Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                "KeePassGateLive");
+        }
+
+        /// <summary>
+        /// Ends every KeePass still running out of a session directory, which only an interrupted
+        /// run leaves behind.
+        /// </summary>
+        /// <remarks>
+        /// **A test host that dies without its tear down leaves its KeePass running**, because
+        /// nothing else ever ends one. That KeePass holds its own program and its database open, so
+        /// the next session of the same fixture could not delete the directory and failed on a
+        /// file rather than on the process, run after run until somebody ended it by hand; and it
+        /// kept the documented port, so every fixture after it was quietly given another. Nothing
+        /// of the developer's runs from under this root, and the tier needs the desktop to itself,
+        /// so whatever is found there is one of these.
+        ///
+        /// A process whose program cannot be read is not this account's to judge, and is left.
+        /// </remarks>
+        private static void EndOrphans()
+        {
+            var root = Root() + Path.DirectorySeparatorChar;
+
+            foreach (var process in Process.GetProcessesByName("KeePass"))
+            {
+                using (process)
+                {
+                    try
+                    {
+                        if (!process.MainModule.FileName.StartsWith(root, StringComparison.OrdinalIgnoreCase))
+                        {
+                            continue;
+                        }
+
+                        process.Kill();
+                        process.WaitForExit(10000);
+                    }
+                    catch (Exception error) when (
+                        error is System.ComponentModel.Win32Exception || error is InvalidOperationException)
+                    {
+                        // Gone already, another account's, or out of reach. None of those holds a
+                        // session directory this account made.
+                    }
+                }
+            }
         }
 
         /// <summary>Every line the plugin logged as a warning or an error, which should be none.</summary>
@@ -214,8 +386,26 @@ namespace KeePassGate.Host.Tests.Live
                 .ToArray();
         }
 
+        /// <summary>
+        /// Ends the KeePass, and deletes the session directory unless its fixture failed.
+        /// </summary>
+        /// <remarks>
+        /// **Kept whole when the fixture failed**, because the plugin's log inside it is the only
+        /// record of what the plugin did in a process the test does not otherwise hold, and
+        /// `build.ps1` prints it with the failures. NUnit runs a fixture's tear down after its one
+        /// time set up has thrown, and what a set up printed never reaches the result file, so
+        /// deleting here took the one account of every fixture that failed before its tests ran.
+        /// The next session of the same fixture deletes the directory as it begins.
+        /// </remarks>
         public void Dispose()
         {
+            if (TestContext.CurrentContext.Result.Outcome.Status == TestStatus.Failed)
+            {
+                _keePass.Keep();
+                TestContext.Progress.WriteLine("The fixture failed, so " + _workingDirectory + " is kept.");
+                return;
+            }
+
             _keePass.Dispose();
 
             try

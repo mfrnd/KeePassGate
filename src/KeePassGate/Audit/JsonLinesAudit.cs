@@ -41,7 +41,7 @@ namespace KeePassGate.Audit
     /// see `DecisionPace`.
     ///
     /// **Where it is writing is said as it opens**, and so is having nowhere to write. See the
-    /// constructor.
+    /// constructor. `docs/audit.md` is the same answer for whoever runs this rather than reads it.
     ///
     /// **It asks for the right to append and no other**, so it goes on working on a file an
     /// administrator has made append only, where it can no longer set the file aside. See

@@ -3,34 +3,39 @@
 A KeePass 2.x plugin that serves a small, specification-defined HTTP API over mutual TLS, so that
 automation and AI agents can each be given a narrow, revocable, audited slice of a database.
 
-**Design settled, and the first eighteen steps are built.** The plugin loads into KeePass, the KPG tab
-creates, recreates and deletes the database's own certificate authority, and the gate answers over
-mutual TLS 1.3 with the host certificate chosen from the rotating name in the ClientHello. A client
-is served only if the database holds an admission record for its certificate, so revoking one
-empties that record and writes a revocation beside it, and takes effect on the next connection.
-**A stranger can now become a client**:
-the tab hands out an invitation, the two sides prove they hold it, the operator approves what it may
-reach, and the record is saved before the certificate is handed over. A locked KeePass answers
-`503 locked` rather than failing at the transport. **Routing is the OpenAPI document**, embedded in the
-plugin: handlers bind to `operationId`, bodies are checked against the declared schema before a
-handler runs, and a path the document does not declare has nowhere to go. **Twenty-two routes read
-and change groups, entries, fields and attachments**, each answered for by the nearest
-addressable node, so a field or an attachment is answered for by the entry holding it. **And
-what a grant means is settled**: rules live in group and entry `CustomData`, the nearest one to
-a node wins per profile, and every operation declares the verb it needs or the plugin does not
-load. **And it can be started**: two launchers build the plugin, deploy it beside the pinned
-KeePass and start that KeePass with it, one per configuration. **And the two halves are combined**: the
-router intersects the admission record with those rules before any handler runs, and every decision
-either way is written to a file outside the database.
+**Every step of the build order is done.** The plugin loads into KeePass, the KPG tab creates,
+recreates and deletes the database's own certificate authority, and the gate answers over mutual
+TLS 1.3 with the host certificate chosen from the rotating name in the ClientHello. A client is
+served only if the database holds an admission record for its certificate, so revoking one empties
+that record and writes a revocation beside it, and takes effect on the next connection. **A
+stranger can become a client**: the tab hands out an invitation, the two sides prove they hold it,
+the operator approves what it may reach, and the record is saved before the certificate is handed
+over. A locked KeePass answers that it is locked rather than failing at the transport. **Routing
+is the OpenAPI document**, embedded in the plugin: handlers bind to `operationId`, bodies are
+checked against the declared schema before a handler runs, and a path the document does not
+declare has nowhere to go. **Twenty-two routes read and change groups, entries, fields and
+attachments**, each declaring the verb it needs and the node it is about, and the router refuses
+anything the admission record and the rules on that node do not both allow, writing every decision
+to an audit file outside the database.
 
 **License: MIT.** GPLv2 is not required. KeePass is GPL-2.0-or-later and grants no plugin exception,
 but the FSF's own requirement is a GPL-compatible license, and MIT is one, so a permissive
 KeePassGate is sound under the strict reading of the linking question as well as the loose one.
 
+## Using it
+
+**[`docs/`](docs/README.md) is the documentation for whoever runs this**: installing the plugin,
+giving a database an authority, letting a program in, deciding what it may reach, taking it back
+out again, and finding the record of what it did. It shows the real screens, screenshotted from a
+driven KeePass.
+
+Everything below is written for whoever builds it.
+
 ## The documents, in reading order
 
 | | |
 | --- | --- |
+| [`docs/`](docs/README.md) | how to run it, with the screens |
 | [`DESIGN.md`](DESIGN.md) | what to build, and a section attacking it |
 | [`API.md`](API.md) | the reasoning behind the routes and what is deliberately absent, with the per-route detail in [`openapi.yaml`](src/KeePassGate/Spec/openapi.yaml) |
 | [`CA.md`](CA.md) | the certificate authority in full: issuance, claims, validation, revocation |
@@ -38,6 +43,7 @@ KeePassGate is sound under the strict reading of the linking question as well as
 | [`FINDINGS.md`](FINDINGS.md) | what was measured rather than assumed, and what turned out wrong |
 | [`TESTING.md`](TESTING.md) | the four test tiers, what each one buys, and how to run them |
 | [`CONVENTIONS.md`](CONVENTIONS.md) | the rules that hold on every branch |
+| [`CHANGELOG.md`](CHANGELOG.md) | what each version changes, and that there is one version |
 | [`ANALYSIS.md`](ANALYSIS.md) | the argument, and the alternatives that were rejected |
 
 ## What was decided, in one place

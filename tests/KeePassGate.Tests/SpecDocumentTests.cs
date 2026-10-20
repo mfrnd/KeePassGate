@@ -119,6 +119,24 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void The_document_carries_the_version_the_plugin_is_built_as()
+        {
+            // One version for the plugin, the client and this document, written once in
+            // `Directory.Build.props` and moved together. The build stamps the plugin and the
+            // client reads its own from what was installed, but a YAML file reads nothing, so this
+            // is what holds the document to the number: a version moved there and not here fails
+            // before anything ships. The client's tests hold the same document to the client.
+            Microsoft.OpenApi.Models.OpenApiDocument document;
+            using (var stream = typeof(SpecDocument).Assembly.GetManifestResourceStream("KeePassGate.Spec.openapi.yaml"))
+            {
+                Microsoft.OpenApi.Readers.OpenApiDiagnostic diagnostic;
+                document = new Microsoft.OpenApi.Readers.OpenApiStreamReader().Read(stream, out diagnostic);
+            }
+
+            Assert.That(document.Info.Version, Is.EqualTo(GateVersion.Current));
+        }
+
+        [Test]
         public void The_table_is_the_size_the_design_argues_from()
         {
             // `DESIGN.md` §128 answers "spec-first routing is slower than a switch statement" by

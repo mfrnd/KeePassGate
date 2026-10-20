@@ -11,7 +11,7 @@ info:
   # and usage count and saved the database, so `update` alone pushed an entry's real revisions out
   # of its history at `HistoryMaxItems` calls that each asked for nothing, and an agent writing
   # back what it had just read, to make sure of it, did the same. A program that may write can
-  # still push them out by changing the entry. §504
+  # still push them out by changing the entry, which docs/access-control.md tells the operator. §504
   #
   # The paragraph on a query name or a body nothing declares. The transport parsed a query and
   # nothing read it, so `GET /entries?group=x` was served as `GET /entries`, handing the whole
@@ -1348,9 +1348,9 @@ components:
         # first, which resolves a field reference such as `{REF:P@I:...}` against the whole open
         # database, knowing nothing about these rules, and starts a `cmd://` URL as a command line.
         # Only this field, because braces are ordinary in a note and a brace is not a character a
-        # URL may carry unencoded anyway. What this does not reach is the rest of what KeePass
-        # compiles, such as a reference planted in another field, and that leaves a write verb as
-        # sensitive as a read verb, which is something an operator granting one has to know.
+        # URL may carry unencoded anyway. What this does not reach is in docs/access-control.md,
+        # because a write verb being as sensitive as a read verb is something an operator granting
+        # one has to know.
         URL:
           type: string
           maxLength: 8192

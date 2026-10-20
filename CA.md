@@ -608,6 +608,8 @@ empties the record, §204, which takes effect on the next connection,
 offline and immediately: the record is read from the live database per connection and never cached
 beside the certificates, so nothing has to be reloaded for a revocation to bite.
 
+[`docs/clients.md`](docs/clients.md) is the same thing said to whoever presses the button.
+
 **The operator revokes from the KPG tab's clients page**, which lists every client the database has
 admitted with what each one may reach, and takes one away. It is a list rather than a bare set of
 names because revoking is a decision about access, and a name on its own does not say what is being
@@ -682,7 +684,8 @@ Storing the certificate rather than only its digest is what makes any of this po
   did the invite button's refusal that matched them.
 - **Recreating the authority revokes every client at once.** It asks first, and it states the count.
 - **Renewal would be re-issuance**: same profiles, new key, new certificate, new record, old record
-  removed. **Not built:** a client that is about to expire pairs again.
+  removed. **Not built:** a client that is about to expire pairs again, which is what
+  [`docs/clients.md`](docs/clients.md) tells an operator to do.
 - **Key loss** cannot happen separately from losing the database itself.
 - **Key theft** means whoever holds the file. Every minted certificate is still refused until it has
   a record, which is what the record is for.

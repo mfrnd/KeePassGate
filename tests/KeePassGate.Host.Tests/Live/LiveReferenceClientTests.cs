@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -12,7 +13,8 @@ namespace KeePassGate.Host.Tests.Live
 {
     /// <summary>
     /// The reference client against the real plugin: PyKeePassGate pairs with a throwaway KeePass
-    /// through an invitation from the real tab, then reads through the gate.
+    /// through an invitation from the real tab, then reads and writes through the gate until
+    /// KeePass is locked under it.
     /// </summary>
     /// <remarks>
     /// **The only place the two halves meet.** Every other tier runs PyKeePassGate against a
@@ -20,18 +22,27 @@ namespace KeePassGate.Host.Tests.Live
     /// in `tests/Shared`. So three things are held here and nowhere else: the identity the plugin
     /// exports with .NET Framework's PKCS#12 and the client reads with `cryptography`, the TLS 1.3
     /// handshake between Bouncy Castle's server and Python's `ssl`, and the plugin's framing under
-    /// the client's reader.
+    /// the client's reader. And two of the client's answers are held against the plugin's own: a
+    /// protected value reaches it through the field route only because the rule grants `P`, and
+    /// the two refusals a client waits out, a dialog open on the entry and a lock, arrive under the
+    /// names a program catches them by.
     ///
     /// **The real package, run the way the gate runs it**: its command line through `uv run
     /// --frozen` in the repository, so what is exercised is what the lockfile pins and not a copy.
     /// Asked once before KeePass starts, which settles the environment where a slow first sync
     /// cannot eat into the time the approval dialog is waited for. Without `uv` the fixture is
-    /// ignored, as a missing KeePass is.
+    /// ignored, as a missing KeePass is. What the command line does not offer, reading one field
+    /// on its own route and changing a password, goes through the library with
+    /// `tests/pykeepassgate/live_calls.py`, run the same way.
     ///
     /// **The grant is written before KeePass starts**, for the reason `LiveApiTests` gives, and
-    /// names the profile the client asks for, which the approval then names in the database. The
-    /// invitation is read off the screen and handed over on standard input, the way the command
-    /// line reads one it was not given.
+    /// names the profile the client asks for, which the approval then names in the database. It
+    /// grants `protected` with `create`, `read`, `update` and `list`, so the password the client
+    /// stores is one it may read back and change. The invitation is read off the screen and handed
+    /// over on standard input, the way the command line reads one it was not given.
+    ///
+    /// **The lock comes last**, because nothing after it answers anything but `503 locked`, and a
+    /// test unlocking KeePass again would be typing the master password into it.
     /// </remarks>
     [TestFixture]
     [Category(TestCategories.Live)]
@@ -43,11 +54,22 @@ namespace KeePassGate.Host.Tests.Live
         private const string Profile = "ops";
         private const string Title = "an invented service";
         private const string User = "agent-invented";
+        private const string Stored = "not-a-real-password-live";
+        private const string Rotated = "a-rotated-invented-password";
+        private const string TurnedAway = "a-password-a-dialog-turns-away";
+
+        /// <summary>What the plugin logs when the lock reaches it, as `LiveLockTests` reads it.</summary>
+        private const string LockedLine = "locked, answering with the responder";
+
+        /// <summary>What the plugin logs, at a level worth a look, for the write this test turns away.</summary>
+        private const string BusyLine =
+            "a change was refused as busy: an entry dialog is open on the entry this would be written to";
 
         private static readonly TimeSpan StartTimeout = TimeSpan.FromSeconds(60);
         private static readonly TimeSpan DialogTimeout = TimeSpan.FromSeconds(60);
         private static readonly TimeSpan SettleTimeout = TimeSpan.FromMinutes(5);
         private static readonly TimeSpan CommandTimeout = TimeSpan.FromMinutes(2);
+        private static readonly TimeSpan LockTimeout = TimeSpan.FromSeconds(20);
 
         private LiveSession _session;
         private string _identity;
@@ -59,6 +81,13 @@ namespace KeePassGate.Host.Tests.Live
         private Run _added;
         private Run _listed;
         private Run _shown;
+        private Run _readProtected;
+        private Run _rotated;
+        private Run _readRotated;
+        private Run _busy;
+        private Run _afterBusy;
+        private string _notLocked;
+        private Run _locked;
         private bool _exited;
         private string _pluginLog;
 
@@ -74,7 +103,7 @@ namespace KeePassGate.Host.Tests.Live
             var keePass = _session.KeePass;
             _identity = Path.Combine(Path.GetDirectoryName(keePass.DatabasePath), "client");
 
-            keePass.Grant("{\"" + Profile + "\":[\"create\",\"read\",\"list\"]}");
+            keePass.Grant("{\"" + Profile + "\":[\"create\",\"read\",\"update\",\"list\",\"protected\"]}");
 
             var driver = KeePassDriver.Start(keePass);
             WaitUntilServing(keePass, driver);
@@ -88,9 +117,32 @@ namespace KeePassGate.Host.Tests.Live
             {
                 _status = Client("status" + Where(), CommandTimeout);
                 _added = Client(
-                    "add --title \"" + Title + "\" --username \"" + User + "\"" + Where(), CommandTimeout);
+                    "add --title \"" + Title + "\" --username \"" + User + "\" --password" + Where(),
+                    CommandTimeout, Stored);
                 _listed = Client("entries" + Where(), CommandTimeout);
                 _shown = Client("show " + Created() + Where(), CommandTimeout);
+
+                _readProtected = Calls("field " + Created() + " Password", CommandTimeout);
+                _rotated = Calls("password " + Created(), CommandTimeout, Rotated);
+                _readRotated = Calls("field " + Created() + " Password", CommandTimeout);
+
+                // The entry the client made is the only one there is, so it is the one the list
+                // shows first. While its dialog is open a write to it is one that dialog's OK
+                // would take back, so the gate turns it away, and Escape then leaves the entry
+                // as it was.
+                var dialog = driver.OpenEntryDialog();
+                _busy = Calls("password " + Created(), CommandTimeout, TurnedAway);
+                driver.CloseDialog(dialog);
+                _afterBusy = Calls("field " + Created() + " Password", CommandTimeout);
+
+                driver.LockWorkspace();
+                if (!Logged(keePass, LockedLine, LockTimeout))
+                {
+                    _notLocked = "KeePass was showing " + NativeWindows.Titles(keePass.Process) +
+                                 Environment.NewLine + driver.Diagnostics;
+                }
+
+                _locked = Client("status" + Where(), CommandTimeout);
             }
 
             _exited = driver.ShutDown();
@@ -155,6 +207,45 @@ namespace KeePassGate.Host.Tests.Live
             Assert.That(_shown.Output, Does.Contain("uuid:  " + Created()));
             Assert.That(_shown.Output, Does.Contain("Title: " + Title));
             Assert.That(_shown.Output, Does.Contain("UserName: " + User));
+            Assert.That(_shown.Output, Does.Contain("Password: " + Stored + " (protected)"),
+                "the rule grants protected, so the value arrives rather than being withheld");
+        }
+
+        [Test]
+        public void A_protected_value_reads_through_the_field_route()
+        {
+            Assert.That(_readProtected, Is.Not.Null, "the client never paired, so nothing was asked");
+            Assert.That(_readProtected.ExitCode, Is.Zero, _readProtected.ToString());
+            Assert.That(_readProtected.Output.Trim(), Is.EqualTo(Stored));
+        }
+
+        [Test]
+        public void A_password_the_client_changes_reads_back_as_the_new_one()
+        {
+            Assert.That(_rotated, Is.Not.Null, "the client never paired, so nothing was asked");
+            Assert.That(_rotated.ExitCode, Is.Zero, _rotated.ToString());
+            Assert.That(_readRotated.ExitCode, Is.Zero, _readRotated.ToString());
+            Assert.That(_readRotated.Output.Trim(), Is.EqualTo(Rotated));
+        }
+
+        [Test]
+        public void A_write_under_an_open_entry_dialog_is_refused_as_busy_and_changes_nothing()
+        {
+            Assert.That(_busy, Is.Not.Null, "the client never paired, so nothing was asked");
+            Assert.That(_busy.ExitCode, Is.EqualTo(1), _busy.ToString());
+            Assert.That(_busy.Errors, Does.Contain("GateBusy: "), _busy.ToString());
+
+            Assert.That(_afterBusy.ExitCode, Is.Zero, _afterBusy.ToString());
+            Assert.That(_afterBusy.Output.Trim(), Is.EqualTo(Rotated), "the refused write wrote nothing");
+        }
+
+        [Test]
+        public void A_locked_KeePass_is_met_as_a_locked_database()
+        {
+            Assert.That(_locked, Is.Not.Null, "the client never paired, so nothing was asked");
+            Assert.That(_notLocked, Is.Null, "The plugin never reported the lock. " + _notLocked);
+            Assert.That(_locked.ExitCode, Is.EqualTo(1), _locked.ToString());
+            Assert.That(_locked.Errors, Does.Contain("DatabaseLocked: "), _locked.ToString());
         }
 
         [Test]
@@ -164,9 +255,16 @@ namespace KeePassGate.Host.Tests.Live
         }
 
         [Test]
-        public void The_plugin_logged_nothing_that_needs_looking_at()
+        public void The_only_thing_reported_was_the_write_this_test_turned_away()
         {
-            Assert.That(LiveSession.FailuresIn(_pluginLog), Is.Empty);
+            // Once, for that write: filtering the phrase alone would also pass a session in which
+            // every write was refused as busy, which is the failure the writes above exist to see.
+            var failures = LiveSession.FailuresIn(_pluginLog);
+            var busy = failures.Where(line => line.Contains(BusyLine)).ToArray();
+            var unexpected = failures.Except(busy).ToArray();
+
+            Assert.That(busy, Has.Length.EqualTo(1), _pluginLog);
+            Assert.That(unexpected, Is.Empty, string.Join(Environment.NewLine, unexpected));
         }
 
         /// <summary>The identity to use, as every command after pairing names it.</summary>
@@ -204,7 +302,7 @@ namespace KeePassGate.Host.Tests.Live
         {
             var arguments = "pair --port " + port + " --name " + Name + " --profile-name " + Profile + Where();
 
-            using (var pairing = Start(arguments))
+            using (var pairing = Start("pykeepassgate " + arguments))
             {
                 var output = pairing.StandardOutput.ReadToEndAsync();
                 var errors = pairing.StandardError.ReadToEndAsync();
@@ -234,8 +332,26 @@ namespace KeePassGate.Host.Tests.Live
             }
         }
 
-        /// <summary>One command, from start to exit, with nothing on standard input.</summary>
-        private static Run Client(string arguments, TimeSpan timeout)
+        /// <summary>One command of the command line, from start to exit.</summary>
+        private static Run Client(string arguments, TimeSpan timeout, string input = null)
+        {
+            return Execute("pykeepassgate " + arguments, timeout, input);
+        }
+
+        /// <summary>
+        /// One call through the library, with `live_calls.py`, for the identity this session paired.
+        /// </summary>
+        private Run Calls(string arguments, TimeSpan timeout, string input = null)
+        {
+            var program = Path.Combine("tests", "pykeepassgate", "live_calls.py");
+            return Execute("python \"" + program + "\" --directory \"" + _identity + "\" " + arguments, timeout, input);
+        }
+
+        /// <summary>
+        /// One program `uv` runs, from start to exit, with one line on standard input if given and
+        /// nothing otherwise.
+        /// </summary>
+        private static Run Execute(string arguments, TimeSpan timeout, string input)
         {
             Process process;
             try
@@ -252,6 +368,11 @@ namespace KeePassGate.Host.Tests.Live
             {
                 var output = process.StandardOutput.ReadToEndAsync();
                 var errors = process.StandardError.ReadToEndAsync();
+                if (input != null)
+                {
+                    process.StandardInput.WriteLine(input);
+                }
+
                 process.StandardInput.Close();
 
                 try
@@ -266,14 +387,15 @@ namespace KeePassGate.Host.Tests.Live
         }
 
         /// <summary>
-        /// `uv run --frozen pykeepassgate`, from the repository, the way the Client task runs it.
+        /// `uv run --frozen` and what it is to run, from the repository, the way the Client task
+        /// runs it.
         /// </summary>
         private static Process Start(string arguments)
         {
             var info = new ProcessStartInfo
             {
                 FileName = "uv",
-                Arguments = "run --frozen pykeepassgate " + arguments,
+                Arguments = "run --frozen " + arguments,
                 WorkingDirectory = Repository.Root,
                 UseShellExecute = false,
                 CreateNoWindow = true,
@@ -333,22 +455,30 @@ namespace KeePassGate.Host.Tests.Live
         private static void WaitForLog(
             ThrowawayKeePass keePass, KeePassDriver driver, string marker, string failure)
         {
-            var deadline = DateTime.UtcNow + StartTimeout;
+            if (!Logged(keePass, marker, StartTimeout))
+            {
+                Assert.Fail(failure + " " + driver.Diagnostics + Environment.NewLine +
+                            "Log so far:" + Environment.NewLine + keePass.ReadPluginLog());
+            }
+        }
+
+        private static bool Logged(ThrowawayKeePass keePass, string marker, TimeSpan timeout)
+        {
+            var deadline = DateTime.UtcNow + timeout;
             while (DateTime.UtcNow < deadline)
             {
                 if (keePass.ReadPluginLog().Contains(marker))
                 {
-                    return;
+                    return true;
                 }
 
                 Thread.Sleep(250);
             }
 
-            Assert.Fail(failure + " " + driver.Diagnostics + Environment.NewLine +
-                        "Log so far:" + Environment.NewLine + keePass.ReadPluginLog());
+            return false;
         }
 
-        /// <summary>What one run of the command line printed, and how it ended.</summary>
+        /// <summary>What one run of a program printed, and how it ended.</summary>
         private sealed class Run
         {
             public Run(int exitCode, string output, string errors)

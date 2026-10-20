@@ -8,7 +8,7 @@ Guidance for anyone, human or AI assistant, working in this repository.
 mutual TLS, so that automation and AI agents can each be given a narrow, revocable, audited slice of
 a database.
 
-**Status: steps 1 to 18 of the build order are done and the API is served.** The plugin loads
+**Status: the whole build order is done and the API is served.** The plugin loads
 into KeePass, the KPG tab creates, recreates and deletes the database's own certificate authority,
 the gate listens on loopback and answers over mutual TLS 1.3, a client is served only if
 the database holds an admission record for its certificate, and **a stranger can now become one**:
@@ -28,13 +28,16 @@ entries, fields and attachments, every one declaring the verb it needs and the n
 `PyKeePassGate` covering all of them. **And a profile has a home**: the set of names a database
 knows lives beside the authority, with a page of its own to manage them, and a name taken off it
 grants nothing whatever rule still names it. **And the plugin has a window of its own**, under KeePass's Tools
-menu, saying where the gate is listening and taking the port it should listen on.
+menu, saying where the gate is listening and taking the port it should listen on. **And there is
+documentation for whoever runs it**: `docs/`, written in the order an operator meets the plugin,
+around screenshots a fixture takes by driving a real KeePass.
 
 ## Read these before proposing anything
 
 | | |
 | --- | --- |
 | [`DESIGN.md`](DESIGN.md) | what to build, and a section attacking it. **The contract.** |
+| [`docs/`](docs/README.md) | the operator's documentation, and the screenshots it is written around |
 | [`API.md`](API.md) | the reasoning behind the routes and what is deliberately absent, with the per-route detail in [`openapi.yaml`](src/KeePassGate/Spec/openapi.yaml) |
 | [`CA.md`](CA.md) | the certificate authority: issuance, claims, validation, revocation |
 | [`PAIRING.md`](PAIRING.md) | how a stranger becomes a client, with the flow diagrams |
@@ -50,6 +53,11 @@ reversal without its argument is just an assertion.
 from `master` and never merged, keeps the three vendored HTTP proofs and gathers what they settled
 in its own `RESULTS.md`. A spike lives on its own branch so that no mainline history has to carry it
 being added and deleted again.
+
+**How the screenshots are taken was worked out on a third.** `spikes/window-capture` holds the
+survey of what Windows offers for getting one window into a file, and what was measured on these
+dialogs: two methods were tried and found wrong before the one in use. What is on the mainline is
+the method and the reason; the alternatives are there.
 
 **The measurements the transport rests on are on two more.** `spikes/tls-and-certificates` holds
 what was measured about TLS and X.509 on .NET Framework, and `spikes/build-environment` whether the
@@ -217,6 +225,20 @@ designing around them.
   somebody checking one looks and where the answer is right for all of them at once. The menu item
   is given a mnemonic of its own: `K`, since KeePass spends g, l, t, d, a, r, p and o on that
   menu's own items.
+
+- **The screenshots in `docs/` are a build output.** `build.ps1 -Task Screenshots` drives a
+  throwaway KeePass through the whole operator flow and screenshots each step where it happens,
+  writing into `docs/images`. It is in the `Live` category so ordinary runs exclude it, and in a
+  `Screenshots` category so the end to end run excludes it too, because it writes into the working
+  tree. The output directory arrives in an environment variable, so a fixture nobody asked to run
+  rewrites nothing. **What is captured is the whole window**, frame, banner and buttons, because a
+  tab strip cut out of a dialog is a picture of a page with no edges: a reader cannot see what it
+  sits in, where the room runs out or which button ends it. What makes that publishable is the
+  session, not the crop: the database settings dialog carries the open database's path in its
+  banner, so `LiveSession` builds the session where that path names nobody.
+  `build.ps1 -Task Lint` refuses a picture no page refers to and a reference to a picture that is
+  not there; that a picture is named in `DocumentationImages` is checked by the fixture that takes
+  it, which is in the `Screenshots` category and so runs only when the pictures are retaken.
 - **Nothing on a tab scrolls.** The content is held to 449 by 314 and has to fit it; horizontal
   scrolling is never acceptable. That is KeePass's own first page on the settings dialog, inside a
   padding of 3. The page this plugin adds has no padding and is laid out to the tab control's whole
@@ -472,6 +494,20 @@ a database's custom data. Each gathers what it settled in its own `RESULTS.md`. 
   from `Name` and is ours: with the lookup keyed on the identifier, `AccessibleName` is free to
   be the phrase a screen reader should say, and is set only where a control has no text of its
   own to say it. Keying the lookup on the name instead is what made the two collide.
+- **A caret cannot be hidden from another process, and both calls say nothing about it.**
+  `HideCaret` hides a caret only if a window in the **calling process** owns it, and `DestroyCaret`
+  destroys one only under the same condition; `AttachThreadInput` shares an input queue rather than
+  ownership, so it does not bridge that. Both return as though they had worked. What does work is
+  moving the focus to a control that draws no caret, which UI automation can do across the
+  boundary. Do not ask the window which control that is: a `NumericUpDown` publishes no editable
+  child, so its row answers as a focused `Pane`, while a grid cell does publish as a focused `Edit`
+  and would be moved off a picture that was already steady. The caller names the control.
+- **`WM_SETTEXT` reaches a `TextBox` and not a `Label`.** A label paints from its managed `Text` and
+  never reads the window's, so writing to one from outside changes nothing and reports success.
+  Three of `Steadied`'s four substitutions were labels and had never once taken effect; what kept
+  those pictures reproducible was the authority being written down rather than the writing. Settle
+  a value at its source, and where that is impossible cover it with `Redacted` rather than trying
+  to type over it.
 - **A single line `TextBox` never raises `KeyDown` for Enter on a form with an `AcceptButton`.**
   `IsInputKey` is false for it, so `PreProcessMessage` hands the key to `Form.ProcessDialogKey`,
   which clicks the accept button and swallows the message: the box's own handler never runs, and
@@ -658,9 +694,10 @@ the tools this branch carries.
   omission: thirteen files have never been through the formatter and running it would rewrite them
   all. What is enforced is what a formatter cannot decide for you, and `pycodestyle` is in the
   selected rules, so a line too long or a space in the wrong place still fails. What is left to the
-  author is where a line breaks, which is a judgment this project spends deliberately. Adopting it
-  means reformatting everything in one commit that changes nothing else, not letting it arrive a
-  file at a time under other work.
+  author is where a line breaks, which is a judgment this project spends deliberately, including
+  inside the fenced examples in `docs/`, where the formatter would take the alignment out of a
+  block written to be read. Adopting it means reformatting everything in one commit that changes
+  nothing else, not letting it arrive a file at a time under other work.
 - **Docs stay with code.** A behavior or architecture change updates the design documents in the
   same pass, and reversals are recorded rather than edited away.
 - **American English is checked, not only asked for.** cspell's own `en_US` dictionary accepts the
@@ -668,6 +705,11 @@ the tools this branch carries.
   dictionaries accept a British spelling or two in code, so `cspell.yaml` refuses about 250 British
   spellings by name, in `flagWords`. A name that is somebody else's keeps its own spelling behind a
   `cspell:ignore` where it is quoted.
+- **The version is written once, as `Version` in `Directory.Build.props`.** The build stamps the
+  plugin with it, hatchling reads it from there for the client's package, the client's
+  `__version__` comes from the installed metadata, and the routing document's `info.version`, which
+  YAML cannot take from anywhere, is held to it by a test on each side. Moving it is one line there
+  and the same in `openapi.yaml`; `CONVENTIONS.md` says when, and `CHANGELOG.md` says what moved.
 
 ## Security posture
 
@@ -684,16 +726,19 @@ here can hang or crash the password manager.
 
 ## Where to start
 
-[`DESIGN.md`](DESIGN.md) §132 ends with a multi-step build order. **Steps 1 to 18 are done.** The skeleton
-loads and shows a KPG tab, that tab creates, recreates and deletes the authority, the gate serves
-the document's routes over mutual TLS to a client the authority issued and the database holds a
-record for, a stranger can pair, a locked database answers `503 locked`, a grant means something
-definite, an operator can write one from the group and entry dialogs, the router refuses
-anything the record and the rules do not both allow, recording every decision either way,
-twenty-two routes read and change groups, entries, fields and attachments, and two launchers start
-the pinned KeePass with the plugin in it.
+[`DESIGN.md`](DESIGN.md) §132 ends with a multi-step build order. **All of them are done.** The
+skeleton loads and shows a KPG tab, that tab creates, recreates and deletes the authority, the gate
+serves the document's routes over mutual TLS to a client the authority issued and the database holds
+a record for, a stranger can pair, a locked database answers `503 locked`, a grant means something
+definite, an operator can write one from the group and entry dialogs, the router refuses anything
+the record and the rules do not both allow while recording every answer the rules give, twenty-two
+routes read and change the database, two launchers start the pinned KeePass with the plugin in it,
+a profile has a home of its own, the plugin has a window under the Tools menu, and `docs/` says how
+to use the result.
 
-**What is left**: the documentation for whoever runs it.
+**Start with [`docs/`](docs/README.md) if the question is what this does**, and with the documents
+below if the question is why it does it that way. What is left is not a step: there is no release packaging and no
+Scoop manifest.
 
 **The storage decision survived the thing most likely to invalidate it.** The `GroupForm` snapshot
 hazard is real and now measured rather than remembered: `SnapshotHazardTests` reads the mechanism off

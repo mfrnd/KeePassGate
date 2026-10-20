@@ -42,8 +42,10 @@ ignorePaths:
 ignoreRegExpList:
   # A run of hex, which covers fingerprints, key identifiers and the SNI labels.
   - "/\\b[0-9a-fA-F]{8,}\\b/g"
-  # base64 and base64url, which covers certificates, tokens and invitations.
-  - "/\\b[A-Za-z0-9+/_-]{20,}={0,2}\\b/g"
+  # base64 and base64url, which covers certificates, tokens and invitations. Only a run with a
+  # digit, a plus or a slash in it, because twenty letters and underscores are a name: every test
+  # name here is one, and read as base64 not one of them would be spell-checked.
+  - "/\\b(?=[A-Za-z0-9+/_-]*[0-9+/])[A-Za-z0-9+/_-]{20,}={0,2}\\b/g"
   # A URL, whose path is somebody else's spelling.
   - "/https?:\\/\\/[^\\s)\"'`]+/g"
   # A code point written as an escape, which is a number rather than a word. It appears in C# and
@@ -52,9 +54,17 @@ ignoreRegExpList:
 
 words:
   # the message that settles whether a window draws focus rectangles
+  - CHANGEUISTATE
   - UPDATEUISTATE
+  - HIDEFOCUS
+  - HIDEACCEL
+  - UISF
 
+  # the window style that keeps the screenshot backdrop from taking the focus
+  - NOACTIVATE
 
+  # the pixel format and the color constructor the screenshots are written with
+  - Argb
 
   # provide keepass as a pinned, verified portable install
   - Authenticode
@@ -187,6 +197,13 @@ words:
   - unparseable
   - unpayable
   - unshown
+
+  # read once the test names were: a flag the window capture was measured with, the plugin taking
+  # its decoration off a dialog again, and a possessive in a Python test name, where the apostrophe
+  # cannot go
+  - RENDERFULLCONTENT
+  - undecorates
+  - librarys
 
 # **The British spelling of a word, refused wherever it is written.** This repository writes American
 # English, and choosing the language catches only part of that: the American dictionary accepts

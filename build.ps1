@@ -16,6 +16,7 @@
       Test     lint, compile, and run every test that does not need a running KeePass (the default)
       Live     run the end to end tests, which start a throwaway KeePass on this desktop
       All      Test then Live
+      Screenshots  retake the pictures in docs/images by driving a throwaway KeePass
       Deploy   copy the plugin into the KeePass used for development
       Run      deploy, then start that KeePass with the plugin in it
       Clean    remove build output
@@ -36,12 +37,13 @@
 .EXAMPLE
     .\build.ps1
     .\build.ps1 -Task All
+    .\build.ps1 -Task Screenshots
     .\build.ps1 -Task Deploy -Configuration Release
 #>
 
 [CmdletBinding()]
 param(
-    [ValidateSet('KeePass', 'Build', 'Lint', 'Client', 'Unit', 'Host', 'Coverage', 'Test', 'Live', 'All', 'Deploy', 'Run', 'Clean')]
+    [ValidateSet('KeePass', 'Build', 'Lint', 'Client', 'Unit', 'Host', 'Coverage', 'Test', 'Live', 'All', 'Screenshots', 'Deploy', 'Run', 'Clean')]
     [string] $Task = 'Test',
 
     [ValidateSet('Debug', 'Release')]
@@ -67,7 +69,7 @@ Set-StrictMode -Version Latest
 # Which tasks are not checks: a prerequisite, the two that only compose others, and the ones that
 # change something rather than judging it. Everything else is a check, which is the way round that
 # fails closed, because a task added and forgotten about is then checked rather than skipped.
-$notGates = @('KeePass', 'Test', 'All', 'Deploy', 'Run', 'Clean')
+$notGates = @('KeePass', 'Test', 'All', 'Screenshots', 'Deploy', 'Run', 'Clean')
 
 # **A PowerShell 7 on the machine can leave this one unable to find its own cmdlets.** `pwsh` puts
 # its module directories at the front of `PSModulePath` and a Windows PowerShell started from it
@@ -350,6 +352,13 @@ function Invoke-Lint {
     Invoke-Step 'doc comments' {
         & (Join-Path $root 'tools/DocComments.ps1')
     }
+
+    # What markdownlint does not do: follow what a document points at. A broken image is invisible
+    # in the source and obvious on the page, and the screenshots in `docs/` are generated, so an
+    # image nobody refers to means a page forgot one or the fixture is still taking one.
+    Invoke-Step 'documentation links' {
+        & (Join-Path $root 'tools\Links.ps1') -Root $root
+    }
 }
 
 # The Python half. `uv` owns the environment, so nothing here installs anything by hand and the
@@ -558,9 +567,9 @@ function Invoke-Test {
 
 # Prints what a failed end to end run leaves behind, because on a hosted runner the console is all
 # that is kept: the job uploads nothing, so `live.trx` and the plugin's log go with the machine.
-# Each failed test's name, message and stack, then the tail of any plugin log a session of this run
-# did not get to delete. Bounded, so a cascade reads as its first few failures and a count rather
-# than a flood.
+# Each failed test's name, message and stack, then the tail of every plugin log a session of this
+# run kept, which a session does when its fixture fails, and what any KeePass it had to end was
+# showing. Bounded, so a cascade reads as its first few failures and a count rather than a flood.
 #
 # **It only reports.** The run has failed already and the caller passes that failure on, so nothing
 # here may end the script: whatever this cannot read is said and passed over.
@@ -629,9 +638,9 @@ function Write-LiveEvidence {
         Write-Host "  The result file could not be read: $($_.Exception.Message)" -ForegroundColor Yellow
     }
 
-    # A live session works under the common application data directory and deletes itself on tear
-    # down, so a log is here only when a session did not get that far, which is the case most worth
-    # seeing.
+    # A live session works under the common application data directory. It deletes itself on tear
+    # down when its fixture passed and keeps everything when the fixture failed, so a log here is
+    # one of a fixture that failed, or of a session that never reached its tear down.
     try {
         $sessions = Join-Path ([Environment]::GetFolderPath('CommonApplicationData')) 'KeePassGateLive'
         $logs = @(Get-ChildItem -Path (Join-Path $sessions '*\keepass\keepassgate.log') -File -ErrorAction SilentlyContinue)
@@ -659,6 +668,16 @@ function Write-LiveEvidence {
             }
 
             Write-Host (Tail $text $shownLines)
+        }
+
+        # And what a KeePass that had to be ended rather than closing was showing, written beside
+        # the log as it was ended: the kill takes the windows with it, and a close that ran out of
+        # time says nothing else about why.
+        foreach ($ended in @(Get-ChildItem -Path (Join-Path $sessions '*\keepass\ended.txt') -File -ErrorAction SilentlyContinue)) {
+            if ($ended.LastWriteTime -lt $Since) { continue }
+            Write-Host ''
+            Write-Host "  A KeePass was ended while still running, $($ended.FullName):"
+            Write-Host (Tail (Get-Content -LiteralPath $ended.FullName -Raw) $shownLines)
         }
     }
     catch {
@@ -690,10 +709,61 @@ function Invoke-Live {
 
     Invoke-Step 'end to end tests' {
         dotnet test $hostTests -c $Configuration -p:KeePassDevDir=$keePass --no-build --nologo `
-            --filter 'TestCategory=Live' --results-directory $results --logger 'trx;LogFileName=live.trx'
+            --filter 'TestCategory=Live&TestCategory!=Screenshots' `
+            --results-directory $results --logger 'trx;LogFileName=live.trx'
     }
 
     Assert-Executed $trx 'end to end'
+}
+
+# Retakes the pictures in `docs/images` by driving a throwaway KeePass through the whole operator
+# flow. Separate from `Live` because it writes into the working tree: an ordinary end to end run
+# that rewrote a dozen checked-in binaries would put a diff in front of somebody who asked for a
+# test result. The directory is handed over rather than worked out by the test, which is also what
+# stops the fixture running from an editor and quietly replacing them.
+function Invoke-Screenshots {
+    Invoke-Build
+    $keePass = Resolve-KeePass
+    $images = Join-Path $root 'docs\images'
+
+    Write-Host ''
+    Write-Host 'A throwaway KeePass is about to be driven and screenshotted.' -ForegroundColor Yellow
+    Write-Host 'Leave the desktop alone, and keep other windows off it: what covers a dialog is in the picture.' -ForegroundColor Yellow
+
+    $results = Join-Path $root '.tmp'
+    $trx = Join-Path $results 'screenshots.trx'
+    if (Test-Path $trx) { Remove-Item $trx -Force }
+
+    $env:KPG_SCREENSHOT_DIR = $images
+    try {
+        Invoke-Step 'screenshots' {
+            dotnet test $hostTests -c $Configuration -p:KeePassDevDir=$keePass --no-build --nologo `
+                --filter 'TestCategory=Screenshots' `
+                --results-directory $results --logger 'trx;LogFileName=screenshots.trx'
+        }
+    }
+    finally {
+        Remove-Item Env:\KPG_SCREENSHOT_DIR -ErrorAction SilentlyContinue
+    }
+
+    # The same guard `Invoke-Live` carries, and it is worth more here. A fixture that ignores
+    # itself exits zero either way, but this task ends by naming a directory in green: an operator
+    # who asked for the pictures to be retaken would read that, commit what is on disk, and publish
+    # the old ones as though they were of the code they had just changed. `LiveSession.Begin`
+    # ignores the whole fixture when the provided KeePass does not match what the tests were built
+    # against, which `-KeePassDir` can produce without anything looking wrong.
+    if (-not (Test-Path $trx)) {
+        throw 'The screenshot run produced no result file, so nothing can say what was retaken.'
+    }
+
+    $counters = ([xml] (Get-Content -LiteralPath $trx -Raw)).TestRun.ResultSummary.Counters
+    $executed = [int] $counters.executed
+    if ($executed -lt 1) {
+        throw ("The screenshot fixture ignored itself: $([int] $counters.total) found, " +
+            "$([int] $counters.notExecuted) skipped. No picture was retaken.")
+    }
+
+    Write-Host "Images are in $images" -ForegroundColor Green
 }
 
 function Invoke-Deploy {
@@ -953,6 +1023,7 @@ switch ($Task) {
     'Coverage' { Invoke-Coverage }
     'Test' { Invoke-Test }
     'Live' { Invoke-Live }
+    'Screenshots' { Invoke-Screenshots }
     'All' { Invoke-Test; Invoke-Live }
     'Deploy' { Invoke-Deploy }
     'Run' { Invoke-Run }
