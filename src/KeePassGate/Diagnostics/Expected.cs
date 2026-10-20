@@ -44,7 +44,7 @@ namespace KeePassGate.Diagnostics
         }
 
         /// <summary>
-        /// Reading or writing a group's custom data.
+        /// Reading or writing custom data, the database's own.
         /// </summary>
         /// <remarks>
         /// `InvalidOperationException` is the one that matters and it is not hypothetical: the gate

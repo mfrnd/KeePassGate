@@ -15,5 +15,12 @@ namespace KeePassGate
         /// back to the first tab control it finds if KeePass ever renames the field.
         /// </summary>
         public const string DatabaseSettingsTabControlName = "m_tabMain";
+
+        /// <summary>
+        /// The property on that dialog naming the database it is editing. Reached by reflection,
+        /// so that a KeePass which renames it leaves the plugin showing an empty tab rather than
+        /// failing to load.
+        /// </summary>
+        public const string DatabaseSettingsFormDatabaseProperty = "DatabaseEx";
     }
 }

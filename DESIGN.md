@@ -29,7 +29,7 @@ what a tunnel provides.
   |  Gate                 ClientHello peeked, SNI resolved to a    |
   |                       database, BEFORE any TLS work            |
   +---------------------------------------------------------------+
-  |  Transport            our accept loop, our SslStream, TLS 1.3  |
+  |  Transport            our accept loop, Bouncy Castle TLS 1.3   |
   |                       request parsing, bounded                 |
   +---------------------------------------------------------------+
         |  IGateContext  <-- the seam: everything above is replaceable
@@ -134,14 +134,15 @@ says what that leaves open, and why it is conceded.
 | Accept | `TcpListener` | |
 | Peek the ClientHello, extract `server_name` | ~90 lines, bounds checked, total | `SniProbe` |
 | Resolve the name to an open database | fixed time, no match drops pre-TLS | `HmacSniProbe` |
-| `AuthenticateAsServer` through a prepending stream | replays the buffered hello | `SniProbe` |
+| Terminate TLS 1.3 through a prepending stream | `Org.BouncyCastle.Tls`, replaying the buffered hello | `ManagedTlsProbe` |
 | Parse the request line and headers | see below | |
 | Read the body | `Content-Length`, capped at 1 MB | |
 | Write the response | status line, headers, body, close | |
 
-Owning the `SslStream` has a consequence worth naming: **the client-certificate reflection bridge
-disappears**. `RemoteCertificate` is simply there. The hack that the old transport needed existed
-only because something else owned the stream.
+Owning the stream has a consequence worth naming: **the client-certificate reflection bridge
+disappears**. The hack the old transport needed existed only because something else owned the
+stream, and it died the moment we took it, one step before the TLS itself stopped being the
+platform's.
 
 ### Why no HTTP dependency is taken §107
 
@@ -280,7 +281,7 @@ client in the database's own `CustomData` precisely so a merge is per client rat
 last-writer-wins, and a revocation is written empty rather than removed so that the merge carries it
 too; see CA.md §204. The safe arrangement is still one writer and any number of readers.
 
-**Two copies of one database open at once** share an authority and an SNI key and are genuinely
+**Two copies of one database open at once** share an authority and a `SniKey` and are genuinely
 indistinguishable. The plugin refuses to serve while that is true, rather than guessing, and logs
 how many copies answered. It does not name their paths.
 
@@ -498,11 +499,11 @@ either.
 
 ### C5. "Terminating TLS ourselves is riskier than letting a library do it" §127
 
-The opposite, here. We call `SslStream.AuthenticateAsServer` directly with an explicit
-`SslProtocols.Tls13`, which is the same call a library would make with one less layer between the
-setting and the syscall. What we add is the ClientHello peek in front of it, and that is
-unavoidable: no library on .NET Framework can select a certificate by SNI, because the platform
-exposes no hook for it.
+The opposite, here. The server offers TLS 1.3 and nothing else, decided in `GateTlsServer` rather
+than by the operating system's version, which is the same offer a library would make with one less
+layer between the setting and the wire. What we add is the ClientHello peek in front of it, and
+that is unavoidable: no library on .NET Framework can select a certificate by SNI, because the
+platform exposes no hook for it.
 
 The genuine new risk is the peek itself, which parses unauthenticated bytes. It is bounded, total,
 and returns no name rather than throwing; `SniProbe.cs` is the evidence it works and
@@ -574,7 +575,13 @@ Each step is refusable, and each ends with something that runs.
    `IFormMatcher`, `IFormDecorator`, `IGateLog`. Two classes touch KeePass, and both are adapters.
 5. **Authority**: create, recreate and delete from that tab, with the certificates in `CustomData`
    and the `GroupForm` snapshot hazard exercised deliberately. Make a grant, press OK, reopen, and
-   only then believe it.
+   only then believe it. **Done.** The storage survived: an authority created from the tab is still
+   there after a save, a restart of KeePass, and a reopening of the file, proved end to end rather
+   than argued. The hazard is now measured rather than remembered, and it cut both ways: the dialog
+   the KPG tab lives on carries no snapshot, so those buttons are safe from their own dialog, while
+   anything written during a **group** dialog is destroyed by its OK, which is what step 8 has to
+   answer for. Two things step 7 inherits early: `AnchorPin`, because telling a stored pair apart by
+   issuer name turned out to accept a foreign authority, and the gate key.
 6. **Gate and transport**: accept loop, ClientHello peek, SNI resolution, TLS 1.3, our request
    parser, one route. `IGateContext` lands here.
 7. **Validation**: anchor pin, EKU check, admission record lookup, and a test that a foreign

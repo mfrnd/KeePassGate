@@ -18,9 +18,12 @@ fails in a way that names its own cause.
 ## Why the unit tier does not reference KeePass
 
 Everything above the KeePass boundary is written against small interfaces: `IWindowEventSource`
-announces dialogs, `IFormMatcher` recognizes them, `IFormDecorator` decorates them, `IGatePanelFactory`
-fills them, `IGateLog` records it. Only two classes touch KeePass at all, `KeePassGateExt` and
-`GlobalWindowManagerWindows`, and both are thin enough to read in one screen.
+announces dialogs, `IFormMatcher` recognizes them, `IFormDecorator` decorates them,
+`IGatePanelFactory` fills them, `IKeyValueStore` stores things, and `IGateLog` records all of it.
+Two things touch KeePass: `KeePassGateExt`, which KeePass itself instantiates, and everything under
+`src/KeePassGate/Bridge`. `grep -rlE '^using (KeePass|KeePassLib)[.;]' src` is the check, and it is
+a check rather than a claim. Anchored, because the plugin's own namespaces begin `KeePassGate` and a
+bare `using KeePass` matches every file that imports one of them.
 
 The consequence worth having: the unit project **cannot** compile against KeePass, so a dependency
 that creeps up into the pipeline shows up as a build error rather than as a design argument.
@@ -37,11 +40,26 @@ and loudly here.
 **It uses the real thing.** `DatabaseSettingsForm` can be constructed outside a running KeePass, and
 `GlobalWindowManager.AddWindow` is public, so the plugin is driven exactly as KeePass drives it:
 initialize, open the real dialog, close it, terminate, and check that nothing of ours is left behind.
+The authority is exercised against a real `PwDatabase` as well, written to a real KDBX4 file and
+opened again, because a dictionary cannot prove that KeePass keeps what it is given.
+
+**What it cannot do is show those dialogs.** `Show` throws inside the message pump outside a running
+KeePass, and WinForms answers with its unhandled-exception dialog, which blocks the run until
+something kills it. So `SnapshotHazardTests` measures the group dialog's custom data snapshot in two
+halves: the mechanism by reflection over the real types, and the behavior by reproducing it with
+KeePass's own `CloneDeep` and a real group. Pressing buttons for real belongs to the tier below.
 
 ## What the end to end tier is for
 
-It is the acceptance test for build order step 4, stated as the step states it: the plugin loads into
-KeePass, shows a KPG tab on the database settings dialog, and stops cleanly.
+The acceptance tests for the build order, stated the way the steps state themselves.
+
+**Step 4**, in `LiveKeePassTests`: the plugin loads into KeePass, shows a KPG tab on the database
+settings dialog, and stops cleanly.
+
+**Step 5**, in `LiveAuthorityTests`: an authority created from that tab in a real KeePass is still
+there, with the same fingerprint, after the database has been saved and KeePass has been closed and
+started again. That second session is the whole point. Everything else in the suite proves the
+plugin writes what it means to write; only this proves KeePass keeps it.
 
 It builds a **throwaway KeePass** under `%ProgramData%\KeePassGateLive` rather than the temporary
 directory, whose path names the account that ran it: a copy of the program, a local
@@ -49,10 +67,18 @@ configuration, the plugin in `plugins`, and a database created with KeePassLib. 
 the developer's own. The database is invented and empty, and the password is passed on the command
 line, which is acceptable for exactly this reason and no other.
 
-Then it starts that KeePass, walks File, Database Settings with the keyboard, reads the tab through
-the accessibility tree, closes the dialog with Escape, closes KeePass, and checks the exit code. It
-also reads the plugin's own log, which is where `KEEPASSGATE_LOG_FILE` earns its place: it is the
-only way to see from outside what the plugin did inside a process the test does not otherwise hold.
+Then it starts that KeePass. `LiveAuthorityTests`, for one, walks File, Database Settings with the
+keyboard, reads the tab through the accessibility tree, presses the buttons on it, accepts the
+dialog with OK, saves with the keyboard, closes KeePass, and checks the exit code. It also reads
+the plugin's own log, which `KEEPASSGATE_LOG_FILE` puts in the session's own directory: that log is
+how a test sees from outside what the plugin did inside a process it does not otherwise hold.
+
+**The settings dialog is accepted with OK where the test is about what OK does, and dismissed with
+Escape otherwise.** A test that closes a dialog with Cancel can never be the reason something was
+lost, which is why Escape is the default. The KPG tab holds everything until the dialog is
+accepted, so `LiveAuthorityTests` has to press OK or it would measure nothing. What the snapshot
+hazard still requires is measured directly, in the host tier, against the group dialog that does
+carry one.
 
 **It types on the real desktop**, so leave the machine alone while it runs. It is excluded from the
 default run for that reason, not because it is optional. [`FINDINGS.md`](FINDINGS.md), under

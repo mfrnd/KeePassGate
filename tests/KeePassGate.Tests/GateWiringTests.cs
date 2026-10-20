@@ -19,6 +19,7 @@ namespace KeePassGate.Tests
         private FakeWindowEventSource _windows;
         private RecordingGateLog _log;
         private TabPageInjector _injector;
+        private FakeGateDatabase _database;
         private GateHost _host;
 
         [SetUp]
@@ -26,7 +27,10 @@ namespace KeePassGate.Tests
         {
             _windows = new FakeWindowEventSource();
             _log = new RecordingGateLog();
-            _injector = new TabPageInjector(new GateStatusPanelFactory("9.9.9", "test status"), _log);
+            _database = new FakeGateDatabase();
+            _injector = new TabPageInjector(
+                new AuthorityPanelFactory(new FakeDatabaseSource(_database), new FakePrompt(false), _log, "9.9.9"),
+                _log);
             _host = new GateHost(_windows, new TypeNameFormMatcher(typeof(TestDialogForm).FullName), _injector, _log);
         }
 
@@ -54,7 +58,7 @@ namespace KeePassGate.Tests
                 Assert.That(version.Text, Is.EqualTo("Version 9.9.9"));
 
                 var status = ControlTree.FindByName<Label>(form, GateTab.StatusLabelName);
-                Assert.That(status.Text, Is.EqualTo("test status"));
+                Assert.That(status.Text, Is.EqualTo(AuthorityDescription.AbsentHeadline));
             }
         }
 

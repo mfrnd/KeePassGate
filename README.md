@@ -3,9 +3,9 @@
 A KeePass 2.x plugin that serves a small, specification-defined HTTP API over mutual TLS, so that
 automation and AI agents can each be given a narrow, revocable, audited slice of a database.
 
-**Design settled. The skeleton is built**: the plugin loads into KeePass, shows a KPG tab on the
-database settings dialog and stops cleanly. It has no certificate authority, serves no API and opens
-no socket yet.
+**Design settled. The plugin loads, and every database can now be its own certificate authority**:
+the KPG tab on the database settings dialog creates, recreates and deletes one, and what it writes
+survives a save and a restart. It serves no API and opens no socket yet.
 
 **License: MIT.** GPLv2 is not required. KeePass is GPL-2.0-or-later and grants no plugin exception,
 but the FSF's own requirement is a GPL-compatible license, and MIT is one, so a permissive
@@ -37,9 +37,9 @@ KeePassGate is sound under the strict reading of the linking question as well as
 - **A rotating SNI names the database**, resolved before any TLS work. An unresolvable name is
   dropped with no response, so an attacker never reaches TLS, certificate selection, or the
   pairing dialog.
-- **No third-party HTTP dependency.** Selecting a certificate by SNI means owning the accept and the
-  TLS, so all that was left to buy was a header parser. The one that fits the seam natively is
-  LGPL-2.1 and unmaintained; `DESIGN.md` §107 records the trade and what would reopen it.
+- **No third-party HTTP dependency.** Selecting a certificate by SNI means owning the accept loop,
+  so all that was left to buy was a header parser. The one that fits the seam natively is LGPL-2.1
+  and unmaintained; `DESIGN.md` §107 records the trade and what would reopen it.
 - **`IGateContext`** is the seam. The router, authorization and audit never see the transport, which
   is how it stays replaceable. TODO(step 6): `IGateContext` arrives with the transport.
 - **Spec-first routing.** The OpenAPI document is the routing table and handlers bind to
@@ -63,7 +63,7 @@ that does not depend on where the bytes came from.
 ```powershell
 .\build.ps1                # build, then every test that does not need a running KeePass
 .\build.ps1 -Task All      # the above, then the end to end tests
-.\build.ps1 -Task Deploy   # copy the plugin into the provided KeePass's plugins directory
+.\build.ps1 -Task Deploy   # copy the plugin into plugins\KeePassGate in the provided KeePass
 ```
 
 A plain DLL on .NET Framework 4.8, built with the `dotnet` CLI, opening in Visual Studio 2019 as

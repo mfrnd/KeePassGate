@@ -11,7 +11,7 @@ namespace KeePassGate.Tests.Fakes
 
         public Control Last { get; private set; }
 
-        public Control CreatePanel()
+        public Control CreatePanel(Form dialog)
         {
             CreatedCount++;
             Last = new Panel { Name = "StubPanel" };
@@ -24,7 +24,7 @@ namespace KeePassGate.Tests.Fakes
     {
         public static readonly string Message = "the panel could not be built";
 
-        public Control CreatePanel()
+        public Control CreatePanel(Form dialog)
         {
             throw new InvalidOperationException(Message);
         }
@@ -33,7 +33,7 @@ namespace KeePassGate.Tests.Fakes
     /// <summary>A panel factory that quietly returns nothing, which must not produce an empty tab.</summary>
     internal sealed class NullPanelFactory : IGatePanelFactory
     {
-        public Control CreatePanel()
+        public Control CreatePanel(Form dialog)
         {
             return null;
         }

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
@@ -79,7 +80,6 @@ namespace KeePassGate.Host.Tests.Live
             // No identifier here: the working directory this sits in is already one per session.
             var root = Path.Combine(workingDirectory, "keepass");
             Directory.CreateDirectory(root);
-            Directory.CreateDirectory(Path.Combine(root, "plugins"));
 
             var source = KeePassDev.Directory;
             foreach (var name in RequiredFiles)
@@ -123,6 +123,14 @@ namespace KeePassGate.Host.Tests.Live
             };
             info.EnvironmentVariables[KeePassGate.Diagnostics.TraceGateLog.LogFileVariable] = PluginLogPath;
 
+            // The one before it is dealt with first. This fixture is started twice, once to
+            // create the authority and once to read it back after a restart, and simply
+            // overwriting the field orphaned the first KeePass whenever it had failed to
+            // exit. That orphan holds the database and the copied KeePass open, so both
+            // deletes in `Dispose` fail, and its window then swallows the keystrokes the
+            // next fixture sends: one real failure turned into a run of unrelated ones.
+            Release();
+
             _process = Process.Start(info);
             return _process;
         }
@@ -141,7 +149,15 @@ namespace KeePassGate.Host.Tests.Live
             }
         }
 
-        public void Dispose()
+        /// <summary>
+        /// Kills whatever this fixture last started, and lets go of it.
+        /// </summary>
+        /// <remarks>
+        /// Its own method because `Start` needs it as much as `Dispose` does: the field
+        /// holds one process, and starting a second without ending the first leaves a
+        /// KeePass nothing will ever close.
+        /// </remarks>
+        private void Release()
         {
             try
             {
@@ -154,6 +170,7 @@ namespace KeePassGate.Host.Tests.Live
             catch (Exception error) when (
                 error is InvalidOperationException || error is Win32Exception)
             {
+                // Already gone, or going. Either way there is nothing left to kill.
             }
             finally
             {
@@ -163,6 +180,11 @@ namespace KeePassGate.Host.Tests.Live
                     _process = null;
                 }
             }
+        }
+
+        public void Dispose()
+        {
+            Release();
 
             try
             {
@@ -227,13 +249,87 @@ namespace KeePassGate.Host.Tests.Live
         {
             var pluginAssembly = typeof(KeePassGateExt).Assembly;
             var pluginPath = new Uri(pluginAssembly.CodeBase).LocalPath;
-            File.Copy(pluginPath, Path.Combine(_root, "plugins", Path.GetFileName(pluginPath)));
+            // In a directory of its own under `plugins`, which is where `build.ps1 -Task Deploy`
+            // and the operator's documentation put it, so that the live tier loads the layout an
+            // installation has rather than one nobody ships.
+            var plugins = Path.Combine(_root, "plugins", "KeePassGate");
+            Directory.CreateDirectory(plugins);
+            File.Copy(pluginPath, Path.Combine(plugins, Path.GetFileName(pluginPath)));
+
+            // And what it needs, which is how the live test proves that a plugin with dependencies
+            // actually loads: KeePass uses Assembly.LoadFrom, which probes the plugin's own
+            // directory.
+            //
+            // **What it needs, followed through, rather than everything beside it.** The directory
+            // this runs from is a test host's: it also holds NUnit, the test adapter and
+            // `System.Runtime.CompilerServices.Unsafe`, which is the one assembly the plugin may
+            // never ship because it wants a binding redirect only KeePass's own configuration could
+            // give it. Copying the directory put all of that beside the plugin, so the live tier
+            // proved something deployment never produces.
+            //
+            // **Followed through, and not one level deep.** A dependency that brings one of its own
+            // is not named by the plugin at all, so what each assembly references is followed in
+            // turn. A plugin missing a transitive dependency fails to load with nothing in the log
+            // to say why.
+            var beside = Path.GetDirectoryName(pluginPath);
+            foreach (var dependency in NeededBy(pluginAssembly, beside))
+            {
+                File.Copy(dependency, Path.Combine(plugins, Path.GetFileName(dependency)), true);
+            }
+
+            // And their notices, which each of their licenses asks to go with every copy, and which
+            // `build.ps1 -Task Deploy` puts beside them as well.
+            var notices = Path.Combine(Repository.Root, "THIRD-PARTY-NOTICES.md");
+            File.Copy(notices, Path.Combine(plugins, Path.GetFileName(notices)));
 
             var symbols = Path.ChangeExtension(pluginPath, ".pdb");
             if (File.Exists(symbols))
             {
-                File.Copy(symbols, Path.Combine(_root, "plugins", Path.GetFileName(symbols)));
+                File.Copy(symbols, Path.Combine(plugins, Path.GetFileName(symbols)));
             }
+        }
+
+        private static IEnumerable<string> NeededBy(Assembly plugin, string beside)
+        {
+            var found = new List<string>();
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var pending = new Queue<Assembly>();
+            pending.Enqueue(plugin);
+
+            while (pending.Count > 0)
+            {
+                foreach (var referenced in pending.Dequeue().GetReferencedAssemblies())
+                {
+                    if (!seen.Add(referenced.Name))
+                    {
+                        continue;
+                    }
+
+                    var path = Path.Combine(beside, referenced.Name + ".dll");
+                    if (!File.Exists(path))
+                    {
+                        continue;
+                    }
+
+                    found.Add(path);
+
+                    try
+                    {
+                        pending.Enqueue(Assembly.ReflectionOnlyLoadFrom(path));
+                    }
+                    catch (BadImageFormatException)
+                    {
+                        // Not managed, so it names nothing further. Copied anyway.
+                    }
+                    catch (FileLoadException)
+                    {
+                        // Already loaded for reflection under another path. Its references are
+                        // reachable from the copy that is, so nothing is lost by stopping here.
+                    }
+                }
+            }
+
+            return found;
         }
 
         private void CreateDatabase()

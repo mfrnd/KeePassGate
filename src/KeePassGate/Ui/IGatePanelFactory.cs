@@ -10,8 +10,13 @@ namespace KeePassGate.Ui
     public interface IGatePanelFactory
     {
         /// <summary>
-        /// A fresh control, one per dialog. The caller owns it and disposes it with the tab page.
+        /// A fresh control for this dialog, one per dialog. The caller owns it and disposes it with
+        /// the tab page.
         /// </summary>
-        Control CreatePanel();
+        /// <param name="dialog">
+        /// The host dialog, so that a panel can find what it is about. What that means is the
+        /// factory's business: the code that attaches the tab knows nothing of databases.
+        /// </param>
+        Control CreatePanel(Form dialog);
     }
 }

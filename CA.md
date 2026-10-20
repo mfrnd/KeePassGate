@@ -143,8 +143,36 @@ page as a client again.
 that took them separately could take the certificate from one replica and the private key from
 another, and the host certificate would no longer chain to the authority beside it: the store reads
 that as damaged, the gate serves nothing, and the only remedy revokes every client. Inside one key
-there is nothing to take apart, so whichever replica wins contributes all three. Its shape is one
-flat object of strings, the shape request bodies take as well, so one reader is to read both.
+there is nothing to take apart, so whichever replica wins contributes all three. `AuthorityDocument`
+is the shape, one flat object of strings, which is what `JsonBody` already reads.
+
+### How each value is written §222
+
+A certificate and its key are stored as **base64 of a PKCS#12 with no password**. No password
+because there is nothing for one to protect: the database's own encryption is what guards this, and
+a passphrase here would be cryptography written by us over cryptography that already works. The gate
+key is base64 of the 32 raw bytes. Sizes are unremarkable: roughly 1.3 KB of base64 for the
+authority.
+
+**They are loaded with `EphemeralKeySet`, and that is load bearing.** Measured in
+`EphemeralKeyProbe.cs`: importing a PKCS#12 without it writes a key file into
+`%APPDATA%\Microsoft\Crypto\Keys` for as long as the certificate is loaded, which would put the
+authority's private key on a disk outside the database that is meant to be the only place it lives.
+With the flag nothing touches the disk.
+
+**It does not follow that SChannel will serve with one, and an earlier draft of this document
+said it would.** Measured afterwards: an `EphemeralKeySet` certificate signs, and SChannel
+refuses TLS with it in either direction, a server getting `SEC_E_NO_CREDENTIALS` and a client
+never getting its certificate onto the wire. That is what put `Org.BouncyCastle.Tls` under the
+transport, which does serve with them, so no key this plugin loads reaches the disk.
+`FINDINGS.md` records the measurement.
+
+**Reading is total and fails closed.** Anything that will not decode leaves the authority *damaged*
+rather than absent, and the two are never conflated: an absent authority is created, a damaged one
+has to be recreated, and only the operator can decide to do that. A host certificate that does not
+chain to the stored authority is damage too, checked with the anchor pin rather than by comparing
+names, because every authority this plugin issues carries the same subject and a name comparison
+therefore accepts somebody else's host.
 
 **Pairing tokens are not here.** They live in plugin memory and expire on TTL or on KeePass exiting,
 whichever comes first. [`PAIRING.md`](PAIRING.md) says why that is more than a simplification.
@@ -153,6 +181,19 @@ whichever comes first. [`PAIRING.md`](PAIRING.md) says why that is more than a s
 
 `GroupForm` **takes a copy of a group's `CustomData` when it opens and writes that copy back on
 OK**. A value written to the live group therefore survives Cancel and is destroyed by OK, silently.
+
+Measured rather than remembered, in `SnapshotHazardTests`: the snapshot field is still there in
+KeePass 2.61.1, a group's custom data can be replaced wholesale from inside KeePass but not from a
+plugin, a write made while the dialog is open is destroyed by OK and survives Cancel, and an
+authority created before the dialog opened comes back unharmed because the dialog copied it.
+
+**The dialog this plugin puts its tab on carries no such snapshot**, which the same tests assert
+against the real type. So the buttons on the KPG tab are safe from their own dialog, and the hazard
+belongs to whatever writes while somebody has a *group* open. Nothing this store holds is in a
+group, since §204 keeps all of it in the database's own dictionary, so what a group dialog can
+destroy is a node's rule. The dialog that copies this store is Database Maintenance, which writes
+the database's dictionary back the same way, and [`PAIRING.md`](PAIRING.md) §307 is where pairing
+answers that one.
 
 Here the consequence is worse than a lost setting, so the design does not merely try to prevent it:
 
@@ -410,7 +451,7 @@ Storing the certificate rather than only its digest is what makes any of this po
 - **A host certificate expiring is a total outage**, and it happens while nobody is looking.
   Reissuing would be cheap and clients would never notice, because they trust the authority rather
   than the leaf. **Not built:** there is no reissue dialog, and recreating the authority is what
-  replaces a host certificate, at the cost of revoking every client.
+  replaces a host certificate today, at the cost of revoking every client.
 - **Recreating the authority revokes every client at once.** It asks first, and it states the count.
 - **Renewal would be re-issuance**: same profiles, new key, new certificate, new record, old record
   removed. **Not built:** a client that is about to expire pairs again.
@@ -429,7 +470,7 @@ Storing the certificate rather than only its digest is what makes any of this po
   log's.
 - **A compromised second channel.** Whoever holds a pairing token may ask to pair. The operator's
   approval is what stands there.
-- **Two copies of one database open at once.** They share an authority and an SNI key and are
+- **Two copies of one database open at once.** They share an authority and a `SniKey` and are
   genuinely indistinguishable, so the plugin refuses to serve and logs how many answered.
 
 ---
@@ -452,4 +493,6 @@ Recorded because a reader seeing only this version will not know which parts wer
 | One host certificate | two, the second memory only | so a locked KeePass answers `503 locked` without holding a privileged key |
 | Signing requests accepted | the issuer generates the key and every extension | a request carries extensions, and copying them lets a client choose its own claims |
 | No `keyUsage`, SKI, AKI or `pathLen` | all specified, and `notAfter` clamped | |
+| The stored form was unspecified | base64 PKCS#12, no password, loaded with `EphemeralKeySet` | without the flag the key is written to the user's profile, which contradicts "inside the database and nowhere else" |
+| A stored pair was to be checked by issuer name | checked with the anchor pin | every authority shares one subject, so names match where bytes do not |
 | SAN read loosely | ASN.1 tags, reject rather than repair | measured three ways to smuggle a claim past a renderer |

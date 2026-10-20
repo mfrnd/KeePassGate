@@ -99,7 +99,7 @@ namespace KeePassGate.Ui
                     return false;
                 }
 
-                var page = BuildPage();
+                var page = BuildPage(form);
                 try
                 {
                     tabControl.TabPages.Add(page);
@@ -240,7 +240,7 @@ namespace KeePassGate.Ui
             return first;
         }
 
-        private TabPage BuildPage()
+        private TabPage BuildPage(Form form)
         {
             var page = new TabPage(GateTab.Text)
             {
@@ -250,14 +250,40 @@ namespace KeePassGate.Ui
 
             try
             {
-                var panel = _panels.CreatePanel();
+                var panel = _panels.CreatePanel(form);
                 if (panel == null)
                 {
                     throw new InvalidOperationException("The panel factory returned nothing.");
                 }
 
-                panel.Dock = DockStyle.Fill;
-                page.Controls.Add(panel);
+                try
+                {
+                    // Spaced as the dialog around it is. KeePass scaled that dialog's own pages by
+                    // its font as it built them, before this page existed, so its pass never
+                    // reaches this one: `Spacing.ScaleOf` is that same factor, applied here once.
+                    var scale = Spacing.ScaleOf(form);
+                    if (scale != Spacing.AsDesigned)
+                    {
+                        panel.Scale(scale);
+                    }
+
+                    panel.Dock = DockStyle.Fill;
+                    page.Controls.Add(panel);
+                }
+                catch (Exception error) when (Expected.OfUserInterface(error))
+                {
+                    // Let go of here, because disposing the page below reaches only what the page
+                    // holds, and a panel it refused is not in it. Left alone, a panel that took
+                    // hold of anything outside itself as it was built, as the settings tab takes
+                    // the plugin's notice of every pairing, stays reachable through that for the
+                    // rest of the process and goes on answering it on a page nobody will see.
+                    if (!page.Controls.Contains(panel))
+                    {
+                        panel.Dispose();
+                    }
+
+                    throw;
+                }
             }
             catch (Exception error) when (Expected.OfUserInterface(error))
             {

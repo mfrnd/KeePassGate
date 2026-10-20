@@ -8,9 +8,10 @@ Guidance for anyone, human or AI assistant, working in this repository.
 mutual TLS, so that automation and AI agents can each be given a narrow, revocable, audited slice of
 a database.
 
-**Status: the design is settled and steps 1 to 4 of the build order are done.** The plugin loads into
-KeePass, puts a KPG tab on the database settings dialog and stops cleanly. It has no certificate
-authority, serves no API and opens no socket. Step 5, the authority, is next.
+**Status: the design is settled and steps 1 to 5 of the build order are done.** The plugin loads
+into KeePass, puts a KPG tab on the database settings dialog, and that tab creates, recreates and
+deletes the database's own certificate authority. It serves no API and opens no socket. Step 6, the
+gate and the transport, is next.
 
 ## Read these before proposing anything
 
@@ -71,7 +72,7 @@ designing around them.
   and merges those key by key; a group's dictionary carries no stamps at all, so
   `PwGroup.AssignProperties` replaces the whole of it from whichever replica's group was touched
   last. Records shaped one-per-client to survive a merge did not. Two consequences worth keeping
-  straight. The authority's three parts are **one key**, because there the
+  straight. The authority's three parts are **one key**, `AuthorityDocument`, because there the
   argument runs the other way: merged apart, a certificate from one replica and a private key from
   another read as damage. And **a revocation is written empty rather than removed**, since a merge
   carries a newer value and carries nothing for a key that went. See CA.md §204.
@@ -96,9 +97,9 @@ designing around them.
   minted at unlock and held in memory so a locked KeePass can answer `503 locked` rather than failing at
   the transport. The normal host key is actively dropped at lock. TODO(step 9): the responder,
   the locked answer and dropping the key at lock arrive with step 9.
-- **We own the transport.** Accept loop, ClientHello peek, `SslStream`, request parser, body read,
-  response write. Selecting a host certificate by SNI makes this unavoidable, because .NET Framework
-  exposes no server-side SNI hook.
+- **We own the transport.** Accept loop, ClientHello peek, TLS termination, request parser, body
+  read, response write. Selecting a host certificate by SNI makes this unavoidable, because
+  .NET Framework exposes no server-side SNI hook.
 - **No third-party HTTP dependency.** `uHttpSharp` fits the seam natively with zero changes and is
   ruled out on **license** (LGPL-2.1) and liveness (no commits since 2021), not on fit. Wanting
   WebSocket, HTTP/2 or chunked bodies flips this; nothing else does.
@@ -178,7 +179,7 @@ file.
 ```powershell
 .\build.ps1                # build, then every test that does not need a running KeePass
 .\build.ps1 -Task All      # the above, then the end to end tests
-.\build.ps1 -Task Deploy   # copy the plugin into the provided KeePass's plugins directory
+.\build.ps1 -Task Deploy   # copy the plugin into plugins\KeePassGate in the provided KeePass
 ```
 
 **`build.ps1 -ListGates` is what CI asks for.** The workflow builds one job per name it returns, so
@@ -259,15 +260,17 @@ here can hang or crash the password manager.
 
 ## Where to start
 
-[`DESIGN.md`](DESIGN.md) §132 ends with a multi-step build order. **Step 4 is done**: the skeleton loads,
-shows a KPG tab and stops cleanly, with the tab's contents behind `IGatePanelFactory` so that the
-next step replaces them rather than editing around them.
+[`DESIGN.md`](DESIGN.md) §132 ends with a multi-step build order. **Steps 4 and 5 are done.** The skeleton
+loads and shows a KPG tab, and that tab creates, recreates and deletes the authority, with the
+certificates and the gate key in the database's own `CustomData`.
 
-**Step 5 is the authority, and it is next, deliberately early**, because the `GroupForm` snapshot
-hazard is the thing most likely to invalidate the storage decision, and discovering that under five
-layers of transport would be expensive.
+**The storage decision survived the thing most likely to invalidate it.** The `GroupForm` snapshot
+hazard is real and now measured rather than remembered: `SnapshotHazardTests` reads the mechanism off
+the real KeePass and reproduces the behavior with KeePass's own types. What it established, and what
+step 8 has to build on: the settings dialog the KPG tab lives on carries **no** snapshot, so those
+buttons are safe from their own dialog, and anything written while a **group** dialog is open is
+destroyed by its OK.
 
-What step 4 already gives it: a place on the dialog, a real dialog to test against without starting
-KeePass, and an end to end test that presses keys on the real thing. Note that the end to end test
-closes the settings dialog with **Escape rather than OK**, which is the safe half of the snapshot
-hazard; step 5 has to exercise the other half deliberately.
+**Step 6 is the gate and the transport**: accept loop, ClientHello peek, SNI resolution, TLS 1.3,
+our request parser, one route, and `IGateContext` landing. The gate key is already stored, and
+`AnchorPin` is already written and tested, so step 7 inherits both.

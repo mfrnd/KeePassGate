@@ -162,6 +162,65 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_panel_the_page_would_not_take_is_let_go_of_with_the_page()
+        {
+            // Built, then docked and added, and a failure in either of the last two disposed the
+            // page alone. The panel had never reached the page, so nothing disposed it, and
+            // whatever it had subscribed to as it was built went on holding it.
+            var panels = new RefusedPanelFactory();
+            var injector = new TabPageInjector(panels, _log);
+
+            using (var form = Dialogs.WithNestedTabControl("General"))
+            {
+                Assert.That(injector.Attach(form), Is.False);
+                Assert.That(Dialogs.TabsOf(form).TabPages.Count, Is.EqualTo(1));
+
+                Assert.That(panels.Last, Is.Not.Null, "no panel was built, so nothing was measured");
+                Assert.That(panels.Last.IsDisposed, Is.True, "the refused panel was left to live on");
+            }
+        }
+
+        [Test]
+        public void A_page_is_scaled_as_the_dialog_it_lands_on_was()
+        {
+            // KeePass's dialogs scale by their font as they are built, before this page exists, so
+            // that pass never reaches it. Left alone, it sat eight pixels in from its edge on a
+            // dialog at 200 percent whose own pages sat twice as far in.
+            var panels = new InsetPanelFactory();
+            var injector = new TabPageInjector(panels, _log);
+
+            using (var form = Dialogs.WithNestedTabControl("General"))
+            using (var twice = new System.Drawing.Font(form.Font.FontFamily, form.Font.Size * 2))
+            {
+                form.AutoScaleMode = AutoScaleMode.Font;
+                form.Font = twice;
+
+                var scale = Spacing.ScaleOf(form);
+                Assume.That(scale.Width, Is.GreaterThan(1.5F), "the dialog was not drawn larger");
+
+                Assert.That(injector.Attach(form), Is.True);
+
+                Assert.That(panels.Last.Padding.Left, Is.EqualTo((int)System.Math.Round(Spacing.Gap * scale.Width)));
+                Assert.That(panels.Last.Padding.Top, Is.EqualTo((int)System.Math.Round(Spacing.Gap * scale.Height)));
+            }
+        }
+
+        [Test]
+        public void A_page_on_a_dialog_drawn_as_designed_is_left_as_it_was_built()
+        {
+            var panels = new InsetPanelFactory();
+            var injector = new TabPageInjector(panels, _log);
+
+            using (var form = Dialogs.WithNestedTabControl("General"))
+            {
+                Assert.That(Spacing.ScaleOf(form), Is.EqualTo(Spacing.AsDesigned));
+                Assert.That(injector.Attach(form), Is.True);
+
+                Assert.That(panels.Last.Padding, Is.EqualTo(new Padding(Spacing.Gap)));
+            }
+        }
+
+        [Test]
         public void Detaching_removes_the_page_and_leaves_the_hosts_own_tabs_in_order()
         {
             using (var form = Dialogs.WithNestedTabControl("General", "Security", "Advanced"))
@@ -350,6 +409,39 @@ namespace KeePassGate.Tests
         private static TabPage PageOf(Form form)
         {
             return ControlTree.FindByName<TabPage>(form, GateTab.PageControlName);
+        }
+
+        /// <summary>A factory whose panel cannot be docked, which is one way a page refuses it.</summary>
+        private sealed class RefusedPanelFactory : IGatePanelFactory
+        {
+            public Control Last { get; private set; }
+
+            public Control CreatePanel(Form dialog)
+            {
+                Last = new PanelThatWillNotDock();
+                return Last;
+            }
+        }
+
+        private sealed class PanelThatWillNotDock : Panel
+        {
+            public override DockStyle Dock
+            {
+                get { return base.Dock; }
+                set { throw new System.InvalidOperationException("this panel cannot be docked"); }
+            }
+        }
+
+        /// <summary>A factory whose panel is inset as the plugin's pages are, so a scaling shows.</summary>
+        private sealed class InsetPanelFactory : IGatePanelFactory
+        {
+            public Control Last { get; private set; }
+
+            public Control CreatePanel(Form dialog)
+            {
+                Last = new Panel { Padding = new Padding(Spacing.Gap) };
+                return Last;
+            }
         }
     }
 }

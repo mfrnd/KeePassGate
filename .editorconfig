@@ -87,9 +87,9 @@ dotnet_diagnostic.CA5359.severity = none
 # left to the call site.
 dotnet_diagnostic.CA2201.severity = none
 
-# CA1822: a member that touches no instance data can be static. Where the object is what the
-# sentence is about, making its members static to save passing `this` would break the sentence the
-# caller reads.
+# CA1822: a member that touches no instance data can be static. `KeePassDriver` is one object that
+# drives one KeePass, and a fake dialog's `PressCancel` is a dialog being canceled. Making them
+# static to save passing `this` would break the sentence the caller reads.
 dotnet_diagnostic.CA1822.severity = none
 
 # CA1838: no `StringBuilder` parameter on a P/Invoke. It is the documented marshaling for
