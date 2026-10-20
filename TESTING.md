@@ -25,7 +25,9 @@ served, `IGateContext` is one request, and `IGateLog` records all of it. Two thi
 `KeePassGateExt`, which KeePass itself instantiates, and everything under
 `src/KeePassGate/Bridge`. `grep -rlE '^using (KeePass|KeePassLib)[.;]' src` is the check, and it is
 a check rather than a claim. Anchored, because the plugin's own namespaces begin `KeePassGate` and a
-bare `using KeePass` matches every file that imports one of them.
+bare `using KeePass` matches every file that imports one of them. `KeePassContract` also names some
+of KeePass's members through `nameof`, which compiles to the string the host tier pins and leaves no
+reference to KeePass behind, so the check rightly does not list it.
 
 The consequence worth having: the unit project **cannot** compile against KeePass, so a dependency
 that creeps up into the pipeline shows up as a build error rather than as a design argument.
@@ -103,6 +105,20 @@ the approval dialog is a real window, approved by a real button press on a threa
 one waiting for the answer; the certificate that comes back is then used on the very next
 connection; and the record is looked for in the `.kdbx` after KeePass has exited. A refusal is
 driven the same way, and leaves nothing behind.
+
+**The API**, in `LiveApiTests`: a real client with a certificate the database's own authority issued
+creates an entry through the gate, adds a field, reads it back, lists it, and the entry is read out
+of the `.kdbx` after KeePass has exited. A second client, whose record names a profile no rule
+mentions, is answered exactly as a missing entry would be. The grant and both admission records are
+written before KeePass starts, because a running KeePass would overwrite anything put into the file
+underneath it.
+
+**The reference client**, in `LiveReferenceClientTests`: PyKeePassGate itself, run through `uv` from
+the repository as the client tier runs it, pairs with a real KeePass through an invitation read off
+the real tab and approved on the real dialog, then asks for the status, creates an entry, lists it
+and reads it back. It is the one test in which the plugin's own PKCS#12 export meets `cryptography`,
+Bouncy Castle's TLS meets Python's `ssl`, and the plugin's framing meets the client's reader. Without
+`uv` it is ignored, as the tier is without a KeePass.
 
 **Step 13**, in `LiveGrantEditorTests`: a rule made on the KPG tab of a real KeePass, kept by the
 group dialog's **OK**, and read out of the `.kdbx` after the process has gone. Pressing OK rather
@@ -183,15 +199,15 @@ with no call here fails, and a call here with no route fails. It needs no server
 vectors, because the document is the thing both halves are being compared against. That is
 what stops "the reference client" being a claim rather than a check.
 
-**Nothing runs it against the plugin itself**, and that is a gap written down rather than a check
-passed. The end to end tier pairs through `tests/Shared/PairingClient.cs`, which is C#, and every
-tier above runs PyKeePassGate against a stand-in, a vector or the document. So three things are
-held by no test: the pairing identity, which the plugin writes with .NET Framework's PKCS#12 export
-and this client reads with `cryptography`, since the stand-in's identity is one `cryptography`
-wrote; the TLS 1.3 handshake between Bouncy Castle's server and Python's `ssl`; and the plugin's
-framing under the client's reader. A `cryptography` release that stopped reading what .NET
-Framework exports would break every pairing with every tier green. Closing it is a step in the end
-to end tier that pairs with this client, or an identity the plugin exported kept beside the vectors.
+**Against the plugin itself, in the end to end tier rather than here.** Every tier above runs
+PyKeePassGate against a stand-in, a vector or the document, so three things are held only by
+`LiveReferenceClientTests`, which pairs this client with a real KeePass and reads through the gate:
+the pairing identity, which the plugin writes with .NET Framework's PKCS#12 export and this client
+reads with `cryptography`, since the stand-in's identity is one `cryptography` wrote; the TLS 1.3
+handshake between Bouncy Castle's server and Python's `ssl`; and the plugin's framing under the
+client's reader. A `cryptography` release that stopped reading what .NET Framework exports would
+break every pairing, and that test is the one that would say so. It runs where the end to end tier
+does, so a green client tier says nothing about any of the three.
 
 **Seven of them do not run on Windows, and run on Linux in CI.** The client narrows the
 directory and the files it keeps a paired identity in, refuses a directory other accounts may

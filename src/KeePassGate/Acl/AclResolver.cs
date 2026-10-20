@@ -209,6 +209,20 @@ namespace KeePassGate.Acl
             return Decide(node, profiles, verb, reach).Permitted;
         }
 
+        /// <summary>
+        /// The same question, reading each rule through documents one request has already read.
+        /// </summary>
+        /// <remarks>
+        /// For a listing, which asks it about every node it walks: see <see cref="AclDocuments"/>.
+        /// The answer is the one the other overloads give, because a document read twice says the
+        /// same thing both times.
+        /// </remarks>
+        public static bool Permits(
+            IAclNode node, IEnumerable<string> profiles, AclVerb verb, AclReach reach, AclDocuments read)
+        {
+            return Decide(node, profiles, verb, reach, read).Permitted;
+        }
+
         /// <summary>The same question about an entry's fields, with what answered it.</summary>
         public static AclDecision Decide(IAclNode node, IEnumerable<string> profiles, AclVerb verb)
         {
@@ -218,6 +232,12 @@ namespace KeePassGate.Acl
         /// <summary>The same question, with what answered it.</summary>
         public static AclDecision Decide(
             IAclNode node, IEnumerable<string> profiles, AclVerb verb, AclReach reach)
+        {
+            return Decide(node, profiles, verb, reach, null);
+        }
+
+        private static AclDecision Decide(
+            IAclNode node, IEnumerable<string> profiles, AclVerb verb, AclReach reach, AclDocuments read)
         {
             if (node == null)
             {
@@ -255,7 +275,7 @@ namespace KeePassGate.Acl
 
             foreach (var profile in held)
             {
-                var decision = Decide(node, profile, verb, reach);
+                var decision = Decide(node, profile, verb, reach, read);
                 if (decision.Permitted)
                 {
                     return decision;
@@ -269,7 +289,8 @@ namespace KeePassGate.Acl
             return refusal;
         }
 
-        private static AclDecision Decide(IAclNode node, string profile, AclVerb verb, AclReach reach)
+        private static AclDecision Decide(
+            IAclNode node, string profile, AclVerb verb, AclReach reach, AclDocuments read)
         {
             var walked = 0;
 
@@ -286,7 +307,7 @@ namespace KeePassGate.Acl
                     continue;
                 }
 
-                var document = AclDocument.Read(text);
+                var document = read == null ? AclDocument.Read(text) : read.Read(text);
                 if (document == null)
                 {
                     // Refused rather than skipped. A document that will not read is a rule somebody

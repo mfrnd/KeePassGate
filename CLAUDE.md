@@ -8,7 +8,7 @@ Guidance for anyone, human or AI assistant, working in this repository.
 mutual TLS, so that automation and AI agents can each be given a narrow, revocable, audited slice of
 a database.
 
-**Status: the design is settled and steps 1 to 14 of the build order are done.** The plugin loads
+**Status: steps 1 to 15 of the build order are done and the API is served.** The plugin loads
 into KeePass, the KPG tab creates, recreates and deletes the database's own certificate authority,
 the gate listens on loopback and answers over mutual TLS 1.3, a client is served only if
 the database holds an admission record for its certificate, and **a stranger can now become one**:
@@ -23,14 +23,16 @@ write one**: the KPG tab on the group and entry dialogs edits the rules as a `CR
 writing into the copy the dialog puts back on OK. **And the two halves are combined**: the router
 intersects the admission record with the rules before any handler runs, and writes every decision
 the rules make, and every certificate the database issued that an operation turns away, to a JSON Lines file
-outside the database. What is left is the API itself, because nothing this build
-declares touches an entry yet.
+outside the database. **And there is an API**: twenty-two routes over groups,
+entries, fields and attachments, every one declaring the verb it needs and the node it is about, with
+`PyKeePassGate` covering all of them.
 
 ## Read these before proposing anything
 
 | | |
 | --- | --- |
 | [`DESIGN.md`](DESIGN.md) | what to build, and a section attacking it. **The contract.** |
+| [`API.md`](API.md) | the reasoning behind the routes and what is deliberately absent, with the per-route detail in [`openapi.yaml`](src/KeePassGate/Spec/openapi.yaml) |
 | [`CA.md`](CA.md) | the certificate authority: issuance, claims, validation, revocation |
 | [`PAIRING.md`](PAIRING.md) | how a stranger becomes a client, with the flow diagrams |
 | [`FINDINGS.md`](FINDINGS.md) | what was measured rather than assumed, and what turned out wrong |
@@ -171,25 +173,45 @@ designing around them.
   operation, asserted when the router is built, which is as the plugin loads.
 - **No schema library checks request bodies**, and that is a count rather than a preference:
   fourteen assemblies against three for reading the document. `BodyCheck` covers the subset this
-  wire carries and **refuses at startup any schema it does not implement**, which is what stops a
-  subset becoming a gap. Re-proposing one means arguing with the counts on `spikes/json-reading`.
+  wire carries and **refuses at startup any schema it does not implement**, a path or query
+  parameter's as well as a body's, holding every keyword to a list of what its type may say, which
+  is what stops a subset becoming a gap. Re-proposing one means arguing with the counts on
+  `spikes/json-reading`.
 - **The JSON grammar is `Newtonsoft.Json`'s and the policy is ours**, which is the split worth
   keeping. `JsonBody` decides what this wire may carry, which is one flat object of strings and
-  arrays of strings, and parses none of it. Three alternatives were measured and refused, on
-  assembly count and on license. The counts are on `spikes/json-reading`, and re-proposing one means
-  arguing with them.
+  arrays of strings, with no NUL anywhere in it and no string a `.kdbx` would not give back:
+  nothing XML 1.0 cannot represent, and nothing that is whitespace alone. `JsonWriter` shapes what a
+  handler writes, and neither owns a parser. Three
+  alternatives were measured and refused, on assembly count and on license. The counts are on
+  `spikes/json-reading`, and re-proposing one means arguing with them.
+
+  **And nothing here escapes a JSON string.** A response, an audit line, an ACL document, a
+  profile list, a pairing bundle: every value this plugin writes as one goes out through that
+  library, because two implementations of escaping can only ever be found to disagree by
+  something a caller sent. There was a second one, forty lines on `HttpResponse`, written
+  before anything referenced could do it and deleted the moment something could.
 - **Every GET declares the HEAD that answers for it**, bound to the same handler and carrying
   the same `x-kpg-verb`. Declared rather than derived, so the document stays the whole account
   of what the API answers; one handler, so the two cannot come to disagree about whether
-  something is there. The plugin refuses to load a `get` with no `head`, or a pair governed
-  differently. The answer omits `Content-Length` rather than sending a wrong one, which
-  RFC 9110 section 9.3.2 permits.
+  something is there. The plugin refuses to load a `get` with no `head`, or a pair that differs in
+  anything that decides who may ask or what is asked: the verb, the reach, the certificate, the
+  body, the query parameters or the guard. The answer omits `Content-Length` rather than sending
+  a wrong one, which RFC 9110 section 9.3.2 permits.
 - **A plain DLL on .NET Framework 4.8**, not a `.plgx`.
 - **The access control model is one document per node**: `AclDocument`, `AclResolver`, `AclGrant`,
   `AclVerb`, `AclDefault`, with `KdbxNodes` adapting a `PwGroup` or a `PwEntry`. Grants live under
   a `KPG` key, which is this plugin's own namespace and touches nothing another plugin owns. The
   document is one flat object of strings and arrays of strings, which is what `JsonBody` already
   reads, so no parser arrives with the ACL.
+
+  **`protected` is a scope and not a verb**, like `attachments`, and it is the one scope a handler
+  asks about rather than the router. An attachment is a route of its own, so the router asks before
+  dispatch; a protected value arrives inside the answer to a route that is allowed, so the question
+  is asked once between the handler and the response. It governs writing as well as reading, and
+  what counts as protected is `IVault.Protects`, which is KeePass's own `MemoryProtection` rather
+  than a list kept here. **Both sides ask it now**: a read used to trust the stored string's own
+  flag, so a standard field the database protects and the string did not was handed out as though
+  nothing protected it.
 
   **Nearest wins, per profile**, and profiles are combined with or. An empty array is a rule
   granting nothing from there down; a profile the document does not name is silence, answered by
@@ -201,6 +223,12 @@ designing around them.
   subject out of the ACL could only ever be wrong here, however sensible it looks in a design that
   has something older to carry.
 
+- **The API is generated by two rules**: the verb is the operation's own name, and the node is the
+  nearest addressable thing, so a field or an attachment is answered for by the entry holding it.
+  `root` is a group identifier, which is what stops `create` from implying `list`. A flat sweep is an
+  operation on the root group. A node that is refused and one that is absent answer the same 404,
+  because telling them apart would let a client map a database by asking. See
+  [`API.md`](API.md) §401.
 - **PyKeePassGate is the reference client, and reference means load bearing.** It lives at
   `src/pykeepassgate/`, imports as `pykeepassgate`, and is split into `pykeepassgate.api`, the
   library, and `pykeepassgate.cli`, a command line that can do nothing the library cannot. A route
@@ -219,12 +247,15 @@ designing around them.
 
   **The read model that replaces it has two rules**: no `save`, because a method that looks like
   theirs and does something else is worse than no method, and absent rather than empty, so a
-  missing feature is an attribute that is not there rather than a blank value.
+  missing feature is an attribute that is not there rather than a blank value. `model.py` follows
+  both, and a third that comes of the second: **withheld is not empty either**, so a protected value
+  the caller's rule does not open raises `Withheld` from every way of reading it, never `None` or
+  an empty string, while its name stays where the gate put it.
 
   Measured on `spikes/pykeepass-compatibility`, taken from `master` and never merged: of the 56 public
-  members on `PyKeePass`, 23 are servable over the routes the API is to have, 6 would need routes
+  members on `PyKeePass`, 23 are servable over the routes the gate already has, 6 would need routes
   nothing forbids, and 27 cannot exist here. Its `RESULTS.md` has the per member table and what
-  would have to change on each side. TODO(step 15): those routes arrive with this step.
+  would have to change on each side.
 
 ## Measured facts that cost time if rediscovered
 
@@ -344,8 +375,17 @@ those are two different failures.
 the group dialog. Its write-back is conditional on the key count differing rather than on anything
 the operator did, so a pairing landing while it is open is destroyed with the Plugin Data tab never
 opened. And its one button is both the accept and the cancel button, with `DialogResult.Cancel`, so
-there is no way to decline it. `GroupDialogs` watches for it and `AdmissionWriter` refuses while it
+there is no way to decline it. `GroupDialogs` watches for it and `DatabaseWriter` refuses while it
 is open.
+
+**A dialog that is adding something is about a group it does not hold**, which a watch keyed on the
+node a dialog holds cannot see. Add Entry and the TAN wizard put what they made into their group
+only on OK, so that group is empty while they are open and an API removal would pass; Add Group puts
+its group into the tree before it opens and takes it back out on Cancel, with whatever was created
+in it. So `GroupDialogs` also notes the group each of them will fill or may take away, and the vault
+answers `503 busy` to a removal of a group Add Entry or the wizard will fill, and to anything created
+in a group whose Add Group dialog is still open. Edit Group holds nothing about what is inside, so
+creating under it stays allowed.
 
 Equally load bearing: **KeePass's save reports nothing to its caller.** `MainForm.SaveDatabase` is
 `void`, shows its own warnings, and leaves the caller no way to ask whether anything reached the
@@ -466,16 +506,16 @@ here can hang or crash the password manager.
 
 ## Where to start
 
-[`DESIGN.md`](DESIGN.md) §132 ends with a multi-step build order. **Steps 1 to 14 are done.** The skeleton
+[`DESIGN.md`](DESIGN.md) §132 ends with a multi-step build order. **Steps 1 to 15 are done.** The skeleton
 loads and shows a KPG tab, that tab creates, recreates and deletes the authority, the gate serves
 the document's routes over mutual TLS to a client the authority issued and the database holds a
 record for, a stranger can pair, a locked database answers `503 locked`, a grant means something
 definite, an operator can write one from the group and entry dialogs, and the router refuses
 anything the record and the rules do not both allow, recording every decision either way.
 
-**What is left is the API**: the routes that read and change entries. Everything they need is in
-place, and the assertion that greets the first one is the point of the arrangement: declare a verb,
-name the node it is about, or the plugin does not load.
+**What is left**: two launchers that start the pinned KeePass with the plugin in it, a profile's
+own home beside the authority, the plugin's own window under the Tools menu, and the documentation
+for whoever runs it.
 
 **The storage decision survived the thing most likely to invalidate it.** The `GroupForm` snapshot
 hazard is real and now measured rather than remembered: `SnapshotHazardTests` reads the mechanism off
@@ -540,18 +580,26 @@ two cannot disagree, and `none` is a decision written down rather than a field l
 status route reads nothing, and pairing is authorized by a person reading a dialog rather than by a
 grant, because a client that is pairing holds no profiles yet.
 
-**Three things about the router that are decisions rather than details.** A caller with no
+**Four things about the router that are decisions rather than details.** A caller with no
 certificate is refused the same way everywhere, so an undeclared path and one it may not use answer
 alike and only an admitted client is told which it was. That is about the *refusal*, not about
 whether a route exists: the routes are declared in a document that ships inside the plugin, so a
 `405` for a declared path asked for with the wrong method says no more than reading that document
-says, and `GET /pair/hello` answers exactly that. An operation may carry a guard for a
+says, and `GET /pair/hello` answers exactly that. A `405` is about the path and never the query:
+a query name nothing on the path declares makes an undeclared target, answered as one whichever
+method asked, and so does a body sent where none is declared. An operation may carry a guard for a
 precondition the document cannot state, which is how pairing keeps its routes to connections that
 arrived on an invitation, and a guard runs **before** the body is checked so that nothing is
-reported about a body on a route the caller may not reach. And `PairingHandler` is two operations
-now rather than one dispatcher: which path is which is the document's answer.
+reported about a body on a route the caller may not reach. **And the reverse of that guard is the
+router's**: a connection that arrived on an invitation reaches the pairing routes and nothing else,
+which `PAIRING.md` §302 has always said and nothing enforced. A client the database already admits
+can hold an invitation too, and its certificate was judged on the pairing path the way it is judged
+anywhere, so it reached every ordinary route there. That grants it nothing extra, since the same
+certificate reaches the same routes on its own name, and it did buy the pairing budget on a
+connection with no person in it. And `PairingHandler` is two operations now rather than one
+dispatcher: which path is which is the document's answer.
 
-What steps 8 and 9 leave it. `AdmissionWriter` is the single writer, and the only place a request
+What steps 8 and 9 leave it. `DatabaseWriter` is the single writer, and the only place a request
 writes to a database. `GroupDialogs` watches for the dialog that would take a write back, tracking
 specific `GroupForm` instances rather than counting windows, because the question is per node and a
 count cannot answer it, and because a count would also depend on what this plugin's own dialogs

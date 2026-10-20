@@ -2,7 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography.X509Certificates;
+using KeePassGate.Acl;
 using KeePassGate.Authority;
+using KeePassGate.Diagnostics;
+using KeePassGate.Gate;
+using KeePassGate.Pairing;
 using KeePassGate.Pipeline;
 using KeePassGate.Spec;
 using KeePassGate.Tests.Fakes;
@@ -136,17 +140,62 @@ namespace KeePassGate.Tests
             Assert.That(context.Status, Is.EqualTo(405));
         }
 
+        [TestCase("POST", "/gate/status")]
+        [TestCase("PUT", "/gate/status")]
+        [TestCase("DELETE", "/gate/status")]
+        [TestCase("PATCH", "/gate/status")]
+        [TestCase("POST", "/entries/7b1c0000000000000000000000000000")]
+        [TestCase("PATCH", "/entries/7b1c0000000000000000000000000000")]
+        [TestCase("DELETE", "/entries/7b1c0000000000000000000000000000/fields")]
+        public void A_method_a_private_path_does_not_serve_tells_a_stranger_no_more_than_any_other(
+            string method, string path)
+        {
+            // The other half of the refusal every path gives a caller with no certificate. A 405
+            // here would name the methods the path does serve, which is the path answering that it
+            // is there: the identity refusal has to come first for a method the document does not
+            // declare, exactly as it does for one it does.
+            var stranger = Request(method, path, ClientIdentity.Stranger("db"));
+
+            _router.Handle(stranger);
+
+            Assert.That(stranger.Status, Is.EqualTo(401), "on " + method + " " + path);
+            Assert.That(stranger.Json, Does.Contain("unpaired"));
+            Assert.That(stranger.Headers, Is.Null, "an Allow field is a list of what the path serves");
+
+            // The same request from a client the database admitted, so that what is pinned is the
+            // order the two refusals come in rather than the 405 having gone away everywhere.
+            var admitted = Request(method, path, Paired("db"));
+
+            _router.Handle(admitted);
+
+            Assert.That(admitted.Status, Is.EqualTo(405), "on " + method + " " + path);
+            Assert.That(admitted.Headers["Allow"], Is.Not.Null.And.Not.Empty);
+        }
+
         [Test]
         public void An_operation_reaches_the_handler_bound_to_its_name_and_nothing_else_does()
         {
             var reached = new RecordingHandler();
-            var router = new SpecRouter(GateOperations.Document, new Dictionary<string, OperationHandler>
+
+            // Every operation the document declares, with the two this test watches replaced.
+            // Naming only those would fail the startup assertion, which is the assertion working.
+            var handlers = new Dictionary<string, OperationHandler>(
+                GateOperations.Handlers("9.9.9", null).ToDictionary(p => p.Key, p => p.Value),
+                StringComparer.Ordinal)
             {
-                { GateOperations.Status, reached.Handle },
-                { GateOperations.HeadStatus, reached.Handle },
-                { GateOperations.PairHello, reached.Handle },
-                { GateOperations.PairRequest, Nothing },
-            });
+                [GateOperations.Status] = reached.Handle,
+                [GateOperations.HeadStatus] = reached.Handle,
+                [GateOperations.PairHello] = reached.Handle,
+            };
+
+            // No guards, because this is about which handler a name reaches. With them, a build
+            // assembled without pairing answers before the handler, which is a different test.
+            var router = new SpecRouter(
+                GateOperations.Document,
+                handlers,
+                null,
+                GateOperations.Nodes(),
+                new AccessCheck(null));
 
             router.Handle(Request("POST", "/pair/hello", ClientIdentity.Stranger("db"), Hello));
 
@@ -241,6 +290,162 @@ namespace KeePassGate.Tests
         private static void Nothing(IGateContext context)
         {
             context.Respond(200, "{}");
+        }
+
+        [Test]
+        public void A_connection_that_arrived_on_an_invitation_reaches_nothing_but_pairing()
+        {
+            // `PAIRING.md` §302: the pairing path serves the pairing routes and nothing else. A
+            // client the database already admits can compute the name from an invitation it also
+            // holds, and its certificate is judged there the way it is judged anywhere, so every
+            // ordinary route used to answer on a connection whose deadline is the pairing budget.
+            // It gains no permission by that, because the same certificate reaches the same routes
+            // on its own name. What it gains is the six minutes on the thread that only a
+            // connection waiting on a person is supposed to have.
+            using (var target = TestAuthority.New())
+            using (var book = new InvitationBook(TimeSpan.FromMinutes(10), null, NullGateLog.Instance))
+            {
+                var invitation = book.Invite(target.DatabaseId);
+                var context = Request("GET", GateOperations.StatusPath, Paired(target.DatabaseId));
+
+                new PairingConnection(
+                    invitation,
+                    target,
+                    PairingProof.Binding(target.Host.CertificateDer),
+                    new byte[SniName.NonceLength],
+                    "127.0.0.1:60001").PutOn(context);
+
+                _router.Handle(context);
+
+                // The 404 an admitted client gets for anything it may not have, which is what it
+                // gets for a route that is not there. It is admitted, so it is told the difference:
+                // nothing is withheld from it that asking on its own name would not answer.
+                Assert.That(context.Status, Is.EqualTo(404));
+            }
+        }
+
+        [Test]
+        public void A_query_parameter_the_document_does_not_declare_makes_the_target_undeclared()
+        {
+            // The transport splits a query off and parses it, and nothing read the answer, so
+            // `/gate/status?anything=1` was served as `/gate/status`: a caller scoping a request
+            // with a word this API never declared got the unscoped answer and was told nothing.
+            var context = Request("GET", GateOperations.StatusPath, Paired("db"), string.Empty,
+                new Dictionary<string, string> { { "anything", "1" } });
+
+            _router.Handle(context);
+
+            Assert.That(context.Status, Is.EqualTo(404));
+            Assert.That(context.Json, Does.Contain("no such route"));
+        }
+
+        [Test]
+        public void A_query_nothing_on_the_path_declares_is_undeclared_whatever_the_method()
+        {
+            // The query was asked about only once a method had matched, so a method the path does
+            // not serve answered `405` and named what it does serve, for a target the document does
+            // not declare at any method.
+            var query = new Dictionary<string, string> { { "anything", "1" } };
+
+            var admitted = Request("DELETE", GateOperations.StatusPath, Paired("db"), string.Empty, query);
+            var stranger = Request("GET", "/pair/hello", ClientIdentity.Stranger("db"), string.Empty, query);
+
+            _router.Handle(admitted);
+            _router.Handle(stranger);
+
+            Assert.That(admitted.Status, Is.EqualTo(404));
+            Assert.That(admitted.Headers, Is.Null, "an Allow field is a list of what the path serves");
+            Assert.That(stranger.Status, Is.EqualTo(401), "on a public path, what every caller with no certificate is told");
+        }
+
+        [Test]
+        public void A_body_the_operation_does_not_declare_is_refused_as_an_undeclared_request()
+        {
+            // Told what a query nobody declared is told: `404` to a client the database admits
+            // and the uniform `401` to anybody else, and nothing about the body either way.
+            var admitted = Request("GET", GateOperations.StatusPath, Paired("db"), "{\"group\":\"x\"}");
+            var stranger = Request("GET", GateOperations.StatusPath, ClientIdentity.Stranger("db"), "{\"group\":\"x\"}");
+
+            _router.Handle(admitted);
+            _router.Handle(stranger);
+
+            Assert.That(admitted.Status, Is.EqualTo(404));
+            Assert.That(admitted.Json, Does.Contain("no such route"));
+            Assert.That(stranger.Status, Is.EqualTo(401));
+        }
+
+        [Test]
+        public void A_query_another_method_on_the_path_declares_still_names_the_methods()
+        {
+            // A name the path does declare, at a method that was not asked for, is a target the
+            // document does declare, so it is the `405` it always was.
+            var document = SpecDocument.Parse(
+                "{\"openapi\":\"3.0.3\",\"info\":{\"title\":\"t\",\"version\":\"1\"},\"paths\":{" +
+                "\"/a\":{\"parameters\":[{\"name\":\"limit\",\"in\":\"query\",\"schema\":{\"type\":\"string\"}}]," +
+                "\"get\":{\"operationId\":\"readA\",\"x-kpg-verb\":\"none\",\"responses\":{\"200\":{\"description\":\"o\"}}}," +
+                "\"head\":{\"operationId\":\"headA\",\"x-kpg-verb\":\"none\",\"responses\":{\"200\":{\"description\":\"o\"}}}}}}");
+            OperationHandler handler = answering => answering.Respond(200, "{}");
+            var router = new SpecRouter(document, new Dictionary<string, OperationHandler>
+            {
+                { "readA", handler },
+                { "headA", handler },
+            });
+
+            var declared = Request("DELETE", "/a", Paired("db"), string.Empty,
+                new Dictionary<string, string> { { "limit", "5" } });
+            var undeclared = Request("DELETE", "/a", Paired("db"), string.Empty,
+                new Dictionary<string, string> { { "since", "5" } });
+
+            router.Handle(declared);
+            router.Handle(undeclared);
+
+            Assert.That(declared.Status, Is.EqualTo(405));
+            Assert.That(declared.Headers["Allow"], Is.EqualTo("GET, HEAD"));
+            Assert.That(undeclared.Status, Is.EqualTo(404));
+        }
+
+        [Test]
+        public void A_stranger_sending_one_is_told_what_every_caller_with_no_certificate_is_told()
+        {
+            // Refused as the undeclared target it is, which means the refusal is the uniform one
+            // rather than something that would tell a stranger the path is there.
+            var context = Request("GET", GateOperations.StatusPath, ClientIdentity.Stranger("db"),
+                string.Empty, new Dictionary<string, string> { { "anything", "1" } });
+
+            _router.Handle(context);
+
+            Assert.That(context.Status, Is.EqualTo(401));
+            Assert.That(context.Json, Does.Contain("unpaired"));
+        }
+
+        [Test]
+        public void The_one_query_parameter_is_the_expiry_flag_on_the_two_entry_listings()
+        {
+            // `API.md` 407: scoping is a path here, and filtering and paging were cut but for this
+            // one flag. The check reads the document rather than refusing every query for all
+            // time, so this is what says the document has not quietly grown another: a name
+            // declared is one the router lets through to a handler.
+            var declaring = GateOperations.Document.Operations.Where(o => o.Query.Count > 0).ToList();
+
+            Assert.That(
+                declaring.Select(o => o.OperationId).OrderBy(name => name, StringComparer.Ordinal),
+                Is.EqualTo(new[] { "headEntries", "headGroupEntries", "listEntries", "listGroupEntries" }));
+
+            foreach (var operation in declaring)
+            {
+                Assert.That(operation.Query, Is.EquivalentTo(new[] { "includeExpired" }), operation.OperationId);
+            }
+        }
+
+        [Test]
+        public void The_same_client_on_its_own_name_still_gets_the_status()
+        {
+            // The other half of the test above: what is refused is the connection, not the client.
+            var context = Request("GET", GateOperations.StatusPath, Paired("db-digest"));
+
+            _router.Handle(context);
+
+            Assert.That(context.Status, Is.EqualTo(200));
         }
 
         [Test]
@@ -354,6 +559,46 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void The_methods_a_405_lists_are_in_the_order_the_document_declares_them()
+        {
+            // Every other list asserted here is alphabetical as well, so sorting it would have
+            // passed. This path serves four, and the document declares them get, head, put, delete.
+            var context = Request("PATCH", "/groups/root", Paired("db"));
+
+            _router.Handle(context);
+
+            Assert.That(context.Status, Is.EqualTo(405));
+            Assert.That(context.Headers["Allow"], Is.EqualTo("GET, HEAD, PUT, DELETE"));
+        }
+
+        [Test]
+        public void A_wrong_method_on_a_private_path_over_an_invitation_is_refused_as_undeclared()
+        {
+            // A connection that arrived on an invitation reaches the pairing routes and nothing
+            // else, and that holds for a method the path does not serve as much as for one it
+            // does: the certificate is admitted, and on this connection it is still told only
+            // what an undeclared path tells it, not the methods the path would have served.
+            using (var target = TestAuthority.New())
+            using (var book = new InvitationBook(TimeSpan.FromMinutes(10), null, NullGateLog.Instance))
+            {
+                var invitation = book.Invite(target.DatabaseId);
+                var context = Request("DELETE", GateOperations.StatusPath, Paired(target.DatabaseId));
+
+                new PairingConnection(
+                    invitation,
+                    target,
+                    PairingProof.Binding(target.Host.CertificateDer),
+                    new byte[SniName.NonceLength],
+                    "127.0.0.1:60001").PutOn(context);
+
+                _router.Handle(context);
+
+                Assert.That(context.Status, Is.EqualTo(404));
+                Assert.That(context.Headers, Is.Null, "an Allow field is a list of what the path serves");
+            }
+        }
+
+        [Test]
         public void The_parameters_a_path_captured_are_left_where_a_handler_can_read_them()
         {
             var document = SpecDocument.Parse(
@@ -381,6 +626,47 @@ namespace KeePassGate.Tests
             Assert.That(captured["uuid"], Is.EqualTo("abcdef01"));
         }
 
+        [Test]
+        public void A_segment_its_parameter_does_not_allow_is_a_path_the_document_does_not_declare()
+        {
+            // The document said a uuid is 32 characters and nothing held a request to it: three
+            // characters matched the route and were left for a lookup to answer. Refused as an
+            // undeclared path is, so not with a `405` naming what the path serves either.
+            var document = SpecDocument.Parse(
+                "{\"openapi\":\"3.0.3\",\"info\":{\"title\":\"t\",\"version\":\"1\"},\"paths\":{" +
+                "\"/entries/{uuid}\":{\"parameters\":[{\"name\":\"uuid\",\"in\":\"path\",\"required\":true," +
+                "\"schema\":{\"type\":\"string\",\"minLength\":32,\"maxLength\":32}}]," +
+                "\"get\":{\"operationId\":\"readEntry\",\"x-kpg-verb\":\"none\",\"responses\":{\"200\":{\"description\":\"o\"}}}," +
+                "\"head\":{\"operationId\":\"headEntry\",\"x-kpg-verb\":\"none\",\"responses\":{\"200\":{\"description\":\"o\"}}}}}}");
+
+            var reached = 0;
+            OperationHandler handler = answering =>
+            {
+                reached++;
+                answering.Respond(200, "{}");
+            };
+
+            var router = new SpecRouter(document, new Dictionary<string, OperationHandler>
+            {
+                { "readEntry", handler },
+                { "headEntry", handler },
+            });
+
+            var shortened = Request("GET", "/entries/" + new string('a', 31), Paired("db"));
+            var wrongMethod = Request("PATCH", "/entries/" + new string('a', 31), Paired("db"));
+            var whole = Request("GET", "/entries/" + new string('a', 32), Paired("db"));
+
+            router.Handle(shortened);
+            router.Handle(wrongMethod);
+            router.Handle(whole);
+
+            Assert.That(shortened.Status, Is.EqualTo(404));
+            Assert.That(shortened.Json, Does.Contain("no such route"));
+            Assert.That(wrongMethod.Status, Is.EqualTo(404), "not a 405: there is no such path");
+            Assert.That(whole.Status, Is.EqualTo(200));
+            Assert.That(reached, Is.EqualTo(1), "only the segment the schema allows reached the handler");
+        }
+
         /// <summary>A body the document accepts, so that a routing test measures routing.</summary>
         private const string Hello = "{\"proof\":\"AAAA\"}";
 
@@ -391,10 +677,20 @@ namespace KeePassGate.Tests
 
         private static GateContext Request(string method, string path, ClientIdentity client, string body)
         {
+            return Request(method, path, client, body, new Dictionary<string, string>());
+        }
+
+        private static GateContext Request(
+            string method,
+            string path,
+            ClientIdentity client,
+            string body,
+            IReadOnlyDictionary<string, string> query)
+        {
             var head = new HttpRequestHead(
                 method,
                 path,
-                new Dictionary<string, string>(),
+                query,
                 new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase),
                 body == null ? 0 : body.Length);
 

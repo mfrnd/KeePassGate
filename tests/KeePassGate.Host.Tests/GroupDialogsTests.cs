@@ -1,4 +1,5 @@
 using System;
+using System.Reflection;
 using System.Threading;
 using System.Windows.Forms;
 using KeePass.Forms;
@@ -173,9 +174,273 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void An_entry_dialog_on_an_entry_blocks_writing_to_it()
+        {
+            // The entry half of what the group tests above pin. It had no test at all, which is
+            // how the bulk case below went unnoticed.
+            var entry = EntryUnderRoot();
+
+            using (var form = EntryDialogFor(entry))
+            {
+                GlobalWindowManager.AddWindow(form);
+
+                try
+                {
+                    Assert.That(_dialogs.Blocking(entry), Is.Not.Null);
+                    Assert.That(_dialogs.Blocking(entry), Does.Contain("entry dialog is open"));
+                }
+                finally
+                {
+                    GlobalWindowManager.RemoveWindow(form);
+                }
+            }
+        }
+
+        [Test]
+        public void An_entry_dialog_that_no_longer_says_whether_it_is_several_is_taken_for_both()
+        {
+            // A KeePass that renamed the merged selection's field. Read as holding nothing, that
+            // took every Edit Entries dialog for one entry's, and the synthetic entry behind it is
+            // none of the real ones, so nothing was refused while it was open. It might as well be
+            // an Add Entry, which fills a group on OK, so it is taken for that too.
+            var first = EntryUnderRoot();
+            var second = EntryUnderRoot();
+
+            using (var form = EntryDialogWithoutASelectionField(first))
+            {
+                GlobalWindowManager.AddWindow(form);
+
+                try
+                {
+                    Assert.That(_dialogs.Blocking(first), Is.Not.Null);
+                    Assert.That(_dialogs.Blocking(second), Is.Not.Null,
+                        "every entry of its database, since which of them it is about cannot be told");
+                    Assert.That(_dialogs.BlockingRemoval(_database.RootGroup), Is.Not.Null,
+                        "and every group it might be filling");
+                }
+                finally
+                {
+                    GlobalWindowManager.RemoveWindow(form);
+                }
+            }
+        }
+
+        /// <summary>
+        /// A form KeePass's entry dialog in name and in its node fields, with no merged selection.
+        /// </summary>
+        /// <remarks>
+        /// Emitted rather than declared, because a class of that full name in this assembly would
+        /// shadow KeePass's own `PwEntryForm` for every other test in it.
+        /// </remarks>
+        private Form EntryDialogWithoutASelectionField(PwEntry entry)
+        {
+            var module = AppDomain.CurrentDomain
+                .DefineDynamicAssembly(
+                    new AssemblyName("EntryFormWithoutASelection"), System.Reflection.Emit.AssemblyBuilderAccess.Run)
+                .DefineDynamicModule("EntryFormWithoutASelection");
+            var type = module.DefineType(
+                KeePassContract.EntryFormTypeName, TypeAttributes.Public | TypeAttributes.Class, typeof(Form));
+            type.DefineField(KeePassContract.EntryFormEntryField, typeof(PwEntry), FieldAttributes.Private);
+            type.DefineField(KeePassContract.NodeFormDatabaseField, typeof(PwDatabase), FieldAttributes.Private);
+            type.DefineDefaultConstructor(MethodAttributes.Public);
+
+            var built = type.CreateType();
+            var dialog = (Form)Activator.CreateInstance(built);
+            const BindingFlags flags = BindingFlags.NonPublic | BindingFlags.Instance;
+            built.GetField(KeePassContract.EntryFormEntryField, flags).SetValue(dialog, entry);
+            built.GetField(KeePassContract.NodeFormDatabaseField, flags).SetValue(dialog, _database.Database);
+            return dialog;
+        }
+
+        [Test]
+        public void A_bulk_entry_dialog_blocks_every_entry_it_might_be_editing()
+        {
+            // KeePass's `Edit Entries` over a selection. The entry the dialog holds is a synthetic
+            // one it merged, so it is reference-equal to neither of these, and matching on it
+            // answered "nothing is open" for both. OK meanwhile applies the merged copy to the
+            // whole selection and deletes any key the copy no longer carries. A write landing
+            // underneath was therefore destroyed across every selected entry at once.
+            var first = EntryUnderRoot();
+            var second = EntryUnderRoot();
+
+            using (var form = BulkEntryDialogFor(first, second))
+            {
+                GlobalWindowManager.AddWindow(form);
+
+                try
+                {
+                    Assert.That(_dialogs.Blocking(first), Is.Not.Null,
+                        "the first selected entry is one this dialog will write over");
+                    Assert.That(_dialogs.Blocking(second), Is.Not.Null,
+                        "and so is the second");
+                }
+                finally
+                {
+                    GlobalWindowManager.RemoveWindow(form);
+                }
+            }
+        }
+
+        [Test]
+        public void A_watch_that_never_started_refuses_removals_and_additions_too()
+        {
+            // The same answer `Blocking` gives, for the same reason: an empty table means nothing
+            // was noticed rather than that nothing is open.
+            using (var never = new GroupDialogs(new GlobalWindowManagerWindows(), NullGateLog.Instance))
+            {
+                Assert.That(never.BlockingRemoval(_database.RootGroup), Is.Not.Null);
+                Assert.That(never.BlockingAdditions(_database.RootGroup), Is.Not.Null);
+            }
+        }
+
+        [Test]
+        public void An_add_entry_dialog_keeps_the_group_it_will_fill_in_the_tree()
+        {
+            // KeePass's Add Entry names the group as the new entry's parent and puts the entry into
+            // it on OK and not before. Until then the group is empty and no group dialog is open on
+            // it, so asking about the node a dialog holds found nothing, and a removal underneath
+            // sent what the operator typed into the recycle bin, or with no bin out of the file.
+            var group = new PwGroup(true, true, "Empty", PwIcon.Folder);
+            _database.RootGroup.AddGroup(group, true);
+            var other = new PwGroup(true, true, "Other", PwIcon.Folder);
+            _database.RootGroup.AddGroup(other, true);
+
+            var typed = new PwEntry(true, true);
+            typeof(PwEntry).GetProperty("ParentGroup").SetValue(typed, group, null);
+
+            using (var form = new PwEntryForm())
+            {
+                form.InitEx(typed, PwEditMode.AddNewEntry, _database.Database, new ImageList(), false, true);
+                GlobalWindowManager.AddWindow(form);
+
+                try
+                {
+                    Assume.That(group.Entries.UCount, Is.Zero, "the entry is not in the group yet");
+
+                    Assert.That(_dialogs.BlockingRemoval(group), Is.Not.Null,
+                        "the group this dialog fills on OK must stay where it is");
+                    Assert.That(_dialogs.Blocking(group), Is.Null,
+                        "and nothing else about it is refused, since the dialog holds none of it");
+                    Assert.That(_dialogs.BlockingAdditions(group), Is.Null);
+                    Assert.That(_dialogs.BlockingRemoval(other), Is.Null, "nor anything about another group");
+                }
+                finally
+                {
+                    GlobalWindowManager.RemoveWindow(form);
+                }
+            }
+
+            Assert.That(_dialogs.BlockingRemoval(group), Is.Null, "and closing it lets the group go again");
+        }
+
+        [Test]
+        public void The_tan_wizard_keeps_the_group_it_will_fill_in_the_tree()
+        {
+            // Tools then TAN Wizard is handed the selected group and adds one entry per TAN to it
+            // on OK. A group made for TANs is empty until then, and removed underneath, the TANs
+            // went into the recycle bin, or with no bin into a group no longer in the tree.
+            var group = new PwGroup(true, true, "Bank", PwIcon.Folder);
+            _database.RootGroup.AddGroup(group, true);
+
+            using (var form = new TanWizardForm())
+            {
+                form.InitEx(_database.Database, group);
+                GlobalWindowManager.AddWindow(form);
+
+                try
+                {
+                    Assert.That(_dialogs.BlockingRemoval(group), Is.Not.Null,
+                        "the group the wizard fills on OK must stay where it is");
+                    Assert.That(_dialogs.Blocking(group), Is.Null,
+                        "and nothing else about it is refused, since the wizard holds none of it");
+                    Assert.That(_dialogs.Count, Is.Zero,
+                        "nor is it counted, since it puts back no custom data");
+                }
+                finally
+                {
+                    GlobalWindowManager.RemoveWindow(form);
+                }
+            }
+
+            Assert.That(_dialogs.BlockingRemoval(group), Is.Null, "and closing it lets the group go again");
+        }
+
+        [Test]
+        public void An_add_group_dialog_refuses_additions_to_its_group_and_an_edit_group_dialog_does_not()
+        {
+            // KeePass's Add Group puts the new group into the tree before the dialog opens and takes
+            // it back out on Cancel, with no deleted object and no bin. Anything created in it in
+            // between is answered as created and dropped by the next save. Edit Group holds no list
+            // of what is inside, so adding to a group it is open on stays allowed.
+            var adding = new PwGroup(true, true, "Adding", PwIcon.Folder);
+            _database.RootGroup.AddGroup(adding, true);
+            var editing = new PwGroup(true, true, "Editing", PwIcon.Folder);
+            _database.RootGroup.AddGroup(editing, true);
+
+            using (var add = new GroupForm())
+            using (var edit = GroupDialogFor(editing))
+            {
+                add.InitEx(adding, true, null, _database.Database);
+                GlobalWindowManager.AddWindow(add);
+                GlobalWindowManager.AddWindow(edit);
+
+                try
+                {
+                    Assert.That(_dialogs.BlockingAdditions(adding), Is.Not.Null,
+                        "a group its Cancel takes away takes nothing in");
+                    Assert.That(_dialogs.Blocking(adding), Is.Not.Null,
+                        "and the group itself is held, as under any group dialog");
+                    Assert.That(_dialogs.BlockingAdditions(editing), Is.Null,
+                        "a group being edited stays open to additions");
+                }
+                finally
+                {
+                    GlobalWindowManager.RemoveWindow(edit);
+                    GlobalWindowManager.RemoveWindow(add);
+                }
+            }
+
+            Assert.That(_dialogs.BlockingAdditions(adding), Is.Null, "and closing it lets additions in again");
+        }
+
+        [Test]
+        public void A_bulk_entry_dialog_blocks_nothing_in_another_database()
+        {
+            // The selection behind `Edit Entries` is always one database's, and the gate serves
+            // every database that is open. Refusing every entry everywhere turned one operator's
+            // bulk edit into a `503 busy` for clients of databases nobody was looking at.
+            var first = EntryUnderRoot();
+            var second = EntryUnderRoot();
+
+            using (var elsewhere = TemporaryDatabase.New())
+            {
+                var unrelated = new PwEntry(true, true);
+                elsewhere.RootGroup.AddEntry(unrelated, true);
+
+                using (var form = BulkEntryDialogFor(first, second))
+                {
+                    GlobalWindowManager.AddWindow(form);
+
+                    try
+                    {
+                        Assume.That(_dialogs.Blocking(first), Is.Not.Null);
+
+                        Assert.That(_dialogs.Blocking(unrelated), Is.Null,
+                            "an entry of another database is none this dialog can write over");
+                    }
+                    finally
+                    {
+                        GlobalWindowManager.RemoveWindow(form);
+                    }
+                }
+            }
+        }
+
+        [Test]
         public void Asking_about_nothing_blocks_nothing()
         {
-            Assert.That(_dialogs.Blocking(null), Is.Null);
+            Assert.That(_dialogs.Blocking((KeePassLib.PwGroup)null), Is.Null);
+            Assert.That(_dialogs.Blocking((KeePassLib.PwEntry)null), Is.Null);
         }
 
         [Test]
@@ -229,12 +494,55 @@ namespace KeePassGate.Host.Tests
                     // back over it, which is the one failure this class exists to prevent.
                     Assert.That(_dialogs.Blocking(_database.RootGroup), Is.Not.Null,
                         "a watch that has stopped must refuse, not allow");
+
+                    // Both halves, because only the group half had this and the entry half read an
+                    // empty table as "nothing is open" and allowed the write.
+                    Assert.That(_dialogs.Blocking(EntryUnderRoot()), Is.Not.Null,
+                        "and it must refuse entries on the same reasoning");
                 }
                 finally
                 {
                     GlobalWindowManager.RemoveWindow(form);
                 }
             }
+        }
+
+        private PwEntry EntryUnderRoot()
+        {
+            var entry = new PwEntry(true, true);
+            _database.RootGroup.AddEntry(entry, true);
+            return entry;
+        }
+
+        private PwEntryForm EntryDialogFor(PwEntry entry)
+        {
+            var form = new PwEntryForm();
+            form.InitEx(entry, PwEditMode.EditExistingEntry, _database.Database, new ImageList(), false, false);
+            return form;
+        }
+
+        /// <summary>
+        /// KeePass's `Edit Entries` over a selection of this fixture's database, never shown.
+        /// </summary>
+        /// <remarks>
+        /// Built by reflection because the constructor is internal to KeePass. That is the point
+        /// rather than an obstacle: this is a shape only KeePass can make, so only KeePass can say
+        /// whether the guard still recognizes it.
+        /// </remarks>
+        private PwEntryForm BulkEntryDialogFor(params PwEntry[] selection)
+        {
+            var merged = new object[] { selection, _database.Database, null };
+            var context = typeof(PwEntryForm).Assembly
+                .GetType("KeePass.Util.MultipleValues.MultipleValuesEntryContext")
+                .GetConstructors(BindingFlags.NonPublic | BindingFlags.Instance)[0]
+                .Invoke(merged);
+
+            var form = new PwEntryForm();
+            form.InitEx((PwEntry)merged[2], PwEditMode.EditExistingEntry, _database.Database, new ImageList(), false, false);
+            typeof(PwEntryForm)
+                .GetProperty("MultipleValuesEntryContext")
+                .SetValue(form, context, null);
+            return form;
         }
 
         [Test]

@@ -150,6 +150,28 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void An_admitted_certificate_on_an_invitation_is_logged_as_the_invitation_it_named()
+        {
+            // A client can hold both at once, and then it reaches nothing: the router counts it as
+            // admitted only while no invitation brought it, and the pairing routes are for clients
+            // that are not paired. The operator's log has to say which of the two decided that,
+            // and it used to read exactly like an ordinary admitted connection.
+            byte[] nonce;
+            var name = NewClient().NewName(out nonce);
+
+            using (var certificate = _target.IssueAdmittedClient())
+            {
+                var reply = GateClient.Get(_listener.Port, name, certificate, GateOperations.StatusPath);
+
+                Assert.That(reply.Status, Is.EqualTo(404),
+                    "an admitted certificate on an invitation's name reaches no route at all");
+                Assert.That(
+                    _log.Entries.Any(e => e.Message.Contains("on invitation " + _invitation.Id)),
+                    Is.True, "the connection was logged without the invitation that decided it");
+            }
+        }
+
+        [Test]
         public void A_spent_invitation_answers_to_nothing_afterwards()
         {
             var client = NewClient();

@@ -143,6 +143,7 @@ evening, because it fails without a message.
 | `GlobalWindowManager.AddWindow` and `RemoveWindow` are public and static, so a test can raise the real window notifications a plugin subscribes to | enumerated the type, then drove the plugin end to end with them |
 | **KeePass hands its command line to an already running instance and exits**, because `Integration.LimitToSingleInstance` defaults to true. A test that starts KeePass while any other copy runs measures nothing | the started process exited at once and owned no window; disabling the setting in a local configuration fixed it |
 | A first start asks **"Enable automatic update check?"** in a modal dialog, before any plugin is loaded | the automated run stalled on it; answering it in the configuration with `CheckForUpdateConfigured` removes it |
+| **The gate is listening before KeePass has opened the database named on its command line**, because the listener starts inside the plugin's `Initialize` and the file is opened once the plugins are initialized. A connection in between resolves no name and is dropped with no TLS answer, which the client reports as the remote party closing the stream. So a live fixture is ready when the log says `serving a database with authority`, never when it says `listening on` | read off the plugin log of a started KeePass, where `listening on` follows `initializing` by 12 ms and the serving line comes later still; a fixture that sent on the first line had its first request dropped on a cold machine, and every assertion after it failed on the entry that was never created |
 
 ### Driving KeePass through the desktop
 
@@ -258,7 +259,33 @@ than confirming it.
 | **The plugin's own JSON reader refuses a boolean**, so an audit line saying `"permitted":true` could not be read back by the thing that wrote it | asserted it, and changed the format: every value is a string and the member is `"decision":"permitted"`, which the design named that way anyway |
 | A refusal and a node that is not there have to answer the same thing, or a client that may reach nothing can map the database one identifier at a time | which is what `list` exists to be able to withhold, so the router answers 404 to both and the audit records which it was |
 
-## 15. Reconstruction
+## 15. Reading and writing JSON
+
+Measured on the `spikes/json-reading` branch, taken from `master` and never merged, where every count
+can be reproduced by building. What the mainline keeps is the decision, and the two things about
+Json.NET that anybody reading `JsonBody` has to know.
+
+| Fact | How it was established |
+| --- | --- |
+| **One assembly against nine decides the reader.** `Newtonsoft.Json` arrives alone; `System.Text.Json` brings eight more on this framework, one of them `System.Runtime.CompilerServices.Unsafe`, which wants a binding redirect a plugin cannot supply because the only `app.config` in play is KeePass's | built a throwaway `net48` library against each and counted the output directory |
+| **No schema library is taken**, at fourteen assemblies, twenty, or a license an MIT plugin cannot hold. What checks a body instead is a checker over the subset this wire carries, with a startup refusal of any schema it does not implement, so a subset cannot become a gap | the same counts, and `LICENSE.md` read out of the package |
+| **Json.NET accepts a trailing comma, a comment, a string or a name in single quotes, a name in no quotes, `\'` inside a string, and a raw control character in a string.** None carries a member and none changes what the object says, so all of them are accepted rather than fought: refusing them is exactly what owning a grammar would have cost | ran the body fixture against it. The control character matters in the other direction, because an entry's notes hold paragraphs, so a line break has to survive and what keeps one out of a log is escaping on the way out |
+| **Json.NET reports a NUL after the object as the end of its input**, so the check that refuses anything after the closing brace, which asks the reader for one more token, passed a body ending in one, though text after the NUL was refused. So a body holding a NUL is refused before the parser sees it | read the object and one more token from the built plugin, with a NUL alone, a NUL and text, and a NUL and a second object after it |
+| **Json.NET turns any date shaped string into a `DateTime` unless told not to**, so a value would come back reformatted rather than as it was sent | `DateParseHandling.None`, pinned by a test, because this is the sort of default discovered by a client reporting a timestamp it never sent |
+
+## 16. Serving the API
+
+Established while building the routes, and the first two changed the design rather than confirming
+it.
+
+| Fact | How it was established |
+| --- | --- |
+| **A path has to be split before it is decoded**, which is what RFC 3986 section 2.2 says and what this did the other way round. Decoding first turns `%2F` into a separator, so an attachment named `a/b` arrives as one segment too many and matches no route: not refused, not mis-served, impossible to address at all | tried to write the attachment routes and found the name unreachable. Splitting first also stops `+` meaning a space in a path, where that rule never belonged, and lets `notes..txt` be a name rather than a traversal |
+| **`JsonBody`'s 16 KB string ceiling would have made attachment writes a fiction**, capping an upload near 12 KB | counted: base64 of a megabyte body against a reader that refused a string over 16 KB. It is now the same megabyte the transport allows a body, and each route's declared `maxLength` is what actually limits a string |
+| **A `PwEntry` KeePass makes has the five standard strings and one `new PwEntry` has none**, so an entry created through the gate looked wrong in the user interface and made an update of `Password` a create | two host tests failed on a created entry having no `Password` at all |
+| The response side was already wider than the request side before any of this: the status route answers `"ok":true`, and `JsonBody` refuses booleans | asserting an entry read back through the request reader failed, correctly, because a read carries a nested `fields` object |
+
+## 17. Reconstruction
 
 The proofs were deleted once they had answered their questions. To rebuild any of them:
 
@@ -278,7 +305,7 @@ The proofs were deleted once they had answered their questions. To rebuild any o
 `TlsProbe.cs` on `spikes/tls-and-certificates` is kept because it answers the TLS question in
 isolation and is the cheapest way to re-check it on a new machine.
 
-## 16. What KeePass does with a change, measured
+## 18. What KeePass does with a change, measured
 
 **A `.kdbx` silently drops 2,079 of the 65,536 code points in the basic multilingual plane.** KeePass
 writes every unprotected string through `StrUtil.SafeXmlString`, which removes what XML 1.0 cannot
@@ -296,7 +323,13 @@ surrogate written raw in the text is passed through untouched, which is why the 
 worth having: `JsonBody` also reads documents out of a `.kdbx` this plugin did not write. Measured
 against the Json.NET this builds against, by printing the code points that came back.
 
-## 17. The gate, and where it can run
+**`PwEntry.CreateBackup(PwDatabase)` applies the operator's limits itself.** It clones the entry,
+clears the clone's own history, adds it, and then calls `MaintainBackups`, which enforces
+`HistoryMaxItems` and `HistoryMaxSize`. So a plugin that takes a backup does not also have to decide
+how many to keep, and must not: the operator answered that in Database Settings, for KeePass's own
+edits and for anything else that writes. Read off KeePass 2.61.1 rather than from documentation.
+
+## 19. The gate, and where it can run
 
 **A warning is not a failure, and under `Stop` it becomes one.** A native command writing to stderr
 raises a terminating error as soon as anything upstream merges the streams, which is what capturing

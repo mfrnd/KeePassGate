@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using KeePassGate.Acl;
+using KeePassGate.Audit;
 using KeePassGate.Pairing;
 using KeePassGate.Pipeline;
 
@@ -20,7 +21,8 @@ namespace KeePassGate.Spec
 
         /// <summary>The `head` that answers for `getStatus`, on the same handler.</summary>
         /// <remarks>
-        /// Bound to the same delegate rather than to one of its own. RFC 9110 section 9.3.2 says a
+        /// The same arrangement as every other `Head` below, and the reason is written here once.
+        /// Bound to the same delegate rather than to one of its own: RFC 9110 section 9.3.2 says a
         /// `head` is identical to its `get`, and one handler is how that is true by construction.
         /// The handler tells them apart by `context.Method` where it is worth the trouble; where it
         /// is not, the response writer drops the content and nothing has gone wrong.
@@ -30,6 +32,42 @@ namespace KeePassGate.Spec
         public const string PairHello = "pairHello";
 
         public const string PairRequest = "pairRequest";
+
+        public const string ListGroups = "listGroups";
+        public const string HeadGroups = "headGroups";
+        public const string ReadGroup = "readGroup";
+        public const string HeadGroup = "headGroup";
+        public const string ListSubgroups = "listSubgroups";
+        public const string HeadSubgroups = "headSubgroups";
+        public const string CreateGroup = "createGroup";
+        public const string UpdateGroup = "updateGroup";
+        public const string DeleteGroup = "deleteGroup";
+
+        public const string ListEntries = "listEntries";
+        public const string HeadEntries = "headEntries";
+        public const string ListGroupEntries = "listGroupEntries";
+        public const string HeadGroupEntries = "headGroupEntries";
+        public const string ReadEntry = "readEntry";
+        public const string HeadEntry = "headEntry";
+        public const string CreateEntry = "createEntry";
+        public const string UpdateEntry = "updateEntry";
+        public const string DeleteEntry = "deleteEntry";
+
+        public const string ListFields = "listFields";
+        public const string HeadFields = "headFields";
+        public const string ReadField = "readField";
+        public const string HeadField = "headField";
+        public const string CreateField = "createField";
+        public const string UpdateField = "updateField";
+        public const string StripField = "stripField";
+
+        public const string ListAttachments = "listAttachments";
+        public const string HeadAttachments = "headAttachments";
+        public const string ReadAttachment = "readAttachment";
+        public const string HeadAttachment = "headAttachment";
+        public const string CreateAttachment = "createAttachment";
+        public const string UpdateAttachment = "updateAttachment";
+        public const string StripAttachment = "stripAttachment";
 
         private static readonly object Reading = new object();
 
@@ -89,17 +127,26 @@ namespace KeePassGate.Spec
             return Router(version, null);
         }
 
+        /// <summary>
+        /// The same, authorizing but recording nothing.
+        /// </summary>
+        /// <remarks>
+        /// Every route that touches the database is still decided: what is missing is only where
+        /// the decisions are written down, which is what a test rarely wants and what the plugin
+        /// always supplies. A router that could not decide at all would not load, and that refusal
+        /// is worth keeping for the case where somebody assembles one by hand.
+        /// </remarks>
         public static SpecRouter Router(string version, PairingHandler pairing)
         {
-            return Router(version, pairing, null);
+            return Router(version, pairing, new AccessCheck(NullGateAudit.Instance));
         }
 
         /// <summary>The router this plugin runs.</summary>
         /// <param name="access">
-        /// The record and the rules, combined. Nothing this build declares needs it yet, because
-        /// nothing it declares touches the database: the status route reads nothing and pairing is
-        /// authorized by a person. It is passed anyway, so that the first route that does need it
-        /// arrives with somewhere to ask rather than with a reason to loosen the assertion.
+        /// The record and the rules, combined. Every route that touches the database asks it,
+        /// through `Nodes()`. The status route and the two pairing routes do not: the status route
+        /// reads nothing, and pairing is authorized by a person reading a dialog rather than by a
+        /// grant, since a client that is pairing holds no profiles yet.
         /// </param>
         public static SpecRouter Router(string version, PairingHandler pairing, AccessCheck access)
         {
@@ -108,16 +155,63 @@ namespace KeePassGate.Spec
         }
 
         /// <summary>
-        /// Which node each operation is about.
+        /// Which node each operation is about, which is the only part of authorization a route
+        /// supplies for itself.
         /// </summary>
         /// <remarks>
-        /// Empty, and that is not a stub: every operation this build declares governs nothing, and
-        /// the router refuses a node for one of those. The first operation that touches an entry
-        /// adds its selector here and stops the plugin loading until it does.
+        /// The router does the rest, so this list and the verbs in the document are between them
+        /// the whole of what says who may reach what. An operation that declares a verb and is
+        /// missing from here stops the plugin loading.
+        ///
+        /// A `head` names the node its own `get` names, because it is the same request with the
+        /// content left off: anything else would answer whether a node is there to a caller the
+        /// `get` would have refused.
+        ///
+        /// A listing is anchored at the node it starts from: the root for the two that sweep the
+        /// database, the named group for the two that do not, and the entry itself for the fields
+        /// and the attachments inside one. What the caller may see inside it
+        /// is asked per item, by the handler, and is not a refusal.
         /// </remarks>
         public static IReadOnlyDictionary<string, NodeSelector> Nodes()
         {
-            return new Dictionary<string, NodeSelector>(StringComparer.Ordinal);
+            return new Dictionary<string, NodeSelector>(StringComparer.Ordinal)
+            {
+                { ListGroups, VaultHandlers.RootNode },
+                { HeadGroups, VaultHandlers.RootNode },
+                { ReadGroup, VaultHandlers.GroupNode },
+                { HeadGroup, VaultHandlers.GroupNode },
+                { ListSubgroups, VaultHandlers.GroupNode },
+                { HeadSubgroups, VaultHandlers.GroupNode },
+                { CreateGroup, VaultHandlers.GroupNode },
+                { UpdateGroup, VaultHandlers.GroupNode },
+                { DeleteGroup, VaultHandlers.GroupNode },
+
+                { ListEntries, VaultHandlers.RootNode },
+                { HeadEntries, VaultHandlers.RootNode },
+                { ListGroupEntries, VaultHandlers.GroupNode },
+                { HeadGroupEntries, VaultHandlers.GroupNode },
+                { ReadEntry, VaultHandlers.EntryNode },
+                { HeadEntry, VaultHandlers.EntryNode },
+                { CreateEntry, VaultHandlers.GroupNode },
+                { UpdateEntry, VaultHandlers.EntryNode },
+                { DeleteEntry, VaultHandlers.EntryNode },
+
+                { ListFields, VaultHandlers.EntryNode },
+                { HeadFields, VaultHandlers.EntryNode },
+                { ReadField, VaultHandlers.EntryNode },
+                { HeadField, VaultHandlers.EntryNode },
+                { CreateField, VaultHandlers.EntryNode },
+                { UpdateField, VaultHandlers.EntryNode },
+                { StripField, VaultHandlers.EntryNode },
+
+                { ListAttachments, VaultHandlers.EntryNode },
+                { HeadAttachments, VaultHandlers.EntryNode },
+                { ReadAttachment, VaultHandlers.EntryNode },
+                { HeadAttachment, VaultHandlers.EntryNode },
+                { CreateAttachment, VaultHandlers.EntryNode },
+                { UpdateAttachment, VaultHandlers.EntryNode },
+                { StripAttachment, VaultHandlers.EntryNode },
+            };
         }
 
         /// <summary>
@@ -134,6 +228,42 @@ namespace KeePassGate.Spec
                 { HeadStatus, status.Handle },
                 { PairHello, pairing == null ? NotServed : (OperationHandler)pairing.Hello },
                 { PairRequest, pairing == null ? NotServed : (OperationHandler)pairing.Request },
+
+                { ListGroups, VaultHandlers.ListGroups },
+                { HeadGroups, VaultHandlers.ListGroups },
+                { ReadGroup, VaultHandlers.ReadGroup },
+                { HeadGroup, VaultHandlers.ReadGroup },
+                { ListSubgroups, VaultHandlers.ListSubgroups },
+                { HeadSubgroups, VaultHandlers.ListSubgroups },
+                { CreateGroup, VaultHandlers.CreateGroup },
+                { UpdateGroup, VaultHandlers.UpdateGroup },
+                { DeleteGroup, VaultHandlers.DeleteGroup },
+
+                { ListEntries, VaultHandlers.ListEntries },
+                { HeadEntries, VaultHandlers.ListEntries },
+                { ListGroupEntries, VaultHandlers.ListGroupEntries },
+                { HeadGroupEntries, VaultHandlers.ListGroupEntries },
+                { ReadEntry, VaultHandlers.ReadEntry },
+                { HeadEntry, VaultHandlers.ReadEntry },
+                { CreateEntry, VaultHandlers.CreateEntry },
+                { UpdateEntry, VaultHandlers.UpdateEntry },
+                { DeleteEntry, VaultHandlers.DeleteEntry },
+
+                { ListFields, VaultHandlers.ListFields },
+                { HeadFields, VaultHandlers.ListFields },
+                { ReadField, VaultHandlers.ReadField },
+                { HeadField, VaultHandlers.ReadField },
+                { CreateField, VaultHandlers.CreateField },
+                { UpdateField, VaultHandlers.UpdateField },
+                { StripField, VaultHandlers.StripField },
+
+                { ListAttachments, VaultHandlers.ListAttachments },
+                { HeadAttachments, VaultHandlers.ListAttachments },
+                { ReadAttachment, VaultHandlers.ReadAttachment },
+                { HeadAttachment, VaultHandlers.ReadAttachment },
+                { CreateAttachment, VaultHandlers.CreateAttachment },
+                { UpdateAttachment, VaultHandlers.UpdateAttachment },
+                { StripAttachment, VaultHandlers.StripAttachment },
             };
         }
 

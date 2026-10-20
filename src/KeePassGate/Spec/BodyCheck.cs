@@ -83,6 +83,56 @@ namespace KeePassGate.Spec
         }
 
         /// <summary>
+        /// Why a path parameter's schema cannot be kept, or null when it can be.
+        /// </summary>
+        /// <remarks>
+        /// **The same rule as a body, for the other half of a request.** A path parameter is a
+        /// string, and it may say how long it is, which the router holds a captured segment to
+        /// before it counts the path as matched. Anything else a schema could say, a `pattern` on
+        /// a uuid or an `enum` of names, is refused as the document is read, so a constraint on a
+        /// parameter is either kept or a plugin that does not load, never one the document states
+        /// and nothing checks.
+        /// </remarks>
+        public static string SupportsParameter(OpenApiSchema schema)
+        {
+            if (schema == null)
+            {
+                return "there is no schema";
+            }
+
+            if (!string.Equals(schema.Type, "string", StringComparison.Ordinal))
+            {
+                return "a path parameter is a string, and this declares " + Describe(schema.Type);
+            }
+
+            return Unimplemented(schema, "minLength", "maxLength");
+        }
+
+        /// <summary>
+        /// Why a query parameter's schema cannot be kept, or null when it can be.
+        /// </summary>
+        /// <remarks>
+        /// **Stricter than a path parameter's**, because the router asks only whether a query name
+        /// is declared and never holds a value to anything. So a query parameter is a string and
+        /// says nothing more, and a document that wants a bound on one, the paging `API.md` §407
+        /// expects included, brings the check with it or does not load.
+        /// </remarks>
+        public static string SupportsQuery(OpenApiSchema schema)
+        {
+            if (schema == null)
+            {
+                return "there is no schema";
+            }
+
+            if (!string.Equals(schema.Type, "string", StringComparison.Ordinal))
+            {
+                return "a query parameter is a string, and this declares " + Describe(schema.Type);
+            }
+
+            return Unimplemented(schema);
+        }
+
+        /// <summary>
         /// Whether this body is what the document declared, and one word saying no if it is not.
         /// </summary>
         public static string Validate(OpenApiSchema schema, JsonBody body)
@@ -282,7 +332,7 @@ namespace KeePassGate.Spec
         /// under the `maxLength` of 512 that allows it, and a client validating against the
         /// document sent a body the gate turned away.
         /// </remarks>
-        private static bool Fits(OpenApiSchema declared, string value)
+        public static bool Fits(OpenApiSchema declared, string value)
         {
             var length = Characters(value);
 

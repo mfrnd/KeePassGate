@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Security.Cryptography.X509Certificates;
 using KeePassGate.Authority;
+using KeePassGate.Vault;
 
 namespace KeePassGate.Gate
 {
@@ -72,12 +73,23 @@ namespace KeePassGate.Gate
         /// Writes an admission record and makes it durable, on whichever thread owns the database.
         /// </summary>
         /// <remarks>
-        /// The one write the transport ever asks for, and the only place in the plugin that
-        /// marshals synchronously. It is checked again inside the write, because the answer to
-        /// <see cref="AdmissionBlocked"/> can change between asking and writing, and a pairing that
-        /// cannot land its record has to fail rather than hand over a certificate nobody can see.
+        /// The one write the transport ever asks for, and it marshals synchronously like every
+        /// write this plugin makes, so what it answers is whether the record is on disk. It is
+        /// checked again inside the write, because the answer to <see cref="AdmissionBlocked"/>
+        /// can change between asking and writing, and a pairing that cannot land its record has
+        /// to fail rather than hand over a certificate nobody can see.
         /// </remarks>
         AdmissionWrite Admit(AdmissionRecord record);
+
+        /// <summary>
+        /// What the API reads and changes, or null when there is nothing to reach.
+        /// </summary>
+        /// <remarks>
+        /// The transport still has no business with entries: it carries this to the handlers and
+        /// never asks it anything. Null on a locked database, which answers every route with the
+        /// lock and nothing else.
+        /// </remarks>
+        IVault Vault { get; }
 
         /// <summary>
         /// Whether this database is locked, in which case it can answer a connection and do

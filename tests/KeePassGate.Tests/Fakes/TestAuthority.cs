@@ -112,6 +112,15 @@ namespace KeePassGate.Tests.Fakes
         /// </summary>
         public string AdmissionBlocked { get; set; }
 
+        /// <summary>
+        /// Nothing. This fake is about the transport, and the transport carries a vault without
+        /// ever asking it anything, so there is nothing here to carry.
+        /// </summary>
+        public KeePassGate.Vault.IVault Vault
+        {
+            get { return null; }
+        }
+
         /// <summary>Never: a locked database is a `LockedTarget`, which this is not.</summary>
         public bool IsLocked
         {

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using KeePassGate.Acl;
+using KeePassGate.Diagnostics;
 using KeePassGate.Pipeline;
 using KeePassGate.Spec;
 using KeePassGate.Tests.Fakes;
@@ -37,6 +38,7 @@ namespace KeePassGate.Tests
             "\"responses\":{\"200\":{\"description\":\"o\"}}}}}}";
 
         private RecordingAudit _audit;
+        private RecordingGateLog _log;
         private List<string> _reached;
         private IAclNode _node;
 
@@ -44,6 +46,7 @@ namespace KeePassGate.Tests
         public void SetUp()
         {
             _audit = new RecordingAudit();
+            _log = new RecordingGateLog();
             _reached = new List<string>();
             _node = TestNode.Root("root").Granting("reader", AclVerb.Read).Child("an entry");
         }
@@ -153,7 +156,7 @@ namespace KeePassGate.Tests
                 "\"requestBody\":{\"required\":true,\"content\":{\"application/json\":{\"schema\":" +
                 "{\"type\":\"object\",\"required\":[\"title\"],\"additionalProperties\":false," +
                 "\"properties\":{\"title\":{\"type\":\"string\"}}}}}}," +
-                "\"responses\":{\"200\":{\"description\":\"o\"},\"415\":{\"description\":\"m\"}}}}}}";
+                "\"responses\":{\"200\":{\"description\":\"o\"},\"415\":{\"description\":\"m\"},\"500\":{\"description\":\"u\"}}}}}}";
 
             var router = Router(SpecDocument.Parse(document), "writeEntry");
             var context = Context("POST", "/entries/7b1c", Paired("nobody"), "{\"nonsense\":1}");
@@ -298,6 +301,111 @@ namespace KeePassGate.Tests
             Assert.That(context.Status, Is.EqualTo(200));
             Assert.That(_reached, Does.Contain("getStatus"), "the handler ran, so there was a request to record");
             Assert.That(_audit.Entries, Is.Empty);
+        }
+
+        [Test]
+        public void A_database_that_moved_while_the_node_was_being_chosen_answers_busy()
+        {
+            // The selector reads the tree before any handler runs, so it meets the same moving
+            // database a handler does. Answering that hop differently turned somebody typing in
+            // KeePass into a 500 for whoever happened to be reading at the time.
+            var context = Context("GET", "/entries/7b1c", Paired("reader"), null);
+
+            Moving(whileChoosing: true, whileHandling: false).Handle(context);
+
+            Assert.That(context.Status, Is.EqualTo(503));
+            Assert.That(context.Json, Does.Contain("busy"));
+            Assert.That(_reached, Is.Empty, "the node was never decided, so nothing was dispatched");
+        }
+
+        [Test]
+        public void A_database_that_moved_while_the_handler_read_it_answers_busy_as_well()
+        {
+            // The hop the catch always covered, pinned beside the one it did not: what a client
+            // is told must not depend on which read the tree happened to move under.
+            var context = Context("GET", "/entries/7b1c", Paired("reader"), null);
+
+            Moving(whileChoosing: false, whileHandling: true).Handle(context);
+
+            Assert.That(context.Status, Is.EqualTo(503));
+            Assert.That(context.Json, Does.Contain("busy"));
+        }
+
+        [Test]
+        public void Neither_of_them_is_counted_against_the_plugin_as_a_defect()
+        {
+            // Through a whole conversation, because the incident is recorded above the router:
+            // `GateConversation` counts anything escaping as this plugin's own fault and answers
+            // 500. A tree moving is somebody using KeePass, so the count has to stay where it was,
+            // and the caller has to get the 503 `PyKeePassGate` reports as `GateBusy` rather than
+            // the refusal every other status becomes there.
+            var routers = new[]
+            {
+                Moving(whileChoosing: true, whileHandling: false),
+                Moving(whileChoosing: false, whileHandling: true),
+            };
+
+            foreach (var moving in routers)
+            {
+                var incidents = new GateIncidents(_log);
+                var stream = new ConversationStream("GET /entries/7b1c HTTP/1.1\r\n\r\n");
+
+                GateConversation.Serve(
+                    stream, Paired("reader"), moving, new GateOptions(), _log, null, incidents);
+
+                Assert.That(incidents.Count, Is.EqualTo(0), "nothing here is a defect in this plugin");
+                Assert.That(stream.Status, Is.EqualTo(503));
+                Assert.That(stream.Body, Does.Contain("busy"));
+            }
+        }
+
+        /// <summary>What a read raises once its three attempts are spent.</summary>
+        private static VaultUnsettled Unsettled()
+        {
+            return new VaultUnsettled("the database kept changing while it was being read");
+        }
+
+        /// <summary>
+        /// A router over `readEntry` whose two reads of the tree can each be made to give up, so
+        /// that a test can say which hop met a database that would not hold still.
+        /// </summary>
+        private SpecRouter Moving(bool whileChoosing, bool whileHandling)
+        {
+            OperationHandler handler = context =>
+            {
+                if (whileHandling)
+                {
+                    throw Unsettled();
+                }
+
+                _reached.Add("readEntry");
+                context.Respond(200, "{}");
+            };
+
+            NodeSelector node = context =>
+            {
+                if (whileChoosing)
+                {
+                    throw Unsettled();
+                }
+
+                return _node;
+            };
+
+            return new SpecRouter(
+                SpecDocument.Parse(Document),
+                new Dictionary<string, OperationHandler>
+                {
+                    { "readEntry", handler },
+                    { "headEntry", handler },
+                },
+                null,
+                new Dictionary<string, NodeSelector>
+                {
+                    { "readEntry", node },
+                    { "headEntry", node },
+                },
+                new AccessCheck(_audit));
         }
 
         private GateContext Ask(ClientIdentity client)

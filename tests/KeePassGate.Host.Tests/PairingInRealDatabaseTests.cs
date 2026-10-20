@@ -40,7 +40,7 @@ namespace KeePassGate.Host.Tests
         private TemporaryDatabase _database;
         private GlobalWindowManagerWindows _windows;
         private GroupDialogs _dialogs;
-        private AdmissionWriter _writer;
+        private DatabaseWriter _writer;
         private RecordingLog _log;
         private int _saves;
 
@@ -54,7 +54,7 @@ namespace KeePassGate.Host.Tests
             _log = new RecordingLog();
             _saves = 0;
 
-            _writer = new AdmissionWriter(CurrentThread.Instance, Save, _dialogs, _log);
+            _writer = new DatabaseWriter(CurrentThread.Instance, Save, _dialogs, _log);
 
             var created = new AuthorityService(new CustomDataStore(_database.Database), null).Create();
             Assume.That(created.Succeeded, Is.True, created.Message);
@@ -73,7 +73,7 @@ namespace KeePassGate.Host.Tests
         {
             using (var certificate = IssueClient())
             {
-                var result = _writer.Write(_database.Database, Record(certificate, "ops"));
+                var result = _writer.WriteAdmission(_database.Database, Record(certificate, "ops"));
 
                 Assert.That(result.Ok, Is.True, result.Reason);
                 Assert.That(_saves, Is.EqualTo(1));
@@ -87,12 +87,12 @@ namespace KeePassGate.Host.Tests
             // the write before it: a record put in the database and not saved is taken back out
             // again, and a page told about that would list a client the next request refuses.
             var announced = 0;
-            var writer = new AdmissionWriter(
+            var writer = new DatabaseWriter(
                 CurrentThread.Instance, Save, () => announced++, _dialogs, _log);
 
             using (var certificate = IssueClient())
             {
-                var result = writer.Write(_database.Database, Record(certificate, "ops"));
+                var result = writer.WriteAdmission(_database.Database, Record(certificate, "ops"));
 
                 Assert.That(result.Ok, Is.True, result.Reason);
                 Assert.That(announced, Is.EqualTo(1));
@@ -105,7 +105,7 @@ namespace KeePassGate.Host.Tests
             // A save that does not reach the disk is undone, and the record is gone with it. A
             // page told about that would put a client on the list that is in no database.
             var announced = 0;
-            var writer = new AdmissionWriter(
+            var writer = new DatabaseWriter(
                 CurrentThread.Instance,
                 delegate { throw new System.IO.IOException("the disk said no"); },
                 () => announced++,
@@ -114,7 +114,7 @@ namespace KeePassGate.Host.Tests
 
             using (var certificate = IssueClient())
             {
-                var result = writer.Write(_database.Database, Record(certificate, "ops"));
+                var result = writer.WriteAdmission(_database.Database, Record(certificate, "ops"));
 
                 Assume.That(result.Ok, Is.False, "this write was supposed to fail");
                 Assert.That(announced, Is.EqualTo(0));
@@ -143,7 +143,7 @@ namespace KeePassGate.Host.Tests
             using (var certificate = IssueClient())
             {
                 var record = Record(certificate, "ops");
-                Assume.That(_writer.Write(_database.Database, record).Ok, Is.True);
+                Assume.That(_writer.WriteAdmission(_database.Database, record).Ok, Is.True);
 
                 _database.SaveCloseAndReopen();
 
@@ -169,7 +169,7 @@ namespace KeePassGate.Host.Tests
 
                     Assert.That(_writer.Blocked(_database.Database), Is.Not.Null);
 
-                    var result = _writer.Write(_database.Database, record);
+                    var result = _writer.WriteAdmission(_database.Database, record);
 
                     Assert.That(result.Ok, Is.False);
                     Assert.That(result.IsBusy, Is.True, "it is worth trying again once that dialog is gone");
@@ -186,11 +186,11 @@ namespace KeePassGate.Host.Tests
         [Test]
         public void A_save_that_does_not_happen_is_reported_rather_than_believed()
         {
-            var writer = new AdmissionWriter(CurrentThread.Instance, database => { }, _dialogs, _log);
+            var writer = new DatabaseWriter(CurrentThread.Instance, database => { }, _dialogs, _log);
 
             using (var certificate = IssueClient())
             {
-                var result = writer.Write(_database.Database, Record(certificate, "ops"));
+                var result = writer.WriteAdmission(_database.Database, Record(certificate, "ops"));
 
                 Assert.That(result.Ok, Is.False);
                 Assert.That(result.Reason, Does.Contain("unsaved changes"));
@@ -206,7 +206,7 @@ namespace KeePassGate.Host.Tests
             // certificate is destroyed unsent, and then whatever the operator saves next writes an
             // admission record for a certificate nobody was ever issued: a client on the tab that
             // cannot be accounted for and was never handed anything.
-            var writer = new AdmissionWriter(CurrentThread.Instance, database => { }, _dialogs, _log);
+            var writer = new DatabaseWriter(CurrentThread.Instance, database => { }, _dialogs, _log);
 
             using (var certificate = IssueClient())
             {
@@ -217,7 +217,7 @@ namespace KeePassGate.Host.Tests
                 // is this write's doing and nobody else's.
                 _database.Database.Modified = false;
 
-                Assume.That(writer.Write(_database.Database, record).Ok, Is.False);
+                Assume.That(writer.WriteAdmission(_database.Database, record).Ok, Is.False);
 
                 Assert.That(store.Get(record.StorageKey), Is.Null,
                     "a record that did not land must not be left in the group");
@@ -229,7 +229,7 @@ namespace KeePassGate.Host.Tests
         [Test]
         public void A_save_that_throws_leaves_no_record_behind_either()
         {
-            var writer = new AdmissionWriter(
+            var writer = new DatabaseWriter(
                 CurrentThread.Instance,
                 database => { throw new InvalidOperationException("the disk went away"); },
                 _dialogs,
@@ -240,7 +240,7 @@ namespace KeePassGate.Host.Tests
                 var record = Record(certificate, "ops");
                 var store = new CustomDataStore(_database.Database);
 
-                Assume.That(writer.Write(_database.Database, record).Ok, Is.False);
+                Assume.That(writer.WriteAdmission(_database.Database, record).Ok, Is.False);
 
                 Assert.That(store.Get(record.StorageKey), Is.Null);
             }
@@ -249,7 +249,7 @@ namespace KeePassGate.Host.Tests
         [Test]
         public void A_save_that_throws_is_reported_rather_than_thrown()
         {
-            var writer = new AdmissionWriter(
+            var writer = new DatabaseWriter(
                 CurrentThread.Instance,
                 database => { throw new InvalidOperationException("the disk went away"); },
                 _dialogs,
@@ -257,7 +257,7 @@ namespace KeePassGate.Host.Tests
 
             using (var certificate = IssueClient())
             {
-                var result = writer.Write(_database.Database, Record(certificate, "ops"));
+                var result = writer.WriteAdmission(_database.Database, Record(certificate, "ops"));
 
                 Assert.That(result.Ok, Is.False);
                 Assert.That(result.Reason, Does.Contain("disk went away"));
@@ -268,11 +268,11 @@ namespace KeePassGate.Host.Tests
         [Test]
         public void A_user_interface_that_never_answers_fails_the_pairing_rather_than_holding_it()
         {
-            var writer = new AdmissionWriter(new NeverRuns(), Save, _dialogs, _log);
+            var writer = new DatabaseWriter(new NeverRuns(), Save, _dialogs, _log);
 
             using (var certificate = IssueClient())
             {
-                var result = writer.Write(_database.Database, Record(certificate, "ops"));
+                var result = writer.WriteAdmission(_database.Database, Record(certificate, "ops"));
 
                 Assert.That(result.Ok, Is.False);
                 Assert.That(result.IsBusy, Is.True);
@@ -288,7 +288,7 @@ namespace KeePassGate.Host.Tests
                 _database.Database.Close();
 
                 Assert.That(_writer.Blocked(_database.Database), Is.Not.Null);
-                Assert.That(_writer.Write(_database.Database, record).Ok, Is.False);
+                Assert.That(_writer.WriteAdmission(_database.Database, record).Ok, Is.False);
             }
         }
 
@@ -302,7 +302,7 @@ namespace KeePassGate.Host.Tests
                 var inside = 0;
                 var overlapped = false;
 
-                var writer = new AdmissionWriter(
+                var writer = new DatabaseWriter(
                     CurrentThread.Instance,
                     database =>
                     {
@@ -318,8 +318,8 @@ namespace KeePassGate.Host.Tests
                     _dialogs,
                     _log);
 
-                var first = new Thread(() => writer.Write(_database.Database, Record(one, "ops")));
-                var second = new Thread(() => writer.Write(_database.Database, Record(two, "ops")));
+                var first = new Thread(() => writer.WriteAdmission(_database.Database, Record(one, "ops")));
+                var second = new Thread(() => writer.WriteAdmission(_database.Database, Record(two, "ops")));
 
                 first.Start();
                 second.Start();

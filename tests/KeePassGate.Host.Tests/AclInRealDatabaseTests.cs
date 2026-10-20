@@ -189,11 +189,13 @@ namespace KeePassGate.Host.Tests
         [Test]
         public void A_walk_taken_while_the_tree_and_the_rules_move_raises_nothing()
         {
-            // Why the resolver's walk takes no lock and no copy, and loses nothing by it.
-            // `IAclNode.Document` and `IAclNode.Parent` are read as the walk reaches them, while
-            // another thread may be changing the tree and the rules. What a tree in motion breaks
-            // is an enumerator or a copy, and a walk is neither: two field reads per level and one
-            // lookup in a sorted dictionary.
+            // Why the resolver's walk sits outside `KdbxVault.Reading` and loses nothing by it.
+            // The node is found through that retry, but `IAclNode.Document` and `IAclNode.Parent`
+            // are read as the walk reaches them, which is after it has returned. What the retry
+            // takes again is an enumerator or a copy that met a tree in motion, and a walk is
+            // neither: two field reads per level and one lookup in a sorted dictionary. An
+            // exception escaping here would reach the catch-all on the connection thread, which
+            // answers 500 and records a defect in this plugin for somebody typing in KeePass.
             var churnedGroup = GroupUnderRoot("Fictitious");
             var otherGroup = GroupUnderRoot("Also Fictitious");
             var churned = EntryIn(churnedGroup);

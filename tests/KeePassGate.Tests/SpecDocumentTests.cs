@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using KeePassGate.Acl;
 using KeePassGate.Pipeline;
@@ -20,12 +19,104 @@ namespace KeePassGate.Tests
     public sealed class EmbeddedDocumentTests
     {
         [Test]
+        public void What_the_gate_hands_out_is_what_it_will_take_back()
+        {
+            // Two numbers that have to agree: the ceiling `ReadAttachment` refuses above, and the
+            // longest base64 the document accepts on a write. An attachment that can be read and
+            // never restored is what they buy when they drift.
+            var longest = 4 * ((VaultHandlers.MaxAttachmentBytes + 2) / 3);
+
+            var writes = SpecDocument.Embedded().Operations
+                .Where(o => o.Body != null && o.Body.Properties.ContainsKey("content"))
+                .ToList();
+
+            Assert.That(writes, Is.Not.Empty, "the attachment writes are what this is about");
+
+            foreach (var write in writes)
+            {
+                Assert.That(write.Body.Properties["content"].MaxLength, Is.EqualTo(longest),
+                    write.OperationId + " accepts a different size from the one a read hands out");
+            }
+        }
+
+        [Test]
+        public void The_largest_attachment_write_fits_the_body_the_transport_reads()
+        {
+            // The third number in the round trip. The transport refuses a body over its cap by
+            // `Content-Length` before the document is consulted, so a ceiling the document accepts
+            // and the transport does not is one more attachment that can be read and never put
+            // back, and nothing but this relates the two. Counted at its worst: base64 is ASCII,
+            // and any other string may be every character escaped as six bytes of `\uXXXX`.
+            const int EscapedCharacter = 6;
+            const int Punctuation = 6;
+
+            var writes = SpecDocument.Embedded().Operations
+                .Where(o => o.Body != null && o.Body.Properties.ContainsKey("content"))
+                .ToList();
+
+            Assert.That(writes, Is.Not.Empty, "the attachment writes are what this is about");
+
+            foreach (var write in writes)
+            {
+                var largest = 2;
+                foreach (var property in write.Body.Properties)
+                {
+                    var perCharacter = property.Key == "content" ? 1 : EscapedCharacter;
+                    largest += property.Key.Length + Punctuation + property.Value.MaxLength.Value * perCharacter;
+                }
+
+                Assert.That(largest, Is.LessThanOrEqualTo(new GateOptions().MaxBodyBytes),
+                    write.OperationId + " declares a body the transport refuses before reading it");
+            }
+        }
+
+        [Test]
+        public void The_waits_before_busy_are_the_ones_the_writer_keeps()
+        {
+            // The document gives a client the two numbers to set its own timeout against, and a
+            // number the writer no longer waits for is a client giving up on a write that may
+            // still land. Read off the text, with its line breaks taken out.
+            string text;
+            using (var stream = typeof(SpecDocument).Assembly.GetManifestResourceStream("KeePassGate.Spec.openapi.yaml"))
+            using (var reader = new System.IO.StreamReader(stream))
+            {
+                text = System.Text.RegularExpressions.Regex.Replace(reader.ReadToEnd(), @"\s+", " ");
+            }
+
+            Assert.That(text, Does.Contain(
+                "up to " + KeePassGate.Bridge.DatabaseWriter.LockTimeout.TotalSeconds + " seconds for the one ahead of it"));
+            Assert.That(text, Does.Contain(
+                "up to " + KeePassGate.Bridge.DatabaseWriter.WriteTimeout.TotalSeconds + " more for KeePass's own thread"));
+        }
+
+        [Test]
         public void The_build_carries_a_routing_table()
         {
             var document = SpecDocument.Embedded();
 
             Assert.That(document.Title, Is.EqualTo("KeePassGate"));
             Assert.That(document.Operations, Is.Not.Empty);
+        }
+
+        [Test]
+        public void The_table_is_the_size_the_design_argues_from()
+        {
+            // `DESIGN.md` §128 answers "spec-first routing is slower than a switch statement" by
+            // saying how small the table is, so the answer is only as good as the number in it.
+            // The number was written when the API was pairing and a status route, said "fewer
+            // than a dozen" ever after, and was wrong by a factor of three by the time the
+            // routes landed. A count nothing reads cannot notice that.
+            //
+            // A route added here fails this test on purpose: the sentence in §128 is the thing
+            // that has to be brought along, and there is nowhere else that number is kept.
+            var declared = SpecDocument.Embedded().Operations;
+
+            Assert.That(declared.Count, Is.EqualTo(36),
+                "§128 says thirty-six operations");
+            Assert.That(declared.Select(o => o.Path.Text).Distinct().Count(), Is.EqualTo(13),
+                "§128 says thirteen paths");
+            Assert.That(declared.Count(o => o.Method == "HEAD"), Is.EqualTo(11),
+                "§128 says eleven of them are the HEAD that answers for a GET");
         }
 
         [Test]
@@ -72,13 +163,22 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void Nothing_this_serves_reaches_an_attachment_yet()
+        public void The_operations_reaching_an_attachment_are_the_ones_about_attachments()
         {
-            // There is no route to one, and this is what says so out loud, so the first operation
-            // that opens an attachment arrives with a test in front of it rather than behind it.
-            Assert.That(
-                SpecDocument.Embedded().Operations.Select(o => o.Reach),
-                Has.All.EqualTo(AclReach.Fields));
+            // The switch is not a verb, so an operation reaching that far says so separately. What
+            // this asserts is that nothing else quietly does: a route added to the entry or the
+            // group side cannot pick up the attachment scope by being near one. The two heads
+            // are here because their gets are: the switch is carried over with the verb.
+            var reaching = SpecDocument.Embedded().Operations
+                .Where(o => o.Reach == AclReach.Attachments)
+                .Select(o => o.OperationId)
+                .OrderBy(name => name, StringComparer.Ordinal);
+
+            Assert.That(reaching, Is.EqualTo(new[]
+            {
+                "createAttachment", "headAttachment", "headAttachments",
+                "listAttachments", "readAttachment", "stripAttachment", "updateAttachment",
+            }));
         }
 
         [Test]
@@ -431,6 +531,89 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void An_operation_carries_the_query_parameters_it_declares()
+        {
+            // Read off the document rather than assumed empty, which is what lets the router
+            // refuse a name nobody declared without refusing every query for all time. Declared
+            // on the path item as well as on the operation, because OpenAPI allows either and
+            // every operation under a path item inherits its parameters.
+            var document = SpecDocument.Parse(Document(
+                "\"/a\":{\"parameters\":[{\"name\":\"since\",\"in\":\"query\"," +
+                "\"schema\":{\"type\":\"string\"}}]," +
+                "\"get\":{\"operationId\":\"readA\",\"x-kpg-verb\":\"read\"," +
+                "\"parameters\":[{\"name\":\"limit\",\"in\":\"query\"," +
+                "\"schema\":{\"type\":\"string\"}}]," +
+                "\"responses\":{\"200\":{\"description\":\"o\"}}}," +
+                "\"head\":{\"operationId\":\"headA\",\"x-kpg-verb\":\"read\"," +
+                "\"parameters\":[{\"name\":\"limit\",\"in\":\"query\"," +
+                "\"schema\":{\"type\":\"string\"}}]," +
+                "\"responses\":{\"200\":{\"description\":\"o\"}}}}"));
+
+            Assert.That(
+                document.Operations.Single(o => o.Method == "GET").Query,
+                Is.EquivalentTo(new[] { "since", "limit" }));
+            Assert.That(
+                document.Operations.Single(o => o.Method == "HEAD").Query,
+                Is.EquivalentTo(new[] { "since", "limit" }),
+                "the path item's own parameter inherited, and the operation's own declared");
+        }
+
+        [Test]
+        public void A_head_taking_other_query_parameters_than_its_own_get_stops_it_too()
+        {
+            // One request with the content left off, so one query. A name the get declares and
+            // the head does not is a target the router serves at the one and refuses as
+            // undeclared at the other, and the head would say nothing is there where the get
+            // answers with the entries.
+            var raised = Assert.Throws<InvalidOperationException>(() => SpecDocument.Parse(Document(
+                "\"/a\":{\"get\":{\"operationId\":\"readA\",\"x-kpg-verb\":\"read\"," +
+                "\"parameters\":[{\"name\":\"limit\",\"in\":\"query\"," +
+                "\"schema\":{\"type\":\"string\"}}]," +
+                "\"responses\":{\"200\":{\"description\":\"o\"}}}," +
+                "\"head\":{\"operationId\":\"headA\",\"x-kpg-verb\":\"read\"," +
+                "\"responses\":{\"200\":{\"description\":\"o\"}}}}")));
+
+            Assert.That(raised.Message, Does.Contain("disagree about the query parameters"));
+        }
+
+        [TestCase("{\"type\":\"string\",\"pattern\":\"^[a-f0-9]+$\"}", "pattern")]
+        [TestCase("{\"type\":\"string\",\"enum\":[\"root\"]}", "enum")]
+        [TestCase("{\"type\":\"integer\"}", "integer")]
+        public void A_path_parameter_schema_nothing_would_keep_is_refused(string schema, string named)
+        {
+            // What a body schema nothing enforces is refused for. A path parameter may be a string
+            // and say how long it is, and the router holds a segment to that; anything else the
+            // document said about a parameter loaded clean and was kept by nobody.
+            var raised = Assert.Throws<InvalidOperationException>(() => SpecDocument.Parse(Document(
+                "\"/a/{id}\":{\"get\":{\"operationId\":\"readA\",\"x-kpg-verb\":\"none\",\"parameters\":" +
+                "[{\"name\":\"id\",\"in\":\"path\",\"required\":true,\"schema\":" + schema + "}]," +
+                "\"responses\":{\"200\":{\"description\":\"o\"}}}," +
+                "\"head\":{\"operationId\":\"headA\",\"x-kpg-verb\":\"none\",\"parameters\":" +
+                "[{\"name\":\"id\",\"in\":\"path\",\"required\":true,\"schema\":" + schema + "}]," +
+                "\"responses\":{\"200\":{\"description\":\"o\"}}}}")));
+
+            Assert.That(raised.Message, Does.Contain("path parameter id"));
+            Assert.That(raised.Message, Does.Contain(named));
+        }
+
+        [TestCase("{\"type\":\"string\",\"maxLength\":3}", "maxLength")]
+        [TestCase("{\"type\":\"integer\"}", "integer")]
+        public void A_query_parameter_schema_nothing_would_keep_is_refused(string schema, string named)
+        {
+            // The router asks only whether a query name is declared, so a bound on its value was a
+            // bound the document stated and nothing held a request to.
+            var raised = Assert.Throws<InvalidOperationException>(() => SpecDocument.Parse(Document(
+                "\"/a\":{\"parameters\":[{\"name\":\"limit\",\"in\":\"query\",\"schema\":" + schema + "}]," +
+                "\"get\":{\"operationId\":\"readA\",\"x-kpg-verb\":\"none\"," +
+                "\"responses\":{\"200\":{\"description\":\"o\"}}}," +
+                "\"head\":{\"operationId\":\"headA\",\"x-kpg-verb\":\"none\"," +
+                "\"responses\":{\"200\":{\"description\":\"o\"}}}}")));
+
+            Assert.That(raised.Message, Does.Contain("query parameter limit"));
+            Assert.That(raised.Message, Does.Contain(named));
+        }
+
+        [Test]
         public void A_captured_name_the_operation_never_declares_is_refused()
         {
             // The document is what a client is generated from, so a segment it does not say is a
@@ -455,6 +638,35 @@ namespace KeePassGate.Tests
                 "\"responses\":{\"200\":{\"description\":\"o\"}}}}")));
 
             Assert.That(refused.Message, Does.Contain("does not require it"));
+        }
+
+        [Test]
+        public void An_operation_that_changes_the_database_and_declares_no_500_is_refused()
+        {
+            // Every one of them answers `500 not saved` for a change that was made and did not
+            // reach the disk, and none of them said so. A client generated from a document that
+            // leaves it out meets the one outcome it must not retry as an unknown status.
+            var refused = Assert.Throws<InvalidOperationException>(() => SpecDocument.Parse(Document(
+                "\"/a/{id}\":{\"delete\":{\"operationId\":\"stripA\",\"x-kpg-verb\":\"strip\"," +
+                "\"parameters\":[{\"name\":\"id\",\"in\":\"path\",\"required\":true," +
+                "\"schema\":{\"type\":\"string\"}}]," +
+                "\"responses\":{\"200\":{\"description\":\"o\"}}}}")));
+
+            Assert.That(refused.Message, Does.Contain("500"));
+            Assert.That(refused.Message, Does.Contain("stripA"));
+        }
+
+        [Test]
+        public void A_read_is_not_asked_to_declare_a_save_that_could_fail()
+        {
+            // The other side of it, because a rule that asked every operation would be a rule
+            // about nothing. A read leaves the database as it found it, so there is no save to
+            // report on.
+            Assert.DoesNotThrow(() => SpecDocument.Parse(Document(
+                "\"/a\":{\"get\":{\"operationId\":\"readA\",\"x-kpg-verb\":\"read\"," +
+                "\"responses\":{\"200\":{\"description\":\"o\"}}}," +
+                "\"head\":{\"operationId\":\"headA\",\"x-kpg-verb\":\"read\"," +
+                "\"responses\":{\"200\":{\"description\":\"o\"}}}}")));
         }
 
         [Test]
@@ -505,6 +717,21 @@ namespace KeePassGate.Tests
 
             Assert.That(writable, Is.Not.Null, "it is still castable; what matters is what that buys");
             Assert.Throws<NotSupportedException>(() => writable.Clear());
+        }
+
+        [Test]
+        public void The_query_names_it_hands_back_cannot_be_added_to_either()
+        {
+            // What the router refuses a query for, read on every connection too. Handed out as a
+            // set, a name added to it by anything holding the document was a name every later
+            // request could send.
+            var operation = SpecDocument.Embedded().Operations[0];
+            var writable = operation.Query as System.Collections.Generic.ICollection<string>;
+
+            Assert.That(operation.Query, Is.Not.InstanceOf<System.Collections.Generic.ISet<string>>());
+            Assert.That(writable, Is.Not.Null, "it is still castable; what matters is what that buys");
+            Assert.Throws<NotSupportedException>(() => writable.Add("limit"));
+            Assert.That(operation.DeclaresQuery("limit"), Is.False);
         }
 
         private static string Document(string paths)

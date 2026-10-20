@@ -10,6 +10,12 @@
     carries a number, every number is unique and permanent, and one of them is a single grep away
     from the paragraph that defines it and from every place that leans on it.
 
+    The routing document is a fifth, and anchored differently. `openapi.yaml` has no headings and
+    a key on every line, so a number there sits at the end of a comment line between keys, beside
+    what it names, and only what something cites carries one. Numbering every operation, schema
+    and response would put a handle on every line of the routing table for the sake of the few
+    that are ever pointed at.
+
     The numbers are flat rather than hierarchical, and that is the whole point of them. A section
     numbered by where it sits has to be renumbered when something is inserted above it, which
     silently rewrites every reference that was correct the day before. A flat number is allocated
@@ -22,7 +28,7 @@
 
     What is checked here:
 
-      - every section of an anchored document carries an anchor;
+      - every section of an anchored Markdown document carries an anchor;
       - every anchor is inside its own document's hundred;
       - no anchor is defined twice, anywhere;
       - every reference resolves to an anchor that exists;
@@ -57,11 +63,28 @@ $sign = [char] 0x00A7
 # The documents that settle things, each with the hundred it allocates from. A document is checked
 # only if it is present: `API.md` arrives with the routes it describes, several steps after the
 # other three, and a gate demanding it from the first commit would fail every commit before it.
+# Keys are written with forward slashes, which `Join-Path` and git both take on every platform.
+$routing = 'src/KeePassGate/Spec/openapi.yaml'
 $blocks = [ordered] @{
     'DESIGN.md'  = 100
     'CA.md'      = 200
     'PAIRING.md' = 300
     'API.md'     = 400
+    $routing     = 500
+}
+
+# Where a definition may sit. A Markdown document defines one at the end of a heading below the
+# title, and every such heading has to carry one. The routing document defines one at the end of a
+# comment line, and a comment without one is only a comment. A `#` inside a block scalar is text a
+# client reads rather than a comment, and the pattern cannot tell the two apart by itself: an
+# indented line opening with `#` inside a description would be read as a site, which is one more
+# reason a description holds no section sign at all.
+function Get-Site([string] $document) {
+    if ($document -eq $routing) {
+        return '^\s*#'
+    }
+
+    return '^#{2,3} '
 }
 
 # Every text file the repository has, as git answers it, which is what `RepositoryFiles.ps1` says.
@@ -73,7 +96,8 @@ $reference = "$sign(\d{3})"
 $problems = @()
 
 # Pass one: the definitions. An anchor is defined by sitting at the end of a heading, and nowhere
-# else, so that what a number names is always a section and never a sentence about one.
+# else, so that what a number names is always a section and never a sentence about one. In the
+# routing document the comment beside a key stands in for the heading, for the same reason.
 $defined = @{}
 $missing = @{}
 $highest = @{}
@@ -86,6 +110,7 @@ foreach ($document in $blocks.Keys) {
     $base = $blocks[$document]
     $highest[$document] = $base
     $missing[$document] = @()
+    $site = Get-Site $document
 
     $number = 0
     foreach ($line in Get-Content -Path $path -Encoding UTF8) {
@@ -93,13 +118,19 @@ foreach ($document in $blocks.Keys) {
 
         # Level one is the document's own title, and the one divider inside `DESIGN.md`. Neither is
         # a section anybody cites, and both would take a number that then has to mean something.
-        if ($line -notmatch '^#{2,3} ') {
+        if ($line -notmatch $site) {
             continue
         }
 
+        # A comment in the routing document that ends in a number is a definition, so one ending in
+        # a citation of another document is reported below as outside this document's block, which
+        # is the right answer: a citation in a comment is written where it does not end the line.
         $anchor = [regex]::Match($line, $definition)
         if (-not $anchor.Success) {
-            $missing[$document] += $number
+            if ($document -ne $routing) {
+                $missing[$document] += $number
+            }
+
             continue
         }
 
@@ -166,13 +197,15 @@ finally {
 }
 
 if ($repository) {
-    $addition = "^\+#{2,3} .* $sign(\d{3})$"
-
     foreach ($document in $blocks.Keys) {
         $path = Join-Path $Root $document
         if (-not (Test-Path $path)) {
             continue
         }
+
+        # The same site as pass one, read off a line `git log -p` added.
+        $site = Get-Site $document
+        $addition = '^\+' + $site.Substring(1) + ".* $sign(\d{3})$"
 
         $history = $null
         $spelling = [Console]::OutputEncoding
@@ -229,7 +262,7 @@ if ($repository) {
         $number = 0
         foreach ($line in Get-Content -Path $path -Encoding UTF8) {
             $number++
-            if ($line -notmatch '^#{2,3} ') {
+            if ($line -notmatch $site) {
                 continue
             }
 
@@ -259,7 +292,9 @@ foreach ($file in $files) {
     }
 
     $relative = $file.FullName.Substring($Root.Length).TrimStart([IO.Path]::DirectorySeparatorChar)
-    $anchored = $blocks.Contains($relative)
+    $key = $relative.Replace([IO.Path]::DirectorySeparatorChar, '/')
+    $anchored = $blocks.Contains($key)
+    $site = Get-Site $key
 
     $number = 0
     foreach ($line in Get-Content -Path $file.FullName -Encoding UTF8) {
@@ -269,7 +304,7 @@ foreach ($file in $files) {
         }
 
         # A definition is not a reference to itself.
-        $body = if ($anchored -and $line -match '^#{2,3} ') {
+        $body = if ($anchored -and $line -match $site) {
             [regex]::Replace($line, $definition, '')
         }
         else {

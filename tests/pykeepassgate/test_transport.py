@@ -7,6 +7,8 @@ before the body is written, and whether loading one authority really is a pin.
 
 from __future__ import annotations
 
+import datetime as dt
+import math
 import ssl
 import time
 from collections.abc import Callable
@@ -14,10 +16,17 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from cryptography import x509
 
-from conftest import Authority, FakeGate, Issued
+from conftest import RESPONDER_CLAIM, Authority, FakeGate, Issued
 from pykeepassgate import transport
-from pykeepassgate.errors import ProtocolError, TransportError
+from pykeepassgate.errors import (
+    DatabaseLocked,
+    GateBusy,
+    ProtocolError,
+    StorageError,
+    TransportError,
+)
 
 Answers = Callable[[int, "dict[str, Any] | str"], Any]
 
@@ -72,7 +81,7 @@ class TestConnecting:
 
         # Port 1 on loopback, which nothing this test could be racing has any reason to hold.
         with pytest.raises(TransportError, match="nothing is listening"), transport.connect(
-            1, context, "x.y.kpg", timeout=2.0
+            1, context, "x.y.kpg", connection_timeout=2.0
         ):
             pass  # pragma: no cover, the connect is what raises
 
@@ -82,7 +91,9 @@ class TestConnecting:
         gate.handler = answers(200, {"ok": True})
         context = transport.unpaired_context()
 
-        with transport.connect(gate.port, context, "abc.def.kpg", timeout=10.0) as connection:
+        with transport.connect(
+            gate.port, context, "abc.def.kpg", connection_timeout=10.0
+        ) as connection:
             connection.send("GET", "/gate/status")
 
         assert gate.names == ["abc.def.kpg"]
@@ -94,7 +105,9 @@ class TestConnecting:
         gate.handler = answers(200, {"ok": True})
         context = transport.unpaired_context()
 
-        with transport.connect(gate.port, context, "abc.def.kpg", timeout=10.0) as connection:
+        with transport.connect(
+            gate.port, context, "abc.def.kpg", connection_timeout=10.0
+        ) as connection:
             assert connection.server_certificate == host.der
 
     def test_a_request_and_its_answer_survive_the_round_trip(
@@ -103,7 +116,9 @@ class TestConnecting:
         gate.handler = answers(201, {"read": "it"})
         context = transport.unpaired_context()
 
-        with transport.connect(gate.port, context, "abc.def.kpg", timeout=10.0) as connection:
+        with transport.connect(
+            gate.port, context, "abc.def.kpg", connection_timeout=10.0
+        ) as connection:
             reply = connection.send("POST", "/pair/hello", '{"proof":"x"}')
 
         assert (reply.status, reply.json()) == (201, {"read": "it"})
@@ -113,7 +128,9 @@ class TestConnecting:
         gate.handler = answers(200, {"ok": True})
         context = transport.unpaired_context()
 
-        with transport.connect(gate.port, context, "abc.def.kpg", timeout=10.0) as connection:
+        with transport.connect(
+            gate.port, context, "abc.def.kpg", connection_timeout=10.0
+        ) as connection:
             assert connection._socket.version() == "TLSv1.3"
 
 
@@ -124,7 +141,9 @@ class TestPinning:
         gate.handler = answers(200, {"ok": True})
         context = transport.paired_context(authority.pem, client_certificate.pem)
 
-        with transport.connect(gate.port, context, "abc.def.kpg", timeout=10.0) as connection:
+        with transport.connect(
+            gate.port, context, "abc.def.kpg", connection_timeout=10.0
+        ) as connection:
             assert connection.send("GET", "/gate/status").status == 200
 
     def test_a_certificate_from_a_foreign_authority_fails_the_handshake(
@@ -137,7 +156,7 @@ class TestPinning:
         context = transport.paired_context(stranger.pem, client_certificate.pem)
 
         with pytest.raises(TransportError, match="handshake failed"), transport.connect(
-            gate.port, context, "abc.def.kpg", timeout=10.0
+            gate.port, context, "abc.def.kpg", connection_timeout=10.0
         ):
             pass  # pragma: no cover, the handshake is what raises
 
@@ -152,8 +171,97 @@ class TestPinning:
         assert context.check_hostname is False
         assert context.verify_mode == ssl.CERT_REQUIRED
 
-        with transport.connect(gate.port, context, "nothing.like.it.kpg", timeout=10.0) as open_:
+        with transport.connect(
+            gate.port, context, "nothing.like.it.kpg", connection_timeout=10.0
+        ) as open_:
             assert open_.send("GET", "/gate/status").status == 200
+
+    def test_a_client_certificate_of_the_same_authority_is_not_a_host(
+        self, gate: FakeGate, authority: Authority, client_certificate: Issued
+    ) -> None:
+        # `CA.md` §215: the authority that signs the host signs every client too, so without the
+        # `serverAuth` check any client could answer as the gate to every other. The check is
+        # OpenSSL's, made for any context built for a client, and this is what would notice it
+        # going. Matched on the reason, so that no other failure passes for it.
+        gate.serve_with(client_certificate)
+        context = transport.paired_context(authority.pem, client_certificate.pem)
+
+        with pytest.raises(TransportError, match=r"handshake failed.*purpose"), transport.connect(
+            gate.port, context, "abc.def.kpg", connection_timeout=10.0
+        ):
+            pass  # pragma: no cover, the handshake is what raises
+
+    @pytest.mark.parametrize(
+        ("valid", "reason"),
+        [
+            ((dt.timedelta(hours=-3), dt.timedelta(hours=-1)), "expired"),
+            ((dt.timedelta(hours=1), dt.timedelta(hours=3)), "not yet valid"),
+        ],
+        ids=["expired", "not yet valid"],
+    )
+    def test_a_host_certificate_outside_its_dates_is_refused(
+        self,
+        valid: tuple[dt.timedelta, dt.timedelta],
+        reason: str,
+        gate: FakeGate,
+        authority: Authority,
+        client_certificate: Issued,
+    ) -> None:
+        # The dates are the one bound on how long a host or responder key that leaked, from an
+        # old copy of the database or out of memory, can answer as the gate: the client pins the
+        # authority and nothing else, and no host certificate is ever revoked. OpenSSL makes the
+        # check, and nothing written here would notice it going, a verification written by hand
+        # to tell expiry from a foreign authority least of all.
+        dated = authority.issue(
+            "host", x509.oid.ExtendedKeyUsageOID.SERVER_AUTH, "dated.pem", valid=valid
+        )
+        gate.serve_with(dated)
+        context = transport.paired_context(authority.pem, client_certificate.pem)
+
+        with pytest.raises(TransportError, match=f"handshake failed.*{reason}"), transport.connect(
+            gate.port, context, "abc.def.kpg", connection_timeout=10.0
+        ):
+            pass  # pragma: no cover, the handshake is what raises
+
+
+class TestTheResponder:
+    """The identity a locked database answers with, and what this client will do with it."""
+
+    def test_the_marker_is_the_one_the_plugin_writes(self) -> None:
+        # Written down on both sides rather than shared, because a client reading a different
+        # string reads no marker at all and finds every certificate innocent. The value comes
+        # from `AuthorityIssuer.ResponderClaim`; regenerate it from there and never from here.
+        assert transport.RESPONDER_CLAIM == RESPONDER_CLAIM
+
+    def test_a_marked_certificate_is_recognized(self, responder: Issued) -> None:
+        assert transport._responder(responder.der)
+
+    def test_the_certificate_an_open_database_answers_with_is_not(self, host: Issued) -> None:
+        # It carries no subject alternative name at all, which is the ordinary case and has to
+        # cost nothing: a client that took this for a responder would refuse every honest gate.
+        assert not transport._responder(host.der)
+
+    def test_bytes_that_are_not_a_certificate_are_not_one(self) -> None:
+        # Unreachable through a handshake, since the peer's certificate parsed to get there.
+        # The answer still has to be a `bool` rather than whatever `x509` raises.
+        assert not transport._responder(b"not a certificate at all")
+
+    def test_no_request_is_sent_over_a_responder(
+        self, gate: FakeGate, responder: Issued, authority: Authority, client_certificate: Issued
+    ) -> None:
+        # `CA.md` 208: the marker is there so a client can refuse to send real requests over an
+        # identity that can only say the database is locked. Refusing after the answer would
+        # have handed over the request first, and a request body is what it was going to store.
+        gate.serve_with(responder)
+        gate.handler = lambda path, body, client: (200, '{"password": "fabricated"}')
+        context = transport.paired_context(authority.pem, client_certificate.pem)
+
+        with transport.connect(
+            gate.port, context, "abc.def.kpg", connection_timeout=10.0
+        ) as connection, pytest.raises(DatabaseLocked, match="responder identity"):
+            connection.send("PUT", "/entries/abc/fields/Password", '{"value":"secret"}')
+
+        assert gate.requests == [], "nothing reached the gate at all"
 
 
 class TestWhatThisClientWillNotSend:
@@ -169,7 +277,7 @@ class TestWhatThisClientWillNotSend:
         smuggled = "/gate/status\r\nX-Injected: yes\r\n\r\nGET /elsewhere HTTP/1.1"
 
         with transport.connect(
-            gate.port, context, "abc.def.kpg", timeout=10.0
+            gate.port, context, "abc.def.kpg", connection_timeout=10.0
         ) as connection, pytest.raises(ProtocolError, match="request line cannot"):
             connection.send("GET", smuggled)
 
@@ -188,7 +296,7 @@ class TestWhatThisClientWillNotSend:
         beyond = "/groups/" + chr(0x00FC) + "ber"
 
         with transport.connect(
-            gate.port, context, "abc.def.kpg", timeout=10.0
+            gate.port, context, "abc.def.kpg", connection_timeout=10.0
         ) as connection, pytest.raises(ProtocolError, match="not a path"):
             connection.send("GET", beyond)
 
@@ -199,7 +307,7 @@ class TestWhatThisClientWillNotSend:
         context = transport.paired_context(authority.pem, client_certificate.pem)
 
         with transport.connect(
-            gate.port, context, "abc.def.kpg", timeout=10.0
+            gate.port, context, "abc.def.kpg", connection_timeout=10.0
         ) as connection, pytest.raises(ProtocolError, match="not a method"):
             connection.send("GET /elsewhere HTTP/1.1", "/gate/status")
 
@@ -217,7 +325,7 @@ class TestTheAnswerIsFramedRatherThanEnded:
         context = transport.paired_context(authority.pem, client_certificate.pem)
 
         with transport.connect(
-            gate.port, context, "abc.def.kpg", timeout=10.0
+            gate.port, context, "abc.def.kpg", connection_timeout=10.0
         ) as connection, pytest.raises(TransportError, match="short of its own content length"):
             connection.send("GET", "/gate/status")
 
@@ -231,7 +339,9 @@ class TestTheAnswerIsFramedRatherThanEnded:
         gate.handler = lambda path, body, client: (200, '{"ok": true}')
         context = transport.paired_context(authority.pem, client_certificate.pem)
 
-        with transport.connect(gate.port, context, "abc.def.kpg", timeout=10.0) as connection:
+        with transport.connect(
+            gate.port, context, "abc.def.kpg", connection_timeout=10.0
+        ) as connection:
             assert connection.send("GET", "/gate/status").body == '{"ok": true}'
 
     def test_a_length_that_is_not_a_number_is_refused(
@@ -242,7 +352,7 @@ class TestTheAnswerIsFramedRatherThanEnded:
         context = transport.paired_context(authority.pem, client_certificate.pem)
 
         with transport.connect(
-            gate.port, context, "abc.def.kpg", timeout=10.0
+            gate.port, context, "abc.def.kpg", connection_timeout=10.0
         ) as connection, pytest.raises(ProtocolError, match="not a content length"):
             connection.send("GET", "/gate/status")
 
@@ -256,14 +366,289 @@ class TestTheAnswerIsFramedRatherThanEnded:
         context = transport.paired_context(authority.pem, client_certificate.pem)
 
         started = time.monotonic()
-        with transport.connect(gate.port, context, "abc.def.kpg", timeout=10.0) as connection:
+        with transport.connect(
+            gate.port, context, "abc.def.kpg", connection_timeout=10.0
+        ) as connection:
             assert connection.send("GET", "/gate/status").body == '{"ok": true}'
 
         assert time.monotonic() - started < 3.0, "it did not wait for a close it did not need"
+
+    def test_an_answer_over_the_cap_it_was_given_fails_whole(
+        self, gate: FakeGate, authority: Authority, client_certificate: Issued
+    ) -> None:
+        # Refused rather than cut short: a listing missing its tail would read as a complete one.
+        gate.handler = lambda path, body, client: (200, '{"pad": "' + "x" * 4096 + '"}')
+        context = transport.paired_context(authority.pem, client_certificate.pem)
+
+        with transport.connect(
+            gate.port, context, "abc.def.kpg", connection_timeout=10.0, max_response_bytes=1024
+        ) as connection, pytest.raises(ProtocolError, match="over 1024 bytes"):
+            connection.send("GET", "/gate/status")
+
+    def test_an_answer_under_the_cap_it_was_given_is_read(
+        self, gate: FakeGate, authority: Authority, client_certificate: Issued
+    ) -> None:
+        body = '{"pad": "' + "x" * 4096 + '"}'
+        gate.handler = lambda path, sent, client: (200, body)
+        context = transport.paired_context(authority.pem, client_certificate.pem)
+
+        with transport.connect(
+            gate.port, context, "abc.def.kpg", connection_timeout=10.0, max_response_bytes=8192
+        ) as connection:
+            assert connection.send("GET", "/gate/status").body == body
+
+    @pytest.mark.parametrize("cap", [0, -1])
+    def test_a_cap_nothing_fits_under_is_refused_before_dialing(
+        self, cap: int, gate: FakeGate, authority: Authority, client_certificate: Issued
+    ) -> None:
+        context = transport.paired_context(authority.pem, client_certificate.pem)
+
+        with pytest.raises(ValueError, match="positive number of bytes"), transport.connect(
+            gate.port, context, "abc.def.kpg", max_response_bytes=cap
+        ):
+            pass
+
+        assert gate.requests == []
+
+    def test_the_default_cap_is_the_module_s_own(self) -> None:
+        # The name a caller compares against, as `DEFAULT_CONNECTION_TIMEOUT` is for the socket.
+        assert transport.MAX_RESPONSE_BYTES == 4 * 1024 * 1024
+        default = transport.MAX_RESPONSE_BYTES
+        assert transport.response_limit(default) == default
 
     def test_the_pairing_timeout_outlasts_what_the_plugin_may_take(self) -> None:
         # `GateOptionsTests` sums the same four constants on the other side. 185 seconds, and the
         # gate gives itself 300; a client that hangs up first loses the answer to a pairing the
         # gate has already spent the invitation and written the record for.
-        assert transport.PAIRING_TIMEOUT > 185.0
-        assert transport.PAIRING_TIMEOUT > transport.DEFAULT_TIMEOUT
+        assert transport.PAIRING_CONNECTION_TIMEOUT > 185.0
+        assert transport.PAIRING_CONNECTION_TIMEOUT > transport.DEFAULT_CONNECTION_TIMEOUT
+
+
+class TestWhenToComeBack:
+    """`Retry-After`, which the gate sends on every `503` and on nothing else."""
+
+    @staticmethod
+    def _answer(head: str) -> transport.Response:
+        raw = f"HTTP/1.1 503 .\r\n{head}Content-Length: 17\r\n\r\n".encode() + b'{"error":"busy"}\n'
+        return transport._parse(raw)
+
+    def test_the_seconds_the_gate_asked_for_are_read_off_the_answer(self) -> None:
+        assert self._answer("Retry-After: 2\r\n").retry_after == 2.0
+
+    def test_the_field_name_is_read_the_way_every_other_one_is(self) -> None:
+        # RFC 9110 section 5.1: a field name is case-insensitive. The gate writes `Retry-After`,
+        # and a client that only matched that spelling would be pinning its own gate's spelling.
+        assert self._answer("retry-after:   7 \r\n").retry_after == 7.0
+
+    def test_an_answer_that_did_not_say_says_nothing(self) -> None:
+        assert self._answer("").retry_after is None
+
+    def test_the_date_form_is_the_same_as_having_said_nothing(self) -> None:
+        # Also allowed by section 10.2.3, and deliberately not read: a date is a clock the two
+        # sides would have to agree about. Unreadable narrows what a client knows rather than
+        # stopping it, so this falls back rather than refusing the answer.
+        assert self._answer("Retry-After: Wed, 23 Sep 2026 22:48:07 GMT\r\n").retry_after is None
+
+    def test_a_delay_that_is_not_a_delay_says_nothing_either(self) -> None:
+        assert self._answer("Retry-After: soon\r\n").retry_after is None
+        assert self._answer("Retry-After: -5\r\n").retry_after is None
+
+    def test_a_refusal_the_certificate_gave_carries_no_delay(
+        self, gate: FakeGate, responder: Issued, authority: Authority, client_certificate: Issued
+    ) -> None:
+        # There is no answer to have read one off: the request was never sent. The fallback is
+        # what covers it, which is the same two seconds the gate would have asked for.
+        gate.serve_with(responder)
+        context = transport.paired_context(authority.pem, client_certificate.pem)
+
+        with transport.connect(
+            gate.port, context, "abc.def.kpg", connection_timeout=10.0
+        ) as connection, pytest.raises(DatabaseLocked) as refused:
+            connection.send("GET", "/gate/status")
+
+        assert refused.value.retry_after is None
+
+
+class TestABudget:
+    """What a caller is prepared to spend waiting, and what that buys."""
+
+    @pytest.fixture
+    def waited(self, monkeypatch: pytest.MonkeyPatch) -> list[float]:
+        """Every delay that would have been slept, without sleeping any of them."""
+        recorded: list[float] = []
+        monkeypatch.setattr(transport, "pause", recorded.append)
+        return recorded
+
+    def test_no_budget_waits_for_nothing(self, waited: list[float]) -> None:
+        # The default everywhere, and the whole of what `None` means: the refusal is raised
+        # exactly as it was before any of this existed.
+        assert transport.Budget(None).wait(2.0) is False
+        assert waited == []
+
+    def test_what_the_gate_asked_for_is_what_gets_waited(self, waited: list[float]) -> None:
+        assert transport.Budget(10.0).wait(3.0) is True
+        assert waited == [3.0]
+
+    def test_a_budget_is_spent_rather_than_reset_by_each_refusal(self, waited: list[float]) -> None:
+        budget = transport.Budget(5.0)
+
+        assert budget.wait(2.0) is True
+        assert budget.wait(2.0) is True
+        assert budget.wait(2.0) is False, "four of the five are gone and a third two will not fit"
+        assert waited == [2.0, 2.0]
+
+    def test_a_delay_exactly_what_is_left_is_waited(self, waited: list[float]) -> None:
+        # Only a delay longer than what is left is refused, so a budget of one `Retry-After`
+        # is one wait: `retry_busy_timeout=2` against the gate's two seconds retries once.
+        assert transport.Budget(2.0).wait(2.0) is True
+        assert waited == [2.0]
+
+    def test_a_delay_longer_than_what_is_left_is_not_shortened(self, waited: list[float]) -> None:
+        # Waiting less than the gate asked for and asking again is a request it has already
+        # called too early. So the refusal is raised now rather than a shorter wait later.
+        assert transport.Budget(10.0).wait(30.0) is False
+        assert waited == []
+
+    def test_a_refusal_that_said_nothing_waits_the_fallback(self, waited: list[float]) -> None:
+        assert transport.Budget(10.0).wait(None) is True
+        assert waited == [transport.FALLBACK_RETRY_AFTER]
+
+    def test_come_back_now_is_not_something_a_client_can_act_on(self, waited: list[float]) -> None:
+        # A zero is a legal delay and a loop at whatever rate the network allows, against
+        # something that has just said it is busy. Read as having said nothing.
+        assert transport.Budget(10.0).wait(0.0) is True
+        assert waited == [transport.FALLBACK_RETRY_AFTER]
+
+
+class TestTheTwoBudgets:
+    """Which refusal spends which, because a lock and a busy user interface end differently."""
+
+    @pytest.fixture
+    def waited(self, monkeypatch: pytest.MonkeyPatch) -> list[float]:
+        recorded: list[float] = []
+        monkeypatch.setattr(transport, "pause", recorded.append)
+        return recorded
+
+    def test_a_busy_gate_spends_the_busy_budget(self, waited: list[float]) -> None:
+        retry = transport.Retry(busy=10.0, locked=None)
+
+        assert retry.waited(GateBusy("busy", 3.0)) is True
+        assert retry.waited(DatabaseLocked("locked", 3.0)) is False
+        assert waited == [3.0]
+
+    def test_a_locked_database_spends_the_locked_one(self, waited: list[float]) -> None:
+        retry = transport.Retry(busy=None, locked=10.0)
+
+        assert retry.waited(DatabaseLocked("locked", 4.0)) is True
+        assert retry.waited(GateBusy("busy", 4.0)) is False
+        assert waited == [4.0]
+
+    def test_neither_is_spent_by_default(self, waited: list[float]) -> None:
+        retry = transport.Retry()
+
+        assert retry.waited(GateBusy("busy", 1.0)) is False
+        assert retry.waited(DatabaseLocked("locked", 1.0)) is False
+        assert waited == []
+
+
+class TestASettingThatCannotWork:
+    """What the command line refuses as an argument, the library refuses as a `ValueError`.
+
+    Each names the setting, and each is asked where the setting is given, so that nothing is
+    dialed on it and nothing fails later from inside `socket` with an error that is not this
+    library's.
+    """
+
+    @pytest.mark.parametrize("port", [0, -1, 65536, 70000, True, 45678.0])
+    def test_a_port_tcp_does_not_have(self, port: Any) -> None:
+        with pytest.raises(ValueError, match="port"):
+            transport.port_number(port)
+
+    @pytest.mark.parametrize("seconds", [0, 0.0, -1.0, math.nan, math.inf, -math.inf, True])
+    def test_a_socket_timeout_that_bounds_no_wait(self, seconds: Any) -> None:
+        # Zero dialed non-blocking and read as nothing listening; the rest left `socket` as a
+        # `ValueError` or an `OverflowError` from inside the call.
+        with pytest.raises(ValueError, match="connection_timeout"):
+            transport.connection_limit(seconds)
+
+    @pytest.mark.parametrize("seconds", [-1.0, math.nan, math.inf, -math.inf, True])
+    def test_a_budget_that_cannot_be_spent(self, seconds: Any) -> None:
+        # NaN compares false with every delay, so a NaN budget was never spent and a `503` was
+        # asked again every two seconds for as long as the gate answered one.
+        with pytest.raises(ValueError, match="retry_busy_timeout"):
+            transport.Retry(busy=seconds)
+        with pytest.raises(ValueError, match="retry_locked_timeout"):
+            transport.Retry(locked=seconds)
+
+    @pytest.mark.parametrize("cap", [1.5, math.nan, True])
+    def test_a_cap_that_is_not_a_whole_number_of_bytes(self, cap: Any) -> None:
+        # A NaN cap compares false with every length, so it capped nothing at all.
+        with pytest.raises(ValueError, match="max_response_bytes"):
+            transport.response_limit(cap)
+
+    def test_the_edges_of_every_setting_are_taken(self) -> None:
+        # The other side of the refusals: the same edges the command line accepts.
+        assert transport.port_number(1) == 1
+        assert transport.port_number(65535) == 65535
+        assert transport.connection_limit(0.5) == 0.5
+        assert transport.retry_limit("retry_busy_timeout", None) is None
+        assert transport.retry_limit("retry_busy_timeout", 0.0) == 0.0
+        assert transport.retry_limit("retry_locked_timeout", 3600.0) == 3600.0
+        assert transport.response_limit(1) == 1
+
+    def test_nothing_is_dialed_on_a_setting_that_cannot_work(
+        self, gate: FakeGate, authority: Authority, client_certificate: Issued
+    ) -> None:
+        context = transport.paired_context(authority.pem, client_certificate.pem)
+
+        with pytest.raises(ValueError, match="connection_timeout"), transport.connect(
+            gate.port, context, "abc.def.kpg", connection_timeout=math.nan
+        ):
+            pass  # pragma: no cover, the connect is what raises
+
+        with pytest.raises(ValueError, match="port"), transport.connect(
+            70000, context, "abc.def.kpg", connection_timeout=10.0
+        ):
+            pass  # pragma: no cover, the connect is what raises
+
+        assert gate.names == [], "no handshake was begun"
+
+
+class TestTheFilesAPairedClientLoads:
+    """The anchor and the identity, which `ssl` reads, and nothing reads before it."""
+
+    @staticmethod
+    def _spoiled(source: Path, how: str, where: Path) -> Path:
+        """A copy of a PEM file spoiled one way, or no file at all."""
+        written = source.read_bytes()
+        end = b"-----END CERTIFICATE-----\n"
+
+        if how == "cut short":
+            where.write_bytes(written[:300])
+        elif how == "without its key":
+            where.write_bytes(written[: written.index(end) + len(end)])
+        elif how == "not a PEM":
+            where.write_bytes(b"not a certificate at all\n")
+
+        return where
+
+    @pytest.mark.parametrize("how", ["cut short", "without its key", "not a PEM", "missing"])
+    def test_an_identity_that_will_not_load_is_a_storage_error_naming_it(
+        self, how: str, authority: Authority, client_certificate: Issued, tmp_path: Path
+    ) -> None:
+        # A re-pair writes in place, so a disk that fills part way through leaves this file cut
+        # short, and an `SSLError` out of here is an `OSError` rather than anything a caller
+        # holding this library's one root would catch.
+        identity = self._spoiled(client_certificate.pem, how, tmp_path / "identity.pem")
+
+        with pytest.raises(StorageError, match=r"identity\.pem"):
+            transport.paired_context(authority.pem, identity)
+
+    @pytest.mark.parametrize("how", ["cut short", "not a PEM", "missing"])
+    def test_an_authority_that_will_not_load_is_a_storage_error_naming_it(
+        self, how: str, authority: Authority, client_certificate: Issued, tmp_path: Path
+    ) -> None:
+        anchor = self._spoiled(authority.pem, how, tmp_path / "anchor.pem")
+
+        with pytest.raises(StorageError, match=r"anchor\.pem"):
+            transport.paired_context(anchor, client_certificate.pem)

@@ -156,6 +156,37 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void The_tan_wizard_still_names_the_group_it_fills()
+        {
+            var type = KeePassAssembly.GetType(KeePassContract.TanWizardFormTypeName, false);
+
+            Assert.That(type, Is.Not.Null,
+                KeePassContract.TanWizardFormTypeName + " is gone, so the group it fills is never "
+                + "recognized and can be removed underneath it.");
+            Assert.That(typeof(Form).IsAssignableFrom(type), Is.True);
+
+            var field = type.GetField(
+                KeePassContract.TanWizardFormGroupField, BindingFlags.NonPublic | BindingFlags.Instance);
+
+            Assert.That(field, Is.Not.Null,
+                "Without this, no group may be removed while the wizard is open, which is safe and useless.");
+            Assert.That(field.FieldType, Is.EqualTo(typeof(KeePassLib.PwGroup)));
+        }
+
+        [Test]
+        public void The_group_dialog_still_says_when_it_is_adding_a_group()
+        {
+            var type = KeePassAssembly.GetType(KeePassContract.GroupFormTypeName, false);
+            var field = type.GetField(
+                KeePassContract.GroupFormCreatingField, BindingFlags.NonPublic | BindingFlags.Instance);
+
+            Assert.That(field, Is.Not.Null,
+                KeePassContract.GroupFormCreatingField + " is gone, so every group dialog is taken for "
+                + "Add Group and nothing may be added to a group while one is open on it.");
+            Assert.That(field.FieldType, Is.EqualTo(typeof(bool)));
+        }
+
+        [Test]
         public void The_entry_dialog_still_says_when_it_is_about_several_entries()
         {
             // Without this the tab reads a merged selection's cue string as a document, calls the
@@ -206,6 +237,27 @@ namespace KeePassGate.Host.Tests
             Assert.That(field, Is.Not.Null,
                 "Without this the editor cannot tell which entry a dialog is about.");
             Assert.That(field.FieldType, Is.EqualTo(typeof(KeePassLib.PwEntry)));
+        }
+
+        [Test]
+        public void The_expiry_KeePass_gives_new_entries_is_still_a_number_of_days_and_off_until_switched_on()
+        {
+            // What a create asking for `auto` applies, read off the options where KeePass's own
+            // Add Entry reads it. A number of days is what the create hands `AddDays`, and a
+            // negative one is the option switched off, which is how KeePass ships: one that
+            // shipped with it on would give every entry `auto` makes an expiry nobody chose.
+            var property = typeof(KeePass.App.Configuration.AceDefaults).GetProperty(
+                KeePassContract.NewEntryExpiresInDaysProperty, BindingFlags.Public | BindingFlags.Instance);
+
+            Assert.That(property, Is.Not.Null,
+                KeePassContract.NewEntryExpiresInDaysProperty + " is gone from KeePass's options");
+            Assert.That(property.PropertyType, Is.EqualTo(typeof(int)));
+            Assert.That(new KeePass.App.Configuration.AceDefaults().NewEntryExpiresInDays, Is.LessThan(0),
+                "a KeePass that ships the option switched on");
+            Assert.That(
+                typeof(KeePass.App.Configuration.AppConfigEx).GetProperty("Defaults").PropertyType,
+                Is.EqualTo(typeof(KeePass.App.Configuration.AceDefaults)),
+                "the options are read through `Program.Config.Defaults`, so that is where they have to be");
         }
 
         [TestCase(KeePassContract.GroupFormTypeName)]

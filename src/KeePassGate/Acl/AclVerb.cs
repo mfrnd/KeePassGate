@@ -151,6 +151,22 @@ namespace KeePassGate.Acl
         }
 
         /// <summary>
+        /// Whether an operation needing this verb writes to the database.
+        /// </summary>
+        /// <remarks>
+        /// The four that change something, which is what makes an operation one whose save can
+        /// fail after the change has been made. `Read` and `List` leave the database as they
+        /// found it, and `None` touches no data at all.
+        /// </remarks>
+        public static bool Changes(AclVerb verb)
+        {
+            return verb == AclVerb.Create
+                   || verb == AclVerb.Update
+                   || verb == AclVerb.Strip
+                   || verb == AclVerb.Delete;
+        }
+
+        /// <summary>
         /// The verb this text names, or null for anything else.
         /// </summary>
         /// <remarks>

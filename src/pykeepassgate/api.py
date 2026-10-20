@@ -15,14 +15,15 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from .client import GateClient, Status
-from .credentials import Credentials, default_directory, load, save
+from .client import ROOT, GateClient, Status
+from .credentials import Credentials, Prepared, default_directory, load, prepare, save
 from .errors import (
     DatabaseLocked,
     GateBusy,
     GateError,
     MalformedToken,
     NotAdmitted,
+    NotPaired,
     PairingError,
     PairingRefused,
     PairingUnanswered,
@@ -31,35 +32,62 @@ from .errors import (
     RouteRefused,
     StorageError,
     TransportError,
+    Withheld,
 )
+from .model import Attachment, Entry, Field, Fields, Group
 from .pairing import Exchange, Pairing
-from .transport import DEFAULT_TIMEOUT, PAIRING_TIMEOUT
+from .transport import (
+    DEFAULT_CONNECTION_TIMEOUT,
+    DEFAULT_RETRY_BUSY_TIMEOUT,
+    DEFAULT_RETRY_LOCKED_TIMEOUT,
+    LOOPBACK,
+    MAX_RESPONSE_BYTES,
+    PAIRING_CONNECTION_TIMEOUT,
+    Retry,
+    connection_limit,
+    port_number,
+    response_limit,
+)
 
 __all__ = [
+    "DEFAULT_CONNECTION_TIMEOUT",
     "DEFAULT_PORT",
-    "DEFAULT_TIMEOUT",
-    "PAIRING_TIMEOUT",
+    "DEFAULT_RETRY_BUSY_TIMEOUT",
+    "DEFAULT_RETRY_LOCKED_TIMEOUT",
+    "LOOPBACK",
+    "MAX_RESPONSE_BYTES",
+    "PAIRING_CONNECTION_TIMEOUT",
+    "ROOT",
+    "Attachment",
     "Credentials",
     "DatabaseLocked",
+    "Entry",
     "Exchange",
+    "Field",
+    "Fields",
     "GateBusy",
     "GateClient",
     "GateError",
+    "Group",
     "MalformedToken",
     "NotAdmitted",
+    "NotPaired",
     "Pairing",
     "PairingError",
     "PairingRefused",
     "PairingUnanswered",
+    "Prepared",
     "ProofRefused",
     "ProtocolError",
     "RouteRefused",
     "Status",
     "StorageError",
     "TransportError",
+    "Withheld",
     "default_directory",
     "load",
     "pair",
+    "prepare",
     "save",
 ]
 
@@ -76,21 +104,67 @@ def pair(
     profiles: list[str] | None = None,
     directory: Path | None = None,
     profile: str = "default",
-    # Not `DEFAULT_TIMEOUT`. This is the one exchange that waits on a person, and the gate
-    # gives itself five minutes for it because its own worst case is 185 seconds. Hanging up
+    # Not `DEFAULT_CONNECTION_TIMEOUT`. This is the one exchange that waits on a person, and the
+    # gate gives itself five minutes for it because its own worst case is 185 seconds. Hanging up
     # first cancels nothing: the invitation is spent and the record is written and saved
     # anyway, and only the answer is lost.
-    timeout: float = PAIRING_TIMEOUT,
+    connection_timeout: float = PAIRING_CONNECTION_TIMEOUT,
+    host: str = LOOPBACK,
+    retry_busy_timeout: float | None = DEFAULT_RETRY_BUSY_TIMEOUT,
+    retry_locked_timeout: float | None = DEFAULT_RETRY_LOCKED_TIMEOUT,
+    allow_shared_directory: bool = False,
+    max_response_bytes: int = MAX_RESPONSE_BYTES,
 ) -> Credentials:
     """Pair with a KeePass and keep what it hands over.
 
     Blocks while the operator reads the dialog, which is the slow half and is meant to be. What
     comes back says which profiles were actually approved, and that is not always what was asked
     for: the dialog can take any of them away.
-    """
-    exchange = Pairing(port, invitation, timeout=timeout)
-    started = exchange.hello()
-    bundle = exchange.request(started, name, profiles or [])
 
+    **The exchange is the unit that is retried, not either half of it.** A `503` from the gate on
+    this path means the invitation was not spent: `PAIRING.md` §303 refuses before the operator is
+    disturbed, and `PairingHandler` answers `500` rather than `503` everywhere after the burn. So
+    the whole thing can be started again, which is what "the invitee can simply ask again" in
+    §303 means, and what this loop does. What it does not do is send either message twice: a new
+    exchange is a new hello, a new nonce and a new challenge.
+
+    **Where it will be kept is settled before anything is asked.** The gate spends the invitation
+    and saves the admission record before it answers, so a directory that turns out to be a file
+    or to refuse writes, found only then, loses an identity that cannot be asked for again.
+    `prepare` finds it out first, when a refusal has cost nothing, and holds the four files open
+    across every attempt, so the write goes through handles already granted; a pairing that does
+    not complete takes away again whatever files opening created. `allow_shared_directory` is
+    passed to it, and accepts a directory other accounts can reach; see `prepare`.
+    """
+    # Refused before `prepare`, which opens files, and before anything is asked of the gate: a
+    # setting that could not work, a profile that is not one directory's name, and each budget,
+    # which `Retry` holds to the same rule.
+    port_number(port)
+    connection_limit(connection_timeout)
+    response_limit(max_response_bytes)
     where = directory or default_directory(profile)
-    return save(where, port, bundle)
+    retry = Retry(busy=retry_busy_timeout, locked=retry_locked_timeout)
+
+    with prepare(where, allow_shared_directory=allow_shared_directory) as prepared:
+        while True:
+            # Built without the budgets, deliberately. `hello` would otherwise wait one out on its
+            # own and this loop would wait the same one out again, so a caller's thirty seconds
+            # would buy some multiple of thirty seconds that nothing here could name.
+            exchange = Pairing(
+                port,
+                invitation,
+                connection_timeout=connection_timeout,
+                host=host,
+                max_response_bytes=max_response_bytes,
+            )
+
+            try:
+                started = exchange.hello()
+                bundle = exchange.request(started, name, profiles or [])
+            except (GateBusy, DatabaseLocked) as refusal:
+                if retry.waited(refusal):
+                    continue
+
+                raise
+
+            return prepared.save(port, bundle)

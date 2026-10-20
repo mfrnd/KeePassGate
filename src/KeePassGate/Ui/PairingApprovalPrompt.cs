@@ -9,9 +9,10 @@ namespace KeePassGate.Ui
     /// Puts a pairing request on the screen and waits for the answer, from a connection thread.
     /// </summary>
     /// <remarks>
-    /// The marshal is synchronous, which is the one exception `DESIGN.md` §119 allows and
-    /// confines to this path. What keeps it from becoming a deadlock: the wait is bounded, the
-    /// dialog closes itself, and a pairing that gets no answer fails rather than holds on.
+    /// The marshal is synchronous, as every write's is. What is exceptional here is the dialog:
+    /// `DESIGN.md` §119 lets no other request put a window in front of the operator. What keeps
+    /// the wait from becoming a deadlock: the wait is bounded, the dialog closes itself, and a
+    /// pairing that gets no answer fails rather than holds on.
     ///
     /// The grace is why the two timeouts are not the same number. The dialog is told to close after
     /// the approval timeout, and this waits a little longer than that, so an unanswered dialog ends

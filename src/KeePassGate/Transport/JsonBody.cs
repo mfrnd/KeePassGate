@@ -304,6 +304,7 @@ namespace KeePassGate.Transport
         /// KeePass's behavior and it is left as KeePass's, rather than refused or normalized here:
         /// refusing it would turn away every note pasted from a Windows editor, and normalizing it
         /// would make this wire change a value KeePass itself would have kept until the next open.
+        /// The routing document's own description says so to the caller.
         ///
         /// **Nor may a string be whitespace and nothing else.** KeePass writes an unprotected
         /// string as the text of an element, and its reader drops text that is only whitespace,
@@ -319,7 +320,10 @@ namespace KeePassGate.Transport
         /// wherever it happens to survive today would be a rule that a later change to Database
         /// Settings turns back into silent truncation. Nothing else this wire carries wants one:
         /// the pairing bodies are base64 and hex, and an attachment's bytes travel as base64 too,
-        /// so what is refused here is a name or a value nothing could have stored.
+        /// so what is refused here is a name or a value nothing could have stored. A field or an
+        /// attachment name meets a stricter rule as well, `PathTemplate.IsCapture`, asked by the
+        /// handler that stores it: a name has no need of a line break, and one no route could
+        /// address again is refused rather than created.
         ///
         /// **The one thing it cannot reach is an escaped surrogate half**, because Json.NET
         /// substitutes `U+FFFD` for `\uD800` while it is reading and this policy is handed the

@@ -64,6 +64,34 @@ namespace KeePassGate.Diagnostics
     }
 
     /// <summary>
+    /// A read gave up because the database would not hold still long enough to be read.
+    /// </summary>
+    /// <remarks>
+    /// Its own type so that a handler can answer it as busy. Left as the `InvalidOperationException`
+    /// it started as, it reaches the catch-all that treats anything escaping a handler as a defect
+    /// in this plugin. That put a 500 and a false incident on the KPG tab for the
+    /// ordinary case of an agent reading while somebody edits.
+    /// </remarks>
+    [Serializable]
+    public sealed class VaultUnsettled : GateFailure
+    {
+        public VaultUnsettled(string message)
+            : base(message)
+        {
+        }
+
+        public VaultUnsettled(string message, Exception cause)
+            : base(message, cause)
+        {
+        }
+
+        private VaultUnsettled(SerializationInfo info, StreamingContext context)
+            : base(info, context)
+        {
+        }
+    }
+
+    /// <summary>
     /// The database a connection was given closed underneath it, which is a lock nearly always.
     /// </summary>
     /// <remarks>

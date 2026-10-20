@@ -14,41 +14,248 @@ and a header block.
 body carries a proof over ``tls-server-end-point``, which is a hash of the certificate the server
 is serving with. So the handshake has to have happened, and its certificate has to be readable,
 while the body is still being built.
+
+**Why one identity is refused before a request reaches it.** A locked database answers with a
+responder certificate, and `CA.md` 208 marks that certificate so a client can refuse to send real
+requests over it. Refusing has to happen before the write rather than after the answer, because a
+request body carries whatever it was going to store.
 """
 
 from __future__ import annotations
 
 import contextlib
+import enum
 import json
+import math
 import socket
 import ssl
+import time
 from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from .errors import ProtocolError, TransportError
+from cryptography import x509
 
-#: Loopback, because that is the only place the gate binds. Reaching it from elsewhere is a
-#: tunnel's job and not this client's business.
+from .errors import DatabaseLocked, GateBusy, ProtocolError, StorageError, TransportError
+
+#: Where the gate binds, and therefore where a client dials unless it is told otherwise. Reaching
+#: a gate from another machine is a tunnel's job, and a tunnel puts its own end somewhere: that is
+#: the whole of why `connect` takes a host at all, and why the default is this one.
 LOOPBACK = "127.0.0.1"
 
-#: How much of an answer to read before giving up on it. The gate bounds its own responses; this
-#: bound exists so that a client cannot be made to hold an unbounded amount of somebody else's
-#: bytes by whatever answered the socket.
+#: How much of an answer a client reads before giving up on it unless it is told otherwise, which
+#: `max_response_bytes` does, so that no answer can make this client hold as much memory as it
+#: likes. An attachment is not what decides it: the gate hands out at most 512 KiB of one
+#: (`VaultHandlers.MaxAttachmentBytes`), under 700 KiB once it is base64 inside a JSON answer. What
+#: can outgrow it is a listing, since the plugin does not page (`API.md` §407), and one that does
+#: fails whole rather than being truncated. So a caller whose database is large enough gets a
+#: setting to raise rather than a number to patch.
 MAX_RESPONSE_BYTES = 4 * 1024 * 1024
 
-#: How long to wait, in seconds, for anything that is not a pairing.
-DEFAULT_TIMEOUT = 120.0
+#: What marks the certificate a locked database answers with, and the whole of what tells one
+#: apart: `AuthorityIssuer.ResponderClaim` on the plugin's side, written into the subject
+#: alternative name as a URI. A responder is minted at unlock and again at the lock it answers, and
+#: held only in memory, and it can say nothing but that the database is locked, so a request is
+#: never sent over one.
+RESPONDER_CLAIM = "kpg://host/responder"
 
-#: What a pairing gets instead, which is the one exchange that waits on a person. It has to outlast
-#: the plugin's own sum of `PairingOptions.ApprovalTimeout` two minutes, plus
-#: `PairingApprovalPrompt.Grace` fifteen seconds, plus `AdmissionWriter.LockTimeout` twenty and
+#: How long any one wait on the socket may last, in seconds, for anything that is not a pairing:
+#: the dial, the handshake, and each read of the answer, each on its own. So it ends a wait on a
+#: peer that has stopped sending, and not a connection to one that goes on sending, however
+#: slowly; a caller that needs a bound on a whole call puts one around the call. It says nothing
+#: about waiting out a refusal, which is what the two budgets below are for.
+DEFAULT_CONNECTION_TIMEOUT = 120.0
+
+#: What a pairing's socket gets instead, which is the one exchange that waits on a person. It has
+#: to outlast the plugin's own sum of `PairingOptions.ApprovalTimeout` two minutes, plus
+#: `PairingApprovalPrompt.Grace` fifteen seconds, plus `DatabaseWriter.LockTimeout` twenty and
 #: `WriteTimeout` thirty. That sum is 185 seconds, and is why `GateOptions.PairingBudget` is five
 #: minutes. Hanging up early cancels nothing: the invitation is spent and the record is written and
 #: saved regardless, and only the answer is lost, leaving a record for a certificate nobody holds.
-PAIRING_TIMEOUT = 300.0
+PAIRING_CONNECTION_TIMEOUT = 300.0
+
+#: How long to go on waiting out a `503 busy`, in seconds, and `None` for not waiting at all, which
+#: is what a client does unless it is told otherwise: the refusal is raised, and what to do about it
+#: is the caller's. Busy is KeePass in the middle of something of its own, so it ends by itself.
+DEFAULT_RETRY_BUSY_TIMEOUT: float | None = None
+
+#: The same for a `503 locked`, and separate from the one above because the two end differently. A
+#: busy KeePass finishes what it is doing; a locked one waits for a person to come back to their
+#: desk, and a lock can arrive on its own from an idle timeout, a minimize, a Windows lock or a
+#: suspend. An agent willing to wait out one is not necessarily willing to wait out the other, and
+#: one number could not say so.
+DEFAULT_RETRY_LOCKED_TIMEOUT: float | None = None
+
+#: What to wait when the gate refused without saying when to come back. The gate sends
+#: `Retry-After: 2` on every `503`, so what is left is an older gate, a refusal that reached no
+#: response at all (a responder certificate is refused before a request is sent), or a header in
+#: the date form, which this does not read because a date carries a clock the two sides have to
+#: agree about. Not retrying in those cases would make a budget silently do nothing, which is the
+#: failure a caller cannot see; waiting the two seconds the gate asks for everywhere else does
+#: what they asked for.
+FALLBACK_RETRY_AFTER = 2.0
+
+
+def response_limit(max_response_bytes: int) -> int:
+    """Refuse a cap on the answer that no answer could fit under, and hand back one that will do.
+
+    Refused where it is given rather than where it is first used, so a client built with nothing
+    to read into says so before it dials anything, or before a pairing has spent anything.
+    """
+    # A whole number, as the command line takes one: NaN compares false with every length, so a
+    # cap of NaN would cap nothing, and `True` is a cap of one byte nobody meant.
+    if (
+        isinstance(max_response_bytes, bool)
+        or not isinstance(max_response_bytes, int)
+        or max_response_bytes <= 0
+    ):
+        raise ValueError(
+            "max_response_bytes caps an answer at a positive number of bytes, and "
+            f"{max_response_bytes!r} is not one"
+        )
+
+    return max_response_bytes
+
+
+def port_number(port: int) -> int:
+    """Refuse a port TCP does not have, and hand back one it does.
+
+    Refused where it is given, as a cap is, rather than by `socket`, which raises `OverflowError`
+    for it from inside a call: not a `GateError`, so a caller promised one root misses it, and the
+    command line would print a traceback where it documents an exit code.
+    """
+    if isinstance(port, bool) or not isinstance(port, int) or not 0 < port <= 65535:
+        raise ValueError(f"port is a whole number from 1 to 65535, not {port!r}")
+
+    return port
+
+
+def connection_limit(connection_timeout: float) -> float:
+    """Refuse a socket timeout that cannot bound a wait, and hand back one that can.
+
+    Zero makes the socket non-blocking, so the dial fails at once and reads as nothing listening,
+    and a negative number, NaN or infinity leaves `socket` as `ValueError` or `OverflowError`,
+    from deep inside a call rather than where it was given.
+    """
+    if not _finite(connection_timeout) or connection_timeout <= 0:
+        raise ValueError(
+            "connection_timeout is a finite number of seconds above zero, "
+            f"not {connection_timeout!r}"
+        )
+
+    return connection_timeout
+
+
+def retry_limit(name: str, seconds: float | None) -> float | None:
+    """Refuse a retry budget that cannot be spent, and hand back one that can.
+
+    `None` is no retry at all, and zero is a budget that waits for nothing. NaN compares false
+    with every delay, so a budget of NaN is never spent and a refusal is asked again forever, and
+    a negative one or infinity reads as a decision it is not.
+    """
+    if seconds is not None and (not _finite(seconds) or seconds < 0):
+        raise ValueError(
+            f"{name} is None or a finite number of seconds from zero, not {seconds!r}"
+        )
+
+    return seconds
+
+
+def _finite(value: object) -> bool:
+    """Whether this is a number of seconds at all: finite, and not `True` or `False`."""
+    return isinstance(value, int | float) and not isinstance(value, bool) and math.isfinite(value)
+
+
+def pause(seconds: float) -> None:
+    """What this client does between a refusal and the attempt that follows it."""
+    time.sleep(seconds)
+
+
+class Budget:
+    """What one kind of `503` is worth waiting out, and what is left of it.
+
+    **Counted in the delays it spends, not off a clock.** The budget bounds the waiting, which is
+    what the caller was asked about; what the attempts themselves take is bounded separately, one
+    wait on the socket at a time, by `connection_timeout`. Measuring elapsed time instead would
+    mix the two into one number that answers for neither. **A refusal is not always quick**: a
+    pairing's `503 busy` comes after the gate waited up to two minutes for the
+    screen, and a write's after up to twenty seconds for its turn at the database, so a busy
+    budget of ten seconds can hold a pairing for five attempts of up to two minutes each. The
+    budget bounds the pauses between attempts, and the call is the caller's to bound.
+
+    A budget of `None` is no retry at all, which is the default everywhere: the refusal is raised
+    exactly as it was before any of this existed.
+    """
+
+    def __init__(self, seconds: float | None = None, name: str = "a retry budget") -> None:
+        """Take what a caller is prepared to spend waiting, or `None` for none of it.
+
+        One that could not be spent is refused here, by the name it was given under.
+        """
+        self._remaining = retry_limit(name, seconds)
+
+    def wait(self, retry_after: float | None) -> bool:
+        """Wait out one refusal, and say whether the budget allowed it.
+
+        A delay longer than what is left is not waited out at all: sleeping for less than the gate
+        asked for and asking again is a request it has already called too early, so the refusal is
+        raised now rather than a shorter wait later.
+        """
+        if self._remaining is None:
+            return False
+
+        # A gate that says to come back immediately has said nothing a client can act on: it would
+        # be a loop at whatever rate the network allows, against something that has just said it is
+        # busy. The same for a header that is absent, a date, or not a number.
+        delay = retry_after if retry_after is not None and retry_after > 0 else FALLBACK_RETRY_AFTER
+        if delay > self._remaining:
+            return False
+
+        self._remaining -= delay
+        pause(delay)
+        return True
+
+
+class Retry:
+    """The two budgets, one per kind of `503`, spent by one call and not reused."""
+
+    def __init__(self, busy: float | None = None, locked: float | None = None) -> None:
+        """Take what each kind of refusal is worth waiting out."""
+        self.busy = Budget(busy, "retry_busy_timeout")
+        self.locked = Budget(locked, "retry_locked_timeout")
+
+    def waited(self, refusal: GateBusy | DatabaseLocked) -> bool:
+        """Wait this refusal out, if the budget for its kind still allows it.
+
+        The refusal carries what the gate said about coming back, so nothing here has to invent a
+        delay or reach for a response that is no longer in hand.
+        """
+        budget = self.busy if isinstance(refusal, GateBusy) else self.locked
+        return budget.wait(refusal.retry_after)
+
+
+class Keep(enum.Enum):
+    """The one value meaning "whatever this client was built with".
+
+    A retry budget of `None` is a decision, do not retry, so "not given" cannot also be `None`.
+    An enum member rather than a bare `object()` because it is a type a signature can name and a
+    checker can narrow.
+    """
+
+    TOKEN = enum.auto()
+
+
+KEEP = Keep.TOKEN
+
+#: What a per-call retry budget takes: seconds, `None` for no retry, or `KEEP` for the client's own.
+Given = float | None | Keep
+
+
+def given(value: Given, fallback: float | None) -> float | None:
+    """What a call asked for, or what the client it was made on was built with."""
+    return fallback if isinstance(value, Keep) else value
 
 
 @dataclass(frozen=True)
@@ -57,6 +264,9 @@ class Response:
 
     status: int
     body: str
+
+    #: When the gate said to come back, in seconds, if it said. Only a `503` carries it.
+    retry_after: float | None = None
 
     def json(self) -> dict[str, Any]:
         """The body as an object, or a refusal if it is not one."""
@@ -107,12 +317,38 @@ def paired_context(authority: Path, identity: Path) -> ssl.SSLContext:
     Host name checking is off because the name rotates by design and is not a name anybody
     resolves. What replaces it is the anchor: only the authority that issued this client's own
     certificate can produce a host certificate this will accept.
+
+    **Two of the checks `PAIRING.md` §304 lists are OpenSSL's rather than code here.** A context
+    built for a client verifies the peer for the purpose of a TLS server, so a certificate of this
+    authority's that lacks `serverAuth`, which is what a client of the same authority holds, fails
+    the handshake as `CA.md` §215 needs it to; and it holds the certificate to its validity
+    dates, which are the one bound on how long a leaked host or responder key is accepted,
+    `CA.md` §208. `TestPinning` pins both, since nothing written here would notice either going.
+
+    **A file that will not load is a `StorageError` naming it**, as a `client.json` that will not
+    read is. These two are read here and nowhere before, so one cut short by a disk that filled
+    during a re-pair, edited, or missing its key reaches `ssl` as an `SSLError`, and a missing one
+    as a `FileNotFoundError`: both `OSError`, neither this library's, and a traceback out of every
+    command that dials.
     """
     context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
     context.check_hostname = False
     context.verify_mode = ssl.CERT_REQUIRED
-    context.load_verify_locations(cafile=str(authority))
-    context.load_cert_chain(certfile=str(identity))
+
+    try:
+        context.load_verify_locations(cafile=str(authority))
+    except OSError as error:
+        raise StorageError(
+            f"{authority} will not load as the authority this client trusts: {error}"
+        ) from error
+
+    try:
+        context.load_cert_chain(certfile=str(identity))
+    except OSError as error:
+        raise StorageError(
+            f"{identity} will not load as this client's certificate and key: {error}"
+        ) from error
+
     _pin_to_tls13(context)
     return context
 
@@ -120,20 +356,41 @@ def paired_context(authority: Path, identity: Path) -> ssl.SSLContext:
 class Connection:
     """One open connection. Not reusable, because the gate does not reuse them either."""
 
-    def __init__(self, wrapped: ssl.SSLSocket) -> None:
-        """Take a socket that has already shaken hands.
+    def __init__(
+        self, wrapped: ssl.SSLSocket, max_response_bytes: int = MAX_RESPONSE_BYTES
+    ) -> None:
+        """Take a socket that has already shaken hands, and how much of an answer to read.
 
-        Keeps the certificate it was served with, which the proofs are computed over.
+        Keeps the certificate it was served with, which the proofs are computed over, and reads
+        off it whether the identity that answered is the one a locked database has.
         """
         self._socket = wrapped
+        self._max_response_bytes = response_limit(max_response_bytes)
         der = wrapped.getpeercert(binary_form=True)
         if not der:
             raise TransportError("the server sent no certificate")
 
         self.server_certificate = der
+        self.responder = _responder(der)
 
     def send(self, method: str, path: str, body: str = "") -> Response:
-        """Write one request and read the whole answer."""
+        """Write one request and read the whole answer, unless a responder answered the handshake.
+
+        Nothing is written to a responder. What a locked database answers is `503 locked` on
+        every path and method, decided before it reads anything, so there is no request this
+        could carry that would be answered; and an impostor that came by the responder key while
+        the database was locked reads nothing but could answer with a fabricated secret. Waiting
+        for the answer to decide that has already handed over the request, which on a write is
+        the value being stored.
+        """
+        if self.responder:
+            # Nothing says when to come back, because there is no response to read it off. What a
+            # caller waits instead is `FALLBACK_RETRY_AFTER`, the number the gate would have sent.
+            raise DatabaseLocked(
+                "the connection was served with the responder identity, which only a locked "
+                "database has, so no request was sent over it"
+            )
+
         _check(method, path)
         payload = body.encode("utf-8")
         head = (
@@ -185,8 +442,16 @@ class Connection:
             # Checked after the append rather than before it. Before, the loop enters `recv` with
             # the buffer already at the cap, so a peer feeding it gets one whole chunk past the
             # number this is here to enforce.
-            if len(buffer) > MAX_RESPONSE_BYTES:
-                raise TransportError(f"the answer is over {MAX_RESPONSE_BYTES} bytes")
+            #
+            # A `ProtocolError` rather than a `TransportError`, which says the connection failed
+            # and invites asking again: this one worked, and asking again would read the same
+            # answer to the same cap, each time costing the gate another whole listing.
+            if len(buffer) > self._max_response_bytes:
+                raise ProtocolError(
+                    f"the answer is over {self._max_response_bytes} bytes, the most this client "
+                    "was told to read of one: max_response_bytes, or --max-response-bytes, "
+                    "raises it"
+                )
 
             if body_at < 0:
                 blank = buffer.find(b"\r\n\r\n")
@@ -206,11 +471,16 @@ def connect(
     context: ssl.SSLContext,
     server_name: str,
     host: str = LOOPBACK,
-    timeout: float = DEFAULT_TIMEOUT,
+    connection_timeout: float = DEFAULT_CONNECTION_TIMEOUT,
+    max_response_bytes: int = MAX_RESPONSE_BYTES,
 ) -> Iterator[Connection]:
     """Open one connection, hand it over, and close it however this ends."""
+    response_limit(max_response_bytes)
+    port_number(port)
+    connection_limit(connection_timeout)
+
     try:
-        raw = socket.create_connection((host, port), timeout=timeout)
+        raw = socket.create_connection((host, port), timeout=connection_timeout)
     except OSError as error:
         raise TransportError(f"nothing is listening on {host}:{port}: {error}") from error
 
@@ -227,11 +497,39 @@ def connect(
         # database answers to the name it carries, and that ends the handshake here as well.
         raise TransportError(f"the handshake failed: {error}") from error
 
-    connection = Connection(wrapped)
+    connection = Connection(wrapped, max_response_bytes)
     try:
         yield connection
     finally:
         connection.close()
+
+
+def _responder(der: bytes) -> bool:
+    """Whether this certificate is the one a locked database answers with.
+
+    Read off the marker rather than off the subject name, because the subject is a convention and
+    `CA.md` 208 asks for something a client can decide on. The marker cannot be put on a certificate
+    or taken off one either: what the authority signed is what arrives, and a paired client accepts
+    nothing the authority did not sign.
+
+    An encoding this cannot read is not a responder, which is the direction that keeps an honest
+    connection working: a certificate the authority issued is one this reads, and one it did not
+    issue never gets past the pin.
+    """
+    try:
+        certificate = x509.load_der_x509_certificate(der)
+        names = certificate.extensions.get_extension_for_class(x509.SubjectAlternativeName)
+    # Everything reading a certificate can refuse with: bytes that are not one, no subject
+    # alternative name at all, two of them, and a name of a kind this library will not decode.
+    except (
+        ValueError,
+        x509.ExtensionNotFound,
+        x509.DuplicateExtension,
+        x509.UnsupportedGeneralNameType,
+    ):
+        return False
+
+    return RESPONDER_CLAIM in names.value.get_values_for_type(x509.UniformResourceIdentifier)
 
 
 def _pin_to_tls13(context: ssl.SSLContext) -> None:
@@ -311,10 +609,41 @@ def _parse(raw: bytes) -> Response:
         raise ProtocolError(f"that is not a status: {parts[1]!r}") from error
 
     body = raw[blank + 4 :]
-    declared = _declared_length(raw[:blank].decode("ascii", "replace"))
+    head = raw[:blank].decode("ascii", "replace")
+    declared = _declared_length(head)
     if declared is not None and len(body) < declared:
         raise TransportError(
             f"the answer stopped {declared - len(body)} bytes short of its own content length"
         )
 
-    return Response(status=status, body=body.decode("utf-8", "replace"))
+    return Response(
+        status=status,
+        body=body.decode("utf-8", "replace"),
+        retry_after=_retry_after(head),
+    )
+
+
+def _retry_after(head: str) -> float | None:
+    """When the gate said to come back, if it said it in seconds.
+
+    RFC 9110 section 10.2.3 allows a date as well, and this reads only the seconds: a date is a
+    clock the two sides would have to agree about, which is why the gate sends seconds. A form
+    this cannot read is the same as none at all, and `FALLBACK_RETRY_AFTER` answers that, so an
+    unreadable header narrows what a client knows rather than stopping it.
+
+    Nothing is trusted beyond the number itself. What gets waited is bounded by the budget the
+    caller gave, so a peer asking for a day gets no more than the caller was prepared to spend.
+    """
+    for line in head.split("\r\n")[1:]:
+        name, _, value = line.partition(":")
+        if name.strip().lower() != "retry-after":
+            continue
+
+        try:
+            seconds = int(value.strip())
+        except ValueError:
+            return None
+
+        return None if seconds < 0 else float(seconds)
+
+    return None

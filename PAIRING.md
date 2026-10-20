@@ -135,7 +135,9 @@ each asks the user interface thread to show a dialog. The second would open insi
 modal loop, and a modal dialog disables every other window on its thread: the first request goes
 gray in front of the operator, cannot be answered, and times out. The second one waits instead, for
 as long as it was going to give the operator anyway, and answers `503 busy` if it never gets the
-screen. Nothing is spent by that, so the invitee can simply ask again.
+screen. Nothing is spent by that, so the invitee can simply ask again. The reference client does
+so by itself when it is given a budget for waiting, starting again from the hello rather than
+repeating the approval request alone.
 
 Both proofs are bound to the RFC 5929 `tls-server-end-point` channel binding, which both sides
 derive independently and which hashes the certificate actually in use. **It needs no interface from

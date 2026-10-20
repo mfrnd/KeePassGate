@@ -16,7 +16,7 @@ from cryptography import x509
 from cryptography.hazmat.primitives.serialization import Encoding
 
 from pykeepassgate import credentials
-from pykeepassgate.errors import ProtocolError, StorageError
+from pykeepassgate.errors import NotPaired, ProtocolError, StorageError
 
 
 def test_what_pairing_hands_over_is_written_where_ssl_can_read_it(
@@ -50,6 +50,26 @@ def test_the_gate_key_survives_the_round_trip(tmp_path: Path, bundle: dict[str, 
     assert stored.gate_key == bytes(range(32))
 
 
+@pytest.mark.parametrize(
+    ("expires", "expired"),
+    [
+        ("2001-02-03T04:05:06Z", True),
+        ("2126-08-15T09:00:00Z", False),
+        ("", False),
+        ("whenever", False),
+        ("2001-02-03", False),
+    ],
+    ids=["passed", "to come", "none", "a word", "a day"],
+)
+def test_whether_the_certificate_has_expired_is_read_off_when_it_does(
+    tmp_path: Path, bundle: dict[str, Any], expires: str, expired: bool
+) -> None:
+    # An expiry this cannot read is not one that has passed: the gate decides then.
+    stored = credentials.save(tmp_path / "kept", 45678, {**bundle, "expires": expires})
+
+    assert stored.expired is expired
+
+
 def test_what_was_saved_is_what_is_loaded(tmp_path: Path, bundle: dict[str, Any]) -> None:
     saved = credentials.save(tmp_path / "kept", 45678, bundle)
     loaded = credentials.load(tmp_path / "kept")
@@ -61,8 +81,21 @@ def test_what_was_saved_is_what_is_loaded(tmp_path: Path, bundle: dict[str, Any]
 
 
 def test_loading_from_nowhere_says_where_it_looked(tmp_path: Path) -> None:
-    with pytest.raises(FileNotFoundError, match="no paired client"):
+    with pytest.raises(NotPaired, match="no paired client") as refused:
         credentials.load(tmp_path / "nothing")
+
+    assert str(tmp_path / "nothing") in str(refused.value)
+
+
+def test_nothing_stored_is_this_librarys_to_name_and_nobody_elses(tmp_path: Path) -> None:
+    # A `StorageError`, so one `except GateError` holds it with everything else this client
+    # raises, and not a `FileNotFoundError` as well: a caller written against the standard
+    # library's tree would otherwise catch it there and nowhere else.
+    with pytest.raises(StorageError) as refused:
+        credentials.load(tmp_path / "nothing")
+
+    assert not isinstance(refused.value, FileNotFoundError)
+    assert not isinstance(refused.value, OSError)
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="Windows decides this with an ACL instead")
@@ -352,8 +385,8 @@ def test_a_file_that_cannot_be_written_is_refused_in_this_librarys_terms(
     tmp_path: Path, bundle: dict[str, Any], monkeypatch: pytest.MonkeyPatch
 ) -> None:
     # A full disk, or anything else `prepare` could not see coming. Left alone this is an
-    # `OSError` out of `save`, which is neither a `GateError` nor the `FileNotFoundError` the
-    # command line catches by name.
+    # `OSError` out of `save`, which is not a `GateError`, and the command line would end in a
+    # traceback rather than an exit code.
     where = tmp_path / "kept"
 
     def full(descriptor: int, content: Any) -> int:
@@ -502,6 +535,7 @@ def test_the_shared_directory_refusal_names_the_way_past_it(tmp_path: Path, stra
         credentials.prepare(tmp_path)
 
     assert "allow_shared_directory" in str(refused.value)
+    assert "--allow-shared-directory" in str(refused.value)
 
 
 def test_a_caller_who_says_so_may_keep_credentials_in_a_shared_directory(

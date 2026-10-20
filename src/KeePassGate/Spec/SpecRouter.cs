@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using KeePassGate.Acl;
+using KeePassGate.Diagnostics;
+using KeePassGate.Pairing;
 using KeePassGate.Pipeline;
 using KeePassGate.Transport;
 
@@ -38,7 +40,9 @@ namespace KeePassGate.Spec
     /// an operation with a verb and no selector stops the plugin loading.
     ///
     /// It runs on the connection's thread, reading the database directly, like everything else that
-    /// only reads.
+    /// only reads. So it meets a tree that moves under it exactly as a handler does, and
+    /// `VaultUnsettled` out of one is answered `503 busy` by the same catch: the selector runs
+    /// inside it rather than a hop ahead of it.
     /// </remarks>
     public delegate IAclNode NodeSelector(IGateContext context);
 
@@ -86,6 +90,9 @@ namespace KeePassGate.Spec
 
         /// <summary>Where the router leaves what a path template captured.</summary>
         public const string ParametersItem = "kpg.parameters";
+
+        /// <summary>Where the router leaves the protected-scope question, ready to be recorded.</summary>
+        public const string ReachItem = "kpg.reach";
 
         private readonly SpecDocument _document;
         private readonly Dictionary<string, OperationHandler> _handlers;
@@ -338,6 +345,23 @@ namespace KeePassGate.Spec
 
             var wanted = context.Method;
 
+            // **A connection that arrived on an invitation reaches the pairing routes and nothing
+            // else**, which is what `PAIRING.md` §302 says the pairing path is. Nothing enforced
+            // it: a client the database already admits can compute the name from an invitation it
+            // also holds, and its certificate is judged the same way there as anywhere, so every
+            // ordinary route answered on a connection whose deadline is the pairing budget. It
+            // gains no permission by that, because the same certificate reaches the same routes on
+            // its own name, but it does get six minutes on the thread where the ordinary budget
+            // gives ninety seconds, and the pairing budget is that long only because a person is
+            // being waited for.
+            //
+            // Asked here rather than by a guard, because a guard says what one operation needs and
+            // this says what a whole connection may ask for. It is the mirror of the identity rule
+            // below and is written beside it for that reason: an operation that needs a certificate
+            // is not reachable by a caller without one, nor by a caller that named a token instead
+            // of a database.
+            var admitted = context.Client.IsPaired && PairingConnection.Of(context) == null;
+
             SpecOperation operation = null;
             IReadOnlyDictionary<string, string> captured = null;
             var pathExists = false;
@@ -345,13 +369,18 @@ namespace KeePassGate.Spec
 
             // What the path does serve, gathered while looking for what was asked for. The loop
             // below stops at a match, so this is only ever complete when there was none. That is
-            // the one case that has to say what the methods are.
+            // the one case that has to say what the methods are, and the query names any of them
+            // declares are gathered for the same case.
             var served = new List<string>();
+            var named = new HashSet<string>(StringComparer.Ordinal);
 
             foreach (var candidate in _document.Operations)
             {
+                // A segment its parameter's schema refuses, a uuid of the wrong length, is a path
+                // the document does not declare, and it is answered as one: before a lookup
+                // could be asked about it, and without a `405` naming what the path serves.
                 IReadOnlyDictionary<string, string> found;
-                if (!candidate.Path.TryMatch(context.Path, out found))
+                if (!candidate.Path.TryMatch(context.Path, out found) || !candidate.Admits(found))
                 {
                     continue;
                 }
@@ -359,6 +388,7 @@ namespace KeePassGate.Spec
                 pathExists = true;
                 pathIsPublic = pathIsPublic || !candidate.NeedsIdentity;
                 served.Add(candidate.Method);
+                named.UnionWith(candidate.Query);
 
                 if (string.Equals(candidate.Method, wanted, StringComparison.Ordinal))
                 {
@@ -383,9 +413,19 @@ namespace KeePassGate.Spec
                     return;
                 }
 
-                if (!pathIsPublic && !context.Client.IsPaired)
+                if (!pathIsPublic && !admitted)
                 {
                     Undeclared.Refuse(context);
+                    return;
+                }
+
+                // A query name that nothing on this path declares makes the target one the
+                // document does not declare, whichever method asked, and `openapi.yaml` §507
+                // answers that exactly as an undeclared path. Asked only by `Asked` once a method
+                // had matched, `DELETE /gate/status?x=1` was a `405` naming what `/gate/status`
+                // serves where `GET /gate/status?x=1` and `DELETE /nothing?x=1` were both `404`.
+                if (!Declared(context, named))
+                {
                     return;
                 }
 
@@ -404,7 +444,7 @@ namespace KeePassGate.Spec
                 return;
             }
 
-            if (operation.NeedsIdentity && !context.Client.IsPaired)
+            if (operation.NeedsIdentity && !admitted)
             {
                 // Written down when the certificate is one this database's authority issued, which
                 // is a revoked or expired client still trying and exactly what an operator opens the
@@ -419,6 +459,16 @@ namespace KeePassGate.Spec
                 return;
             }
 
+            if (!Asked(context, operation))
+            {
+                return;
+            }
+
+            if (!Bodied(context, operation))
+            {
+                return;
+            }
+
             // Before the guard, not after. A guard on a parameterized route is exactly the
             // guard that needs what the path captured, and the obvious way to read them is
             // `context.Items[ParametersItem]`, which throws `KeyNotFoundException` on a plain
@@ -427,32 +477,133 @@ namespace KeePassGate.Spec
             // line did not already cost it: the path has already matched.
             context.Items[ParametersItem] = captured;
 
-            OperationGuard guard;
-            if (_guards.TryGetValue(operation.OperationId, out guard) && !guard(context))
+            // **Everything the route does, not the handler alone.** The router reads the
+            // database itself, before dispatch: the node selector an operation declares asks
+            // the vault which group or entry a request is about, and that read meets a tree
+            // moving under it exactly as a handler's does. Catching around the handler alone
+            // answered one moving database two ways, and the answer on the earlier hop was the
+            // wrong one.
+            try
             {
-                return;
+                OperationGuard guard;
+                if (_guards.TryGetValue(operation.OperationId, out guard) && !guard(context))
+                {
+                    return;
+                }
+
+                if (!Authorized(context, operation))
+                {
+                    return;
+                }
+
+                if (operation.Body != null && !Typed(context))
+                {
+                    return;
+                }
+
+                if (operation.Body != null && !Checked(context, operation))
+                {
+                    return;
+                }
+
+                // The handler runs as it would for the GET, and what it wrote is dropped by the
+                // writer rather than here: a body blanked at this layer still gets measured, which
+                // is how `Content-Length: 0` went out where a GET would have said forty-five.
+                _handlers[operation.OperationId](context);
+            }
+            catch (VaultUnsettled)
+            {
+                // The database kept changing while it was being read. That is somebody using
+                // KeePass, not a fault here, and letting it travel makes it one: the catch-all
+                // around this counts anything escaping the router as a defect in this plugin,
+                // answers 500, and counts an incident for it.
+                context.Respond(503, HttpResponse.ErrorBody("busy"));
+            }
+        }
+
+        /// <summary>Whether every query parameter sent is one the operation declares.</summary>
+        /// <remarks>
+        /// **A request target is more than its path.** The transport splits the query off and
+        /// parses it, and nothing here ever read the result, so `GET /entries?group=x` was served
+        /// as `GET /entries`: the whole database came back and the caller was told nothing about
+        /// the word it sent. `API.md` 407 is where scoping by query was cut, and it says the
+        /// list routes are where filtering and paging would arrive, so this asks the document
+        /// rather than refusing every query for all time.
+        ///
+        /// Refused as an undeclared target, which is what it is, so it answers exactly what an
+        /// undeclared path answers: `404` to a client the database admitted, and to everybody
+        /// else the same `401` every path there is gives a caller with no certificate. No new
+        /// status arrives with this, and nothing has to be declared per operation to describe it.
+        /// </remarks>
+        private static bool Asked(IGateContext context, SpecOperation operation)
+        {
+            var sent = context.Query;
+            if (sent == null || sent.Count == 0)
+            {
+                return true;
             }
 
-            if (!Authorized(context, operation))
+            foreach (var name in sent.Keys)
             {
-                return;
+                if (!operation.DeclaresQuery(name))
+                {
+                    Undeclared.Refuse(context);
+                    return false;
+                }
             }
 
-            if (operation.Body != null && !Typed(context))
+            return true;
+        }
+
+        /// <summary>Whether a body was sent only to an operation that declares one.</summary>
+        /// <remarks>
+        /// **The other half of the request `Asked` is about.** A `get`, a `head` or a `delete`
+        /// declares no body, and the transport reads one whole before routing whatever the method,
+        /// so a body sent with one was read and then ignored: `GET /entries` with `{"group":"x"}`
+        /// in it answered every entry, and `DELETE` of a group with `{"recursive":"true"}` was a
+        /// plain delete, with nothing to say the words went unread. That is what `Asked` refuses a
+        /// query for, and this is refused the same way, as the undeclared target the request is,
+        /// so no new status arrives with it and nothing has to be declared per operation to say
+        /// so. Asked where the query is, before the guard and the rules, because what a caller is
+        /// told here is what it is told about any path it may not have.
+        /// </remarks>
+        private static bool Bodied(IGateContext context, SpecOperation operation)
+        {
+            if (operation.Body != null || string.IsNullOrEmpty(context.Body))
             {
-                return;
+                return true;
             }
 
-            if (operation.Body != null && !Checked(context, operation))
+            Undeclared.Refuse(context);
+            return false;
+        }
+
+        /// <summary>
+        /// The same question for a path none of whose operations was asked for, of every name any
+        /// of them declares.
+        /// </summary>
+        /// <remarks>
+        /// A name one of them declares is a target the document does declare, at another method, so
+        /// that is still a `405`. A name none of them declares is no target at all.
+        /// </remarks>
+        private static bool Declared(IGateContext context, ISet<string> named)
+        {
+            var sent = context.Query;
+            if (sent == null || sent.Count == 0)
             {
-                return;
+                return true;
             }
 
-            var handler = _handlers[operation.OperationId];
-            // The handler runs as it would for the GET, and what it wrote is dropped by the
-            // writer rather than here: a body blanked at this layer still gets measured, which
-            // is how `Content-Length: 0` went out where a GET would have said forty-five.
-            handler(context);
+            foreach (var name in sent.Keys)
+            {
+                if (!named.Contains(name))
+                {
+                    Undeclared.Refuse(context);
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         /// <summary>Whether the body is the media type this API speaks, or claims nothing.</summary>
@@ -505,6 +656,38 @@ namespace KeePassGate.Spec
             }
 
             var node = _nodes[operation.OperationId](context);
+
+            if (node == null && ServedDatabase.TryAnswerLocked(context))
+            {
+                // The database locked or closed after the gate reached it and before this lookup,
+                // so there was nothing to decide about rather than a node that is not there. A
+                // refusal written down here would say the rules turned away a request that a lock
+                // turned away, which the audit does not record before routing either.
+                return false;
+            }
+
+            // Left for the handler, which asks the one question the router cannot: whether this
+            // caller may have the protected values inside an answer it is otherwise allowed. It
+            // goes through the same check so that it is recorded the same way.
+            var access = _access;
+            var operationId = operation.OperationId;
+            var client = context.Client;
+            context.Items[ReachItem] = (ProtectedReach)((n, v) =>
+            {
+                if (AclResolver.Permits(n, client.Profiles, v, AclReach.Protected))
+                {
+                    return true;
+                }
+
+                // Recorded only when it refuses, and asked twice to do it. A protected value handed
+                // over is already covered by the line this router wrote before dispatch; a
+                // protected value withheld is the decision that was going unwritten, and it is the
+                // one an operator opens the audit to find. Recording both would put a second line
+                // on every ordinary read, which is what `A_listing_is_recorded_once` forbids and
+                // for the reason it gives: noise buries what is worth reading.
+                access.Decide(client, operationId, v, AclReach.Protected, n);
+                return false;
+            });
 
             if (_access.Permits(
                     context.Client, operation.OperationId, operation.Verb, operation.Reach, node))

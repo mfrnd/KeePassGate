@@ -3,6 +3,25 @@ openapi: 3.0.3
 info:
   title: KeePassGate
   version: 0.1.0
+  # The paragraph on what a write's answer promises. A read is not locked against the writer, for
+  # the reason DESIGN.md §119 gives: that lock waits on the user interface thread's save. §501
+  #
+  # The paragraph on an update that asks for nothing. Refusing `{}` would be the plugin disagreeing
+  # with its own schema, and writing anyway took a history revision, moved the modification time
+  # and usage count and saved the database, so `update` alone pushed an entry's real revisions out
+  # of its history at `HistoryMaxItems` calls that each asked for nothing, and an agent writing
+  # back what it had just read, to make sure of it, did the same. A program that may write can
+  # still push them out by changing the entry. §504
+  #
+  # The paragraph on a query name or a body nothing declares. The transport parsed a query and
+  # nothing read it, so `GET /entries?group=x` was served as `GET /entries`, handing the whole
+  # database to a caller that had asked for part of it, and a `DELETE` carrying
+  # `{"recursive":"true"}` was a plain delete, each with nothing said about the words that went
+  # unread. A name sent twice is refused because the first name declared would have inherited
+  # it. §507
+  #
+  # The paragraph on protected values. A refused write to one is the `404` an absent field gets,
+  # because a refusal that reads differently from an absence is a way to map what is there. §508
   description: |
     The routing table, not a description of one. This document ships embedded in the plugin and is
     read at startup: an operation with no handler, or a handler with no operation, stops the plugin
@@ -13,16 +32,62 @@ info:
     9.3.2 says a `head` is identical to its `get` except that no content is sent, so one handler is
     what makes that true by construction rather than by two implementations agreeing. The plugin
     refuses to load a `get` with no `head`, and a pair that disagrees about its `x-kpg-verb`,
-    its `x-kpg-attachments`, needing a certificate, or carrying a body. The answer omits
-    `Content-Length` rather than sending a wrong one, which section 9.3.2 permits for a value
-    determined only while generating content, and section 8.6 requires of anything else.
+    its `x-kpg-attachments`, needing a certificate, carrying a body, or the query parameters it
+    takes. The answer omits `Content-Length` rather than sending a wrong one, which section 9.3.2
+    permits for a value determined only while generating content, and section 8.6 requires of
+    anything else.
 
     **A declared path asked for with a method it does not declare answers `405`, carrying the
     methods it does.** RFC 9110 section 15.5.6 requires that list, and it is read off this
     document rather than written anywhere, so it cannot fall out of step with what the server
     routes. It is not declared per operation, because no operation answers it: a `405` is what
     is said when none of the operations on a path matched, which is a property of the path
-    rather than of anything listed under it.
+    rather than of anything listed under it. It is about the path and never the query: a query
+    name nothing on the path declares makes a target this document does not declare at any
+    method, answered as an undeclared path whichever method asked.
+
+    **The transport answers before any route is chosen, on any path**, and so none of what it
+    answers is declared per operation either, for the reason `405` is not. Each carries the
+    `Error` body, its `error` a sentence rather than one word: `400` for a request line, a
+    header, a `Content-Length`, a target or a body it cannot read, among them a header repeated
+    or folded, a body that ended early or is not UTF-8, and a path segment that decodes to `.` or
+    `..`, to a control character, or to bytes that are not UTF-8; `411` for a body with no
+    length; `413` for a body over the ceiling; `414` for a target too long; `417` for an
+    expectation it does not meet; `431` for a head over its ceiling; `501` for a method it does
+    not implement; and `505` for an HTTP version other than 1.1. Nor is the `500 internal error`
+    declared that a read would give if the vault behind it broke its own contract, which nothing
+    here does: it shares a status with `500 not saved` and not its meaning, which is why the
+    body says which.
+
+    **A field or an attachment is named within its entry, percent encoded, separator included**:
+    the gate splits a path into segments before it decodes each one, which is what makes an
+    attachment called `a/b` addressable at all. A character RFC 3986 says to escape, such as `|`,
+    `#` or `{`, has to arrive escaped, and a target carrying one bare is `400`, as RFC 9112
+    section 3 asks of a request line the grammar makes invalid. Each segment is held to the
+    lengths its parameter declares before anything is looked up, so an entry's identifier that is
+    not 32 characters, a group's shorter than `root` or longer than 32, or a name over 512, makes
+    a path this document does not declare, answered as one.
+
+    **A request target is more than its path, so a query name this document does not declare
+    makes a target it does not declare either**, answered exactly as an undeclared path is: `404
+    no such route` for a client the database admitted, and the same `401 unpaired` everybody
+    else gets on every path there is. A name sent twice is refused before any of that, with
+    `400`, for the reason a repeated header is: which of two values was meant is a guess. A body
+    is the other half of that. A `get`, a `head` and a `delete` declare none, and one sent with
+    them makes a request this document does not declare, answered as an undeclared path is,
+    whatever its media type.
+
+    **A carriage return is stored, and comes back as a line feed.** That is KeePass's behavior
+    rather than this API's: the file is XML, and an XML reader turns a carriage return, or a
+    carriage return and line feed together, into one line feed when it reads the text back, as
+    section 2.11 of XML 1.0 requires. So a value written with `\r\n` or a lone `\r` is answered
+    `200` or `201`, is exactly what was sent for as long as the database stays open, and reads
+    back with `\n` once KeePass has opened the file again. Tabs and line feeds survive unchanged.
+    A client that compares what it wrote with what it reads compares line endings as equal, and
+    one that needs the carriage returns kept encodes them itself. A surrogate half written as an
+    escape is the one string `Malformed` does not reach: the JSON reader replaces it with
+    `U+FFFD` before anything here sees it, which is what a caller asking to store half a
+    character gets everywhere else too.
 
     `x-kpg-unauthenticated` marks the two routes an invitee may reach before it has a certificate.
     Everything else needs one, by default rather than by remembering to say so.
@@ -37,9 +102,11 @@ info:
     `strip` and `delete` are two sizes of removal. `strip` takes the parts off a node, which are an
     entry's fields and its attachments. `delete` says removals are allowed here, and an operation
     declaring it is asked twice, of the group the node is leaving and of the node itself, because a
-    removal is a move. The resolver answers about one node, so the second question is asked by
-    `AccessCheck`, which is also where the root's own case falls out: nothing is above it to allow
-    its removal, so the root cannot be removed.
+    removal is a move, so a group granting `delete` has removable contents while itself standing,
+    and a node whose own rule does not grant it is held back from a rule that frees its siblings.
+    The resolver answers about one node, so the second question is asked by `AccessCheck`, which
+    is also where the root's own case falls out: nothing is above it to allow its removal, so the
+    root cannot be removed.
 
     `x-kpg-attachments: true` marks an operation that reaches the attachments inside an entry rather
     than only its fields. Such an operation needs both the verb and the attachment switch from the
@@ -47,13 +114,45 @@ info:
     may remove an entry already takes everything inside it. It is a second declaration rather than a
     seventh verb because no operation does attachments: one reads or replaces or removes, and what
     it reaches is a separate question. Absent means fields only, which is the same default deny as
-    everything else here.
+    everything else here. A removal skips the protected switch for the same reason, so `strip`
+    takes a protected field off without it.
 
     **Protected values are a scope too, and no operation declares it.** A password does not have a
     route of its own: it arrives inside the answer to a read that is already allowed, so the switch
     is answered while that answer is written rather than before dispatch. A caller whose rule does
     not carry `protected` is told everything else about the entry and gets `null` where a protected
-    value would be, and `protected` says which those were.
+    value would be, and `protected` says which those were. A value is protected when the
+    database protects its name, which is KeePass's own `MemoryProtection` setting, or when the
+    string itself is marked so. Writing one needs `protected` too, through either operation:
+    `updateEntry` naming a protected field and `updateField` on one are the same act and are
+    refused the same way, as the `404` of `Unreachable`.
+
+    **A write is answered once KeePass has saved it**, and two things follow from that a client
+    can see. A read sees a change before its save lands: reads take no lock against the writer, so
+    another connection is answered from the tree the change is already in while the save runs, and
+    a save that fails takes the change back out. A client that listed or read the node in between
+    holds an identifier, and perhaps values, that are answered `404` afterwards like anything else
+    not there; nothing it was handed was outside its rules, and it is what it would have read had
+    the save landed. And a change leaves a revision behind, exactly as an edit in KeePass does:
+    every operation that alters an entry takes a backup of it first, so a password overwritten
+    here is in that entry's history, where the operator restores it from KeePass. Creating an
+    entry leaves none, because there is nothing yet to keep, and removing one leaves none either,
+    because the recycle bin keeps the whole entry. How many revisions survive is
+    `HistoryMaxItems` and `HistoryMaxSize`, which the operator sets in KeePass for their own edits
+    and the gate's alike. No operation reads history, writes it, or clears it.
+
+    **An update that asks for nothing writes nothing**, on all four update operations: an
+    entry's, a field's, an attachment's and a group's. Every member of an update body is
+    optional, so `{}` is a body this document allows, and it asks for nothing; so does a body
+    naming only what the node already holds, and the expiry when it names one. The values are
+    compared as KeePass compares its own, a string by its text and an attachment by its bytes, and
+    not by whether either is protected, which is not something a request names, and a name the
+    entry does not carry is a change, since writing it adds a string. Such a request is checked
+    as any update is, so a dialog open on the node still makes it `503 busy`, and then it writes
+    nothing: no modification time, no usage count, no history revision, no save, and the same
+    `200`, because the node holds what the request asked it to hold. The comparison is made on
+    KeePass's thread under the writer's lock, where the change itself would be made, so a write
+    landing in between cannot make the answer wrong.
 
 servers:
   - url: https://127.0.0.1:{port}
@@ -103,17 +202,13 @@ paths:
           $ref: "#/components/responses/Unpaired"
         "503":
           $ref: "#/components/responses/Unavailable"
-
     head:
       operationId: headStatus
       summary: The same, without the content.
       description: |
-        Runs the operation `get` runs, on the same handler, and answers without its content.
-        Declared rather than derived so that this document is the whole account of what the API
-        answers, and bound to the same handler so that the two cannot come to disagree about
-        whether something is there. It declares the same `x-kpg-verb` as the `get` for the same
-        reason: a `head` that were governed differently would answer whether a node exists to a
-        caller the `get` would have refused.
+        Runs what its `get` runs, on the same handler, and answers without the content.
+        Declared rather than derived, and governed by the same `x-kpg-verb`: this document's
+        own description says why.
       x-kpg-verb: none
       responses:
         "200":
@@ -291,6 +386,917 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /groups:
+    get:
+      operationId: listGroups
+      summary: Every group in the database, root first.
+      description: |
+        Anchored at the root, so a client that may not list there is told nothing. The root is the
+        one group whose parent is null, which is how a client that was given no identifiers finds
+        the top of the tree.
+      x-kpg-verb: list
+      responses:
+        "200":
+          description: The groups, in tree order.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GroupList"
+        "401":
+          $ref: "#/components/responses/Unpaired"
+        "404":
+          $ref: "#/components/responses/Unreachable"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+
+    head:
+      operationId: headGroups
+      summary: The same, without the content.
+      description: |
+        Runs what its `get` runs, on the same handler, and answers without the content.
+        Declared rather than derived, and governed by the same `x-kpg-verb`: this document's
+        own description says why.
+      x-kpg-verb: list
+      responses:
+        "200":
+          description: There, and reachable by this client.
+        "401":
+          $ref: "#/components/responses/Unpaired"
+        "404":
+          $ref: "#/components/responses/Unreachable"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+
+  /groups/{uuid}:
+    get:
+      operationId: readGroup
+      summary: One group's own settings.
+      description: |
+        What the group is called and what its notes say, which is more than a listing gives and is
+        why it needs `read` rather than `list`. What is inside it is the two listing routes.
+      x-kpg-verb: read
+      parameters:
+        - $ref: "#/components/parameters/GroupUuid"
+      responses:
+        "200":
+          description: The group.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Group"
+        "401":
+          $ref: "#/components/responses/Unpaired"
+        "404":
+          $ref: "#/components/responses/Unreachable"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+    head:
+      operationId: headGroup
+      summary: The same, without the content.
+      description: |
+        Runs what its `get` runs, on the same handler, and answers without the content.
+        Declared rather than derived, and governed by the same `x-kpg-verb`: this document's
+        own description says why.
+      x-kpg-verb: read
+      parameters:
+        - $ref: "#/components/parameters/GroupUuid"
+      responses:
+        "200":
+          description: There, and reachable by this client.
+        "401":
+          $ref: "#/components/responses/Unpaired"
+        "404":
+          $ref: "#/components/responses/Unreachable"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+    put:
+      operationId: updateGroup
+      summary: Rename a group, or change its notes.
+      description: |
+        Both members are optional and only what is named is written. A body naming neither, or
+        naming only what the group already holds, writes nothing, as the description at the top
+        says of every update.
+      x-kpg-verb: update
+      parameters:
+        - $ref: "#/components/parameters/GroupUuid"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                Name:
+                  type: string
+                  minLength: 1
+                  maxLength: 512
+                Notes:
+                  type: string
+                  maxLength: 65536
+      responses:
+        "200":
+          $ref: "#/components/responses/Done"
+        "400":
+          $ref: "#/components/responses/Malformed"
+        "401":
+          $ref: "#/components/responses/Unpaired"
+        "404":
+          $ref: "#/components/responses/Unreachable"
+        "415":
+          $ref: "#/components/responses/UnsupportedMediaType"
+        "500":
+          $ref: "#/components/responses/Internal"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+    delete:
+      operationId: deleteGroup
+      summary: Remove a group, which has to be empty first.
+      description: |
+        Refused while it still holds anything. A recursive delete would destroy entries that were
+        never individually decided or recorded, on the strength of one grant on a parent, which is
+        the opposite of what a rule per node is for. An empty group goes where `deleteEntry` sends
+        an entry: to the recycle bin, or written down as deleted where there is none. The root
+        group cannot be removed, and asking
+        answers the same `404` as any node the rules do not reach rather than a conflict: a removal
+        is asked of the group a node is leaving, and the root is leaving nothing.
+      x-kpg-verb: delete
+      parameters:
+        - $ref: "#/components/parameters/GroupUuid"
+      responses:
+        "200":
+          $ref: "#/components/responses/Done"
+        "401":
+          $ref: "#/components/responses/Unpaired"
+        "404":
+          $ref: "#/components/responses/Unreachable"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "500":
+          $ref: "#/components/responses/Internal"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+
+  /groups/{uuid}/groups:
+    get:
+      operationId: listSubgroups
+      summary: The groups directly inside this one.
+      x-kpg-verb: list
+      parameters:
+        - $ref: "#/components/parameters/GroupUuid"
+      responses:
+        "200":
+          description: The groups one level down.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GroupList"
+        "401":
+          $ref: "#/components/responses/Unpaired"
+        "404":
+          $ref: "#/components/responses/Unreachable"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+    head:
+      operationId: headSubgroups
+      summary: The same, without the content.
+      description: |
+        Runs what its `get` runs, on the same handler, and answers without the content.
+        Declared rather than derived, and governed by the same `x-kpg-verb`: this document's
+        own description says why.
+      x-kpg-verb: list
+      parameters:
+        - $ref: "#/components/parameters/GroupUuid"
+      responses:
+        "200":
+          description: There, and reachable by this client.
+        "401":
+          $ref: "#/components/responses/Unpaired"
+        "404":
+          $ref: "#/components/responses/Unreachable"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+    post:
+      operationId: createGroup
+      summary: Put a new group inside this one.
+      x-kpg-verb: create
+      parameters:
+        - $ref: "#/components/parameters/GroupUuid"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [Name]
+              additionalProperties: false
+              properties:
+                Name:
+                  type: string
+                  minLength: 1
+                  maxLength: 512
+                Notes:
+                  type: string
+                  maxLength: 65536
+      responses:
+        "201":
+          $ref: "#/components/responses/Made"
+        "400":
+          $ref: "#/components/responses/Malformed"
+        "401":
+          $ref: "#/components/responses/Unpaired"
+        "404":
+          $ref: "#/components/responses/Unreachable"
+        "415":
+          $ref: "#/components/responses/UnsupportedMediaType"
+        "500":
+          $ref: "#/components/responses/Internal"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+
+  /groups/{uuid}/entries:
+    get:
+      operationId: listGroupEntries
+      summary: The entries directly inside this group.
+      description: |
+        One level, for walking a tree deliberately. Every entry the caller may not list is left out
+        rather than refused, because a list is a question about a collection and the answer is
+        whatever part of it the rules allow.
+      x-kpg-verb: list
+      parameters:
+        - $ref: "#/components/parameters/GroupUuid"
+        - $ref: "#/components/parameters/IncludeExpired"
+      responses:
+        "200":
+          description: The entries in this group.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EntryList"
+        "400":
+          $ref: "#/components/responses/Malformed"
+        "401":
+          $ref: "#/components/responses/Unpaired"
+        "404":
+          $ref: "#/components/responses/Unreachable"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+    head:
+      operationId: headGroupEntries
+      summary: The same, without the content.
+      description: |
+        Runs what its `get` runs, on the same handler, and answers without the content.
+        Declared rather than derived, and governed by the same `x-kpg-verb`: this document's
+        own description says why.
+      x-kpg-verb: list
+      parameters:
+        - $ref: "#/components/parameters/GroupUuid"
+        - $ref: "#/components/parameters/IncludeExpired"
+      responses:
+        "200":
+          description: There, and reachable by this client.
+        "400":
+          $ref: "#/components/responses/Malformed"
+        "401":
+          $ref: "#/components/responses/Unpaired"
+        "404":
+          $ref: "#/components/responses/Unreachable"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+    post:
+      operationId: createEntry
+      summary: Put a new entry in this group.
+      # The expiry from KeePass's options is applied only when asked for, so an operator who relies
+      # on it to be reminded to rotate a credential is reminded about a program's entries where the
+      # program asked for it.
+      description: |
+        The five standard fields are set whether or not they are named, as KeePass sets them on
+        every entry it makes. The entry expires when `expires` says, and `auto` there asks for
+        the expiry KeePass's options give every new entry, as KeePass's own Add Entry applies it;
+        without `expires` it does not expire. KeePass's other defaults for a new entry are not
+        applied: the database's default user name, a generated password and the group's icon.
+        Custom fields are added afterwards, one route at a time, because adding one is a
+        different verb from changing an entry.
+      x-kpg-verb: create
+      parameters:
+        - $ref: "#/components/parameters/GroupUuid"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EntryFields"
+      responses:
+        "201":
+          $ref: "#/components/responses/Made"
+        "400":
+          $ref: "#/components/responses/Malformed"
+        "401":
+          $ref: "#/components/responses/Unpaired"
+        "404":
+          $ref: "#/components/responses/Unreachable"
+        "415":
+          $ref: "#/components/responses/UnsupportedMediaType"
+        "500":
+          $ref: "#/components/responses/Internal"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+
+  /entries:
+    get:
+      operationId: listEntries
+      summary: Every entry in the database.
+      description: |
+        Anchored at the root and recursive, for a flat sweep. The entries route on a group is the
+        other question: one group, one level.
+      x-kpg-verb: list
+      parameters:
+        - $ref: "#/components/parameters/IncludeExpired"
+      responses:
+        "200":
+          description: The entries.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EntryList"
+        "400":
+          $ref: "#/components/responses/Malformed"
+        "401":
+          $ref: "#/components/responses/Unpaired"
+        "404":
+          $ref: "#/components/responses/Unreachable"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+
+    head:
+      operationId: headEntries
+      summary: The same, without the content.
+      description: |
+        Runs what its `get` runs, on the same handler, and answers without the content.
+        Declared rather than derived, and governed by the same `x-kpg-verb`: this document's
+        own description says why.
+      x-kpg-verb: list
+      parameters:
+        - $ref: "#/components/parameters/IncludeExpired"
+      responses:
+        "200":
+          description: There, and reachable by this client.
+        "400":
+          $ref: "#/components/responses/Malformed"
+        "401":
+          $ref: "#/components/responses/Unpaired"
+        "404":
+          $ref: "#/components/responses/Unreachable"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+
+  /entries/{uuid}:
+    get:
+      operationId: readEntry
+      summary: One entry and every string it holds.
+      description: |
+        A protected value arrives only when the same rule carries `protected`, and is `null`
+        otherwise, which is what the `fields` schema says and what `read` alone does not buy:
+        `protected` is a scope rather than something a verb implies. Attachments are not here, because
+        reaching those needs the attachment switch as well and a response whose contents depend on
+        a second permission is a response nobody can predict.
+      x-kpg-verb: read
+      parameters:
+        - $ref: "#/components/parameters/EntryUuid"
+      responses:
+        "200":
+          description: The entry.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Entry"
+        "401":
+          $ref: "#/components/responses/Unpaired"
+        "404":
+          $ref: "#/components/responses/Unreachable"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+    head:
+      operationId: headEntry
+      summary: The same, without the content.
+      description: |
+        Runs what its `get` runs, on the same handler, and answers without the content.
+        Declared rather than derived, and governed by the same `x-kpg-verb`: this document's
+        own description says why.
+      x-kpg-verb: read
+      parameters:
+        - $ref: "#/components/parameters/EntryUuid"
+      responses:
+        "200":
+          description: There, and reachable by this client.
+        "401":
+          $ref: "#/components/responses/Unpaired"
+        "404":
+          $ref: "#/components/responses/Unreachable"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+    put:
+      operationId: updateEntry
+      summary: Change the standard fields of an entry.
+      description: |
+        Every member is optional and only what is named is written. A field this does not declare is
+        a custom one, changed through its own route. `expires` moves the entry's expiry to another
+        moment or, empty, takes it off, which is what a program that rotates an expired password
+        needs to finish the job. A body naming none of them, or naming only what the entry already
+        holds, writes nothing, as the description at the top says of every update.
+      x-kpg-verb: update
+      parameters:
+        - $ref: "#/components/parameters/EntryUuid"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EntryFields"
+      responses:
+        "200":
+          $ref: "#/components/responses/Done"
+        "400":
+          $ref: "#/components/responses/Malformed"
+        "401":
+          $ref: "#/components/responses/Unpaired"
+        "404":
+          $ref: "#/components/responses/Unreachable"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "415":
+          $ref: "#/components/responses/UnsupportedMediaType"
+        "500":
+          $ref: "#/components/responses/Internal"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+    delete:
+      operationId: deleteEntry
+      summary: Remove an entry.
+      description: |
+        To the recycle bin when the database keeps one, which is what KeePass itself does, and
+        permanently when it does not, written down as deleted so that a later merge does not bring
+        it back. The bin itself is out of reach here, so an entry already in it is answered `404`,
+        as any node the rules do not reach is.
+      x-kpg-verb: delete
+      parameters:
+        - $ref: "#/components/parameters/EntryUuid"
+      responses:
+        "200":
+          $ref: "#/components/responses/Done"
+        "401":
+          $ref: "#/components/responses/Unpaired"
+        "404":
+          $ref: "#/components/responses/Unreachable"
+        "500":
+          $ref: "#/components/responses/Internal"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+
+  /entries/{uuid}/fields:
+    get:
+      operationId: listFields
+      summary: The names of an entry's strings.
+      description: |
+        Names and whether each is protected, never a value and never a length. The length of a
+        password is worth something to whoever is guessing it, and listing is not reading.
+      x-kpg-verb: list
+      parameters:
+        - $ref: "#/components/parameters/EntryUuid"
+      responses:
+        "200":
+          description: The field names.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FieldList"
+        "401":
+          $ref: "#/components/responses/Unpaired"
+        "404":
+          $ref: "#/components/responses/Unreachable"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+    head:
+      operationId: headFields
+      summary: The same, without the content.
+      description: |
+        Runs what its `get` runs, on the same handler, and answers without the content.
+        Declared rather than derived, and governed by the same `x-kpg-verb`: this document's
+        own description says why.
+      x-kpg-verb: list
+      parameters:
+        - $ref: "#/components/parameters/EntryUuid"
+      responses:
+        "200":
+          description: There, and reachable by this client.
+        "401":
+          $ref: "#/components/responses/Unpaired"
+        "404":
+          $ref: "#/components/responses/Unreachable"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+    post:
+      operationId: createField
+      summary: Add a string this entry does not have.
+      description: |
+        Refused when the name is already there, which is what makes this different from an update.
+        A profile granted `update` and not `create` can change what an entry holds and cannot add
+        to it.
+      x-kpg-verb: create
+      parameters:
+        - $ref: "#/components/parameters/EntryUuid"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, value]
+              additionalProperties: false
+              properties:
+                # A name every route would refuse was made with `201` and could never be read,
+                # changed or stripped afterwards. A carriage return cost more: the file reads one
+                # back as a line feed, so `api\rkey` and `api\nkey` were two names until the next
+                # unlock and one after it, and a client holding only `create` could write beside a
+                # protected field and find its own value there, in clear. The bidirectional
+                # controls are refused because KeePass acts on what a name says, as the attachment
+                # name beside `createAttachment` explains.
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 512
+                  description: |
+                    A name the routes can name again: one holding any control character, line
+                    breaks and tabs included, one that decodes into a climb such as `a/../b`, or
+                    one holding any of the twelve characters Unicode classes as bidirectional
+                    controls is `400 malformed`. A name the entry carries, or one the database
+                    cannot tell from a name it carries, is `409`.
+                value:
+                  type: string
+                  maxLength: 65536
+                  description: |
+                    Line breaks, tabs and bidirectional controls are allowed here, since notes are
+                    a field like any other and right to left text is ordinary in one.
+                # A string because a request body on this wire carries no booleans. §505
+                protected:
+                  type: string
+                  minLength: 4
+                  maxLength: 5
+                  description: |
+                    `true` or `false`, spelled out, because a request body on this wire carries
+                    strings and nothing else. `true` protects the value whatever it is called.
+                    `false` and absent mean the same: whatever the database protects under that
+                    name, so `Password` is stored protected either way, since `false` cannot take
+                    away a protection the database gives. Anything else is refused rather than
+                    read as `false`, so a marker this gate cannot read never stores a secret in
+                    clear.
+      responses:
+        "201":
+          $ref: "#/components/responses/Made"
+        "400":
+          $ref: "#/components/responses/Malformed"
+        "401":
+          $ref: "#/components/responses/Unpaired"
+        "404":
+          $ref: "#/components/responses/Unreachable"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "415":
+          $ref: "#/components/responses/UnsupportedMediaType"
+        "500":
+          $ref: "#/components/responses/Internal"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+
+  /entries/{uuid}/fields/{name}:
+    get:
+      operationId: readField
+      summary: One string's value.
+      description: |
+        The string the entry holds under this name, and `404` for a name it does not hold, a
+        standard field it does not carry among them, while `readEntry` leaves such a field out of
+        `fields`. Only an entry neither KeePass nor the gate made can lack one of the five, since
+        both make all five and the gate empties one rather than taking it off: an entry written by
+        other software, or imported from another program's format and not edited in KeePass since.
+      # The `404` is the answer `updateField` gives on the same path, which changes only a string
+      # that is there: a read answering `""` would promise a string an update is then refused.
+      x-kpg-verb: read
+      parameters:
+        - $ref: "#/components/parameters/EntryUuid"
+        - $ref: "#/components/parameters/FieldName"
+      responses:
+        "200":
+          description: The field.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Field"
+        "401":
+          $ref: "#/components/responses/Unpaired"
+        "404":
+          $ref: "#/components/responses/Unreachable"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+    head:
+      operationId: headField
+      summary: The same, without the content.
+      description: |
+        Runs what its `get` runs, on the same handler, and answers without the content.
+        Declared rather than derived, and governed by the same `x-kpg-verb`: this document's
+        own description says why.
+      x-kpg-verb: read
+      parameters:
+        - $ref: "#/components/parameters/EntryUuid"
+        - $ref: "#/components/parameters/FieldName"
+      responses:
+        "200":
+          description: There, and reachable by this client.
+        "401":
+          $ref: "#/components/responses/Unpaired"
+        "404":
+          $ref: "#/components/responses/Unreachable"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+    put:
+      operationId: updateField
+      summary: Change a string this entry already has.
+      description: |
+        Refused when there is no such name, which is what makes this different from a create. What
+        it does not change is whether the field is protected: that is something the operator
+        arranged, and writing a value is not the moment to decide it differently. A value the field
+        already holds writes nothing, as the description at the top says of every update.
+      x-kpg-verb: update
+      parameters:
+        - $ref: "#/components/parameters/EntryUuid"
+        - $ref: "#/components/parameters/FieldName"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [value]
+              additionalProperties: false
+              properties:
+                value:
+                  type: string
+                  maxLength: 65536
+      responses:
+        "200":
+          $ref: "#/components/responses/Done"
+        "400":
+          $ref: "#/components/responses/Malformed"
+        "401":
+          $ref: "#/components/responses/Unpaired"
+        "404":
+          $ref: "#/components/responses/Unreachable"
+        "415":
+          $ref: "#/components/responses/UnsupportedMediaType"
+        "500":
+          $ref: "#/components/responses/Internal"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+    delete:
+      operationId: stripField
+      summary: Take a string off an entry.
+      description: |
+        A strip rather than a delete: it removes a part of the entry and leaves the entry, so it is
+        granted by `strip` on the entry and never touches whether the entry itself may be removed.
+        The five standard fields every entry has are emptied with `updateField` rather than taken
+        off, and a strip of one is a conflict.
+
+        A removal asks no switch, and a protected field is refused only when the same rule could
+        create in its place and could not have created a protected value there, which is `404`
+        as any refusal is. A rule that may strip and may not create takes a protected field off.
+      # The five are emptied because KeePass makes all five on every entry and its editor writes
+      # all five back on OK, and an entry left without its title read as an empty title in a
+      # listing and as no title at all in a read, which a client cannot tell from a value it was
+      # refused. The protected case is asked because a strip takes the string off and with it the
+      # only mark saying the name held a secret, so the create that follows would read as an
+      # ordinary one and store whatever the caller sent, in clear, under the credential's name.
+      x-kpg-verb: strip
+      parameters:
+        - $ref: "#/components/parameters/EntryUuid"
+        - $ref: "#/components/parameters/FieldName"
+      responses:
+        "200":
+          $ref: "#/components/responses/Done"
+        "401":
+          $ref: "#/components/responses/Unpaired"
+        "404":
+          $ref: "#/components/responses/Unreachable"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "500":
+          $ref: "#/components/responses/Internal"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+
+  /entries/{uuid}/attachments:
+    get:
+      operationId: listAttachments
+      summary: The names and sizes of an entry's attachments.
+      description: |
+        The size stays where a field's length does not, because a client has to decide whether to
+        ask for something before it asks and an attachment can be megabytes.
+      x-kpg-verb: list
+      x-kpg-attachments: true
+      parameters:
+        - $ref: "#/components/parameters/EntryUuid"
+      responses:
+        "200":
+          description: The attachments.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AttachmentList"
+        "401":
+          $ref: "#/components/responses/Unpaired"
+        "404":
+          $ref: "#/components/responses/Unreachable"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+    head:
+      operationId: headAttachments
+      summary: The same, without the content.
+      description: |
+        Runs what its `get` runs, on the same handler, and answers without the content.
+        Declared rather than derived, and governed by the same `x-kpg-verb`: this document's
+        own description says why.
+      x-kpg-verb: list
+      x-kpg-attachments: true
+      parameters:
+        - $ref: "#/components/parameters/EntryUuid"
+      responses:
+        "200":
+          description: There, and reachable by this client.
+        "401":
+          $ref: "#/components/responses/Unpaired"
+        "404":
+          $ref: "#/components/responses/Unreachable"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+    post:
+      operationId: createAttachment
+      summary: Add an attachment this entry does not have.
+      x-kpg-verb: create
+      x-kpg-attachments: true
+      parameters:
+        - $ref: "#/components/parameters/EntryUuid"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, content]
+              additionalProperties: false
+              properties:
+                # The bidirectional controls are refused because KeePass acts on what a name says:
+                # it lists an attachment under its name and opens one it cannot show itself with
+                # whatever Windows starts for the real suffix, so a name ending in the right to
+                # left override and then `fdp.exe` is listed as ending in `.pdf` and started as a
+                # program on the operator's double click.
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 512
+                  description: |
+                    A name the routes can name again: one holding any control character, line
+                    breaks and tabs included, one that decodes into a climb such as `a/../b`, or
+                    one holding any of the twelve characters Unicode classes as bidirectional
+                    controls is `400 malformed`. A name the entry carries, or one the database
+                    cannot tell from a name it carries, is `409`.
+                content:
+                  type: string
+                  maxLength: 699052
+      responses:
+        "201":
+          $ref: "#/components/responses/Made"
+        "400":
+          $ref: "#/components/responses/Malformed"
+        "401":
+          $ref: "#/components/responses/Unpaired"
+        "404":
+          $ref: "#/components/responses/Unreachable"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "415":
+          $ref: "#/components/responses/UnsupportedMediaType"
+        "500":
+          $ref: "#/components/responses/Internal"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+
+  /entries/{uuid}/attachments/{name}:
+    get:
+      operationId: readAttachment
+      summary: One attachment's contents, base64 encoded.
+      x-kpg-verb: read
+      x-kpg-attachments: true
+      parameters:
+        - $ref: "#/components/parameters/EntryUuid"
+        - $ref: "#/components/parameters/AttachmentName"
+      responses:
+        "200":
+          description: The attachment.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Attachment"
+        "401":
+          $ref: "#/components/responses/Unpaired"
+        "404":
+          $ref: "#/components/responses/Unreachable"
+        "413":
+          $ref: "#/components/responses/TooLarge"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+    head:
+      operationId: headAttachment
+      summary: The same, without the content.
+      description: |
+        Runs what its `get` runs, on the same handler, and answers without the content.
+        Declared rather than derived, and governed by the same `x-kpg-verb`: this document's
+        own description says why.
+      x-kpg-verb: read
+      x-kpg-attachments: true
+      parameters:
+        - $ref: "#/components/parameters/EntryUuid"
+        - $ref: "#/components/parameters/AttachmentName"
+      responses:
+        "200":
+          description: There, and reachable by this client.
+        "401":
+          $ref: "#/components/responses/Unpaired"
+        "404":
+          $ref: "#/components/responses/Unreachable"
+        "413":
+          $ref: "#/components/responses/TooLarge"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+    put:
+      operationId: updateAttachment
+      summary: Replace an attachment this entry already has.
+      description: |
+        Content the attachment already holds, byte for byte, writes nothing, as the description at
+        the top says of every update.
+      x-kpg-verb: update
+      x-kpg-attachments: true
+      parameters:
+        - $ref: "#/components/parameters/EntryUuid"
+        - $ref: "#/components/parameters/AttachmentName"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [content]
+              additionalProperties: false
+              properties:
+                content:
+                  type: string
+                  maxLength: 699052
+      responses:
+        "200":
+          $ref: "#/components/responses/Done"
+        "400":
+          $ref: "#/components/responses/Malformed"
+        "401":
+          $ref: "#/components/responses/Unpaired"
+        "404":
+          $ref: "#/components/responses/Unreachable"
+        "415":
+          $ref: "#/components/responses/UnsupportedMediaType"
+        "500":
+          $ref: "#/components/responses/Internal"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+    delete:
+      operationId: stripAttachment
+      summary: Take an attachment off an entry.
+      description: |
+        A strip rather than a delete, for the same reason as a field: it removes a part and leaves
+        the entry. The attachment switch is not asked about for it, because removing shows nobody
+        anything.
+      x-kpg-verb: strip
+      x-kpg-attachments: true
+      parameters:
+        - $ref: "#/components/parameters/EntryUuid"
+        - $ref: "#/components/parameters/AttachmentName"
+      responses:
+        "200":
+          $ref: "#/components/responses/Done"
+        "401":
+          $ref: "#/components/responses/Unpaired"
+        "404":
+          $ref: "#/components/responses/Unreachable"
+        "500":
+          $ref: "#/components/responses/Internal"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+
 components:
   schemas:
     Error:
@@ -306,12 +1312,358 @@ components:
             the rest are told apart by the status and read by a person. None of them carries anything
             the caller sent back to it.
 
+
+    EntryFields:
+      type: object
+      additionalProperties: false
+      description: |
+        The five strings every entry has, by KeePass's own names, so that nothing has to map one
+        vocabulary onto another and no custom field can collide with a translated one. Every member
+        is optional: a create fills in the rest as empty, and an update writes only what is named.
+        Each name is matched against the entry's own as `FieldName` says, for the whole body before
+        any of it is written, and against the body's other names as well.
+
+        `expires` is not a string the entry holds, and is spelled as a read answers it, in lower
+        case, rather than after either of the two things KeePass keeps for it, `Expires` and
+        `ExpiryTime`, which it says in one value.
+      properties:
+        Title:
+          type: string
+          maxLength: 512
+        UserName:
+          type: string
+          maxLength: 512
+        Password:
+          type: string
+          maxLength: 65536
+        # The one value refused for what it says. KeePass's Open URL action compiles the entry's URL
+        # first, which resolves a field reference such as `{REF:P@I:...}` against the whole open
+        # database, knowing nothing about these rules, and starts a `cmd://` URL as a command line.
+        # Only this field, because braces are ordinary in a note and a brace is not a character a
+        # URL may carry unencoded anyway. What this does not reach is the rest of what KeePass
+        # compiles, such as a reference planted in another field, and that leaves a write verb as
+        # sensitive as a read verb, which is something an operator granting one has to know.
+        URL:
+          type: string
+          maxLength: 8192
+          description: |
+            Stored as written, except that a value KeePass would resolve or run, one holding `{`
+            or beginning `cmd://`, is refused with `400`: this gate stores no field reference or
+            placeholder in a URL and no command. The refusal is decided after the rules, so a
+            client that may not write there is answered `404`, as for anything else it may not
+            reach.
+        Notes:
+          type: string
+          maxLength: 65536
+        # One spelling, because a `.kdbx` keeps no fraction of a second and one spelling leaves
+        # nothing to guess. `auto` is a create's alone, because an entry that exists already has
+        # the expiry somebody decided on. §506
+        expires:
+          type: string
+          maxLength: 20
+          description: |
+            When the entry expires, as RFC 3339 in UTC to the second, `2031-02-03T04:05:06Z`,
+            which is how every moment this API answers with is written, so the `expires` a read
+            answers goes back as it came, and no other spelling is read as a moment, an offset or
+            a fraction of a second included; empty for an entry that does not expire, which on an
+            update takes an expiry off and leaves the moment where KeePass's own dialog leaves it;
+            or, on a create only, `auto`, for whatever expiry KeePass's options give every new
+            entry, the number of days under Tools, Options, Security. That is none unless the
+            operator has switched it on, and none in the entry templates group, whose expiry every
+            entry made from a template would copy, where KeePass's own Add Entry applies it nowhere
+            either. Absent asks for nothing: the entry a create makes does not expire, and an
+            update leaves the expiry as it is. Anything else is `400 malformed`, `auto` on an
+            update included.
+            This says no more than a length because `BodyCheck` implements neither `format` nor
+            `enum`, and the handler holds the member to the rest.
+
+    Group:
+      type: object
+      required: [uuid, name, notes, parent, created, modified]
+      additionalProperties: false
+      properties:
+        uuid:
+          type: string
+        name:
+          type: string
+        notes:
+          type: string
+        parent:
+          type: string
+          nullable: true
+          description: Null on the root group, which is how a client finds the top of the tree.
+        created:
+          type: string
+        modified:
+          type: string
+
+    GroupSummary:
+      type: object
+      required: [uuid, name, parent, created, modified]
+      additionalProperties: false
+      description: |
+        What `list` says about a group: where it is and what it is called. Its notes are free text,
+        which is what `read` is for, so they are on `readGroup` and not here.
+      properties:
+        uuid:
+          type: string
+        name:
+          type: string
+        parent:
+          type: string
+          nullable: true
+          description: Null on the root group, which is how a client finds the top of the tree.
+        created:
+          type: string
+        modified:
+          type: string
+
+    GroupList:
+      type: object
+      required: [groups, count]
+      additionalProperties: false
+      properties:
+        groups:
+          type: array
+          items:
+            $ref: "#/components/schemas/GroupSummary"
+        count:
+          type: integer
+          description: |
+            How many are in this answer, which is how many the rules allowed. What was left out is
+            not counted, because a count of what a client may not see is a description of it.
+
+    EntrySummary:
+      type: object
+      required: [uuid, group, title, url, created, modified]
+      additionalProperties: false
+      description: |
+        What `list` says about an entry. A title and a URL are what make a listing usable, and
+        granting `list` is how an operator says they may be seen. Everything else needs `read`.
+
+        Either can be protected, and then `list` alone is not enough: a protected one comes back
+        as `null` without the `protected` switch, the same way the read route answers.
+      properties:
+        uuid:
+          type: string
+        group:
+          type: string
+        title:
+          type: string
+          nullable: true
+        url:
+          type: string
+          nullable: true
+        created:
+          type: string
+        modified:
+          type: string
+
+    # The router decides the node a listing is anchored at, and the handler leaves out each item
+    # the rules do not allow. An entry left out is not an error and gets no audit line of its own,
+    # because that is the normal case for a client that may see part of a database.
+    EntryList:
+      type: object
+      required: [entries, count]
+      additionalProperties: false
+      properties:
+        entries:
+          type: array
+          items:
+            $ref: "#/components/schemas/EntrySummary"
+        count:
+          type: integer
+          description: |
+            How many are in this answer, which is how many the rules allowed. What was left out is
+            not counted, because a count of what a client may not see is a description of it.
+
+    Entry:
+      type: object
+      required: [uuid, group, created, modified, expires, fields, protected]
+      additionalProperties: false
+      properties:
+        uuid:
+          type: string
+        group:
+          type: string
+        created:
+          type: string
+        modified:
+          type: string
+        # Nothing is added to the mask for the expiry: it belongs to the entry as its title does
+        # and is not a value the database protects, so neither switch is asked. A listing leaves
+        # it out, because `list` gives names.
+        expires:
+          type: string
+          nullable: true
+          description: |
+            When the entry expires, or `null` when it does not. Once that moment is now or earlier
+            the entry has expired, which is how KeePass judges one, and KeePass still shows and
+            copies it: an expiry is advice to whoever uses the entry, and what keeps a client from
+            one is the rules.
+        # A value is never compiled because KeePass resolves a reference against the whole open
+        # database, which knows nothing about these rules, so compiling one on the way out would
+        # hand a client the value of an entry its rules do not reach, through a field of one they
+        # do. `EntryFields` refuses that syntax in a URL for the same reason from the other side,
+        # because a URL is the value KeePass compiles by itself.
+        fields:
+          type: object
+          additionalProperties:
+            type: string
+            nullable: true
+          description: |
+            Every string the entry holds, by name, served as it is stored and never compiled: a
+            field reference such as `{REF:P@I:...}` and a placeholder such as `{USERNAME}` or
+            `%TEMP%` come back as the text they are. A value the caller's rule does not reach is
+            `null` rather than absent, so a value being withheld is not the same answer as a field
+            that is not there, and an empty one is `""`. `protected` says which of them the
+            database protects. A standard field the entry does not carry is left out, which the
+            reference client reads as `""`, as KeePass reads a missing standard string.
+        protected:
+          type: array
+          items:
+            type: string
+          description: |
+            Which of them the database keeps protected, and so which could have been withheld,
+            which is why it is always there.
+
+    Field:
+      type: object
+      required: [name, value, protected]
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+        value:
+          type: string
+          nullable: true
+          description: |
+            `null` when the field is protected and the caller's rule does not reach secrets. The
+            field is still named and still reported as protected, because refusing to say it exists
+            would be a different answer from refusing to say what it holds. Otherwise the value as
+            it is stored, never compiled, as `Entry` says of its `fields`.
+        protected:
+          type: boolean
+
+    FieldSummary:
+      type: object
+      required: [name, protected]
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+        protected:
+          type: boolean
+
+    FieldList:
+      type: object
+      required: [fields]
+      additionalProperties: false
+      properties:
+        fields:
+          type: array
+          items:
+            $ref: "#/components/schemas/FieldSummary"
+
+    AttachmentSummary:
+      type: object
+      required: [name, size]
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+        size:
+          type: integer
+
+    AttachmentList:
+      type: object
+      required: [attachments]
+      additionalProperties: false
+      properties:
+        attachments:
+          type: array
+          items:
+            $ref: "#/components/schemas/AttachmentSummary"
+
+    Attachment:
+      type: object
+      required: [name, size, content]
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+        size:
+          type: integer
+        content:
+          type: string
+          description: The bytes, base64 encoded, because this API answers in JSON and nothing else.
+
+    Made:
+      type: object
+      required: [uuid]
+      additionalProperties: false
+      properties:
+        uuid:
+          type: string
+          description: |
+            What was created. A field or an attachment answers with its name, which is what
+            addresses it.
+
+    Ok:
+      type: object
+      required: [ok]
+      additionalProperties: false
+      properties:
+        ok:
+          type: boolean
+
   responses:
+    # Not now, as against not at all. A lock is not a decision, so the audit records none: a
+    # request that met it before the router decided leaves no line, and one that met it afterwards
+    # keeps the line its decision got. §502
     Unavailable:
       description: |
-        Not now. Either the database is locked, or a dialog is open on what this would change and a
-        change made underneath one is a change the operator's OK destroys. The body says which, and
-        the second is worth trying again shortly.
+        Not now, and worth trying again shortly, where a refusal is not. The body carries `locked`
+        or `busy`, and `busy` covers everything the password manager is doing that this request
+        cannot be served underneath.
+
+        `locked` is the database being locked, answered before a route is chosen at all, by a
+        second host certificate held only in memory so that a locked KeePass answers rather than
+        failing at the transport. A database that locks or closes while a request is being read,
+        before the router has looked up the node it is about, or between the router's decision and
+        the handler's read, is `locked` as well, because its nodes have not gone and a client told
+        they had would stop looking for something that is still there. A node that has gone while
+        the database stays open is the `404` any absent node gets. The exception is a write whose
+        handler has already run: the change is handed to the writer, which finds nothing open to
+        change and answers `500 internal error`, because the change could not be attempted.
+
+        `busy` is three things, and a read meets the first as readily as a write meets the others.
+        The tree moved while it was being read, which is somebody using KeePass rather than a
+        fault here. A dialog is open on what a write would change, and a change made underneath
+        one is a change the operator's OK destroys; a dialog that is adding something is answered
+        for where it adds, so a group that Add Entry or the TAN wizard will fill on OK is not
+        removed while either is open, and nothing is created in a group whose Add Group dialog is
+        still open, since its Cancel takes the group back out with whatever was put in it.
+        Another change is already being written, or the user interface did not answer in time: a
+        write waits up to 20 seconds for the one ahead of it and up to 30 more for KeePass's own
+        thread to take it, so `busy` for either can take close to a minute to arrive, and a client
+        waiting less gives up on a write that may still land. One KeePass has started is bounded
+        by its save rather than by these waits, and is answered when the save is over, which takes
+        as long as the database's size and its storage make it, unless the save outlasts what is
+        left of the connection's budget, which closes it with no answer; for a database KeePass
+        opened from a URL the storage is a server, and a save waits on it for as long as KeePass's
+        network timeouts allow.
+      headers:
+        Retry-After:
+          description: |
+            How long to wait before asking again, in seconds: `2`, on every `503` this gate
+            sends, whichever of them it is, and on nothing else it sends. RFC 9110 section
+            10.2.3. Which refusal it was is the body's job, and a client that treats the two
+            differently reads that; the delay is a guess either way, because how long any of these
+            lasts is a person's business rather than this gate's, and two guesses would only
+            invite reading meaning into the difference.
+          schema:
+            type: integer
       content:
         application/json:
           schema:
@@ -324,19 +1676,65 @@ components:
           schema:
             $ref: "#/components/schemas/Error"
 
-    Malformed:
-      description: The body is not what the document declares.
+    # The transport serves thirty-two connections at once, so ten times an attachment's size, at
+    # once on every one of them, is what the ceiling holds down.
+    TooLarge:
+      description: |
+        The attachment is larger than this gate will hand out. Building one costs about ten times
+        its size in memory inside the password manager's own process, so there is a ceiling, and it
+        is the same size a write accepts: what this gate gives out it can also be given back. The
+        refusal comes before anything is decrypted. The body names the size and the ceiling in a
+        sentence rather than a word, so a client knows this refusal by its status.
       content:
         application/json:
           schema:
             $ref: "#/components/schemas/Error"
 
+    # KeePass writes every unprotected string into its XML through a method that silently removes
+    # what XML 1.0 cannot represent, and its reader drops an element's text when it is only
+    # whitespace. Such a string was accepted, answered `200` or `201` and read back short, or with
+    # no name at all, which on a password is the difference between a client believing it rotated
+    # a credential and its not having done so.
+    Malformed:
+      description: |
+        The body, or the value of a query parameter, is not what the document declares, or it is
+        and asks for something this gate refuses to store: a URL KeePass would resolve or run,
+        holding `{` or beginning `cmd://`, on `createEntry`, `updateEntry`, `createField` and
+        `updateField`; or a string a `.kdbx` cannot hold, on every operation and in the name of a
+        field or an attachment as much as in a value, which is one holding a control character
+        other than tab, carriage return and line feed, `U+FFFE` or `U+FFFF`, or a surrogate
+        without its pair, and one of whitespace and nothing else. The body says which.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+    # Not the `404` a refusal gives, because answering `not saved` that way told a client its
+    # request had nowhere to go while the database held the change, and a retry made a second one.
+    Internal:
+      description: |
+        The gate failed, rather than the request being wrong or the node being out of reach. Two
+        things reach this. `not saved` means the change was made and the save never got to the
+        disk, and it has been taken back out again. `internal error` means it could not be
+        attempted at all: the database closed under the request, or KeePass answered the attempt
+        with an error. Neither leaves anything behind that a retry would duplicate, which is why
+        this is not the `404` a refusal gives: that answer says the request had nowhere to go, and
+        it is the one an absent node and a forbidden one share. Neither is worth retrying either,
+        for the same reason.
+
+        Every operation whose verb changes the database declares this, and one that does not stops
+        the plugin loading.
+
+    # Declared by every operation with a body because the refusal is decided from the document's
+    # own media type rather than from anything an operation says.
     UnsupportedMediaType:
       description: |
         The body was sent under a media type this API does not speak. `application/json` is the
         only one it declares anywhere, and a request claiming no type at all is taken as claiming
         that one, because a caller that claimed nothing has not claimed something else. Every
-        operation carrying a body declares this, and one that does not stops the plugin loading.
+        operation carrying a body declares this, and one that does not stops the plugin loading. A
+        body sent to an operation that declares none is refused before its type is looked at, as a
+        target this document does not declare.
       content:
         application/json:
           schema:
@@ -344,21 +1742,11 @@ components:
 
     PairingRefused:
       description: |
-        Either the proof did not verify, in which case nothing is spent, or this connection may not
-        pair at all and is being told what every caller without a certificate is told on every path
-        there is. `proof` is the first and `unpaired` the second, and they are not told apart on
-        purpose: a caller the database does not admit cannot tell a pairing route from a path
-        nobody declared.
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/Error"
-
-    NotPairing:
-      description: |
-        This connection may not pair: it arrived on no invitation, or it already holds a certificate.
-        Only a client the database already admits is told this much, and it is told exactly what an
-        undeclared path tells it. Everybody else gets the `401` above instead.
+        Either the proof did not verify, in which case the invitation is not spent, or this
+        connection may not pair at all and is being told what every caller without a certificate is
+        told on every path there is. `proof` is the first and `unpaired` the second, and they are not
+        told apart on purpose: a caller the database does not admit cannot tell a pairing route from
+        a path nobody declared.
       content:
         application/json:
           schema:
@@ -371,3 +1759,154 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/Error"
+
+    # Both pairing routes declare this and the `401`, so a client can tell either from a routing
+    # mistake.
+    NotPairing:
+      description: |
+        This connection may not pair: it arrived on no invitation, or it already holds a certificate.
+        Only a client the database already admits is told this much, and it is told exactly what an
+        undeclared path tells it. Everybody else gets the `401` above instead.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+    # One answer for absent and refused, and for a node gone under a request, which is never
+    # answered as empty. §503
+    Unreachable:
+      description: |
+        There is nothing there, or nothing the rules let this client reach. **The same answer to
+        both, deliberately.** Telling them apart would let a client that may reach nothing map the
+        database by asking, one identifier at a time, which is exactly what `list` exists to be able
+        to withhold. The operator is told which it was, in the audit.
+
+        A node that goes while the request is answered, in a database that stays open, is this as
+        well, and so is a listing of a group or an entry that has gone: never `200` with an empty
+        list, which would say the node is there and holds nothing.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+    # A taken name is told rather than hidden because a create that did not land has to say so, or
+    # a client that only adds believes it stored what it did not, and neither other answer is
+    # open: a `404` would call an entry it may add to absent, and writing over the name is what
+    # `update` is for.
+    Conflict:
+      description: |
+        The database already says otherwise: a name that is taken, a name the database cannot
+        tell from one it already holds, such as a standard field's name held under another
+        spelling by a file another program wrote, a group that still holds something, or a
+        standard field, which is emptied rather than taken off.
+
+        **A taken name is `409` even to a client that may create and not list**, and that tells it
+        the name is there. What it learns is a name, one guess at a time, and never a value.
+
+        **Not the root group**, which `deleteGroup` answers `404` for, as it does for any node
+        the rules do not reach. A removal is asked of the group a node is leaving and the root is
+        leaving nothing, so the question is refused before it reaches a handler that could call
+        it a conflict, and a client that asked cannot tell the root from a group it may not have.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+    Done:
+      description: The change is made and the database is saved.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Ok"
+
+    Made:
+      description: |
+        Created, and saved before this was answered. What comes back is what addresses it.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Made"
+
+
+  parameters:
+    # The alias is not a route of its own, since no identifier can be spelled `root`, and it is
+    # there because no verb implies another: an identifier can as easily come from an operator
+    # pasting it into an agent's configuration as from a listing.
+    GroupUuid:
+      name: uuid
+      in: path
+      required: true
+      description: |
+        A group's identifier, 32 hex characters, or the word `root` for the group every database
+        has. The alias exists so that a client granted only `create` can put something somewhere
+        without first being granted `list` to find out where.
+      schema:
+        type: string
+        minLength: 4
+        maxLength: 32
+
+    EntryUuid:
+      name: uuid
+      in: path
+      required: true
+      description: An entry's identifier, 32 hex characters.
+      schema:
+        type: string
+        minLength: 32
+        maxLength: 32
+
+    # KeePass keeps an entry's strings and its attachments in dictionaries that compare names the
+    # way the current culture sorts them, and that collation gives `U+00AD`, `U+200D`, `U+2060` and
+    # `U+FEFF` no weight at all and reads a composed character and its decomposed spelling as one.
+    # `Pass<U+00AD>word` therefore addressed the entry's `Password`, while the guards above the
+    # store compared byte for byte and judged it a custom field, and it was applied to the
+    # credential.
+    FieldName:
+      name: name
+      in: path
+      required: true
+      description: |
+        The name of one of an entry's strings, as KeePass names them: `Title`, `UserName`,
+        `Password`, `URL`, `Notes`, or whatever a custom one is called. Percent encoded, and a
+        separator inside it has to be escaped. **A name that decodes to `.`, `..` or a control
+        character cannot be addressed by a path**: the transport refuses such a target with `400`
+        before a route is chosen, as the description at the top says. The entry's own read
+        carries every string it holds, such a name included.
+
+        A name is matched against the entry's own names byte for byte: one that is not among them
+        is a name the entry does not carry, which is `404`, and one the database could not keep
+        apart from a name it does carry is `409`.
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 512
+
+    AttachmentName:
+      name: name
+      in: path
+      required: true
+      description: |
+        An attachment's name, percent encoded. **A name that decodes to `.`, `..` or a control
+        character cannot be addressed by a path**: the transport refuses such a target with `400`
+        before a route is chosen, as the description at the top says. The entry's listing still
+        names it. A name is matched as a field's is, which `FieldName` says.
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 512
+
+    IncludeExpired:
+      name: includeExpired
+      in: query
+      required: false
+      description: |
+        `false` leaves out every entry that has expired, which is one that expires at a moment
+        that is now or earlier on the gate's clock, as KeePass judges one. `true`, and leaving it
+        out, lists them with the rest, as KeePass's own list does, so a caller that has never
+        heard of expiry sees the database it always saw. Anything else is
+        `400 malformed`, because a caller that meant to leave them out and misspelled the word
+        must not be handed them. It is answered with `list`, so a caller that may list an entry
+        can learn by asking twice whether it has expired, which KeePass's list shows by striking
+        it through; when it expires is what `read` gives.
+      schema:
+        type: string

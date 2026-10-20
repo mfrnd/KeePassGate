@@ -311,6 +311,15 @@ plugin memory. While locked it is the only identity available and it can do noth
   number. An impostor holding the responder key reads nothing, but
   could answer with a fabricated secret, and an agent acting on a forged credential is worse than an
   agent that fails.
+
+  **The client is where that check has to happen, and PyKeePassGate now makes it.** A locked
+  database answers `503 locked` on every path before it has read a request, so the plugin cannot ask
+  the question about itself: the marker exists for the peer to read. The responder chains to the
+  same authority as the normal host certificate, so a paired client's pin admits it and nothing else
+  the client holds tells the two apart. The refusal is raised **before the request is written**,
+  which is what the paragraph above is asking for: waiting for the answer would hand the request
+  body, and whatever value it was going to store, to whoever holds that key. Pairing is covered by
+  the same check, so a hello to a locked database costs no invitation.
 - **The gate key must stay resident too**, or the gate never resolves and the responder is never
   reached. Of the three secrets it is the right one to keep: it authenticates nothing, and every
   paired client already holds it.
