@@ -8,7 +8,7 @@ Guidance for anyone, human or AI assistant, working in this repository.
 mutual TLS, so that automation and AI agents can each be given a narrow, revocable, audited slice of
 a database.
 
-**Status: the design is settled and steps 1 to 12 of the build order are done.** The plugin loads
+**Status: the design is settled and steps 1 to 13 of the build order are done.** The plugin loads
 into KeePass, the KPG tab creates, recreates and deletes the database's own certificate authority,
 the gate listens on loopback and answers over mutual TLS 1.3, a client is served only if
 the database holds an admission record for its certificate, and **a stranger can now become one**:
@@ -18,9 +18,10 @@ KeePass now answers `503 locked`** with a second host certificate held only in m
 table is now the OpenAPI document itself**: handlers bind to `operationId`, an undeclared path has
 nowhere to go, and a document that disagrees with the handlers stops the plugin loading. **What a
 grant means is now settled**: rules live in group and entry `CustomData`, nearest wins per profile,
-and every operation declares the verb it needs or the plugin does not load. Step 13, the editor an
-operator writes a rule with, is next, and step 14 is where the rules start being enforced: nothing
-asks them until the intersection with the admission record lands.
+and every operation declares the verb it needs or the plugin does not load. **An operator can now
+write one**: the KPG tab on the group and entry dialogs edits the rules as a `CRUSDLAP` mask,
+writing into the copy the dialog puts back on OK. Step 14, the intersection with the admission record
+and the audit log, is what is left; nothing enforces the rules until it lands.
 
 ## Read these before proposing anything
 
@@ -136,6 +137,23 @@ designing around them.
   KeePass: the plugin entry point, the KeePass window event handlers, and the connection thread.
   Those report through `GateIncidents`, which counts on the KPG tab and
   logs at `UNEXPECTED`.
+- **Nothing on a tab scrolls.** The content is held to 449 by 314 and has to fit it; horizontal
+  scrolling is never acceptable. That is KeePass's own first page on the settings dialog, inside a
+  padding of 3. The page this plugin adds has no padding and is laid out to the tab control's whole
+  display area, a few pixels more even after the icon's share of the strip, and `TabRoom` holds a
+  fit test to the smaller of the two, so the tests are strict by that padding on purpose.
+  `GateTabFitsTests` measures it against the real dialog, including the longest text every label
+  can hold at once. **The KPG tab has two pages of its own**, "Certificate Authority" and
+  "Clients", because two subjects competing for one page is what makes a tab that has to be
+  shortened rather than read. Each page is measured in the room that page is given, not both in
+  the sum, which is the whole point of there being two. A
+  `TabControl` with no window handle never sizes its pages, so the measurement creates one and
+  brings each page to the front before believing what it is told.
+- **The grant editor writes into the dialog's own copy**, `m_sdCustomData`, on the group dialog and
+  the entry dialog alike, which is what makes those dialogs' OK keep a rule and their Cancel discard
+  it. The copy does not exist yet when the tab is built, so the field is resolved on every access
+  and reading falls back to the node itself. A KeePass that renames it leaves the editor showing the
+  rules and refusing to change them.
 - **No third-party HTTP dependency.** `uHttpSharp` fits the seam natively with zero changes and is
   ruled out on **license** (LGPL-2.1) and liveness (no commits since 2021), not on fit. Wanting
   WebSocket, HTTP/2 or chunked bodies flips this; nothing else does.
@@ -288,6 +306,15 @@ a database's custom data. Each gathers what it settled in its own `RESULTS.md`. 
   from `Name` and is ours: with the lookup keyed on the identifier, `AccessibleName` is free to
   be the phrase a screen reader should say, and is set only where a control has no text of its
   own to say it. Keying the lookup on the name instead is what made the two collide.
+- **KeePass's dialogs scale, and by more than the text does.** They are `AutoScaleMode.Font` against
+  `AutoScaleDimensions` of 6 by 13, so a larger system font makes a larger dialog: the settings
+  dialog's own first page goes from 449 by 314 at font height 13 to 599 by 410 at 16, 674 by 482 at
+  19 and 974 by 628 at 26. A page that fits at one scaling therefore fits at all of them, and a test
+  that grows the text while holding the room is measuring something that cannot happen. What does
+  happen is a window of ours that does not scale while its contents do, which is what a fixed
+  `ClientSize` with no `AutoScaleMode` buys, and a page put on a dialog after the dialog has
+  scaled, which nothing scales unless told to: `TabPageInjector` scales each one by its dialog's
+  own factor as it attaches it. `GateTabFitsTests.Everything_still_fits_when_the_display_is_scaled`.
 - **`Button.PerformClick()` does nothing on a form that was never shown**, silently. What a button
   does is public on the form, as it is on the tab, so tests reach the decision rather than the
   control.
@@ -436,11 +463,11 @@ here can hang or crash the password manager.
 
 ## Where to start
 
-[`DESIGN.md`](DESIGN.md) §132 ends with a multi-step build order. **Steps 1 to 12 are done.** The skeleton
-loads and shows a KPG tab, that tab creates, recreates and deletes the authority, the gate serves
-the document's routes over mutual TLS to a client the authority issued and the database holds a
-record for, a stranger can pair, a locked database answers `503 locked`, and a grant now means something
-definite even though nothing asks it yet.
+[`DESIGN.md`](DESIGN.md) §132 ends with a multi-step build order. **Steps 1 to 13 are done.** The
+skeleton loads and shows a KPG tab, that tab creates, recreates and deletes the authority, the gate
+serves the document's routes over mutual TLS to a client the authority issued and the database holds
+a record for, a stranger can pair, a locked database answers `503 locked`, a grant means something
+definite, and an operator can write one from the group and entry dialogs.
 
 **The storage decision survived the thing most likely to invalidate it.** The `GroupForm` snapshot
 hazard is real and now measured rather than remembered: `SnapshotHazardTests` reads the mechanism off
@@ -448,6 +475,25 @@ the real KeePass and reproduces the behavior with KeePass's own types. What it e
 step 8 built on: the settings dialog the KPG tab lives on carries **no** snapshot, so those
 buttons are safe from their own dialog, and anything written while a **group** dialog is open is
 destroyed by its OK.
+
+**What step 13 settled about the editor.** The tab is captioned `KPG` with the plugin's icon, and
+not "Access control", because another plugin may well put an access control page on the same dialogs
+and two pages with one name governing different clients is a trap. Neither column on the table is
+typed into: a mask spelled by hand is a rule nobody meant, and a profile spelled by hand is a rule
+for a name that may not exist, which grants nobody anything and reads exactly like one that works.
+Both are chosen from a list, and choosing a profile opens the rule picker straight after it, because
+a profile with no rule grants nothing and nobody opened the list to say that. `F2` and `Alt+Down` are
+the keyboard's way into either picker, and while one is open `Enter` and `Escape` belong to it, which
+is what `DialogKeys.Suspend` takes away from the dialog's own OK and Cancel: without that, choosing a
+verb presses OK on the group dialog and closes it with the rule half made.
+
+A rule is a `CRUSDLAP` mask in a monospaced column rather than a row of check boxes, so two rules
+differ in the place the eye is already looking. Inherited rules are shown among the local ones in
+gray, because a table listing only what this node grants reports nothing for
+an entry that a group above already opens wide. And the editor never writes the same rules in other
+words. A node's custom data keeps no modification time, but the entry dialog compares the entry it
+hands back with the one it was given, so a rule respelled by a byte is a changed entry, with a
+revision in its history and the database marked modified, for having been looked at.
 
 **Step 14 is the intersection and the audit**: the profiles from the admission record and the answer
 from the ACL, combined, and every decision recorded. Both halves are built and neither is wired to

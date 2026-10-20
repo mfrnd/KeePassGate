@@ -272,6 +272,22 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_nearer_rule_is_answered_before_a_document_above_that_will_not_read()
+        {
+            // Refused where it is found, and a walk that stops at a nearer rule never finds it.
+            // The editor's inheritance has to say the same, which `AclInheritanceTests` asks.
+            var root = TestNode.Root("root").Holding("{\"reader\":[\"purge\"]}");
+            var entry = root.Child("group").Granting("reader", AclVerb.Read).Child("an entry");
+
+            var decision = AclResolver.Decide(entry, Reader, AclVerb.Read);
+
+            Assert.That(decision.Permitted, Is.True);
+            Assert.That(decision.DecidedAt, Is.EqualTo("group"));
+            Assert.That(AclResolver.Decide(entry, new[] { "editor" }, AclVerb.Read).DecidedAt,
+                Is.EqualTo("root"), "and a profile nothing nearer names is refused at the broken one");
+        }
+
+        [Test]
         public void An_empty_document_is_not_a_document()
         {
             // Absence, not a rule that will not read. A key left blank rather than removed is the

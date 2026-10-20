@@ -49,6 +49,26 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_second_page_can_be_called_something_else()
+        {
+            // The plugin puts two different pages on two different dialogs, and what each is called
+            // is the caller's answer rather than this class's. That both of them happen to carry
+            // the plugin's own short name is a decision made elsewhere and could change.
+            var editor = new TabPageInjector(
+                _panels, _log, "m_tabMain", "Something else", "KpgSomethingElsePage");
+
+            using (var form = Dialogs.WithNestedTabControl("General"))
+            {
+                Assert.That(editor.Attach(form), Is.True);
+
+                var page = Dialogs.TabsOf(form).TabPages.Cast<TabPage>().Last();
+
+                Assert.That(page.Text, Is.EqualTo("Something else"));
+                Assert.That(page.Name, Is.EqualTo("KpgSomethingElsePage"));
+            }
+        }
+
+        [Test]
         public void The_page_holds_the_factory_panel_filling_it()
         {
             using (var form = Dialogs.WithNestedTabControl("General"))
@@ -361,6 +381,8 @@ namespace KeePassGate.Tests
                     _panels,
                     _log,
                     KeePassContract.DatabaseSettingsTabControlName,
+                    GateTab.Text,
+                    GateTab.PageControlName,
                     () => new System.Drawing.Bitmap(16, 16));
 
                 Assert.That(injector.Attach(form), Is.True);
@@ -383,7 +405,12 @@ namespace KeePassGate.Tests
             using (var form = Dialogs.WithNestedTabControl("General"))
             {
                 var injector = new TabPageInjector(
-                    _panels, _log, KeePassContract.DatabaseSettingsTabControlName, () => null);
+                    _panels,
+                    _log,
+                    KeePassContract.DatabaseSettingsTabControlName,
+                    GateTab.Text,
+                    GateTab.PageControlName,
+                    () => null);
 
                 Assert.That(injector.Attach(form), Is.True);
                 Assert.That(PageOf(form), Is.Not.Null);
@@ -408,6 +435,8 @@ namespace KeePassGate.Tests
                     _panels,
                     _log,
                     KeePassContract.DatabaseSettingsTabControlName,
+                    GateTab.Text,
+                    GateTab.PageControlName,
                     () => new System.Drawing.Bitmap(16, 16));
 
                 Assert.That(injector.Attach(form), Is.True);

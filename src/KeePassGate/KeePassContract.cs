@@ -35,6 +35,65 @@ namespace KeePassGate
         /// </summary>
         public const string GroupFormGroupField = "m_pwGroup";
 
+        /// <summary>The dialog behind Edit Entry, where an entry's own grants are edited.</summary>
+        public const string EntryFormTypeName = "KeePass.Forms.PwEntryForm";
+
+        /// <summary>The entry that dialog is editing.</summary>
+        public const string EntryFormEntryField = "m_pwEntry";
+
+        /// <summary>
+        /// The merged-selection context, present only while several entries are edited at once.
+        /// </summary>
+        /// <remarks>
+        /// Present means the entry behind the dialog is a synthetic one KeePass built by merging
+        /// the selection, and every value the selection disagrees about has been replaced by a
+        /// cue string. Its `CustomData` is therefore not a document, and what is written back is
+        /// applied to every selected entry. For a key the merged copy no longer carries, that
+        /// means deleting it from all of them.
+        /// </remarks>
+        public const string EntryFormMultipleField = "m_mvec";
+
+        /// <summary>Which of the four things the entry dialog is doing, `PwEditMode`.</summary>
+        /// <remarks>
+        /// `ViewReadOnlyEntry` is a history revision opened for reading. `SaveEntry` returns on
+        /// its first instruction in that mode, so nothing typed anywhere on the dialog is kept,
+        /// and the entry behind it is the old revision rather than the one in force.
+        /// </remarks>
+        public const string EntryFormEditModeField = "m_pwEditMode";
+
+        /// <summary>The `PwEditMode` value that means a history revision opened for reading.</summary>
+        public const string EntryFormReadOnlyMode = "ViewReadOnlyEntry";
+
+        /// <summary>
+        /// The tab strip on the group and entry dialogs, which both call it what the database
+        /// settings dialog does.
+        /// </summary>
+        public const string NodeFormTabControlName = "m_tabMain";
+
+        /// <summary>
+        /// **The dialog's own copy of a node's custom data**, on the group dialog and the entry
+        /// dialog alike, and the only correct place for the grant editor to write.
+        /// </summary>
+        /// <remarks>
+        /// Both dialogs take a copy when they open and write that copy back over the node when
+        /// they are accepted. A grant written straight to the live group or entry therefore
+        /// survives Cancel and is destroyed by OK, silently and completely, which is the worst way
+        /// for an access control editor to fail: the rule is on screen as the dialog closes and
+        /// gone from the database afterwards.
+        ///
+        /// A KeePass that renames this leaves the editor with nowhere safe to write, so it shows
+        /// the grants and refuses to edit them rather than writing somewhere that will be thrown
+        /// away.
+        /// </remarks>
+        public const string NodeFormCustomDataField = "m_sdCustomData";
+
+        /// <summary>
+        /// The database behind a group or entry dialog, which is what says which profiles are worth
+        /// offering. Absent, the editor has no profile to offer, and a rule is started by choosing
+        /// one, so it shows the rules, changes none of them, and says why.
+        /// </summary>
+        public const string NodeFormDatabaseField = "m_pwDatabase";
+
         /// <summary>
         /// The dialog behind Tools then Database Maintenance, which holds a copy of the database's
         /// own custom data and puts it back on Close whenever the live one has grown or shrunk.

@@ -191,10 +191,10 @@ namespace KeePassGate.Host.Tests.Live
 
             Assert.That(driver.PressButton(dialog, GateTab.InviteButtonText), Is.True, driver.Diagnostics);
 
-            // By the words rather than by the lookup name. UI automation reports a control's
-            // `AccessibleName` as its name, so what the desktop can find this box by is exactly what
-            // a screen reader would say about it: `InvitationBoxLabel`, not `InvitationBoxName`.
-            _token = driver.ValueOf(dialog, GateTab.InvitationBoxLabel);
+            // By the identifier now that `ValueOf` looks one up, rather than by the words. The box
+            // announces `InvitationBoxLabel` to a screen reader, which is a phrase for somebody
+            // listening rather than a handle for a test, and `InvitationBoxName` is ours.
+            _token = driver.ValueOf(dialog, GateTab.InvitationBoxName);
             _outstanding = driver.TextStartingWith(dialog, "The in-memory code is good");
 
             // With OK, which keeps the code: closing the dialog any other way takes it back.
@@ -217,7 +217,7 @@ namespace KeePassGate.Host.Tests.Live
             driver.SelectGateTab(dialog);
             driver.SelectPage(dialog, GateTab.ClientsPageText);
             Assert.That(driver.PressButton(dialog, GateTab.InviteButtonText), Is.True, driver.Diagnostics);
-            var token = driver.ValueOf(dialog, GateTab.InvitationBoxLabel);
+            var token = driver.ValueOf(dialog, GateTab.InvitationBoxName);
             Assert.That(driver.AcceptDialog(dialog), Is.True, driver.Diagnostics);
 
             // KeePass marks the database changed whenever its settings dialog is accepted, and a

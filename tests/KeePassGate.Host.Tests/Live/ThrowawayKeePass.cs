@@ -511,6 +511,25 @@ namespace KeePassGate.Host.Tests.Live
             }
         }
 
+        /// <summary>
+        /// What the root group holds under a custom data key, read out of the file after KeePass
+        /// has gone. The value rather than the group, because a group outlives the database it came
+        /// from only by accident.
+        /// </summary>
+        public string ReadRootCustomData(string key)
+        {
+            var database = new PwDatabase();
+            try
+            {
+                database.Open(IOConnectionInfo.FromPath(DatabasePath), NewKey(), null);
+                return database.RootGroup.CustomData.Get(key);
+            }
+            finally
+            {
+                database.Close();
+            }
+        }
+
         /// <summary>A name this database's gate will answer to, fresh each time.</summary>
         public string NewGateName()
         {

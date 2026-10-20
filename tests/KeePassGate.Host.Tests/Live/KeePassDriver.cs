@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
 using System.Windows.Automation;
@@ -17,6 +18,9 @@ namespace KeePassGate.Host.Tests.Live
     /// choosing from a menu through the tree blocks every other automation call until the dialog it
     /// opened is closed. So keys are discovered first, the menu is then driven from synthesized
     /// keystrokes with nothing watching, and results are read once nothing is modal.
+    ///
+    /// Discovery is what makes a menu appear to open twice, and it is remembered per item so that
+    /// it happens once a session rather than once a call. `KeysFor` has the whole of it.
     /// </remarks>
     internal sealed class KeePassDriver
     {
@@ -26,6 +30,11 @@ namespace KeePassGate.Host.Tests.Live
         private readonly Process _process;
         private readonly AutomationElement _mainWindow;
         private readonly StringBuilder _diagnostics = new StringBuilder();
+
+        // Access keys belong to the KeePass build rather than to the moment, so they are learned
+        // once. See `KeysFor`, which is where the cost of learning them is explained.
+        private readonly Dictionary<string, Tuple<Keyboard.Stroke, Keyboard.Stroke>> _menuKeys =
+            new Dictionary<string, Tuple<Keyboard.Stroke, Keyboard.Stroke>>(StringComparer.Ordinal);
 
         private KeePassDriver(Process process, AutomationElement mainWindow)
         {
@@ -62,33 +71,31 @@ namespace KeePassGate.Host.Tests.Live
         /// <summary>Opens File, Database Settings and returns the dialog.</summary>
         public AutomationElement OpenDatabaseSettings()
         {
-            var file = Uia.WaitFor(
-                "the File menu",
-                () => Uia.Descendant(_mainWindow, ControlType.MenuItem, name => Strip(name) == "File"));
+            return OpenFromMenu("File", "Database Settings", "Database Settings");
+        }
 
-            var openMenu = Keyboard.ParseAccessKey(AccessKeyOf(file));
-            Assert.That(openMenu, Is.Not.Null, "The File menu reports no access key.");
+        /// <summary>Group, Edit Group, on whichever group the tree has selected.</summary>
+        public AutomationElement OpenGroupDialog()
+        {
+            return OpenFromMenu("Group", "Edit Group", "Edit Group");
+        }
 
-            Uia.Expand(file);
-            var settings = Uia.WaitFor(
-                "the Database Settings menu item",
-                () => MenuItemStartingWith("Database Settings"));
-            var chooseItem = Keyboard.ParseAccessKey(AccessKeyOf(settings));
-            Uia.Collapse(file);
-
-            Assert.That(chooseItem, Is.Not.Null, "The Database Settings item reports no access key.");
-            _diagnostics.AppendLine("keys: " + openMenu + " then " + chooseItem);
+        private AutomationElement OpenFromMenu(string menuName, string itemPrefix, string windowTitlePart)
+        {
+            var keys = KeysFor(menuName, itemPrefix);
+            var openMenu = keys.Item1;
+            var chooseItem = keys.Item2;
 
             for (var attempt = 1; attempt <= 2; attempt++)
             {
                 _diagnostics.AppendLine("attempt " + attempt + ": KeePass in front: " + Keyboard.BringToFront(_mainWindow));
 
-                Keyboard.Send(openMenu.Value);
-                Keyboard.Send(chooseItem.Value);
+                Keyboard.Send(openMenu);
+                Keyboard.Send(chooseItem);
 
                 var dialog = Uia.WaitForOrNull(
                     () => Window(_process, title =>
-                        title.IndexOf("Database Settings", StringComparison.OrdinalIgnoreCase) >= 0),
+                        title.IndexOf(windowTitlePart, StringComparison.OrdinalIgnoreCase) >= 0),
                     TimeSpan.FromSeconds(15));
 
                 if (dialog != null)
@@ -101,7 +108,56 @@ namespace KeePassGate.Host.Tests.Live
             }
 
             throw new TimeoutException(
-                "The database settings dialog never opened." + Environment.NewLine + _diagnostics);
+                "The " + windowTitlePart + " dialog never opened." + Environment.NewLine + _diagnostics);
+        }
+
+        /// <summary>
+        /// The two access keys that reach a menu item, discovered once per item and remembered.
+        /// </summary>
+        /// <remarks>
+        /// **This is why a menu appears to open twice**, and it opens twice for a reason rather than
+        /// by accident. A menu item's access key is only in the accessibility tree while its menu is
+        /// open, so the menu has to be opened to be read; and reading the tree while a menu is open
+        /// is what dismisses it, which `FINDINGS.md` records under "Driving KeePass through the
+        /// desktop". So the menu is opened through the tree to learn the key, closed, and then
+        /// opened again by keystroke with nothing watching, which is the only order that both
+        /// discovers and works.
+        ///
+        /// What was wasteful was doing it on every call, since the keys belong to the KeePass build
+        /// rather than to the moment. Remembered here, an item costs its double open once per
+        /// session and every later call opens the menu exactly once, which is also what somebody
+        /// watching the desktop expects to see.
+        /// </remarks>
+        private Tuple<Keyboard.Stroke, Keyboard.Stroke> KeysFor(string menuName, string itemPrefix)
+        {
+            var remembered = menuName + "\0" + itemPrefix;
+
+            Tuple<Keyboard.Stroke, Keyboard.Stroke> keys;
+            if (_menuKeys.TryGetValue(remembered, out keys))
+            {
+                return keys;
+            }
+
+            var menu = Uia.WaitFor(
+                "the " + menuName + " menu",
+                () => Uia.Descendant(_mainWindow, ControlType.MenuItem, name => Strip(name) == menuName));
+
+            var openMenu = Keyboard.ParseAccessKey(AccessKeyOf(menu));
+            Assert.That(openMenu, Is.Not.Null, "The " + menuName + " menu reports no access key.");
+
+            Uia.Expand(menu);
+            var item = Uia.WaitFor(
+                "the " + itemPrefix + " menu item",
+                () => MenuItemStartingWith(itemPrefix));
+            var chooseItem = Keyboard.ParseAccessKey(AccessKeyOf(item));
+            Uia.Collapse(menu);
+
+            Assert.That(chooseItem, Is.Not.Null, "The " + itemPrefix + " item reports no access key.");
+            _diagnostics.AppendLine("keys for " + menuName + " / " + itemPrefix + ": " + openMenu + " then " + chooseItem);
+
+            keys = Tuple.Create(openMenu.Value, chooseItem.Value);
+            _menuKeys[remembered] = keys;
+            return keys;
         }
 
         /// <summary>Brings the KPG tab to the front, which is what puts its contents in the tree.</summary>
@@ -176,13 +232,16 @@ namespace KeePassGate.Host.Tests.Live
         /// </summary>
         public string ValueOf(AutomationElement dialog, string controlName)
         {
+            // By identifier rather than by name. A box reports its `AccessibleName` as its name, and
+            // that is a phrase for somebody listening rather than a handle for a test; the
+            // identifier is `Control.Name`, which is ours and does not change when the wording does.
             var box = Uia.WaitForOrNull(
-                () => Uia.Descendant(dialog, ControlType.Edit, name => name == controlName),
+                () => Uia.ById(dialog, ControlType.Edit, controlName),
                 TimeSpan.FromSeconds(10));
 
             if (box == null)
             {
-                _diagnostics.AppendLine("no box called '" + controlName + "'. Boxes: " +
+                _diagnostics.AppendLine("no box with the identifier '" + controlName + "'. Boxes: " +
                                         Uia.Describe(dialog, ControlType.Edit));
                 return null;
             }

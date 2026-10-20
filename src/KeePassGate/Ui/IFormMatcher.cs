@@ -44,4 +44,40 @@ namespace KeePassGate.Ui
             return _typeName;
         }
     }
+
+    /// <summary>
+    /// Matches a form that any of several matchers recognizes.
+    /// </summary>
+    /// <remarks>
+    /// The grant editor goes on two dialogs that have nothing in common but the tab it puts there,
+    /// and one decorator watching for either is the arrangement that cannot end up attaching a
+    /// different tab to each by accident.
+    /// </remarks>
+    public sealed class AnyFormMatcher : IFormMatcher
+    {
+        private readonly IFormMatcher[] _matchers;
+
+        public AnyFormMatcher(params IFormMatcher[] matchers)
+        {
+            _matchers = matchers ?? Array.Empty<IFormMatcher>();
+        }
+
+        public bool Matches(Form form)
+        {
+            foreach (var matcher in _matchers)
+            {
+                if (matcher != null && matcher.Matches(form))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        public override string ToString()
+        {
+            return string.Join(" or ", Array.ConvertAll(_matchers, m => m == null ? "(nothing)" : m.ToString()));
+        }
+    }
 }

@@ -33,6 +33,7 @@ namespace KeePassGate
         private GateIncidents _incidents;
         private GlobalWindowManagerWindows _windows;
         private GateHost _host;
+        private GateHost _grants;
         private GroupDialogs _groupDialogs;
         private MainWindowDatabases _databases;
         private LockWatch _locks;
@@ -173,11 +174,34 @@ namespace KeePassGate
                             _log, _listener, _invitations, _incidents, _admissions),
                         _log,
                         KeePassContract.DatabaseSettingsTabControlName,
+                        GateTab.Text,
+                        GateTab.PageControlName,
                         Icon),
                     _incidents,
                     _log);
 
-                if (!_host.Start())
+                // The grant editor watches for the other two dialogs, with its own decorator,
+                // because a group dialog and the database settings carry different tabs and one
+                // decorator holding both would have to be told which each time.
+                _grants = new GateHost(
+                    _windows,
+                    new AnyFormMatcher(
+                        new TypeNameFormMatcher(KeePassContract.GroupFormTypeName),
+                        new TypeNameFormMatcher(KeePassContract.EntryFormTypeName)),
+                    new TabPageInjector(
+                        new GrantPanelFactory(new NodeDialogs(_log), _log),
+                        _log,
+                        KeePassContract.NodeFormTabControlName,
+                        GrantTab.Text,
+                        GrantTab.PageControlName,
+                        Icon),
+                    _incidents,
+                    _log);
+
+
+                // `&` rather than `&&`, so that both are started and a refusal by either still
+                // leaves the other for the teardown below to take down.
+                if (!(_host.Start() & _grants.Start()))
                 {
                     // Undone here rather than left to `Terminate`. A refused load has already
                     // subscribed to KeePass's window manager, which is static and outlives this
@@ -214,6 +238,12 @@ namespace KeePassGate
             try
             {
                 GateIcon.Return();
+
+                if (_grants != null)
+                {
+                    _grants.Stop();
+                    _grants = null;
+                }
 
                 if (_host != null)
                 {

@@ -777,6 +777,66 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_refusal_carrying_somebody_elses_message_is_cut_to_what_the_band_can_hold()
+        {
+            // `AuthorityChange.Message` ends in whatever the store threw, and the band showed it
+            // whole while the two sentences this page composes itself were cut. Nothing on the tab
+            // scrolls, so an untrimmed one wraps, grows the page past the tab, and pushes the
+            // three buttons out of reach with no way to scroll to them.
+            _database.Store.ThrowOnWrite = new InvalidOperationException(Rambling());
+
+            using (var panel = NewPanel(true))
+            {
+                panel.CreateAuthority();
+
+                var said = Label(panel, GateTab.ResultLabelName).Text;
+
+                Assert.That(said, Does.StartWith("The authority could not be created:"),
+                    "the refusal is still reported, and still says which action failed");
+                Assert.That(said, Does.EndWith("..."), "and reads as cut rather than as unfinished");
+                Assert.That(said.Length, Is.LessThanOrEqualTo(Clipped.Limit + 3),
+                    "which is the bound `GateTabFitsTests` measures the band against");
+            }
+        }
+
+        [Test]
+        public void A_problem_carrying_somebody_elses_message_is_cut_the_same_way()
+        {
+            // The other half of the same gap. A reading that will not read reports the problem as
+            // `The authority could not be read: ` and whatever threw, and the sentences under the
+            // facts table showed that whole. There has to be an authority for the read to reach.
+            _database.Store.Plant(AuthorityKeys.AuthorityKey(new string('d', 64)), "rubbish");
+            _database.Store.ThrowOnRead = new InvalidOperationException(Rambling());
+
+            using (var panel = NewPanel(true))
+            {
+                var detail = Label(panel, GateTab.DetailLabelName).Text;
+
+                Assert.That(detail, Does.Contain("The authority could not be read:"));
+
+                foreach (var line in detail.Split(new[] { Environment.NewLine }, StringSplitOptions.None))
+                {
+                    Assert.That(line.Length, Is.LessThanOrEqualTo(Clipped.Limit + 3), line);
+                }
+            }
+        }
+
+        /// <summary>
+        /// A message longer than the tab can hold, in ordinary words.
+        /// </summary>
+        /// <remarks>
+        /// Ordinary words rather than a run of one character, because what is at stake is how many
+        /// lines the label wraps to and a string with nowhere to break does not wrap at all. An
+        /// exception message is composed for a log by whoever threw it, and nothing here chooses
+        /// its length, which is the whole of the problem.
+        /// </remarks>
+        private static string Rambling()
+        {
+            return string.Join(" ", Enumerable.Repeat(
+                "The key set for this certificate is not available on this machine.", 6));
+        }
+
+        [Test]
         public void Revoking_with_no_database_says_so_rather_than_throwing()
         {
             using (var panel = new AuthorityPanel(null, new FakePrompt(true), _log, "1.0.0"))

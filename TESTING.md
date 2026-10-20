@@ -40,8 +40,10 @@ Two jobs.
 
 **It pins the names.** `KeePassContractTests` asserts every name the plugin reaches for inside
 KeePass: the dialog type, the tab control called `m_tabMain`, the window manager's events, the
-plugin base class. A KeePass upgrade that moves one of these breaks the plugin quietly at run time
-and loudly here.
+plugin base class. A KeePass upgrade that moves one of these is caught here, before anybody runs it.
+At run time the plugin notices some of them itself and refuses rather than guessing: a field a tab
+reads on a dialog it decorates leaves that tab read only with a sentence saying why. The rest would
+break it quietly.
 
 **It uses the real thing.** `DatabaseSettingsForm` can be constructed outside a running KeePass, and
 `GlobalWindowManager.AddWindow` is public, so the plugin is driven exactly as KeePass drives it:
@@ -102,6 +104,15 @@ one waiting for the answer; the certificate that comes back is then used on the 
 connection; and the record is looked for in the `.kdbx` after KeePass has exited. A refusal is
 driven the same way, and leaves nothing behind.
 
+**Step 13**, in `LiveGrantEditorTests`: a rule made on the KPG tab of a real KeePass, kept by the
+group dialog's **OK**, and read out of the `.kdbx` after the process has gone. Pressing OK rather
+than Escape is what it is for: the dialog writes its own copy of the group's settings back over the
+group at that moment, so a rule written anywhere else would be destroyed exactly there.
+`LiveAuthorityTests` presses OK too, for the reason the end of this document gives, so this is no
+longer the only one that does. It is also the only one that moves the pointer, because neither
+column on that table can be typed into and a list is not something the accessibility tree can be
+asked to operate.
+
 The client half of pairing lives in `tests/Shared/PairingClient.cs` and is compiled into **both**
 test assemblies. That is deliberate: if the loopback tests and the end to end test each had their
 own client, either could pass against a protocol only it knew.
@@ -118,12 +129,13 @@ dialog with OK, saves with the keyboard, closes KeePass, and checks the exit cod
 the plugin's own log, which `KEEPASSGATE_LOG_FILE` puts in the session's own directory: that log is
 how a test sees from outside what the plugin did inside a process it does not otherwise hold.
 
-**The settings dialog is accepted with OK where the test is about what OK does, and dismissed with
-Escape otherwise.** A test that closes a dialog with Cancel can never be the reason something was
-lost, which is why Escape is the default. The KPG tab holds everything until the dialog is
-accepted, so `LiveAuthorityTests` has to press OK or it would measure nothing. What the snapshot
-hazard still requires is measured directly, in the host tier, against the group dialog that does
-carry one.
+**Dialogs are accepted with OK where the test is about what OK does, and dismissed with Escape
+otherwise.** A test that closes a dialog with Cancel can never be the reason something was lost,
+which is why Escape is the default. The KPG tab holds everything until the dialog is accepted, so
+`LiveAuthorityTests` has to press OK or it would measure nothing; and `LiveGrantEditorTests` presses
+OK because the snapshot KeePass writes back is exactly what it is asserting about. What the
+snapshot hazard still requires is measured directly in the host tier, against the group dialog
+that does carry one.
 
 **It types on the real desktop**, so leave the machine alone while it runs. It is excluded from the
 default run for that reason, not because it is optional. [`FINDINGS.md`](FINDINGS.md), under

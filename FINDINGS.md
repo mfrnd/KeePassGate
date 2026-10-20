@@ -232,10 +232,22 @@ three things about KeePass that the rules depend on and could not be reasoned ou
 Two things this section deliberately does not claim. Nothing here was measured about **where** a rule
 is asked, because step 12 does not ask one: the resolver is not wired to the router. TODO(step 14): step 14 is
 where the two answers are combined. And the `GroupForm` snapshot hazard in section 9 applies to
-grants exactly as it applies to everything else in custom data. TODO(step 13): that is why the editor is step 13
+grants exactly as it applies to everything else in custom data, which is why the editor is step 13
 and not this one.
 
-## 13. Reconstruction
+## 13. Editing a grant on somebody else's dialog
+
+Established while building step 13.
+
+| Fact | How it was established |
+| --- | --- |
+| **The group and entry dialogs both keep their own copy of a node's custom data**, in `m_sdCustomData`, and write it back over the node when they are accepted. Writing there is what makes their OK keep a grant and their Cancel discard it | the host tier writes through a real `GroupForm` and finds the live group untouched; the end to end tier presses OK and finds the rule in the `.kdbx` afterwards |
+| **That copy does not exist while the tab is being built.** KeePass makes it as the dialog loads and announces the window during the same load, so a plugin that captured the field at attach time would capture null and write nowhere | asserted directly: after `InitEx` and before the dialog loads, the field is null. The adapter therefore resolves it on every access and reads from the node itself |
+| `PwEntryForm.InitEx` **refuses a null image list**, which a test constructing one has to supply | `ArgumentNullException` on `ilIcons`, from the first attempt |
+| A `DataGridView` cell reaches UI automation as an `Edit` whose name is its column header plus its row, and **a read only one exposes no pattern that operates it**: the value pattern refuses, and there is no invoke, because opening a picker is a decision the panel makes about a click rather than a property of the cell | the end to end test asked, was told the value is read only, and now synthesizes a real pointer and real keystrokes instead |
+| The main menu path to a group's own dialog is **Group, Edit Group**, and both report access keys | dumped the real menu tree through UI automation rather than guessing at it |
+
+## 14. Reconstruction
 
 The proofs were deleted once they had answered their questions. To rebuild any of them:
 
@@ -255,7 +267,7 @@ The proofs were deleted once they had answered their questions. To rebuild any o
 `TlsProbe.cs` on `spikes/tls-and-certificates` is kept because it answers the TLS question in
 isolation and is the cheapest way to re-check it on a new machine.
 
-## 14. What KeePass does with a change, measured
+## 15. What KeePass does with a change, measured
 
 **A `.kdbx` silently drops 2,079 of the 65,536 code points in the basic multilingual plane.** KeePass
 writes every unprotected string through `StrUtil.SafeXmlString`, which removes what XML 1.0 cannot
@@ -273,7 +285,7 @@ surrogate written raw in the text is passed through untouched, which is why the 
 worth having: `JsonBody` also reads documents out of a `.kdbx` this plugin did not write. Measured
 against the Json.NET this builds against, by printing the code points that came back.
 
-## 15. The gate, and where it can run
+## 16. The gate, and where it can run
 
 **A warning is not a failure, and under `Stop` it becomes one.** A native command writing to stderr
 raises a terminating error as soon as anything upstream merges the streams, which is what capturing

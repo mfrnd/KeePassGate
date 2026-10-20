@@ -8,8 +8,8 @@ namespace KeePassGate
     /// database settings dialog, the tab on the group and entry dialogs, the item under KeePass's
     /// Tools menu, and the title of the window that item opens. All of them read it from here, so
     /// renaming the plugin is one edit and there is no way for three of them to agree while the
-    /// fourth does not. TODO(step 18): only the database settings tab reads this so far; the group
-    /// and entry tabs and the Tools menu item arrive with the steps that build them.
+    /// fourth does not. TODO(step 18): the Tools menu item and its window arrive then; the two
+    /// tabs read this already.
     ///
     /// **Three forms, and which one goes where is about space rather than about style.** A tab strip
     /// is shared: KeePass puts four or five of its own tabs on those dialogs and any other plugin

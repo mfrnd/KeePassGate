@@ -67,6 +67,37 @@ namespace KeePassGate.Host.Tests.Live
                 .FirstOrDefault(e => nameMatches(Name(e)));
         }
 
+        /// <summary>
+        /// A descendant by the name the plugin gave the control, which reaches UI automation as its
+        /// identifier rather than as its name. What a control is called is ours; what it reports as
+        /// a name is WinForms's business and differs by control type.
+        /// </summary>
+        public static AutomationElement ById(AutomationElement root, ControlType type, string id)
+        {
+            if (root == null)
+            {
+                return null;
+            }
+
+            return root
+                .FindAll(TreeScope.Descendants,
+                    new PropertyCondition(AutomationElement.ControlTypeProperty, type))
+                .Cast<AutomationElement>()
+                .FirstOrDefault(e => string.Equals(Identifier(e), id, StringComparison.Ordinal));
+        }
+
+        public static string Identifier(AutomationElement element)
+        {
+            try
+            {
+                return element.Current.AutomationId ?? string.Empty;
+            }
+            catch (ElementNotAvailableException)
+            {
+                return string.Empty;
+            }
+        }
+
         public static string Name(AutomationElement element)
         {
             try

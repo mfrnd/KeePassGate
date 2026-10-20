@@ -399,9 +399,9 @@ can always be taken away by editing the database rather than by reissuing a cert
 An earlier draft of this list also named `AclProfiles`, `AclVerbView` and `KdbxFormat`. Two of those
 turned out not to be types. The format is `AclDocument.Read` and `AclDocument.Write`, which is what
 `KdbxFormat` would have held and nothing else, and a set of profiles is an `IEnumerable<string>`
-argument rather than a class. `AclVerbView` was real work that had not happened when this was written, and has not
-happened yet. TODO(step 13): the editor does that job, because how a person is shown a verb
-is a different question from how one is decided.
+argument rather than a class. `AclVerbView` was real work that had not happened when this was written. The editor does that
+job now, with `VerbMask` and `VerbKeys`, because how a person is shown a verb is a different
+question from how one is decided.
 
 Grants live in group and entry `CustomData` under **`KPG`**, a single key holding a JSON document,
 which is this plugin's own namespace. Sharing a key with another plugin would couple two schemas
@@ -719,6 +719,15 @@ edits access control sees two clearly separate things rather than two pages comp
 same thing. What cannot be defended against is another plugin choosing to write into the same key,
 and nothing in `CustomData` could prevent that.
 
+Step 13 settled the label: the tab is captioned **"KPG"** with the plugin's icon beside it, and not
+"Access control". The caption names the plugin rather than the subject, so two pages that both edit
+access control are told apart by the one thing that distinguishes them, and whoever is looking for
+these rules can see what installed them. It is short because the strip is shared: every plugin that
+adds a page takes room from the next, and a caption spelling the product out would crowd them all to
+repeat what the icon beside it already says. `KPG` is also the key these rules are stored under, so
+the caption and the namespace are one word rather than two things to learn. The name in full belongs
+where there is room for it, which a tab strip is not.
+
 ### C2. Carrying 922 KB to use perhaps a fifth of it §123
 
 **Dissolved, by removing the dependency.** The objection was that taking websocket-sharp meant
@@ -920,7 +929,17 @@ Each step is refusable, and each ends with something that runs.
     verb an operation needs is now read out of the routing table as an `AclVerb` rather than a
     string, and an operation that declares none stops the plugin loading. Nothing is enforced yet:
     this step is what a grant means, not where it is asked.
-13. **The editor**: the grant UI, the largest single piece and the last thing needed.
+13. **The editor**: the grant UI, and the largest single piece. **Done**, and
+    it is what makes everything above it reachable: `CustomData` is not editable in the stock
+    KeePass dialogs, so without it no grant can be made at all and the model is inert. A **KPG** tab
+    on the group and entry dialogs, one row per profile, its rule a `CRUSDLAP` mask, and what the
+    groups above grant shown among the local rules so the table is the whole answer. Neither column
+    is typed into: a mask spelled by hand is a rule nobody meant, and a profile spelled by hand is a
+    rule for a name that may not exist, which grants nobody anything and reads exactly like one that
+    works. Both are chosen from a list. The rule is written into the dialog's own copy of the node's
+    custom data, which is what makes that dialog's OK keep it and its Cancel discard it. The end to
+    end test makes a rule in a real KeePass with a real pointer and real keystrokes, presses OK, and
+    finds it in the `.kdbx` after the process has gone.
 14. **Intersection and audit**: the two answers combined, every decision recorded.
 15. **The database API**: the routes that read and change groups, entries, fields and attachments.
     They arrive with no new machinery, which is the point of everything under them: a verb in the

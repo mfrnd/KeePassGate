@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Threading;
@@ -108,6 +109,183 @@ namespace KeePassGate.Host.Tests
                             ". Shorten what is on the tab rather than scrolling it.");
                     }
                 }
+            }
+        }
+
+        [Test]
+        [TestCase(1.25f)]
+        [TestCase(1.50f)]
+        [TestCase(2.00f)]
+        public void Everything_still_fits_when_the_display_is_scaled(float scaling)
+        {
+            // **The room scales too, and that is the whole answer.** KeePass's dialogs are
+            // `AutoScaleMode.Font` against `AutoScaleDimensions` of 6 by 13, so a larger system
+            // font makes a larger dialog: measured on 2.61.1, the tab page goes from 449 by 314 at
+            // font height 13 to 599 by 410 at 16 and 674 by 482 at 19. The room grows faster than
+            // the text does, which is why a page that fits at one scaling fits at all of them.
+            //
+            // What this test is for is the case where that stops being true: a control of ours
+            // sized in pixels rather than in text, which then stays the same while everything
+            // around it grows. `PairingApprovalForm` was exactly that.
+            using (var scaled = ScaledDialog(scaling))
+            {
+                var area = PageOf(scaled.Dialog);
+
+                TestContext.Out.WriteLine(
+                    "at " + scaling.ToString("0.00", CultureInfo.InvariantCulture) +
+                    " the tab page is " + area);
+
+                Assert.That(area.Width, Is.GreaterThan(_page.DisplayRectangle.Width),
+                    "KeePass stopped scaling its dialog, so nothing below is measuring what it claims");
+
+                // What `TabPageInjector` scales a page by as it attaches it: as much as KeePass
+                // scaled the dialog. Measured with it, because a tab measured without it is a tab no
+                // scaled display shows.
+                var scale = Spacing.ScaleOf(scaled.Dialog);
+
+                foreach (var state in States())
+                {
+                    using (var panel = state.Panel)
+                    {
+                        panel.Scale(scale);
+                        panel.Font = scaled.Font;
+                        LayOut(panel, area);
+
+                        Assert.That(panel.Padding.Left, Is.EqualTo((int)Math.Round(Spacing.Gap * scale.Width)),
+                            state.Description + " kept an unscaled inset at " +
+                            scaling.ToString("0.00", CultureInfo.InvariantCulture) + " scaling");
+
+                        foreach (var column in Columns(panel))
+                        {
+                            Show(column);
+
+                            var room = Room(column);
+                            var needed = Needed(column);
+                            var where = state.Description + ", " + Where(column) + ", at " +
+                                        scaling.ToString("0.00", CultureInfo.InvariantCulture) + " scaling";
+
+                            Assert.That(needed.Width, Is.LessThanOrEqualTo(room.Width),
+                                where + ", is " + needed.Width + " wide in " + room.Width + ".");
+                            Assert.That(needed.Height, Is.LessThanOrEqualTo(room.Height),
+                                where + ", is " + needed.Height + " tall in " + room.Height +
+                                ". Shorten what is on the tab rather than scrolling it.");
+                        }
+                    }
+                }
+
+                // And what the page builds after it was scaled: the facts are drawn again on every
+                // reading, which a scaling of the controls already there never reaches.
+                using (var panel = NewPanel(true, false))
+                {
+                    panel.Scale(scale);
+                    panel.DrawFacts(AuthorityDescription.LongestFacts());
+
+                    var facts = ControlTree.FindByName<TableLayoutPanel>(panel, GateTab.FactsTableName);
+                    var name = facts.GetControlFromPosition(0, 0);
+
+                    Assert.That(name.Margin.Right, Is.EqualTo((int)Math.Round(Spacing.Gap * scale.Width)),
+                        "a fact drawn after the page was scaled kept the unscaled gap");
+                }
+            }
+        }
+
+        /// <summary>
+        /// What every page needs against what it is given, at four text sizes, with the room held
+        /// at what one scaling gives it.
+        /// </summary>
+        /// <remarks>
+        /// **An instrument rather than a gate**, and the difference from the test above is the
+        /// point of it: this one grows the text and keeps the room, which is not what a scaled
+        /// display does. It answers a narrower question, what headroom the page has against the
+        /// room it has today, and the answer is about a tenth in the worst case, where every label
+        /// carries the longest text it can hold at once.
+        ///
+        /// Run it with `dotnet test --filter Headroom_at_one_room_size` and read the output.
+        /// </remarks>
+        [Test]
+        [Explicit("a measurement to read, not a gate to pass")]
+        public void Headroom_at_one_room_size()
+        {
+            foreach (var scaling in new[] { 1.00f, 1.10f, 1.25f, 1.50f })
+            {
+                foreach (var state in States())
+                {
+                    using (var panel = state.Panel)
+                    using (var font = Scaled(panel.Font, scaling))
+                    {
+                        panel.Font = font;
+                        LayOut(panel, _page.DisplayRectangle.Size);
+
+                        foreach (var column in Columns(panel))
+                        {
+                            Show(column);
+                            var room = Room(column);
+                            var needed = Needed(column);
+                            TestContext.Out.WriteLine(
+                                scaling.ToString("0.00", CultureInfo.InvariantCulture) +
+                                "  " + state.Description + ", " + Where(column) +
+                                ": needs " + needed + " of " + room +
+                                (needed.Height > room.Height || needed.Width > room.Width ? "   OVER" : ""));
+                        }
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// KeePass's own settings dialog, built at a larger font, which is what a scaled display
+        /// hands it.
+        /// </summary>
+        private ScaledSettingsDialog ScaledDialog(float scaling)
+        {
+            var dialog = KeePassDialogs.NewDatabaseSettingsForm();
+            KeePassDialogs.InitializeFor(dialog, _database.Database);
+
+            var font = Scaled(dialog.Font, scaling);
+            dialog.Font = font;
+            dialog.CreateControl();
+            dialog.PerformLayout();
+
+            return new ScaledSettingsDialog(dialog, font);
+        }
+
+        /// <summary>
+        /// The room the tab strip leaves on a dialog, with this plugin's tab and its icon at the
+        /// size a display scaled this far hands it over.
+        /// </summary>
+        private static Size PageOf(Form dialog)
+        {
+            return TabRoom.Of(dialog, KeePassContract.DatabaseSettingsTabControlName);
+        }
+
+        /// <summary>The same font, larger, which is what a scaled display amounts to here.</summary>
+        private static Font Scaled(Font font, float scaling)
+        {
+            return new Font(font.FontFamily, font.Size * scaling, font.Style);
+        }
+
+        /// <summary>A dialog built at one scaling, and the font it was built at.</summary>
+        private sealed class ScaledSettingsDialog : IDisposable
+        {
+            private readonly Font _font;
+
+            public ScaledSettingsDialog(Form dialog, Font font)
+            {
+                Dialog = dialog;
+                _font = font;
+            }
+
+            public Form Dialog { get; }
+
+            public Font Font
+            {
+                get { return _font; }
+            }
+
+            public void Dispose()
+            {
+                Dialog.Dispose();
+                _font.Dispose();
             }
         }
 

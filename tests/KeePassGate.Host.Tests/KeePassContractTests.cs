@@ -156,6 +156,106 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void The_entry_dialog_still_says_when_it_is_about_several_entries()
+        {
+            // Without this the tab reads a merged selection's cue string as a document, calls the
+            // rules unreadable, and offers a button that removes the key from every entry chosen.
+            var type = KeePassAssembly.GetType(KeePassContract.EntryFormTypeName, false);
+            var field = type.GetField(
+                KeePassContract.EntryFormMultipleField, BindingFlags.NonPublic | BindingFlags.Instance);
+
+            Assert.That(field, Is.Not.Null,
+                KeePassContract.EntryFormMultipleField + " is gone, so a multiple selection would "
+                + "look like one entry and its rules would be written over all of them.");
+        }
+
+        [Test]
+        public void The_entry_dialog_still_says_when_it_is_only_being_read()
+        {
+            // A history revision. KeePass keeps nothing typed on that dialog, so an editable tab
+            // there is one that throws the operator's work away and shows an old revision's rules
+            // as though they were in force.
+            var type = KeePassAssembly.GetType(KeePassContract.EntryFormTypeName, false);
+            var field = type.GetField(
+                KeePassContract.EntryFormEditModeField, BindingFlags.NonPublic | BindingFlags.Instance);
+
+            Assert.That(field, Is.Not.Null,
+                KeePassContract.EntryFormEditModeField + " is gone, so a revision opened for reading "
+                + "would take edits nothing keeps.");
+            Assert.That(Enum.GetNames(field.FieldType), Contains.Item(KeePassContract.EntryFormReadOnlyMode),
+                "the mode is compared by name, so the name has to be one this enum still has");
+        }
+
+        [Test]
+        public void The_entry_dialog_still_has_the_name_the_editor_mounts_on()
+        {
+            var type = KeePassAssembly.GetType(KeePassContract.EntryFormTypeName, false);
+
+            Assert.That(type, Is.Not.Null,
+                KeePassContract.EntryFormTypeName + " is gone, so an entry could never be given a grant.");
+            Assert.That(typeof(Form).IsAssignableFrom(type), Is.True);
+        }
+
+        [Test]
+        public void The_entry_dialog_still_names_the_entry_it_is_editing()
+        {
+            var type = KeePassAssembly.GetType(KeePassContract.EntryFormTypeName, false);
+            var field = type.GetField(
+                KeePassContract.EntryFormEntryField, BindingFlags.NonPublic | BindingFlags.Instance);
+
+            Assert.That(field, Is.Not.Null,
+                "Without this the editor cannot tell which entry a dialog is about.");
+            Assert.That(field.FieldType, Is.EqualTo(typeof(KeePassLib.PwEntry)));
+        }
+
+        [TestCase(KeePassContract.GroupFormTypeName)]
+        [TestCase(KeePassContract.EntryFormTypeName)]
+        public void Both_node_dialogs_still_keep_their_own_copy_of_custom_data(string typeName)
+        {
+            // The field the grant editor writes into, and the reason it can. Both dialogs copy a
+            // node's custom data when they open and write the copy back on OK, so a grant written
+            // to the live node survives Cancel and is destroyed by OK. A KeePass that renames this
+            // leaves the editor showing grants it will not let anybody change, which is the safe
+            // direction and a visible one.
+            var type = KeePassAssembly.GetType(typeName, false);
+            var field = type.GetField(
+                KeePassContract.NodeFormCustomDataField, BindingFlags.NonPublic | BindingFlags.Instance);
+
+            Assert.That(field, Is.Not.Null,
+                typeName + " no longer keeps a working copy, so the editor has nowhere safe to write.");
+            Assert.That(field.FieldType, Is.EqualTo(typeof(KeePassLib.Collections.StringDictionaryEx)));
+        }
+
+        [TestCase(KeePassContract.GroupFormTypeName)]
+        [TestCase(KeePassContract.EntryFormTypeName)]
+        public void Both_node_dialogs_still_call_their_tab_strip_what_the_settings_dialog_does(string typeName)
+        {
+            var type = KeePassAssembly.GetType(typeName, false);
+            var field = type.GetField(
+                KeePassContract.NodeFormTabControlName, BindingFlags.NonPublic | BindingFlags.Instance);
+
+            Assert.That(field, Is.Not.Null,
+                typeName + " renamed its tab strip, so the editor falls back to the first one it finds.");
+            Assert.That(field.FieldType, Is.EqualTo(typeof(TabControl)));
+        }
+
+        [TestCase(KeePassContract.GroupFormTypeName)]
+        [TestCase(KeePassContract.EntryFormTypeName)]
+        public void Both_node_dialogs_still_carry_the_database_they_belong_to(string typeName)
+        {
+            // What `NodeDialog` reads a node's database out of, which is how the grant editor knows
+            // which profile list to offer. A KeePass that renames it leaves the editor with no
+            // database and nothing to offer, so it is pinned like the rest of them.
+            var type = KeePassAssembly.GetType(typeName, false);
+            var field = type.GetField(
+                KeePassContract.NodeFormDatabaseField, BindingFlags.NonPublic | BindingFlags.Instance);
+
+            Assert.That(field, Is.Not.Null,
+                typeName + " no longer names the database it belongs to, so the editor cannot find it.");
+            Assert.That(field.FieldType, Is.EqualTo(typeof(KeePassLib.PwDatabase)));
+        }
+
+        [Test]
         public void The_main_window_can_still_save_a_named_database()
         {
             // Not `UIFileSave`, which saves whichever document is active. Pairing writes to the
