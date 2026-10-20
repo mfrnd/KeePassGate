@@ -11,23 +11,39 @@ namespace KeePassGate.Pipeline
     /// Turns whatever certificate a client presented into an identity, or into a stranger.
     /// </summary>
     /// <remarks>
-    /// Two checks, both explicit, both from `CA.md` §213.
+    /// Four checks, in the order `CA.md` §213 gives them, and every failure is the same
+    /// answer: a stranger, which the route table refuses everywhere but the pairing path.
     ///
     /// **The anchor is pinned** against the resolved database's authority, because the natural
     /// chain validation accepts a certificate from a completely foreign authority: measured, and it
     /// would have shipped.
     ///
-    /// **The extended key usage is checked**, because the same authority signs hosts and clients,
-    /// and hostname verification is deliberately abandoned here. Without this, a host certificate
+    /// **The extended key usage is checked**, because the same authority signs hosts and clients
+    /// and hostname verification is deliberately abandoned here. Without it a host certificate
     /// could be presented as a client.
     ///
-    /// What is not here yet is the admission record. TODO(step 7): that is step 7. Until it lands, a client that
-    /// chains and carries the right usage is paired and carries no profiles, so no route can grant
-    /// anything on the strength of it.
+    /// **The dates are checked here** rather than left to the chain build, so that the allowance
+    /// for a wrong clock is exactly five minutes and only on `notBefore`.
+    ///
+    /// **The admission record is looked up, and it is what grants.** A certificate that chains,
+    /// carries the right usage and is inside its dates opens nothing without one. That is what
+    /// makes a record lost to a stale dialog snapshot into a client that must pair again, rather
+    /// than a credential nobody can see and nobody can revoke, and it is what makes revocation take
+    /// effect on the next connection. **A record admits only with no revocation beside it**, which
+    /// `AdmissionStore.Find` asks in the same pass, so a record a stale copy brought back after
+    /// its client was revoked is refused exactly as a missing one is.
+    ///
+    /// The profiles come from the record and never from the certificate's claims.
     /// </remarks>
     public static class ClientCredentials
     {
         public static ClientIdentity For(X509Certificate2 presented, IGateTarget target, IGateLog log)
+        {
+            return For(presented, target, DateTimeOffset.UtcNow, log);
+        }
+
+        public static ClientIdentity For(
+            X509Certificate2 presented, IGateTarget target, DateTimeOffset now, IGateLog log)
         {
             if (target == null)
             {
@@ -42,19 +58,50 @@ namespace KeePassGate.Pipeline
                 return ClientIdentity.Stranger(databaseId);
             }
 
-            if (!AnchorPin.Chains(presented, target.Authority, false))
+            // Every check below reads the certificate, and every read of one is a call into
+            // CryptoAPI that can fail on a context the client chose. One filter over all of them,
+            // so that the promise above holds for the last three the way `AnchorPin` already makes
+            // it hold for the first: a refusal, not an exception the transport has to catch.
+            try
             {
-                logger.Warn("refused a certificate that does not chain to " + Short(databaseId));
+                // Expiry is ignored by the chain build and checked below, so that the skew is ours.
+                if (!AnchorPin.Chains(presented, target.Authority, true))
+                {
+                    logger.Warn("refused a certificate that does not chain to " + Short(databaseId));
+                    return ClientIdentity.Stranger(databaseId);
+                }
+
+                if (!IsForClientAuthentication(presented))
+                {
+                    logger.Warn("refused a certificate that is not for client authentication");
+                    return ClientIdentity.Stranger(databaseId);
+                }
+
+                // A leaf's notAfter is clamped to the authority's at issuance, so a certificate
+                // inside its own dates is inside the authority's as well.
+                if (!CertificateValidity.IsCurrent(presented, now))
+                {
+                    logger.Warn("refused a certificate that is outside its dates");
+                    return ClientIdentity.Stranger(databaseId);
+                }
+
+                var admissionKey = CertificateDigest.Of(presented);
+                var record = target.Admission(admissionKey);
+
+                if (record == null)
+                {
+                    logger.Warn("refused a certificate with no admission record: " +
+                                CertificateDigest.Shorten(admissionKey));
+                    return ClientIdentity.Stranger(databaseId);
+                }
+
+                return ClientIdentity.Paired(databaseId, presented, record.Profiles);
+            }
+            catch (Exception error) when (Expected.OfCustomData(error) || Expected.OfCryptography(error))
+            {
+                logger.Error("a certificate could not be checked against this database", error);
                 return ClientIdentity.Stranger(databaseId);
             }
-
-            if (!IsForClientAuthentication(presented))
-            {
-                logger.Warn("refused a certificate that is not for client authentication");
-                return ClientIdentity.Stranger(databaseId);
-            }
-
-            return ClientIdentity.Paired(databaseId, presented, null);
         }
 
         /// <summary>

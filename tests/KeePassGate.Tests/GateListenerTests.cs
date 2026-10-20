@@ -78,7 +78,7 @@ namespace KeePassGate.Tests
         [Test]
         public void A_paired_client_gets_an_answer()
         {
-            using (var certificate = _first.IssueClient("agent-fictitious"))
+            using (var certificate = _first.IssueAdmittedClient())
             {
                 var reply = GateClient.Get(_listener.Port, _first.NewName(), certificate, GateRouter.StatusPath);
 
@@ -91,7 +91,7 @@ namespace KeePassGate.Tests
         [Test]
         public void The_answer_names_the_database_the_name_resolved_to()
         {
-            using (var certificate = _first.IssueClient("agent-fictitious"))
+            using (var certificate = _first.IssueAdmittedClient())
             {
                 var reply = GateClient.Get(_listener.Port, _first.NewName(), certificate, GateRouter.StatusPath);
 
@@ -106,8 +106,8 @@ namespace KeePassGate.Tests
             // before anything else about the client is known.
             _targets.Add(_second);
 
-            using (var first = _first.IssueClient("agent-fictitious"))
-            using (var second = _second.IssueClient("agent-fictitious"))
+            using (var first = _first.IssueAdmittedClient())
+            using (var second = _second.IssueAdmittedClient())
             {
                 var toFirst = GateClient.Get(_listener.Port, _first.NewName(), first, GateRouter.StatusPath);
                 var toSecond = GateClient.Get(_listener.Port, _second.NewName(), second, GateRouter.StatusPath);
@@ -132,7 +132,7 @@ namespace KeePassGate.Tests
         [Test]
         public void A_client_from_another_authority_is_told_it_is_unpaired()
         {
-            using (var certificate = _foreign.IssueClient("agent-fictitious"))
+            using (var certificate = _foreign.IssueAdmittedClient())
             {
                 var reply = GateClient.Get(_listener.Port, _first.NewName(), certificate, GateRouter.StatusPath);
 
@@ -150,9 +150,89 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_client_this_database_never_admitted_is_told_it_is_unpaired()
+        {
+            // The certificate is this authority's, current, and for client authentication. Without
+            // a record it opens nothing, which is what makes a lost record survivable and what a
+            // revocation relies on.
+            using (var certificate = _first.IssueClient("agent-unadmitted"))
+            {
+                var reply = GateClient.Get(_listener.Port, _first.NewName(), certificate, GateRouter.StatusPath);
+
+                Assert.That(reply.Status, Is.EqualTo(401), reply.Failure);
+                Assert.That(reply.Body, Does.Contain("unpaired"));
+            }
+        }
+
+        /// <summary>
+        /// An admitted certificate presented by somebody who does not hold its key is refused in
+        /// the handshake, before anything asks the database about it.
+        /// </summary>
+        /// <remarks>
+        /// **The one check this plugin does not make itself.** It reads the first certificate the
+        /// client sent and asks the anchor and the record about it, and whether the client holds
+        /// the key behind it is TLS 1.3's CertificateVerify, verified inside Bouncy Castle. Every
+        /// other client in these tests is `SslStream`, which always proves possession, so nothing
+        /// held the gate to it: a dependency upgrade or a change to the transport that stopped
+        /// checking would have admitted anybody holding a copy of a public certificate. Signed with
+        /// the right key the same client is answered, which is what says the refusal is about the
+        /// key. The status route is written out because what names it changes as the routing does.
+        /// </remarks>
+        [Test]
+        public void A_certificate_presented_without_its_key_is_refused_in_the_handshake()
+        {
+            using (var certificate = _first.IssueAdmittedClient())
+            {
+                var material = HostKeyMaterial.From(
+                    KeePassGate.Authority.CertificateBlob.Bytes(KeePassGate.Authority.CertificateBlob.Save(certificate)));
+                Assert.That(material, Is.Not.Null);
+
+                var forged = BouncyCastleGateClient.Get(
+                    _listener.Port, _first.NewName(), material.CertificateDer, BouncyCastleGateClient.AnotherKey(),
+                    "/gate/status");
+                var genuine = BouncyCastleGateClient.Get(
+                    _listener.Port, _first.NewName(), material.CertificateDer, material.PrivateKey, "/gate/status");
+
+                Assert.That(genuine.Status, Is.EqualTo(200), "the client itself works: " + genuine);
+                Assert.That(forged.Answered, Is.False, "a certificate without its key was answered: " + forged);
+
+                // Why it was refused is asked of the gate's log rather than of the client. The gate
+                // closes a refused connection with the client's request still unread, Windows answers
+                // that with a reset, and a reset that reaches the client before its first read takes
+                // the alert with it: a client made to wait half a second before reading never saw
+                // `decrypt_error` at all. And waited for rather than read at once, because the line
+                // is written by the connection's own thread once the alert has gone, so a client
+                // can be told before the log is.
+                Assert.That(
+                    Waited(() => _log.Entries.Any(entry =>
+                        entry.Message.StartsWith("a handshake failed", StringComparison.Ordinal)
+                        && entry.Message.Contains("decrypt_error"))),
+                    Is.True,
+                    "refused in the handshake for its signature, which ends before the anchor or the record is asked");
+            }
+        }
+
+        [Test]
+        public void Revoking_a_client_refuses_it_on_the_very_next_connection()
+        {
+            using (var certificate = _first.IssueAdmittedClient())
+            {
+                Assume.That(GateClient.Get(_listener.Port, _first.NewName(), certificate, GateRouter.StatusPath).Status,
+                    Is.EqualTo(200));
+
+                _first.Revoke(certificate);
+
+                var reply = GateClient.Get(_listener.Port, _first.NewName(), certificate, GateRouter.StatusPath);
+
+                Assert.That(reply.Status, Is.EqualTo(401),
+                    "a revocation takes effect at once, with no cache in the way");
+            }
+        }
+
+        [Test]
         public void A_route_that_does_not_exist_is_a_404()
         {
-            using (var certificate = _first.IssueClient("agent-fictitious"))
+            using (var certificate = _first.IssueAdmittedClient())
             {
                 var reply = GateClient.Get(_listener.Port, _first.NewName(), certificate, "/secrets");
 
@@ -163,7 +243,7 @@ namespace KeePassGate.Tests
         [Test]
         public void A_name_no_database_answers_to_is_dropped_without_a_word()
         {
-            using (var certificate = _first.IssueClient("agent-fictitious"))
+            using (var certificate = _first.IssueAdmittedClient())
             {
                 var forged = SniName.For(new byte[32]);
 
@@ -178,7 +258,7 @@ namespace KeePassGate.Tests
         [Test]
         public void A_name_that_is_not_ours_at_all_is_dropped_without_a_word()
         {
-            using (var certificate = _first.IssueClient("agent-fictitious"))
+            using (var certificate = _first.IssueAdmittedClient())
             {
                 var reply = GateClient.Get(_listener.Port, "localhost", certificate, GateRouter.StatusPath);
 
@@ -193,7 +273,7 @@ namespace KeePassGate.Tests
             // genuinely indistinguishable, so neither is served.
             _targets.Add(_first);
 
-            using (var certificate = _first.IssueClient("agent-fictitious"))
+            using (var certificate = _first.IssueAdmittedClient())
             {
                 var reply = GateClient.Get(_listener.Port, _first.NewName(), certificate, GateRouter.StatusPath);
 
@@ -209,7 +289,7 @@ namespace KeePassGate.Tests
 
             Assert.That(reply.Answered, Is.False, "plain HTTP is answered with nothing at all");
 
-            using (var certificate = _first.IssueClient("agent-fictitious"))
+            using (var certificate = _first.IssueAdmittedClient())
             {
                 var afterwards = GateClient.Get(_listener.Port, _first.NewName(), certificate, GateRouter.StatusPath);
 
@@ -222,7 +302,7 @@ namespace KeePassGate.Tests
         {
             GateClient.SendRaw(_listener.Port, Array.Empty<byte>());
 
-            using (var certificate = _first.IssueClient("agent-fictitious"))
+            using (var certificate = _first.IssueAdmittedClient())
             {
                 var afterwards = GateClient.Get(_listener.Port, _first.NewName(), certificate, GateRouter.StatusPath);
 
@@ -233,7 +313,7 @@ namespace KeePassGate.Tests
         [Test]
         public void A_malformed_request_over_a_good_connection_is_answered_with_a_status()
         {
-            using (var certificate = _first.IssueClient("agent-fictitious"))
+            using (var certificate = _first.IssueAdmittedClient())
             {
                 var reply = GateClient.Send(
                     _listener.Port, _first.NewName(), certificate, "POST /thing HTTP/1.1\r\nTransfer-Encoding: chunked\r\n\r\n");
@@ -245,7 +325,7 @@ namespace KeePassGate.Tests
         [Test]
         public void Nothing_it_ever_answers_leaks_a_certificate_or_a_key()
         {
-            using (var certificate = _first.IssueClient("agent-fictitious"))
+            using (var certificate = _first.IssueAdmittedClient())
             {
                 var reply = GateClient.Get(_listener.Port, _first.NewName(), certificate, GateRouter.StatusPath);
 
@@ -262,7 +342,7 @@ namespace KeePassGate.Tests
 
             Assert.That(names.Distinct().Count(), Is.EqualTo(names.Count));
 
-            using (var certificate = _first.IssueClient("agent-fictitious"))
+            using (var certificate = _first.IssueAdmittedClient())
             {
                 foreach (var name in names)
                 {
@@ -300,7 +380,7 @@ namespace KeePassGate.Tests
             var port = _listener.Port;
             _listener.Stop();
 
-            using (var certificate = _first.IssueClient("agent-fictitious"))
+            using (var certificate = _first.IssueAdmittedClient())
             {
                 var reply = GateClient.Get(port, _first.NewName(), certificate, GateRouter.StatusPath);
 
@@ -446,7 +526,7 @@ namespace KeePassGate.Tests
         [Test]
         public void Nothing_that_happens_on_a_connection_is_reported_as_a_plugin_failure()
         {
-            using (var certificate = _first.IssueClient("agent-fictitious"))
+            using (var certificate = _first.IssueAdmittedClient())
             {
                 GateClient.Get(_listener.Port, _first.NewName(), certificate, GateRouter.StatusPath);
                 GateClient.Get(_listener.Port, "localhost", certificate, GateRouter.StatusPath);

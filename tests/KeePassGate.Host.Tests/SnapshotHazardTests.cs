@@ -23,10 +23,9 @@ namespace KeePassGate.Host.Tests
     /// The second half is the behavior, reproduced with KeePass's own types, its own `CloneDeep`
     /// and a real `PwGroup`, so that only the timing is simulated.
     ///
-    /// This is why an admission record is to be load bearing. A record lost this way is to make its
+    /// This is why an admission record is load bearing. A record lost this way makes its
     /// certificate inert rather than invisible, which is the difference between a client that has
-    /// to pair again and a credential nobody can see or revoke. TODO(step 7): the admission record
-    /// arrives with this step.
+    /// to pair again and a credential nobody can see or revoke.
     /// </remarks>
     [TestFixture]
     [Apartment(ApartmentState.STA)]

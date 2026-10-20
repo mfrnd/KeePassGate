@@ -5,8 +5,10 @@ using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
+using System.Linq;
 using System.Text;
 using System.Threading;
+using KeePassGate.Authority;
 using KeePassGate.Gate;
 using KeePassGate.Pipeline;
 using NUnit.Framework;
@@ -36,9 +38,11 @@ namespace KeePassGate.Host.Tests.Live
 
         private LiveSession _session;
         private string _databaseId;
+        private string _refusedDigest;
 
         private Reply _paired;
         private Reply _unpaired;
+        private Reply _noRecord;
         private Reply _wrongName;
         private Reply _notFound;
         private bool _exited;
@@ -51,20 +55,30 @@ namespace KeePassGate.Host.Tests.Live
             var keePass = _session.KeePass;
             _databaseId = keePass.DatabaseId();
 
-            var process = keePass.Start();
-            WaitForListening(keePass, process);
-            WaitForDatabase(keePass, process);
-
-            using (var certificate = keePass.IssueClientCertificate("agent-fictitious"))
+            // Both certificates are issued and one is admitted before KeePass starts, because a
+            // running KeePass serves the database it holds in memory: a record written to the file
+            // underneath it would be invisible and then overwritten. Pairing writes through the
+            // plugin for exactly that reason. TODO(step 8): it is step 8.
+            using (var admitted = keePass.IssueClientCertificate("agent-fictitious"))
+            using (var never = keePass.IssueClientCertificate("agent-unadmitted"))
             {
-                _paired = Ask(keePass.Port, keePass.NewGateName(), certificate, GateRouter.StatusPath);
-                _notFound = Ask(keePass.Port, keePass.NewGateName(), certificate, "/secrets");
+                keePass.Admit(admitted, "ops");
+
+                var process = keePass.Start();
+                WaitForListening(keePass, process);
+                WaitForDatabase(keePass, process);
+
+                _paired = Ask(keePass.Port, keePass.NewGateName(), admitted, GateRouter.StatusPath);
+                _notFound = Ask(keePass.Port, keePass.NewGateName(), admitted, "/secrets");
+                _noRecord = Ask(keePass.Port, keePass.NewGateName(), never, GateRouter.StatusPath);
+                _refusedDigest = CertificateDigest.Shorten(CertificateDigest.Of(never));
                 _unpaired = Ask(keePass.Port, keePass.NewGateName(), null, GateRouter.StatusPath);
-                _wrongName = Ask(keePass.Port, SniName.For(new byte[32]), certificate, GateRouter.StatusPath);
+                _wrongName = Ask(keePass.Port, SniName.For(new byte[32]), admitted, GateRouter.StatusPath);
+
+                process.CloseMainWindow();
+                _exited = process.WaitForExit(30000);
             }
 
-            process.CloseMainWindow();
-            _exited = process.WaitForExit(30000);
             _pluginLog = keePass.ReadPluginLog();
 
             TestContext.Out.WriteLine("Plugin log:");
@@ -106,6 +120,15 @@ namespace KeePassGate.Host.Tests.Live
         }
 
         [Test]
+        public void A_certificate_from_the_same_authority_with_no_record_is_refused()
+        {
+            // Everything about it is right except the one thing that grants: this authority issued
+            // it, it is current, and it is for client authentication. It opens nothing.
+            Assert.That(_noRecord.Status, Is.EqualTo(401), _noRecord.Failure);
+            Assert.That(_noRecord.Body, Does.Contain("unpaired"));
+        }
+
+        [Test]
         public void A_client_with_no_certificate_is_told_it_is_unpaired()
         {
             Assert.That(_unpaired.Status, Is.EqualTo(401), _unpaired.Failure);
@@ -132,9 +155,35 @@ namespace KeePassGate.Host.Tests.Live
         }
 
         [Test]
-        public void Nothing_in_the_whole_session_was_reported_as_a_failure()
+        public void The_only_thing_reported_was_the_refusal_this_test_asked_for()
         {
-            Assert.That(LiveSession.FailuresIn(_pluginLog), Is.Empty);
+            var unexpected = LiveSession.FailuresIn(_pluginLog)
+                .Where(line => !line.Contains("refused a certificate with no admission record"))
+                .ToArray();
+
+            Assert.That(unexpected, Is.Empty, string.Join(Environment.NewLine, unexpected));
+        }
+
+        [Test]
+        public void The_refusal_was_recorded_with_the_certificate_it_refused()
+        {
+            // Both halves. The fixed half says a refusal happened; the digest says which
+            // certificate, which is the half an operator needs and the half a test that matched
+            // only the prefix would never have missed going away.
+            Assert.That(_pluginLog, Does.Contain("refused a certificate with no admission record"));
+            Assert.That(_pluginLog, Does.Contain(_refusedDigest));
+        }
+
+        [Test]
+        public void It_happened_once_and_not_to_the_admitted_client()
+        {
+            // The count, not just the phrase. Filtering the failure log by that phrase would
+            // otherwise pass a session in which the record never landed and every single request
+            // was refused, which is exactly the failure the admitted half is meant to catch.
+            var refusals = LiveSession.FailuresIn(_pluginLog)
+                .Count(line => line.Contains("refused a certificate with no admission record"));
+
+            Assert.That(refusals, Is.EqualTo(1), _pluginLog);
         }
 
         private static void WaitForListening(ThrowawayKeePass keePass, System.Diagnostics.Process process)

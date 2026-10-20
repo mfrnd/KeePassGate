@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using KeePassGate.Authority;
 
 namespace KeePassGate.Ui
@@ -17,6 +18,9 @@ namespace KeePassGate.Ui
         /// </summary>
         public static readonly TimeSpan WarningWindow = TimeSpan.FromDays(90);
 
+        /// <summary>A client is a smaller thing to reissue, so it is mentioned later.</summary>
+        public static readonly TimeSpan ClientWarningWindow = TimeSpan.FromDays(30);
+
         public const string NoDatabaseHeadline = "No database is open on this dialog.";
 
         public const string AbsentHeadline =
@@ -27,6 +31,9 @@ namespace KeePassGate.Ui
 
         public const string DamagedHeadline =
             "This database holds an authority that cannot be used.";
+
+        public const string UndecidedHeadline =
+            "This database holds more than one authority, so nothing is served.";
 
         private readonly string _headline;
         private readonly List<Fact> _facts;
@@ -122,7 +129,18 @@ namespace KeePassGate.Ui
             return new AuthorityDescription(NoDatabaseHeadline, null, null, false, false, false);
         }
 
-        public static AuthorityDescription Of(AuthorityReading reading, DateTimeOffset now)
+        /// <summary>
+        /// What to say about this authority, given the records it admits.
+        /// </summary>
+        /// <remarks>
+        /// The records are a parameter rather than an overload that defaults them away. One existed
+        /// and every caller that took it silently lost the client expiry warnings, which is the
+        /// failure this class was given records to prevent: a client stops being admitted one
+        /// morning with nothing having said so. Null still means "not asked for", and now a caller
+        /// has to write it down.
+        /// </remarks>
+        public static AuthorityDescription Of(
+            AuthorityReading reading, AdmissionListing clients, DateTimeOffset now)
         {
             if (reading == null)
             {
@@ -144,10 +162,37 @@ namespace KeePassGate.Ui
                     return new AuthorityDescription(
                         DamagedHeadline, null, Damage(reading), false, true, true);
 
+                case AuthorityPresence.Undecided:
+                    // Recreating and deleting both still mean what they say: every one of the
+                    // candidates is retired either way, so both are offered. Creating is not,
+                    // because there is no absence to fill.
+                    return new AuthorityDescription(
+                        UndecidedHeadline, null, Undecided(reading), false, true, true);
+
                 default:
                     return new AuthorityDescription(
-                        PresentHeadline, FactsOf(reading), Warnings(reading, now), false, true, true, true);
+                        PresentHeadline, FactsOf(reading), Warnings(reading, clients, now),
+                        false, true, true, true);
             }
+        }
+
+        /// <summary>
+        /// What is true of a database holding several authorities, and what to do about it.
+        /// </summary>
+        /// <remarks>
+        /// Why before what, because the state is surprising and nothing the operator did on this
+        /// machine explains it: two copies of the file each made an authority of their own, and a
+        /// merge brought both back. What it costs is that nothing is served, which is the part a
+        /// client somewhere is already finding out.
+        /// </remarks>
+        private static IEnumerable<string> Undecided(AuthorityReading reading)
+        {
+            return new List<string>
+            {
+                reading.Candidates.Count.ToString(CultureInfo.InvariantCulture) +
+                " authorities were made separately in copies of this database that were later " +
+                "merged. Nothing is served until one of them is kept."
+            };
         }
 
         private static IEnumerable<string> RecordsOnly(AuthorityReading reading)
@@ -196,13 +241,16 @@ namespace KeePassGate.Ui
             };
         }
 
-        private static IEnumerable<string> Warnings(AuthorityReading reading, DateTimeOffset now)
+        private static IEnumerable<string> Warnings(
+            AuthorityReading reading, AdmissionListing clients, DateTimeOffset now)
         {
             var material = reading.Material;
 
             var warnings = new List<string>();
             Expiry(warnings, "Authority", material.Authority.NotAfter, now);
             Expiry(warnings, "Host certificate", material.Host.NotAfter, now);
+            Clients(warnings, clients == null ? null : clients.Records, now);
+            Unreadable(warnings, clients, reading.ClientRecordCount);
 
             if (warnings.Count == 0)
             {
@@ -217,7 +265,7 @@ namespace KeePassGate.Ui
         private static void Expiry(ICollection<string> lines, string what, DateTime notAfter, DateTimeOffset now)
         {
             var expires = new DateTimeOffset(notAfter.ToUniversalTime(), TimeSpan.Zero);
-            if (expires <= now)
+            if (CertificateValidity.HasExpired(expires, now))
             {
                 lines.Add(what + " expired on " + Stamp(notAfter) + ".");
                 return;
@@ -251,8 +299,127 @@ namespace KeePassGate.Ui
                 "The host certificate could not be checked against this authority on this " +
                 "machine. Nothing here says the authority is wrong; recreating it would not help.",
                 "Authority expired on 2036-08-12 09:41:07.",
-                "Host certificate expires in 88 days."
+                "Host certificate expires in 88 days.",
+                Longest(Expired),
+                Longest(Expiring),
+                Longest(Unreadable),
+                CouldNotList
             });
+        }
+
+        /// <summary>
+        /// What is about to stop working. A client that expires is not a failure anybody sees
+        /// coming otherwise: it simply stops being admitted one morning.
+        /// </summary>
+        private static void Clients(ICollection<string> lines, IReadOnlyList<AdmissionRecord> records, DateTimeOffset now)
+        {
+            if (records == null || records.Count == 0)
+            {
+                return;
+            }
+
+            var expired = 0;
+            var soon = 0;
+
+            foreach (var record in records)
+            {
+                using (var certificate = record.Certificate())
+                {
+                    // Through `CertificateValidity`, so the tab cannot call a client expired at an
+                    // instant the gate is still serving it.
+                    if (CertificateValidity.HasExpired(certificate, now))
+                    {
+                        expired++;
+                    }
+                    else if (CertificateValidity.RemainingOn(certificate, now) <= ClientWarningWindow)
+                    {
+                        soon++;
+                    }
+                }
+            }
+
+            // Short, because these share one line with the authority's own expiries and that line
+            // is the tallest thing the tab ever has to fit. An expired client is refused, which is
+            // what expired means here and does not need saying twice.
+            if (expired > 0)
+            {
+                lines.Add(Expired(expired));
+            }
+
+            if (soon > 0)
+            {
+                lines.Add(Expiring(soon));
+            }
+        }
+
+        /// <summary>
+        /// The records the table counts and the warnings could not look at.
+        /// </summary>
+        /// <remarks>
+        /// Without this the tab counts one thing and warns about another: the fact is every stored
+        /// key, and only the readable ones can be checked for expiry, so a damaged record made the
+        /// two numbers disagree with nothing on screen to explain it. The client it belonged to is
+        /// refused, which is the safe half, and this is the half an operator can act on.
+        /// </remarks>
+        private static void Unreadable(
+            ICollection<string> lines, AdmissionListing clients, int stored)
+        {
+            if (clients == null)
+            {
+                return;
+            }
+
+            if (!clients.Complete)
+            {
+                // **The difference is not damage when the listing could not be made.** The count
+                // and the records are two reads of the same dictionary; if the one that produced
+                // the records failed, every stored record looks unreadable, and the tab would tell
+                // the operator that intact records admit nobody. That points at Recreate, which
+                // destroys the authority and every record with it.
+                lines.Add(CouldNotList);
+                return;
+            }
+
+            if (clients.Records.Count >= stored)
+            {
+                return;
+            }
+
+            lines.Add(Unreadable(stored - clients.Records.Count));
+        }
+
+        /// <summary>What is said when the admission records could not be listed at all.</summary>
+        private const string CouldNotList =
+            "The admission records could not be read, so this says nothing about who is admitted.";
+
+        private static string Expired(int clients)
+        {
+            return clients == 1 ? "One client has expired." : clients + " clients have expired.";
+        }
+
+        private static string Expiring(int clients)
+        {
+            var days = ((int)ClientWarningWindow.TotalDays).ToString(CultureInfo.InvariantCulture);
+            return (clients == 1 ? "One client expires within " : clients + " clients expire within ")
+                   + days + " days.";
+        }
+
+        /// <summary>
+        /// The longest a counted line can be, which is not the line for any one count.
+        /// `Expiring(1)` spells "One client" and is a character longer than `Expiring(16)`; a
+        /// fourth digit is longer again. Measuring one representative count therefore
+        /// under-measures twice, on a tab whose whole contract is that it never scrolls.
+        /// </summary>
+        private static readonly int[] Counts = { 1, 16, 9999 };
+
+        private static string Longest(Func<int, string> line)
+        {
+            return Counts.Select(line).OrderByDescending(text => text.Length).First();
+        }
+
+        private static string Unreadable(int records)
+        {
+            return Records(records) + " cannot be read, so nobody they admitted is served.";
         }
 
         /// <summary>The widest the table can be, for the same reason.</summary>

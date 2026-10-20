@@ -22,6 +22,12 @@ namespace KeePassGate.Ui
 
         /// <summary>Whether this particular key is one of the things waiting.</summary>
         bool WaitingOn(string key);
+
+        /// <summary>
+        /// Whether any key of a kind is waiting, for a subject kept under more than one key: the
+        /// authorities and their retirements are one per authority.
+        /// </summary>
+        bool WaitingOn(Func<string, bool> kind);
     }
 
     /// <summary>
@@ -92,6 +98,12 @@ namespace KeePassGate.Ui
         public bool WaitingOn(string key)
         {
             return _store != null && _store.WaitingOn(key);
+        }
+
+        /// <summary>Whether any key of a kind is waiting.</summary>
+        public bool WaitingOn(Func<string, bool> kind)
+        {
+            return _store != null && _store.WaitingOn(kind);
         }
 
         /// <summary>
@@ -226,6 +238,33 @@ namespace KeePassGate.Ui
         public bool WaitingOn(string key)
         {
             return !string.IsNullOrEmpty(key) && (_written.ContainsKey(key) || _removed.Contains(key));
+        }
+
+        /// <summary>Whether any key of a kind has been written or removed here and not there.</summary>
+        public bool WaitingOn(Func<string, bool> kind)
+        {
+            if (kind == null)
+            {
+                return false;
+            }
+
+            foreach (var key in _written.Keys)
+            {
+                if (kind(key))
+                {
+                    return true;
+                }
+            }
+
+            foreach (var key in _removed)
+            {
+                if (kind(key))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         public string Get(string key)

@@ -6,8 +6,9 @@ using KeePassGate.Diagnostics;
 namespace KeePassGate.Authority
 {
     /// <summary>
-    /// The three things an operator can do to a database's authority: create it, recreate it, and
-    /// delete it. Everything else about an authority happens without them.
+    /// What an operator can do to a database's authority: create it, recreate it, delete it, and
+    /// keep one when a merge has left several. Everything else about an authority happens without
+    /// them.
     /// </summary>
     /// <remarks>
     /// Two rules run through this class. Nothing is destroyed implicitly: creating over an existing
@@ -42,9 +43,9 @@ namespace KeePassGate.Authority
                 throw new ArgumentNullException(nameof(issuer));
             }
 
-            _store = new AuthorityStore(store);
-            _issuer = issuer;
             _log = log ?? NullGateLog.Instance;
+            _store = new AuthorityStore(store, _log);
+            _issuer = issuer;
         }
 
         /// <summary>What the database holds. The caller disposes what comes back.</summary>
@@ -57,7 +58,10 @@ namespace KeePassGate.Authority
             catch (Exception error) when (Expected.OfCryptography(error) || Expected.OfCustomData(error))
             {
                 _log.Error("the authority could not be read", error);
-                return AuthorityReading.Damaged(new[] { "The authority could not be read: " + error.Message }, 0);
+                // Nothing was counted, and saying so is not the same as counting nobody: the
+                // read that would have listed the records is the one that just failed.
+                return AuthorityReading.Damaged(
+                    new[] { "The authority could not be read: " + error.Message }, 0, false);
             }
         }
 
@@ -80,6 +84,13 @@ namespace KeePassGate.Authority
                 {
                     return AuthorityChange.Refused(
                         "This database holds an authority that cannot be read. Recreate it to replace it.");
+                }
+
+                if (existing.Presence == AuthorityPresence.Undecided)
+                {
+                    return AuthorityChange.Refused(
+                        "This database holds more than one authority. Choose the one to keep, or " +
+                        "recreate to replace them all.");
                 }
             }
 
@@ -163,6 +174,47 @@ namespace KeePassGate.Authority
 
             _log.Info("authority deleted, admission records removed: " + removed);
             return AuthorityChange.Done("The authority was deleted." + RevocationNote(removed), removed);
+        }
+
+        /// <summary>
+        /// Keeps one of several authorities and retires the rest, which is the operator's answer
+        /// to a database that met another copy of itself holding an authority of its own.
+        /// </summary>
+        /// <remarks>
+        /// Read back like everything else here, and believed only if what is served afterwards is
+        /// the one that was kept: a store that swallowed the retirements reads back as the same
+        /// several authorities, and telling the operator their choice was made would leave them
+        /// waiting for a gate that goes on answering nobody.
+        /// </remarks>
+        public AuthorityChange Keep(string fingerprint)
+        {
+            int retired;
+            try
+            {
+                retired = _store.Keep(fingerprint);
+            }
+            catch (Exception error) when (Expected.OfCryptography(error) || Expected.OfCustomData(error))
+            {
+                _log.Error("an authority could not be kept", error);
+                return AuthorityChange.Refused("The authority could not be kept: " + error.Message);
+            }
+
+            using (var check = Read())
+            {
+                if (!check.IsPresent ||
+                    !string.Equals(check.Material.AuthorityDigest, fingerprint, StringComparison.Ordinal))
+                {
+                    _log.Warn("an authority was kept and the database does not read back as serving it");
+                    return AuthorityChange.Refused(
+                        "The authority was kept and the database does not read back as holding it " +
+                        "alone. Read the page again before pressing anything else.");
+                }
+            }
+
+            _log.Info("authority " + CertificateDigest.Shorten(fingerprint) + " kept, others retired: " + retired);
+            return AuthorityChange.Done(retired == 1
+                ? "The authority was kept, and the other one was retired."
+                : "The authority was kept, and the other " + retired + " were retired.");
         }
 
         /// <summary>

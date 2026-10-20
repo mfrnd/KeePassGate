@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Security.Cryptography.X509Certificates;
 using KeePassGate.Authority;
 using KeePassGate.Pipeline;
@@ -138,8 +139,8 @@ namespace KeePassGate.Tests
     }
 
     /// <summary>
-    /// Turning a presented certificate into an identity, which is the whole of authentication
-    /// until the admission record lands. TODO(step 7): that is step 7.
+    /// Turning a presented certificate into an identity, which is the whole of authentication:
+    /// the anchor pin, the usage, the dates, and the record that grants.
     /// </summary>
     [TestFixture]
     public sealed class ClientCredentialsTests
@@ -164,10 +165,12 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void A_certificate_from_this_database_is_paired()
+        public void A_certificate_from_this_database_with_a_record_is_paired()
         {
             using (var certificate = _ours.IssueClient("agent-fictitious"))
             {
+                _ours.Admit(certificate);
+
                 var identity = ClientCredentials.For(certificate, _ours, _log);
 
                 Assert.That(identity.IsPaired, Is.True);
@@ -178,15 +181,118 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void It_carries_no_profiles_yet_whatever_the_certificate_claims()
+        public void A_certificate_with_no_record_is_a_stranger_however_good_it_is()
         {
-            // Profiles come from the admission record, never from the certificate, and there are
-            // no records yet. TODO(step 7): they land in step 7.
-            using (var certificate = _ours.IssueClient("agent-fictitious", "ops", "readonly"))
+            // The rule the whole design turns on. This certificate chains, carries the right usage
+            // and is inside its dates, and it opens nothing.
+            using (var certificate = _ours.IssueClient("agent-fictitious", "ops"))
             {
                 var identity = ClientCredentials.For(certificate, _ours, _log);
 
-                Assert.That(identity.Profiles, Is.Empty);
+                Assert.That(identity.IsPaired, Is.False);
+                Assert.That(_log.Warnings.Any(w => w.Message.Contains("no admission record")), Is.True);
+            }
+        }
+
+        [Test]
+        public void Revoking_the_record_refuses_the_same_certificate_at_once()
+        {
+            using (var certificate = _ours.IssueClient("agent-fictitious", "ops"))
+            {
+                _ours.Admit(certificate, "ops");
+                Assume.That(ClientCredentials.For(certificate, _ours, _log).IsPaired, Is.True);
+
+                _ours.Revoke(certificate);
+
+                Assert.That(ClientCredentials.For(certificate, _ours, _log).IsPaired, Is.False);
+            }
+        }
+
+        [Test]
+        public void The_profiles_come_from_the_record_and_not_from_the_certificate()
+        {
+            // A certificate claiming more than its record grants is a certificate that grants what
+            // its record says.
+            using (var certificate = _ours.IssueClient("agent-fictitious", "ops", "admin"))
+            {
+                _ours.Admit(certificate, "readonly");
+
+                var identity = ClientCredentials.For(certificate, _ours, _log);
+
+                Assert.That(identity.Profiles, Is.EqualTo(new[] { "readonly" }));
+            }
+        }
+
+        [Test]
+        public void A_record_granting_nothing_is_still_an_admission()
+        {
+            using (var certificate = _ours.IssueClient("agent-fictitious"))
+            {
+                _ours.Admit(certificate);
+
+                var identity = ClientCredentials.For(certificate, _ours, _log);
+
+                Assert.That(identity.IsPaired, Is.True, "it is admitted");
+                Assert.That(identity.Profiles, Is.Empty, "and it can reach nothing, which is not the same thing");
+            }
+        }
+
+        [Test]
+        public void A_certificate_outside_its_dates_is_refused_even_with_a_record()
+        {
+            using (var certificate = _ours.IssueClient("agent-fictitious"))
+            {
+                _ours.Admit(certificate);
+                var afterItExpires = new DateTimeOffset(certificate.NotAfter.ToUniversalTime(), TimeSpan.Zero)
+                    .AddDays(1);
+
+                var identity = ClientCredentials.For(certificate, _ours, afterItExpires, _log);
+
+                Assert.That(identity.IsPaired, Is.False);
+                Assert.That(_log.Warnings.Any(w => w.Message.Contains("outside its dates")), Is.True);
+            }
+        }
+
+        [Test]
+        public void A_clock_a_few_minutes_behind_still_admits_a_fresh_certificate()
+        {
+            using (var certificate = _ours.IssueClient("agent-fictitious"))
+            {
+                _ours.Admit(certificate);
+                // Measured from issuance, which is where the documented five minutes is measured
+                // from. `notBefore` is already `AuthorityIssuer.Backdate` earlier, so taking four
+                // minutes off it asked for nine minutes of tolerance and passed only while a second
+                // allowance on the verifier's side was quietly doubling the number.
+                var issued = new DateTimeOffset(certificate.NotBefore.ToUniversalTime(), TimeSpan.Zero)
+                    + AuthorityIssuer.Backdate;
+                var slightlyBehind = issued.AddMinutes(-4);
+
+                Assert.That(ClientCredentials.For(certificate, _ours, slightlyBehind, _log).IsPaired, Is.True);
+            }
+        }
+
+        [Test]
+        public void A_clock_a_long_way_behind_does_not()
+        {
+            using (var certificate = _ours.IssueClient("agent-fictitious"))
+            {
+                _ours.Admit(certificate);
+                var wayBehind = new DateTimeOffset(certificate.NotBefore.ToUniversalTime(), TimeSpan.Zero)
+                    .AddHours(-1);
+
+                Assert.That(ClientCredentials.For(certificate, _ours, wayBehind, _log).IsPaired, Is.False);
+            }
+        }
+
+        [Test]
+        public void A_record_in_another_database_admits_nobody_here()
+        {
+            // Records are only meaningful under the authority in the same file.
+            using (var certificate = _theirs.IssueClient("agent-fictitious"))
+            {
+                _theirs.Admit(certificate, "ops");
+
+                Assert.That(ClientCredentials.For(certificate, _ours, _log).IsPaired, Is.False);
             }
         }
 
@@ -195,6 +301,11 @@ namespace KeePassGate.Tests
         {
             using (var certificate = _theirs.IssueClient("agent-fictitious"))
             {
+                // Admitted into *this* database, so the missing record is not what refuses it
+                // and the anchor pin is left alone to do the refusing. Writing the record into
+                // `_theirs` left the certificate unknown here either way, and this passed with
+                // the pin deleted.
+                _ours.Admit(certificate, "ops");
                 var identity = ClientCredentials.For(certificate, _ours, _log);
 
                 Assert.That(identity.IsPaired, Is.False);

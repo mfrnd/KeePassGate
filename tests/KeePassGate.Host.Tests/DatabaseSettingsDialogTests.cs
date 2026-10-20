@@ -86,8 +86,7 @@ namespace KeePassGate.Host.Tests
 
             Panel().CreateAuthority();
 
-            var customData = _database.Database.CustomData;
-            Assert.That(customData.Exists(AuthorityKeys.Authority), Is.False,
+            Assert.That(HoldsAnAuthority(), Is.False,
                 "the authority reached the database before anybody pressed OK");
 
             // Read before the dialog is accepted, because accepting closes it and the page goes
@@ -97,7 +96,7 @@ namespace KeePassGate.Host.Tests
 
             KeePassDialogs.Accept(_form);
 
-            Assert.That(customData.Exists(AuthorityKeys.Authority), Is.True);
+            Assert.That(HoldsAnAuthority(), Is.True);
         }
 
         [Test]
@@ -141,12 +140,12 @@ namespace KeePassGate.Host.Tests
             Panel().DeleteAuthority();
 
             Assert.That(Text(GateTab.StatusLabelName), Is.EqualTo(AuthorityDescription.AbsentHeadline));
-            Assert.That(_database.Database.CustomData.Exists(AuthorityKeys.Authority), Is.True,
+            Assert.That(HoldsAnAuthority(), Is.True,
                 "gone from the database before anybody pressed OK");
 
             KeePassDialogs.Accept(_form);
 
-            Assert.That(_database.Database.CustomData.Exists(AuthorityKeys.Authority), Is.False);
+            Assert.That(HoldsAnAuthority(), Is.False);
         }
 
         [Test]
@@ -192,6 +191,12 @@ namespace KeePassGate.Host.Tests
             _injector.Attach(_form);
 
             Assert.That(Captions().Count(c => c == GateTab.Text), Is.EqualTo(1));
+        }
+
+        /// <summary>Whether the real database holds a document for any authority at all.</summary>
+        private bool HoldsAnAuthority()
+        {
+            return _database.Database.CustomData.Any(p => AuthorityKeys.FingerprintInAuthority(p.Key) != null);
         }
 
         private AuthorityPanel Panel()

@@ -82,7 +82,6 @@ namespace KeePassGate.Bridge
         /// wants something stronger, since a removal is the one change a merge cannot carry, and
         /// `AdmissionStore.Remove` is where that is decided rather than here: a record taken back
         /// out because the save it belonged to never happened has nothing to outlive.
-        /// TODO(step 7): the store of admission records arrives with step 7.
         /// </remarks>
         public void Remove(string key)
         {

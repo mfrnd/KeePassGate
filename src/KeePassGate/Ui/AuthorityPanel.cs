@@ -467,9 +467,31 @@ namespace KeePassGate.Ui
                 return AuthorityDescription.NoDatabase();
             }
 
+            // **Asked of the database, not of the store it hands out.** The database can be gone
+            // by now: KeePass locks or closes it while this dialog is open, which is a state
+            // `PendingDatabase.Apply` names and answers. What that leaves is a store over nothing,
+            // never a null one, because every implementation here builds one on demand and the
+            // tab's own buffer wraps whatever that answers with. Reading through it finds no keys,
+            // which reads exactly like a database that has no authority yet, so the tab offered
+            // Create for a database that was not there. `IsOpen` is the question with an answer,
+            // and the constructor was already asking it.
+            if (!_database.IsOpen)
+            {
+                return AuthorityDescription.NoDatabase();
+            }
+
+            // Asked for again rather than remembered, for the reason `OpenDatabase` gives: a
+            // database that is locked and opened again comes back with its custom data replaced.
+            var store = _database.PluginCustomData;
+
             using (var reading = _service.Read())
             {
-                return AuthorityDescription.Of(reading, DateTimeOffset.UtcNow);
+                // The records only. What this builds is the expiry warnings, and a listing that
+                // The listing itself, not its records: whether it could be made at all is what
+                // tells a database that admitted nobody from one this could not read, and the two
+                // say opposite things to an operator deciding whether to recreate the authority.
+                return AuthorityDescription.Of(
+                    reading, new AdmissionStore(store, _log).All(), DateTimeOffset.UtcNow);
             }
         }
 

@@ -92,6 +92,23 @@ namespace KeePassGate.Host.Tests
             _database = reopened;
         }
 
+        /// <summary>
+        /// Saves, closes and opens the same `PwDatabase` again.
+        /// </summary>
+        /// <remarks>
+        /// What KeePass does when a workspace is locked and unlocked, which is not what
+        /// `SaveCloseAndReopen` does: `MainForm` keeps the document's database object and calls
+        /// `Open` on it, so the instance is the same and the root group behind it is a new one.
+        /// Anything holding the old group is then holding a group nothing writes to any more, and
+        /// only a reopen of this shape can show it.
+        /// </remarks>
+        public void LockAndUnlock()
+        {
+            Save();
+            _database.Close();
+            _database.Open(IOConnectionInfo.FromPath(Path), KeyFor(), null);
+        }
+
         public void Dispose()
         {
             try

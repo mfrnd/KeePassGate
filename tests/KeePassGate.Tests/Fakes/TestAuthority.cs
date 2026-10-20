@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using KeePassGate.Authority;
+using KeePassGate.Diagnostics;
 using KeePassGate.Gate;
 
 namespace KeePassGate.Tests.Fakes
@@ -22,6 +23,7 @@ namespace KeePassGate.Tests.Fakes
         private readonly HostKeyMaterial _hostKey;
         private readonly byte[] _gateKey;
         private readonly List<X509Certificate2> _issued = new List<X509Certificate2>();
+        private readonly AdmissionStore _admissions;
 
         private TestAuthority(
             X509Certificate2 authority, X509Certificate2 host, string hostBlob, HostKeyMaterial hostKey, byte[] gateKey)
@@ -31,6 +33,7 @@ namespace KeePassGate.Tests.Fakes
             _hostBlob = hostBlob;
             _hostKey = hostKey;
             _gateKey = gateKey;
+            _admissions = new AdmissionStore(new InMemoryKeyValueStore(), NullGateLog.Instance);
         }
 
         public static TestAuthority New()
@@ -77,6 +80,38 @@ namespace KeePassGate.Tests.Fakes
         public X509Certificate2 Authority
         {
             get { return _authority; }
+        }
+
+        /// <summary>The records this database holds, as the gate reads them.</summary>
+        public AdmissionRecord Admission(string admissionKey)
+        {
+            return _admissions.Find(admissionKey);
+        }
+
+        /// <summary>
+        /// Admits a client. Without this a certificate this authority issued opens nothing, which
+        /// is the point of step 7. TODO(step 8): pairing is what does this for real.
+        /// </summary>
+        public void Admit(X509Certificate2 certificate, params string[] profiles)
+        {
+            _admissions.Write(AdmissionRecord.For(certificate, DateTimeOffset.UtcNow, profiles));
+        }
+
+        /// <summary>
+        /// Revocation: a revocation beside the record, the record emptied, and the certificate
+        /// stops working.
+        /// </summary>
+        public bool Revoke(X509Certificate2 certificate)
+        {
+            return _admissions.Remove(CertificateDigest.Of(certificate));
+        }
+
+        /// <summary>A certificate issued by this authority and admitted in one step.</summary>
+        public X509Certificate2 IssueAdmittedClient(params string[] profiles)
+        {
+            var certificate = IssueClient("agent-fictitious", profiles);
+            Admit(certificate, profiles);
+            return certificate;
         }
 
         /// <summary>A name this database will answer to, fresh each time.</summary>

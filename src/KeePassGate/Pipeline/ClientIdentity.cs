@@ -10,10 +10,13 @@ namespace KeePassGate.Pipeline
     /// and grants nothing, so there is very little here.
     /// </summary>
     /// <remarks>
-    /// <see cref="IsPaired"/> means the client presented a certificate that this database's own
-    /// authority issued, checked by pinning the anchor rather than by trusting a chain. TODO(step 7): from step 7
-    /// it will also require an admission record, which is where <see cref="Profiles"/> comes from;
-    /// until then that list is empty and no route reads it.
+    /// <see cref="IsPaired"/> means all four of: a certificate this database's own authority
+    /// issued, checked by pinning the anchor rather than by trusting a chain; the `clientAuth`
+    /// usage; dates that are current; and an admission record in the database with no revocation
+    /// beside it. Take away the record, or add the revocation, and the same certificate admits
+    /// nobody from its next connection on, which is all a revocation has to do.
+    ///
+    /// <see cref="Profiles"/> comes from that record and never from the certificate's claims.
     /// </remarks>
     public sealed class ClientIdentity
     {

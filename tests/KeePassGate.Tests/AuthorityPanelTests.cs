@@ -166,7 +166,8 @@ namespace KeePassGate.Tests
                 Button(panel, GateTab.DeleteButtonName).PerformClick();
 
                 Assert.That(prompt.Asked, Is.EqualTo(1));
-                Assert.That(_database.Store.Keys, Is.Empty);
+                Assert.That(_database.Store.Keys.All(k => AuthorityKeys.FingerprintInRetirement(k) != null), Is.True,
+                    "nothing is left but the retirement that keeps it deleted");
                 Assert.That(Label(panel, GateTab.StatusLabelName).Text, Is.EqualTo(AuthorityDescription.AbsentHeadline));
             }
         }
@@ -241,7 +242,7 @@ namespace KeePassGate.Tests
         [Test]
         public void Damage_is_shown_and_only_the_two_buttons_that_can_help_are_offered()
         {
-            _database.Store.Plant(AuthorityKeys.Authority, "rubbish");
+            _database.Store.Plant(AuthorityKeys.AuthorityKey(new string('d', 64)), "rubbish");
 
             using (var panel = NewPanel(true))
             {
@@ -270,6 +271,39 @@ namespace KeePassGate.Tests
             using (var panel = NewPanel(true))
             {
                 Assert.That(Label(panel, GateTab.VersionLabelName).Text, Is.EqualTo("Version 1.0.0"));
+            }
+        }
+
+        [Test]
+        public void A_database_that_went_away_under_the_dialog_is_said_to_be_gone()
+        {
+            // KeePass locks or closes the database while this dialog is open, which
+            // `PendingDatabase.Apply` names as a state it has to answer. Whether the database is
+            // still there is asked of `IsOpen` rather than of its store, because no store here is
+            // ever null: every one of them is built on demand and the tab's buffer wraps whatever
+            // that answers with. Reading through one finds no keys, which reads exactly like a
+            // database that has no authority yet, so a tab asking it that way would offer Create
+            // for a database that was not there.
+            var pending = new PendingDatabase(_database, _log);
+
+            using (var panel = new AuthorityPanel(pending, new FakePrompt(true), _log, "1.0.0"))
+            {
+                panel.CreateAuthority();
+                pending.Apply();
+                panel.Describe();
+
+                Assume.That(Label(panel, GateTab.StatusLabelName).Text,
+                    Is.EqualTo(AuthorityDescription.PresentHeadline));
+
+                _database.IsOpen = false;
+                panel.Describe();
+
+                Assert.That(pending.PluginCustomData, Is.Not.Null,
+                    "the store never goes, which is why the question cannot be asked of it");
+                Assert.That(Label(panel, GateTab.StatusLabelName).Text,
+                    Is.EqualTo(AuthorityDescription.NoDatabaseHeadline));
+                Assert.That(Button(panel, GateTab.CreateButtonName).Enabled, Is.False,
+                    "and nothing offers to change a database that is not there");
             }
         }
 

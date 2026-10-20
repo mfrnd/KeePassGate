@@ -21,7 +21,8 @@ namespace KeePassGate.Host.Tests
     /// it is the fixture asking to be regenerated, along with the pictures that show its fingerprint.
     ///
     /// Read out of the stored line rather than through `AdmissionRecord`, which does not exist yet
-    /// at this step and would put a parser between the assertion and the bytes it is about.
+    /// at the step `SeededAuthority` arrives in and would put a parser between the assertion and
+    /// the bytes it is about.
     /// </remarks>
     [TestFixture]
     public sealed class SeededAuthorityTests

@@ -8,12 +8,12 @@ Guidance for anyone, human or AI assistant, working in this repository.
 mutual TLS, so that automation and AI agents can each be given a narrow, revocable, audited slice of
 a database.
 
-**Status: the design is settled and steps 1 to 6 of the build order are done.** The plugin loads
-into KeePass, puts a KPG tab on the database settings dialog, that tab creates, recreates and
-deletes the database's own certificate authority, and the gate listens on loopback and answers one
-route over mutual TLS 1.3 to a client that authority issued. Step 7, validation, is next: the
-anchor pin and the extended key usage check are already in, so what is left there is the admission
-record and the validity window.
+**Status: the design is settled and steps 1 to 7 of the build order are done.** The plugin loads
+into KeePass, the KPG tab creates, recreates and deletes the database's own certificate authority,
+the gate listens on loopback and answers one route over mutual TLS 1.3, and a client is served only
+if the database holds an admission record for its certificate. Step 8, pairing, is next: it is what
+writes those records, and it is the one path that has to write while a dialog may be holding a
+snapshot.
 
 ## Read these before proposing anything
 
@@ -74,19 +74,28 @@ designing around them.
   and merges those key by key; a group's dictionary carries no stamps at all, so
   `PwGroup.AssignProperties` replaces the whole of it from whichever replica's group was touched
   last. Records shaped one-per-client to survive a merge did not. Two consequences worth keeping
-  straight. The authority's three parts are **one key**, `AuthorityDocument`, because there the
+  straight. Each authority's three parts are **one key**, `AuthorityDocument`, because there the
   argument runs the other way: merged apart, a certificate from one replica and a private key from
-  another read as damage. And **a revocation is written empty rather than removed**, since a merge
-  carries a newer value and carries nothing for a key that went. See CA.md §204.
+  another read as damage. And **what has to survive a merge is a key that is only ever added**,
+  because a KeePass merge never removes a key and never reads a value. A revocation is
+  `KPG.Revoked.<key>` beside the emptied record, never changed and pruned once the certificate has
+  expired; an authority is one key per authority, `KPG.Authority.<fp>`, written once, and one
+  recreated or deleted gets `KPG.RetiredAuthority.<fp>` beside it, so which one is served is decided
+  by the retirements and never by counting documents. **This reverses two rules**: a revocation used
+  to be written empty rather than removed and the only authority lived under one key, both resting
+  on a merge carrying the newer value, which a dropped time, a slow clock or an import defeats. A
+  record that comes back beside its revocation is deleted by the plugin's next write, and recreating
+  or deleting the authority removes every record and every revocation with it. See CA.md §204.
 - **The authority takes the file to KDBX 4.1**, because a per-key modification time is a 4.1
   field. A database saved with an authority in it is a 4.1 file before anything has paired with
   it, and a record keeps it there. That is a format and not a gate: KeePass 2.47
-  opens it and saves it back as 4.0 without the per-key times a revocation needs to travel, and so
-  does KeePassXC. See CA.md §204.
+  opens it and saves it back as 4.0 without the per-key times, and so does KeePassXC. A revocation
+  no longer needs them, being a key of its own, but merging in another program can still undo one,
+  which is why a paired database belongs in KeePass 2.48 or later with the plugin. See CA.md §204.
 - **The admission record is load bearing.** A certificate that chains, passes its EKU check and has
-  no record in the database is refused, and the permitted profiles are read from the **record**, not
-  from the certificate's SAN. This is not belt and braces: it is what makes a lost record fail
-  closed. See the `GroupForm` trap below.
+  no record in the database is refused, and so is one whose record has a revocation beside it. The
+  permitted profiles are read from the **record**, not from the certificate's SAN. This is not belt
+  and braces: it is what makes a lost record fail closed. See the `GroupForm` trap below.
 - **Claims carry profile names only**: `kpg://profile/<name>`. No database identifier, because the
   issuing authority already identifies it. **There is no `kpg://any` wildcard**, and re-proposing one
   reopens a measured escalation.
@@ -132,8 +141,9 @@ designing around them.
 
 Every one of these was established by running code, and most contradict what the documentation
 suggests. The code is on branches of its own: `spikes/tls-and-certificates` holds the nine that
-measured TLS and X.509, and `spikes/build-environment` the one that measured whether the gate can
-fail while nothing is wrong. Each gathers what it settled in its own `RESULTS.md`. Run them from
+measured TLS and X.509, `spikes/build-environment` the one that measured whether the gate can
+fail while nothing is wrong, and `spikes/revocation-merge` the one that measured how KeePass merges
+a database's custom data. Each gathers what it settled in its own `RESULTS.md`. Run them from
 **Windows PowerShell**, not PowerShell 7, which is .NET Core and answers a different question.
 
 - **`X509Chain` does not pin an anchor.** `ExtraStore` plus `AllowUnknownCertificateAuthority`
@@ -158,6 +168,26 @@ fail while nothing is wrong. Each gathers what it settled in its own `RESULTS.md
   `RemoteCertificateNameMismatch` (the SNI rotates). The callback ignores it entirely.
 - **`X509Certificate2.Thumbprint` is SHA-1**, 40 hex characters. Admission keys on SHA-256 over
   `RawData`. `ChainProbe` prints it.
+- **`new X509Certificate2(byte[])` accepts a PKCS#12, not just a certificate.** The constructor
+  sniffs the blob, so 2350 bytes of password-less PFX load happily, report `HasPrivateKey` true, and
+  answer `RawData` with the 676 bytes of the certificate inside. Anything keyed on the digest of
+  what it stored therefore has to take the digest of `RawData` after parsing and refuse a
+  disagreement, or a record admits a certificate whose stored bytes nobody ever checked and quietly
+  carries a private key besides. `AdmissionRecord` does exactly that; measured by feeding a PFX to
+  the byte constructor on .NET Framework 4.8 and printing all three numbers.
+- **A KeePass merge of `PwDatabase.CustomData` visits the source's keys and no others, and never
+  reads a value.** `PwDatabase.MergeInDbProperties` is the whole of it, run at the end of every
+  `MergeIn`, which is File then Synchronize and File then Import alike. So no method removes a key
+  the target holds, and a removal travels nowhere. For a key both sides hold, the two modification
+  times, the method and `SettingsChanged` decide: `KeepExisting` copies nothing; `OverwriteExisting`
+  takes every source key with the source's time, or with none where it has none; `Synchronize`,
+  `OverwriteIfNewer` and `CreateNewUuids` take the source only when its time is strictly newer or
+  only it has one, and between two keys without times only when the target lacks the key or the
+  source's settings are newer. A key that is only ever added and never changed therefore survives
+  every KeePass merge, whatever the clocks say and whether or not a program that drops the times
+  has saved either copy. `CustomDataMergeRuleTests` pins that against the pinned KeePass, and
+  `spikes/revocation-merge` holds the probe that measured every method in both directions and with
+  the times lost on either side.
 - **Never parse a SAN with `X509Extension.Format` or `GetNameInfo`.** `AddDnsName` accepts text that
   renders as a URI claim, the labels are localized, and `GetNameInfo` returns one entry. Read the
   ASN.1 tags: `0x86` URI, `0x82` dNSName, `0x81` rfc822Name. `SanProbe`.
@@ -281,9 +311,9 @@ here can hang or crash the password manager.
 
 ## Where to start
 
-[`DESIGN.md`](DESIGN.md) §132 ends with a multi-step build order. **Steps 1 to 6 are done.** The skeleton
+[`DESIGN.md`](DESIGN.md) §132 ends with a multi-step build order. **Steps 1 to 7 are done.** The skeleton
 loads and shows a KPG tab, that tab creates, recreates and deletes the authority, and the gate
-serves one route over mutual TLS to a client the authority issued.
+serves one route over mutual TLS to a client the database holds an admission record for.
 
 **The storage decision survived the thing most likely to invalidate it.** The `GroupForm` snapshot
 hazard is real and now measured rather than remembered: `SnapshotHazardTests` reads the mechanism off
@@ -292,10 +322,17 @@ step 8 has to build on: the settings dialog the KPG tab lives on carries **no** 
 buttons are safe from their own dialog, and anything written while a **group** dialog is open is
 destroyed by its OK.
 
-**Step 7 is validation**, and it is smaller than the build order implies. The anchor pin and the
-extended key usage check are already in `ClientCredentials`, because a transport with no identity is
-not testable. What is left is the admission record lookup, the profiles that come from it, and the
-validity window with its five minutes of skew on `notBefore` only.
+**Step 8 is pairing**, and everything it writes already exists: `AdmissionRecord` is the thing it
+creates, `AuthorityIssuer.IssueClient` is what it hands over, and `AdmissionStore` is where it goes.
+What pairing adds is the invitation in memory, the proof exchange, the operator's approval, and the
+ordering that matters: the record is written and saved **before** the certificate is handed over,
+because a certificate whose record never landed is one nobody can revoke.
+
+**Two things about records that cost time to learn.** They are read from the live database on every
+connection and never cached, which is what makes revocation immediate. And a record written into the
+`.kdbx` file underneath a running KeePass is invisible to it and will be overwritten by its next
+save: KeePass serves the database it holds in memory, which is why pairing writes through the plugin
+rather than through the file.
 
 **One thing to know before touching the transport.** An `EphemeralKeySet` certificate signs happily
 and SChannel will not do TLS with it in either direction. That is why `Org.BouncyCastle.Tls`

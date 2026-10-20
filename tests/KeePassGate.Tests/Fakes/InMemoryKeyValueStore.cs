@@ -68,9 +68,24 @@ namespace KeePassGate.Tests.Fakes
             _values.Remove(key);
         }
 
+        /// <summary>
+        /// Makes enumeration alone fail, which is the shape of the race this guards against: a
+        /// lookup is a tree descent and survives, an enumeration is invalidated by a concurrent
+        /// write. A fake that refuses everything cannot tell the two apart.
+        /// </summary>
+        public bool ThrowOnList { get; set; }
+
         public IEnumerable<string> Keys
         {
-            get { return new List<string>(_values.Keys); }
+            get
+            {
+                if (ThrowOnList)
+                {
+                    throw new InvalidOperationException("the collection was modified");
+                }
+
+                return new List<string>(_values.Keys);
+            }
         }
 
         /// <summary>Puts a value in behind the store's back, for damage that has to be read.</summary>

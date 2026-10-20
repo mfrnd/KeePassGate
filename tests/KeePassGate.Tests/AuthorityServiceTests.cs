@@ -96,7 +96,7 @@ namespace KeePassGate.Tests
         [Test]
         public void Creating_over_damage_is_refused_and_says_what_to_do_instead()
         {
-            _values.Plant(AuthorityKeys.Authority, "rubbish");
+            _values.Plant(AuthorityKeys.AuthorityKey(new string('d', 64)), "rubbish");
 
             var result = _service.Create();
 
@@ -126,7 +126,7 @@ namespace KeePassGate.Tests
         [Test]
         public void Recreating_repairs_damage()
         {
-            _values.Plant(AuthorityKeys.Authority, "rubbish");
+            _values.Plant(AuthorityKeys.AuthorityKey(new string('d', 64)), "rubbish");
 
             var result = _service.Recreate();
 
@@ -176,9 +176,10 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void Deleting_leaves_the_database_with_nothing_of_ours()
+        public void Deleting_leaves_the_database_with_nothing_of_ours_but_the_retirement()
         {
             _service.Create();
+            var deleted = Digest();
             _values.Plant(AuthorityKeys.ClientPrefix + "aaa", "record");
             _values.Plant("SomebodyElse", "left alone");
 
@@ -186,7 +187,126 @@ namespace KeePassGate.Tests
 
             Assert.That(result.Succeeded, Is.True, result.Message);
             Assert.That(result.RecordsRemoved, Is.EqualTo(1));
-            Assert.That(_values.Keys, Is.EqualTo(new[] { "SomebodyElse" }));
+            Assert.That(_values.Keys.OrderBy(k => k, StringComparer.Ordinal), Is.EqualTo(new[]
+            {
+                AuthorityKeys.RetirementKey(deleted),
+                "SomebodyElse"
+            }), "the retirement is what keeps a stale copy of the file from bringing it back");
+        }
+
+        [Test]
+        public void A_recreated_authority_stays_replaced_when_a_stale_copy_brings_the_old_one_back()
+        {
+            // What a merge with a copy taken before the recreation does to the file: it adds the
+            // old document again, because a merge never removes a key and never reads a value.
+            _service.Create();
+            var old = Digest();
+            var oldDocument = _values.Get(AuthorityKeys.AuthorityKey(old));
+
+            _service.Recreate();
+            var current = Digest();
+            _values.Plant(AuthorityKeys.AuthorityKey(old), oldDocument);
+
+            using (var reading = _service.Read())
+            {
+                Assert.That(reading.Presence, Is.EqualTo(AuthorityPresence.Present));
+                Assert.That(reading.Material.AuthorityDigest, Is.EqualTo(current));
+            }
+        }
+
+        [Test]
+        public void Creating_over_several_authorities_is_refused_and_says_what_to_do_instead()
+        {
+            TwoAuthorities();
+
+            var result = _service.Create();
+
+            Assert.That(result.Succeeded, Is.False);
+            Assert.That(result.Message, Does.Contain("more than one authority"));
+        }
+
+        [Test]
+        public void Recreating_over_several_retires_every_one_of_them()
+        {
+            var digests = TwoAuthorities();
+
+            var result = _service.Recreate();
+
+            Assert.That(result.Succeeded, Is.True, result.Message);
+            foreach (var digest in digests)
+            {
+                Assert.That(_values.Get(AuthorityKeys.RetirementKey(digest)), Is.Not.Null);
+            }
+
+            using (var reading = _service.Read())
+            {
+                Assert.That(reading.Presence, Is.EqualTo(AuthorityPresence.Present));
+                Assert.That(digests, Does.Not.Contain(reading.Material.AuthorityDigest));
+            }
+        }
+
+        [Test]
+        public void Keeping_one_of_several_serves_it_and_says_how_many_went()
+        {
+            var digests = TwoAuthorities();
+
+            var result = _service.Keep(digests[0]);
+
+            Assert.That(result.Succeeded, Is.True, result.Message);
+            Assert.That(result.Message, Does.Contain("the other one was retired"));
+            Assert.That(Digest(), Is.EqualTo(digests[0]));
+        }
+
+        [Test]
+        public void Keeping_something_that_is_not_a_choice_is_refused_rather_than_thrown()
+        {
+            TwoAuthorities();
+
+            var result = _service.Keep(new string('d', 64));
+
+            Assert.That(result.Succeeded, Is.False);
+            Assert.That(result.Message, Does.Contain("could not be kept"));
+            Assert.That(_log.Errors, Is.Not.Empty);
+        }
+
+        [Test]
+        public void A_choice_that_does_not_land_is_not_reported_as_made()
+        {
+            var digests = TwoAuthorities();
+            _values.SwallowWrites = true;
+
+            var result = _service.Keep(digests[1]);
+
+            Assert.That(result.Succeeded, Is.False, result.Message);
+            Assert.That(result.Message, Does.Contain("Read the page again"));
+        }
+
+        /// <summary>
+        /// Two authorities side by side and neither retired, which is what two copies each
+        /// recreating and then being merged leave behind.
+        /// </summary>
+        private string[] TwoAuthorities()
+        {
+            _service.Create();
+            var first = Digest();
+            var firstDocument = _values.Get(AuthorityKeys.AuthorityKey(first));
+            _values.Remove(AuthorityKeys.AuthorityKey(first));
+
+            _service.Create();
+            var second = Digest();
+            _values.Plant(AuthorityKeys.AuthorityKey(first), firstDocument);
+
+            return new[] { first, second };
+        }
+
+        /// <summary>The digest of the one authority the store serves now.</summary>
+        private string Digest()
+        {
+            using (var reading = _service.Read())
+            {
+                Assume.That(reading.IsPresent, "there has to be exactly one authority to name");
+                return reading.Material.AuthorityDigest;
+            }
         }
 
         [Test]
@@ -354,29 +474,6 @@ namespace KeePassGate.Tests
         public void A_missing_store_is_refused_at_construction()
         {
             Assert.Throws<ArgumentNullException>(() => new AuthorityService(null, _log));
-        }
-
-        private sealed class ThrowingKeyValueStore : IKeyValueStore
-        {
-            public string Get(string key)
-            {
-                throw new InvalidOperationException("no");
-            }
-
-            public void Set(string key, string value)
-            {
-                throw new InvalidOperationException("no");
-            }
-
-            public void Remove(string key)
-            {
-                throw new InvalidOperationException("no");
-            }
-
-            public System.Collections.Generic.IEnumerable<string> Keys
-            {
-                get { throw new InvalidOperationException("no"); }
-            }
         }
     }
 }

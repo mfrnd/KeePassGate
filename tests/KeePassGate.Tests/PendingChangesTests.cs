@@ -38,6 +38,28 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_kind_of_key_is_waiting_while_any_key_of_it_is()
+        {
+            // The authority is one key per authority, so whether it is waiting is a question about
+            // every key of that kind, written or removed.
+            var live = new InMemoryKeyValueStore();
+            live.Plant(AuthorityKeys.AuthorityKey("old"), "a document");
+            var pending = new PendingStore(live);
+
+            Assert.That(pending.WaitingOn(AuthorityKeys.IsAuthorityState), Is.False);
+
+            pending.Set("KPG.Thing", "a value");
+            Assert.That(pending.WaitingOn(AuthorityKeys.IsAuthorityState), Is.False, "another kind entirely");
+
+            pending.Remove(AuthorityKeys.AuthorityKey("old"));
+            Assert.That(pending.WaitingOn(AuthorityKeys.IsAuthorityState), Is.True, "a removal is waiting too");
+
+            pending.Discard();
+            pending.Set(AuthorityKeys.RetirementKey("old"), AuthorityKeys.RetiredValue);
+            Assert.That(pending.WaitingOn(AuthorityKeys.IsAuthorityState), Is.True, "and so is a retirement");
+        }
+
+        [Test]
         public void What_is_discarded_never_happened()
         {
             var live = new InMemoryKeyValueStore();
