@@ -453,7 +453,8 @@ pykeepassgate show <uuid>
 `group` reads one group, its notes included, which needs `R` on it where `groups` needs `L`.
 `show` prints every string the entry holds, one to a line, and when it expires: notes written over
 several lines print on one, with `\n` where each break was. The protected ones arrive only when the
-rule grants `protected`. It is the one command that puts a password on a terminal.
+rule grants `protected`. It and `field`, below, are the two commands that put a password on a
+terminal.
 
 ## Follow a reference as KeePass would
 
@@ -588,6 +589,29 @@ for attachment in client.attachments(uuid):
 
 content = client.attachment(uuid, "key.pem").content
 ```
+
+```shell
+pykeepassgate fields <uuid>
+pykeepassgate field <uuid> Password
+pykeepassgate add-field <uuid> Environment --value staging
+pykeepassgate add-field <uuid> "Deploy key" --protected
+pykeepassgate update-field <uuid> Environment --value production
+pykeepassgate strip-field <uuid> Environment
+```
+
+`fields` lists the names and says which are protected, and no value. `field` prints one value and
+nothing else, for a script, so `"$(pykeepassgate field <uuid> Password)"` is the password: a line
+break or another control character inside it is written as its escape, as everywhere in `plain`,
+and `-o json` gives the value exactly. A value the rule withholds fails `field` with `Withheld` and
+exit code 1 rather than printing anything, since a script would take any word printed in its place
+for the value.
+
+`add-field` and `update-field` take the value as `--value`, or read it from standard input when it
+is left off, as `--password` is read, which is the way to give a secret. `--protected` stores the
+value protected whatever its name, however the value was given. Without it, the database protects
+the value if it protects that name, as it does `Password`, and `update-field` never changes whether
+a field is protected. `strip-field` takes a string off the entry, which needs `S`; the five
+standard ones are refused, and `update` empties one instead.
 
 Attachments need the `A` switch on the rule as well as the verb, which is what makes "read this
 entry" and "read the files inside it" two separate decisions.

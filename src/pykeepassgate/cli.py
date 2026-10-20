@@ -6,8 +6,9 @@ calls one function, and prints what came back.
 
 **It never prints a credential.** The invitation is read from an argument or from standard
 input, and what is printed afterwards is what the credentials are, not what they hold. A
-protected field is a different thing: `show` prints one when the gate answers with it, which
-is when the rule granted `P`, and prints `(withheld)` when it did not.
+protected field is a different thing: `show` and `field` print one when the gate answers with
+it, which is when the rule granted `P`. When it did not, `show` prints `(withheld)` and `field`
+fails, since what `field` prints is taken by a script for the value.
 
 Exit codes are the point of a command line: `0` worked, `1` the gate refused or could not be
 reached, `2` the arguments were wrong. A script can branch on that without reading English.
@@ -394,6 +395,65 @@ def _parser() -> argparse.ArgumentParser:
     _dialed(remove)
     remove.set_defaults(run=_remove)
 
+    fields = commands.add_parser(
+        "fields", help="list the names of an entry's strings, and which are protected"
+    )
+    fields.add_argument("uuid", help="the entry's identifier")
+    _shared(fields)
+    _dialed(fields)
+    fields.set_defaults(run=_fields)
+
+    field = commands.add_parser(
+        "field",
+        help="print one of an entry's strings, a password among them",
+        description=(
+            "Prints the value alone, for a script to read, with a line break inside it written "
+            "as \\n; -o json gives it exactly. A protected one arrives only when the rule grants "
+            "`protected`, and one it withholds fails the command rather than printing anything."
+        ),
+    )
+    field.add_argument("uuid", help="the entry's identifier")
+    field.add_argument("name", help="the string's name, such as Password")
+    _shared(field)
+    _dialed(field)
+    field.set_defaults(run=_field)
+
+    add_field = commands.add_parser("add-field", help="add a string the entry does not have")
+    add_field.add_argument("uuid", help="the entry's identifier")
+    add_field.add_argument("name", help="what to call it")
+    _valued(add_field)
+    add_field.add_argument(
+        "--protected",
+        action="store_true",
+        help=(
+            "store it protected whatever its name; left off, the database protects it if it "
+            "protects that name"
+        ),
+    )
+    _shared(add_field)
+    _dialed(add_field)
+    add_field.set_defaults(run=_add_field)
+
+    update_field = commands.add_parser(
+        "update-field", help="change a string the entry already has"
+    )
+    update_field.add_argument("uuid", help="the entry's identifier")
+    update_field.add_argument("name", help="the string's name")
+    _valued(update_field)
+    _shared(update_field)
+    _dialed(update_field)
+    update_field.set_defaults(run=_update_field)
+
+    strip_field = commands.add_parser(
+        "strip-field",
+        help="take a string off an entry; the five standard ones are emptied with update instead",
+    )
+    strip_field.add_argument("uuid", help="the entry's identifier")
+    strip_field.add_argument("name", help="the string's name")
+    _shared(strip_field)
+    _dialed(strip_field)
+    strip_field.set_defaults(run=_strip_field)
+
     files = commands.add_parser("attachments", help="list an entry's attachments")
     files.add_argument("uuid", help="the entry's identifier")
     _shared(files)
@@ -468,6 +528,18 @@ def _stored(credentials: api.Credentials) -> dict[str, object]:
         "expires": credentials.expires,
         "directory": str(credentials.directory),
     }
+
+
+def _valued(parser: argparse.ArgumentParser) -> None:
+    """Where a field's value comes from: an argument, or standard input when there is none."""
+    parser.add_argument(
+        "--value",
+        help=(
+            "the value. Left off, it is read from standard input, which keeps it out of the "
+            "process list and is the way to give a secret; at a terminal it is asked for, "
+            "showing a * for each character"
+        ),
+    )
 
 
 def _shared(parser: argparse.ArgumentParser) -> None:
@@ -1472,6 +1544,114 @@ def _remove(arguments: argparse.Namespace) -> int:
     )
     client.delete_entry(arguments.uuid)
     _emit(arguments, {"uuid": arguments.uuid}, [f"removed {arguments.uuid}"])
+    return 0
+
+
+def _fields(arguments: argparse.Namespace) -> int:
+    client = api.GateClient.open(
+        arguments.directory,
+        arguments.profile,
+        host=arguments.host,
+        key_password=_key_password(arguments),
+        **_dialing(arguments),
+    )
+    found = client.fields(arguments.uuid)
+
+    _emit(
+        arguments,
+        [{"name": field.name, "protected": field.protected} for field in found],
+        [
+            _printable(field.name) + (" (protected)" if field.protected else "")
+            for field in found
+        ],
+    )
+    return 0
+
+
+def _field(arguments: argparse.Namespace) -> int:
+    client = api.GateClient.open(
+        arguments.directory,
+        arguments.profile,
+        host=arguments.host,
+        key_password=_key_password(arguments),
+        **_dialing(arguments),
+    )
+    found = client.field(arguments.uuid, arguments.name)
+
+    # Read before anything is printed: a value the rule withholds raises `Withheld`, which leaves
+    # through `main` as exit 1. Printing `(withheld)` as `show` does would hand a script that
+    # reads one value a word it would take for the value, and set somewhere as a password.
+    value = found.value
+
+    _emit(
+        arguments,
+        {"name": found.name, "protected": found.protected, "value": value},
+        [_printable(value)],
+    )
+    return 0
+
+
+def _value(arguments: argparse.Namespace, prompt: str) -> str:
+    """A field's value, as argued, or read from standard input as a password is."""
+    if arguments.value is not None:
+        return str(arguments.value)
+
+    return _secret(prompt).rstrip("\n")
+
+
+def _add_field(arguments: argparse.Namespace) -> int:
+    client = api.GateClient.open(
+        arguments.directory,
+        arguments.profile,
+        host=arguments.host,
+        key_password=_key_password(arguments),
+        **_dialing(arguments),
+    )
+    value = _value(arguments, f"Value of {arguments.name}: ")
+    client.create_field(arguments.uuid, arguments.name, value, protected=arguments.protected)
+
+    _emit(
+        arguments,
+        {"uuid": arguments.uuid, "name": arguments.name},
+        [f"added {_printable(arguments.name)} to {arguments.uuid}"],
+    )
+    return 0
+
+
+def _update_field(arguments: argparse.Namespace) -> int:
+    client = api.GateClient.open(
+        arguments.directory,
+        arguments.profile,
+        host=arguments.host,
+        key_password=_key_password(arguments),
+        **_dialing(arguments),
+    )
+    value = _value(arguments, f"New value of {arguments.name}: ")
+    client.update_field(arguments.uuid, arguments.name, value)
+
+    _emit(
+        arguments,
+        {"uuid": arguments.uuid, "name": arguments.name},
+        [f"updated {_printable(arguments.name)} on {arguments.uuid}"],
+    )
+    return 0
+
+
+def _strip_field(arguments: argparse.Namespace) -> int:
+    client = api.GateClient.open(
+        arguments.directory,
+        arguments.profile,
+        host=arguments.host,
+        key_password=_key_password(arguments),
+        **_dialing(arguments),
+    )
+    client.strip_field(arguments.uuid, arguments.name)
+
+    _emit(
+        arguments,
+        {"uuid": arguments.uuid, "name": arguments.name},
+        [f"stripped {_printable(arguments.name)} from {arguments.uuid}"],
+    )
     return 0
 
 
