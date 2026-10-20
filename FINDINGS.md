@@ -112,7 +112,39 @@ Established while replacing a KeePass copied there by hand with a pinned downloa
 | **Scoop's manifest would not have helped.** `extras/keepass` fetches the **installer** from the same SourceForge host, verifies a **SHA-1**, and carries only the current version, so pinning an old one means the versions bucket or manifest history | read the manifest |
 | KeePass publishes a version feed at `keepass.info/update/version2x.txt`, on its own domain, signed, and it names the current release as `KeePass:<version>` | fetched it |
 
-## 7. Reconstruction
+## 7. Loading a plugin, and testing one
+
+Established while building step 4 of the build order. The first entry is the one that costs an
+evening, because it fails without a message.
+
+| Fact | How it was established |
+| --- | --- |
+| **KeePass screens plugin files on their `ProductName` and it must be exactly `KeePass Plugin`.** A DLL that says anything else is skipped in silence: no error, no message box, no entry in the plugin list, and the assembly is never even opened | disassembled `PluginManager.LoadPlugins`, which calls `FileVersionInfo.GetVersionInfo` and compares against `AppDefs.PluginProductName` before anything else. Confirmed by watching the loaded modules of a running KeePass before and after setting `<Product>` |
+| **The entry point is found by name as `<file>.<file>Ext`**, so the namespace has to match the file as well as the class does. `KeePassGate.dll` must expose `KeePassGate.KeePassGateExt` | called `PluginManager.CreatePluginInstance` with several spellings and read the `TypeLoadException`, which names the type it looked for |
+| KeePass scans the application directory, then its `Plugins` subdirectory recursively | the same disassembly |
+| **`DatabaseSettingsForm` can be constructed outside a running KeePass**, and it builds its five tabs, so a test can drive the real dialog without starting the program | `Activator.CreateInstance` on the type, then read `m_tabMain` |
+| `GlobalWindowManager.AddWindow` and `RemoveWindow` are public and static, so a test can raise the real window notifications a plugin subscribes to | enumerated the type, then drove the plugin end to end with them |
+| **KeePass hands its command line to an already running instance and exits**, because `Integration.LimitToSingleInstance` defaults to true. A test that starts KeePass while any other copy runs measures nothing | the started process exited at once and owned no window; disabling the setting in a local configuration fixed it |
+| A first start asks **"Enable automatic update check?"** in a modal dialog, before any plugin is loaded | the automated run stalled on it; answering it in the configuration with `CheckForUpdateConfigured` removes it |
+
+### Driving KeePass through the desktop
+
+Six traps, all of which look like the plugin failing rather than the harness.
+
+| Fact | How it was established |
+| --- | --- |
+| **Choosing a menu item through UI automation does not return until the dialog it opens is closed**, and while that call is pending every other automation call against the process times out, including the one waiting for the dialog | `InvokePattern.Invoke` on "Database Settings...", then a `FindAll` from another thread, which failed with a COM timeout |
+| **Reading the accessibility tree while a menu is open dismisses the menu**, so a keystroke sent afterwards goes to the main window and does nothing | the menu item was found, the keystroke was delivered, and no dialog appeared |
+| **`SendKeys` is inert from a test runner.** On .NET Framework it delivers through a journal hook, which needs a message loop the runner does not have | the same keystrokes worked from PowerShell and not from the test host; synthesizing input with `keybd_event` works in both |
+| `SetForegroundWindow` is refused to a process that does not already hold the foreground, which a test runner does not. Attaching to the foreground thread's input queue for the duration lifts the refusal | measured by comparing `GetForegroundWindow` before and after |
+| Access keys are readable from the accessibility tree, `Alt+f` for the File menu and `d` for Database Settings, so the keyboard route needs no hard-coded English | read `AutomationElement.Current.AccessKey` |
+| An accessible name set on a label **replaces** the text a reader gets back, so identifying controls that way hides the very text a test wants to assert | the end to end test read `KpgVersionLabel` where `Version 0.1.0` was expected |
+
+So the shape that works: discover the keys through the accessibility tree with the menu opened and
+closed through it, then drive the menu purely from synthesized keystrokes, then read the result back
+through the tree once nothing is modal.
+
+## 8. Reconstruction
 
 The proofs were deleted once they had answered their questions. To rebuild any of them:
 
@@ -132,7 +164,7 @@ The proofs were deleted once they had answered their questions. To rebuild any o
 `TlsProbe.cs` on `spikes/tls-and-certificates` is kept because it answers the TLS question in
 isolation and is the cheapest way to re-check it on a new machine.
 
-## 8. The gate, and where it can run
+## 9. The gate, and where it can run
 
 **A warning is not a failure, and under `Stop` it becomes one.** A native command writing to stderr
 raises a terminating error as soon as anything upstream merges the streams, which is what capturing

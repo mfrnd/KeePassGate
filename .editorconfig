@@ -1,0 +1,98 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = crlf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+[*.{md,yml,yaml,json}]
+indent_size = 2
+
+[*.{csproj,props,targets,config,xml}]
+indent_size = 2
+
+[*.cs]
+# Namespaces, usings, ordering
+dotnet_sort_system_directives_first = true
+csharp_using_directive_placement = outside_namespace:warning
+
+# Language style
+csharp_style_var_when_type_is_apparent = true:suggestion
+csharp_style_var_elsewhere = false:suggestion
+csharp_prefer_braces = true:warning
+dotnet_style_qualification_for_field = false:suggestion
+dotnet_style_readonly_field = true:warning
+
+# The three analyzer rules this project answers rather than obeys. Everything else the recommended
+# set asks for is done, and the build fails on it, so these three are the whole of the argument.
+
+# CA1710: an exception type should be named `...Exception`. `GateFailure` is named for what it is,
+# it is never caught by name from outside this assembly, and `Diagnostics/Expected` is where a
+# handler decides what to catch. The guideline exists so a reader can tell an exception from a
+# value type, and nothing here derives from `Exception` without being one.
+dotnet_diagnostic.CA1710.severity = none
+
+# CA1716: a parameter named `error` collides with a reserved word in Visual Basic. Nothing consumes
+# this assembly, and a plugin loaded by name into KeePass never will be consumed from another
+# language. `error` is the right word for the thing.
+dotnet_diagnostic.CA1716.severity = none
+
+# CA1859: return the concrete type from a private member rather than an interface. It trades what a
+# signature says for an allocation this code does not make in a loop: the sites are a settings tab
+# and a request head with a handful of entries. Where a return type is an interface here it is
+# because the caller has no business knowing more.
+dotnet_diagnostic.CA1859.severity = none
+
+# Naming: private fields carry an underscore prefix
+dotnet_naming_rule.private_fields_underscore.symbols = private_fields
+dotnet_naming_rule.private_fields_underscore.style = underscore_camel
+dotnet_naming_rule.private_fields_underscore.severity = warning
+dotnet_naming_symbols.private_fields.applicable_kinds = field
+dotnet_naming_symbols.private_fields.applicable_accessibilities = private
+dotnet_naming_style.underscore_camel.required_prefix = _
+dotnet_naming_style.underscore_camel.capitalization = camel_case
+
+# A test project is not a library, and seven of the rules assume it is. Everything else the analyzers
+# ask for applies here too, because a test that is wrong is worse than no test.
+[tests/**.cs]
+
+# CA1707: no underscores in a member name. A test name here is a sentence, and it is the sentence a
+# failure prints. `A_record_lost_to_a_stale_snapshot_makes_the_certificate_inert` says what broke
+# without opening the file; `ARecordLostToAStaleSnapshot` does not.
+dotnet_diagnostic.CA1707.severity = none
+
+# CA1861: hoist a constant array argument to a `static readonly` field. In a test the array is the
+# case being tested, and moving it away from the assertion that reads it makes both harder to
+# follow for an allocation nobody measures.
+dotnet_diagnostic.CA1861.severity = none
+
+# CA1001: a type with disposable fields should be disposable. A fixture's fields are released in
+# `TearDown`, which is the contract NUnit offers and calls, and adding `IDisposable` beside it would
+# give a fixture two teardown paths where the framework only ever uses one.
+dotnet_diagnostic.CA1001.severity = none
+
+# CA5359: do not accept every server certificate. These callbacks are the point rather than an
+# oversight: `FINDINGS.md` records that a correct deployment always reports chain errors, because
+# the authority is in no machine store, and a name mismatch, because the SNI rotates. The tests
+# accept the handshake and then compare the certificate themselves, which is what the plugin does.
+dotnet_diagnostic.CA5359.severity = none
+
+# CA2201: do not raise a reserved exception type. `GateIncidentsTests` constructs exactly
+# these, and does not raise them: they are handed to the `Expected` filters to prove that
+# the catch-alls report what nobody predicted rather than swallowing it. The rule
+# fires on the construction as much as on a throw, which is why it is off here rather than
+# left to the call site.
+dotnet_diagnostic.CA2201.severity = none
+
+# CA1822: a member that touches no instance data can be static. Where the object is what the
+# sentence is about, making its members static to save passing `this` would break the sentence the
+# caller reads.
+dotnet_diagnostic.CA1822.severity = none
+
+# CA1838: no `StringBuilder` parameter on a P/Invoke. It is the documented marshaling for
+# `GetWindowText`, which is what the end to end tier reads window titles with.
+# See https://learn.microsoft.com/windows/win32/api/winuser/nf-winuser-getwindowtextw
+dotnet_diagnostic.CA1838.severity = none

@@ -1,0 +1,47 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <AssemblyName>KeePassGate</AssemblyName>
+    <RootNamespace>KeePassGate</RootNamespace>
+    <!-- KeePass finds the entry point by name: the file KeePassGate.dll must contain a type
+         called KeePassGateExt deriving from KeePass.Plugins.Plugin. Renaming the assembly
+         renames the type it must expose. -->
+    <!-- Load bearing, and silently so. KeePass reads the file's ProductName before it opens the
+         assembly and skips anything that does not say exactly this, with no message and no entry
+         in its plugin list. See FINDINGS.md. -->
+    <Product>KeePass Plugin</Product>
+    <AssemblyTitle>KeePassGate</AssemblyTitle>
+    <Description>Serves a small specification defined HTTP API over mutual TLS, so automation can be given a narrow, revocable, audited slice of a KeePass database.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Private=false: KeePass.exe is the host process and must never be copied beside the plugin. -->
+    <Reference Include="KeePass">
+      <HintPath>$(KeePassExePath)</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="KeePassGate.Tests" />
+    <InternalsVisibleTo Include="KeePassGate.Host.Tests" />
+  </ItemGroup>
+
+  <Target Name="RequireKeePassDevDir" BeforeTargets="ResolveAssemblyReferences">
+    <Error Condition="!Exists('$(KeePassExePath)')"
+           Text="KeePass.exe was not found at $(KeePassExePath). Run `.\build.ps1 -Task KeePass` to provide the version this repository pins, or build with -p:KeePassDevDir=&lt;path&gt;." />
+  </Target>
+
+</Project>

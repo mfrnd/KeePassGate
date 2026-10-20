@@ -62,6 +62,8 @@ words:
 
 
 
+  # keep the gate working on a machine that also has PowerShell 7
+  - PSHOME
 
 
   # This project
@@ -91,7 +93,9 @@ words:
   # Tooling
   - autonumber
   - LASTEXITCODE
+  - nologo
   - noresult
+  - Parallelizable
   - pathspec
   - USERPROFILE
 
@@ -111,6 +115,7 @@ words:
   - nameof
   - netsh
   - OCSP
+  - oids
   - SPIFFE
   - sslcert
   - syscall
@@ -118,6 +123,7 @@ words:
   # Words this project uses on purpose. Each is the shortest way to say the thing, and each has
   # earned its place by appearing in more than one document.
   - desync
+  - recompiler
   - refusable
   - reimplementations
   - replayable

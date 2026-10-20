@@ -8,10 +8,9 @@ Guidance for anyone, human or AI assistant, working in this repository.
 mutual TLS, so that automation and AI agents can each be given a narrow, revocable, audited slice of
 a database.
 
-**Status: the design is settled, nothing is built, and the gate that will judge it exists.** There
-is no project file and no source at all, but `build.ps1` and the workflow that runs it are
-here, checking the only thing there is to check so far, which is the prose. The first commit of real
-code is still ahead.
+**Status: the design is settled and steps 1 to 4 of the build order are done.** The plugin loads into
+KeePass, puts a KPG tab on the database settings dialog and stops cleanly. It has no certificate
+authority, serves no API and opens no socket. Step 5, the authority, is next.
 
 ## Read these before proposing anything
 
@@ -21,6 +20,7 @@ code is still ahead.
 | [`CA.md`](CA.md) | the certificate authority: issuance, claims, validation, revocation |
 | [`PAIRING.md`](PAIRING.md) | how a stranger becomes a client, with the flow diagrams |
 | [`FINDINGS.md`](FINDINGS.md) | what was measured rather than assumed, and what turned out wrong |
+| [`TESTING.md`](TESTING.md) | the three test tiers, what each one buys, and how to run them |
 
 **One document is historical and says so at the top.** [`ANALYSIS.md`](ANALYSIS.md) is the argument
 that was made, and several of its conclusions were later reversed; it opens with a banner naming
@@ -171,19 +171,24 @@ wait is safe.
 
 ## Build and toolchain
 
-**`build.ps1` is the entry point, and it is the gate.** Run it before every commit; CI runs the
-same script on every pull request and on every push to `master`, because there is one definition
-of clean and it is in that file. Today it has one task, `Lint`, and the list grows with the
-repository.
+**`build.ps1` is the entry point.** It is also the gate, and CI runs the same script on every pull
+request and on every push to `master`, because there is one definition of clean and it is in that
+file.
+
+```powershell
+.\build.ps1                # build, then every test that does not need a running KeePass
+.\build.ps1 -Task All      # the above, then the end to end tests
+.\build.ps1 -Task Deploy   # copy the plugin into the provided KeePass's plugins directory
+```
 
 **`build.ps1 -ListGates` is what CI asks for.** The workflow builds one job per name it returns, so
 a task added to the script is checked without anybody editing `.github/workflows/gate.yml`. The
 jobs are never written there, so what changes in that file is the commit each action is pinned
 to, which its header says as well.
 
-**Nothing compiles yet.** When a project file lands it targets `net48`, because that is what
-KeePass runs on. Visual Studio 2019 Community is installed; `msbuild` is not on `PATH`, so locate
-it:
+The projects are SDK-style, target `net48` and build with the **.NET SDK's `dotnet` CLI**, which is
+what makes `dotnet test` available; they open in Visual Studio 2019 as well. `msbuild` is not on
+`PATH`, so if it is ever needed directly, locate it:
 
 ```powershell
 $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
@@ -192,7 +197,9 @@ $msbuild = & $vswhere -latest -requires Microsoft.Component.MSBuild -find "MSBui
 
 **KeePass is provided, not found.** `keepass.version` at the root pins the release, `keepass.sha256`
 pins the archive it must arrive as, and `tools/KeePass.ps1` fetches it into `.keepass\<version>\`,
-which is gitignored. Dot-source it and call `Install-KeePass`.
+which is gitignored. `Directory.Build.props` reads the same file, so an editor build compiles
+against the same one. Override with `-KeePassDir` or `-p:KeePassDevDir=` for a machine that keeps
+its own somewhere else.
 
 Three things about it that are decisions rather than details. The directory is **named after the
 version**, so changing the pin cannot silently reuse the old one. The archive is verified twice,
@@ -204,19 +211,29 @@ printed so it can be pinned deliberately.
 A KeePass launched from there writes its own `KeePass.config.xml` next to the exe, which is why
 testing there cannot damage the real configuration.
 
+**The plugin's `ProductName` must be exactly `KeePass Plugin`**, which `src/KeePassGate/KeePassGate.csproj`
+sets with `<Product>`. KeePass reads it from the file before it opens the assembly and **silently
+skips** anything else: no error, no message, no entry in its plugin list. `PluginNamingTests` pins it
+against the constant read out of KeePass itself. The entry point must likewise be named for the file,
+`KeePassGate.KeePassGateExt` in `KeePassGate.dll`, namespace included.
+
 **There is CI, and there is no branch protection.** The workflow runs every gate on every pull
 request and on every push to `master`, and no check is required before a merge. A red check
 therefore reports and does not block: read it before merging, because nothing else will. Requiring
 the gate is one setting on a public repository, and GitHub offers it on a private one only under a
 paid plan.
 
-## Testing against a live plugin
+## Testing
 
-Never against the author's real database. Build a throwaway KDBX4 with `pykeepass` (ephemerally, via
-`uv run --no-project --with pykeepass`), open it with `KeePass.exe <db> -pw:<password>`, and test
-against that. Keep the database and any driver scripts in the session scratchpad; a
-`.kdbx` must never be committed, and `-pw:` puts the password in the process list, so it is only ever
-acceptable for a dummy.
+[`TESTING.md`](TESTING.md) is the full account. In short: unit tests that never load KeePass, host
+tests that drive the real KeePass types in process, and an end to end tier under the `Live` category
+that starts a throwaway KeePass and types into it.
+
+**Never test against the author's real database.** The end to end tier builds its own KeePass and its
+own KDBX4 under `%ProgramData%\KeePassGateLive`, creating the database with KeePassLib, which is already
+referenced. For ad hoc work `pykeepass` (ephemerally, via `uv run --no-project --with pykeepass`) is
+equally fine. Keep any driver scripts in the session scratchpad; a `.kdbx` must never be committed,
+and `-pw:` puts the password in the process list, so it is only ever acceptable for a dummy.
 
 ## Conventions
 
@@ -242,9 +259,15 @@ here can hang or crash the password manager.
 
 ## Where to start
 
-[`DESIGN.md`](DESIGN.md) §132 ends with a multi-step build order. Step 4 is a plugin skeleton that loads,
-shows a KPG tab and stops cleanly.
+[`DESIGN.md`](DESIGN.md) §132 ends with a multi-step build order. **Step 4 is done**: the skeleton loads,
+shows a KPG tab and stops cleanly, with the tab's contents behind `IGatePanelFactory` so that the
+next step replaces them rather than editing around them.
 
-**Step 5 is the authority, deliberately early**, because the `GroupForm` snapshot hazard is the thing
-most likely to invalidate the storage decision, and discovering that under five layers of transport
-would be expensive.
+**Step 5 is the authority, and it is next, deliberately early**, because the `GroupForm` snapshot
+hazard is the thing most likely to invalidate the storage decision, and discovering that under five
+layers of transport would be expensive.
+
+What step 4 already gives it: a place on the dialog, a real dialog to test against without starting
+KeePass, and an end to end test that presses keys on the real thing. Note that the end to end test
+closes the settings dialog with **Escape rather than OK**, which is the safe half of the snapshot
+hazard; step 5 has to exercise the other half deliberately.

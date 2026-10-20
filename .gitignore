@@ -2,6 +2,11 @@
 # somewhere else. What a project writes is ignored beside that project rather than from here.
 
 /.tmp/
+/.vs/
+
+# What the coverage collector writes, one report per test assembly per run.
+/.cov/
+
 # The KeePass this repository pins, fetched by `tools/KeePass.ps1` and named after its
 # version. Provided rather than committed: it is somebody else's program.
 /.keepass/

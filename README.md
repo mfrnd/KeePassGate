@@ -3,7 +3,9 @@
 A KeePass 2.x plugin that serves a small, specification-defined HTTP API over mutual TLS, so that
 automation and AI agents can each be given a narrow, revocable, audited slice of a database.
 
-**Design settled, implementation not started.**
+**Design settled. The skeleton is built**: the plugin loads into KeePass, shows a KPG tab on the
+database settings dialog and stops cleanly. It has no certificate authority, serves no API and opens
+no socket yet.
 
 **License: MIT.** GPLv2 is not required. KeePass is GPL-2.0-or-later and grants no plugin exception,
 but the FSF's own requirement is a GPL-compatible license, and MIT is one, so a permissive
@@ -18,6 +20,7 @@ KeePassGate is sound under the strict reading of the linking question as well as
 | [`CA.md`](CA.md) | the certificate authority in full: issuance, claims, validation, revocation |
 | [`PAIRING.md`](PAIRING.md) | how a stranger becomes a client, with the flow diagrams |
 | [`FINDINGS.md`](FINDINGS.md) | what was measured rather than assumed, and what turned out wrong |
+| [`TESTING.md`](TESTING.md) | the three test tiers, what each one buys, and how to run them |
 | [`CONVENTIONS.md`](CONVENTIONS.md) | the rules that hold on every branch |
 | [`ANALYSIS.md`](ANALYSIS.md) | the argument, and the alternatives that were rejected |
 
@@ -49,12 +52,22 @@ KeePassGate is sound under the strict reading of the linking question as well as
 **The KeePass to build against is provided rather than found.** `keepass.version` says which one,
 and `tools/KeePass.ps1` fetches that exact release as a portable install into `.keepass\<version>\`,
 which is gitignored. Changing the pin provides the new version rather than reusing whatever was
-there, because the directory is named after it.
+there, because the directory is named after it. Pass `-KeePassDir` to point at a KeePass kept
+somewhere else; otherwise a fresh clone provides what it needs before anything is built.
 
 Nothing is trusted on the way. The archive is checked against a SHA-256 pinned in
 `keepass.sha256`, and the `KeePass.exe` inside it has to say it is KeePass, be the version asked
 for, and carry a valid Authenticode signature from KeePass's author. That last check is the one
 that does not depend on where the bytes came from.
+
+```powershell
+.\build.ps1                # build, then every test that does not need a running KeePass
+.\build.ps1 -Task All      # the above, then the end to end tests
+.\build.ps1 -Task Deploy   # copy the plugin into the provided KeePass's plugins directory
+```
+
+A plain DLL on .NET Framework 4.8, built with the `dotnet` CLI, opening in Visual Studio 2019 as
+well. [`TESTING.md`](TESTING.md) says what the three test tiers are for.
 
 ## The measurements
 

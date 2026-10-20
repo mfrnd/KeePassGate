@@ -2,6 +2,6 @@
 # that `sha256sum -c keepass.sha256` checks them too. More than one line is deliberate: going back
 # to an earlier pin then needs no network and no trust decision.
 #
-# A new line is added by pinning a version in `keepass.version`, running `tools/KeePass.ps1`'s `Install-KeePass`
+# A new line is added by pinning a version in `keepass.version`, running `.\build.ps1 -Task KeePass`
 # once to be told what arrived, and putting that here if it is what was meant.
 3952354DB9B117E906F7CD4F9F5591065B95186472370DA47F46F3E246FEA864  KeePass-2.61.1.zip
