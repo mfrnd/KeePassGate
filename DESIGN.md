@@ -1542,6 +1542,11 @@ Each step is refusable, and each ends with something that runs.
     build output like every other picture here: the Screenshots fixture drives it for real,
     renders it from a fixed timeline, and writes it with an encoder of this repository's own, so
     retaking the pictures retakes it.
+27. **The command line covers every route**: a command for each route the library serves and the
+    command line did not, reading, creating, renaming and removing a group, listing, reading,
+    adding, changing and stripping an entry's fields, and adding, replacing and stripping its
+    attachments; and `-o`/`--output` on every command, `plain` for what it prints today and
+    `json` for a program, so that another format is one more choice rather than another switch.
 
 Steps 5 to 8 are the ones that prove the design. Step 5 is deliberately early, because the
 `CustomData` dialog hazard is the thing most likely to invalidate the storage decision, and finding
