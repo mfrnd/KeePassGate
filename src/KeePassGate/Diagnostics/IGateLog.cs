@@ -5,7 +5,7 @@ namespace KeePassGate.Diagnostics
     /// <summary>
     /// Where the plugin says what it did. This is not the audit log: the audit log records
     /// authorization decisions and lives outside the database, whereas this records the plugin
-    /// working or failing to. TODO(step 14): the audit log arrives with the intersection.
+    /// working or failing to.
     /// </summary>
     /// <remarks>
     /// Every implementation must be total. A logger that throws inside an exception handler would

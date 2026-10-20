@@ -99,7 +99,7 @@ namespace KeePassGate.Authority
         /// <summary>
         /// What a client may be called. Deliberately narrow: the name arrives from outside at
         /// pairing, it ends up in a distinguished name and in an audit log, and neither is a place
-        /// for arbitrary text. TODO(step 14): the audit log arrives with the intersection.
+        /// for arbitrary text.
         /// </summary>
         public const int MaxSubjectLength = 64;
 

@@ -82,6 +82,22 @@ namespace KeePassGate.Host.Tests.Live
             get { return Path.Combine(_root, "throwaway.kdbx"); }
         }
 
+        /// <summary>
+        /// Where the plugin under test writes its audit, which is inside the installation that
+        /// `Dispose` deletes.
+        /// </summary>
+        /// <remarks>
+        /// Named, rather than left to `JsonLinesAudit.DefaultPath`. That default is this user's own
+        /// application data, so a fixture that says nothing has every end to end run appending its
+        /// invented databases to the audit of whoever ran the tests, accumulating across runs with
+        /// nothing to clean it up. `KEEPASSGATE_AUDIT_FILE` exists for exactly this and was read by
+        /// nothing.
+        /// </remarks>
+        public string AuditPath
+        {
+            get { return Path.Combine(_root, "audit.jsonl"); }
+        }
+
         public string PluginLogPath
         {
             get { return Path.Combine(_root, "keepassgate.log"); }
@@ -167,6 +183,7 @@ namespace KeePassGate.Host.Tests.Live
                 UseShellExecute = false
             };
             info.EnvironmentVariables[TraceGateLog.LogFileVariable] = PluginLogPath;
+            info.EnvironmentVariables[KeePassGate.Audit.JsonLinesAudit.AuditFileVariable] = AuditPath;
             info.EnvironmentVariables[KeePassGate.Transport.GateOptions.PortVariable] =
                 _port.ToString(System.Globalization.CultureInfo.InvariantCulture);
 

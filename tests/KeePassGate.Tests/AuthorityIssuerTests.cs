@@ -352,8 +352,7 @@ namespace KeePassGate.Tests
         public void A_client_name_that_could_be_read_as_something_else_is_refused(string name)
         {
             // The name arrives from outside at pairing and ends up in a distinguished name and in
-            // an audit log, neither of which is a place for arbitrary text. TODO(step 14): the
-            // audit log arrives with the intersection.
+            // an audit log, neither of which is a place for arbitrary text.
             Assert.Throws<ArgumentException>(() => _issuer.IssueClient(_authority, name, null));
         }
 

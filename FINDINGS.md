@@ -230,7 +230,7 @@ three things about KeePass that the rules depend on and could not be reasoned ou
 | **`ParentGroup` is set by `AddEntry` and `AddGroup` with `takeOwnership` true**, on entries and groups alike, which is the whole of what inheritance walks | resolved a grant written on the root group from an entry three groups down |
 
 Two things this section deliberately does not claim. Nothing here was measured about **where** a rule
-is asked, because step 12 does not ask one: the resolver is not wired to the router. TODO(step 14): step 14 is
+is asked, because step 12 did not ask one: the resolver was not wired to the router, and step 14 is
 where the two answers are combined. And the `GroupForm` snapshot hazard in section 9 applies to
 grants exactly as it applies to everything else in custom data, which is why the editor is step 13
 and not this one.
@@ -247,7 +247,18 @@ Established while building step 13.
 | A `DataGridView` cell reaches UI automation as an `Edit` whose name is its column header plus its row, and **a read only one exposes no pattern that operates it**: the value pattern refuses, and there is no invoke, because opening a picker is a decision the panel makes about a click rather than a property of the cell | the end to end test asked, was told the value is read only, and now synthesizes a real pointer and real keystrokes instead |
 | The main menu path to a group's own dialog is **Group, Edit Group**, and both report access keys | dumped the real menu tree through UI automation rather than guessing at it |
 
-## 14. Reconstruction
+## 14. Combining the two answers
+
+Established while building step 14, and the first entry is the one that changed the design rather
+than confirming it.
+
+| Fact | How it was established |
+| --- | --- |
+| **The intersection is not a step.** Handing the resolver the profiles the admission record carries makes `record INTERSECT acl` structural: there is nowhere the two are compared, and so nowhere they can be compared wrongly | tried to write the comparison and found there was nothing to write. The tests that remain assert the two failure directions instead: a rule about a profile no record carries, and a record naming profiles no rule mentions |
+| **The plugin's own JSON reader refuses a boolean**, so an audit line saying `"permitted":true` could not be read back by the thing that wrote it | asserted it, and changed the format: every value is a string and the member is `"decision":"permitted"`, which the design named that way anyway |
+| A refusal and a node that is not there have to answer the same thing, or a client that may reach nothing can map the database one identifier at a time | which is what `list` exists to be able to withhold, so the router answers 404 to both and the audit records which it was |
+
+## 15. Reconstruction
 
 The proofs were deleted once they had answered their questions. To rebuild any of them:
 
@@ -267,7 +278,7 @@ The proofs were deleted once they had answered their questions. To rebuild any o
 `TlsProbe.cs` on `spikes/tls-and-certificates` is kept because it answers the TLS question in
 isolation and is the cheapest way to re-check it on a new machine.
 
-## 15. What KeePass does with a change, measured
+## 16. What KeePass does with a change, measured
 
 **A `.kdbx` silently drops 2,079 of the 65,536 code points in the basic multilingual plane.** KeePass
 writes every unprotected string through `StrUtil.SafeXmlString`, which removes what XML 1.0 cannot
@@ -285,7 +296,7 @@ surrogate written raw in the text is passed through untouched, which is why the 
 worth having: `JsonBody` also reads documents out of a `.kdbx` this plugin did not write. Measured
 against the Json.NET this builds against, by printing the code points that came back.
 
-## 16. The gate, and where it can run
+## 17. The gate, and where it can run
 
 **A warning is not a failure, and under `Stop` it becomes one.** A native command writing to stderr
 raises a terminating error as soon as anything upstream merges the streams, which is what capturing

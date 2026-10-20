@@ -35,11 +35,11 @@ info:
     `read`, because knowing that an entry exists is not knowing what is in it.
 
     `strip` and `delete` are two sizes of removal. `strip` takes the parts off a node, which are an
-    entry's fields and its attachments. `delete` says removals are allowed here. TODO(step 14):
-    an operation declaring `delete` is to be asked twice, of the group the node is leaving and of
-    the node itself, because a removal is a move. Nothing above the root allows its removal, so
-    the root cannot be removed. The resolver answers about one node, so that second question is
-    asked by whatever calls it, and nothing calls it yet.
+    entry's fields and its attachments. `delete` says removals are allowed here, and an operation
+    declaring it is asked twice, of the group the node is leaving and of the node itself, because a
+    removal is a move. The resolver answers about one node, so the second question is asked by
+    `AccessCheck`, which is also where the root's own case falls out: nothing is above it to allow
+    its removal, so the root cannot be removed.
 
     `x-kpg-attachments: true` marks an operation that reaches the attachments inside an entry rather
     than only its fields. Such an operation needs both the verb and the attachment switch from the

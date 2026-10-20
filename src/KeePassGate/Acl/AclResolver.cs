@@ -45,9 +45,8 @@ namespace KeePassGate.Acl
     /// begins.
     /// </summary>
     /// <remarks>
-    /// A refusal is a refusal wherever it came from, and the audit step 14 brings is to record all
-    /// of them the same way. This exists so that the one place which answers before asking the
-    /// rules can hand back
+    /// A refusal is a refusal wherever it came from, and the audit records all of them the same
+    /// way. This exists so that the one place which answers before asking the rules can hand back
     /// the same kind of answer rather than a bare false.
     /// </remarks>
     public static class AclDecisions
@@ -105,13 +104,13 @@ namespace KeePassGate.Acl
     /// those denies. There is no permissive default here and there is not one anywhere else either.
     ///
     /// **This is half of the answer.** `DESIGN.md` §114 intersects it with the admission
-    /// record. TODO(step 14): step 14 is where the two are put together. On its own this says what the database
-    /// permits a profile, not what a particular client holds.
+    /// record, and `AccessCheck` is where the two are put together, before any handler runs. On its
+    /// own this says what the database permits a profile, not what a particular client holds.
     ///
     /// Static because it holds nothing and decides nothing on its own account: the tree is the
-    /// argument and the answer is a function of it. TODO(step 14): the audit log that step adds records what came
-    /// back rather than being wired in here, which is why <see cref="AclDecision"/> carries the
-    /// reason instead of this carrying a logger.
+    /// argument and the answer is a function of it. `JsonLinesAudit` records what came back
+    /// rather than being wired in here, which is why <see cref="AclDecision"/> carries the reason
+    /// instead of this carrying a logger.
     /// </remarks>
     public static class AclResolver
     {

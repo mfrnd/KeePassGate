@@ -257,6 +257,21 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void An_operation_needing_no_certificate_cannot_be_governed_by_a_grant()
+        {
+            // A grant is resolved from an admission record, and a caller with no certificate has
+            // none, so the document would be saying a route is open that nobody it opens to could use.
+            var raised = Assert.Throws<InvalidOperationException>(() => SpecDocument.Parse(Document(
+                "\"/a\":{\"get\":{\"operationId\":\"listA\",\"x-kpg-verb\":\"list\"," +
+                "\"x-kpg-unauthenticated\":true,\"responses\":{\"200\":{\"description\":\"o\"}}}," +
+                "\"head\":{\"operationId\":\"headA\",\"x-kpg-verb\":\"list\"," +
+                "\"x-kpg-unauthenticated\":true,\"responses\":{\"200\":{\"description\":\"o\"}}}}")));
+
+            Assert.That(raised.Message, Does.Contain("x-kpg-unauthenticated"));
+            Assert.That(raised.Message, Does.Contain("can be granted"));
+        }
+
+        [Test]
         public void An_operation_with_no_name_cannot_be_bound_to_and_is_refused()
         {
             var raised = Assert.Throws<InvalidOperationException>(() => SpecDocument.Parse(Document(
@@ -308,10 +323,11 @@ namespace KeePassGate.Tests
             // The worst of the family, because it does not merely answer differently: the
             // pair shares one handler, so a head nobody has to be admitted for is the get's
             // own handler run for a stranger. It makes the path public as well, since a path
-            // is public if any operation on it is.
+            // is public if any operation on it is. Governed by nothing, because a head needing
+            // no certificate and governed by a grant is refused before the pair is looked at.
             var raised = Assert.Throws<InvalidOperationException>(() => SpecDocument.Parse(Document(
-                "\"/a\":{\"get\":{\"operationId\":\"readA\",\"x-kpg-verb\":\"read\",\"responses\":{\"200\":{\"description\":\"o\"}}}," +
-                "\"head\":{\"operationId\":\"headA\",\"x-kpg-verb\":\"read\",\"x-kpg-unauthenticated\":true,\"responses\":{\"200\":{\"description\":\"o\"}}}}")));
+                "\"/a\":{\"get\":{\"operationId\":\"readA\",\"x-kpg-verb\":\"none\",\"responses\":{\"200\":{\"description\":\"o\"}}}," +
+                "\"head\":{\"operationId\":\"headA\",\"x-kpg-verb\":\"none\",\"x-kpg-unauthenticated\":true,\"responses\":{\"200\":{\"description\":\"o\"}}}}")));
 
             Assert.That(raised.Message, Does.Contain("needing a certificate"));
         }
@@ -406,8 +422,7 @@ namespace KeePassGate.Tests
             // The same argument the duplicate operationId refusal makes: one of them would be
             // unreachable, and which one would depend on the order the document is in.
             var refused = Assert.Throws<InvalidOperationException>(() => SpecDocument.Parse(Document(
-                "\"/a/{id}\":{\"get\":{\"operationId\":\"readA\",\"x-kpg-verb\":\"read\"," +
-                "\"parameters\":[{\"name\":\"id\",\"in\":\"path\",\"required\":true,\"schema\":{\"type\":\"string\"}}]," +
+                "\"/a/{id}\":{\"get\":{\"operationId\":\"readA\",\"x-kpg-verb\":\"read\",\"parameters\":[{\"name\":\"id\",\"in\":\"path\",\"required\":true,\"schema\":{\"type\":\"string\"}}]," +
                 "\"responses\":{\"200\":{\"description\":\"o\"}}}}," +
                 "\"/a/search\":{\"get\":{\"operationId\":\"searchA\",\"x-kpg-verb\":\"list\"," +
                 "\"responses\":{\"200\":{\"description\":\"o\"}}}}")));

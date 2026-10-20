@@ -8,7 +8,7 @@ Guidance for anyone, human or AI assistant, working in this repository.
 mutual TLS, so that automation and AI agents can each be given a narrow, revocable, audited slice of
 a database.
 
-**Status: the design is settled and steps 1 to 13 of the build order are done.** The plugin loads
+**Status: the design is settled and steps 1 to 14 of the build order are done.** The plugin loads
 into KeePass, the KPG tab creates, recreates and deletes the database's own certificate authority,
 the gate listens on loopback and answers over mutual TLS 1.3, a client is served only if
 the database holds an admission record for its certificate, and **a stranger can now become one**:
@@ -20,8 +20,11 @@ nowhere to go, and a document that disagrees with the handlers stops the plugin 
 grant means is now settled**: rules live in group and entry `CustomData`, nearest wins per profile,
 and every operation declares the verb it needs or the plugin does not load. **An operator can now
 write one**: the KPG tab on the group and entry dialogs edits the rules as a `CRUSDLAP` mask,
-writing into the copy the dialog puts back on OK. Step 14, the intersection with the admission record
-and the audit log, is what is left; nothing enforces the rules until it lands.
+writing into the copy the dialog puts back on OK. **And the two halves are combined**: the router
+intersects the admission record with the rules before any handler runs, and writes every decision
+the rules make, and every certificate the database issued that an operation turns away, to a JSON Lines file
+outside the database. What is left is the API itself, because nothing this build
+declares touches an entry yet.
 
 ## Read these before proposing anything
 
@@ -463,11 +466,16 @@ here can hang or crash the password manager.
 
 ## Where to start
 
-[`DESIGN.md`](DESIGN.md) §132 ends with a multi-step build order. **Steps 1 to 13 are done.** The
-skeleton loads and shows a KPG tab, that tab creates, recreates and deletes the authority, the gate
-serves the document's routes over mutual TLS to a client the authority issued and the database holds
-a record for, a stranger can pair, a locked database answers `503 locked`, a grant means something
-definite, and an operator can write one from the group and entry dialogs.
+[`DESIGN.md`](DESIGN.md) §132 ends with a multi-step build order. **Steps 1 to 14 are done.** The skeleton
+loads and shows a KPG tab, that tab creates, recreates and deletes the authority, the gate serves
+the document's routes over mutual TLS to a client the authority issued and the database holds a
+record for, a stranger can pair, a locked database answers `503 locked`, a grant means something
+definite, an operator can write one from the group and entry dialogs, and the router refuses
+anything the record and the rules do not both allow, recording every decision either way.
+
+**What is left is the API**: the routes that read and change entries. Everything they need is in
+place, and the assertion that greets the first one is the point of the arrangement: declare a verb,
+name the node it is about, or the plugin does not load.
 
 **The storage decision survived the thing most likely to invalidate it.** The `GroupForm` snapshot
 hazard is real and now measured rather than remembered: `SnapshotHazardTests` reads the mechanism off
@@ -495,11 +503,16 @@ words. A node's custom data keeps no modification time, but the entry dialog com
 hands back with the one it was given, so a rule respelled by a byte is a changed entry, with a
 revision in its history and the database marked modified, for having been looked at.
 
-**Step 14 is the intersection and the audit**: the profiles from the admission record and the answer
-from the ACL, combined, and every decision recorded. Both halves are built and neither is wired to
-the other, which is the whole of what step 14 is. `AclDecision` already carries why as well as
-whether, and it names the node that decided by its UUID rather than by its title, because that is
-what a log can safely hold.
+**What step 14 settled about authorization.** The intersection is structural: the profiles handed to
+the resolver are the ones the admission record carries, so the rules can only ever answer about what
+the operator approved at pairing, and there is no place where the two halves could be compared
+wrongly. The **router** asks, before the body is checked and before any handler runs, because a
+handler could forget to. A node that may not be reached and one that is not there answer the same
+404, and the audit is where the operator is told which it was. **Each client's lines are paced**, by
+`DecisionPace`: a thousand at once and ten a second after that, per admission key, and a decision
+past that waits on the caller's own connection rather than being dropped or refused, because the
+file rolls by size and a client that could fill it quickly could push its own earlier lines out of
+it. `DESIGN.md` §120 has the argument.
 
 **What step 12 settled about verbs.** A rule holds **six verbs and two switches**, which is
 `CRUSDLAP` and is the order they are declared, written and shown in. The verbs are create, read,
@@ -581,5 +594,6 @@ Only KeePass has a binding redirect, so one `Newtonsoft.Json.dll` cannot serve t
 against different major versions, and whichever was there first stops binding.
 **The whole closure, not the direct references**: copying what the plugin names was enough while its
 one dependency had none of its own, and stopped being enough the moment one did. A plugin missing a
-transitive dependency fails to load with nothing in the log to say why, which is what 34 of the 35
-end to end tests said the first time.
+transitive dependency failed to load with nothing in the log to say why, which is what 34 of the 35
+end to end tests said the first time. It still fails to load, and now names what is missing in its
+log, which has a file by default.

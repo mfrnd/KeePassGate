@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using KeePassGate.Acl;
 using KeePassGate.Pairing;
 using KeePassGate.Pipeline;
 
@@ -88,10 +89,35 @@ namespace KeePassGate.Spec
             return Router(version, null);
         }
 
-        /// <summary>The router this plugin runs.</summary>
         public static SpecRouter Router(string version, PairingHandler pairing)
         {
-            return new SpecRouter(Document, Handlers(version, pairing), Guards(pairing));
+            return Router(version, pairing, null);
+        }
+
+        /// <summary>The router this plugin runs.</summary>
+        /// <param name="access">
+        /// The record and the rules, combined. Nothing this build declares needs it yet, because
+        /// nothing it declares touches the database: the status route reads nothing and pairing is
+        /// authorized by a person. It is passed anyway, so that the first route that does need it
+        /// arrives with somewhere to ask rather than with a reason to loosen the assertion.
+        /// </param>
+        public static SpecRouter Router(string version, PairingHandler pairing, AccessCheck access)
+        {
+            return new SpecRouter(
+                Document, Handlers(version, pairing), Guards(pairing), Nodes(), access);
+        }
+
+        /// <summary>
+        /// Which node each operation is about.
+        /// </summary>
+        /// <remarks>
+        /// Empty, and that is not a stub: every operation this build declares governs nothing, and
+        /// the router refuses a node for one of those. The first operation that touches an entry
+        /// adds its selector here and stops the plugin loading until it does.
+        /// </remarks>
+        public static IReadOnlyDictionary<string, NodeSelector> Nodes()
+        {
+            return new Dictionary<string, NodeSelector>(StringComparer.Ordinal);
         }
 
         /// <summary>

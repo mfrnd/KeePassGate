@@ -522,7 +522,7 @@ namespace KeePassGate.Pairing
 
                 // Who and where, and not the profiles. Which profiles a client holds is in the
                 // record already, and a log repeating them is a second copy of the thing worth
-                // stealing, kept in whatever file the log is sent to and never rotated.
+                // stealing, kept in the log's file, which nothing encrypts.
                 _log.Info("paired " + certificate.Subject + " with " +
                           CertificateDigest.Shorten(target.DatabaseId));
 

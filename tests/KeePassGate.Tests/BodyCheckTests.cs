@@ -283,11 +283,16 @@ namespace KeePassGate.Tests
             Assert.That(Validate(Schema(), null), Is.EqualTo("malformed"));
         }
 
+        /// <summary>
+        /// A route that touches no data, because this is about bodies. An operation with a verb
+        /// would have to be authorized before its body was read, which is the right order and a
+        /// different test's subject.
+        /// </summary>
         private static string Validate(string schema, JsonBody body)
         {
             var document = SpecDocument.Parse(
                 "{\"openapi\":\"3.0.3\",\"info\":{\"title\":\"t\",\"version\":\"1\"},\"paths\":{" +
-                "\"/a\":{\"post\":{\"operationId\":\"writeA\",\"x-kpg-verb\":\"update\"," +
+                "\"/a\":{\"post\":{\"operationId\":\"writeA\",\"x-kpg-verb\":\"none\"," +
                 "\"requestBody\":{\"required\":true," +
                 "\"content\":{\"application/json\":{\"schema\":" + schema + "}}}," +
                 "\"responses\":{\"200\":{\"description\":\"o\"},\"415\":{\"description\":\"m\"}}}}}}");

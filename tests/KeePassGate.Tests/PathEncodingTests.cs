@@ -127,8 +127,7 @@ namespace KeePassGate.Tests
         public void An_escape_is_an_octet_of_utf8_and_not_a_character()
         {
             // `%C3%A9` is one letter, not two. Read one byte at a time it becomes two characters
-            // that name nothing and match nothing, and the same two reach the audit. TODO(step 14):
-            // the audit arrives with the intersection.
+            // that name nothing and match nothing, and the same two reach the audit.
             string decoded;
 
             Assert.That(PercentEncoding.TryDecodeSegment("caf%C3%A9", out decoded), Is.True);

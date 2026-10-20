@@ -10,8 +10,7 @@ namespace KeePassGate.Pipeline
     /// The seam `DESIGN.md` §103 names. The router, the authorization layer and the audit log
     /// compile against this and never against a socket, a stream or a certificate, so replacing
     /// what is underneath is a new adapter and nothing else. That is not a hypothetical: the
-    /// transport under it has already been replaced once. TODO(step 14): the authorization layer
-    /// and the audit log arrive with the intersection.
+    /// transport under it has already been replaced once.
     ///
     /// <see cref="Body"/> is a string, read once and bounded, because the transport is what
     /// enforces the limit and refuses a framing it does not understand. Nothing above here thinks

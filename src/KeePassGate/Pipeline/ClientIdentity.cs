@@ -17,6 +17,13 @@ namespace KeePassGate.Pipeline
     /// nobody from its next connection on, which is all a revocation has to do.
     ///
     /// <see cref="Profiles"/> comes from that record and never from the certificate's claims.
+    ///
+    /// **A refused certificate this authority issued is not anonymous**, and is kept apart from
+    /// one that proved nothing. It admits nobody, exactly as a stranger does, but it carries its
+    /// admission key and why it was refused, so the router can write the refusal down against the
+    /// key the Clients page revoked. A certificate from somewhere else carries neither: it names
+    /// nobody the operator issued, and recording it would let anybody who reaches the port grow the
+    /// audit.
     /// </remarks>
     public sealed class ClientIdentity
     {
@@ -28,6 +35,7 @@ namespace KeePassGate.Pipeline
         private readonly string _admissionKey;
         private readonly string _databaseId;
         private readonly IReadOnlyList<string> _profiles;
+        private readonly string _refusal;
 
         private ClientIdentity(
             bool isPaired,
@@ -35,7 +43,8 @@ namespace KeePassGate.Pipeline
             string subject,
             string admissionKey,
             string databaseId,
-            IReadOnlyList<string> profiles)
+            IReadOnlyList<string> profiles,
+            string refusal)
         {
             _isPaired = isPaired;
             _isLocked = isLocked;
@@ -43,6 +52,7 @@ namespace KeePassGate.Pipeline
             _admissionKey = admissionKey;
             _databaseId = databaseId;
             _profiles = profiles ?? Nothing;
+            _refusal = refusal;
         }
 
         /// <summary>False for a stranger, which only the pairing path will ever serve.</summary>
@@ -66,7 +76,10 @@ namespace KeePassGate.Pipeline
             get { return _subject; }
         }
 
-        /// <summary>SHA-256 over the certificate's DER, lowercase hex. Null for a stranger.</summary>
+        /// <summary>
+        /// SHA-256 over the certificate's DER, lowercase hex. Null for a stranger, and set for a
+        /// certificate this authority issued that was refused.
+        /// </summary>
         public string AdmissionKey
         {
             get { return _admissionKey; }
@@ -85,12 +98,36 @@ namespace KeePassGate.Pipeline
         }
 
         /// <summary>
+        /// Why a certificate this authority issued admits nobody, in the plugin's own words, or
+        /// null for anybody else.
+        /// </summary>
+        public string Refusal
+        {
+            get { return _refusal; }
+        }
+
+        /// <summary>
         /// Somebody who reached a database and proved nothing. Present rather than null, because
         /// pairing has to be served and a null identity is a null check somebody will forget.
         /// </summary>
         public static ClientIdentity Stranger(string databaseId)
         {
-            return new ClientIdentity(false, false, null, null, databaseId, Nothing);
+            return new ClientIdentity(false, false, null, null, databaseId, Nothing, null);
+        }
+
+        /// <summary>
+        /// A certificate this database's authority issued, refused: no admission record, the wrong
+        /// usage, or outside its dates. Served as a stranger, and written down as one it can name.
+        /// </summary>
+        public static ClientIdentity Refused(string databaseId, X509Certificate2 certificate, string reason)
+        {
+            if (certificate == null)
+            {
+                throw new ArgumentNullException(nameof(certificate));
+            }
+
+            return new ClientIdentity(
+                false, false, null, CertificateDigest.Of(certificate), databaseId, Nothing, reason);
         }
 
         /// <summary>
@@ -99,7 +136,7 @@ namespace KeePassGate.Pipeline
         /// </summary>
         public static ClientIdentity Locked(string databaseId)
         {
-            return new ClientIdentity(false, true, null, null, databaseId, Nothing);
+            return new ClientIdentity(false, true, null, null, databaseId, Nothing, null);
         }
 
         /// <summary>A client whose certificate this database's authority issued.</summary>
@@ -117,7 +154,8 @@ namespace KeePassGate.Pipeline
                 certificate.Subject,
                 CertificateDigest.Of(certificate),
                 databaseId,
-                profiles);
+                profiles,
+                null);
         }
     }
 }
