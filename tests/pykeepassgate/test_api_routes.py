@@ -18,11 +18,11 @@ from urllib.parse import quote
 
 import pytest
 
-from conftest import FakeGate
 from pykeepassgate import credentials as credentials_module
 from pykeepassgate.client import ROOT, GateClient
 from pykeepassgate.errors import ProtocolError, Withheld
 from pykeepassgate.model import Attachment, Entry, Field, Fields, Group
+from pykeepassgate.testing import FakeGate
 from test_reference import operations, routing_table
 
 UUID = "7b1c" * 8

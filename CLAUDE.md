@@ -37,7 +37,9 @@ of expired certificates go with the plugin's next write of its own, a pairing, a
 revocation or a change to the authority, and a client can give its own certificate
 up, or renew it on an approval dialog like the pairing one, which can refuse it once, in this
 session, until a date or forever, an answer the clients page shows in red and takes back on
-the operator's word.
+the operator's word. **And the client has options of its own**: a program built on it
+can keep its key under a password, make the connection it goes over, and test against the stand-in
+gate the client's own tests use.
 
 ## Read these before proposing anything
 
@@ -360,9 +362,11 @@ designing around them.
   [`API.md`](API.md) §401.
 - **PyKeePassGate is the reference client, and reference means load bearing.** It lives at
   `src/pykeepassgate/`, imports as `pykeepassgate`, and is split into `pykeepassgate.api`, the
-  library, and `pykeepassgate.cli`, a command line that can do nothing the library cannot. A route
-  the gate serves and this does not cover is a gap, and a method here with no route behind it is a
-  lie. Its `pyproject.toml` is at the repository root because there is one Python project.
+  library, and `pykeepassgate.cli`, a command line that can do nothing the library cannot, with
+  `pykeepassgate.testing` beside them, a scripted stand-in gate for testing a program built on the
+  library, which is not a model of the rules. A route the gate serves and this does not cover is a
+  gap, and a method here with no route behind it is a lie. Its `pyproject.toml` is at the
+  repository root because there is one Python project.
 - **The client's protocol code is pinned against the plugin's own output.**
   `tests/pykeepassgate/test_protocol.py` holds vectors produced by `PairingToken`, `SniName` and
   `PairingProof` over inputs written down beside them. Without those, both halves could agree on
@@ -776,7 +780,8 @@ definite, an operator can write one from the group and entry dialogs, the router
 the record and the rules do not both allow while recording every answer the rules give, twenty-two
 routes read and change the database, two launchers start the pinned KeePass with the plugin in it,
 a profile has a home of its own, the plugin has a window under the Tools menu, `docs/` says how
-to use the result, and a client's certificate can be renewed and given up.
+to use the result, a client's certificate can be renewed and given up, and a program built on the
+client can keep its key under a password, make its connection and test against a stand-in gate.
 
 **Start with [`docs/`](docs/README.md) if the question is what this does**, and with the documents
 below if the question is why it does it that way. What is left is not a step: there is no release

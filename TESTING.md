@@ -230,12 +230,17 @@ something the rest of the suite is not.
 
 PyKeePassGate has three tiers of its own, and the first two draw the same line the C# ones do.
 
-**Against a gate that is not KeePass.** `tests/pykeepassgate/conftest.py` builds an authority, a
-host certificate under it, and a TLS 1.3 server that answers one request per connection, which is
-what the plugin's transport does. That covers everything a client has to get right about the
-protocol, including the parts `ssl` decides: that the rotating name arrives as SNI, that the
-server's certificate is readable before a body is written, and that loading one authority really is
-a pin.
+**Against a gate that is not KeePass.** `pykeepassgate.testing` holds an authority, a host
+certificate under it, and a TLS 1.3 server that answers one request per connection, which is what
+the plugin's transport does, and the fixtures in `tests/pykeepassgate/conftest.py` build one for
+each test. The package ships it, so that a program built on the client can be tested the same way,
+and that is why it imports no test framework. That covers everything a client has to get right
+about the protocol, including the parts `ssl` decides: that the rotating name arrives as SNI, that
+the server's certificate is readable before a body is written, and that loading one authority
+really is a pin. One thing it does differently from the plugin, and says so: a client certificate
+that is offered is verified in the handshake, since `ssl` cannot ask for one without, so an expired,
+not yet valid or foreign one ends the handshake with an alert where the plugin completes it and
+answers `401`.
 
 **Against the plugin's own output.** `tests/pykeepassgate/test_protocol.py` pins the token
 encoding, the name construction and all three proofs against vectors produced by `PairingToken`,

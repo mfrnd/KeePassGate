@@ -12,6 +12,15 @@ that has to still be the same client tomorrow, so its key has to survive it exit
 design concedes throughout, and concedes here as well, is local code execution as the user: nothing
 in this file defends against it, and nothing claims to.
 
+**The key can be stored under a password**, `key_password`, and what that protects is a copy of
+the directory taken somewhere else: a backup, a disk image, an image of a virtual machine. It
+protects nothing against a process running as the same user, which can read the password as the
+client is given it, or wait for the client to open the key. The gate key is stored as it was,
+because on its own it admits nobody. **How well it protects a copy is the password's to decide**:
+the key is PKCS#8 under PBES2, AES-256-CBC keyed by PBKDF2-HMAC-SHA256 at 2048 iterations,
+OpenSSL's default and the only work factor PEM PKCS#8 is written with here, which is little work
+per guess against a password a person types.
+
 What it does do is refuse to be careless. The files are *created* with owner-only permissions
 where the platform has them, rather than created and then narrowed, and the key is written once
 rather than through a temporary file that a crash could leave behind. A directory cannot be made
@@ -47,6 +56,9 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.serialization import pkcs12
 
 from . import sni, transport
+
+# The encryption scheme PKCS#5 names for a key under a password, named the way it names it.
+# cspell:ignore PBES
 from .errors import NotPaired, ProtocolError, StorageError
 
 IDENTITY_FILE = "identity.pem"
@@ -126,7 +138,11 @@ class Credentials:
 
     @property
     def identity(self) -> Path:
-        """The client's own certificate and key, which `ssl` loads as one file."""
+        """The client's own certificate and key, which `ssl` loads as one file.
+
+        The key is encrypted when it was stored under a `key_password`, and the file says so: its
+        key is then an `ENCRYPTED PRIVATE KEY`.
+        """
         return self.directory / IDENTITY_FILE
 
     @property
@@ -217,6 +233,7 @@ def save(
     port: int,
     bundle: dict[str, Any],
     allow_shared_directory: bool = False,
+    key_password: transport.KeyPassword | None = None,
 ) -> Credentials:
     """Write what pairing handed over, and hand back what a client needs to use it.
 
@@ -227,15 +244,16 @@ def save(
     **Everything is read before anything is written.** A bundle refused halfway destroys a
     working identity: the key and the gate key would already be the new ones while the anchor
     and the details still described the old, so `load` would report a subject that does not
-    belong to the key beside it. On a first pairing it would leave an unencrypted key with no
-    `client.json`, which `load` refuses, so nothing would ever clean it up.
+    belong to the key beside it. On a first pairing it would leave a key with no `client.json`,
+    which `load` refuses, so nothing would ever clean it up.
 
-    `allow_shared_directory` is `prepare`'s, and means the same here.
+    `allow_shared_directory` is `prepare`'s, and means the same here. `key_password` stores the
+    key encrypted under it, and a client then opens it with the same one.
     """
     # Everything is read before anything is written. See the note in the docstring above: a
     # bundle refused halfway is a working identity destroyed, and the invitation that produced
     # it is spent either way, so there is nothing left to try again with.
-    contents = _contents(port, bundle)
+    contents = _contents(port, bundle, key_password)
 
     with prepare(directory, allow_shared_directory=allow_shared_directory) as prepared:
         prepared.write(contents)
@@ -258,9 +276,14 @@ class Prepared:
         self._created: list[str] = []
         self._written = False
 
-    def save(self, port: int, bundle: dict[str, Any]) -> Credentials:
+    def save(
+        self,
+        port: int,
+        bundle: dict[str, Any],
+        key_password: transport.KeyPassword | None = None,
+    ) -> Credentials:
         """What `save` does, through the handles this already holds."""
-        self.write(_contents(port, bundle))
+        self.write(_contents(port, bundle, key_password))
         return load(self.directory)
 
     def write(self, contents: dict[str, bytes]) -> None:
@@ -335,14 +358,22 @@ class Prepared:
             )
 
 
-def _contents(port: int, bundle: dict[str, Any]) -> dict[str, bytes]:
+def _contents(
+    port: int, bundle: dict[str, Any], key_password: transport.KeyPassword | None = None
+) -> dict[str, bytes]:
     """All four files' contents, read out of the bundle before any of them is touched."""
     # The port as well, which is not the bundle's: one TCP does not have would be written into
-    # `client.json`, and `load` would then refuse the identity stored beside it.
+    # `client.json`, and `load` would then refuse the identity stored beside it. And the
+    # password, which a callable could still refuse to give.
     transport.port_number(port)
+    password = (
+        None
+        if key_password is None
+        else transport.key_secret(transport.key_password_limit(key_password))
+    )
 
     return {
-        IDENTITY_FILE: _identity(_text(bundle, "identity")),
+        IDENTITY_FILE: _identity(_text(bundle, "identity"), password),
         AUTHORITY_FILE: _anchor(_text(bundle, "authority")),
         GATE_KEY_FILE: _gate_key(_text(bundle, "gateKey")),
         DETAILS_FILE: _details(port, bundle),
@@ -407,13 +438,14 @@ def load(directory: Path) -> Credentials:
     )
 
 
-def _identity(value: str) -> bytes:
-    """The PKCS#12 the gate sent, as the PEM `ssl` will read."""
+def _identity(value: str, password: bytes | None = None) -> bytes:
+    """The PKCS#12 the gate sent, as the PEM `ssl` will read, the key under `password` if given."""
     try:
         key, certificate, _ = pkcs12.load_key_and_certificates(
             _base64(value, "identity"),
             # The gate writes the PKCS#12 with no password: what protects it in the database is
-            # the database, and what protects it here is the file.
+            # the database, and what protects it here is the file, and the key password if the
+            # caller gave one.
             password=None,
         )
     except ValueError as error:
@@ -422,10 +454,20 @@ def _identity(value: str) -> bytes:
     if key is None or certificate is None:
         raise ProtocolError("the bundle's identity carries no certificate and key")
 
+    # PKCS#8 under PBES2, which is what `cryptography` writes for PEM and what `ssl` opens with the
+    # same password, encoding a text one as UTF-8, as `key_secret` does. The work factor is
+    # OpenSSL's default of 2048 PBKDF2 iterations, which nothing on this path can raise, and which
+    # the module docstring says what it is worth.
+    encryption: serialization.KeySerializationEncryption = (
+        serialization.NoEncryption()
+        if password is None
+        else serialization.BestAvailableEncryption(password)
+    )
+
     return certificate.public_bytes(serialization.Encoding.PEM) + key.private_bytes(
         encoding=serialization.Encoding.PEM,
         format=serialization.PrivateFormat.PKCS8,
-        encryption_algorithm=serialization.NoEncryption(),
+        encryption_algorithm=encryption,
     )
 
 

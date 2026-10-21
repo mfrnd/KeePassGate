@@ -106,8 +106,10 @@ class Pairing:
         self,
         port: int,
         invitation: str,
+        *,
         connection_timeout: float = transport.PAIRING_CONNECTION_TIMEOUT,
         host: str = transport.LOOPBACK,
+        dial: transport.Dial = transport.create_connection,
         retry_busy_timeout: float | None = transport.DEFAULT_RETRY_BUSY_TIMEOUT,
         retry_locked_timeout: float | None = transport.DEFAULT_RETRY_LOCKED_TIMEOUT,
         retry_undecided_timeout: float | None = transport.DEFAULT_RETRY_UNDECIDED_TIMEOUT,
@@ -115,9 +117,10 @@ class Pairing:
     ) -> None:
         """Take the port the operator gave, the token from the tab, and where to dial.
 
-        Both connections of the exchange go to the same host, because they are two halves of one
-        conversation with one KeePass. The proofs are over the certificate the gate serves and the
-        token the operator handed out, so nothing about them depends on the address.
+        Both connections of the exchange go to the same host, and through the same `dial`,
+        because they are two halves of one conversation with one KeePass. The proofs are over the
+        certificate the gate serves and the token the operator handed out, so nothing about them
+        depends on the address or on what made the connection.
 
         The three retry budgets are spent by `hello` and nowhere else, for the reason on the
         class. There is no per-call override here as there is on `GateClient`: one `Pairing` is
@@ -134,6 +137,7 @@ class Pairing:
         self._token = token_text.decode(invitation.strip())
         self._connection_timeout = transport.connection_limit(connection_timeout)
         self._host = host
+        self._dial = transport.dial_limit(dial)
         self._retry_busy_timeout = transport.retry_limit("retry_busy_timeout", retry_busy_timeout)
         self._retry_locked_timeout = transport.retry_limit(
             "retry_locked_timeout", retry_locked_timeout
@@ -197,6 +201,7 @@ class Pairing:
             self._port, context, name, host=self._host,
             connection_timeout=self._connection_timeout,
             max_response_bytes=self._max_response_bytes,
+            dial=self._dial,
         ) as connection:
             bound = proofs.binding(connection.server_certificate)
             offered = proofs.client(self._token, bound, nonce)
@@ -256,6 +261,7 @@ class Pairing:
             self._port, context, server_name, host=self._host,
             connection_timeout=self._connection_timeout,
             max_response_bytes=self._max_response_bytes,
+            dial=self._dial,
         ) as connection:
             # The hello's proof was over the certificate the *hello* was served with,
             # and this is a different connection: an unpaired client has no anchor, so
@@ -306,6 +312,17 @@ def lifetime_text(lifetime: timedelta) -> str:
         )
 
     return f"P{lifetime.days}D"
+
+
+def refuse_unusable(invitation: str, name: str, profiles: Iterable[str]) -> None:
+    """Refuse an invitation that is not one, and a name or profiles the gate would refuse.
+
+    Everything about a pairing that can be refused without the gate, asked before a person is
+    asked for a key password: one typed and then thrown away for a malformed invitation is a
+    person's answer wasted.
+    """
+    token_text.decode(invitation.strip())
+    _usable(name, profiles)
 
 
 def _usable(name: str, profiles: Iterable[str]) -> None:

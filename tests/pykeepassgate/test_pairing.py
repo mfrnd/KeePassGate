@@ -17,14 +17,14 @@ import json
 import math
 import os
 import secrets
+import socket
 from datetime import timedelta
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import pytest
 from cryptography.x509.oid import ExtendedKeyUsageOID
 
-from conftest import Authority, FakeGate, Issued
 from pykeepassgate import api, proofs, sni, transport
 from pykeepassgate import pairing as pairing_module
 from pykeepassgate import token as token_module
@@ -43,6 +43,7 @@ from pykeepassgate.errors import (
     StorageError,
 )
 from pykeepassgate.pairing import Pairing, lifetime_text
+from pykeepassgate.testing import Authority, FakeGate, Issued
 from test_api_routes import resolved
 from test_reference import operations, routing_table
 
@@ -219,7 +220,7 @@ def test_a_database_locked_between_hello_and_request_is_a_lock_rather_than_an_im
     # KeePass locks after the hello, and the request's connection is served with the responder,
     # which is not the certificate the hello proved. Reported as `ProofRefused` that would be
     # "stop, this is not the right KeePass"; what it is, is a lock to wait out.
-    pairing = Pairing(gate.port, INVITATION, 10.0)
+    pairing = Pairing(gate.port, INVITATION, connection_timeout=10.0)
     exchange = pairing.hello()
     gate.serve_with(responder)
 
@@ -337,6 +338,38 @@ def test_both_halves_of_the_exchange_go_to_the_host_they_were_given(
     assert bundle["subject"] == "CN=agent-invented"
 
 
+def test_both_halves_of_the_exchange_go_through_the_dial_they_were_given(
+    gate: FakeGate, pairing_gate: Gate, tmp_path: Path
+) -> None:
+    # A relay that reaches the gate whatever it is asked, as a program reaching a KeePass
+    # through something of its own would hand over: the challenge carries across only if both
+    # connections reach the same one, so both have to be made the same way.
+    asked: list[str] = []
+
+    def dial(host: str, port: int, timeout: float) -> socket.socket:
+        asked.append(host)
+        return socket.create_connection((transport.LOOPBACK, gate.port), timeout=timeout)
+
+    pairing = Pairing(gate.port, INVITATION, connection_timeout=10.0, host="relay", dial=dial)
+
+    assert pairing.request(pairing.hello(), "agent-invented", [])
+    assert asked == ["relay", "relay"]
+
+    with pytest.raises(ValueError, match="dial"):
+        Pairing(gate.port, INVITATION, dial=cast(Any, "relay"))
+
+    with pytest.raises(ValueError, match="dial"):
+        api.pair(
+            port=gate.port,
+            invitation=INVITATION,
+            name="agent-invented",
+            directory=tmp_path / "kept",
+            dial=cast(Any, "relay"),
+        )
+
+    assert not (tmp_path / "kept").exists()
+
+
 def test_a_request_with_no_hello_behind_it_cannot_be_built(gate: FakeGate) -> None:
     # Not a protocol refusal but a programming one: there is nothing to carry across.
     pairing = Pairing(gate.port, INVITATION, connection_timeout=10.0)
@@ -407,7 +440,7 @@ def test_the_two_conflicts_say_opposite_things_about_the_invitation(
     # `no exchange` spends the challenge and nothing else, so the same invitation starts again
     # from a hello; `no invitation` leaves nothing to start with. One sentence for both sent a
     # caller holding a good invitation to the operator for another.
-    pairing = Pairing(gate.port, INVITATION, 10.0)
+    pairing = Pairing(gate.port, INVITATION, connection_timeout=10.0)
     exchange = pairing.hello()
     pairing_gate.refuse_with = (409, error)
 
@@ -583,6 +616,7 @@ def test_pairing_through_the_library_passes_on_what_it_was_given(
             "port": gate.port,
             "connection_timeout": transport.PAIRING_CONNECTION_TIMEOUT,
             "host": "gate.invalid",
+            "dial": transport.create_connection,
             "max_response_bytes": transport.MAX_RESPONSE_BYTES,
         }
     ]

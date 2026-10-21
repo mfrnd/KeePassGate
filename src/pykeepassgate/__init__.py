@@ -5,6 +5,10 @@ client, and the pieces of the protocol on their own so that each can be read and
 KeePass in the room. `pykeepassgate.cli` is a command line built on that library and nothing else,
 so anything the command line can do, a program can do the same way.
 
+`pykeepassgate.testing` stands beside them and is not imported here: a scripted stand-in gate for
+testing a program built on the library, which answers what a test tells it and is not a model of
+the rules.
+
 Being the reference implementation means the code is the second copy of the specification, so what
 it does not do is a statement too: a route with no method here is a route the gate does not serve.
 """

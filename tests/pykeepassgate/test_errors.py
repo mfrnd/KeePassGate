@@ -22,7 +22,7 @@ TABLES = {
 
 #: What the client raises from the standard library, each for a mistake in the calling program
 #: rather than anything the gate said.
-STANDARD = {"ValueError", "AttributeError", "KeyError"}
+STANDARD = {"ValueError", "AttributeError", "KeyError", "TypeError"}
 
 
 def test_everything_this_library_raises_has_one_root() -> None:

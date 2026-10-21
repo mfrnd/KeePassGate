@@ -35,8 +35,9 @@ The first version, so there is nothing earlier to describe a change from: everyt
   empty.
 - **PyKeePassGate**, the reference client, as a library and as a command line. Each refusal is an
   exception saying what to do next, and each word a `503` carries has a budget of its own to wait
-  it out with; a value the rules withhold is raised as withheld rather than read as empty; and
-  nothing it hands back prints a value. Until the first release is published it is installed from
-  a checkout.
+  it out with; a value the rules withhold is raised as withheld rather than read as empty; nothing
+  it hands back prints a value; its key can be kept under a password; a program can make the
+  connection it goes over; and `pykeepassgate.testing` is a stand-in gate for the tests of a program
+  built on it. Until the first release is published it is installed from a checkout.
 
 [`docs/`](docs/README.md) says how to use all of it.

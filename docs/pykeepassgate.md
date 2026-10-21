@@ -4,6 +4,8 @@
 <!-- cspell:ignore wslconfig -->
 <!-- Three of Python's built-in functions, named the way Python names them. -->
 <!-- cspell:ignore getattr hasattr repr -->
+<!-- The encryption scheme PKCS#5 names for a key under a password. -->
+<!-- cspell:ignore PBES -->
 
 PyKeePassGate is the reference client: a Python library and a command line over it. This page is
 worked examples. [`../src/pykeepassgate/README.md`](../src/pykeepassgate/README.md) is the package's
@@ -110,6 +112,40 @@ takes the same flag, and `GateClient.renew` the same parameter, for the identity
 which a renewal writes the new identity into; the two directories it makes beside it are its own
 and are never waived.
 
+**The key can be kept under a password.** `pair --key-password` asks for one at a terminal, twice
+and without echo, before anything is sent, and stores the client's key encrypted under it. Every
+command that uses the key afterwards asks for it at a terminal, once, and only when the key is
+encrypted. **The command line has no other way to take it, by design**: never as an argument,
+which the process list shows, and not from standard input either, so with no terminal
+`pair --key-password` is refused, exit 2 with nothing spent, and a command that needs the password
+fails with `StorageError`, exit 1. Standard input from the null device is no terminal, on Windows
+as well, where it claims to be one: a command run with its input from `NUL` is refused at once
+rather than left waiting on a console nobody is at. A program passes `key_password=` instead, to
+`api.pair`, `GateClient` and `GateClient.open`: the password as text or bytes, or a callable
+returning it, which is asked once, and only when the key turns out to be encrypted.
+
+```python
+def key_password() -> str:
+    ...     # from wherever this program keeps the secrets it is given
+
+client = GateClient.open(key_password=key_password)
+```
+
+`renew` stores the new key under the password that opened the old one, and a key stored without
+one renews to a key without one. An encrypted key with no password, or one the password given
+does not open, is a `StorageError` naming `identity.pem`. **What it protects is a copy of the
+directory** taken somewhere else, such as a backup, a disk image or the image of a virtual machine.
+It protects nothing against a process running as the same user, which can read the password as
+the client is given it, or wait for the client to open the key: the design concedes such a process
+throughout, and this does not change that.
+
+**How much it protects a copy is the password's to decide.** The key is PKCS#8 under PBES2, with
+AES-256-CBC keyed by PBKDF2-HMAC-SHA256 at 2048 iterations, which is OpenSSL's default and the only
+work factor this path offers: `ssl` opens a key from PEM and nothing else, and `cryptography`
+writes PEM PKCS#8 no other way. That is little work per guess, so a password a person types keeps
+a backup from a casual reader rather than a determined one. A program should pass a long random
+`key_password`.
+
 ## Check the gate
 
 ```shell
@@ -134,7 +170,10 @@ plugin was built from, or empty for a build that carries none. Two machines runn
 version can be running different builds of it, and the revision says which.
 
 `GateClient.open()` reads the credentials pairing stored. Pass `profile=` where more than one
-identity is kept on the machine.
+identity is kept on the machine. **Every setting is passed by name**: after the identity, which is
+the credentials for `GateClient`, the directory and the profile for `GateClient.open`, the port and
+the invitation for `Pairing`, and those and the name for `api.pair`, everything is keyword only, so
+a setting added later never changes what an argument already written means.
 
 ## Give up an identity
 
@@ -267,6 +306,26 @@ port. Pass `host=` to `api.pair` too if the pairing itself is going down the tun
 that KeePass is reachable from is a fact about the machine calling. Move the client and
 the identity still works; only the host changes.
 
+**A program can make the connection itself.** `dial=`, on `GateClient`, `GateClient.open`,
+`Pairing` and `api.pair`, is a callable taking the host, the port and the timeout and returning a
+connected socket, and it is `socket.create_connection` unless one is given. A renewal dials with
+the client's own, for the renewal and for giving the old certificate up. TLS, the rotating name and
+everything else are layered over whatever it returns, unchanged, and each wait on that socket is
+bounded by `connection_timeout` as on any other. It is how a program reaches a gate through
+something of its own: a relay that bridges a socket pair to its standard input and output, a socket
+the process that started it handed over, or a proxy that answers with a connected one. The host is
+the dial's to read, so it can name anything the dial understands. The command line has no such
+option, because a callable is not something an argument can carry.
+
+```python
+import socket
+
+def dial(host: str, port: int, timeout: float) -> socket.socket:
+    ...     # connect however this program reaches the machine KeePass runs on
+
+client = GateClient.open(dial=dial)
+```
+
 ## Read
 
 ```python
@@ -372,12 +431,14 @@ client.delete_entry(uuid)
 
 ```shell
 pykeepassgate add --title "Invented Service" --username agent-invented --password --expires auto
+pykeepassgate update <uuid> --password --expires never
 pykeepassgate remove <uuid>
 ```
 
-`--password` reads from standard input rather than taking a value, so the secret stays out of the
-process list. At a terminal it is asked for, and each character typed or pasted shows as a `*`;
-piped in, it is the one line as sent, spaces and all.
+`update` changes only what it names, and refuses to run with nothing named; `--expires never` takes
+an expiry off. `--password` reads from standard input rather than taking a value, so the secret
+stays out of the process list. At a terminal it is asked for, and each character typed or pasted
+shows as a `*`; piped in, it is the one line as sent, spaces and all.
 
 **`expires` is when the entry expires**: a moment with its time zone, `"auto"` on a create for
 whatever KeePass's options give every new entry, or `False` for none, which on an update takes an
@@ -428,9 +489,9 @@ pykeepassgate fetch <uuid> key.pem --to ./key.pem
 ## What to catch
 
 Every exception says what to do next rather than what went wrong, because that is the part a caller
-has to decide. Everything in the table but its last three rows derives from `GateError`, so
+has to decide. Everything in the table but its last four rows derives from `GateError`, so
 `except GateError` catches whatever this client raises of its own and nothing the standard library
-raises. The last three are the standard library's, each for a mistake in the calling program, and
+raises. The last four are the standard library's, each for a mistake in the calling program, and
 none of them answers anything sent: each is raised before a request is made, or by reading what
 the client already holds.
 
@@ -473,11 +534,12 @@ except api.RouteRefused:
 | `MalformedToken` | The text handed over is not an invitation, so nothing was sent. Check what was pasted. |
 | `ProtocolError` | Something on the wire is not what the protocol allows: an answer this client cannot read, or a request it will not send. Do not retry an answer it cannot read: the two halves disagree about the wire, which `tests/pykeepassgate/test_protocol.py` exists to stop. An answer longer than `max_response_bytes` is refused this way too, and the message says so: raise the setting rather than retry. |
 | `NotPaired` | Nothing is stored for a paired client where this looked: nothing has paired under that profile, its identity was given up, or the directory named is not the one the pairing used. Pair, or name the profile or the directory it used. A `StorageError`, so catching that catches this as well. |
-| `StorageError` | From `pair`, before anything is sent: the directory cannot hold credentials, and the message says why. Nothing is spent, so fix that and pair again. Afterwards: what is stored for this client will not read, or could not be written, and the message names the file or the directory to look at. |
+| `StorageError` | From `pair`, before anything is sent: the directory cannot hold credentials, and the message says why. Nothing is spent, so fix that and pair again. Afterwards: what is stored for this client will not read, or could not be written, and the message names the file or the directory to look at. A key stored under a password is one of these when no password was given, or the one given does not open it, and the message names `identity.pem`. |
 | `TransportError` | No whole answer arrived: nothing is listening, the handshake failed, which a paragraph below explains, or the connection broke or timed out once the request was on its way. After a read, send it again. After a write, the change may have landed, so look before sending it again: read or list what it changed, where the rules allow that, or ask the operator. |
-| `ValueError` | A setting or an argument that could not work, refused where it is given and before anything is dialed, stored or spent: a port, a timeout, a retry budget, a response cap, a lifetime, a profile's name or an expiry. The message names it. Correct it in the calling program. |
+| `ValueError` | A setting or an argument that could not work, refused where it is given and before anything is dialed, stored or spent: a port, a timeout, a retry budget, a response cap, a lifetime, a profile's name, an expiry, a key password or a `dial`. The message names it, and never repeats a password. Correct it in the calling program. |
 | `AttributeError` | Something this client never read, which is absence and not emptiness: a listed entry's `username`, `password`, `notes`, `expires` or `custom()`, a listed group's `notes`, a listed field's `value`, or the `expires` of a read that said nothing about it. Read the node first. A withheld value is never this, so `getattr` with a default and `hasattr` cannot turn one into a default. |
 | `KeyError` | A name `entry.fields` or `entry.custom()` does not hold, as from any mapping. `get` answers its default for that, and for nothing else. |
+| `TypeError` | A `dial` that handed back something other than a connected socket, which is a mistake in the program's own `dial`; what it handed back is closed first, if it can be. A socket it handed back already closed is a `TransportError` saying the socket could not be used, rather than that a handshake failed. |
 
 **The ones that are worth waiting out say so on the wire.** `GateUnavailable` and the three beneath
 it are the gate answering `503`, and every `503` it sends carries `Retry-After: 2`. The same number
@@ -564,9 +626,12 @@ five attempts of up to two minutes each; the budget counts only the pauses betwe
 
 **A setting that cannot work is refused where it is given**, with a `ValueError` naming it, before
 anything is dialed or stored: a budget that is neither `None` nor a finite number of seconds from
-zero, a `connection_timeout` that is not a finite number of seconds above zero, and a port outside 1
-to 65535. The command line refuses the same ones as wrong arguments, exit 2. A budget of NaN, for
-one, would never run out, and the client would ask again for as long as the gate refused.
+zero, a `connection_timeout` that is not a finite number of seconds above zero, and a port outside
+1 to 65535. The command line refuses the same ones as wrong arguments, exit 2. A budget of NaN, for
+one, would never run out, and the client would ask again for as long as the gate refused. A
+`key_password` that is empty or is neither text, bytes nor a callable is refused the same way, by
+a message that does not repeat it, and so is one longer than 1023 bytes, text counted as UTF-8,
+which is the most a key can be stored and opened under, or text UTF-8 cannot encode.
 
 ## Read a larger answer
 
@@ -589,6 +654,63 @@ client = GateClient.open(max_response_bytes=16 * 1024 * 1024)
 
 It is a setting of the client, taken by `GateClient`, `GateClient.open` and `api.pair`, and anything
 but a positive whole number of bytes is refused with `ValueError` before anything is dialed.
+
+## Test a program against a stand-in gate
+
+`pykeepassgate.testing` is a scripted TLS stand-in for the gate, for testing a program built on this
+client without a KeePass: a certificate authority, a host certificate under it, and a TLS 1.3
+server on loopback that answers one request per connection and then closes, as the plugin does.
+**It answers whatever the test tells it to answer, and it is not a model of the rules.** It knows
+nothing of grants, of what a database holds or of how a pairing is approved, so a program tested
+against it has been tested against its own script and against nothing else. What it is good for is
+what a script can say: that the program sends what it means to, and does the right thing with each
+answer and with each refusal this client raises.
+
+```python
+from cryptography.x509.oid import ExtendedKeyUsageOID
+
+from pykeepassgate import api
+from pykeepassgate.testing import Authority, FakeGate
+
+authority = Authority(directory)            # writes authority.pem into it
+host = authority.issue("host", ExtendedKeyUsageOID.SERVER_AUTH, "host.pem")
+authority.issue("agent-invented", ExtendedKeyUsageOID.CLIENT_AUTH, "identity.pem")
+(directory / "gate.key").write_bytes(bytes(32))
+
+with FakeGate(host, authority.pem) as gate:
+    gate.handler = lambda path, body, client: (503, '{"error":"busy"}')
+    credentials = api.Credentials(directory, gate.port, "CN=agent-invented", "", (), "")
+    client = api.GateClient(credentials)
+    ...     # whatever the program does, which here meets `GateBusy`
+```
+
+A handler is called with the path, the body as text, and the client certificate as DER, or `None`
+when none was offered, and answers with the status and the body. `gate.method()`, asked from inside
+it, is the request's method, so one path can be answered differently for `GET` and `DELETE`:
+
+```python
+def entry(path: str, body: str, client: bytes | None) -> tuple[int, str]:
+    if gate.method() == "DELETE":
+        return 200, '{"ok":true}'
+    return 200, '{"uuid":"..."}'
+```
+
+`gate.requests` and `gate.names` record what arrived, and `retry_after`, `declare`, `truncate` and
+`linger` make the answers a gate in trouble gives. `held(until)` is the answer the plugin gives a
+pairing or a renewal whose approval it holds until a moment, `503 busy` with `heldUntil`, for a
+handler to return while a test watches `pair` or `renew` ask again. **Its answers carry the head the plugin's do**:
+the reason phrase, `Content-Type: application/json; charset=utf-8`, `Cache-Control: no-store`,
+`X-Content-Type-Options: nosniff`, and on a `503` `Retry-After: 2`, which `retry_after` changes,
+or takes away when it is `None`. The one header it cannot give is the `Allow` the plugin puts on a
+`405`. It imports no test framework, and the client's own tests build it through fixtures of their
+own.
+
+**One refusal it makes on its own, and differently from the plugin.** A client certificate that is
+offered is verified in the handshake, its chain and its dates, because `ssl` cannot ask for one
+without: an expired, not yet valid or foreign one ends the handshake, and the client raises
+`TransportError`, where the plugin completes the handshake and answers `401`, which the client
+raises as `NotAdmitted`. To test what a program does with `NotAdmitted`, script the `401` with a
+current certificate.
 
 ## What it will not do
 

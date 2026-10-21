@@ -30,7 +30,7 @@ import math
 import socket
 import ssl
 import time
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
@@ -188,6 +188,84 @@ def _finite(value: object) -> bool:
     return isinstance(value, int | float) and not isinstance(value, bool) and math.isfinite(value)
 
 
+#: What a password for this client's key may be given as: the password, as text or as bytes, or
+#: something that returns one when it is needed, which is only when the key stored turns out to be
+#: encrypted. Text is encoded as UTF-8, which is what `ssl` does with a text password too.
+KeyPassword = str | bytes | Callable[[], str | bytes]
+
+#: The longest password a key can be stored and opened under, in bytes, text counted as UTF-8:
+#: `cryptography` refuses a longer one when it encrypts the key, and the password callback of
+#: `ssl` reads one no longer than this when it opens it. Refused where it is given, so a pairing
+#: whose key could never be stored is refused before its invitation is spent.
+LONGEST_KEY_PASSWORD = 1023
+
+
+class _NoKeyPassword(LookupError):
+    """A key that needs a password, and nobody gave one: `paired_context` names the file."""
+
+
+def key_password_limit(key_password: KeyPassword | None) -> KeyPassword | None:
+    """Refuse a key password that could not be one, and hand back one that could.
+
+    Refused where it is given, as every other setting is. A callable is not called here: it is
+    asked only once a key turns out to need it, and what it returns is held to the same rule then.
+    The value itself is never put in the message, because it is a password.
+    """
+    if key_password is None or callable(key_password):
+        return key_password
+
+    if isinstance(key_password, str | bytes) and key_password:
+        _encoded(key_password)
+        return key_password
+
+    kind = type(key_password).__name__
+    given = (
+        f"an empty {kind}"
+        if isinstance(key_password, str | bytes)
+        else f"an object of type {kind}"
+    )
+    raise ValueError(
+        f"key_password is a password, as text or bytes, or a callable returning one, not {given}"
+    )
+
+
+def key_secret(key_password: KeyPassword | None) -> bytes:
+    """The password itself, asked of a callable if that is what was given, as bytes.
+
+    What a callable returns is held to what a password given directly is, and refused the same
+    way, without the value in the message.
+    """
+    if key_password is None:
+        raise _NoKeyPassword
+
+    given = key_password() if callable(key_password) else key_password
+    if not isinstance(given, str | bytes) or not given:
+        raise ValueError("key_password gave no password: it is text or bytes, and not empty")
+
+    return _encoded(given)
+
+
+def _encoded(password: str | bytes) -> bytes:
+    """A password as the bytes a key is encrypted under, or a refusal that does not repeat it.
+
+    Text that UTF-8 cannot encode, such as the lone surrogate Python leaves in text decoded from a
+    file name or an environment variable that was not UTF-8, is refused here rather than by
+    `str.encode`, whose message quotes the character and where it is.
+    """
+    try:
+        encoded = password.encode("utf-8") if isinstance(password, str) else password
+    except UnicodeEncodeError:
+        raise ValueError("key_password is text that UTF-8 cannot encode") from None
+
+    if len(encoded) > LONGEST_KEY_PASSWORD:
+        raise ValueError(
+            f"key_password is at most {LONGEST_KEY_PASSWORD} bytes, text counted as UTF-8, "
+            f"and the one given is {len(encoded)}"
+        )
+
+    return encoded
+
+
 def pause(seconds: float) -> None:
     """What this client does between a refusal and the attempt that follows it."""
     time.sleep(seconds)
@@ -196,6 +274,29 @@ def pause(seconds: float) -> None:
 def now() -> datetime:
     """The moment, in UTC, that a `heldUntil` is compared with."""
     return datetime.now(UTC)
+
+
+#: What makes the connection a request goes over: given the host, the port and the timeout, a
+#: connected socket, over which TLS and everything else is layered unchanged. A program that
+#: reaches a gate through something of its own gives one: a relay bridging a socket pair to its
+#: standard input and output, a socket the process that started it handed over, a proxy.
+Dial = Callable[[str, int, float], socket.socket]
+
+
+def create_connection(host: str, port: int, timeout: float) -> socket.socket:
+    """The `dial` a client has unless it is given another: TCP, as `socket` connects."""
+    return socket.create_connection((host, port), timeout=timeout)
+
+
+def dial_limit(dial: Dial) -> Dial:
+    """Refuse a `dial` that could not be called, where it is given, and hand back one that could."""
+    if not callable(dial):
+        raise ValueError(
+            "dial is a callable taking the host, the port and the timeout and returning a "
+            f"connected socket, not an object of type {type(dial).__name__}"
+        )
+
+    return dial
 
 
 class Budget:
@@ -431,7 +532,9 @@ def unpaired_context() -> ssl.SSLContext:
     return context
 
 
-def paired_context(authority: Path, identity: Path) -> ssl.SSLContext:
+def paired_context(
+    authority: Path, identity: Path, key_password: KeyPassword | None = None
+) -> ssl.SSLContext:
     """The context for a client that has been through pairing.
 
     The authority handed over at pairing is the only anchor loaded, so a certificate that does not
@@ -455,6 +558,13 @@ def paired_context(authority: Path, identity: Path) -> ssl.SSLContext:
     during a re-pair, edited, or missing its key reaches `ssl` as an `SSLError`, and a missing one
     as a `FileNotFoundError`: both `OSError`, neither this library's, and a traceback out of every
     command that dials.
+
+    **A key stored under a password is opened with `key_password`**, which `ssl` asks for only
+    when the key is encrypted, so a callable is never asked about one that is not. It is always
+    handed a callable, because given none it would fall back on OpenSSL's own prompt, which reads
+    a terminal from inside a library call: an encrypted key with no `key_password` is a
+    `StorageError` naming the file instead, and so is one the password given does not open.
+    Whatever the callable raises comes out unchanged, a refusal of its own among it.
     """
     context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
     context.check_hostname = False
@@ -467,9 +577,25 @@ def paired_context(authority: Path, identity: Path) -> ssl.SSLContext:
             f"{authority} will not load as the authority this client trusts: {error}"
         ) from error
 
+    asked: list[bool] = []
+
+    def password() -> bytes:
+        asked.append(True)
+        return key_secret(key_password)
+
     try:
-        context.load_cert_chain(certfile=str(identity))
+        context.load_cert_chain(certfile=str(identity), password=password)
+    except _NoKeyPassword:
+        raise StorageError(
+            f"{identity} holds an encrypted key, and no key_password was given to open it"
+        ) from None
     except OSError as error:
+        if asked:
+            raise StorageError(
+                f"{identity} holds an encrypted key that the key_password given does not open: "
+                f"{error}"
+            ) from error
+
         raise StorageError(
             f"{identity} will not load as this client's certificate and key: {error}"
         ) from error
@@ -598,16 +724,48 @@ def connect(
     host: str = LOOPBACK,
     connection_timeout: float = DEFAULT_CONNECTION_TIMEOUT,
     max_response_bytes: int = MAX_RESPONSE_BYTES,
+    dial: Dial = create_connection,
 ) -> Iterator[Connection]:
-    """Open one connection, hand it over, and close it however this ends."""
+    """Open one connection, hand it over, and close it however this ends.
+
+    The socket is whatever `dial` hands back for the host and the port, and every wait on it is
+    then bounded by `connection_timeout` whatever made it, so a `dial` that returns a blocking
+    socket cannot take away the bound on the handshake and the reads.
+    """
     response_limit(max_response_bytes)
     port_number(port)
     connection_limit(connection_timeout)
+    dial_limit(dial)
 
     try:
-        raw = socket.create_connection((host, port), timeout=connection_timeout)
+        # Read as anything at all, because a caller's `dial` can hand back anything at all.
+        made: object = dial(host, port, connection_timeout)
     except OSError as error:
         raise TransportError(f"nothing is listening on {host}:{port}: {error}") from error
+
+    if not isinstance(made, socket.socket):
+        # Closed before it goes, as every failure here closes what it holds: what a `dial` hands
+        # back by mistake is likely a wrapper from some other library that owns a descriptor.
+        # Anything its own `close` raises is that library's, and the mistake reported is this.
+        close = getattr(made, "close", None)
+        if callable(close):
+            with contextlib.suppress(Exception):
+                close()
+
+        raise TypeError(
+            f"dial returned an object of type {type(made).__name__} rather than a connected "
+            "socket"
+        )
+
+    raw = made
+
+    try:
+        # A refusal of its own, because a socket a caller's `dial` handed back can already be
+        # closed, and setting its timeout then raises a bare `OSError` before any handshake.
+        raw.settimeout(connection_timeout)
+    except OSError as error:
+        raw.close()
+        raise TransportError(f"the socket dial handed back could not be used: {error}") from error
 
     try:
         wrapped = context.wrap_socket(raw, server_hostname=server_name)
