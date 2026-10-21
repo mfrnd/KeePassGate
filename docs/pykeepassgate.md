@@ -444,14 +444,17 @@ ones out, judged by the gate as KeePass judges one.
 
 ```shell
 pykeepassgate groups
+pykeepassgate group <uuid>
 pykeepassgate entries --group <uuid>
 pykeepassgate entries --no-include-expired
 pykeepassgate show <uuid>
 ```
 
+`group` reads one group, its notes included, which needs `R` on it where `groups` needs `L`.
 `show` prints every string the entry holds, one to a line, and when it expires: notes written over
 several lines print on one, with `\n` where each break was. The protected ones arrive only when the
-rule grants `protected`. It is the one command that puts a password on a terminal.
+rule grants `protected`. It and `field`, below, are the two commands that put a password on a
+terminal.
 
 ## Follow a reference as KeePass would
 
@@ -544,6 +547,25 @@ update leaves the expiry as it is. A moment is sent in UTC to the second, and on
 is refused with `ValueError` before anything is sent, because which instant it names would be a
 guess.
 
+Groups are written the same way:
+
+```python
+inner = client.create_group("Automation", parent=api.ROOT, notes="For the build agent.")
+client.update_group(inner, name="Build agents")
+client.delete_group(inner)
+```
+
+```shell
+pykeepassgate add-group --name Automation --notes "For the build agent."
+pykeepassgate update-group <uuid> --name "Build agents"
+pykeepassgate remove-group <uuid>
+```
+
+`add-group` puts the group under `--parent`, the root unless told another, and prints its
+identifier, as `add` does. `update-group` renames a group or changes its notes, and refuses to run
+with neither named. A group that still holds anything is refused rather than removed with what is
+in it.
+
 Each of these needs the matching verb on the node it touches: `C` to create, `U` to update, `D` to
 delete. See [`access-control.md`](access-control.md).
 
@@ -568,6 +590,29 @@ for attachment in client.attachments(uuid):
 content = client.attachment(uuid, "key.pem").content
 ```
 
+```shell
+pykeepassgate fields <uuid>
+pykeepassgate field <uuid> Password
+pykeepassgate add-field <uuid> Environment --value staging
+pykeepassgate add-field <uuid> "Deploy key" --protected
+pykeepassgate update-field <uuid> Environment --value production
+pykeepassgate strip-field <uuid> Environment
+```
+
+`fields` lists the names and says which are protected, and no value. `field` prints one value and
+nothing else, for a script, so `"$(pykeepassgate field <uuid> Password)"` is the password: a line
+break or another control character inside it is written as its escape, as everywhere in `plain`,
+and `-o json` gives the value exactly. A value the rule withholds fails `field` with `Withheld` and
+exit code 1 rather than printing anything, since a script would take any word printed in its place
+for the value.
+
+`add-field` and `update-field` take the value as `--value`, or read it from standard input when it
+is left off, as `--password` is read, which is the way to give a secret. `--protected` stores the
+value protected whatever its name, however the value was given. Without it, the database protects
+the value if it protects that name, as it does `Password`, and `update-field` never changes whether
+a field is protected. `strip-field` takes a string off the entry, which needs `S`; the five
+standard ones are refused, and `update` empties one instead.
+
 Attachments need the `A` switch on the rule as well as the verb, which is what makes "read this
 entry" and "read the files inside it" two separate decisions.
 
@@ -581,7 +626,15 @@ one is refused as `400 malformed`, like any body the routing table does not allo
 ```shell
 pykeepassgate attachments <uuid>
 pykeepassgate fetch <uuid> key.pem --to ./key.pem
+pykeepassgate add-attachment <uuid> key.pem --from ./key.pem
+pykeepassgate update-attachment <uuid> key.pem --from ./rotated.pem
+pykeepassgate strip-attachment <uuid> key.pem
 ```
+
+`add-attachment` and `update-attachment` read the whole file before anything is dialed, so a file
+that is not there or will not read is exit code 2 with nothing sent, as a place `fetch` cannot
+write to is. Adding needs `C` and replacing `U`, each with `A`; stripping needs `S` alone, as
+stripping a field does.
 
 ## Ask what it may do before trying
 
@@ -613,6 +666,31 @@ or `D` it is not asked: `"SA"`, whether this client may strip an attachment here
 needs `D` here and in the group the node would leave, which is that group's answer.
 `client.group_access()` asks about a group, the root unless told another, and `access.grants` holds
 the masks by profile. [`access-control.md`](access-control.md) says what each letter is worth.
+
+## Read what a command prints from a program
+
+```shell
+pykeepassgate entries -o json | jq -r '.[] | select(.title == "Invented Service") | .uuid'
+pykeepassgate show <uuid> --output json | jq -r '.fields.UserName'
+```
+
+Every command takes `-o` or `--output`. `plain`, the default, is the lines shown everywhere else on
+this page, written for a person: one item to a line, with a line break or another control
+character inside a name or a value written as its escape, so that nothing can print a row that is
+not there. `json` prints one document for a program, an array for a listing and an object for
+anything else, with every value exactly as stored, and only ASCII, so a console whose code page
+holds less than the database does still prints it.
+
+**The same rules hold in both.** A value the rule withholds is never printed as empty: `show` and
+`entries` leave it out and name it in `withheld`, as `entry.withheld` does in the library, beside
+`protected` for the values the database protects. What the gate did not say is left out rather
+than printed as nothing, so `show` has no `expires` when the gate said nothing about one, and
+`null` when it said the entry never expires. Members are named as the gate names them, so
+`whoami -o json` prints what `GET /gate/whoami` answered. A write prints what it addressed, such as
+`{"uuid": "..."}` from `add`.
+
+**A failure is never a document.** It is the sentence on standard error and the exit code, `1` or
+`2`, whichever format was asked for, so a pipe into `jq` reads nothing rather than half an answer.
 
 ## What to catch
 

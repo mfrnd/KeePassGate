@@ -49,7 +49,8 @@ a release can publish**: `build.ps1 -Task Package` zips the plugin with everythi
 license and the notices, beside a `SHA256SUMS`. **And the project has a front page**: the README
 says what this is for and shows it, around a moving picture of the whole journey from a database
 to a revoked client, which the Screenshots fixture takes with the stills, and a diagram of the
-pieces.
+pieces. **And the command line covers every route**: a command for each route the library
+serves, held to the routing table as the library is, and `-o json` on every one for a program.
 
 ## Read these before proposing anything
 
@@ -837,8 +838,9 @@ can keep its key under a password, make its connection and test against a stand-
 can ask who the gate takes it for and what it may do at a node, the audit records every pairing and
 renewal the operator answers and every client revoked, the client follows field references as
 KeePass does, under the caller's own rules, `build.ps1 -Task Package` makes the zip a release
-would publish, and the README tells somebody arriving what this is, around a picture of the
-whole journey that moves and a diagram of the pieces.
+would publish, the README tells somebody arriving what this is, around a picture of the
+whole journey that moves and a diagram of the pieces, and the command line reaches every route
+and prints JSON for a program.
 
 **Start with [`docs/`](docs/README.md) if the question is what this does**, and with the documents
 below if the question is why it does it that way. What is left is not a step: there is no release
