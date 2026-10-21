@@ -70,6 +70,13 @@ words:
   # the pixel format and the color constructor the screenshots are written with
   - Argb
 
+  # the moving picture: who the palette's median cut is named for, a color written as six hex
+  # digits, GDI+'s rectangle made from its four edges, and the font its captions are set in
+  - Heckbert
+  - RRGGBB
+  - LTRB
+  - Segoe
+
   # provide keepass as a pinned, verified portable install
   - Authenticode
   - pscustomobject

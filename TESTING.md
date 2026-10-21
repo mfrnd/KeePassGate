@@ -32,6 +32,22 @@ about that tab is checked. It is excluded from `Live` because it writes into the
 and it is ignored entirely unless the build task asks for it. [`docs/`](docs/README.md) is what
 it feeds.
 
+**It also makes the one picture that moves**, `docs/images/lifecycle.gif`, in the same run and
+for the same reason. After the stills, `DocumentationLifecycle.cs` puts back the database as the
+fixture filled it and walks the whole journey with the pointer, every dialog opened from its
+menu: the authority, an invitation copied and pasted at the client's prompt, the approval, a rule
+and a seal on the group dialogs, and the revocation. PyKeePassGate's real command line pairs with
+that KeePass, run through `uv` as `LiveReferenceClientTests` runs it and typing the commands the
+documentation gives, sees nothing before the rules are written, then reads what they allow, is
+refused what they do not, and is refused again once revoked. `Storyboard` then composes the frames
+from a fixed timeline rather than from the clock, out of the stills taken, the rectangles of the
+controls pressed and the text typed and printed: the terminal is drawn, a character at a time,
+and so are the pointer and its clicks, where the real presses landed, and the keys pressed, on
+caps. `AnimatedGif` writes them, each frame only the rectangle that changed, so a second run
+makes the same file.
+`AnimatedGifTests`, in the host tier, holds that encoder to GDI+'s own decoder, since nothing else
+reads it until the pictures are retaken.
+
 **No tier runs `build.ps1 -Task Package`**, since it packages only a clean commit. It checks its own
 output instead, every time it runs: the zip is read back against the files it was made from and
 `SHA256SUMS` against what `sha256sum -c` reads.

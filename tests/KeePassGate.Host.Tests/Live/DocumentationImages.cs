@@ -42,6 +42,12 @@ namespace KeePassGate.Host.Tests.Live
         public const string EntryAccess = "entry-access";
 
         /// <summary>
+        /// The one that moves: a client paired, reading what its rule allows, refused what it does
+        /// not, revoked, and refused again, with its terminal beside the operator's KeePass.
+        /// </summary>
+        public const string Lifecycle = "lifecycle";
+
+        /// <summary>
         /// The clients page with two clients whose renewals stand refused, and the row menu of one
         /// of them open on the answer and Allow renewal.
         /// </summary>
@@ -55,6 +61,20 @@ namespace KeePassGate.Host.Tests.Live
         /// asking which one to keep.
         /// </summary>
         public const string AuthorityChooser = "authority-chooser";
+
+        /// <summary>The pictures that move, which are GIFs where every other one is a PNG.</summary>
+        private static readonly string[] Moving = { Lifecycle };
+
+        /// <summary>The file a picture is written to: its name, and the extension its kind takes.</summary>
+        /// <remarks>
+        /// The names are written without one, because every page refers to a still by the same
+        /// shape of name and only the moving picture differs. Deciding the extension here keeps
+        /// that difference in one place, beside the list it is a fact about.
+        /// </remarks>
+        public static string FileName(string name)
+        {
+            return name + (System.Array.IndexOf(Moving, name) >= 0 ? ".gif" : ".png");
+        }
 
         /// <summary>Every one of them, in the order one session takes them.</summary>
         /// <remarks>
@@ -75,6 +95,7 @@ namespace KeePassGate.Host.Tests.Live
             Profiles,
             GroupAccess,
             EntryAccess,
+            Lifecycle,
             ClientsStandingAnswers,
             RenewalApproval,
             AuthorityChooser

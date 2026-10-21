@@ -57,6 +57,9 @@ namespace KeePassGate.Host.Tests.Live
         private readonly Dictionary<string, Keyboard.Stroke[]> _menuKeys =
             new Dictionary<string, Keyboard.Stroke[]>(StringComparer.Ordinal);
 
+        // What `ExpandMenu` opened, outermost first, for `CollapseMenu` to close.
+        private readonly List<AutomationElement> _expanded = new List<AutomationElement>();
+
         private KeePassDriver(Process process, AutomationElement mainWindow)
         {
             _process = process;
@@ -75,6 +78,12 @@ namespace KeePassGate.Host.Tests.Live
         public string MainWindowTitle
         {
             get { return Uia.Name(_mainWindow); }
+        }
+
+        /// <summary>KeePass's main window, which the moving picture shows behind its dialogs.</summary>
+        public AutomationElement MainWindow
+        {
+            get { return _mainWindow; }
         }
 
         /// <summary>Starts KeePass and waits for the main window. Fails the test if it never comes.</summary>
@@ -346,6 +355,64 @@ namespace KeePassGate.Host.Tests.Live
             _diagnostics.AppendLine("keys for " + string.Join(" / ", path) + ": " + string.Join(" then ", keys));
             _menuKeys[remembered] = keys;
             return keys;
+        }
+
+        /// <summary>
+        /// Opens a menu of the main window a level at a time, as far as the last item named, and
+        /// answers with where on the screen each name on the way is: the menu's own on the bar
+        /// first, then each item.
+        /// </summary>
+        /// <remarks>
+        /// **For a picture of the menu open, through the tree rather than by keystroke**, because
+        /// the picture needs the items' rectangles and a menu opened by keystroke is dismissed by
+        /// the first read of the tree, see <see cref="KeysFor"/>. Opened through the tree it can be
+        /// read, which is how that method learns the keys. <see cref="CollapseMenu"/> puts it away
+        /// again, and choosing the item is then the keystrokes' business, as everywhere else here.
+        /// </remarks>
+        public System.Drawing.Rectangle[] ExpandMenu(params string[] path)
+        {
+            var places = new System.Drawing.Rectangle[path.Length];
+            var current = Uia.WaitFor(
+                "the " + path[0] + " menu",
+                () => Uia.Descendant(_mainWindow, ControlType.MenuItem, name => Strip(name) == path[0]));
+            places[0] = Bounds(current);
+
+            for (var level = 1; level < path.Length; level++)
+            {
+                Uia.Expand(current);
+                _expanded.Add(current);
+
+                var itemPrefix = path[level];
+                current = Uia.WaitFor(
+                    "the " + itemPrefix + " menu item",
+                    () => MenuItemStartingWith(itemPrefix));
+                places[level] = Bounds(current);
+            }
+
+            return places;
+        }
+
+        /// <summary>Closes whatever <see cref="ExpandMenu"/> opened, innermost first.</summary>
+        public void CollapseMenu()
+        {
+            for (var level = _expanded.Count - 1; level >= 0; level--)
+            {
+                Uia.Collapse(_expanded[level]);
+            }
+
+            _expanded.Clear();
+            System.Threading.Thread.Sleep(300);
+        }
+
+        /// <summary>Where on the screen an element is, in whole pixels.</summary>
+        public static System.Drawing.Rectangle Bounds(AutomationElement element)
+        {
+            var bounds = element.Current.BoundingRectangle;
+            return new System.Drawing.Rectangle(
+                (int)Math.Floor(bounds.X),
+                (int)Math.Floor(bounds.Y),
+                (int)Math.Ceiling(bounds.Width),
+                (int)Math.Ceiling(bounds.Height));
         }
 
         /// <summary>Brings the KPG tab to the front, which is what puts its contents in the tree.</summary>

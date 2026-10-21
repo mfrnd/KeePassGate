@@ -1,0 +1,97 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 340" width="960" height="340" role="img" aria-labelledby="title desc">
+  <title id="title">How KeePassGate fits together</title>
+  <desc id="desc">A client connects over mutual TLS to the KeePassGate plugin inside KeePass. A request passes the gate, the router, access control and a handler, which reads or writes the database. The operator approves clients and writes rules in the database through KeePass, and the plugin writes every decision to an audit log.</desc>
+  <style>
+    svg {
+      --bg: #ffffff;
+      --panel: #f6f8fa;
+      --box: #ffffff;
+      --line: #d1d9e0;
+      --ink: #1f2328;
+      --muted: #59636e;
+      --accent: #0b7285;
+    }
+    @media (prefers-color-scheme: dark) {
+      svg {
+        --bg: #0d1117;
+        --panel: #151b23;
+        --box: #0d1117;
+        --line: #3d444d;
+        --ink: #e6edf3;
+        --muted: #9198a1;
+        --accent: #3bc9db;
+      }
+    }
+    text { font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; font-size: 12px; fill: var(--muted); }
+    .bg { fill: var(--bg); }
+    .group { fill: var(--panel); stroke: var(--line); stroke-width: 1; }
+    .box { fill: var(--box); stroke: var(--line); stroke-width: 1; }
+    .step { fill: var(--box); stroke: var(--accent); stroke-width: 1.5; }
+    .h2 { font-size: 15px; font-weight: 600; fill: var(--ink); }
+    .h { font-size: 14px; font-weight: 600; fill: var(--ink); }
+    .pill { font-size: 13px; font-weight: 600; fill: var(--ink); }
+    .flow { stroke: var(--accent); stroke-width: 2; fill: none; }
+    .wire { stroke: var(--muted); stroke-width: 1.25; fill: none; }
+    .head-accent { fill: var(--accent); }
+    .head-muted { fill: var(--muted); }
+  </style>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="head-accent" d="M0,0 L10,5 L0,10 z"/>
+    </marker>
+    <marker id="m" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="head-muted" d="M0,0 L10,5 L0,10 z"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="960" height="340" rx="12"/>
+
+  <!-- KeePass -->
+  <rect class="group" x="240" y="24" width="520" height="292" rx="10"/>
+  <text class="h2" x="256" y="50">KeePass</text>
+
+  <!-- The plugin: the path a request takes -->
+  <rect class="box" x="260" y="70" width="480" height="110" rx="8"/>
+  <text class="h" x="276" y="96">KeePassGate plugin</text>
+
+  <rect class="step" x="276" y="112" width="100" height="44" rx="22"/>
+  <text class="pill" x="326" y="138" text-anchor="middle">Gate</text>
+  <rect class="step" x="392" y="112" width="100" height="44" rx="22"/>
+  <text class="pill" x="442" y="138" text-anchor="middle">Router</text>
+  <rect class="step" x="508" y="112" width="100" height="44" rx="22"/>
+  <text class="pill" x="558" y="138" text-anchor="middle">Access control</text>
+  <rect class="step" x="624" y="112" width="100" height="44" rx="22"/>
+  <text class="pill" x="674" y="138" text-anchor="middle">Handlers</text>
+
+  <path class="flow" d="M376,134 H390" marker-end="url(#a)"/>
+  <path class="flow" d="M492,134 H506" marker-end="url(#a)"/>
+  <path class="flow" d="M608,134 H622" marker-end="url(#a)"/>
+
+  <!-- The database -->
+  <rect class="box" x="260" y="230" width="480" height="70" rx="8"/>
+  <text class="h" x="276" y="258">Database (.kdbx)</text>
+  <text x="276" y="280">entries, access rules, certificates</text>
+
+  <path class="wire" d="M500,182 V228" marker-start="url(#m)" marker-end="url(#m)"/>
+  <text x="510" y="210">reads, writes</text>
+
+  <!-- Client -->
+  <rect class="step" x="24" y="89" width="150" height="90" rx="8"/>
+  <text class="h" x="40" y="128">Client</text>
+  <text x="40" y="148">agent, script, CLI</text>
+  <path class="flow" d="M174,134 H274" marker-end="url(#a)"/>
+  <text x="207" y="124" text-anchor="middle">mutual TLS</text>
+
+  <!-- Operator -->
+  <rect class="box" x="24" y="230" width="150" height="70" rx="8"/>
+  <text class="h" x="40" y="254">Operator</text>
+  <text x="40" y="272">approves clients,</text>
+  <text x="40" y="288">writes rules</text>
+  <path class="wire" d="M174,265 H258" marker-end="url(#m)"/>
+
+  <!-- Audit log -->
+  <rect class="box" x="800" y="89" width="136" height="90" rx="8"/>
+  <text class="h" x="816" y="128">Audit log</text>
+  <text x="816" y="148">every decision</text>
+  <path class="wire" d="M740,134 H798" marker-end="url(#m)"/>
+</svg>

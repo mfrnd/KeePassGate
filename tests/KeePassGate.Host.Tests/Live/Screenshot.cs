@@ -140,6 +140,53 @@ namespace KeePassGate.Host.Tests.Live
             AutomationElement parkFocusOn = null,
             ISteadyMoment moment = null)
         {
+            var path = Path.Combine(directory, name + ".png");
+
+            Rectangle area;
+            using (var picture = Take(window, name, parkFocusOn, moment, out area))
+            {
+                picture.Save(path, ImageFormat.Png);
+            }
+
+            TestContext.Out.WriteLine("wrote " + path + " (" + area.Width + " by " + area.Height + ")");
+            return path;
+        }
+
+        /// <summary>
+        /// The picture <see cref="Capture"/> writes, kept in memory instead, which is what the
+        /// frames of the moving picture are composed from.
+        /// </summary>
+        /// <param name="name">What the picture is of, for the messages a failure gives.</param>
+        /// <param name="area">
+        /// Where on the screen the picture was taken from, so that a caller can find a control in
+        /// it by the rectangle UI automation reports.
+        /// </param>
+        public static Bitmap Take(
+            AutomationElement window,
+            string name,
+            AutomationElement parkFocusOn,
+            ISteadyMoment moment,
+            out Rectangle area)
+        {
+            return Take(window, name, parkFocusOn, moment, Rectangle.Empty, out area);
+        }
+
+        /// <summary>
+        /// The same, taking in a part of the screen beyond the window as well.
+        /// </summary>
+        /// <param name="reach">
+        /// More of the screen to take, or empty for none: a dropdown the window opened that runs
+        /// past its edge, which a picture of the window alone would cut off halfway through its
+        /// own rows. The backdrop goes behind all of it, so it is solved like the window is.
+        /// </param>
+        public static Bitmap Take(
+            AutomationElement window,
+            string name,
+            AutomationElement parkFocusOn,
+            ISteadyMoment moment,
+            Rectangle reach,
+            out Rectangle area)
+        {
             if (window == null)
             {
                 throw new ArgumentNullException(nameof(window));
@@ -152,11 +199,16 @@ namespace KeePassGate.Host.Tests.Live
 
             var bounds = Settled(window, name);
 
-            var area = new Rectangle(
+            area = new Rectangle(
                 (int)Math.Round(bounds.X),
                 (int)Math.Round(bounds.Y),
                 (int)Math.Round(bounds.Width),
                 (int)Math.Round(bounds.Height));
+
+            if (!reach.IsEmpty)
+            {
+                area = Rectangle.Union(area, reach);
+            }
 
             // Clear of the window before the shutter, so nothing is hovering when it opens. The
             // pointer is not in a screen copy, but what it is over is: a button under it renders
@@ -169,8 +221,6 @@ namespace KeePassGate.Host.Tests.Live
                 throw new InvalidOperationException(
                     "The window for " + name + " has no handle, so nothing can be put behind it.");
             }
-
-            var path = Path.Combine(directory, name + ".png");
 
             // Only now. Bringing the window forward makes a page describe itself again, and this
             // tab rebuilds its labels from the database when it does, so anything written before
@@ -202,13 +252,12 @@ namespace KeePassGate.Host.Tests.Live
                         moment.ConfirmItHeld();
                     }
 
-                    using (var solved = Solve(overBlack, overWhite))
-                    {
-                        // Last, and over as little as possible: two values that cannot be settled
-                        // at the source, covered where the controls holding them actually are.
-                        Redacted.Over(solved, area, window);
-                        solved.Save(path, ImageFormat.Png);
-                    }
+                    var solved = Solve(overBlack, overWhite);
+
+                    // Last, and over as little as possible: two values that cannot be settled at
+                    // the source, covered where the controls holding them actually are.
+                    Redacted.Over(solved, area, window);
+                    return solved;
                 }
                 finally
                 {
@@ -220,9 +269,6 @@ namespace KeePassGate.Host.Tests.Live
                     Steadied.Restore(steadied);
                 }
             }
-
-            TestContext.Out.WriteLine("wrote " + path + " (" + area.Width + " by " + area.Height + ")");
-            return path;
         }
 
         /// <summary>

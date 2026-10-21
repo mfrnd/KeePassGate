@@ -46,7 +46,10 @@ with the key the operator knows it by, and what it may do at a group or an entry
 **And field references are followed**: the reference client compiles them as KeePass does, on its
 own side and under the caller's own rules, held to KeePass's own compiler. **And there is a package
 a release can publish**: `build.ps1 -Task Package` zips the plugin with everything it loads, its
-license and the notices, beside a `SHA256SUMS`.
+license and the notices, beside a `SHA256SUMS`. **And the project has a front page**: the README
+says what this is for and shows it, around a moving picture of the whole journey from a database
+to a revoked client, which the Screenshots fixture takes with the stills, and a diagram of the
+pieces.
 
 ## Read these before proposing anything
 
@@ -284,6 +287,21 @@ designing around them.
   `build.ps1 -Task Lint` refuses a picture no page refers to and a reference to a picture that is
   not there; that a picture is named in `DocumentationImages` is checked by the fixture that takes
   it, which is in the `Screenshots` category and so runs only when the pictures are retaken.
+  **One picture moves, and it is a build output too**: `lifecycle.gif`, taken last in the same run.
+  It is a click journey somebody can follow, from the database the fixture filled, entries in two
+  folders and nothing else: every dialog opened from the menu bar, the authority created, an
+  invitation copied and pasted at the client's prompt, the pairing approved, a rule on the top
+  group and a seal on one folder written on the group dialogs, then PyKeePassGate's real command
+  line reading what the rules allow and refused what they do not, revoked from the clients page
+  and refused again. Create authority is the one press drawn rather than made: the pictures after
+  it are of the written down authority, for the reason the stills have one. The frames are then
+  composed from a fixed timeline, not from the clock: the pictures it took, the rectangles of the
+  controls it pressed, and the text the client typed and printed, with the terminal drawn beside
+  the windows, typed a character at a time, a pointer and its clicks drawn where the real presses
+  landed, and the keys pressed drawn on caps. `AnimatedGif` writes them, each frame only the
+  rectangle that changed, so the same run makes the same file. What the client makes new every
+  run, its key, its certificate's expiry and the directory it stored them in, is shown in the
+  terminal as written down values, and the moments on its row of the clients page are covered.
 - **Nothing on a tab scrolls.** The content is held to 449 by 314 and has to fit it; horizontal
   scrolling is never acceptable. That is KeePass's own first page on the settings dialog, inside a
   padding of 3. The page this plugin adds has no padding and is laid out to the tab control's whole
@@ -818,8 +836,9 @@ to use the result, a client's certificate can be renewed and given up, a program
 can keep its key under a password, make its connection and test against a stand-in gate, a client
 can ask who the gate takes it for and what it may do at a node, the audit records every pairing and
 renewal the operator answers and every client revoked, the client follows field references as
-KeePass does, under the caller's own rules, and `build.ps1 -Task Package` makes the zip a release
-would publish.
+KeePass does, under the caller's own rules, `build.ps1 -Task Package` makes the zip a release
+would publish, and the README tells somebody arriving what this is, around a picture of the
+whole journey that moves and a diagram of the pieces.
 
 **Start with [`docs/`](docs/README.md) if the question is what this does**, and with the documents
 below if the question is why it does it that way. What is left is not a step: there is no release

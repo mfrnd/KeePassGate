@@ -12,6 +12,7 @@ using KeePassLib;
 using KeePassLib.Keys;
 using KeePassLib.Security;
 using KeePassLib.Serialization;
+using KeePassLib.Utility;
 using KeePassGate.Acl;
 using KeePassGate.Authority;
 using KeePassGate.Bridge;
@@ -53,7 +54,7 @@ namespace KeePassGate.Host.Tests.Live
         };
 
         private readonly string _root;
-        private readonly int _port;
+        private int _port;
         private TcpListener _reservation;
         private Process _process;
 
@@ -72,6 +73,22 @@ namespace KeePassGate.Host.Tests.Live
         public int Port
         {
             get { return _port; }
+        }
+
+        /// <summary>
+        /// From the next start on, the port the plugin listens on when nobody chose another, or
+        /// anything free when something holds it.
+        /// </summary>
+        /// <remarks>
+        /// For the moving picture on the README, where the command typed is the one a reader
+        /// types, and a reader whose KeePass nobody reconfigured leaves `--port` out. The stills
+        /// and the examples in `docs/` keep <see cref="Documented"/>.
+        /// </remarks>
+        public void UseTheDefaultPort()
+        {
+            DropReservation();
+            _reservation = Reserve(KeePassGate.Transport.GateOptions.DefaultPort);
+            _port = ((IPEndPoint)_reservation.LocalEndpoint).Port;
         }
 
         public string ExePath
@@ -734,6 +751,21 @@ namespace KeePassGate.Host.Tests.Live
         }
 
         /// <summary>
+        /// Puts a copy <see cref="CopyDatabase"/> made back in place of the database, and removes
+        /// the copy.
+        /// </summary>
+        /// <remarks>
+        /// For a stretch of the fixture that changes the database for its own sake and has to
+        /// leave it as it found it for what follows. **Only once KeePass has exited**, because a
+        /// running KeePass would save what it holds over this.
+        /// </remarks>
+        public void RestoreDatabase(string copy)
+        {
+            File.Copy(copy, DatabasePath, true);
+            File.Delete(copy);
+        }
+
+        /// <summary>
         /// Replaces the authority in one copy of the database, as its Recreate button does once the
         /// settings dialog is accepted, and answers with the new authority's digest.
         /// </summary>
@@ -1010,8 +1042,8 @@ namespace KeePassGate.Host.Tests.Live
                 // about where their own rules would go.
                 database.RootGroup.Name = "Invented Vault";
 
-                var automation = new PwGroup(true, true, "Automation", PwIcon.Folder);
-                var services = new PwGroup(true, true, "Invented Services", PwIcon.Folder);
+                var automation = new PwGroup(true, true, "Automation", PwIcon.Folder) { Uuid = Identified(AutomationUuid) };
+                var services = new PwGroup(true, true, InventedServices, PwIcon.Folder) { Uuid = Identified(ServicesUuid) };
                 database.RootGroup.AddGroup(automation, true);
                 database.RootGroup.AddGroup(services, true);
 
@@ -1019,11 +1051,11 @@ namespace KeePassGate.Host.Tests.Live
                 // root is what a freshly opened KeePass selects. Without it the list is empty and
                 // there is no entry dialog to reach.
                 database.RootGroup.AddEntry(
-                    Entry("Shared Mailbox", "mail-invented", "https://mail.invalid"), true);
+                    Entry(MailboxUuid, "Shared Mailbox", "mail-invented", "https://mail.invalid"), true);
 
-                automation.AddEntry(Entry("Build agent", "agent-invented", "https://build.invalid"), true);
-                services.AddEntry(Entry("Fictitious API", "api-fictitious", "https://api.invalid"), true);
-                services.AddEntry(Entry("Nonexistent Mail", "mail-nonexistent", "https://mail.invalid"), true);
+                automation.AddEntry(Entry(BuildAgentUuid, "Build agent", "agent-invented", "https://build.invalid"), true);
+                services.AddEntry(Entry(FictitiousApiUuid, "Fictitious API", "api-fictitious", "https://api.invalid"), true);
+                services.AddEntry(Entry(NonexistentMailUuid, "Nonexistent Mail", "mail-nonexistent", "https://mail.invalid"), true);
 
                 database.Save(null);
             }
@@ -1077,13 +1109,128 @@ namespace KeePassGate.Host.Tests.Live
             }
         }
 
-        private static PwEntry Entry(string title, string user, string url)
+        /// <summary>The name of the second invented group, which the moving picture keeps reader out of.</summary>
+        public const string InventedServices = "Invented Services";
+
+        /// <summary>The group the build agent is filed in.</summary>
+        /// <remarks>
+        /// **Every identifier in the invented tree is written down rather than minted**, for the
+        /// reason the authority is: the moving picture types commands that name an entry and
+        /// prints what the gate answers, a group's identifier among it, and an identifier minted
+        /// by `PwUuid` is new every run. Patterned so that nobody takes one for a real identifier:
+        /// `AA` for a group and `EE` for an entry, then a count.
+        /// </remarks>
+        public const string AutomationUuid = "AA000000000000000000000000000001";
+
+        /// <summary>The group <see cref="InventedServices"/>.</summary>
+        public const string ServicesUuid = "AA000000000000000000000000000002";
+
+        /// <summary>The entry in the root group, which the moving picture moves into Automation.</summary>
+        public const string MailboxUuid = "EE000000000000000000000000000001";
+
+        /// <summary>The entry in the Automation group.</summary>
+        public const string BuildAgentUuid = "EE000000000000000000000000000002";
+
+        /// <summary>The first entry in <see cref="InventedServices"/>.</summary>
+        public const string FictitiousApiUuid = "EE000000000000000000000000000003";
+
+        /// <summary>The second entry in <see cref="InventedServices"/>.</summary>
+        public const string NonexistentMailUuid = "EE000000000000000000000000000004";
+
+        private static PwUuid Identified(string hex)
         {
-            var entry = new PwEntry(true, true);
+            return new PwUuid(MemUtil.HexStringToByteArray(hex));
+        }
+
+        /// <summary>
+        /// When every invented entry was made and last changed, written down for the reason the
+        /// identifiers are: KeePass's main window shows both for the selected entry, and the moving
+        /// picture shows the main window.
+        /// </summary>
+        private static readonly DateTime Invented = new DateTime(2026, 8, 22, 8, 30, 0, DateTimeKind.Utc);
+
+        private static PwEntry Entry(string uuid, string title, string user, string url)
+        {
+            var entry = new PwEntry(true, true)
+            {
+                Uuid = Identified(uuid),
+                CreationTime = Invented,
+                LastModificationTime = Invented,
+                LastAccessTime = Invented
+            };
             entry.Strings.Set(PwDefs.TitleField, new ProtectedString(false, title));
             entry.Strings.Set(PwDefs.UserNameField, new ProtectedString(false, user));
             entry.Strings.Set(PwDefs.UrlField, new ProtectedString(false, url));
             return entry;
+        }
+
+        /// <summary>
+        /// Moves the entry in the root into the Automation group, before KeePass is started.
+        /// </summary>
+        /// <remarks>
+        /// For the moving picture, which is about two folders, one a client may read and one it
+        /// may not. An entry outside both is a third answer the picture would have to explain, and
+        /// the root has it only so that a freshly opened KeePass lists something, which the picture
+        /// shows by searching instead.
+        /// </remarks>
+        public void MoveRootEntryToAutomation()
+        {
+            var database = new PwDatabase();
+            try
+            {
+                database.Open(IOConnectionInfo.FromPath(DatabasePath), NewKey(), null);
+
+                var entry = database.RootGroup.FindEntry(Identified(MailboxUuid), false);
+                var automation = database.RootGroup.FindGroup(Identified(AutomationUuid), false);
+                if (entry == null || automation == null)
+                {
+                    throw new InvalidOperationException("the database is not the invented one");
+                }
+
+                database.RootGroup.Entries.Remove(entry);
+                automation.AddEntry(entry, true);
+                database.Save(null);
+            }
+            finally
+            {
+                database.Close();
+            }
+        }
+
+        /// <summary>The invented password the moving picture reads back off the Build agent entry.</summary>
+        public const string BuildAgentPassword = "not-a-real-password-build-agent";
+
+        /// <summary>The invented password the moving picture's client sets on that entry in its place.</summary>
+        public const string RotatedPassword = "not-a-real-password-rotated";
+
+        /// <summary>
+        /// Gives the Build agent entry an invented password, before KeePass is started.
+        /// </summary>
+        /// <remarks>
+        /// For the moving picture, which shows a client reading a password its rule opens to it.
+        /// Only there: the stills list these entries too, and a password column with something in
+        /// it would change pictures that are about something else.
+        /// </remarks>
+        public void GiveTheBuildAgentAPassword()
+        {
+            var database = new PwDatabase();
+            try
+            {
+                database.Open(IOConnectionInfo.FromPath(DatabasePath), NewKey(), null);
+
+                var entry = database.RootGroup.FindEntry(Identified(BuildAgentUuid), true);
+                if (entry == null)
+                {
+                    throw new InvalidOperationException("the database is not the invented one");
+                }
+
+                entry.Strings.Set(PwDefs.PasswordField, new ProtectedString(true, BuildAgentPassword));
+                database.Save(null);
+            }
+            finally
+            {
+                database.Close();
+            }
         }
 
         /// <summary>Every entry in the file, read after KeePass has exited.</summary>
@@ -1196,9 +1343,9 @@ namespace KeePassGate.Host.Tests.Live
         /// The reservation is dropped in `Start`, immediately before the process that wants it is
         /// launched.
         /// </remarks>
-        private static TcpListener Reserve()
+        private static TcpListener Reserve(int preferred = Documented)
         {
-            foreach (var port in new[] { Documented, 0 })
+            foreach (var port in new[] { preferred, 0 })
             {
                 var listener = new TcpListener(IPAddress.Loopback, port);
                 try
