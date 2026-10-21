@@ -245,7 +245,8 @@ paths:
         nothing a rule is about, and a client the rules let reach nothing may still ask who it is.
         What a rule grants at a node is a question about the node, which the record does not
         answer.
-      # Not written to the audit, like every operation declaring `none`.
+      # Not written to the audit, as the status route is not: no rule is asked, so the rules write
+      # no line, and unlike a pairing, a renewal or a revocation it changes no admission.
       x-kpg-verb: none
       responses:
         "200":
@@ -1645,6 +1646,9 @@ components:
       type: object
       required: [subject, clientKey, admissionKey, expires, profiles, removedProfiles]
       additionalProperties: false
+      description: |
+        Every line of the audit names both keys under these two names, so a program can find its
+        own lines by either.
       properties:
         subject:
           type: string

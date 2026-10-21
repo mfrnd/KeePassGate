@@ -56,7 +56,7 @@ namespace KeePassGate.Tests
             _listener = new GateListener(
                 new GateOptions { Port = 0 },
                 new GateResolver(_targets, _book, _log),
-                GateOperations.Router("9.9.9", new PairingHandler(_book, _operator, _log)),
+                GateOperations.Router("9.9.9", new PairingHandler(_book, _operator, null, _log)),
                 _log);
 
             Assert.That(_listener.Start(), Is.True, "the listener did not start");
@@ -456,7 +456,7 @@ namespace KeePassGate.Tests
             var listener = new GateListener(
                 options,
                 new GateResolver(_targets, _book, _log),
-                GateOperations.Router("9.9.9", new PairingHandler(_book, approval, _log)),
+                GateOperations.Router("9.9.9", new PairingHandler(_book, approval, null, _log)),
                 _log);
 
             Assert.That(listener.Start(), Is.True);
@@ -474,7 +474,7 @@ namespace KeePassGate.Tests
                 new GateOptions { Port = 0 },
                 new GateResolver(targets, _book, _log),
                 GateOperations.Router(
-                    "9.9.9", new PairingHandler(_book, _operator, new PairingOptions(), issuer, null, _log)),
+                    "9.9.9", new PairingHandler(_book, _operator, new PairingOptions(), issuer, null, null, _log)),
                 incidents,
                 _log);
 

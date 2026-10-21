@@ -103,8 +103,9 @@ the ones the database still names count; the rules say what those profiles reach
 enough on its own, and the record is read from the open database every time, which is what makes
 revoking one immediate.
 
-**Every decision is written to the audit file**, allowed or refused, outside the database so that a
-program with access to the database cannot edit the record of what it did.
+**Every decision is written to the audit file**, allowed or refused, and so is every pairing and
+renewal the operator answers and every client revoked, outside the database so that a program with
+access to the database cannot edit the record of what it did.
 [`audit.md`](audit.md) says where that file is and what a line in it holds.
 
 **A change is saved as it is made, and the whole database is saved with it.** Every route that

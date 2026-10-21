@@ -189,7 +189,8 @@ namespace KeePassGate.Spec
         /// and the two pairing routes do not: the first two read nothing a rule is about, a client
         /// giving up its own admission touches no group or entry a rule is about, and pairing and
         /// renewal are authorized by a person reading a dialog rather than by a grant, since a
-        /// client that is pairing holds no profiles yet.
+        /// client that is pairing holds no profiles yet. Its record of admissions is what a client's
+        /// revocation of itself is written down with.
         /// </param>
         public static SpecRouter Router(
             string version,
@@ -200,7 +201,7 @@ namespace KeePassGate.Spec
         {
             return new SpecRouter(
                 Document,
-                Handlers(version, revision, pairing, renewal),
+                Handlers(version, revision, pairing, renewal, access == null ? null : access.Admissions),
                 Guards(pairing),
                 Nodes(),
                 access);
@@ -280,14 +281,20 @@ namespace KeePassGate.Spec
         public static IReadOnlyDictionary<string, OperationHandler> Handlers(
             string version, string revision, PairingHandler pairing)
         {
-            return Handlers(version, revision, pairing, null);
+            return Handlers(version, revision, pairing, null, null);
         }
 
         /// <summary>The same, with the renewal route's handler.</summary>
+        /// <param name="audit">
+        /// Where a client's revocation of its own certificate is written down once it took, or null
+        /// for nowhere. The router this plugin runs passes its access check's, so that a client's
+        /// lines of every kind are paced on one allowance.
+        /// </param>
         public static IReadOnlyDictionary<string, OperationHandler> Handlers(
-            string version, string revision, PairingHandler pairing, RenewalHandler renewal)
+            string version, string revision, PairingHandler pairing, RenewalHandler renewal, AdmissionAudit audit)
         {
             var status = new StatusOperation(version, revision);
+            var revocation = new RevocationOperation(audit);
 
             return new Dictionary<string, OperationHandler>(StringComparer.Ordinal)
             {
@@ -295,7 +302,7 @@ namespace KeePassGate.Spec
                 { HeadStatus, status.Handle },
                 { Identity, IdentityOperation.Handle },
                 { HeadIdentity, IdentityOperation.Handle },
-                { RevokeCertificate, RevocationOperation.Handle },
+                { RevokeCertificate, revocation.Handle },
                 { RenewCertificate, renewal == null ? NotServed : (OperationHandler)renewal.Renew },
                 { PairHello, pairing == null ? NotServed : (OperationHandler)pairing.Hello },
                 { PairRequest, pairing == null ? NotServed : (OperationHandler)pairing.Request },

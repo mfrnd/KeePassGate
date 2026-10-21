@@ -1,8 +1,11 @@
 using System;
+using System.Collections.Generic;
 using System.Windows.Forms;
+using KeePassGate.Audit;
 using KeePassGate.Authority;
 using KeePassGate.Diagnostics;
 using KeePassGate.Pairing;
+using KeePassGate.Pipeline;
 
 namespace KeePassGate.Ui
 {
@@ -23,6 +26,7 @@ namespace KeePassGate.Ui
 
         private readonly IAdmissionNotice _admissions;
         private readonly GateIncidents _incidents;
+        private readonly AdmissionAudit _audit;
         private readonly SessionRefusals _session;
 
         public AuthorityPanelFactory(
@@ -30,13 +34,22 @@ namespace KeePassGate.Ui
             IOperatorPrompt prompt,
             IGateLog log,
             IInvitations invitations)
-            : this(databases, prompt, log, invitations, null, null, new SessionRefusals())
+            : this(
+                databases,
+                prompt,
+                log,
+                invitations,
+                null,
+                null,
+                new AdmissionAudit(NullGateAudit.Instance),
+                new SessionRefusals())
         {
         }
 
         /// <summary>
-        /// The same, telling every panel it builds what to listen to for a record landing, and
-        /// counting what escapes the dialog's close where the plugin's window shows it.
+        /// The same, telling every panel it builds what to listen to for a record landing,
+        /// counting what escapes the dialog's close where the plugin's window shows it, and writing
+        /// down each revocation the dialog's OK lands.
         /// </summary>
         /// <remarks>
         /// One notice for the whole plugin, handed to each panel as it is built. A panel drops it
@@ -47,6 +60,12 @@ namespace KeePassGate.Ui
         /// handler that applies what the tab held is one of the KeePass window event handlers that
         /// catch everything, and every one of those reports to the count the Tools window reads. A
         /// factory given none counts on one of its own, which is what a test builds.
+        ///
+        /// The audit is the gate's own, so that the operator's revocations sit in the file beside
+        /// the client's requests they put an end to. **Required here**, because a factory given
+        /// none wrote nothing down and said nothing about it, so whether the operator's revocations
+        /// reached the file was decided by one argument in the plugin's wiring that no test read.
+        /// The constructor above, which a test builds, writes into nothing on purpose.
         ///
         /// **The renewals refused in this session are the plugin's own too**, the set the renewal
         /// handler answers from, and required for the same reason: a tab given a set of its own
@@ -60,6 +79,7 @@ namespace KeePassGate.Ui
             IInvitations invitations,
             IAdmissionNotice admissions,
             GateIncidents incidents,
+            AdmissionAudit audit,
             SessionRefusals session)
         {
             // Refused rather than tolerated, because the alternative is a tab that reads "no
@@ -68,6 +88,11 @@ namespace KeePassGate.Ui
             if (databases == null)
             {
                 throw new ArgumentNullException(nameof(databases));
+            }
+
+            if (audit == null)
+            {
+                throw new ArgumentNullException(nameof(audit));
             }
 
             if (session == null)
@@ -81,6 +106,7 @@ namespace KeePassGate.Ui
             _invitations = invitations;
             _admissions = admissions;
             _incidents = incidents ?? new GateIncidents(Log());
+            _audit = audit;
             _session = session;
         }
 
@@ -112,7 +138,7 @@ namespace KeePassGate.Ui
                 _admissions,
                 session);
 
-            Commit(dialog, database, invitations, session);
+            Commit(dialog, found, database, invitations, session);
             return panel;
         }
 
@@ -137,7 +163,10 @@ namespace KeePassGate.Ui
         /// on. Every answer that is not OK withdraws them: Cancel, the close box and Escape alike.
         ///
         /// **What landed is said in the log**, which is the only place left to say it: the dialog
-        /// that could have is closing.
+        /// that could have is closing. And each revocation that landed is written to the audit,
+        /// which is the moment it takes effect, naming its client by the client key on the record
+        /// it empties: read from the live database just before OK applies the buffer, since the
+        /// record is gone once it has, and only when a revocation is waiting.
         ///
         /// **The answers lifted for this session go first, and whatever the buffer does.** They
         /// are the plugin's memory and not the database's, so nothing about the file decides them:
@@ -146,6 +175,7 @@ namespace KeePassGate.Ui
         /// </remarks>
         private void Commit(
             Form dialog,
+            IGateDatabase live,
             PendingDatabase database,
             PendingInvitations invitations,
             PendingSessionRefusals session)
@@ -175,10 +205,12 @@ namespace KeePassGate.Ui
                                 + " are asked about again: the operator lifted the answer for this session");
                         }
 
+                        var clients = ClientKeys(live, database);
                         if (database.Apply())
                         {
                             Log().Info("what the " + GateName.Product + " tab held was put into "
                                 + "the database, which KeePass now says has changes to save");
+                            Revoked(database, clients);
                         }
 
                         return;
@@ -215,6 +247,92 @@ namespace KeePassGate.Ui
                 Log().Warn("the " + GateName.Product + " tab could not watch for the dialog's result: "
                     + error.Message);
             }
+        }
+
+        /// <summary>
+        /// Writes down every revocation the dialog's OK just put into the database, one line each.
+        /// </summary>
+        /// <remarks>
+        /// **When it lands, which is now.** A revocation pressed on the Clients page waits in the
+        /// dialog's buffer with everything else on the tab, and Cancel takes it away with nothing
+        /// written anywhere. What is written is what the buffer stored, so a client revoked by
+        /// itself while the dialog was open is not written down a second time, and a revocation an
+        /// authority's recreation took away again is not written down at all.
+        ///
+        /// The database is named by the authority it serves now, as the gate's own lines name it,
+        /// or as nothing when it serves none. That is the authority served once OK is through, not
+        /// necessarily the one that issued the revoked certificate: after a recreate in the same
+        /// dialog it is the new one, and in a database whose two copies each made an authority it
+        /// is nothing, which `docs/audit.md` says beside the `database` member.
+        /// </remarks>
+        /// <param name="clients">
+        /// The client key of every record the live database held before OK, by admission key, which
+        /// <see cref="ClientKeys"/> read. A revoked certificate missing from it is named with no
+        /// client key.
+        /// </param>
+        private void Revoked(PendingDatabase database, IDictionary<string, string> clients)
+        {
+            var revoked = new List<string>();
+            foreach (var key in database.Stored)
+            {
+                if (AuthorityKeys.IsRevocation(key))
+                {
+                    revoked.Add(AuthorityKeys.AdmissionKeyInRevocation(key));
+                }
+            }
+
+            if (revoked.Count == 0)
+            {
+                return;
+            }
+
+            string databaseId;
+            using (var reading = new AuthorityService(database.PluginCustomData, Log()).Read())
+            {
+                databaseId = reading.IsPresent ? reading.Material.AuthorityDigest : null;
+            }
+
+            foreach (var key in revoked)
+            {
+                // Null when the record was not there to read, which is what a miss leaves it.
+                string clientKey;
+                clients.TryGetValue(key, out clientKey);
+                _audit.RevokedByOperator(databaseId, key, clientKey);
+            }
+        }
+
+        /// <summary>
+        /// The client key of every record the live database holds, by admission key, read while a
+        /// revocation is still waiting in the buffer, or nothing when none is.
+        /// </summary>
+        /// <remarks>
+        /// **Read before OK applies the buffer, because applying it is what empties the record.**
+        /// The revocation's own key holds no client key, and the line about it is the one place
+        /// the operator would look for which client a certificate belonged to. Read once per OK
+        /// that carries a revocation, never per request. A listing that cannot be made says so in
+        /// the log, from `AdmissionStore`, and leaves the lines without a client key rather than
+        /// keeping the revocation from landing.
+        /// </remarks>
+        private IDictionary<string, string> ClientKeys(IGateDatabase live, PendingDatabase database)
+        {
+            var clients = new Dictionary<string, string>(StringComparer.Ordinal);
+            if (live == null || !live.IsOpen || !database.WaitingOn(AuthorityKeys.IsRevocation))
+            {
+                return clients;
+            }
+
+            var store = live.PluginCustomData;
+            if (store == null)
+            {
+                return clients;
+            }
+
+            foreach (var record in new AdmissionStore(store, Log()).All().Records)
+            {
+                clients[record.AdmissionKey] = record.ClientKey;
+            }
+
+            return clients;
         }
 
         private IGateLog Log()

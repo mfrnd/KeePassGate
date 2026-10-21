@@ -22,11 +22,12 @@ and every operation declares the verb it needs or the plugin does not load. **An
 write one**: the KPG tab on the group and entry dialogs edits the rules as a `CRUSDLAP` mask,
 writing into the copy the dialog puts back on OK. **And the two halves are combined**: the router
 intersects the admission record with the rules before any handler runs, and writes every decision
-the rules make, and every certificate the database issued that an operation turns away, to a JSON Lines file
-outside the database. **And there is an API**: twenty-four routes over groups, entries, fields and
-attachments, every one declaring the verb it needs and the node it is about, and the routes about
-the gate and the caller beside them, with `PyKeePassGate` covering all of them. **And a profile has
-a home**: the set of names a database
+the rules make, every certificate the database issued that an operation turns away, and
+every pairing and renewal the operator answers and every client revoked, to a JSON Lines
+file outside the database. **And there is an API**: twenty-four routes over groups,
+entries, fields and attachments, every one declaring the verb it needs and the node it is
+about, and the routes about the gate and the caller beside them, with `PyKeePassGate`
+covering all of them. **And a profile has a home**: the set of names a database
 knows lives beside the authority, with a page of its own to manage them, and a name taken off it
 grants nothing whatever rule still names it. **And the plugin has a window of its own**, under KeePass's Tools
 menu, saying where the gate is listening and taking the port it should listen on. **And there is
@@ -187,6 +188,10 @@ designing around them.
   thrown and throws it again where one of the four sees it: `GateTlsServer`'s callbacks, because
   Bouncy Castle turns whatever a callback throws into a fatal alert, and the call `ControlUiThread`
   marshals, because WinForms would answer one escaping it with a dialog of its own.
+  **A line that has to outlive a defect is written before it rather than caught around it**: the
+  audit line for a pairing, a renewal or a client's own revocation that landed is written by
+  `DatabaseWriter` on its own landed path, before any listener runs, so no listener's defect can
+  lose it and the operation writes none of its own.
 - **Everything on the KPG settings tab waits for that dialog's OK**, and this reverses an
   earlier decision rather than refining it. The tab used to write the moment a button was pressed,
   which was safe, because KeePass's database settings dialog holds no copy of the custom data this
@@ -783,8 +788,9 @@ the record and the rules do not both allow while recording every answer the rule
 routes read and change the database, two launchers start the pinned KeePass with the plugin in it,
 a profile has a home of its own, the plugin has a window under the Tools menu, `docs/` says how
 to use the result, a client's certificate can be renewed and given up, a program built on the client
-can keep its key under a password, make its connection and test against a stand-in gate, and a
-client can ask who the gate takes it for and what it may do at a node.
+can keep its key under a password, make its connection and test against a stand-in gate, a client
+can ask who the gate takes it for and what it may do at a node, and the audit records every pairing,
+renewal and revocation.
 
 **Start with [`docs/`](docs/README.md) if the question is what this does**, and with the documents
 below if the question is why it does it that way. What is left is not a step: there is no release
@@ -854,10 +860,10 @@ admitted, at pairing or at a renewal, and has not taken away since, and there is
 two halves could be compared wrongly. The **router** asks, before the body is checked and before any
 handler runs, because a handler could forget to. A node that may not be reached and one that is not
 there answer the same 404, and the audit is where the operator is told which it was. **Each client's
-lines are paced**, by `DecisionPace`: a thousand at once and ten a second after that, per admission
-key, and a decision past that waits on the caller's own connection rather than being dropped or
-refused, because the file rolls by size and a client that could fill it quickly could push its own
-earlier lines out of it. `DESIGN.md` §120 has the argument.
+lines are paced**, by `DecisionPace`: a thousand at once and ten a second after that, per client
+key, so a renewal keeps the allowance the client has spent, and a decision past that waits on the
+caller's own connection rather than being dropped or refused, because the file rolls by size and a
+client that could fill it quickly could push its own earlier lines out of it. `DESIGN.md` §120 has the argument.
 
 **What step 12 settled about verbs.** A rule holds **six verbs and two switches**, which is
 `CRUSDLAP` and is the order they are declared, written and shown in. The verbs are create, read,

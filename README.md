@@ -18,7 +18,8 @@ against the declared schema before a handler runs, and a path the document does 
 nowhere to go. **Twenty-four routes read and change groups, entries, fields and attachments**, each
 declaring the verb it needs and the node it is about, two of them saying what the caller may do
 there, and the router refuses anything the admission record and the rules on that node do not both
-allow, writing every decision to an audit file outside the database.
+allow, writing every decision to an audit file outside the database, with every pairing and
+renewal the operator answers and every client revoked.
 
 **License: MIT.** GPLv2 is not required. KeePass is GPL-2.0-or-later and grants no plugin exception,
 but the FSF's own requirement is a GPL-compatible license, and MIT is one, so a permissive

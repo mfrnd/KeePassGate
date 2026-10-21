@@ -187,7 +187,7 @@ namespace KeePassGate.Tests
 
         private GateListener Listening(FakeRenewalApproval operatorAt, GateOptions options)
         {
-            var renewal = new RenewalHandler(operatorAt, new PairingOptions(), new AuthorityIssuer(), null, null, _log);
+            var renewal = new RenewalHandler(operatorAt, new PairingOptions(), new AuthorityIssuer(), null, null, null, _log);
             var listener = new GateListener(
                 options,
                 new GateResolver(new FakeGateTargets(_authority), _log),

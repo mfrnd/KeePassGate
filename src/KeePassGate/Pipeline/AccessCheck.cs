@@ -53,7 +53,18 @@ namespace KeePassGate.Pipeline
             _audit = audit ?? NullGateAudit.Instance;
             _clock = clock ?? (() => DateTimeOffset.UtcNow);
             _pace = pace ?? new DecisionPace();
+            Admissions = new AdmissionAudit(_audit, _clock, _pace);
         }
+
+        /// <summary>
+        /// What the same audit records about admissions: pairings, renewals and revocations.
+        /// </summary>
+        /// <remarks>
+        /// Made here rather than beside this, so that both write with one clock and count a client
+        /// against one allowance: a client gets one budget for everything it can make the audit
+        /// write, and splitting it would double what one flooding client could push out of the file.
+        /// </remarks>
+        public AdmissionAudit Admissions { get; private set; }
 
         /// <summary>
         /// What a refusal says when the profiles the operator removed would have permitted it.
@@ -77,6 +88,16 @@ namespace KeePassGate.Pipeline
         public AclDecision Decide(
             ClientIdentity client, string operationId, AclVerb verb, AclReach reach, IAclNode node)
         {
+            return Decide(client, operationId, verb, reach, node, null);
+        }
+
+        /// <summary>
+        /// The same, naming the identifier the request asked for, which the line keeps when no
+        /// node was found for it.
+        /// </summary>
+        public AclDecision Decide(
+            ClientIdentity client, string operationId, AclVerb verb, AclReach reach, IAclNode node, string requested)
+        {
             var decision = Answer(client, client == null ? null : client.Profiles, verb, reach, node);
             var name = node == null ? null : node.Name;
 
@@ -85,11 +106,12 @@ namespace KeePassGate.Pipeline
 
             if (removed == null || restored == null)
             {
-                Write(client, operationId, name, decision.DecidedAt, decision.Permitted, decision.Reason, null);
+                Write(
+                    client, operationId, name, decision.DecidedAt, decision.Permitted, decision.Reason, null, requested);
             }
             else
             {
-                Write(client, operationId, name, restored.DecidedAt, false, ProfileRemoved, removed);
+                Write(client, operationId, name, restored.DecidedAt, false, ProfileRemoved, removed, requested);
             }
 
             return decision;
@@ -145,7 +167,8 @@ namespace KeePassGate.Pipeline
         /// the operator who revokes a client opens this file to see whether it keeps trying, and a
         /// revoked client hammering the gate otherwise looked exactly like one that stopped. What
         /// is written is the key the Clients page revoked and the reason the credential check
-        /// gave. A caller that proved nothing, or proved it to another authority, names nobody the
+        /// gave, and no client key, since no record stands behind the certificate to carry one:
+        /// `docs/audit.md` says why it is not looked for. A caller that proved nothing, or proved it to another authority, names nobody the
         /// operator issued and is not written down: see <see cref="ClientIdentity.Refusal"/>.
         /// </remarks>
         public void Refuse(ClientIdentity client, string operationId)
@@ -155,7 +178,7 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            Write(client, operationId, null, null, false, client.Refusal, null);
+            Write(client, operationId, null, null, false, client.Refusal, null, null);
         }
 
         private void Write(
@@ -165,21 +188,54 @@ namespace KeePassGate.Pipeline
             string decidedAt,
             bool permitted,
             string reason,
-            IReadOnlyList<string> removedProfiles)
+            IReadOnlyList<string> removedProfiles,
+            string requested)
         {
-            // Before the line, so the wait is paid by the request that would have written it.
-            _pace.Take(client == null ? null : client.AdmissionKey);
+            // Before the line, so the wait is paid by the request that would have written it. By
+            // the client key, so a renewal keeps the allowance spent; a refused certificate has no
+            // client and is counted by its own admission key, as `DecisionPace` says.
+            _pace.Take(client == null ? null : client.ClientKey ?? client.AdmissionKey);
 
             _audit.Record(new AuditEntry(
                 _clock(),
                 client == null ? null : client.DatabaseId,
                 client == null ? null : client.AdmissionKey,
+                client == null ? null : client.ClientKey,
                 operationId,
                 node,
                 decidedAt,
                 permitted,
                 reason,
-                removedProfiles));
+                removedProfiles,
+                Identifier(requested)));
+        }
+
+        /// <summary>
+        /// An identifier as the routes write one, 32 hexadecimal characters or `root`, or null for
+        /// anything else, so that nothing a caller could spell freely reaches the line.
+        /// </summary>
+        internal static string Identifier(string requested)
+        {
+            if (string.Equals(requested, "root", StringComparison.Ordinal))
+            {
+                return requested;
+            }
+
+            if (requested == null || requested.Length != 32)
+            {
+                return null;
+            }
+
+            foreach (var c in requested)
+            {
+                var hex = (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
+                if (!hex)
+                {
+                    return null;
+                }
+            }
+
+            return requested;
         }
 
         private static AclDecision Answer(

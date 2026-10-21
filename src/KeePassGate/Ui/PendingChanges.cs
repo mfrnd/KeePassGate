@@ -209,6 +209,15 @@ namespace KeePassGate.Ui
             return _store != null && _store.WaitingOn(key);
         }
 
+        /// <summary>
+        /// The keys the last <see cref="Apply"/> stored a new value under: see
+        /// <see cref="PendingStore.Stored"/>.
+        /// </summary>
+        public IReadOnlyList<string> Stored
+        {
+            get { return _store == null ? Array.Empty<string>() : _store.Stored; }
+        }
+
         /// <summary>Whether any key of a kind is waiting.</summary>
         public bool WaitingOn(Func<string, bool> kind)
         {
@@ -410,6 +419,18 @@ namespace KeePassGate.Ui
         {
             get { return _written.Count > 0 || _removed.Count > 0; }
         }
+
+        /// <summary>
+        /// The keys the last <see cref="Apply"/> stored a new value under, in the order it stored
+        /// them. Removals are not among them, and nothing is after a Cancel.
+        /// </summary>
+        /// <remarks>
+        /// For whoever has to say what landed rather than only that something did. A revocation is
+        /// one of these, and the audit writes it down as the dialog's OK puts it in; read from what
+        /// was stored rather than from what was pressed, a revocation already there by then, the
+        /// client's own made meanwhile, is not written down a second time.
+        /// </remarks>
+        public IReadOnlyList<string> Stored { get; private set; } = Array.Empty<string>();
 
         /// <summary>Whether one key in particular has been written here and not there.</summary>
         public bool WaitingOn(string key)
@@ -640,6 +661,8 @@ namespace KeePassGate.Ui
                 return false;
             }
 
+            var stored = new List<string>();
+
             foreach (var key in _order)
             {
                 string value;
@@ -648,7 +671,17 @@ namespace KeePassGate.Ui
                     continue;
                 }
 
-                changed |= Land(store, key, value);
+                if (Land(store, key, value))
+                {
+                    changed = true;
+
+                    // A key with a second writer can come out of its merge as nothing at all, which
+                    // is a removal however it was asked for.
+                    if (store.Get(key) != null)
+                    {
+                        stored.Add(key);
+                    }
+                }
             }
 
             // A removal is an edit like any other, so it is reconciled like one: an operator who
@@ -660,6 +693,7 @@ namespace KeePassGate.Ui
             }
 
             Discard();
+            Stored = stored.AsReadOnly();
             return changed;
         }
 
@@ -730,6 +764,7 @@ namespace KeePassGate.Ui
             _order.Clear();
             _removed.Clear();
             _before.Clear();
+            Stored = Array.Empty<string>();
         }
     }
 

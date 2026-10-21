@@ -48,7 +48,7 @@ namespace KeePassGate.Tests
                 new GateOptions { Port = 0 },
                 new GateResolver(_targets, _log),
                 GateOperations.Router("9.9.9", new PairingHandler(
-                    new InvitationBook(_log), FakePairingApproval.Approving(), _log)),
+                    new InvitationBook(_log), FakePairingApproval.Approving(), null, _log)),
                 _log);
 
             Assert.That(_listener.Start(), Is.True);
@@ -240,7 +240,7 @@ namespace KeePassGate.Tests
             var listener = new GateListener(
                 new GateOptions { Port = 0 },
                 new GateResolver(_targets, book, _log),
-                GateOperations.Router("9.9.9", new PairingHandler(book, FakePairingApproval.Approving(), _log)),
+                GateOperations.Router("9.9.9", new PairingHandler(book, FakePairingApproval.Approving(), null, _log)),
                 _log);
 
             Assert.That(listener.Start(), Is.True);

@@ -20,8 +20,8 @@ just approved.
 
 **Resting the pointer on a row names its keys in full**: the **client key**, which is the
 fingerprint of the certificate the client paired with and stays the same through every renewal, and
-the **certificate**, the fingerprint of the one this row admits, which is what the
-[audit file](audit.md) names it by. A name is the program's own choice and need not be unique, so
+the **certificate**, the fingerprint of the one this row admits. The [audit file](audit.md) names
+both on every line, as `clientKey` and `admissionKey`. A name is the program's own choice and need not be unique, so
 two rows under one name are either one client that [renewed](#expiry) and still holds its older
 certificate, both rows with one client key, or two programs that chose the same name, such as one
 program on two machines, with two. Every count of clients on these pages counts client keys, and a
@@ -99,14 +99,17 @@ remove. The same mark takes a rule away in the access editor.
 
 **Once accepted it takes effect at once, and saving is what keeps it.** Records are read from the
 open database on every request, so from the next request onwards that client is told it is not
-admitted. Nothing has to be reloaded and nothing has to be told.
+admitted. Nothing has to be reloaded and nothing has to be told. [The audit file](audit.md) records
+the revocation at that moment, by the certificate's key and the client key, and records nothing for
+one that Cancel took away.
 
 **A program can also revoke itself**, for a key it no longer trusts or a certificate it no longer
 needs. That writes the same revocation this page writes, and its row leaves the list on its own,
 without OK being pressed: nobody is asked, the database is saved before the program is told, and
 this dialog being open at the time changes nothing, since its OK touches only what was changed on
 it. It is refused while KeePass's Database Maintenance dialog is open, for the reason that dialog is
-left alone below, and the program can ask again once it is closed.
+left alone below, and the program can ask again once it is closed. The audit file records that
+revocation too, once it is in the database.
 
 The client keeps holding a certificate. It has simply stopped meaning anything to this database,
 which is the point of the record existing separately: a certificate proves who a program is, and a
@@ -200,9 +203,13 @@ the database with the next change the plugin itself makes there. One still unwri
 exits is lost, and KeePass says so as it closes, so that nobody is surprised when the dialog comes
 back for that program.
 
-The plugin's log says what was answered and when. One until a date or forever goes with the
-revocation of the certificate it was about, and once that certificate has expired, with the next
-change the plugin itself makes to the database, as an expired row does.
+The plugin's log says what was answered and when, and the audit file records every renewal the
+operator answered or left unanswered, one refused without asking included. An approval is written
+there when its record lands, which may be on the program's next try, below; one that issued
+nothing, because the new record did not reach the disk, has no line there, and the log says why.
+One until a date or forever goes with the revocation of the certificate it was about, and once that
+certificate has expired, with the next change the plugin itself makes to the database, as an
+expired row does.
 
 ### Taking a standing answer back
 

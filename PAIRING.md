@@ -194,6 +194,13 @@ Each client is named once, by its client key, `CA.md` §223, however many of its
 the name, and two clients that paired under one name are named apart, each with the start of its
 client key as the clients page shows it.
 
+**Every answer is written to the audit**, `DESIGN.md` §120, naming the invitation the request
+arrived on: approved, with the admission key of the certificate it admitted, which is the new
+client's client key as well, once the record is saved and before the bundle is handed over;
+refused; or unanswered, those two naming no client. An approval that admitted nobody, because the
+record did not land or the invitation was gone by the time the operator answered, gets no line,
+and no line carries a profile.
+
 **The client proposes how long its certificate lasts, and the operator picks.** A request may ask
 for anything from a day to a year, and the dialog offers 1, 7, 30, 90 and 365 days under the
 profiles, with the one asked for chosen already and marked "(asked)". One that is none of those is
@@ -626,6 +633,11 @@ another copy of the file. Then the stored one is what the client is told, since 
 only pairing again helps. A stored until a date says less there: once its day begins the session's
 answer is told in its place, `409 this session`, so its `notBefore` is the moment the session's
 refusal takes over rather than one from which the operator is asked again.
+
+**Every answer is written to the audit**, `DESIGN.md` §120, against the certificate that asked and
+the client key on its record, which the renewal leaves as it was: approved, with the key of the one
+issued in its place once its record is saved; refused, with which of the four answers it got;
+refused without the dialog, by an answer given before; or unanswered.
 
 **The order is pairing's, kept exactly.** Refused with `503 busy` before anybody is disturbed while
 a dialog would take the record back, asked again once the operator has answered, then issued,

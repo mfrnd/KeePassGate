@@ -254,13 +254,21 @@ namespace KeePassGate.Audit
         /// Which clients still use an authority is the best evidence of which one to keep, and the
         /// audit is the only place that says. A client absent from the answer made no request the
         /// two files still hold, which is not the same as never having connected, and whatever
-        /// shows this says so.
+        /// shows this says so. Asked by admission key, the certificate a record admits, so every
+        /// line naming one under `admissionKey` is one it asked for but the operator's revocation,
+        /// which names the certificate it took away; nothing asks this about a certificate no
+        /// longer admitted, so that line never stands in for a request. A pairing names its
+        /// certificate under `issued`, so a certificate is last seen by its first request.
         ///
         /// **Cheap because the files are bounded**, which is what makes reading them on the user
         /// interface thread acceptable: at most <see cref="RollAt"/> each, read once, line by line,
         /// with the two members this needs found by position rather than by parsing the line.
-        /// `at` is always the first member and `client` is always written, so neither search can
-        /// be fooled by anything a node or a reason could hold: both are this plugin's own text.
+        /// `at` is always the first member and `admissionKey` is always written, so neither search
+        /// can be fooled by anything a node or a reason could hold: both are this plugin's own
+        /// text. A line whose `admissionKey` is null, a pairing's, holds `"admissionKey":null`,
+        /// which the search for a quoted value does not match, and every member after it on such a
+        /// line is a digest, a fixed word or an identifier this plugin wrote, none of which holds
+        /// that text either.
         ///
         /// Shared for reading and writing both, so a decision being appended while this reads is
         /// neither blocked nor lost.
@@ -308,7 +316,7 @@ namespace KeePassGate.Audit
         }
 
         private const string AtMember = "{\"at\":\"";
-        private const string ClientMember = "\"client\":\"";
+        private const string AdmissionKeyMember = "\"admissionKey\":\"";
 
         private static void Seen(string line, HashSet<string> wanted, IDictionary<string, DateTimeOffset> seen)
         {
@@ -317,13 +325,13 @@ namespace KeePassGate.Audit
                 return;
             }
 
-            var client = line.IndexOf(ClientMember, StringComparison.Ordinal);
-            if (client < 0)
+            var member = line.IndexOf(AdmissionKeyMember, StringComparison.Ordinal);
+            if (member < 0)
             {
                 return;
             }
 
-            var keyStart = client + ClientMember.Length;
+            var keyStart = member + AdmissionKeyMember.Length;
             var keyEnd = line.IndexOf('"', keyStart);
             var atEnd = line.IndexOf('"', AtMember.Length);
             if (keyEnd < 0 || atEnd < 0)

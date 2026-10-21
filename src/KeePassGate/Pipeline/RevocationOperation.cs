@@ -1,3 +1,4 @@
+using KeePassGate.Audit;
 using KeePassGate.Transport;
 
 namespace KeePassGate.Pipeline
@@ -21,10 +22,26 @@ namespace KeePassGate.Pipeline
     /// what this certificate will be told on every connection from now on. That is the operator
     /// revoking it from the Clients page in the instant between this connection and its write,
     /// and what the client asked for has happened either way.
+    ///
+    /// **Written to the audit once the revocation is in the database**: answered `200`, or
+    /// `500 not verified`, which keeps it in the database KeePass holds, so the certificate is
+    /// refused from then on whatever the file says. A revocation taken back out, or never made,
+    /// revoked nothing and is not written down. **The writer writes the line**, on its own path
+    /// for a revocation left in force and before anything drawn from the records is told, so a
+    /// defect there cannot lose it; this hands it the line and takes the client's turn for it once
+    /// the write returns.
     /// </remarks>
-    public static class RevocationOperation
+    public sealed class RevocationOperation
     {
-        public static void Handle(IGateContext context)
+        private readonly AdmissionAudit _audit;
+
+        /// <param name="audit">Where a revocation that took is written down, or null for nowhere.</param>
+        public RevocationOperation(AdmissionAudit audit)
+        {
+            _audit = audit ?? new AdmissionAudit(NullGateAudit.Instance);
+        }
+
+        public void Handle(IGateContext context)
         {
             var client = context.Client;
             if (!client.IsPaired || string.IsNullOrEmpty(client.AdmissionKey))
@@ -44,7 +61,10 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            var written = target.Revoke(client.AdmissionKey);
+            var databaseId = target.DatabaseId;
+            var key = client.AdmissionKey;
+            var clientKey = client.ClientKey;
+            var written = target.Revoke(key, () => _audit.RevokedItself(databaseId, key, clientKey));
             if (written == null)
             {
                 context.Respond(500, HttpResponse.ErrorBody(InternalError));
@@ -53,6 +73,7 @@ namespace KeePassGate.Pipeline
 
             if (written.Ok)
             {
+                _audit.TakeTurn(clientKey);
                 context.Respond(200, "{\"ok\":true}");
                 return;
             }
@@ -71,6 +92,7 @@ namespace KeePassGate.Pipeline
 
             if (written.IsUnverified)
             {
+                _audit.TakeTurn(clientKey);
                 context.Respond(500, HttpResponse.ErrorBody("not verified"));
                 return;
             }

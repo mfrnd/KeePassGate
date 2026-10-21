@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography.X509Certificates;
+using KeePassGate.Audit;
 using KeePassGate.Authority;
 using KeePassGate.Diagnostics;
 using KeePassGate.Gate;
@@ -42,6 +43,12 @@ namespace KeePassGate.Pairing
     /// answer, standing half included, has been kept. Without that, the second read the standing
     /// answer before the operator gave it, waited its turn for the screen, and raised the same
     /// dialog again the moment the first closed.
+    ///
+    /// **Every answer is written to the audit**, against the certificate that asked: approved, with
+    /// the key issued in its place, once the new record is in the database, by the write that put
+    /// it there; refused, with which of the operator's four answers it was, or by one they gave
+    /// before; and unanswered. Nothing is written when nobody could be asked. `AdmissionAudit`
+    /// says what a line holds.
     /// </remarks>
     public sealed class RenewalHandler
     {
@@ -54,6 +61,7 @@ namespace KeePassGate.Pairing
         private readonly Func<DateTimeOffset> _clock;
         private readonly SessionRefusals _session;
         private readonly HashSet<string> _inFlight = new HashSet<string>(StringComparer.Ordinal);
+        private readonly AdmissionAudit _audit;
         private readonly IGateLog _log;
         private readonly ApprovalBook _held;
 
@@ -69,8 +77,13 @@ namespace KeePassGate.Pairing
         /// The certificates whose renewals the operator refused in this session, or null for a set
         /// of this handler's own.
         /// </param>
-        public RenewalHandler(IRenewalApproval approval, SessionRefusals session, IGateLog log)
-            : this(approval, new PairingOptions(), new AuthorityIssuer(), null, session, log)
+        /// <param name="audit">
+        /// Where each renewal the operator answers, or answered before, is written down, or null
+        /// for nowhere.
+        /// </param>
+        public RenewalHandler(
+            IRenewalApproval approval, SessionRefusals session, AdmissionAudit audit, IGateLog log)
+            : this(approval, new PairingOptions(), new AuthorityIssuer(), null, session, audit, log)
         {
         }
 
@@ -79,8 +92,8 @@ namespace KeePassGate.Pairing
         /// pairing, or null for a book of this handler's own.
         /// </param>
         public RenewalHandler(
-            IRenewalApproval approval, SessionRefusals session, ApprovalBook held, IGateLog log)
-            : this(approval, new PairingOptions(), new AuthorityIssuer(), null, session, log, held)
+            IRenewalApproval approval, SessionRefusals session, ApprovalBook held, AdmissionAudit audit, IGateLog log)
+            : this(approval, new PairingOptions(), new AuthorityIssuer(), null, session, audit, log, held)
         {
         }
 
@@ -94,6 +107,7 @@ namespace KeePassGate.Pairing
             AuthorityIssuer issuer,
             Func<DateTimeOffset> clock,
             SessionRefusals session,
+            AdmissionAudit audit,
             IGateLog log,
             ApprovalBook held = null)
         {
@@ -102,6 +116,7 @@ namespace KeePassGate.Pairing
             _issuer = issuer ?? new AuthorityIssuer();
             _clock = clock ?? (() => DateTimeOffset.UtcNow);
             _session = session ?? new SessionRefusals();
+            _audit = audit ?? new AdmissionAudit(NullGateAudit.Instance);
             _log = log ?? NullGateLog.Instance;
             _held = held ?? new ApprovalBook(_clock);
         }
@@ -209,7 +224,7 @@ namespace KeePassGate.Pairing
                 // can bring one in, and so can the dialog of a renewal that asked for another
                 // lifetime, which is a request of its own. The approval is let go, so the next
                 // renewal after the answer is lifted asks the operator rather than using it.
-                if (Standing(context, target, key))
+                if (Standing(context, target, key, record))
                 {
                     _held.Take(held);
                     return;
@@ -280,7 +295,7 @@ namespace KeePassGate.Pairing
             string approval,
             DateTimeOffset arrived)
         {
-            if (Standing(context, target, key))
+            if (Standing(context, target, key, record))
             {
                 return null;
             }
@@ -327,10 +342,12 @@ namespace KeePassGate.Pairing
             {
                 case PairingDecision.TimedOut:
                     _log.Warn("a renewal by " + CertificateDigest.Shorten(key) + " went unanswered");
+                    _audit.RenewalUnanswered(target.DatabaseId, key, record.ClientKey);
                     context.Respond(504, HttpResponse.ErrorBody("unanswered"));
                     return null;
 
                 case PairingDecision.Unavailable:
+                    // Nobody was asked, so nothing was decided and the audit has nothing to say.
                     _log.Warn("a renewal by " + CertificateDigest.Shorten(key) + " could not be put to anybody: " +
                               decision.Reason);
                     context.Respond(503, HttpResponse.ErrorBody("busy"));
@@ -340,11 +357,16 @@ namespace KeePassGate.Pairing
                     // Unanswered, as a timeout is, so nothing changes; told as every connection to
                     // a locked database is told, since that is what this one now is.
                     _log.Warn("a renewal by " + CertificateDigest.Shorten(key) + " was " + decision.Reason);
+                    _audit.RenewalUnanswered(target.DatabaseId, key, record.ClientKey);
                     context.Respond(503, HttpResponse.ErrorBody(LockedTarget.Error));
                     return null;
 
                 case PairingDecision.Refused:
                     Refused(target, key, decision.Standing);
+
+                    // Which of the four answers the operator gave, whether or not the standing
+                    // half of it could be kept: what is written down is what they decided.
+                    _audit.RenewalRefused(target.DatabaseId, key, record.ClientKey, decision.Standing);
                     context.Respond(403, HttpResponse.ErrorBody("refused"));
                     return null;
             }
@@ -392,7 +414,8 @@ namespace KeePassGate.Pairing
         /// stored until-date is told there too, and once its day begins the session's answer
         /// takes over, so its `notBefore` is not then a moment the operator is asked again.
         /// </remarks>
-        private bool Standing(IGateContext context, IGateTarget target, string key)
+        /// <param name="record">The record being renewed, whose client key the audit line names.</param>
+        private bool Standing(IGateContext context, IGateTarget target, string key, AdmissionRecord record)
         {
             RenewalRefusal standing;
             try
@@ -421,6 +444,10 @@ namespace KeePassGate.Pairing
             {
                 return false;
             }
+
+            // Written down like the dialog's refusals, and paced: nobody is asked, so a client can
+            // send these as fast as it likes, and every one is answered at once.
+            _audit.RenewalRefusedWithoutAsking(target.DatabaseId, key, record.ClientKey, standing);
 
             if (standing.IsForever)
             {
@@ -586,6 +613,12 @@ namespace KeePassGate.Pairing
             {
                 var record = AdmissionRecord.For(certificate, _clock(), profiles, clientKey);
 
+                // Written by the write, as pairing's is, once the new record has landed and before
+                // anything else hears of it. It waits for nothing there, on KeePass's own thread,
+                // so the client's turn for it is taken below, on this connection.
+                var databaseId = target.DatabaseId;
+                var issued = record.AdmissionKey;
+
                 // Asked under the writer's lock, once the database is known to be writable, as
                 // pairing's is: the approval is still held and is used up, and the database still
                 // holds what it was given against. **The record renewed is part of that**, so a
@@ -622,7 +655,8 @@ namespace KeePassGate.Pairing
                 AdmissionWrite written;
                 try
                 {
-                    written = target.Admit(record, condition) ?? AdmissionWrite.Failed("nothing was reported");
+                    written = target.Admit(record, condition, () => _audit.Renewed(databaseId, key, clientKey, issued))
+                              ?? AdmissionWrite.Failed("nothing was reported");
                 }
                 catch (Exception error) when (Expected.OfCustomData(error) || Expected.OfUserInterface(error))
                 {
@@ -639,6 +673,7 @@ namespace KeePassGate.Pairing
                 _log.Info("renewed " + CertificateDigest.Shorten(key) + " as " +
                           CertificateDigest.Shorten(record.AdmissionKey) + " with " +
                           CertificateDigest.Shorten(target.DatabaseId));
+                _audit.TakeTurn(clientKey);
 
                 context.Respond(200, PairingHandler.Bundle(target, certificate, profiles));
             }

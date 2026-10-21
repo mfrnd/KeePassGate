@@ -674,6 +674,11 @@ operator changed. A client wants this for a key it no longer trusts or a certifi
 needs; it grants nothing a client did not already have, since a client that holds a certificate can
 already stop using it.
 
+**Both are written to the audit**, `DESIGN.md` §120, by the key they took away and the client key
+its record carried, at the moment they take effect: the operator's when the dialog's OK lands it,
+its client key read from the record just before OK empties it, and a client's own once its
+revocation is in the database.
+
 Recreating the authority is the other way, and it is the blunt one: it revokes every client at once
 and each has to pair again. That is a recovery from a compromised authority, not a way to remove one
 client.

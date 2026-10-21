@@ -243,6 +243,56 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void What_OK_stored_is_listed_and_a_revocation_already_there_is_not()
+        {
+            // The audit writes one line for each revocation OK puts in, read off this list. The
+            // client that revoked itself while the dialog was open already has its line, and the
+            // operator pressing X on its row too must not give it a second.
+            using (var authority = TestAuthority.New())
+            using (var leaving = authority.IssueClient("agent-fictitious", "ops"))
+            using (var other = authority.IssueClient("agent-invented", "ops"))
+            {
+                var live = new InMemoryKeyValueStore();
+                var store = new AdmissionStore(live, null);
+                store.Write(AdmissionRecord.For(leaving, System.DateTimeOffset.UtcNow, new[] { "ops" }));
+                store.Write(AdmissionRecord.For(other, System.DateTimeOffset.UtcNow, new[] { "ops" }));
+
+                var pending = new PendingDatabase(new FakeGateDatabase(live), null);
+                var page = new AdmissionStore(pending.PluginCustomData, null);
+                Assume.That(page.Remove(CertificateDigest.Of(other)), Is.True);
+                Assume.That(page.Remove(CertificateDigest.Of(leaving)), Is.True);
+                Assume.That(store.Remove(CertificateDigest.Of(leaving)), Is.True);
+
+                Assert.That(pending.Stored, Is.Empty, "nothing is stored before OK");
+
+                pending.Apply();
+
+                Assert.That(pending.Stored, Has.Member(AuthorityKeys.RevocationKey(CertificateDigest.Of(other))));
+                Assert.That(pending.Stored, Has.No.Member(AuthorityKeys.RevocationKey(CertificateDigest.Of(leaving))),
+                    "it was there already, written by the client's own revocation");
+            }
+        }
+
+        [Test]
+        public void A_removal_is_not_listed_as_stored_and_a_cancel_lists_nothing()
+        {
+            var live = new InMemoryKeyValueStore();
+            live.Set("KPG.Old", "going");
+            var pending = new PendingStore(live);
+
+            pending.Set("KPG.Thing", "a value");
+            pending.Remove("KPG.Old");
+            pending.Apply();
+
+            Assert.That(pending.Stored, Is.EqualTo(new[] { "KPG.Thing" }));
+
+            pending.Set("KPG.Other", "never kept");
+            pending.Discard();
+
+            Assert.That(pending.Stored, Is.Empty);
+        }
+
+        [Test]
         public void A_profile_the_operator_removed_still_goes_when_a_pairing_writes_that_key()
         {
             // The other half of a difference being replayed rather than a snapshot: the merge must

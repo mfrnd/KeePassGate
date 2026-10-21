@@ -52,6 +52,57 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void Reached_without_the_routers_answer_it_answers_as_an_absent_node()
+        {
+            // Only an operation the router decided as `any` carries the grants, so the handler
+            // reached without them is a defect, answered as every absence is.
+            var context = Context("GET", "/groups/" + _group + "/access", "reader");
+
+            AccessOperation.Handle(context);
+
+            Assert.That(context.Status, Is.EqualTo(404));
+            Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody(SpecRouter.UnreachableError)));
+        }
+
+        [Test]
+        public void An_entry_that_is_not_there_is_written_down_by_the_identifier_asked_for()
+        {
+            // The 404 a client is told says nothing about which; the line is the operator's, and
+            // without the identifier it could not say which reference a resolve was following.
+            _vault.Granting(_vault.RootAlias, "{\"reader\":[\"read\"]}");
+            var absent = new string('c', 32);
+
+            var answer = Send("GET", "/entries/" + absent, "reader");
+
+            Assert.That(answer.Status, Is.EqualTo(404));
+            var line = _audit.Entries.Single();
+            Assert.That(line.Node, Is.Null);
+            Assert.That(line.Requested, Is.EqualTo(absent));
+            Assert.That(line.Line(), Does.Contain("\"requested\":\"" + absent + "\""));
+        }
+
+        [Test]
+        public void An_entry_that_is_there_is_written_down_by_its_node_alone()
+        {
+            _vault.Granting(_vault.RootAlias, "{\"reader\":[\"read\"]}");
+
+            Assert.That(Send("GET", "/entries/" + _entry, "reader").Status, Is.EqualTo(200));
+            Assert.That(_audit.Entries.Single().Requested, Is.Null);
+            Assert.That(_audit.Entries.Single().Line(), Does.Not.Contain("requested"));
+        }
+
+        [TestCase("root", "root")]
+        [TestCase("0123456789abcdefABCDEF0123456789", "0123456789abcdefABCDEF0123456789")]
+        [TestCase("0123456789abcdefABCDEF012345678", null)]
+        [TestCase("0123456789abcdefABCDEF012345678g", null)]
+        [TestCase("\"},\"decision\":\"permitted\",\"x\":\"", null)]
+        [TestCase(null, null)]
+        public void Only_an_identifier_as_the_routes_write_one_reaches_the_line(string requested, string kept)
+        {
+            Assert.That(AccessCheck.Identifier(requested), Is.EqualTo(kept));
+        }
+
+        [Test]
         public void The_root_group_is_asked_by_its_alias()
         {
             _vault.Granting(_vault.RootAlias, "{\"reader\":[\"list\"]}");

@@ -192,6 +192,51 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void What_is_written_down_names_the_certificate_and_the_client_its_record_belongs_to()
+        {
+            // A client that renewed: the certificate asking is not the one it paired with, and the
+            // line names both, the second as the record carried it to the credential check.
+            var entry = TestNode.Root("root").Granting("reader", AclVerb.Read).Child("an entry");
+            var pairedWith = new string('c', 64);
+
+            ClientIdentity client;
+            using (var authority = TestAuthority.New())
+            using (var certificate = authority.IssueClient("agent-fictitious"))
+            {
+                client = ClientIdentity.Paired("d1e2f3", certificate, new[] { "reader" }, null, pairedWith);
+            }
+
+            _check.Decide(client, "readEntry", AclVerb.Read, AclReach.Fields, entry);
+            _check.Decide(client, "deleteEntry", AclVerb.Delete, AclReach.Fields, entry);
+
+            Assert.That(_audit.Entries.Select(line => line.AdmissionKey), Is.All.EqualTo(client.AdmissionKey));
+            Assert.That(_audit.Entries.Select(line => line.ClientKey), Is.All.EqualTo(pairedWith),
+                "permitted and refused alike");
+            Assert.That(_audit.Entries.Single(line => line.Permitted).Line(),
+                Does.Contain("\"admissionKey\":\"" + client.AdmissionKey + "\",\"clientKey\":\"" + pairedWith + "\""));
+        }
+
+        [Test]
+        public void A_refused_certificate_is_written_down_by_its_own_key_and_no_client()
+        {
+            // No record stands behind it, so there is no client key to name; the admission key is
+            // the one the Clients page revoked.
+            ClientIdentity refused;
+            using (var authority = TestAuthority.New())
+            using (var certificate = authority.IssueClient("agent-fictitious"))
+            {
+                refused = ClientIdentity.Refused("d1e2f3", certificate, "this certificate has no admission record");
+            }
+
+            _check.Refuse(refused, "readEntry");
+
+            var recorded = _audit.Entries.Single();
+            Assert.That(recorded.AdmissionKey, Is.EqualTo(refused.AdmissionKey));
+            Assert.That(recorded.ClientKey, Is.Null);
+            Assert.That(recorded.Line(), Does.Contain("\"clientKey\":null"));
+        }
+
+        [Test]
         public void What_is_written_down_carries_no_profile()
         {
             // A log line says what was decided about a node, not what the client is. Which profiles

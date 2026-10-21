@@ -27,7 +27,8 @@ The first version, so there is nothing earlier to describe a change from: everyt
   expired certificates go with the plugin's next write of its own: a pairing, a renewal, a
   revocation or a change to the authority.
 - **Access rules** on groups and entries, written on the **KPG** tab, and an audit file of every
-  decision they make, which the plugin opens with the right to append and no other.
+  decision they make, every pairing and renewal the operator answers, and every client revoked,
+  which the plugin opens with the right to append and no other.
 - **The API**, whose routes [`openapi.yaml`](src/KeePassGate/Spec/openapi.yaml) declares: a
   database's groups, entries, fields and attachments, who the caller is and what it may do at a
   group or an entry, and which version of the plugin is answering and the commit it was built from.

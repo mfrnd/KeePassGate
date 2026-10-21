@@ -142,6 +142,69 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void A_page_that_fails_after_the_record_landed_cannot_lose_its_audit_line()
+        {
+            // The writer writes the line on its own landed path, before it tells anything drawn
+            // from the records, so a defect in a listener reaches the connection thread with the
+            // record on the disk and written down once.
+            var lines = 0;
+            var linesWhenTold = -1;
+            var writer = new DatabaseWriter(
+                CurrentThread.Instance,
+                Save,
+                null,
+                () =>
+                {
+                    linesWhenTold = lines;
+                    throw new NullReferenceException("a listener's defect");
+                },
+                _dialogs,
+                _log);
+
+            using (var certificate = IssueClient())
+            {
+                var record = Record(certificate, "ops");
+
+                Assert.Throws<NullReferenceException>(
+                    () => writer.WriteAdmission(_database.Database, record, () => lines++));
+
+                Assert.That(lines, Is.EqualTo(1));
+                Assert.That(linesWhenTold, Is.EqualTo(1), "written before the page was told");
+
+                _database.SaveCloseAndReopen();
+
+                Assert.That(
+                    new AdmissionStore(new CustomDataStore(_database.Database), null).Find(record.AdmissionKey),
+                    Is.Not.Null,
+                    "and the record the line is about is in the file");
+            }
+        }
+
+        [Test]
+        public void The_audit_line_is_written_once_for_a_record_that_landed_and_never_otherwise()
+        {
+            var lines = 0;
+            var failing = new DatabaseWriter(
+                CurrentThread.Instance,
+                delegate { throw new System.IO.IOException("the disk said no"); },
+                null,
+                _dialogs,
+                _log);
+
+            using (var refused = IssueClient())
+            using (var admitted = IssueClient())
+            {
+                Assume.That(failing.WriteAdmission(_database.Database, Record(refused, "ops"), () => lines++).Ok,
+                    Is.False);
+                Assert.That(lines, Is.Zero, "a record taken back out admitted nobody");
+
+                Assert.That(_writer.WriteAdmission(_database.Database, Record(admitted, "ops"), () => lines++).Ok,
+                    Is.True);
+                Assert.That(lines, Is.EqualTo(1));
+            }
+        }
+
+        [Test]
         public void KeePass_saying_it_has_no_unsaved_changes_is_what_written_is_made_of()
         {
             // Measured rather than assumed. KeePass's save tells its caller nothing, so the writer
@@ -970,7 +1033,7 @@ namespace KeePassGate.Host.Tests
             }
 
             var connection = new PairingConnection(invitation, target, binding, nonce, "127.0.0.1:60001");
-            var handler = new PairingHandler(book, operatorAt, _log);
+            var handler = new PairingHandler(book, operatorAt, null, _log);
 
             var hello = Post(
                 PairingHandler.HelloPath,

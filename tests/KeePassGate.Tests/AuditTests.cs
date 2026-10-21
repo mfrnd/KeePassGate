@@ -28,7 +28,8 @@ namespace KeePassGate.Tests
             Assert.That(line, Is.EqualTo(
                 "{\"at\":\"2026-03-04T05:06:07Z\"," +
                 "\"database\":\"d1e2f3\"," +
-                "\"client\":\"9f86d081\"," +
+                "\"admissionKey\":\"9f86d081\"," +
+                "\"clientKey\":\"c0ffee11\"," +
                 "\"operation\":\"readEntry\"," +
                 "\"node\":\"7b1c\"," +
                 "\"decidedAt\":\"3a9f\"," +
@@ -40,7 +41,7 @@ namespace KeePassGate.Tests
         public void A_refusal_a_removed_profile_caused_ends_with_the_names_that_would_have_permitted_it()
         {
             var line = new AuditEntry(
-                At, "d1e2f3", "9f86d081", "readEntry", "7b1c", "3a9f", false, "profile removed",
+                At, "d1e2f3", "9f86d081", "c0ffee11", "readEntry", "7b1c", "3a9f", false, "profile removed",
                 new[] { "ops" }).Line();
 
             Assert.That(line, Does.EndWith(
@@ -75,9 +76,10 @@ namespace KeePassGate.Tests
             // says the question did not arise; a missing member says the log was written by
             // something else.
             var line = new AuditEntry(
-                At, "d1e2f3", null, "getStatus", null, null, true, "nothing to decide").Line();
+                At, "d1e2f3", null, null, "getStatus", null, null, true, "nothing to decide").Line();
 
-            Assert.That(line, Does.Contain("\"client\":null"));
+            Assert.That(line, Does.Contain("\"admissionKey\":null"));
+            Assert.That(line, Does.Contain("\"clientKey\":null"));
             Assert.That(line, Does.Contain("\"node\":null"));
             Assert.That(line, Does.Contain("\"decidedAt\":null"));
             Assert.That(line, Does.Not.Contain("removedProfiles"),
@@ -98,7 +100,7 @@ namespace KeePassGate.Tests
             // Nothing a caller sends should reach here, and this is the belt for that brace: a
             // record carrying a newline would end one line early and forge the next.
             var line = new AuditEntry(
-                At, "d1", "k", "op\nsecond", "node\"quoted", "at\"quoted", false, "why\r\nnot").Line();
+                At, "d1", "k", "c", "op\nsecond", "node\"quoted", "at\"quoted", false, "why\r\nnot").Line();
 
             Assert.That(line, Does.Not.Contain("\n"));
             Assert.That(line, Does.Not.Contain("\r"));
@@ -114,10 +116,80 @@ namespace KeePassGate.Tests
         {
             var elsewhere = new AuditEntry(
                 new DateTimeOffset(2026, 3, 4, 7, 6, 7, TimeSpan.FromHours(2)),
-                "d", "k", "op", null, null, true, "why");
+                "d", "k", "c", "op", null, null, true, "why");
 
             Assert.That(elsewhere.Line(), Does.Contain("\"at\":\"2026-03-04T05:06:07Z\""),
                 "a log read on another machine has to mean the same thing");
+        }
+
+        [Test]
+        public void An_approved_pairing_names_its_invitation_and_the_key_it_admitted_and_no_certificate_that_asked()
+        {
+            // Its asker held no certificate yet, so the line names what it asked with instead, and
+            // what the operator's approval admitted, which is the new client's client key as well.
+            var line = AuditEntry.Admission(
+                At, "d1e2f3", null, "9f86d081", "pairRequest", AuditEntry.Approved, "the operator approved it",
+                "invented-invitation", "9f86d081").Line();
+
+            Assert.That(line, Is.EqualTo(
+                "{\"at\":\"2026-03-04T05:06:07Z\"," +
+                "\"database\":\"d1e2f3\"," +
+                "\"admissionKey\":null," +
+                "\"clientKey\":\"9f86d081\"," +
+                "\"operation\":\"pairRequest\"," +
+                "\"node\":null," +
+                "\"decidedAt\":null," +
+                "\"decision\":\"approved\"," +
+                "\"reason\":\"the operator approved it\"," +
+                "\"invitation\":\"invented-invitation\"," +
+                "\"issued\":\"9f86d081\"}"));
+        }
+
+        [Test]
+        public void A_line_about_an_admission_leaves_out_what_it_has_no_part_in()
+        {
+            var refusedPairing = AuditEntry.Admission(
+                At, "d1e2f3", null, null, "pairRequest", AuditEntry.Refused, "the operator refused it",
+                "invented-invitation", null).Line();
+            var renewal = AuditEntry.Admission(
+                At, "d1e2f3", "9f86d081", "c0ffee11", "renewCertificate", AuditEntry.Approved,
+                "the operator approved it", null, "3a9f").Line();
+            var revocation = AuditEntry.Admission(
+                At, "d1e2f3", "9f86d081", "c0ffee11", null, AuditEntry.Revoked, "the operator revoked it", null, null)
+                .Line();
+
+            Assert.That(refusedPairing, Does.Contain("\"invitation\":\"invented-invitation\""));
+            Assert.That(refusedPairing, Does.Not.Contain("issued"), "a refusal admitted nobody");
+            Assert.That(refusedPairing, Does.Contain("\"clientKey\":null"), "so it names no client either");
+            Assert.That(renewal, Does.Contain("\"admissionKey\":\"9f86d081\",\"clientKey\":\"c0ffee11\""));
+            Assert.That(revocation, Does.Contain("\"admissionKey\":\"9f86d081\",\"clientKey\":\"c0ffee11\""));
+            Assert.That(renewal, Does.EndWith("\"issued\":\"3a9f\"}"));
+            Assert.That(renewal, Does.Not.Contain("invitation"), "a renewal arrives on a certificate");
+            Assert.That(revocation, Does.Contain("\"operation\":null"),
+                "the operator's revocation, which no route asked for");
+            Assert.That(revocation, Does.Not.Contain("invitation").And.Not.Contain("issued"));
+        }
+
+        [Test]
+        public void A_decision_about_a_request_carries_neither_note_about_admissions()
+        {
+            var line = Entry(true, "a rule here grants it").Line();
+
+            Assert.That(line, Does.Not.Contain("invitation").And.Not.Contain("issued"));
+        }
+
+        [Test]
+        public void Permitted_is_the_rules_word_and_no_admission_says_it()
+        {
+            // The operator's words are their own, so that a line reading `permitted` still means
+            // only that the rules allowed something.
+            var approved = AuditEntry.Admission(
+                At, "d1e2f3", null, "k", "pairRequest", AuditEntry.Approved, "the operator approved it", "i", "k");
+
+            Assert.That(approved.Permitted, Is.False);
+            Assert.That(approved.Decision, Is.EqualTo("approved"));
+            Assert.That(Entry(true, "a rule here grants it").Permitted, Is.True);
+            Assert.That(Entry(false, "a rule here does not grant it").Decision, Is.EqualTo("refused"));
         }
 
         private static readonly DateTimeOffset At =
@@ -126,7 +198,7 @@ namespace KeePassGate.Tests
         private static AuditEntry Entry(bool permitted, string reason)
         {
             return new AuditEntry(
-                At, "d1e2f3", "9f86d081", "readEntry", "7b1c", "3a9f", permitted, reason);
+                At, "d1e2f3", "9f86d081", "c0ffee11", "readEntry", "7b1c", "3a9f", permitted, reason);
         }
     }
 
@@ -597,9 +669,9 @@ namespace KeePassGate.Tests
             File.WriteAllText(path + ".1", Line(older, "aaaa") + "\n" + Line(newer, "bbbb") + "\n");
 
             var audit = new JsonLinesAudit(path, null);
-            audit.Record(new AuditEntry(newer, "d1e2f3", "aaaa", "getEntry", null, null, true, "why"));
-            audit.Record(new AuditEntry(older, "d1e2f3", "bbbb", "getEntry", null, null, false, "why"));
-            audit.Record(new AuditEntry(newer, "d1e2f3", "cccc", "getEntry", null, null, true, "why"));
+            audit.Record(new AuditEntry(newer, "d1e2f3", "aaaa", "aaaa", "getEntry", null, null, true, "why"));
+            audit.Record(new AuditEntry(older, "d1e2f3", "bbbb", "bbbb", "getEntry", null, null, false, "why"));
+            audit.Record(new AuditEntry(newer, "d1e2f3", "cccc", "cccc", "getEntry", null, null, true, "why"));
 
             var seen = JsonLinesAudit.LastSeen(path, new[] { "aaaa", "bbbb", "dddd" });
 
@@ -607,6 +679,37 @@ namespace KeePassGate.Tests
             Assert.That(seen["bbbb"], Is.EqualTo(newer), "and here it is in the one set aside");
             Assert.That(seen.ContainsKey("cccc"), Is.False, "a client nobody asked about is not reported");
             Assert.That(seen.ContainsKey("dddd"), Is.False, "and one with no line is absent rather than invented");
+        }
+
+        [Test]
+        public void A_pairing_line_does_not_stand_for_a_request_and_a_renewal_or_a_revocation_line_does()
+        {
+            // Step 23's lines: a pairing names its certificate under `issued` and `clientKey` with
+            // `admissionKey` null, so a certificate is last seen by its first request; a renewal is
+            // a request; the operator's revocation names its certificate under `admissionKey`,
+            // which nothing asks about afterwards. The renewal here is of a certificate that came
+            // of renewing `aaaa`, so its client key is `aaaa`, and that is no request by `aaaa`.
+            var path = Path.Combine(_directory, "audit.jsonl");
+            Directory.CreateDirectory(_directory);
+            var older = new DateTimeOffset(2026, 9, 1, 8, 0, 0, TimeSpan.Zero);
+            var newer = new DateTimeOffset(2026, 9, 20, 10, 30, 0, TimeSpan.Zero);
+
+            var audit = new JsonLinesAudit(path, null);
+            audit.Record(AuditEntry.Admission(
+                newer, "d1e2f3", null, "aaaa", "pairRequest", AuditEntry.Approved, "why", "abcdef01", "aaaa"));
+            audit.Record(AuditEntry.Admission(
+                newer, "d1e2f3", "bbbb", "aaaa", "renewCertificate", AuditEntry.Approved, "why", null, "cccc"));
+            audit.Record(new AuditEntry(older, "d1e2f3", "dddd", "dddd", "getEntry", null, null, true, "why"));
+            audit.Record(AuditEntry.Admission(
+                newer, "d1e2f3", "dddd", "dddd", null, AuditEntry.Revoked, "why", null, null));
+
+            var seen = JsonLinesAudit.LastSeen(path, new[] { "aaaa", "bbbb", "cccc", "dddd" });
+
+            Assert.That(seen.ContainsKey("aaaa"), Is.False,
+                "issued on a pairing is not a request, and nor is a client key on a line about another certificate");
+            Assert.That(seen["bbbb"], Is.EqualTo(newer), "the certificate that asked to renew");
+            Assert.That(seen.ContainsKey("cccc"), Is.False, "and not the one issued in its place");
+            Assert.That(seen["dddd"], Is.EqualTo(newer), "the revocation names the certificate it took away");
         }
 
         [Test]
@@ -620,14 +723,14 @@ namespace KeePassGate.Tests
         {
             var path = Path.Combine(_directory, "audit.jsonl");
             Directory.CreateDirectory(_directory);
-            File.WriteAllText(path, "not json at all\n{\"at\":\"yesterday\",\"client\":\"aaaa\"}\n{\"at\":\"2026-09-01T08:00:00Z\"\n");
+            File.WriteAllText(path, "not json at all\n{\"at\":\"yesterday\",\"admissionKey\":\"aaaa\"}\n{\"at\":\"2026-09-01T08:00:00Z\"\n");
 
             Assert.That(JsonLinesAudit.LastSeen(path, new[] { "aaaa" }), Is.Empty);
         }
 
         private static string Line(DateTimeOffset at, string client)
         {
-            return new AuditEntry(at, "d1e2f3", client, "getEntry", null, null, true, "why").Line();
+            return new AuditEntry(at, "d1e2f3", client, client, "getEntry", null, null, true, "why").Line();
         }
 
         /// <summary>
@@ -649,7 +752,7 @@ namespace KeePassGate.Tests
         private static AuditEntry Entry(string operationId, bool permitted)
         {
             return new AuditEntry(
-                DateTimeOffset.UtcNow, "d1e2f3", "9f86d081", operationId, "7b1c", "3a9f", permitted,
+                DateTimeOffset.UtcNow, "d1e2f3", "9f86d081", "9f86d081", operationId, "7b1c", "3a9f", permitted,
                 "why");
         }
     }

@@ -92,6 +92,80 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void A_page_that_fails_after_the_revocation_landed_cannot_lose_its_audit_line()
+        {
+            // The writer writes the line on its own landed path, before it tells anything drawn
+            // from the records, so a defect in a listener reaches the connection thread with the
+            // revocation on the disk and written down once.
+            var key = Admitted();
+            var lines = 0;
+            var linesWhenTold = -1;
+            var writer = new DatabaseWriter(
+                CurrentThread.Instance,
+                Save,
+                null,
+                () =>
+                {
+                    linesWhenTold = lines;
+                    throw new NullReferenceException("a listener's defect");
+                },
+                _dialogs,
+                null);
+
+            Assert.Throws<NullReferenceException>(() => writer.Revoke(_database.Database, key, () => lines++));
+
+            Assert.That(lines, Is.EqualTo(1));
+            Assert.That(linesWhenTold, Is.EqualTo(1), "written before the page was told");
+
+            _database.SaveCloseAndReopen();
+
+            var store = new CustomDataStore(_database.Database);
+            Assert.That(store.Get(AuthorityKeys.RevocationKey(key)), Is.Not.Null.And.Not.Empty,
+                "and the revocation the line is about is in the file");
+        }
+
+        [Test]
+        public void The_audit_line_is_written_once_for_a_revocation_left_in_force_and_never_otherwise()
+        {
+            var lines = 0;
+            var failing = new DatabaseWriter(CurrentThread.Instance, database => { }, null, _dialogs, null);
+
+            Assume.That(failing.Revoke(_database.Database, Admitted(), () => lines++).IsUnsaved, Is.True);
+            Assert.That(lines, Is.Zero, "a revocation taken back out revoked nothing");
+
+            Assume.That(_writer.Revoke(_database.Database, new string('e', 64), () => lines++).Ok, Is.False);
+            Assert.That(lines, Is.Zero, "nor did one with nothing to revoke");
+
+            Assert.That(_writer.Revoke(_database.Database, Admitted(), () => lines++).Ok, Is.True);
+            Assert.That(lines, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void A_revocation_the_file_did_not_keep_is_written_down_since_it_stays_in_force()
+        {
+            var key = Admitted();
+            _database.Save();
+            var theCopyAsItWas = System.IO.File.ReadAllBytes(_database.Path);
+            var lines = 0;
+
+            var writer = new DatabaseWriter(
+                CurrentThread.Instance,
+                database =>
+                {
+                    Save(database);
+                    System.IO.File.WriteAllBytes(_database.Path, theCopyAsItWas);
+                },
+                null,
+                _dialogs,
+                null);
+
+            var result = writer.Revoke(_database.Database, key, () => lines++);
+
+            Assert.That(result.IsUnverified, Is.True, result.Reason);
+            Assert.That(lines, Is.EqualTo(1));
+        }
+
+        [Test]
         public void A_revocation_the_file_did_not_keep_is_announced_since_it_stays_in_force()
         {
             // Saved and not verified, the revocation is left in place and the certificate is
