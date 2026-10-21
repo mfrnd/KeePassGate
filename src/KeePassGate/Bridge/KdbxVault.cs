@@ -168,14 +168,15 @@ namespace KeePassGate.Bridge
                 return null;
             }
 
-            var fields = new Dictionary<string, string>(StringComparer.Ordinal);
+            // In the order KeePass keeps them, which `OrderedFields` promises to keep.
+            var fields = new OrderedFields();
             var guarded = new List<string>();
 
             foreach (var pair in entry.Strings)
             {
                 // As stored, and never compiled: KeePass resolves a reference against the whole
                 // open database, which knows nothing about the rules this answer was allowed by.
-                fields[pair.Key] = pair.Value.ReadString();
+                fields.Set(pair.Key, pair.Value.ReadString());
 
                 if (Guards(pair.Key, pair.Value))
                 {

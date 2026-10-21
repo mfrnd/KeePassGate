@@ -136,6 +136,7 @@ def test_what_a_caller_does_next_is_one_class_each_under_the_one_root() -> None:
         errors.ProtocolError,
         errors.StorageError,
         errors.TransportError,
+        errors.Unresolved,
     )
 
     for kind in separate:
@@ -179,6 +180,15 @@ def test_a_withheld_value_names_the_field_and_what_would_open_it() -> None:
     assert "the rule that lets this client read the entry does not grant `P`" in str(refused)
     assert "operator can add" in str(refused)
     assert "list the entry" in str(errors.Withheld("Title", listed=True))
+
+
+def test_a_withheld_value_reached_through_a_reference_names_the_reference() -> None:
+    # The value asked for was another one, so the message says what stood for this one.
+    refused = errors.Withheld("Password", through="{REF:P@I:" + "A1" * 16 + "}")
+
+    assert refused.name == "Password"
+    assert str(refused).startswith("'Password', which {REF:P@I:A1")
+    assert "read the entry holding it does not grant `P`" in str(refused)
 
 
 def test_a_503_with_a_word_nobody_knows_keeps_it() -> None:

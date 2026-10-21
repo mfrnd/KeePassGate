@@ -321,7 +321,9 @@ the password. To take a retired credential out of a program's reach, take it out
 placeholder such as `{USERNAME}` reaches it as that text, not as the value KeePass would show or
 type, because resolving one reads another entry, or the machine, without asking the rules. An entry
 that borrows its password from another by reference gives a program the reference, and the program
-needs the rules on the other entry to read what it points at.
+needs the rules on the other entry to read what it points at. The reference client follows such a
+reference when it is asked to by reading the other entry through the gate, so the rules on that
+entry decide, and the audit has a line for the read.
 
 **A program's new entry expires only when the program asks it to.** KeePass can give every new
 entry an expiry, under **Tools**, **Options**, **Security**. An entry a program creates gets that

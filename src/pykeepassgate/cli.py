@@ -28,7 +28,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Literal, TypedDict
 
-from . import api, pairing, transport
+from . import api, pairing, refs, transport
 from .credentials import IDENTITY_FILE
 from .errors import GateError, ProtocolError, StorageError
 from .model import TITLE
@@ -270,6 +270,15 @@ def _parser() -> argparse.ArgumentParser:
     )
 
     show.add_argument("uuid", help="the entry's identifier")
+    show.add_argument(
+        "--resolve",
+        action="store_true",
+        help=(
+            "follow field references and placeholders as KeePass would, reading each entry a "
+            "reference names under this client's rules, and fail rather than print a value that "
+            "cannot be given as KeePass would give it. Without it, values print as stored."
+        ),
+    )
     _shared(show)
     _dialed(show)
     show.set_defaults(run=_show)
@@ -1061,6 +1070,16 @@ def _show(arguments: argparse.Namespace) -> int:
         **_dialing(arguments),
     )
     entry = client.entry(arguments.uuid)
+    strings = entry.fields if entry.fields is not None else api.Fields()
+
+    # A withheld value is not a value, and reading one raises, so it is asked about by name rather
+    # than read. Every other one is worked out before anything is printed, so a value `--resolve`
+    # cannot give fails the command with nothing printed rather than half an entry.
+    values = {
+        name: refs.resolve(client, entry, strings[name]) if arguments.resolve else strings[name]
+        for name in strings
+        if name not in entry.withheld
+    }
 
     print(f"uuid:  {entry.uuid}")
     print(f"group: {entry.group}")
@@ -1070,15 +1089,12 @@ def _show(arguments: argparse.Namespace) -> int:
     if hasattr(entry, "expires"):
         print(f"expires: {_shown(entry.expires, entry.expired)}")
 
-    strings = entry.fields if entry.fields is not None else api.Fields()
     for name in sorted(strings):
         guarded = " (protected)" if name in entry.protected else ""
-        # A withheld value is not a value, and reading one raises, so it is asked about by name
-        # rather than read. A value is escaped as a name is, since one line per field is what
-        # this output promises: a line feed in the notes would otherwise print a `Password:` row
-        # of its own, above the real one, written by whoever may change the notes and not the
-        # password.
-        shown = "(withheld)" if name in entry.withheld else _printable(strings[name])
+        # A value is escaped as a name is, since one line per field is what this output promises:
+        # a line feed in the notes would otherwise print a `Password:` row of its own, above the
+        # real one, written by whoever may change the notes and not the password.
+        shown = "(withheld)" if name in entry.withheld else _printable(values[name])
         print(f"{_printable(name)}: {shown}{guarded}")
 
     return 0

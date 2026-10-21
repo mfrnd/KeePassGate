@@ -1,0 +1,981 @@
+{
+  "about": "What KeePass's own placeholder engine makes of field references and placeholders, held against pykeepassgate.refs. The host test ReferenceVectorsTests compiles every value with SprEngine, in the context of its entry, on a throwaway database holding these entries and with KPG_INVENTED_VARIABLE set, and holds keepass to what it makes; it rewrites keepass, and the order of each entry's strings, when KPG_WRITE_REFERENCE_VECTORS is set. resolver says what the client does with each: follows gives what KeePass gives, refuses raises, keeps gives the value as it is.",
+  "keepass": "2.61.1",
+  "entries": [
+    {
+      "uuid": "A1000000000000000000000000000001",
+      "fields": {
+        "Deploy key": "an-invented-deploy-key",
+        "Notes": "invented notes",
+        "Password": "not-a-real-password",
+        "Schlüssel": "an invented umlaut value",
+        "Title": "Invented Service",
+        "URL": "https://invented.example:8443/login?next=home",
+        "UserName": "agent-invented"
+      }
+    },
+    {
+      "uuid": "A1000000000000000000000000000002",
+      "fields": {
+        "Notes": "{REF:N@I:A1000000000000000000000000000001} and {TITLE}",
+        "Password": "{REF:P@I:A1000000000000000000000000000001}",
+        "Title": "Invented Mirror",
+        "URL": "{REF:A@I:A1000000000000000000000000000001}",
+        "UserName": "{REF:U@I:A1000000000000000000000000000001}"
+      }
+    },
+    {
+      "uuid": "A1000000000000000000000000000003",
+      "fields": {
+        "Password": "{REF:P@I:A1000000000000000000000000000002}",
+        "Title": "Invented Chain"
+      }
+    },
+    {
+      "uuid": "A1000000000000000000000000000004",
+      "fields": {
+        "Deploy key": "{REF:P@I:A1000000000000000000000000000001}",
+        "Notes": "{password}",
+        "Password": "{USERNAME}:{S:Deploy key}",
+        "Title": "Invented Composite",
+        "URL": "{S:missing}",
+        "UserName": "{TITLE}-user"
+      }
+    },
+    {
+      "uuid": "A1000000000000000000000000000005",
+      "fields": {
+        "Password": "{REF:P@I:A1000000000000000000000000000006}",
+        "Title": "Invented Cycle A"
+      }
+    },
+    {
+      "uuid": "A1000000000000000000000000000006",
+      "fields": {
+        "Password": "{REF:P@I:A1000000000000000000000000000005}",
+        "Title": "Invented Cycle B"
+      }
+    },
+    {
+      "uuid": "A1000000000000000000000000000007",
+      "fields": {
+        "Notes": "{USERNAME} {NOTES}",
+        "Title": "{TITLE}"
+      }
+    },
+    {
+      "uuid": "A1000000000000000000000000000008",
+      "fields": {
+        "Title": "Invented Bare"
+      }
+    },
+    {
+      "uuid": "A1000000000000000000000000000009",
+      "fields": {
+        "Brace": "{",
+        "Title": "Invented Pieces",
+        "URL": "https://pieces.invented.example",
+        "Zeta brace": "{"
+      }
+    },
+    {
+      "uuid": "A100000000000000000000000000000A",
+      "fields": {
+        "Notes": "{UUID}",
+        "Title": "Invented Inner"
+      }
+    },
+    {
+      "uuid": "A100000000000000000000000000000B",
+      "fields": {
+        "}ü{S:": "an invented overlap value",
+        "Title": "Invented Greek",
+        "ᾀ": "an invented iota value"
+      }
+    },
+    {
+      "uuid": "A100000000000000000000000000000C",
+      "fields": {
+        "Pass­word": "an invented look-alike value",
+        "Title": "Invented Look-alike"
+      }
+    },
+    {
+      "uuid": "B1000000000000000000000000000001",
+      "fields": {
+        "Password": "{REF:P@I:B1000000000000000000000000000002}",
+        "Title": "Invented Link 1"
+      }
+    },
+    {
+      "uuid": "B1000000000000000000000000000002",
+      "fields": {
+        "Password": "{REF:P@I:B1000000000000000000000000000003}",
+        "Title": "Invented Link 2"
+      }
+    },
+    {
+      "uuid": "B1000000000000000000000000000003",
+      "fields": {
+        "Password": "{REF:P@I:B1000000000000000000000000000004}",
+        "Title": "Invented Link 3"
+      }
+    },
+    {
+      "uuid": "B1000000000000000000000000000004",
+      "fields": {
+        "Password": "{REF:P@I:B1000000000000000000000000000005}",
+        "Title": "Invented Link 4"
+      }
+    },
+    {
+      "uuid": "B1000000000000000000000000000005",
+      "fields": {
+        "Password": "{REF:P@I:B1000000000000000000000000000006}",
+        "Title": "Invented Link 5"
+      }
+    },
+    {
+      "uuid": "B1000000000000000000000000000006",
+      "fields": {
+        "Password": "{REF:P@I:B1000000000000000000000000000007}",
+        "Title": "Invented Link 6"
+      }
+    },
+    {
+      "uuid": "B1000000000000000000000000000007",
+      "fields": {
+        "Password": "{REF:P@I:B1000000000000000000000000000008}",
+        "Title": "Invented Link 7"
+      }
+    },
+    {
+      "uuid": "B1000000000000000000000000000008",
+      "fields": {
+        "Password": "{REF:P@I:B1000000000000000000000000000009}",
+        "Title": "Invented Link 8"
+      }
+    },
+    {
+      "uuid": "B1000000000000000000000000000009",
+      "fields": {
+        "Password": "{REF:P@I:B100000000000000000000000000000A}",
+        "Title": "Invented Link 9"
+      }
+    },
+    {
+      "uuid": "B100000000000000000000000000000A",
+      "fields": {
+        "Password": "{REF:P@I:B100000000000000000000000000000B}",
+        "Title": "Invented Link 10"
+      }
+    },
+    {
+      "uuid": "B100000000000000000000000000000B",
+      "fields": {
+        "Password": "{REF:P@I:B100000000000000000000000000000C}",
+        "Title": "Invented Link 11"
+      }
+    },
+    {
+      "uuid": "B100000000000000000000000000000C",
+      "fields": {
+        "Password": "the end of an invented chain",
+        "Title": "Invented Link 12"
+      }
+    },
+    {
+      "uuid": "C1000000000000000000000000000001",
+      "fields": {
+        "Password": "{REF:P@I:C1000000000000000000000000000002}",
+        "Title": "Invented chain 1"
+      }
+    },
+    {
+      "uuid": "C1000000000000000000000000000002",
+      "fields": {
+        "Password": "{REF:P@I:C1000000000000000000000000000003}",
+        "Title": "Invented chain 2"
+      }
+    },
+    {
+      "uuid": "C1000000000000000000000000000003",
+      "fields": {
+        "Password": "{REF:P@I:C1000000000000000000000000000004}",
+        "Title": "Invented chain 3"
+      }
+    },
+    {
+      "uuid": "C1000000000000000000000000000004",
+      "fields": {
+        "Password": "{REF:P@I:C1000000000000000000000000000005}",
+        "Title": "Invented chain 4"
+      }
+    },
+    {
+      "uuid": "C1000000000000000000000000000005",
+      "fields": {
+        "Password": "{REF:P@I:C1000000000000000000000000000006}",
+        "Title": "Invented chain 5"
+      }
+    },
+    {
+      "uuid": "C1000000000000000000000000000006",
+      "fields": {
+        "Password": "{REF:P@I:C1000000000000000000000000000007}",
+        "Title": "Invented chain 6"
+      }
+    },
+    {
+      "uuid": "C1000000000000000000000000000007",
+      "fields": {
+        "Password": "{REF:P@I:C1000000000000000000000000000008}",
+        "Title": "Invented chain 7"
+      }
+    },
+    {
+      "uuid": "C1000000000000000000000000000008",
+      "fields": {
+        "Password": "{REF:P@I:C1000000000000000000000000000009}",
+        "Title": "Invented chain 8"
+      }
+    },
+    {
+      "uuid": "C1000000000000000000000000000009",
+      "fields": {
+        "Password": "{REF:P@I:C100000000000000000000000000000A}",
+        "Title": "Invented chain 9"
+      }
+    },
+    {
+      "uuid": "C100000000000000000000000000000A",
+      "fields": {
+        "Password": "the end of a cached chain",
+        "Title": "Invented chain 10"
+      }
+    },
+    {
+      "uuid": "C100000000000000000000000000000C",
+      "fields": {
+        "Notes": "{REF:P@I:C1000000000000000000000000000001}{REF:P@I:C1000000000000000000000000000002}",
+        "Title": "Invented cache"
+      }
+    },
+    {
+      "uuid": "C100000000000000000000000000000D",
+      "fields": {
+        "Password": "{REF:T@I:A1000000000000000000000000000001}",
+        "Title": "Invented echo"
+      }
+    }
+  ],
+  "cases": [
+    {
+      "name": "the title",
+      "entry": "A1000000000000000000000000000001",
+      "value": "{TITLE}",
+      "resolver": "follows",
+      "keepass": "Invented Service"
+    },
+    {
+      "name": "the user name",
+      "entry": "A1000000000000000000000000000001",
+      "value": "{USERNAME}",
+      "resolver": "follows",
+      "keepass": "agent-invented"
+    },
+    {
+      "name": "the password",
+      "entry": "A1000000000000000000000000000001",
+      "value": "{PASSWORD}",
+      "resolver": "follows",
+      "keepass": "not-a-real-password"
+    },
+    {
+      "name": "the URL",
+      "entry": "A1000000000000000000000000000001",
+      "value": "{URL}",
+      "resolver": "follows",
+      "keepass": "https://invented.example:8443/login?next=home"
+    },
+    {
+      "name": "the notes",
+      "entry": "A1000000000000000000000000000001",
+      "value": "{NOTES}",
+      "resolver": "follows",
+      "keepass": "invented notes"
+    },
+    {
+      "name": "a custom string",
+      "entry": "A1000000000000000000000000000001",
+      "value": "{S:Deploy key}",
+      "resolver": "follows",
+      "keepass": "an-invented-deploy-key"
+    },
+    {
+      "name": "placeholders in text",
+      "entry": "A1000000000000000000000000000001",
+      "value": "user {USERNAME} at {URL}",
+      "resolver": "follows",
+      "keepass": "user agent-invented at https://invented.example:8443/login?next=home"
+    },
+    {
+      "name": "spelled in any case",
+      "entry": "A1000000000000000000000000000001",
+      "value": "{title} / {UserName} / {s:deploy KEY}",
+      "resolver": "follows",
+      "keepass": "Invented Service / agent-invented / an-invented-deploy-key"
+    },
+    {
+      "name": "a custom name in another case, beyond ASCII",
+      "entry": "A1000000000000000000000000000001",
+      "value": "{S:SCHLÜSSEL}",
+      "resolver": "refuses",
+      "keepass": "an invented umlaut value"
+    },
+    {
+      "name": "the same placeholder twice",
+      "entry": "A1000000000000000000000000000001",
+      "value": "{TITLE}{TITLE}",
+      "resolver": "follows",
+      "keepass": "Invented ServiceInvented Service"
+    },
+    {
+      "name": "an i with no dot for an i",
+      "entry": "A1000000000000000000000000000001",
+      "value": "{tıtle}",
+      "resolver": "follows",
+      "keepass": "{tıtle}"
+    },
+    {
+      "name": "a long s for an s",
+      "entry": "A1000000000000000000000000000001",
+      "value": "{ſ:Deploy key}",
+      "resolver": "follows",
+      "keepass": "{ſ:Deploy key}"
+    },
+    {
+      "name": "a sharp s for two",
+      "entry": "A1000000000000000000000000000001",
+      "value": "{S:Schlüßel}",
+      "resolver": "follows",
+      "keepass": "{S:Schlüßel}"
+    },
+    {
+      "name": "a custom string the entry does not hold",
+      "entry": "A1000000000000000000000000000001",
+      "value": "{S:Missing}",
+      "resolver": "follows",
+      "keepass": "{S:Missing}"
+    },
+    {
+      "name": "a standard field spelled as a custom one",
+      "entry": "A1000000000000000000000000000001",
+      "value": "{S:Password}",
+      "resolver": "follows",
+      "keepass": "{S:Password}"
+    },
+    {
+      "name": "a standard field the entry does not hold",
+      "entry": "A1000000000000000000000000000008",
+      "value": "[{USERNAME}][{PASSWORD}][{URL}][{NOTES}]",
+      "resolver": "follows",
+      "keepass": "[][][][]"
+    },
+    {
+      "name": "a reference to T",
+      "entry": "A1000000000000000000000000000008",
+      "value": "{REF:T@I:A1000000000000000000000000000001}",
+      "resolver": "follows",
+      "keepass": "Invented Service"
+    },
+    {
+      "name": "a reference to U",
+      "entry": "A1000000000000000000000000000008",
+      "value": "{REF:U@I:A1000000000000000000000000000001}",
+      "resolver": "follows",
+      "keepass": "agent-invented"
+    },
+    {
+      "name": "a reference to P",
+      "entry": "A1000000000000000000000000000008",
+      "value": "{REF:P@I:A1000000000000000000000000000001}",
+      "resolver": "follows",
+      "keepass": "not-a-real-password"
+    },
+    {
+      "name": "a reference to A",
+      "entry": "A1000000000000000000000000000008",
+      "value": "{REF:A@I:A1000000000000000000000000000001}",
+      "resolver": "follows",
+      "keepass": "https://invented.example:8443/login?next=home"
+    },
+    {
+      "name": "a reference to N",
+      "entry": "A1000000000000000000000000000008",
+      "value": "{REF:N@I:A1000000000000000000000000000001}",
+      "resolver": "follows",
+      "keepass": "invented notes"
+    },
+    {
+      "name": "a reference to the identifier, spelled in lower case",
+      "entry": "A1000000000000000000000000000008",
+      "value": "{REF:I@I:a1000000000000000000000000000001}",
+      "resolver": "follows",
+      "keepass": "A1000000000000000000000000000001"
+    },
+    {
+      "name": "a reference spelled in lower case",
+      "entry": "A1000000000000000000000000000008",
+      "value": "{ref:p@i:a1000000000000000000000000000001}",
+      "resolver": "follows",
+      "keepass": "not-a-real-password"
+    },
+    {
+      "name": "a reference searching by an i with no dot",
+      "entry": "A1000000000000000000000000000008",
+      "value": "{REF:P@ı:A1000000000000000000000000000001}",
+      "resolver": "follows",
+      "keepass": "{REF:P@ı:A1000000000000000000000000000001}"
+    },
+    {
+      "name": "a reference in text",
+      "entry": "A1000000000000000000000000000008",
+      "value": "key={REF:P@I:A1000000000000000000000000000001};",
+      "resolver": "follows",
+      "keepass": "key=not-a-real-password;"
+    },
+    {
+      "name": "the same reference twice",
+      "entry": "A1000000000000000000000000000008",
+      "value": "{REF:U@I:A1000000000000000000000000000001}/{ref:u@i:A1000000000000000000000000000001}",
+      "resolver": "follows",
+      "keepass": "agent-invented/agent-invented"
+    },
+    {
+      "name": "a field that is a reference",
+      "entry": "A1000000000000000000000000000002",
+      "value": "{USERNAME}",
+      "resolver": "follows",
+      "keepass": "agent-invented"
+    },
+    {
+      "name": "a reference compiled in its own entry",
+      "entry": "A1000000000000000000000000000008",
+      "value": "{REF:N@I:A1000000000000000000000000000002}",
+      "resolver": "follows",
+      "keepass": "invented notes and Invented Mirror"
+    },
+    {
+      "name": "a referenced entry's own placeholders",
+      "entry": "A1000000000000000000000000000002",
+      "value": "{NOTES}",
+      "resolver": "follows",
+      "keepass": "invented notes and Invented Mirror"
+    },
+    {
+      "name": "a reference to a reference",
+      "entry": "A1000000000000000000000000000003",
+      "value": "{PASSWORD}",
+      "resolver": "follows",
+      "keepass": "not-a-real-password"
+    },
+    {
+      "name": "placeholders and references together",
+      "entry": "A1000000000000000000000000000004",
+      "value": "{PASSWORD}",
+      "resolver": "follows",
+      "keepass": "Invented Composite-user:not-a-real-password"
+    },
+    {
+      "name": "a field holding a lower case placeholder",
+      "entry": "A1000000000000000000000000000004",
+      "value": "{NOTES}",
+      "resolver": "follows",
+      "keepass": "Invented Composite-user:not-a-real-password"
+    },
+    {
+      "name": "a field holding a custom string nobody has",
+      "entry": "A1000000000000000000000000000004",
+      "value": "{URL}",
+      "resolver": "follows",
+      "keepass": "{S:missing}"
+    },
+    {
+      "name": "eleven references deep",
+      "entry": "A1000000000000000000000000000008",
+      "value": "{REF:P@I:B1000000000000000000000000000002}",
+      "resolver": "follows",
+      "keepass": "the end of an invented chain"
+    },
+    {
+      "name": "an unknown placeholder",
+      "entry": "A1000000000000000000000000000001",
+      "value": "{FOO}",
+      "resolver": "follows",
+      "keepass": "{FOO}"
+    },
+    {
+      "name": "braces in a password",
+      "entry": "A1000000000000000000000000000001",
+      "value": "a{b}c{",
+      "resolver": "follows",
+      "keepass": "a{b}c{"
+    },
+    {
+      "name": "an auto-type key",
+      "entry": "A1000000000000000000000000000001",
+      "value": "{TAB}{ENTER}",
+      "resolver": "follows",
+      "keepass": "{TAB}{ENTER}"
+    },
+    {
+      "name": "an empty pair",
+      "entry": "A1000000000000000000000000000001",
+      "value": "{}",
+      "resolver": "follows",
+      "keepass": "{}"
+    },
+    {
+      "name": "a brace around a placeholder",
+      "entry": "A1000000000000000000000000000001",
+      "value": "{{TITLE}}",
+      "resolver": "follows",
+      "keepass": "{Invented Service}"
+    },
+    {
+      "name": "a reference with nothing to search",
+      "entry": "A1000000000000000000000000000001",
+      "value": "{REF:P@I}",
+      "resolver": "follows",
+      "keepass": "{REF:P@I}"
+    },
+    {
+      "name": "a reference with no separator",
+      "entry": "A1000000000000000000000000000001",
+      "value": "{REF:PI:A1000000000000000000000000000001}",
+      "resolver": "follows",
+      "keepass": "{REF:PI:A1000000000000000000000000000001}"
+    },
+    {
+      "name": "a reference asking for no field there is",
+      "entry": "A1000000000000000000000000000001",
+      "value": "{REF:Z@I:A1000000000000000000000000000001}",
+      "resolver": "follows",
+      "keepass": "{REF:Z@I:A1000000000000000000000000000001}"
+    },
+    {
+      "name": "a reference searching nothing there is",
+      "entry": "A1000000000000000000000000000001",
+      "value": "{REF:P@X:anything}",
+      "resolver": "follows",
+      "keepass": "{REF:P@X:anything}"
+    },
+    {
+      "name": "a reference never closed",
+      "entry": "A1000000000000000000000000000001",
+      "value": "{REF:P@I:A1000000000000000000000000000001",
+      "resolver": "follows",
+      "keepass": "{REF:P@I:A1000000000000000000000000000001"
+    },
+    {
+      "name": "a reference never closed after a pair of braces",
+      "entry": "A1000000000000000000000000000001",
+      "value": "{x} {REF:P@I:A1000000000000000000000000000001",
+      "resolver": "follows",
+      "keepass": "{x} {REF:P@I:A1000000000000000000000000000001"
+    },
+    {
+      "name": "an environment variable nobody set",
+      "entry": "A1000000000000000000000000000001",
+      "value": "%KPG_NO_SUCH_VARIABLE%",
+      "resolver": "follows",
+      "keepass": "%KPG_NO_SUCH_VARIABLE%"
+    },
+    {
+      "name": "a percent sign",
+      "entry": "A1000000000000000000000000000001",
+      "value": "100% invented",
+      "resolver": "follows",
+      "keepass": "100% invented"
+    },
+    {
+      "name": "a reference after nineteen KeePass skips",
+      "entry": "A1000000000000000000000000000008",
+      "value": "{REF:Z@I:A1000000000000000000000000000001}{REF:Z@I:A1000000000000000000000000000001}{REF:Z@I:A1000000000000000000000000000001}{REF:Z@I:A1000000000000000000000000000001}{REF:Z@I:A1000000000000000000000000000001}{REF:Z@I:A1000000000000000000000000000001}{REF:Z@I:A1000000000000000000000000000001}{REF:Z@I:A1000000000000000000000000000001}{REF:Z@I:A1000000000000000000000000000001}{REF:Z@I:A1000000000000000000000000000001}{REF:Z@I:A1000000000000000000000000000001}{REF:Z@I:A1000000000000000000000000000001}{REF:Z@I:A1000000000000000000000000000001}{REF:Z@I:A1000000000000000000000000000001}{REF:Z@I:A1000000000000000000000000000001}{REF:Z@I:A1000000000000000000000000000001}{REF:Z@I:A1000000000000000000000000000001}{REF:Z@I:A1000000000000000000000000000001}{REF:Z@I:A1000000000000000000000000000001}{REF:T@I:A1000000000000000000000000000001}",
+      "resolver": "follows",
+      "keepass": "{REF:Z@I:A1000000000000000000000000000001}{REF:Z@I:A1000000000000000000000000000001}{REF:Z@I:A1000000000000000000000000000001}{REF:Z@I:A1000000000000000000000000000001}{REF:Z@I:A1000000000000000000000000000001}{REF:Z@I:A1000000000000000000000000000001}{REF:Z@I:A1000000000000000000000000000001}{REF:Z@I:A1000000000000000000000000000001}{REF:Z@I:A1000000000000000000000000000001}{REF:Z@I:A1000000000000000000000000000001}{REF:Z@I:A1000000000000000000000000000001}{REF:Z@I:A1000000000000000000000000000001}{REF:Z@I:A1000000000000000000000000000001}{REF:Z@I:A1000000000000000000000000000001}{REF:Z@I:A1000000000000000000000000000001}{REF:Z@I:A1000000000000000000000000000001}{REF:Z@I:A1000000000000000000000000000001}{REF:Z@I:A1000000000000000000000000000001}{REF:Z@I:A1000000000000000000000000000001}Invented Service"
+    },
+    {
+      "name": "a reference after twenty KeePass skips",
+      "entry": "A1000000000000000000000000000008",
+      "value": "{REF:Z@I:A1000000000000000000000000000001}{REF:Z@I:A1000000000000000000000000000001}{REF:Z@I:A1000000000000000000000000000001}{REF:Z@I:A1000000000000000000000000000001}{REF:Z@I:A1000000000000000000000000000001}{REF:Z@I:A1000000000000000000000000000001}{REF:Z@I:A1000000000000000000000000000001}{REF:Z@I:A1000000000000000000000000000001}{REF:Z@I:A1000000000000000000000000000001}{REF:Z@I:A1000000000000000000000000000001}{REF:Z@I:A1000000000000000000000000000001}{REF:Z@I:A1000000000000000000000000000001}{REF:Z@I:A1000000000000000000000000000001}{REF:Z@I:A1000000000000000000000000000001}{REF:Z@I:A1000000000000000000000000000001}{REF:Z@I:A1000000000000000000000000000001}{REF:Z@I:A1000000000000000000000000000001}{REF:Z@I:A1000000000000000000000000000001}{REF:Z@I:A1000000000000000000000000000001}{REF:Z@I:A1000000000000000000000000000001}{REF:T@I:A1000000000000000000000000000001}",
+      "resolver": "follows",
+      "keepass": "{REF:Z@I:A1000000000000000000000000000001}{REF:Z@I:A1000000000000000000000000000001}{REF:Z@I:A1000000000000000000000000000001}{REF:Z@I:A1000000000000000000000000000001}{REF:Z@I:A1000000000000000000000000000001}{REF:Z@I:A1000000000000000000000000000001}{REF:Z@I:A1000000000000000000000000000001}{REF:Z@I:A1000000000000000000000000000001}{REF:Z@I:A1000000000000000000000000000001}{REF:Z@I:A1000000000000000000000000000001}{REF:Z@I:A1000000000000000000000000000001}{REF:Z@I:A1000000000000000000000000000001}{REF:Z@I:A1000000000000000000000000000001}{REF:Z@I:A1000000000000000000000000000001}{REF:Z@I:A1000000000000000000000000000001}{REF:Z@I:A1000000000000000000000000000001}{REF:Z@I:A1000000000000000000000000000001}{REF:Z@I:A1000000000000000000000000000001}{REF:Z@I:A1000000000000000000000000000001}{REF:Z@I:A1000000000000000000000000000001}{REF:T@I:A1000000000000000000000000000001}"
+    },
+    {
+      "name": "a placeholder made by an earlier string",
+      "entry": "A1000000000000000000000000000009",
+      "value": "{S:Brace}TITLE}",
+      "resolver": "follows",
+      "keepass": "Invented Pieces"
+    },
+    {
+      "name": "a placeholder made by a later string",
+      "entry": "A1000000000000000000000000000009",
+      "value": "{S:Zeta brace}TITLE}",
+      "resolver": "follows",
+      "keepass": "{TITLE}"
+    },
+    {
+      "name": "a URL placeholder made late",
+      "entry": "A1000000000000000000000000000009",
+      "value": "{S:Zeta brace}URL}",
+      "resolver": "refuses",
+      "keepass": "https://pieces.invented.example"
+    },
+    {
+      "name": "a search by title",
+      "entry": "A1000000000000000000000000000008",
+      "value": "{REF:P@T:Invented Service}",
+      "resolver": "refuses",
+      "keepass": "not-a-real-password"
+    },
+    {
+      "name": "a search by user name",
+      "entry": "A1000000000000000000000000000008",
+      "value": "{REF:T@U:agent-invented}",
+      "resolver": "refuses",
+      "keepass": "Invented Service"
+    },
+    {
+      "name": "a search by password",
+      "entry": "A1000000000000000000000000000008",
+      "value": "{REF:T@P:not-a-real-password}",
+      "resolver": "refuses",
+      "keepass": "Invented Service"
+    },
+    {
+      "name": "a search by URL",
+      "entry": "A1000000000000000000000000000008",
+      "value": "{REF:T@A:invented.example}",
+      "resolver": "refuses",
+      "keepass": "Invented Service"
+    },
+    {
+      "name": "a search by notes",
+      "entry": "A1000000000000000000000000000008",
+      "value": "{REF:T@N:invented notes}",
+      "resolver": "refuses",
+      "keepass": "Invented Service"
+    },
+    {
+      "name": "a search in other strings",
+      "entry": "A1000000000000000000000000000008",
+      "value": "{REF:T@O:an-invented-deploy-key}",
+      "resolver": "refuses",
+      "keepass": "Invented Service"
+    },
+    {
+      "name": "part of an identifier",
+      "entry": "A1000000000000000000000000000008",
+      "value": "{REF:T@I:00000001}",
+      "resolver": "refuses",
+      "keepass": "Invented Service"
+    },
+    {
+      "name": "an identifier after a space",
+      "entry": "A1000000000000000000000000000008",
+      "value": "{REF:T@I: A1000000000000000000000000000001}",
+      "resolver": "refuses",
+      "keepass": "Invented Service"
+    },
+    {
+      "name": "an identifier negated",
+      "entry": "A1000000000000000000000000000008",
+      "value": "{REF:T@I:-A1000000000000000000000000000001}",
+      "resolver": "refuses",
+      "keepass": "Invented Mirror"
+    },
+    {
+      "name": "a cycle of references",
+      "entry": "A1000000000000000000000000000005",
+      "value": "{PASSWORD}",
+      "resolver": "refuses",
+      "keepass": ""
+    },
+    {
+      "name": "a field naming itself",
+      "entry": "A1000000000000000000000000000007",
+      "value": "{TITLE}",
+      "resolver": "refuses",
+      "keepass": ""
+    },
+    {
+      "name": "twelve references deep",
+      "entry": "A1000000000000000000000000000008",
+      "value": "{REF:P@I:B1000000000000000000000000000001}",
+      "resolver": "refuses",
+      "keepass": ""
+    },
+    {
+      "name": "a referenced field holding a placeholder this does not follow",
+      "entry": "A1000000000000000000000000000008",
+      "value": "{REF:N@I:A100000000000000000000000000000A}",
+      "resolver": "refuses",
+      "keepass": "A100000000000000000000000000000A"
+    },
+    {
+      "name": "{UUID} in text",
+      "entry": "A1000000000000000000000000000001",
+      "value": "[{UUID}]",
+      "resolver": "refuses",
+      "keepass": "[A1000000000000000000000000000001]"
+    },
+    {
+      "name": "{GROUP} in text",
+      "entry": "A1000000000000000000000000000001",
+      "value": "[{GROUP}]",
+      "resolver": "refuses",
+      "keepass": "[Invented]"
+    },
+    {
+      "name": "{GROUP_PATH} in text",
+      "entry": "A1000000000000000000000000000001",
+      "value": "[{GROUP_PATH}]",
+      "resolver": "refuses",
+      "keepass": "[Invented]"
+    },
+    {
+      "name": "{GROUPPATH} in text",
+      "entry": "A1000000000000000000000000000001",
+      "value": "[{GROUPPATH}]",
+      "resolver": "refuses",
+      "keepass": "[Invented]"
+    },
+    {
+      "name": "{GROUP_NOTES} in text",
+      "entry": "A1000000000000000000000000000001",
+      "value": "[{GROUP_NOTES}]",
+      "resolver": "refuses",
+      "keepass": "[]"
+    },
+    {
+      "name": "{URL:RMVSCM} in text",
+      "entry": "A1000000000000000000000000000001",
+      "value": "[{URL:RMVSCM}]",
+      "resolver": "refuses",
+      "keepass": "[invented.example:8443/login?next=home]"
+    },
+    {
+      "name": "{URL:SCM} in text",
+      "entry": "A1000000000000000000000000000001",
+      "value": "[{URL:SCM}]",
+      "resolver": "refuses",
+      "keepass": "[https]"
+    },
+    {
+      "name": "{URL:HOST} in text",
+      "entry": "A1000000000000000000000000000001",
+      "value": "[{URL:HOST}]",
+      "resolver": "refuses",
+      "keepass": "[invented.example]"
+    },
+    {
+      "name": "{URL:PORT} in text",
+      "entry": "A1000000000000000000000000000001",
+      "value": "[{URL:PORT}]",
+      "resolver": "refuses",
+      "keepass": "[8443]"
+    },
+    {
+      "name": "{URL:PATH} in text",
+      "entry": "A1000000000000000000000000000001",
+      "value": "[{URL:PATH}]",
+      "resolver": "refuses",
+      "keepass": "[/login]"
+    },
+    {
+      "name": "{URL:QUERY} in text",
+      "entry": "A1000000000000000000000000000001",
+      "value": "[{URL:QUERY}]",
+      "resolver": "refuses",
+      "keepass": "[?next=home]"
+    },
+    {
+      "name": "{URL:USERINFO} in text",
+      "entry": "A1000000000000000000000000000001",
+      "value": "[{URL:USERINFO}]",
+      "resolver": "refuses",
+      "keepass": "[]"
+    },
+    {
+      "name": "{URL:USERNAME} in text",
+      "entry": "A1000000000000000000000000000001",
+      "value": "[{URL:USERNAME}]",
+      "resolver": "refuses",
+      "keepass": "[]"
+    },
+    {
+      "name": "{URL:PASSWORD} in text",
+      "entry": "A1000000000000000000000000000001",
+      "value": "[{URL:PASSWORD}]",
+      "resolver": "refuses",
+      "keepass": "[]"
+    },
+    {
+      "name": "{T-CONV:/abc/U/} in text",
+      "entry": "A1000000000000000000000000000001",
+      "value": "[{T-CONV:/abc/U/}]",
+      "resolver": "refuses",
+      "keepass": "[ABC]"
+    },
+    {
+      "name": "{T-REPLACE-RX:/abc/b/x/} in text",
+      "entry": "A1000000000000000000000000000001",
+      "value": "[{T-REPLACE-RX:/abc/b/x/}]",
+      "resolver": "refuses",
+      "keepass": "[axc]"
+    },
+    {
+      "name": "{C:an invented comment} in text",
+      "entry": "A1000000000000000000000000000001",
+      "value": "[{C:an invented comment}]",
+      "resolver": "refuses",
+      "keepass": "[]"
+    },
+    {
+      "name": "{BASE} in text",
+      "entry": "A1000000000000000000000000000001",
+      "value": "[{BASE}]",
+      "resolver": "refuses",
+      "keepass": "[]"
+    },
+    {
+      "name": "{BASE:HOST} in text",
+      "entry": "A1000000000000000000000000000001",
+      "value": "[{BASE:HOST}]",
+      "resolver": "refuses",
+      "keepass": "[]"
+    },
+    {
+      "name": "{DB_PATH} in text",
+      "entry": "A1000000000000000000000000000001",
+      "value": "[{DB_PATH}]",
+      "resolver": "refuses",
+      "keepass": "[invented.kdbx]"
+    },
+    {
+      "name": "{DB_DIR} in text",
+      "entry": "A1000000000000000000000000000001",
+      "value": "[{DB_DIR}]",
+      "resolver": "refuses",
+      "keepass": "[]"
+    },
+    {
+      "name": "{DB_NAME} in text",
+      "entry": "A1000000000000000000000000000001",
+      "value": "[{DB_NAME}]",
+      "resolver": "refuses",
+      "keepass": "[invented.kdbx]"
+    },
+    {
+      "name": "{DB_BASENAME} in text",
+      "entry": "A1000000000000000000000000000001",
+      "value": "[{DB_BASENAME}]",
+      "resolver": "refuses",
+      "keepass": "[invented]"
+    },
+    {
+      "name": "{DB_EXT} in text",
+      "entry": "A1000000000000000000000000000001",
+      "value": "[{DB_EXT}]",
+      "resolver": "refuses",
+      "keepass": "[kdbx]"
+    },
+    {
+      "name": "{DOCDIR} in text",
+      "entry": "A1000000000000000000000000000001",
+      "value": "[{DOCDIR}]",
+      "resolver": "refuses",
+      "keepass": "[]"
+    },
+    {
+      "name": "{ENV_DIRSEP} in text",
+      "entry": "A1000000000000000000000000000001",
+      "value": "[{ENV_DIRSEP}]",
+      "resolver": "refuses",
+      "keepass": "[\\]"
+    },
+    {
+      "name": "{CLEARFIELD} in text",
+      "entry": "A1000000000000000000000000000001",
+      "value": "[{CLEARFIELD}]",
+      "resolver": "refuses",
+      "keepass": "[{HOME}+({END}){BKSP}{DELAY 50}]"
+    },
+    {
+      "name": "{TIMEOTP} in text",
+      "entry": "A1000000000000000000000000000001",
+      "value": "[{TIMEOTP}]",
+      "resolver": "refuses",
+      "keepass": "[]"
+    },
+    {
+      "name": "an environment variable KeePass has",
+      "entry": "A1000000000000000000000000000001",
+      "value": "%KPG_INVENTED_VARIABLE%",
+      "resolver": "keeps",
+      "keepass": "an invented value"
+    },
+    {
+      "name": "an iota subscript letter spelled in title case",
+      "entry": "A100000000000000000000000000000B",
+      "value": "{S:ᾈ}",
+      "resolver": "refuses",
+      "keepass": "an invented iota value"
+    },
+    {
+      "name": "a placeholder that begins with its own end, in two cases",
+      "entry": "A100000000000000000000000000000B",
+      "value": "{S:}Ü{S:}ü{S:}",
+      "resolver": "refuses",
+      "keepass": "an invented overlap valueü{S:}"
+    },
+    {
+      "name": "a password stored under a look-alike name",
+      "entry": "A100000000000000000000000000000C",
+      "value": "{PASSWORD}",
+      "resolver": "refuses",
+      "keepass": "an invented look-alike value"
+    },
+    {
+      "name": "a reference to a password stored under a look-alike name",
+      "entry": "A1000000000000000000000000000008",
+      "value": "{REF:P@I:A100000000000000000000000000000C}",
+      "resolver": "refuses",
+      "keepass": "an invented look-alike value"
+    },
+    {
+      "name": "an outer reference met again one level down is not followed twice",
+      "entry": "C100000000000000000000000000000C",
+      "value": "{NOTES}",
+      "resolver": "follows",
+      "keepass": "the end of a cached chainthe end of a cached chain"
+    },
+    {
+      "name": "a followed reference whose text another's compiled value holds",
+      "entry": "A1000000000000000000000000000008",
+      "value": "{REF:T@I:A1000000000000000000000000000001}/{REF:P@I:C100000000000000000000000000000D}",
+      "resolver": "follows",
+      "keepass": "Invented Service/Invented Service"
+    },
+    {
+      "name": "the same two references the other way round",
+      "entry": "A1000000000000000000000000000008",
+      "value": "{REF:P@I:C100000000000000000000000000000D}/{REF:T@I:A1000000000000000000000000000001}",
+      "resolver": "follows",
+      "keepass": "Invented Service/Invented Service"
+    }
+  ]
+}

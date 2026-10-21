@@ -41,6 +41,7 @@ from .errors import (
     RouteRefused,
     StorageError,
     TransportError,
+    Unresolved,
     Withheld,
 )
 from .model import Access, Attachment, Entry, Field, Fields, Group, Identity
@@ -122,6 +123,7 @@ __all__ = [
     "Status",
     "StorageError",
     "TransportError",
+    "Unresolved",
     "Withheld",
     "default_directory",
     "forget",

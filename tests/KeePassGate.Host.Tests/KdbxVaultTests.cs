@@ -200,6 +200,23 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void A_read_answers_the_strings_in_the_order_KeePass_keeps_them()
+        {
+            // The reference client replaces an entry's own placeholders in the order the gate
+            // lists them, and which of two goes first decides the answer.
+            var uuid = Created(_vault.CreateEntry(_vault.RootAlias, Named("an invented service")));
+            foreach (var name in new[] { "Zeta brace", "Brace", "middle", "Alpha" })
+            {
+                Assume.That(_vault.CreateField(uuid, name, "a value", false).Ok, Is.True);
+            }
+
+            var entry = _database.Database.RootGroup.FindEntry(new PwUuid(KeePassLib.Utility.MemUtil.HexStringToByteArray(uuid)), true);
+            Assume.That(entry, Is.Not.Null);
+
+            Assert.That(_vault.Read(uuid).Fields.Keys, Is.EqualTo(entry.Strings.GetKeys()));
+        }
+
+        [Test]
         public void A_custom_field_is_protected_only_when_the_string_says_so()
         {
             // The other half of the same rule, and why the flag term stays. The database says

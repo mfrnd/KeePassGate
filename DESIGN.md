@@ -1511,6 +1511,18 @@ Each step is refusable, and each ends with something that runs.
     client's own, once it is in the database. An approval names only a key that was admitted, and
     nothing is written yet for an authority recreated or for rules and profiles changed, which wait
     for audit levels.
+24. **The reference resolver**: the reference client follows field references as KeePass does, under
+    the caller's own rules, with KeePass's own compiler as the test of it, and `show --resolve`
+    prints an entry's strings that way. **Done.** Until here a program reading an entry that borrows
+    a value from another got the reference as text, and had to work the rest out from KeePass's
+    documentation, because the gate serves a value as the entry stores it and never compiles it:
+    KeePass resolves a reference against the whole open database, which knows nothing about the
+    rules. What this settles is where a reference is compiled. It is compiled on the client's side,
+    reading every entry a reference names through the gate, so that the rules decide each read and
+    the audit records it, and refusing what KeePass would answer from the whole database. The
+    grammar is held to KeePass's own compiler, on vectors KeePass produces, rather than to a reading
+    of its documentation, and the command line resolves only when asked, so that without it a value
+    prints as stored and nothing but the entry asked for is read.
 
 Steps 5 to 8 are the ones that prove the design. Step 5 is deliberately early, because the
 `CustomData` dialog hazard is the thing most likely to invalidate the storage decision, and finding

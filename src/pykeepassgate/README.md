@@ -96,6 +96,13 @@ rather than a control. `client.entries(include_expired=False)` leaves the expire
 entry's `expires` says when it expires, and `client.update_entry(uuid, expires=False)` takes the
 mark off a password that has just been rotated.
 
+**A value comes back as the entry stores it**, a field reference such as `{REF:P@I:...}`
+included, and `pykeepassgate.refs.resolve(client, entry, value)` gives what KeePass would give
+for it instead: it follows a reference by identifier, reading the entry it names under this client's
+rules, and the placeholders for the entry's own strings, and refuses with `Unresolved` what it
+cannot answer as KeePass would, such as a search by title. `pykeepassgate show <uuid> --resolve`
+prints an entry that way.
+
 **Nothing it hands back prints a value.** The `repr` of an entry, its fields, a field, an
 attachment or a response names what it is and shows none of what it holds, so a log line or a
 traceback carries no secret. A value is printed only by reading it.
@@ -149,6 +156,7 @@ catches whatever this client raises of its own and nothing the standard library 
 | `RenewalError` | The base of the five above, for a caller that only wants to know whether the operator let the renewal happen. Never raised on its own. |
 | `RouteRefused` | Everything else the gate refuses, carrying the status and the reason it gave, usually one word: a `413` says in a sentence what was too large. A refused `head` carries the status alone, because its answer has no body to say anything in. A `404` is deliberately both "no such node" and "not yours", so a client cannot map a database by asking: if the node should be there, the rule is too narrow and the operator has to widen it. |
 | `Withheld` | A protected value this client may not read, from every way of reading one: the rule that lets it read or list the entry does not grant `P`, which the operator can add. Never `None` or an empty string in its place; `entry.withheld` and `field.withheld` name what is kept back without a `try`, so `{name: entry.fields[name] for name in entry.fields if name not in entry.withheld}` reads every value this client may read. |
+| `Unresolved` | From `pykeepassgate.refs.resolve` alone: a value it will not give as KeePass would, such as a reference that searches by title or names an entry this client cannot read, or a placeholder KeePass replaces and it does not. The message says which. |
 | `MalformedToken` | The text handed over is not an invitation, so nothing was sent. Check what was pasted. |
 | `ProtocolError` | Something on the wire is not what the protocol allows: an answer this client cannot read, or a request it will not send. Do not retry an answer it cannot read: the two halves disagree about the wire, which `tests/pykeepassgate/test_protocol.py` exists to stop. An answer longer than `max_response_bytes` is refused this way too, and the message says so: raise the setting rather than retry. |
 | `NotPaired` | Nothing is stored for a paired client where this looked: nothing has paired under that profile, its identity was given up, or the directory named is not the one the pairing used. Pair, or name the profile or the directory it used. A `StorageError`, so catching that catches this as well. |
