@@ -8,6 +8,7 @@ at either end leaves something a person can act on rather than nothing, or two h
 from __future__ import annotations
 
 import base64
+import hashlib
 import json
 import re
 import socket
@@ -133,6 +134,7 @@ def test_a_renewal_stores_the_new_identity_and_gives_the_old_one_up_by_presentin
     renewed_certificate: Issued,
 ) -> None:
     where = paired.credentials.directory
+    first = paired.credentials.client_key
 
     renewal = paired.renew()
 
@@ -141,6 +143,11 @@ def test_a_renewal_stores_the_new_identity_and_gives_the_old_one_up_by_presentin
     assert renewal.credentials.directory == where
     assert renewal.credentials.expires == "2127-01-02T03:04:05Z"
     assert api.load(where).expires == "2127-01-02T03:04:05Z", "what load finds is the new one"
+    # The same client under a new certificate: the client key is the one it paired with, and the
+    # admission key is the new certificate's.
+    assert first == hashlib.sha256(der(client_certificate)).hexdigest()
+    assert api.load(where).client_key == first, "carried over from the identity renewed"
+    assert renewal.credentials.admission_key == hashlib.sha256(der(renewed_certificate)).hexdigest()
 
     assert [(method, path) for method, path in gate.requests] == [
         ("POST", "/gate/renew"),
@@ -769,6 +776,25 @@ def test_the_command_line_renews_and_says_what_it_stored(
     assert "renewed CN=agent-invented" in printed
     assert "expires: 2127-01-02T03:04:05Z" in printed
     assert json.loads(renewing.seen[0][1]) == {"lifetime": "P30D"}
+
+
+def test_the_command_line_names_the_key_the_new_certificate_is_known_by(
+    tmp_path: Path,
+    gate: FakeGate,
+    bundle: dict[str, Any],
+    renewing: Gate,
+    renewed_certificate: Issued,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    # The new one, which the audit names this client by from now on, and not the one it renewed
+    # from.
+    where = tmp_path / "kept"
+    credentials_module.save(where, gate.port, bundle)
+
+    assert cli.main(["renew", "--directory", str(where)]) == 0
+
+    renewed = hashlib.sha256(der(renewed_certificate)).hexdigest()
+    assert f"admission key: {renewed}" in capsys.readouterr().out.splitlines()
 
 
 def test_renewing_passes_the_shared_directory_choice_to_the_library(

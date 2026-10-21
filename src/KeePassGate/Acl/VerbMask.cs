@@ -1,9 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
-using KeePassGate.Acl;
 
-namespace KeePassGate.Ui
+namespace KeePassGate.Acl
 {
     /// <summary>
     /// A grant as eight characters: `CRUSDLAP`, with a dot for everything it does not hold.
@@ -83,16 +82,17 @@ namespace KeePassGate.Ui
         /// What a mask says a rule holds, or null for anything that is not exactly a mask.
         /// </summary>
         /// <remarks>
-        /// Strict, and for the same reason the document reader is: this is what a typed cell is
-        /// read back through, and a mask read generously is a rule that grants something nobody
-        /// wrote. Every position has to be its own letter or a dot, in order, eight of them. A letter
-        /// in the wrong column is refused rather than being taken to mean the verb it names,
-        /// because somebody who typed `R` in the create column meant something, and guessing which
-        /// is how an editor grants a verb its user did not choose.
+        /// Strict, and for the same reason the document reader is: a mask read generously is a
+        /// rule that grants something nobody wrote. What it reads is the grant editor's own cell
+        /// text and an inherited rule's mask, both written by <see cref="Of"/>, since neither
+        /// column of the editor is typed into, so a mask that is not exactly one is a defect to
+        /// refuse rather than a rule to guess at. Every position has to be its own letter or a dot,
+        /// in order, eight of them, and a letter in the wrong column is refused rather than being
+        /// taken to mean the verb it names.
         ///
-        /// Case is not enforced, because a person typing a mask by hand is not choosing between two
-        /// spellings of a rule the way a stored document is: there is only one rule here and the
-        /// grid rewrites the cell to the canonical mask as soon as it is committed.
+        /// Case is not enforced. Nothing it reads was spelled by a person, and there is only one
+        /// rule a mask can mean, so a lower case letter in its own column names the verb it
+        /// would name in capitals.
         /// </remarks>
         public static IList<AclVerb> Read(string mask)
         {

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+import hashlib
 import importlib
 import json
 import os
@@ -17,6 +18,7 @@ from cryptography.hazmat.primitives.serialization import Encoding
 
 from pykeepassgate import credentials
 from pykeepassgate.errors import NotPaired, ProtocolError, StorageError
+from pykeepassgate.testing import Issued
 
 
 def test_what_pairing_hands_over_is_written_where_ssl_can_read_it(
@@ -40,7 +42,7 @@ def test_the_details_a_person_reads_carry_nothing_secret(
     stored = credentials.save(tmp_path / "kept", 45678, bundle)
     written = json.loads((stored.directory / credentials.DETAILS_FILE).read_text("utf-8"))
 
-    assert set(written) == {"port", "subject", "database", "expires", "profiles"}
+    assert set(written) == {"port", "subject", "database", "expires", "profiles", "clientKey"}
     assert bundle["gateKey"] not in json.dumps(written)
     assert bundle["identity"] not in json.dumps(written)
 
@@ -68,6 +70,96 @@ def test_whether_the_certificate_has_expired_is_read_off_when_it_does(
     stored = credentials.save(tmp_path / "kept", 45678, {**bundle, "expires": expires})
 
     assert stored.expired is expired
+
+
+def test_whether_the_key_is_under_a_password_is_read_off_its_label(
+    tmp_path: Path, bundle: dict[str, Any]
+) -> None:
+    plain = credentials.save(tmp_path / "plain", 45678, bundle)
+    kept = credentials.save(tmp_path / "kept", 45678, bundle, key_password="not-a-real-one")
+
+    assert plain.key_encrypted is False
+    assert kept.key_encrypted is True
+
+
+def test_an_identity_holding_no_key_is_neither_encrypted_nor_not(
+    tmp_path: Path, bundle: dict[str, Any]
+) -> None:
+    # A file cut short after its certificate holds no key at all, and saying "not encrypted" of
+    # it would send whoever reads that looking in the wrong place.
+    stored = credentials.save(tmp_path / "kept", 45678, bundle)
+    held = stored.identity.read_text("utf-8")
+    stored.identity.write_text(held[: held.index("-----BEGIN PRIVATE KEY-----")], "utf-8")
+
+    with pytest.raises(StorageError, match=credentials.IDENTITY_FILE):
+        _ = stored.key_encrypted
+
+
+def test_an_identity_that_has_gone_is_said_to_have_gone(
+    tmp_path: Path, bundle: dict[str, Any]
+) -> None:
+    stored = credentials.save(tmp_path / "kept", 45678, bundle)
+    stored.identity.unlink()
+
+    with pytest.raises(StorageError, match="will not read"):
+        _ = stored.key_encrypted
+
+
+def test_the_admission_key_is_the_digest_the_plugin_keys_the_record_on(
+    tmp_path: Path, bundle: dict[str, Any], client_certificate: Issued
+) -> None:
+    # `CertificateDigest` on the plugin's side: SHA-256 over the certificate's DER, sixty-four
+    # characters of lower case hex, which is what every line of the audit file names a
+    # certificate by.
+    stored = credentials.save(tmp_path / "kept", 45678, bundle)
+    der = client_certificate.certificate.public_bytes(Encoding.DER)
+
+    assert stored.admission_key == hashlib.sha256(der).hexdigest()
+    assert stored.admission_key == stored.admission_key.lower()
+    assert len(stored.admission_key) == 64
+
+
+def test_a_pairing_stores_its_own_admission_key_as_its_client_key(
+    tmp_path: Path, bundle: dict[str, Any]
+) -> None:
+    # The certificate a pairing is issued is the client's first, which is what a client key is.
+    stored = credentials.save(tmp_path / "kept", 45678, bundle)
+
+    assert stored.client_key == stored.admission_key
+    assert credentials.load(stored.directory).client_key == stored.admission_key
+
+
+def test_a_renewal_stores_the_client_key_it_was_given_rather_than_its_own(
+    tmp_path: Path, bundle: dict[str, Any]
+) -> None:
+    # The same client under a new certificate: the key it paired with is no longer here to read,
+    # so it is carried over and stored.
+    paired = "c" * 64
+    stored = credentials.save(tmp_path / "kept", 45678, bundle, client_key=paired)
+
+    assert stored.client_key == paired
+    assert stored.admission_key != paired
+
+
+def test_the_admission_key_of_a_key_kept_under_a_password_needs_no_password(
+    tmp_path: Path, bundle: dict[str, Any], client_certificate: Issued
+) -> None:
+    # It is read off the certificate, which is never encrypted, so `identity` can say it without
+    # asking anybody for anything.
+    stored = credentials.save(tmp_path / "kept", 45678, bundle, key_password="not-a-real-one")
+    der = client_certificate.certificate.public_bytes(Encoding.DER)
+
+    assert stored.admission_key == hashlib.sha256(der).hexdigest()
+
+
+def test_an_identity_with_no_certificate_in_it_has_no_admission_key(
+    tmp_path: Path, bundle: dict[str, Any]
+) -> None:
+    stored = credentials.save(tmp_path / "kept", 45678, bundle)
+    stored.identity.write_text("not a certificate", "utf-8")
+
+    with pytest.raises(StorageError, match=credentials.IDENTITY_FILE):
+        _ = stored.admission_key
 
 
 def test_what_was_saved_is_what_is_loaded(tmp_path: Path, bundle: dict[str, Any]) -> None:
@@ -225,7 +317,7 @@ def test_credentials_live_somewhere_per_profile(monkeypatch: pytest.MonkeyPatch)
 )
 def test_a_profile_that_is_not_one_directory_is_refused_rather_than_joined(name: str) -> None:
     # Joined, `..` or a separator stored the identity beside or above the other profiles, an
-    # absolute path replaced the place altogether, and `whoami` read it back from there as
+    # absolute path replaced the place altogether, and `identity` read it back from there as
     # though it were a profile. Windows stores a name without a trailing dot or space, which
     # makes `...` the directory every profile lives in and `work.` the same identity as `work`.
     with pytest.raises(ValueError, match="not one directory's name"):
@@ -299,7 +391,7 @@ def test_a_gate_key_of_the_wrong_length_is_refused(tmp_path: Path, bundle: dict[
 
 
 def test_profiles_that_are_not_a_list_are_refused(tmp_path: Path, bundle: dict[str, Any]) -> None:
-    # `list("reader")` is six profiles, and `whoami` would show the operator all six as though
+    # `list("reader")` is six profiles, and `identity` would show the operator all six as though
     # somebody had approved them.
     bundle["profiles"] = "reader"
 
@@ -336,6 +428,7 @@ WRITTEN = {
     "database": "abcdef01",
     "expires": "2027-08-15T09:00:00Z",
     "profiles": ["reader"],
+    "clientKey": "3a" * 32,
 }
 
 
@@ -353,12 +446,21 @@ WRITTEN = {
         (json.dumps({**WRITTEN, "port": 45678.5}), "names no port"),
         (json.dumps({**WRITTEN, "port": True}), "names no port"),
         # `tuple` over a string is one profile per letter, and a list of anything else is a
-        # `TypeError` out of `whoami`: the two cases `save` refuses on the way in.
+        # `TypeError` out of `identity`: the two cases `save` refuses on the way in.
         (json.dumps({**WRITTEN, "profiles": "reader"}), "profiles"),
         (json.dumps({**WRITTEN, "profiles": ["reader", 7]}), "profiles"),
         # `str` makes a `null` the four letters `None`.
         (json.dumps({**WRITTEN, "subject": None}), "no subject"),
         (json.dumps({key: value for key, value in WRITTEN.items() if key != "expires"}), "expires"),
+        # Required like the rest, with no older file to read without it, and held to a digest:
+        # upper case or a short one is not what `save` writes.
+        (
+            json.dumps({key: value for key, value in WRITTEN.items() if key != "clientKey"}),
+            "no client key",
+        ),
+        (json.dumps({**WRITTEN, "clientKey": None}), "no client key"),
+        (json.dumps({**WRITTEN, "clientKey": "3A" * 32}), "no client key"),
+        (json.dumps({**WRITTEN, "clientKey": "3a" * 31}), "no client key"),
     ],
 )
 def test_a_client_file_that_will_not_read_is_refused_in_this_librarys_terms(
@@ -401,7 +503,7 @@ def test_a_relative_config_home_is_ignored_as_the_specification_says(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     # A relative value names another directory from every working directory, so a pairing made
-    # from one was not found by `whoami` run from another.
+    # from one was not found by `identity` run from another.
     monkeypatch.setenv("HOME", str(tmp_path))
 
     monkeypatch.setenv("XDG_CONFIG_HOME", "relative/xdg")

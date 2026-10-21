@@ -39,6 +39,91 @@ def given(rest: dict[str, Any]) -> dict[str, Any]:
     return {name: value for name, value in rest.items() if name != "key_password"}
 
 
+def test_whoami_says_who_the_gate_admits_this_client_as(
+    gate: FakeGate, kept: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # What holds now, which is not what pairing or the last renewal stored when a profile has been
+    # removed since.
+    answering(
+        gate,
+        {
+            "subject": "CN=agent-invented",
+            "clientKey": "3a" * 32,
+            "admissionKey": "5f" * 32,
+            "expires": "2027-02-03T04:05:06Z",
+            "profiles": ["reader", "writer"],
+            "removedProfiles": [],
+        },
+    )
+
+    assert cli.main(["whoami", "--directory", str(kept)]) == 0
+
+    assert gate.requests == [("GET", "/gate/whoami")]
+    assert capsys.readouterr().out.splitlines() == [
+        "subject:          CN=agent-invented",
+        f"client key:       {'3a' * 32}",
+        f"admission key:    {'5f' * 32}",
+        "expires:          2027-02-03T04:05:06Z",
+        "profiles:         reader, writer",
+        "removed profiles: none",
+    ]
+
+
+def test_whoami_names_a_profile_the_database_no_longer_holds(
+    gate: FakeGate, kept: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    answering(
+        gate,
+        {
+            "subject": "CN=agent-invented",
+            "clientKey": "3a" * 32,
+            "admissionKey": "5f" * 32,
+            "expires": "2027-02-03T04:05:06Z",
+            "profiles": [],
+            "removedProfiles": ["reader"],
+        },
+    )
+
+    assert cli.main(["whoami", "--directory", str(kept)]) == 0
+
+    printed = capsys.readouterr().out.splitlines()
+    assert "profiles:         none" in printed
+    assert "removed profiles: reader" in printed
+
+
+@pytest.mark.parametrize(
+    ("node", "path"),
+    [
+        (["--group", "root"], "/groups/root/access"),
+        (["--entry", UUID], f"/entries/{UUID}/access"),
+    ],
+    ids=["a group", "an entry"],
+)
+def test_access_prints_a_rule_for_each_profile(
+    gate: FakeGate,
+    kept: Path,
+    capsys: pytest.CaptureFixture[str],
+    node: list[str],
+    path: str,
+) -> None:
+    answering(gate, {"grants": {"reader": ".R...L.P", "nobody": "........"}})
+
+    assert cli.main(["access", *node, "--directory", str(kept)]) == 0
+
+    assert gate.requests == [("GET", path)]
+    assert capsys.readouterr().out.splitlines() == [".R...L.P  reader", "........  nobody"]
+
+
+def test_access_asks_about_one_node_and_needs_to_be_told_which(kept: Path, gate: FakeGate) -> None:
+    for wrong in ([], ["--group", "root", "--entry", UUID]):
+        with pytest.raises(SystemExit) as raised:
+            cli.main(["access", *wrong, "--directory", str(kept)])
+
+        assert raised.value.code == 2
+
+    assert gate.requests == []
+
+
 def test_groups_are_printed_one_to_a_line(
     gate: FakeGate, kept: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -329,8 +414,25 @@ def test_attachments_are_listed_with_their_sizes(
             {"attachments": [{"name": "a.txt\n      2048  invoice.pdf", "size": 22}]},
             "        22  a.txt\\n      2048  invoice.pdf",
         ),
+        (
+            ["whoami"],
+            {
+                "subject": "CN=Real\nForged",
+                "clientKey": "3a" * 32,
+                "admissionKey": "5f" * 32,
+                "expires": "2027-02-03T04:05:06Z",
+                "profiles": ["reader"],
+                "removedProfiles": [],
+            },
+            "subject:          CN=Real\\nForged",
+        ),
+        (
+            ["access", "--group", "root"],
+            {"grants": {"Real\nForged": ".R......"}},
+            ".R......  Real\\nForged",
+        ),
     ],
-    ids=["groups", "entries", "show", "attachments"],
+    ids=["groups", "entries", "show", "attachments", "whoami", "access"],
 )
 def test_a_name_that_would_break_a_line_is_printed_on_the_one_it_belongs_to(
     command: list[str],
@@ -465,11 +567,11 @@ def test_a_command_that_dials_nowhere_says_where_it_tried(
     assert "127.0.0.2" in capsys.readouterr().err
 
 
-def test_whoami_is_not_offered_a_host_because_it_opens_nothing(kept: Path) -> None:
+def test_identity_is_not_offered_a_host_because_it_opens_nothing(kept: Path) -> None:
     # An option that cannot change what a command does is an option that misleads whoever reads
     # the help, and this one answers out of the file rather than off a socket.
     with pytest.raises(SystemExit) as raised:
-        cli.main(["whoami", "--host", "localhost", "--directory", str(kept)])
+        cli.main(["identity", "--host", "localhost", "--directory", str(kept)])
 
     assert raised.value.code == 2
 

@@ -15,10 +15,10 @@ operator picks, and the client can renew it on a dialog like that one or give it
 locked KeePass answers that it is locked rather than failing at the transport. **Routing is the
 OpenAPI document**, embedded in the plugin: handlers bind to `operationId`, bodies are checked
 against the declared schema before a handler runs, and a path the document does not declare has
-nowhere to go. **Twenty-two routes read and change groups, entries, fields and attachments**, each
-declaring the verb it needs and the node it is about, and the router refuses anything the
-admission record and the rules on that node do not both allow, writing every decision to an audit
-file outside the database.
+nowhere to go. **Twenty-four routes read and change groups, entries, fields and attachments**, each
+declaring the verb it needs and the node it is about, two of them saying what the caller may do
+there, and the router refuses anything the admission record and the rules on that node do not both
+allow, writing every decision to an audit file outside the database.
 
 **License: MIT.** GPLv2 is not required. KeePass is GPL-2.0-or-later and grants no plugin exception,
 but the FSF's own requirement is a GPL-compatible license, and MIT is one, so a permissive

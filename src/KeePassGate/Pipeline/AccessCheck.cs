@@ -55,18 +55,14 @@ namespace KeePassGate.Pipeline
             _pace = pace ?? new DecisionPace();
         }
 
-        /// <summary>Whether this client may do this to this node, recorded either way.</summary>
-        public bool Permits(ClientIdentity client, string operationId, AclVerb verb, AclReach reach, IAclNode node)
-        {
-            return Decide(client, operationId, verb, reach, node).Permitted;
-        }
-
         /// <summary>
         /// What a refusal says when the profiles the operator removed would have permitted it.
         /// </summary>
         public const string ProfileRemoved = "profile removed";
 
-        /// <summary>The same question, with what answered it.</summary>
+        /// <summary>
+        /// Whether this client may do this to this node, with what answered it, recorded either way.
+        /// </summary>
         /// <remarks>
         /// **A refusal is asked a second time when the client's record holds a removed name**,
         /// this time with the record's whole list. If that would have permitted it, the line says
@@ -196,6 +192,15 @@ namespace KeePassGate.Pipeline
                 // It still answers no, because a check that trusted its caller to have checked is
                 // a check that stops being one.
                 return AclDecisions.Refused("this client is not admitted");
+            }
+
+            if (verb == AclVerb.Any)
+            {
+                // Every verb at once, asked of the node alone and profile by profile, with what
+                // each profile is granted carried on the answer: `AclResolver.DecideAny`. Not a
+                // removal, so the group above is not asked: a `D` in the answer is the rule at the
+                // node saying removals are allowed here, as the editor shows it.
+                return AclResolver.DecideAny(node, profiles);
             }
 
             if (node == null || verb != AclVerb.Delete)

@@ -288,7 +288,7 @@ def test_a_certificate_that_has_expired_is_named_as_expired_before_anything_is_d
     tmp_path: Path, bundle: dict[str, Any], gate: FakeGate
 ) -> None:
     # The gate refuses one as it refuses a stranger, so the `401` would read as a missing record
-    # while the record is there. Pairing stored when it expires, which says it by name.
+    # while the record is there. What is stored says when it expires, which says it by name.
     stored = credentials_module.save(
         tmp_path / "kept", gate.port, {**bundle, "expires": "2001-02-03T04:05:06Z"}
     )
@@ -315,7 +315,7 @@ def test_a_certificate_expired_only_by_a_clock_ahead_of_the_gate_s_is_still_offe
         tmp_path / "kept", gate.port, {**bundle, "expires": f"{moment:%Y-%m-%dT%H:%M:%SZ}"}
     )
 
-    assert stored.expired, "whoami still says so"
+    assert stored.expired, "identity still says so"
     assert GateClient(stored, connection_timeout=10.0).status().ok
     assert gate.names != [], "the gate was asked"
 

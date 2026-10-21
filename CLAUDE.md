@@ -23,9 +23,10 @@ write one**: the KPG tab on the group and entry dialogs edits the rules as a `CR
 writing into the copy the dialog puts back on OK. **And the two halves are combined**: the router
 intersects the admission record with the rules before any handler runs, and writes every decision
 the rules make, and every certificate the database issued that an operation turns away, to a JSON Lines file
-outside the database. **And there is an API**: twenty-two routes over groups,
-entries, fields and attachments, every one declaring the verb it needs and the node it is about, with
-`PyKeePassGate` covering all of them. **And a profile has a home**: the set of names a database
+outside the database. **And there is an API**: twenty-four routes over groups, entries, fields and
+attachments, every one declaring the verb it needs and the node it is about, and the routes about
+the gate and the caller beside them, with `PyKeePassGate` covering all of them. **And a profile has
+a home**: the set of names a database
 knows lives beside the authority, with a page of its own to manage them, and a name taken off it
 grants nothing whatever rule still names it. **And the plugin has a window of its own**, under KeePass's Tools
 menu, saying where the gate is listening and taking the port it should listen on. **And there is
@@ -39,7 +40,8 @@ up, or renew it on an approval dialog like the pairing one, which can refuse it 
 session, until a date or forever, an answer the clients page shows in red and takes back on
 the operator's word. **And the client has options of its own**: a program built on it
 can keep its key under a password, make the connection it goes over, and test against the stand-in
-gate the client's own tests use.
+gate the client's own tests use. **And a client can ask about itself**: who the gate takes it for,
+with the key the operator knows it by, and what it may do at a group or an entry before it tries.
 
 ## Read these before proposing anything
 
@@ -777,11 +779,12 @@ skeleton loads and shows a KPG tab, that tab creates, recreates and deletes the 
 serves the document's routes over mutual TLS to a client the authority issued and the database holds
 a record for, a stranger can pair, a locked database answers `503 locked`, a grant means something
 definite, an operator can write one from the group and entry dialogs, the router refuses anything
-the record and the rules do not both allow while recording every answer the rules give, twenty-two
+the record and the rules do not both allow while recording every answer the rules give, twenty-four
 routes read and change the database, two launchers start the pinned KeePass with the plugin in it,
 a profile has a home of its own, the plugin has a window under the Tools menu, `docs/` says how
-to use the result, a client's certificate can be renewed and given up, and a program built on the
-client can keep its key under a password, make its connection and test against a stand-in gate.
+to use the result, a client's certificate can be renewed and given up, a program built on the client
+can keep its key under a password, make its connection and test against a stand-in gate, and a
+client can ask who the gate takes it for and what it may do at a node.
 
 **Start with [`docs/`](docs/README.md) if the question is what this does**, and with the documents
 below if the question is why it does it that way. What is left is not a step: there is no release
@@ -879,8 +882,14 @@ is what an append-only agent wants.
 `x-kpg-verb` is read out of the document as an `AclVerb`, and an operation that declares none stops
 the plugin loading. It stays in the document rather than becoming an attribute in code so that the
 two cannot disagree, and `none` is a decision written down rather than a field left absent: the
-status route reads nothing, and pairing is authorized by a person reading a dialog rather than by a
-grant, because a client that is pairing holds no profiles yet.
+status route and the caller's identity read nothing a rule is about, a client's revocation of itself
+touches no node a rule is about, and pairing and renewal are authorized by a person reading a dialog
+rather than by a grant, because a client that is pairing holds no profiles yet. `any` is the one
+value no rule can hold: the two routes asking what a client may do at a node declare it, and the
+router answers it profile by profile, every verb and switch through the resolver's own walk,
+refusing it as an absent node unless some profile is granted a verb there. One mask per profile,
+because a switch belongs to its rule and a union across profiles would claim combinations the gate
+refuses.
 
 **Four things about the router that are decisions rather than details.** A caller with no
 certificate is refused the same way everywhere, so an undeclared path and one it may not use answer

@@ -94,6 +94,12 @@ namespace KeePassGate.Spec
         /// <summary>Where the router leaves the protected-scope question, ready to be recorded.</summary>
         public const string ReachItem = "kpg.reach";
 
+        /// <summary>
+        /// Where the router leaves what each profile is granted at the node, for an operation
+        /// declaring `any`, which is decided in the same walk.
+        /// </summary>
+        public const string GrantsItem = "kpg.grants";
+
         private readonly SpecDocument _document;
         private readonly Dictionary<string, OperationHandler> _handlers;
         private readonly Dictionary<string, OperationGuard> _guards;
@@ -268,7 +274,7 @@ namespace KeePassGate.Spec
         {
             foreach (var operation in _document.Operations)
             {
-                var governed = AclVerbs.IsGrantable(operation.Verb);
+                var governed = AclVerbs.IsGoverned(operation.Verb);
 
                 if (governed && _access == null)
                 {
@@ -647,7 +653,7 @@ namespace KeePassGate.Spec
         /// </remarks>
         private bool Authorized(IGateContext context, SpecOperation operation)
         {
-            if (!AclVerbs.IsGrantable(operation.Verb))
+            if (!AclVerbs.IsGoverned(operation.Verb))
             {
                 // An operation that touches no data. The status route reads nothing and pairing is
                 // authorized by a person reading a dialog, so there is no question to ask and
@@ -689,9 +695,18 @@ namespace KeePassGate.Spec
                 return false;
             });
 
-            if (_access.Permits(
-                    context.Client, operation.OperationId, operation.Verb, operation.Reach, node))
+            var decision = _access.Decide(
+                context.Client, operation.OperationId, operation.Verb, operation.Reach, node);
+
+            if (decision.Permitted)
             {
+                if (decision.Grants != null)
+                {
+                    // An operation declaring `any` answers with what was found deciding it, so the
+                    // answer and the line written down are one walk and cannot disagree.
+                    context.Items[GrantsItem] = decision.Grants;
+                }
+
                 return true;
             }
 

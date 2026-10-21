@@ -9,8 +9,8 @@ namespace KeePassGate.Pipeline
     /// </summary>
     /// <remarks>
     /// **It reads nothing out of the database, and that is the whole design of it.** Which is
-    /// why it declares `x-kpg-verb: none`, as the two pairing routes and a client's revocation of
-    /// itself do: no grant could allow or refuse it, because it reaches nothing a grant is about.
+    /// why it declares `x-kpg-verb: none`, as the caller's identity, a client's revocation of
+    /// itself, its renewal and the two pairing routes do: no grant could allow or refuse it, because it reaches nothing a grant is about.
     /// It exists to prove a connection rather than to be useful. What it answers is what the
     /// connection already established: the gate is listening, this certificate is still admitted,
     /// and the database is unlocked, because a locked one never reaches an operation at all.

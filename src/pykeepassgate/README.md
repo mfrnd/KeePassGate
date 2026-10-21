@@ -62,7 +62,12 @@ credentials = api.pair(
 )
 
 print(credentials.profiles)  # what the operator approved, not what was asked for
+print(credentials.admission_key)  # what the operator's audit file names this certificate by
+print(credentials.client_key)  # what the KPG tab knows this client by, kept through renewals
 ```
+
+`pair` prints the profiles and the admission key, and `identity` prints them again with the
+client key, without connecting.
 
 ## Use
 
@@ -71,12 +76,20 @@ from pykeepassgate import GateClient
 
 client = GateClient.open()
 print(client.status())
+print(client.identity())  # who the gate admits this client as, and which profiles count now
 ```
 
 ```shell
 pykeepassgate status
-pykeepassgate whoami
+pykeepassgate identity   # what is stored, without connecting
+pykeepassgate whoami     # what the gate admits this client as now
 ```
+
+**What a client may do at a node is something it can ask before trying.**
+`client.entry_access(uuid)` and `client.group_access(uuid)` answer one mask per profile, as the
+operator's tab shows a rule, and `.allows("RP")` asks whether one of those rules reads the
+protected values there; `pykeepassgate access --entry <uuid>` prints them. A node where it may do
+nothing is refused as one that is not there.
 
 An entry KeePass shows as expired is listed and read like any other, because an expiry is advice
 rather than a control. `client.entries(include_expired=False)` leaves the expired ones out, a read
@@ -106,7 +119,7 @@ directory gives it up. A later `renew` gives it up first itself, and forgets it 
 it back, already refuses it or it has expired.
 
 `revoke` asks the gate to revoke the certificate this client presents and, once the gate says the
-revocation is saved, removes what pairing stored for it. When the gate does not confirm it,
+revocation is saved, removes what is stored for it. When the gate does not confirm it,
 nothing is removed. A certificate the gate already refuses, revoked or expired, counts as given up,
 and its files are removed as well. From a program, `client.renew()` and `client.revoke_certificate()` ask the
 gate, and `api.forget(directory)` removes the files.

@@ -460,6 +460,134 @@ namespace KeePassGate.Tests
                 new AccessCheck(_audit));
         }
 
+        /// <summary>A route asking what a client may do at an entry, which declares `any`.</summary>
+        private const string Asking =
+            "{\"openapi\":\"3.0.3\",\"info\":{\"title\":\"t\",\"version\":\"1\"},\"paths\":{" +
+            "\"/entries/{uuid}/access\":{\"get\":{\"operationId\":\"getEntryAccess\",\"x-kpg-verb\":\"any\",\"parameters\":[{\"name\":\"uuid\",\"in\":\"path\",\"required\":true,\"schema\":{\"type\":\"string\"}}]," +
+            "\"responses\":{\"200\":{\"description\":\"o\"}}}," +
+            "\"head\":{\"operationId\":\"headEntryAccess\",\"x-kpg-verb\":\"any\",\"parameters\":[{\"name\":\"uuid\",\"in\":\"path\",\"required\":true,\"schema\":{\"type\":\"string\"}}]," +
+            "\"responses\":{\"200\":{\"description\":\"o\"}}}}}}";
+
+        [Test]
+        public void A_question_about_every_verb_reaches_its_handler_with_what_each_profile_is_granted()
+        {
+            _node = TestNode.Root("root").Granting("reader", AclVerb.Read, AclVerb.List).Child("an entry");
+            IReadOnlyList<KeyValuePair<string, AclGrant>> handed = null;
+
+            var context = AskAbout(Paired("reader", "editor"), found => handed = found);
+
+            Assert.That(context.Status, Is.EqualTo(200));
+            Assert.That(
+                handed.Select(grant => grant.Key + " " + VerbMask.Of(grant.Value)),
+                Is.EqualTo(new[] { "reader .R...L..", "editor ........" }));
+        }
+
+        [Test]
+        public void A_question_about_every_verb_no_profile_is_granted_anything_for_is_refused_as_absent()
+        {
+            var refused = AskAbout(Paired("nobody"), found => _reached.Add("getEntryAccess"));
+
+            _node = null;
+            var absent = AskAbout(Paired("reader"), found => _reached.Add("getEntryAccess"));
+
+            Assert.That(_reached, Is.Empty, "neither reached the handler");
+            Assert.That(refused.Status, Is.EqualTo(404));
+            Assert.That(refused.Json, Is.EqualTo(absent.Json), "and the two are told the same thing");
+        }
+
+        [Test]
+        public void A_question_about_every_verb_is_written_down_as_a_decision_is()
+        {
+            AskAbout(Paired("reader"), found => { });
+            AskAbout(Paired("nobody"), found => { });
+
+            Assert.That(_audit.Entries.Select(line => line.OperationId),
+                Is.EqualTo(new[] { "getEntryAccess", "getEntryAccess" }));
+            Assert.That(_audit.Entries.Select(line => line.Permitted), Is.EqualTo(new[] { true, false }));
+        }
+
+        [Test]
+        public void A_question_about_one_verb_is_handed_no_grants()
+        {
+            // Only `any` answers with what a caller holds. A read answers with what the entry holds,
+            // and a handler that found grants on it could mistake them for its own question's.
+            object found = "nothing looked";
+            OperationHandler handler = context =>
+            {
+                context.Items.TryGetValue(SpecRouter.GrantsItem, out found);
+                context.Respond(200, "{}");
+            };
+            NodeSelector node = context => _node;
+
+            var router = new SpecRouter(
+                SpecDocument.Parse(Document),
+                new Dictionary<string, OperationHandler> { { "readEntry", handler }, { "headEntry", handler } },
+                null,
+                new Dictionary<string, NodeSelector> { { "readEntry", node }, { "headEntry", node } },
+                new AccessCheck(_audit));
+
+            var asked = Context("GET", "/entries/7b1c", Paired("reader"), null);
+            router.Handle(asked);
+
+            Assert.That(asked.Status, Is.EqualTo(200));
+            Assert.That(found, Is.Null);
+        }
+
+        [Test]
+        public void A_question_about_every_verb_with_no_node_stops_the_plugin_loading()
+        {
+            // The same as any verb: a question asked of the rules needs a node to ask it about.
+            OperationHandler handler = context => context.Respond(200, "{}");
+
+            var raised = Assert.Throws<InvalidOperationException>(() => new SpecRouter(
+                SpecDocument.Parse(Asking),
+                new Dictionary<string, OperationHandler>
+                {
+                    { "getEntryAccess", handler },
+                    { "headEntryAccess", handler },
+                },
+                null,
+                null,
+                new AccessCheck(_audit)));
+
+            Assert.That(raised.Message, Does.Contain("getEntryAccess declares any"));
+        }
+
+        /// <summary>
+        /// Asks the `any` route about the entry under test, handing the handler what the router
+        /// left for it.
+        /// </summary>
+        private GateContext AskAbout(ClientIdentity client, Action<IReadOnlyList<KeyValuePair<string, AclGrant>>> handed)
+        {
+            OperationHandler handler = request =>
+            {
+                object found;
+                request.Items.TryGetValue(SpecRouter.GrantsItem, out found);
+                handed(found as IReadOnlyList<KeyValuePair<string, AclGrant>>);
+                request.Respond(200, "{}");
+            };
+            NodeSelector node = request => _node;
+
+            var router = new SpecRouter(
+                SpecDocument.Parse(Asking),
+                new Dictionary<string, OperationHandler>
+                {
+                    { "getEntryAccess", handler },
+                    { "headEntryAccess", handler },
+                },
+                null,
+                new Dictionary<string, NodeSelector>
+                {
+                    { "getEntryAccess", node },
+                    { "headEntryAccess", node },
+                },
+                new AccessCheck(_audit));
+
+            var context = Context("GET", "/entries/7b1c/access", client, null);
+            router.Handle(context);
+            return context;
+        }
+
         private GateContext Ask(ClientIdentity client)
         {
             var router = Router(SpecDocument.Parse(Document), "readEntry", "headEntry");

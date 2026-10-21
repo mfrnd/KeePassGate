@@ -33,7 +33,7 @@ namespace KeePassGate.Tests
         {
             var entry = TestNode.Root("root").Granting("reader", AclVerb.Read).Child("an entry");
 
-            Assert.That(_check.Permits(Client("reader"), "readEntry", AclVerb.Read, AclReach.Fields, entry),
+            Assert.That(_check.Decide(Client("reader"), "readEntry", AclVerb.Read, AclReach.Fields, entry).Permitted,
                 Is.True);
         }
 
@@ -46,7 +46,7 @@ namespace KeePassGate.Tests
             var entry = group.Child("an entry");
 
             Assert.That(
-                _check.Permits(Client("reader"), "deleteEntry", AclVerb.Delete, AclReach.Fields, entry),
+                _check.Decide(Client("reader"), "deleteEntry", AclVerb.Delete, AclReach.Fields, entry).Permitted,
                 Is.True, "the group allows removals and the entry inherits that");
         }
 
@@ -61,11 +61,11 @@ namespace KeePassGate.Tests
             var entry = group.Child("an entry");
 
             Assert.That(
-                _check.Permits(Client("reader"), "deleteEntry", AclVerb.Delete, AclReach.Fields, entry),
+                _check.Decide(Client("reader"), "deleteEntry", AclVerb.Delete, AclReach.Fields, entry).Permitted,
                 Is.True, "what is inside the group may go");
 
             Assert.That(
-                _check.Permits(Client("reader"), "deleteGroup", AclVerb.Delete, AclReach.Fields, group),
+                _check.Decide(Client("reader"), "deleteGroup", AclVerb.Delete, AclReach.Fields, group).Permitted,
                 Is.False, "and the group itself may not, because nothing above it says so");
         }
 
@@ -77,15 +77,15 @@ namespace KeePassGate.Tests
             var sibling = group.Child("another entry");
 
             Assert.That(
-                _check.Permits(Client("reader"), "deleteEntry", AclVerb.Delete, AclReach.Fields, kept),
+                _check.Decide(Client("reader"), "deleteEntry", AclVerb.Delete, AclReach.Fields, kept).Permitted,
                 Is.False, "its own rule does not allow removals");
 
             Assert.That(
-                _check.Permits(Client("reader"), "stripField", AclVerb.Strip, AclReach.Fields, kept),
+                _check.Decide(Client("reader"), "stripField", AclVerb.Strip, AclReach.Fields, kept).Permitted,
                 Is.True, "and its fields are still open to stripping");
 
             Assert.That(
-                _check.Permits(Client("reader"), "deleteEntry", AclVerb.Delete, AclReach.Fields, sibling),
+                _check.Decide(Client("reader"), "deleteEntry", AclVerb.Delete, AclReach.Fields, sibling).Permitted,
                 Is.True, "while a sibling with no rule of its own goes");
         }
 
@@ -97,7 +97,7 @@ namespace KeePassGate.Tests
             var root = TestNode.Root("root").Granting("reader", AclVerb.Delete);
 
             Assert.That(
-                _check.Permits(Client("reader"), "deleteGroup", AclVerb.Delete, AclReach.Fields, root),
+                _check.Decide(Client("reader"), "deleteGroup", AclVerb.Delete, AclReach.Fields, root).Permitted,
                 Is.False);
         }
 
@@ -108,7 +108,7 @@ namespace KeePassGate.Tests
             // whose record does not name it is not an editor.
             var entry = TestNode.Root("root").Granting("editor", AclVerb.Read).Child("an entry");
 
-            Assert.That(_check.Permits(Client("reader"), "readEntry", AclVerb.Read, AclReach.Fields, entry),
+            Assert.That(_check.Decide(Client("reader"), "readEntry", AclVerb.Read, AclReach.Fields, entry).Permitted,
                 Is.False);
         }
 
@@ -120,7 +120,9 @@ namespace KeePassGate.Tests
             var entry = TestNode.Root("root").Child("an entry");
 
             Assert.That(
-                _check.Permits(Client("reader", "editor", "auditor"), "readEntry", AclVerb.Read, AclReach.Fields, entry),
+                _check.Decide(
+                    Client("reader", "editor", "auditor"), "readEntry", AclVerb.Read, AclReach.Fields, entry)
+                    .Permitted,
                 Is.False);
         }
 
@@ -129,8 +131,12 @@ namespace KeePassGate.Tests
         {
             var entry = TestNode.Root("root").Granting("reader", AclVerb.Read).Child("an entry");
 
-            Assert.That(_check.Permits(Client("reader"), "readEntry", AclVerb.Read, AclReach.Fields, entry), Is.True);
-            Assert.That(_check.Permits(Client("reader"), "deleteEntry", AclVerb.Delete, AclReach.Fields, entry), Is.False);
+            Assert.That(
+                _check.Decide(Client("reader"), "readEntry", AclVerb.Read, AclReach.Fields, entry).Permitted,
+                Is.True);
+            Assert.That(
+                _check.Decide(Client("reader"), "deleteEntry", AclVerb.Delete, AclReach.Fields, entry).Permitted,
+                Is.False);
         }
 
         [Test]
@@ -139,7 +145,7 @@ namespace KeePassGate.Tests
             var entry = TestNode.Root("root").Granting("reader", AclVerb.Read).Child("an entry");
 
             Assert.That(
-                _check.Permits(Client("reader"), "readAttachment", AclVerb.Read, AclReach.Attachments, entry),
+                _check.Decide(Client("reader"), "readAttachment", AclVerb.Read, AclReach.Attachments, entry).Permitted,
                 Is.False);
         }
 
@@ -150,9 +156,9 @@ namespace KeePassGate.Tests
             // A check that trusted its caller to have checked would stop being one.
             var entry = TestNode.Root("root").Granting("reader", AclVerb.Read).Child("an entry");
 
-            Assert.That(_check.Permits(null, "readEntry", AclVerb.Read, AclReach.Fields, entry), Is.False);
+            Assert.That(_check.Decide(null, "readEntry", AclVerb.Read, AclReach.Fields, entry).Permitted, Is.False);
             Assert.That(
-                _check.Permits(ClientIdentity.Stranger("d1"), "readEntry", AclVerb.Read, AclReach.Fields, entry),
+                _check.Decide(ClientIdentity.Stranger("d1"), "readEntry", AclVerb.Read, AclReach.Fields, entry).Permitted,
                 Is.False);
         }
 
@@ -161,8 +167,8 @@ namespace KeePassGate.Tests
         {
             var entry = TestNode.Root("root").Granting("reader", AclVerb.Read).Child("an entry");
 
-            _check.Permits(Client("reader"), "readEntry", AclVerb.Read, AclReach.Fields, entry);
-            _check.Permits(Client("reader"), "deleteEntry", AclVerb.Delete, AclReach.Fields, entry);
+            _check.Decide(Client("reader"), "readEntry", AclVerb.Read, AclReach.Fields, entry);
+            _check.Decide(Client("reader"), "deleteEntry", AclVerb.Delete, AclReach.Fields, entry);
 
             Assert.That(_audit.Entries.Select(e => e.OperationId), Is.EqualTo(new[] { "readEntry", "deleteEntry" }));
             Assert.That(_audit.Entries[0].Permitted, Is.True);
@@ -174,7 +180,7 @@ namespace KeePassGate.Tests
         {
             var entry = TestNode.Root("root").Granting("reader", AclVerb.Read).Child("an entry");
 
-            _check.Permits(Client("reader"), "readEntry", AclVerb.Read, AclReach.Fields, entry);
+            _check.Decide(Client("reader"), "readEntry", AclVerb.Read, AclReach.Fields, entry);
 
             var recorded = _audit.Entries.Single();
 
@@ -197,7 +203,7 @@ namespace KeePassGate.Tests
             // carrying. The operation is named, and naming it is the point.
             var entry = TestNode.Root("root").Granting("reader", AclVerb.Read).Child("an entry");
 
-            _check.Permits(Client("reader", "editor"), "readEntry", AclVerb.Read, AclReach.Fields, entry);
+            _check.Decide(Client("reader", "editor"), "readEntry", AclVerb.Read, AclReach.Fields, entry);
 
             var line = _audit.Entries.Single().Line();
 
@@ -213,8 +219,9 @@ namespace KeePassGate.Tests
             // that sends the operator looking for a rule; the reason is that they removed a name.
             var entry = TestNode.Root("root").Holding("{\"ops\":[\"read\"],\"audit\":[\"read\"]}").Child("an entry");
 
-            var permitted = _check.Permits(
-                Removing(new[] { "reader" }, "ops", "audit", "legacy"), "readEntry", AclVerb.Read, AclReach.Fields, entry);
+            var permitted = _check.Decide(
+                Removing(new[] { "reader" }, "ops", "audit", "legacy"), "readEntry", AclVerb.Read, AclReach.Fields, entry)
+                .Permitted;
 
             var recorded = _audit.Entries.Single();
 
@@ -235,7 +242,7 @@ namespace KeePassGate.Tests
         {
             var entry = TestNode.Root("root").Granting("reader", AclVerb.List).Child("an entry");
 
-            _check.Permits(Removing(new[] { "reader" }, "ops"), "readEntry", AclVerb.Read, AclReach.Fields, entry);
+            _check.Decide(Removing(new[] { "reader" }, "ops"), "readEntry", AclVerb.Read, AclReach.Fields, entry);
 
             var recorded = _audit.Entries.Single();
 
@@ -253,7 +260,7 @@ namespace KeePassGate.Tests
             var entry = TestNode.Root("root").Granting("ops", AclVerb.Delete)
                 .Child("an entry").Holding("{\"audit\":[\"delete\"],\"ops\":[]}");
 
-            _check.Permits(Removing(Array.Empty<string>(), "ops", "audit"), "deleteEntry", AclVerb.Delete, AclReach.Fields, entry);
+            _check.Decide(Removing(Array.Empty<string>(), "ops", "audit"), "deleteEntry", AclVerb.Delete, AclReach.Fields, entry);
 
             var recorded = _audit.Entries.Single();
 
@@ -270,7 +277,7 @@ namespace KeePassGate.Tests
             // worse again, being asked on two nodes, and the line could not say which said no.
             var entry = TestNode.Root("root").Granting("reader", AclVerb.Read).Child("an entry");
 
-            _check.Permits(Client("reader"), "deleteEntry", AclVerb.Delete, AclReach.Fields, entry);
+            _check.Decide(Client("reader"), "deleteEntry", AclVerb.Delete, AclReach.Fields, entry);
 
             var recorded = _audit.Entries.Single();
 
@@ -281,7 +288,7 @@ namespace KeePassGate.Tests
         [Test]
         public void A_request_that_never_reached_a_node_still_says_so()
         {
-            _check.Permits(Client("reader"), "readEntry", AclVerb.Read, AclReach.Fields, null);
+            _check.Decide(Client("reader"), "readEntry", AclVerb.Read, AclReach.Fields, null);
 
             Assert.That(_audit.Entries.Single().Node, Is.Null);
             Assert.That(_audit.Entries.Single().Permitted, Is.False);
@@ -295,7 +302,7 @@ namespace KeePassGate.Tests
             // file is where the difference has to survive, and a removal was the one verb that
             // lost it: an absent node has no parent, and the two-sided walk read that as nothing
             // above it allowing removals, which names a rule that was never consulted.
-            _check.Permits(Client("reader"), "deleteEntry", AclVerb.Delete, AclReach.Fields, null);
+            _check.Decide(Client("reader"), "deleteEntry", AclVerb.Delete, AclReach.Fields, null);
 
             var recorded = _audit.Entries.Single();
 
@@ -315,7 +322,7 @@ namespace KeePassGate.Tests
         private static string Refused(string operationId, AclVerb verb)
         {
             var audit = new RecordingAudit();
-            new AccessCheck(audit).Permits(Client("reader"), operationId, verb, AclReach.Fields, null);
+            new AccessCheck(audit).Decide(Client("reader"), operationId, verb, AclReach.Fields, null);
 
             return audit.Entries.Single().Reason;
         }
@@ -326,7 +333,68 @@ namespace KeePassGate.Tests
             var check = new AccessCheck(null);
             var entry = TestNode.Root("root").Granting("reader", AclVerb.Read).Child("an entry");
 
-            Assert.That(check.Permits(Client("reader"), "readEntry", AclVerb.Read, AclReach.Fields, entry), Is.True);
+            Assert.That(
+                check.Decide(Client("reader"), "readEntry", AclVerb.Read, AclReach.Fields, entry).Permitted,
+                Is.True);
+        }
+
+        [Test]
+        public void A_question_about_every_verb_is_written_down_once_whichever_way_it_goes()
+        {
+            var entry = TestNode.Root("root").Granting("reader", AclVerb.Read).Child("an entry");
+
+            var permitted = _check.Decide(Client("reader"), "getEntryAccess", AclVerb.Any, AclReach.Fields, entry);
+            var refused = _check.Decide(Client("editor"), "getEntryAccess", AclVerb.Any, AclReach.Fields, entry);
+
+            Assert.That(permitted.Permitted, Is.True);
+            Assert.That(refused.Permitted, Is.False);
+            Assert.That(_audit.Entries.Select(line => line.Permitted), Is.EqualTo(new[] { true, false }));
+            Assert.That(_audit.Entries[0].DecidedAt, Is.EqualTo("root"), "the rule that granted something");
+        }
+
+        [Test]
+        public void A_question_about_every_verb_carries_what_each_profile_is_granted()
+        {
+            var entry = TestNode.Root("root")
+                .Holding("{\"reader\":[\"read\"],\"editor\":[\"update\"]}")
+                .Child("an entry");
+
+            var decision = _check.Decide(
+                Client("reader", "editor"), "getEntryAccess", AclVerb.Any, AclReach.Fields, entry);
+
+            Assert.That(
+                decision.Grants.Select(grant => grant.Key + " " + VerbMask.Of(grant.Value)),
+                Is.EqualTo(new[] { "reader .R......", "editor ..U....." }));
+        }
+
+        [Test]
+        public void A_question_about_every_verb_is_not_a_removal()
+        {
+            // A `D` at the node is its rule saying removals are allowed there, and asking about it
+            // asks the node alone. The group above is asked when something is actually removed.
+            var group = TestNode.Root("root").Child("a group").Granting("reader", AclVerb.Delete);
+
+            Assert.That(
+                _check.Decide(Client("reader"), "getGroupAccess", AclVerb.Any, AclReach.Fields, group).Permitted,
+                Is.True);
+            Assert.That(
+                _check.Decide(Client("reader"), "deleteGroup", AclVerb.Delete, AclReach.Fields, group).Permitted,
+                Is.False, "while removing the group itself is still refused");
+        }
+
+        [Test]
+        public void A_question_about_every_verb_a_removed_profile_would_have_answered_says_so()
+        {
+            var entry = TestNode.Root("root").Granting("ops", AclVerb.Read).Child("an entry");
+
+            var decision = _check.Decide(
+                Removing(new[] { "reader" }, "ops"), "getEntryAccess", AclVerb.Any, AclReach.Fields, entry);
+
+            Assert.That(decision.Permitted, Is.False);
+            Assert.That(_audit.Entries.Single().Reason, Is.EqualTo(AccessCheck.ProfileRemoved));
+            Assert.That(_audit.Entries.Single().RemovedProfiles, Is.EqualTo(new[] { "ops" }));
+            Assert.That(decision.Grants.Select(grant => grant.Key), Is.EqualTo(new[] { "reader" }),
+                "and the answer is about the profiles the client holds, never the removed ones");
         }
 
         private static readonly DateTimeOffset At = new DateTimeOffset(2026, 3, 4, 5, 6, 7, TimeSpan.Zero);

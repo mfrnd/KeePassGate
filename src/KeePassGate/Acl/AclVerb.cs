@@ -42,10 +42,16 @@ namespace KeePassGate.Acl
     /// about authorization is a route that will not serve.
     ///
     /// `None` is not a weaker verb, and it has no letter. It is for an operation that no rule
-    /// governs: the status route, which reads nothing, and the two pairing routes, which are
-    /// authorized by a person reading a dialog rather than by a grant, because a client that is
-    /// pairing holds no profiles yet. It is written down rather than left absent, because absent
-    /// would be indistinguishable from forgetting.
+    /// governs: the status route and the caller's identity, which read nothing a rule is about, a
+    /// client's revocation of its own certificate, and the two pairing routes and the renewal,
+    /// which are authorized by a person reading a dialog rather than by a grant, because a client
+    /// that is pairing holds no profiles yet. It is written down rather than left absent, because
+    /// absent would be indistinguishable from forgetting.
+    ///
+    /// `Any` has no letter either, and no rule can hold it. It is for an operation that asks what
+    /// the caller may do at a node rather than doing one thing there, and the router answers it by
+    /// asking the rules about each verb and switch, one profile at a time, and refusing it unless
+    /// one of them is granted a verb there.
     /// </remarks>
     public enum AclVerb
     {
@@ -89,6 +95,12 @@ namespace KeePassGate.Acl
         /// the database protects, which is the password and any field an operator marked.
         /// </summary>
         Protected,
+
+        /// <summary>
+        /// Every verb at once, for an operation asking what the caller may do at a node. Governed
+        /// by the rules and never held by one.
+        /// </summary>
+        Any,
     }
 
     /// <summary>Reading a verb from text, which is how it arrives from a document.</summary>
@@ -196,6 +208,7 @@ namespace KeePassGate.Acl
                 case "list": return AclVerb.List;
                 case "attachments": return AclVerb.Attachments;
                 case "protected": return AclVerb.Protected;
+                case "any": return AclVerb.Any;
                 default: return null;
             }
         }
@@ -214,6 +227,7 @@ namespace KeePassGate.Acl
                 case AclVerb.List: return "list";
                 case AclVerb.Attachments: return "attachments";
                 case AclVerb.Protected: return "protected";
+                case AclVerb.Any: return "any";
                 default:
                     throw new ArgumentOutOfRangeException(nameof(verb));
             }
@@ -225,10 +239,27 @@ namespace KeePassGate.Acl
         /// <remarks>
         /// `None` is not. An operation that touches no data needs no grant, and a grant of `none`
         /// would read as permission to do something rather than as permission to do nothing.
+        ///
+        /// Nor is `Any`, which asks about every verb a rule can hold and is not one of them. A rule
+        /// holding it would grant what no letter of the editor shows, so a document naming it is
+        /// refused like one naming a verb nobody defined.
         /// </remarks>
         public static bool IsGrantable(AclVerb verb)
         {
-            return verb != AclVerb.None;
+            return verb != AclVerb.None && verb != AclVerb.Any;
+        }
+
+        /// <summary>
+        /// Whether an operation declaring this is decided by the rules, at a node it names.
+        /// </summary>
+        /// <remarks>
+        /// Every verb a rule can hold, and `Any`, which asks about all of them at once. `None` is
+        /// not, and neither switch is, since no operation may declare one: the router names no
+        /// node for an operation that is not, asks no rule about it and writes nothing down.
+        /// </remarks>
+        public static bool IsGoverned(AclVerb verb)
+        {
+            return verb == AclVerb.Any || (IsGrantable(verb) && !IsScope(verb));
         }
     }
 }

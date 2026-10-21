@@ -71,6 +71,7 @@ namespace KeePassGate.Tests
         [TestCase("{\"reader\":[\"admin\"]}", TestName = "a verb nobody defined")]
         [TestCase("{\"reader\":[\"Read\"]}", TestName = "a verb in the wrong case")]
         [TestCase("{\"reader\":[\"none\"]}", TestName = "the verb that is not grantable")]
+        [TestCase("{\"reader\":[\"any\"]}", TestName = "the verb that asks about the others")]
         [TestCase("{\"reader\":{\"read\":true}}", TestName = "nested")]
         public void Anything_that_is_not_exactly_a_document_is_refused(string text)
         {
@@ -186,6 +187,7 @@ namespace KeePassGate.Tests
         [TestCase("attachments", AclVerb.Attachments)]
         [TestCase("protected", AclVerb.Protected)]
         [TestCase("none", AclVerb.None)]
+        [TestCase("any", AclVerb.Any)]
         public void Every_verb_reads_back_as_itself(string text, AclVerb verb)
         {
             Assert.That(AclVerbs.Read(text), Is.EqualTo(verb));
@@ -210,6 +212,7 @@ namespace KeePassGate.Tests
             }
 
             Assert.That(AclVerbs.Grantable, Has.No.Member(AclVerb.None));
+            Assert.That(AclVerbs.Grantable, Has.No.Member(AclVerb.Any));
         }
 
         [Test]
@@ -227,6 +230,7 @@ namespace KeePassGate.Tests
             Assert.That(AclVerbs.PositionOf(AclVerb.Create), Is.Zero);
             Assert.That(AclVerbs.PositionOf(AclVerb.Protected), Is.EqualTo(AclVerbs.Grantable.Count - 1));
             Assert.That(AclVerbs.PositionOf(AclVerb.None), Is.EqualTo(-1), "no rule holds it");
+            Assert.That(AclVerbs.PositionOf(AclVerb.Any), Is.EqualTo(-1), "nor this one");
         }
 
         [Test]
@@ -241,7 +245,7 @@ namespace KeePassGate.Tests
             foreach (var verb in new[]
             {
                 AclVerb.None, AclVerb.Create, AclVerb.Read,
-                AclVerb.Update, AclVerb.Strip, AclVerb.Delete, AclVerb.List,
+                AclVerb.Update, AclVerb.Strip, AclVerb.Delete, AclVerb.List, AclVerb.Any,
             })
             {
                 Assert.That(AclVerbs.IsScope(verb), Is.False, AclVerbs.Write(verb));
@@ -316,6 +320,38 @@ namespace KeePassGate.Tests
             // `none` says an operation reaches no data. A grant of it would read as permission to
             // do something rather than as permission to do nothing.
             Assert.That(AclVerbs.IsGrantable(AclVerb.None), Is.False);
+        }
+
+        [Test]
+        public void The_verb_that_asks_about_every_other_is_not_grantable()
+        {
+            // `any` asks what a caller may do at a node, which is a question about the six rather
+            // than a seventh, so a rule holding it would grant what no letter of the editor shows.
+            Assert.That(AclVerbs.IsGrantable(AclVerb.Any), Is.False);
+            Assert.Throws<ArgumentException>(() => AclDocument.Of(
+                AclDefault.Inherit,
+                new Dictionary<string, IEnumerable<AclVerb>> { { "reader", new[] { AclVerb.Any } } }));
+        }
+
+        [Test]
+        public void What_the_rules_decide_is_every_verb_and_the_question_about_all_of_them()
+        {
+            // What an operation may declare and still have the router ask the rules, at a node it
+            // names. `none` is the one it may declare and not be asked about, and neither switch
+            // may be declared at all.
+            foreach (var verb in new[]
+            {
+                AclVerb.Create, AclVerb.Read, AclVerb.Update,
+                AclVerb.Strip, AclVerb.Delete, AclVerb.List, AclVerb.Any,
+            })
+            {
+                Assert.That(AclVerbs.IsGoverned(verb), Is.True, AclVerbs.Write(verb));
+            }
+
+            foreach (var verb in new[] { AclVerb.None, AclVerb.Attachments, AclVerb.Protected })
+            {
+                Assert.That(AclVerbs.IsGoverned(verb), Is.False, AclVerbs.Write(verb));
+            }
         }
         [Test]
         public void A_rule_says_separately_whether_it_reaches_what_the_database_protects()

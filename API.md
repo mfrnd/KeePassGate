@@ -18,7 +18,9 @@ whether a call is allowed is [`docs/access-control.md`](docs/access-control.md).
 **The verb is the operation's own name.** Create is `create`, read is `read`, update is `update`,
 strip is `strip`, delete is `delete`, list is `list`. No route decides for itself, so a reviewer
 checks the routing document by reading each `operationId` beside its `x-kpg-verb`, and a route
-added later has one obvious answer rather than an argument.
+added later has one obvious answer rather than an argument. The two routes asking what a client
+may do at a node do none of the six, so they are named `get` and declare `any`, which asks about
+all of them at once.
 
 **The node is the nearest addressable thing.** A field and an attachment are not nodes, so a rule
 about them is a rule on the entry that holds them. A create's node is the container it goes into,

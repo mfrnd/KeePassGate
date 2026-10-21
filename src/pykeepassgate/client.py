@@ -39,10 +39,12 @@ from .errors import (
     RouteRefused,
     StorageError,
 )
-from .model import EXPIRES, Attachment, Entry, Field, Group, made
+from .model import EXPIRES, Access, Attachment, Entry, Field, Group, Identity, made
 from .pairing import lifetime_text
 
 STATUS_PATH = "/gate/status"
+
+IDENTITY_PATH = "/gate/whoami"
 
 CERTIFICATE_PATH = "/gate/certificate"
 
@@ -141,11 +143,11 @@ class GateClient:
         above zero, a budget that is neither `None` nor a finite number of seconds from zero, and
         a port in the credentials that TCP does not have.
 
-        `key_password` opens a key that pairing stored under one: the password, as text or bytes,
-        or a callable returning it, which is asked only if the key turns out to be encrypted, and
-        once. A key that is not encrypted is opened without it, and one given for it is not used.
-        An encrypted key with no password, or one the password does not open, is a `StorageError`
-        naming `identity.pem`.
+        `key_password` opens a key that pairing or a renewal stored under one: the password, as text
+        or bytes, or a callable returning it, which is asked only if the key turns out to be
+        encrypted, and once. A key that is not encrypted is opened without it, and one given for it
+        is not used. An encrypted key with no password, or one the password does not open, is a
+        `StorageError` naming `identity.pem`.
 
         The host is where the socket goes and nothing else. It is not part of the identity and is
         not stored with it: the same paired client reaches the same KeePass through a tunnel or
@@ -246,9 +248,10 @@ class GateClient:
         """The route that proves a connection and nothing else.
 
         It reads nothing out of the database on purpose, which is why it is one of the routes
-        declaring `x-kpg-verb: none`, beside the pairing ones and `revoke_certificate`: no grant
-        could allow or refuse it, because it reaches nothing a grant is about. It exists to
-        prove a connection rather than to be useful.
+        declaring `x-kpg-verb: none`, beside `identity`, `revoke_certificate`, `renew` and the two
+        pairing routes, as the routing document lists them: no grant could allow or refuse it,
+        because it reaches nothing a grant is about. It exists to prove a connection rather than
+        to be useful.
 
         A client can use it to answer three questions at once: whether the gate is listening,
         whether this certificate is still admitted, and whether the database is unlocked.
@@ -265,6 +268,20 @@ class GateClient:
             raise ProtocolError("the gate answered its status in a form this client cannot read")
 
         return Status(ok=ok, database=database, version=version, revision=revision)
+
+    def identity(self) -> Identity:
+        """Who this client is, as the database it reached admitted it.
+
+        `GET /gate/whoami` declares `x-kpg-verb: none`, as the status route does: everything it
+        answers was settled when the connection was admitted, out of this client's own record, so
+        no rule is asked and a client the rules let reach nothing may still ask who it is.
+
+        What pairing or the last renewal stored is what the operator approved then, and
+        `credentials` says it without connecting. This is what holds now: `profiles` are the ones
+        the rules are asked about, which leave out any name the database no longer holds, and
+        `removed_profiles` are those, which grant nothing until the operator names them again.
+        """
+        return Identity.of(self.get(IDENTITY_PATH))
 
     def revoke_certificate(self) -> None:
         """Give up this client's admission, by the certificate it presents.
@@ -388,7 +405,14 @@ class GateClient:
                 ),
                 held=transport.PAIRING_CONNECTION_TIMEOUT,
             )
-            renewing.save(self._credentials.port, bundle, key_password=self._opened)
+            # The same client under a new certificate, so the client key is the one it renews from,
+            # which is what the gate copied into the new record as well.
+            renewing.save(
+                self._credentials.port,
+                bundle,
+                key_password=self._opened,
+                client_key=self._credentials.client_key,
+            )
         except BaseException:
             # Only empty ones: whatever opening created was taken away when it closed.
             for each in prepared:
@@ -559,6 +583,17 @@ class GateClient:
         """Remove a group, which the gate refuses while it still holds anything."""
         self.send("DELETE", f"/groups/{_segment(uuid)}")
 
+    def group_access(self, uuid: str = ROOT) -> Access:
+        """What this client may do at a group, one mask for each profile it holds.
+
+        The route declares `x-kpg-verb: any`, so the gate puts every verb and switch to the rules
+        here for each profile, as each operation's own question would be put, and answers `404`
+        unless some profile is granted some verb, as it answers a group that is not there. So a
+        client learns what it may do at a node it can reach, and nothing about one it cannot.
+        `Access.allows` asks the questions a caller has.
+        """
+        return Access.of(self.get(f"/groups/{_segment(uuid)}/access"))
+
     # Entries
 
     def entries(self, group: str | None = None, include_expired: bool = True) -> list[Entry]:
@@ -635,6 +670,14 @@ class GateClient:
     def delete_entry(self, uuid: str) -> None:
         """Remove an entry, to the recycle bin when the database keeps one."""
         self.send("DELETE", f"/entries/{_segment(uuid)}")
+
+    def entry_access(self, uuid: str) -> Access:
+        """What this client may do at an entry, one mask for each profile it holds.
+
+        The same question as `group_access`, asked of an entry, and the answer covers its fields
+        and attachments too: neither is a node of its own, so a rule about them is the entry's.
+        """
+        return Access.of(self.get(f"/entries/{_segment(uuid)}/access"))
 
     # Fields
 
@@ -796,10 +839,10 @@ class GateClient:
         anything the document declares.
 
         **This is also where a retry budget is overridden for one call**, and the reason it is
-        here rather than on each of the twenty-two methods above is that a call to the gate is a
-        request: every one of those methods is one call to this, so `send` is where a caller can
+        here rather than on each method above is that a call to the gate is a request: every one
+        of those methods comes down to the request this makes, so `send` is where a caller can
         say that this request in particular is worth waiting for. Three more arguments on each of
-        them would say the same thing twenty-two times over and turn the file that is meant to
+        them would say the same thing once for every route and turn the file that is meant to
         read as the list of what the gate serves into a file about timeouts.
 
         Nothing but a `503` is retried, and a `503` only when its word is one a budget names. A

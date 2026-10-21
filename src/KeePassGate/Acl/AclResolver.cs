@@ -61,10 +61,17 @@ namespace KeePassGate.Acl
     public sealed class AclDecision
     {
         internal AclDecision(bool permitted, string reason, string decidedAt)
+            : this(permitted, reason, decidedAt, null)
+        {
+        }
+
+        internal AclDecision(
+            bool permitted, string reason, string decidedAt, IReadOnlyList<KeyValuePair<string, AclGrant>> grants)
         {
             Permitted = permitted;
             Reason = reason;
             DecidedAt = decidedAt;
+            Grants = grants;
         }
 
         public bool Permitted { get; private set; }
@@ -74,6 +81,18 @@ namespace KeePassGate.Acl
 
         /// <summary>The node whose rule decided, or null when nothing did.</summary>
         public string DecidedAt { get; private set; }
+
+        /// <summary>
+        /// For a question about every verb at once, what each profile asked about is granted at the
+        /// node, in the order they were asked about. Null for a question about one verb, and for one
+        /// that never reached a node.
+        /// </summary>
+        /// <remarks>
+        /// Carried on the decision rather than asked for again, because asked again it could
+        /// disagree: a tree that moved in between would let a request the rules permitted be
+        /// answered with grants that name nothing, or one they refused be answered at all.
+        /// </remarks>
+        public IReadOnlyList<KeyValuePair<string, AclGrant>> Grants { get; private set; }
 
         public override string ToString()
         {
@@ -234,6 +253,124 @@ namespace KeePassGate.Acl
             IAclNode node, IEnumerable<string> profiles, AclVerb verb, AclReach reach)
         {
             return Decide(node, profiles, verb, reach, null);
+        }
+
+        /// <summary>
+        /// What each of these profiles is granted at this node, and whether any of them is granted
+        /// anything there at all.
+        /// </summary>
+        /// <remarks>
+        /// **The same walk every other question takes, asked one profile, one verb and one switch
+        /// at a time.** What it reports for a profile is therefore what that profile's own question
+        /// about each verb at this node would be answered, and nothing new decides here. It is the
+        /// node's question alone: a removal also asks the group the node is leaving, and no
+        /// operation strips a group, so a `D` or an `S` reported here can be a grant no operation
+        /// can use at this node. That is what the KPG tab shows for the node's rule, and the answer
+        /// says what the rules grant here rather than what would succeed.
+        ///
+        /// **Per profile, because a switch belongs to its rule.** A switch says how far the verbs of
+        /// the same rule reach, so one profile's `read` and another's `protected` do not add up to
+        /// reading a protected value, and one grant made of both would claim exactly that. Each
+        /// profile is answered on its own, as the router combines them: one is enough by itself,
+        /// and none is ever completed by another.
+        ///
+        /// A switch is reported where it reaches a verb the same profile is granted there and a
+        /// switch can qualify, which is every verb but the two removals. Those take an entry's
+        /// attachments and protected values without asking, so beside them alone a switch reaches
+        /// nothing further.
+        ///
+        /// **Permitted when some profile is granted some verb**, which is what an operation
+        /// declaring `any` needs, and then answered with the first grant found, so the node it
+        /// names holds a rule that does grant something. Refused otherwise, with the first
+        /// refusal, for the reason a question about one verb reports the first one: an account of
+        /// why rather than of the last thing tried.
+        /// </remarks>
+        public static AclDecision DecideAny(IAclNode node, IEnumerable<string> profiles)
+        {
+            if (node == null)
+            {
+                return new AclDecision(false, "there is nothing to decide about", null);
+            }
+
+            var held = new List<string>();
+            foreach (var profile in profiles ?? Array.Empty<string>())
+            {
+                // Once each, because each is a member of the answer, and named, as everywhere.
+                if (!string.IsNullOrEmpty(profile) && !held.Contains(profile))
+                {
+                    held.Add(profile);
+                }
+            }
+
+            if (held.Count == 0)
+            {
+                return new AclDecision(false, "the client holds no profiles", null);
+            }
+
+            var read = new AclDocuments();
+            var grants = new List<KeyValuePair<string, AclGrant>>();
+            AclDecision granted = null;
+            AclDecision refusal = null;
+
+            foreach (var profile in held)
+            {
+                var verbs = new List<AclVerb>();
+
+                foreach (var verb in AclVerbs.Grantable)
+                {
+                    if (AclVerbs.IsScope(verb))
+                    {
+                        continue;
+                    }
+
+                    var decision = Decide(node, profile, verb, AclReach.Fields, read);
+                    if (decision.Permitted)
+                    {
+                        verbs.Add(verb);
+                        granted = granted ?? decision;
+                    }
+                    else
+                    {
+                        refusal = refusal ?? decision;
+                    }
+                }
+
+                var holds = new HashSet<AclVerb>(verbs);
+
+                if (Reaches(node, profile, verbs, AclReach.Attachments, read))
+                {
+                    holds.Add(AclVerb.Attachments);
+                }
+
+                if (Reaches(node, profile, verbs, AclReach.Protected, read))
+                {
+                    holds.Add(AclVerb.Protected);
+                }
+
+                grants.Add(new KeyValuePair<string, AclGrant>(profile, new AclGrant(holds)));
+            }
+
+            var answer = granted ?? refusal;
+            return new AclDecision(granted != null, answer.Reason, answer.DecidedAt, grants.AsReadOnly());
+        }
+
+        /// <summary>
+        /// Whether a switch reaches one of these verbs, all granted to this profile here, that a
+        /// switch can qualify.
+        /// </summary>
+        private static bool Reaches(
+            IAclNode node, string profile, IEnumerable<AclVerb> verbs, AclReach reach, AclDocuments read)
+        {
+            foreach (var verb in verbs)
+            {
+                if (verb != AclVerb.Strip && verb != AclVerb.Delete
+                    && Decide(node, profile, verb, reach, read).Permitted)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private static AclDecision Decide(

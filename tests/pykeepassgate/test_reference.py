@@ -37,6 +37,8 @@ from pykeepassgate.pairing import Pairing
 COVERED = {
     "getStatus": (GateClient, "status"),
     "headStatus": (GateClient, "head"),
+    "getIdentity": (GateClient, "identity"),
+    "headIdentity": (GateClient, "head"),
     "revokeCertificate": (GateClient, "revoke_certificate"),
     "renewCertificate": (GateClient, "renew"),
     "pairHello": (Pairing, "hello"),
@@ -51,6 +53,8 @@ COVERED = {
     "createGroup": (GateClient, "create_group"),
     "updateGroup": (GateClient, "update_group"),
     "deleteGroup": (GateClient, "delete_group"),
+    "getGroupAccess": (GateClient, "group_access"),
+    "headGroupAccess": (GateClient, "head"),
 
     "listEntries": (GateClient, "entries"),
     "headEntries": (GateClient, "head"),
@@ -61,6 +65,8 @@ COVERED = {
     "createEntry": (GateClient, "create_entry"),
     "updateEntry": (GateClient, "update_entry"),
     "deleteEntry": (GateClient, "delete_entry"),
+    "getEntryAccess": (GateClient, "entry_access"),
+    "headEntryAccess": (GateClient, "head"),
 
     "listFields": (GateClient, "fields"),
     "headFields": (GateClient, "head"),
@@ -167,6 +173,7 @@ def test_the_paths_this_client_sends_are_the_paths_the_document_declares(
     declared = operations(document)
 
     assert declared["getStatus"]["path"] == client_module.STATUS_PATH
+    assert declared["getIdentity"]["path"] == client_module.IDENTITY_PATH
     assert declared["revokeCertificate"]["path"] == client_module.CERTIFICATE_PATH
     assert declared["renewCertificate"]["path"] == client_module.RENEW_PATH
     assert declared["pairHello"]["path"] == pairing_module.HELLO_PATH
@@ -177,6 +184,7 @@ def test_the_methods_this_client_uses_are_the_ones_declared(document: dict[str, 
     declared = operations(document)
 
     assert declared["getStatus"]["method"] == "get"
+    assert declared["getIdentity"]["method"] == "get"
     assert declared["revokeCertificate"]["method"] == "delete"
     assert declared["renewCertificate"]["method"] == "post"
     assert declared["pairHello"]["method"] == "post"

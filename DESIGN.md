@@ -404,7 +404,8 @@ turned out not to be types. The format is `AclDocument.Read` and `AclDocument.Wr
 `KdbxFormat` would have held and nothing else, and a set of profiles is an `IEnumerable<string>`
 argument rather than a class. `AclVerbView` was real work that had not happened when this was written. The editor does that
 job now, with `VerbMask` and `VerbKeys`, because how a person is shown a verb is a different
-question from how one is decided.
+question from how one is decided. `VerbMask` is also how the API states what a client may do at a
+node, so it sits with the verbs rather than with the editor.
 
 Grants live in group and entry `CustomData` under **`KPG`**, a single key holding a JSON document,
 which is this plugin's own namespace. Sharing a key with another plugin would couple two schemas
@@ -625,9 +626,20 @@ check each of them has to remember is a check one of them will not.
 The verb comes from the routing table, as `x-kpg-verb`, and **an operation that declares none stops
 the plugin loading**. That is what keeps authorization from being something a new route can be added
 without: there is no permissive default to fall into, only a document that does not parse. `none` is
-a decision and it is written down, for the status route, which reads nothing, for a client's
-revocation of its own certificate, which touches no group or entry a rule is about, and for the two
-pairing routes, which a person authorizes by reading a dialog rather than by a grant.
+a decision and it is written down, for the status route and the caller's identity, which read
+nothing a rule is about, for a client's revocation of its own certificate, which touches no group or
+entry a rule is about, and for the two pairing routes and the renewal, which a person authorizes by
+reading a dialog rather than by a grant.
+
+**`any` is the one value no rule can hold.** The two routes asking what a caller may do at a node
+declare it, and the router answers it with this same walk, put once for each verb and each switch to
+each profile on its own, so nothing new decides it. It asks about the node alone, as the KPG tab
+shows a rule there, so a `delete` the group above refuses and a `strip` on a group, which no
+operation can use there, are still reported: a mask is what the rules grant at the node, not a
+promise that every operation it names succeeds. Per profile, because a switch belongs to its rule:
+one profile's `read` and another's `protected` do not add up to reading a protected value, and one
+grant made of both would say they do. It is refused, and recorded, as a verb is, unless some profile
+is granted some verb at the node.
 
 `AclResolver` returns why as well as whether, naming the node whose rule decided by its identifier
 and never by its title, because those reasons reach the audit log in step 14 and a log is meant to be
@@ -1173,7 +1185,7 @@ and returns no name rather than throwing; `SniProbe.cs` is the evidence it works
 
 ### C6. "Spec-first routing is slower than a switch statement" §128
 
-It is, and the document declares thirty-eight operations over fifteen paths, eleven of them the
+It is, and the document declares forty-four operations over eighteen paths, fourteen of them the
 `HEAD` that answers for a `GET`. The property being bought, that an undeclared path has nowhere to
 go and that the document cannot disagree with the implementation, is worth more than the
 microseconds.
@@ -1413,6 +1425,21 @@ Each step is refusable, and each ends with something that runs.
     to offer it, since a callable is not something an argument can carry. And the stand-in gate
     ships as a script of answers rather than a model of the rules, so that nothing in the package is
     a second implementation of them.
+22. **The caller's identity and access**: a route saying who the caller is, as the database admitted
+    it, and one saying what it may do at a group or an entry, with the reference client's calls for
+    both; the admission key the operator knows a client by, printed on the client's side; and
+    `identity`, which reads the stored identity without connecting, reporting an expired
+    certificate and a key kept under a password. **Done.**
+    Until here a client knew itself only from what it stored at pairing or at its last
+    renewal, which is what the operator approved then and not what holds once a profile is
+    removed, and learned what its rules allowed at a node only by trying, where a refusal is
+    the same `404` as an absent node. What this settles is that the gate answers both before
+    anything is tried, out of what decides them anyway: who the caller is from its admission
+    record, with the client key the operator knows it by and the admission key the operator
+    revokes its certificate by, `CA.md` §223, and one mask
+    per profile at a node, put through the same walk an operation's own question takes and asked
+    of the node alone, as the KPG tab shows its rule. One mask per profile rather than their union,
+    because a switch reaches only the verbs of its own rule.
 
 Steps 5 to 8 are the ones that prove the design. Step 5 is deliberately early, because the
 `CustomData` dialog hazard is the thing most likely to invalidate the storage decision, and finding

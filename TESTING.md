@@ -141,12 +141,18 @@ and reads it back. It is the one test in which the plugin's own PKCS#12 export m
 Bouncy Castle's TLS meets Python's `ssl`, and the plugin's framing meets the client's reader. Without
 `uv` it is ignored, as the tier is without a KeePass.
 
-It goes on to hold the client's answers against the plugin's own. Under a rule granting `P`, the
-password the client stored reads back through the field route, and a new one it sets reads back as
-the new one. A write made while the entry's dialog is open in KeePass is turned away as `GateBusy`
-and changes nothing, and once KeePass is locked the client meets `DatabaseLocked`. What the command
-line does not offer, one field on its own route and a changed password, goes through the library
-with `tests/pykeepassgate/live_calls.py`, which the client tier runs against its stand-in as well.
+It goes on to hold the client's answers against the plugin's own. The admission key the client
+works out from its certificate is the one the gate names it by, and the gate says which profile
+counts. Under a rule granting `P`, the password the client stored reads back through the field
+route, and a new one it sets reads back as the new one. The gate says what the client may do at
+the entry and at the root, in the tab's notation. It then renews through the real renewal dialog
+with `pykeepassgate renew`, which stores the new identity and gives up the certificate it renewed
+from, so `renew` and `revoke_certificate` meet the plugin as well; every step after that runs on
+the renewed identity. A write made while the entry's dialog is open in KeePass is turned away as
+`GateBusy` and changes nothing, and once KeePass is locked the client meets `DatabaseLocked`. What
+the command line does not offer, one field on its own route and a changed password, goes through
+the library with `tests/pykeepassgate/live_calls.py`, which the client tier runs against its
+stand-in as well.
 
 **Step 13**, in `LiveGrantEditorTests`: a rule made on the KPG tab of a real KeePass, kept by the
 group dialog's **OK**, and read out of the `.kdbx` after the process has gone. Pressing OK rather

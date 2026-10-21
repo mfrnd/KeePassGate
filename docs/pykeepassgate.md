@@ -68,6 +68,15 @@ print(credentials.profiles)
 and `credentials.profiles` is what they approved. A client that assumes it got what it asked for
 discovers otherwise as a refusal on some later request, a long way from the cause.
 
+**`pair` prints the admission key as well**: SHA-256 over the certificate it was issued, in hex,
+which is what the operator's [audit file](audit.md) names this client by. It is how the person
+running the client and the person at KeePass name the same program. `identity` prints it again
+later, `renew` prints the new certificate's and `revoke` the one it gave up, and from a program it
+is `credentials.admission_key`, read off the stored certificate. The one `pair` prints is also the
+**client key**, which the KPG tab knows this client by and which a renewal keeps while the
+admission key changes. It is stored with the identity, `credentials.client_key`, and `identity`
+prints it above the admission key; `whoami` asks the gate for both.
+
 **Ask for a shorter certificate when a year is too long.** `--lifetime 30` on the command line, or
 `lifetime=timedelta(days=30)` from a program, asks for one that lasts thirty days. Anything from a
 day to a year will do, in whole days, and anything else is refused before anything is sent. The
@@ -115,14 +124,15 @@ and are never waived.
 **The key can be kept under a password.** `pair --key-password` asks for one at a terminal, twice
 and without echo, before anything is sent, and stores the client's key encrypted under it. Every
 command that uses the key afterwards asks for it at a terminal, once, and only when the key is
-encrypted. **The command line has no other way to take it, by design**: never as an argument,
-which the process list shows, and not from standard input either, so with no terminal
-`pair --key-password` is refused, exit 2 with nothing spent, and a command that needs the password
-fails with `StorageError`, exit 1. Standard input from the null device is no terminal, on Windows
-as well, where it claims to be one: a command run with its input from `NUL` is refused at once
-rather than left waiting on a console nobody is at. A program passes `key_password=` instead, to
-`api.pair`, `GateClient` and `GateClient.open`: the password as text or bytes, or a callable
-returning it, which is asked once, and only when the key turns out to be encrypted.
+encrypted, which `identity` says without asking. **The command line has no other way to take it,
+by design**: never as an argument, which the process list shows, and not from standard input
+either, so with no terminal `pair --key-password` is refused, exit 2 with nothing spent, and a
+command that needs the password fails with `StorageError`, exit 1. Standard input from the null
+device is no terminal, on Windows as well, where it claims to be one: a command run with its input
+from `NUL` is refused at once rather than left waiting on a console nobody is at. A program passes
+`key_password=` instead, to `api.pair`, `GateClient` and `GateClient.open`: the password as text
+or bytes, or a callable returning it, which is asked once, and only when the key turns out to be
+encrypted.
 
 ```python
 def key_password() -> str:
@@ -150,11 +160,33 @@ a backup from a casual reader rather than a determined one. A program should pas
 
 ```shell
 pykeepassgate status
+pykeepassgate identity
 pykeepassgate whoami
 ```
 
-`status` connects and asks. `whoami` says what this client is without connecting, which is what to
-run when nothing is answering, to find out which side the problem is on.
+The two names follow the API's: `whoami` asks `GET /gate/whoami`, and `identity` reads the
+identity this client stored.
+
+`status` connects and asks. `identity` says what this client is without connecting, which is what
+to run when nothing is answering, to find out which side the problem is on: the subject, the client
+key, the admission key, the database, the profiles the operator approved at pairing or at the last
+renewal, when the certificate expires and whether it has, or that the stored moment is not one it
+can read, which leaves the gate to decide, whether the key is encrypted, the port, and where the
+identity is stored. The expiry and the key are what stop every other command before it dials, and
+`identity` reads both off the stored files without asking for a password.
+
+`whoami` asks the gate who this client is, as the database admitted it: the subject, the client
+key, the admission key, when the certificate stops being admitted, and two lists of profiles. The
+**client key** is the key the operator knows this client by: the admission key of the certificate
+it paired with, which every renewal keeps, and which the KPG tab counts and tells clients apart by,
+since a name need not be unique. The **admission key** is the certificate this identity holds now,
+which a renewal changes. A renewed identity no longer holds the certificate it paired with, so the
+client key is stored beside it when it is paired and copied at every renewal, and `identity`
+prints the stored one. `profiles` are the ones the rules are asked about now, and `removed
+profiles` are the ones its record holds that the database no longer names, which grant nothing
+until the operator names them again. What `identity` prints is what the operator approved when this
+identity was issued, at pairing or at its last renewal, so the two differ once a profile has been
+removed since then.
 
 ```python
 from pykeepassgate import GateClient
@@ -163,13 +195,16 @@ client = GateClient.open()
 state = client.status()
 
 print(state.ok, state.database, state.version, state.revision)
+
+me = client.identity()
+print(me.client_key, me.admission_key, me.profiles, me.removed_profiles)
 ```
 
 `version` is the plugin's release, which this client shares, and `revision` is the commit the
 plugin was built from, or empty for a build that carries none. Two machines running the same
 version can be running different builds of it, and the revision says which.
 
-`GateClient.open()` reads the credentials pairing stored. Pass `profile=` where more than one
+`GateClient.open()` reads the credentials pairing stored, or the last renewal. Pass `profile=` where more than one
 identity is kept on the machine. **Every setting is passed by name**: after the identity, which is
 the credentials for `GateClient`, the directory and the profile for `GateClient.open`, the port and
 the invitation for `Pairing`, and those and the name for `api.pair`, everything is keyword only, so
@@ -182,10 +217,11 @@ pykeepassgate revoke
 ```
 
 `revoke` asks the gate to revoke the certificate this client presents, and once the gate says the
-revocation is saved, removes what pairing stored for it: the key, the certificate, the gate key and
-`client.json`, and the directory as well if that empties it. Nothing can use them afterwards, since
-the database refuses the certificate from the next connection on, and a private key kept for a
-certificate nobody accepts protects nothing. Pairing again is the way back, into the same place.
+revocation is saved, removes what is stored for it, by pairing or the last renewal: the key, the
+certificate, the gate key and `client.json`, and the directory as well if that empties it. Nothing
+can use them afterwards, since the database refuses the certificate from the next connection on,
+and a private key kept for a certificate nobody accepts protects nothing. Pairing again is the way
+back, into the same place.
 
 When the gate does not confirm it, nothing is removed. `not saved` means the revocation was taken
 back out and this client is still admitted, so running `revoke` again is safe. `not verified` means
@@ -486,6 +522,37 @@ pykeepassgate attachments <uuid>
 pykeepassgate fetch <uuid> key.pem --to ./key.pem
 ```
 
+## Ask what it may do before trying
+
+```shell
+pykeepassgate access --group root
+pykeepassgate access --entry <uuid>
+```
+
+`access` asks the gate what this client may do at one group or entry, and prints a rule for each
+profile it holds, as the **KPG** tab shows one: `CRUSDLAP`, with a dot for each verb or switch that
+profile is not granted there, and eight dots for one granted nothing there. A node where no profile
+may do anything is refused with the `404` an absent one gets, so this tells a program about what it
+can reach and nothing about what it cannot, and the audit records the question like any other.
+
+```python
+access = client.entry_access(uuid)
+
+if access.allows("RP"):
+    ...     # one profile's rule here reads the protected values too
+```
+
+**Ask about one rule at a time.** `A` and `P` say how far the verbs of the same rule reach, so a
+profile granting `R` and another granting `P` do not let this client read a protected value, and
+`allows` asks each profile's mask on its own: `"RP"` is whether this client may read the protected
+values here, `"CA"` whether it may add an attachment to this entry, and `"C"` whether it may add to
+this group. A switch says nothing about removing, which shows nobody anything, so beside only `S`
+or `D` it is not asked: `"SA"`, whether this client may strip an attachment here, is answered by
+`S`. **Removing the node itself is the one question a single answer does not settle**: it
+needs `D` here and in the group the node would leave, which is that group's answer.
+`client.group_access()` asks about a group, the root unless told another, and `access.grants` holds
+the masks by profile. [`access-control.md`](access-control.md) says what each letter is worth.
+
 ## What to catch
 
 Every exception says what to do next rather than what went wrong, because that is the part a caller
@@ -679,7 +746,7 @@ authority.issue("agent-invented", ExtendedKeyUsageOID.CLIENT_AUTH, "identity.pem
 
 with FakeGate(host, authority.pem) as gate:
     gate.handler = lambda path, body, client: (503, '{"error":"busy"}')
-    credentials = api.Credentials(directory, gate.port, "CN=agent-invented", "", (), "")
+    credentials = api.Credentials(directory, gate.port, "CN=agent-invented", "", (), "", "")
     client = api.GateClient(credentials)
     ...     # whatever the program does, which here meets `GateBusy`
 ```

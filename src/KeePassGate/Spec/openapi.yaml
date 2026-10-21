@@ -93,11 +93,14 @@ info:
     Everything else needs one, by default rather than by remembering to say so.
 
     `x-kpg-verb` says what an operation does to the database: `create`, `read`, `update`, `strip`,
-    `delete`, `list`, or `none` for an operation no grant governs. **Every operation declares one**,
-    and one that does not stops the plugin loading, so authorization is not something a new route
-    can be added without. `none` is the status route, which reads nothing, the revocation of a
-    client's own certificate, which touches no group or entry a rule is about, and the two pairing
-    routes and the renewal, which a person authorizes by reading a dialog rather than a grant.
+    `delete`, `list`, `any` for an operation asking what the caller may do at a node, or `none`
+    for an operation no grant governs. **Every operation declares one**, and one that does not
+    stops the plugin loading, so authorization is not something a new route can be added
+    without. `none` is the status route and the caller's identity, which read nothing a rule is
+    about, the revocation of a client's own certificate, which touches no group or entry a rule
+    is about, and the two pairing routes and the renewal, which a person authorizes by reading a
+    dialog rather than a grant. `any` is answered by asking the rules about every verb and switch,
+    one profile at a time, and refused unless one of them is granted a verb at the node.
     `list` is below `read`, because knowing that an entry exists is not knowing what is in it.
 
     `strip` and `delete` are two sizes of removal. `strip` takes the parts off a node, which are an
@@ -224,6 +227,48 @@ paths:
       responses:
         "200":
           description: The gate is serving this database, and it is unlocked.
+        "401":
+          $ref: "#/components/responses/Unpaired"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+
+  /gate/whoami:
+    get:
+      operationId: getIdentity
+      summary: Who this client is, as the database it reached admitted it.
+      description: |
+        What the connection established before this route was chosen: the certificate's subject,
+        the client key the operator knows this client by, the admission key of the certificate on
+        the connection, when the certificate stops being admitted, the profiles the rules are
+        asked about for this client, and the names its record holds that the database no longer
+        does. All of it is this client's own record, so it declares `x-kpg-verb: none`: it reads
+        nothing a rule is about, and a client the rules let reach nothing may still ask who it is.
+        What a rule grants at a node is a question about the node, which the record does not
+        answer.
+      # Not written to the audit, like every operation declaring `none`.
+      x-kpg-verb: none
+      responses:
+        "200":
+          description: The caller.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Identity"
+        "401":
+          $ref: "#/components/responses/Unpaired"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+    head:
+      operationId: headIdentity
+      summary: The same, without the content.
+      description: |
+        Runs what its `get` runs, on the same handler, and answers without the content.
+        Declared rather than derived, and governed by the same `x-kpg-verb`: this document's
+        own description says why.
+      x-kpg-verb: none
+      responses:
+        "200":
+          description: This client is admitted to this database.
         "401":
           $ref: "#/components/responses/Unpaired"
         "503":
@@ -893,6 +938,53 @@ paths:
         "503":
           $ref: "#/components/responses/Unavailable"
 
+  /groups/{uuid}/access:
+    get:
+      operationId: getGroupAccess
+      summary: What this client may do at this group, profile by profile.
+      description: |
+        Every verb and switch each profile this client holds is granted here, as the rules answer
+        each operation's own question, in the notation the KPG tab shows a rule in. One mask per
+        profile, because a switch reaches only the verbs of its own rule. Answered `404` unless
+        some profile is granted some verb here, as a group that is not there is. Like every
+        question the rules answer about a node, each request is written to the audit:
+        `permitted` when some profile is granted some verb, and `refused` otherwise.
+      x-kpg-verb: any
+      parameters:
+        - $ref: "#/components/parameters/GroupUuid"
+      responses:
+        "200":
+          description: What each profile may do here.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Access"
+        "401":
+          $ref: "#/components/responses/Unpaired"
+        "404":
+          $ref: "#/components/responses/Unreachable"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+    head:
+      operationId: headGroupAccess
+      summary: The same, without the content.
+      description: |
+        Runs what its `get` runs, on the same handler, and answers without the content.
+        Declared rather than derived, and governed by the same `x-kpg-verb`: this document's
+        own description says why.
+      x-kpg-verb: any
+      parameters:
+        - $ref: "#/components/parameters/GroupUuid"
+      responses:
+        "200":
+          description: There, and this client may do something here.
+        "401":
+          $ref: "#/components/responses/Unpaired"
+        "404":
+          $ref: "#/components/responses/Unreachable"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+
   /entries:
     get:
       operationId: listEntries
@@ -1488,6 +1580,50 @@ paths:
         "503":
           $ref: "#/components/responses/Unavailable"
 
+  /entries/{uuid}/access:
+    get:
+      operationId: getEntryAccess
+      summary: What this client may do at this entry, profile by profile.
+      description: |
+        The same question as a group's, asked of an entry, and its fields and attachments with it:
+        neither is a node of its own, so what a rule says about them is said on the entry. It is
+        written to the audit as a group's is.
+      x-kpg-verb: any
+      parameters:
+        - $ref: "#/components/parameters/EntryUuid"
+      responses:
+        "200":
+          description: What each profile may do here.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Access"
+        "401":
+          $ref: "#/components/responses/Unpaired"
+        "404":
+          $ref: "#/components/responses/Unreachable"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+    head:
+      operationId: headEntryAccess
+      summary: The same, without the content.
+      description: |
+        Runs what its `get` runs, on the same handler, and answers without the content.
+        Declared rather than derived, and governed by the same `x-kpg-verb`: this document's
+        own description says why.
+      x-kpg-verb: any
+      parameters:
+        - $ref: "#/components/parameters/EntryUuid"
+      responses:
+        "200":
+          description: There, and this client may do something here.
+        "401":
+          $ref: "#/components/responses/Unpaired"
+        "404":
+          $ref: "#/components/responses/Unreachable"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+
 components:
   schemas:
     Error:
@@ -1504,6 +1640,80 @@ components:
             client to do next; the rest are told apart by the status and read by a person. None of them carries anything
             the caller sent back to it.
 
+
+    Identity:
+      type: object
+      required: [subject, clientKey, admissionKey, expires, profiles, removedProfiles]
+      additionalProperties: false
+      properties:
+        subject:
+          type: string
+          description: The certificate's subject, `CN=` and the name the client paired under.
+        clientKey:
+          type: string
+          description: |
+            The key the operator knows this client by: SHA-256 over the certificate it paired
+            with, in lower case hex, which every renewal keeps. A name is the client's own choice
+            and need not be unique, so the KPG tab counts and tells clients apart by this, and each
+            row of its Clients page names it.
+        admissionKey:
+          type: string
+          description: |
+            SHA-256 over the certificate on this connection, in lower case hex, which a renewal
+            changes. The Clients page revokes a certificate by it, and every line of the audit
+            names one by it.
+        expires:
+          type: string
+          description: When the certificate stops being admitted, RFC 3339 in UTC to the second.
+        profiles:
+          type: array
+          items:
+            type: string
+          description: |
+            The profiles the rules are asked about for this client: the ones its admission record
+            holds that the database still names, in the record's order.
+        removedProfiles:
+          type: array
+          items:
+            type: string
+          description: |
+            The ones its record holds that the database no longer names. They grant nothing, and
+            the operator naming one again gives it back.
+
+    # One mask per profile because a switch belongs to its rule: `A` and `P` say how far the verbs
+    # of the same rule reach, so a client holding `.R......` under one profile and `.....L.P` under
+    # another may read the entry and see a protected title in a listing, and is still refused the
+    # protected values a read carries. One mask made of both, `.R...L.P`, would claim a read the
+    # gate refuses. §511
+    Access:
+      type: object
+      required: [grants]
+      additionalProperties: false
+      description: |
+        A client holding `.R...L.P` under `reader` and `C.....A.` under `uploader` at a node is
+        answered `{"grants":{"reader":".R...L.P","uploader":"C.....A."}}` there.
+      properties:
+        grants:
+          type: object
+          additionalProperties:
+            type: string
+            pattern: "^[C.][R.][U.][S.][D.][L.][A.][P.]$"
+          description: |
+            One member for each profile this client holds, the ones `getIdentity` lists as
+            `profiles`, each a mask in the notation the KPG tab shows a rule in: `CRUSDLAP`, with a
+            dot for each verb or switch the profile is not granted here, and eight dots for a
+            profile granted nothing here. A switch reaches only the verbs of its own mask, so this
+            client may read a protected value here when one mask holds both `R` and `P`, and never
+            because one mask holds `R` and another `P`; it may add an attachment to this entry
+            when one mask holds both `C` and `A`, and an entry to this group when one holds `C`. A
+            switch is shown only beside a verb of its own mask that a switch can qualify, so a
+            rule granting `A` or `P` beside `S` or `D` alone is answered without it, since
+            removing takes attachments and protected values without asking. `D` is the rule saying
+            removals are allowed here; removing the node itself asks the group above it as well,
+            so it needs a `D` in that group's answer too. The question is asked of the node
+            alone, as the KPG tab shows a rule there, so `S` is reported on a group though no
+            operation strips one: a mask says what the rules grant at the node rather than which
+            operations would succeed on it.
 
     EntryFields:
       type: object

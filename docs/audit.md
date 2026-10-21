@@ -64,6 +64,10 @@ can read it.
 | `decision` | `permitted` or `refused` |
 | `reason` | a few words saying why |
 
+**The reference client says which key is its own.** PyKeePassGate prints its admission key when it
+pairs, renews or gives its certificate up, and `pykeepassgate whoami` prints it at any time, which
+is how a line here is matched to the program it is about.
+
 **`permitted` means the rules allowed it, and nothing more.** The line is written as the rules
 answer, before the body is checked and before anything is read or written, so a request can be
 `permitted` here and still be answered with a refusal of its body, a conflict, `503 busy`,
@@ -71,6 +75,10 @@ answer, before the body is checked and before anything is read or written, so a 
 the program was answered. Why a change was refused is in the plugin's log, a warning per refusal,
 which is where to look when a program's writes keep coming back `busy`: some of the reasons, a
 dialog left open or a database file changed on disk, clear only when somebody at the desk acts.
+
+**A program asking what it may do at a group or an entry is a decision as well**, and written down
+like any other: `permitted` when some profile it holds may do something there, `refused` when none
+may.
 
 **A locked database is not a decision, and gets no line.** A request that meets the database
 locked, whether it was locked when the request arrived or KeePass locked it while the request was

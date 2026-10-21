@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+import hashlib
 import inspect
 import json
 import re
@@ -13,11 +14,12 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from cryptography.hazmat.primitives import serialization
 
 from pykeepassgate import api, cli, transport
 from pykeepassgate import credentials as credentials_module
 from pykeepassgate.errors import StorageError
-from pykeepassgate.testing import FakeGate
+from pykeepassgate.testing import FakeGate, Issued
 
 
 def test_a_command_is_required(capsys: pytest.CaptureFixture[str]) -> None:
@@ -52,17 +54,112 @@ def test_the_default_port_is_the_plugin_s_own() -> None:
     assert int(declared.group(1)) == cli.DEFAULT_PORT
 
 
-def test_whoami_says_what_this_client_is_without_connecting(
+def test_identity_says_what_this_client_is_without_connecting(
     tmp_path: Path, bundle: dict[str, Any], capsys: pytest.CaptureFixture[str]
 ) -> None:
     credentials_module.save(tmp_path / "kept", 45678, bundle)
 
-    assert cli.main(["whoami", "--directory", str(tmp_path / "kept")]) == 0
+    assert cli.main(["identity", "--directory", str(tmp_path / "kept")]) == 0
 
     printed = capsys.readouterr().out
     assert "CN=agent-invented" in printed
     assert "reader" in printed
     assert "45678" in printed
+
+
+def admission_key(issued: Issued) -> str:
+    """What the plugin keys a certificate's record on, worked out here from the certificate."""
+    return hashlib.sha256(issued.certificate.public_bytes(serialization.Encoding.DER)).hexdigest()
+
+
+def test_identity_names_the_keys_the_audit_names_this_client_by(
+    tmp_path: Path,
+    bundle: dict[str, Any],
+    client_certificate: Issued,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    # Without connecting: what lets a person match the audit file's lines to the program they are
+    # about. The admission key is read off the stored certificate, and the client key is stored,
+    # which on a pairing is the same key, since this certificate is the client's first.
+    credentials_module.save(tmp_path / "kept", 45678, bundle)
+
+    assert cli.main(["identity", "--directory", str(tmp_path / "kept")]) == 0
+
+    lines = capsys.readouterr().out.splitlines()
+    key = admission_key(client_certificate)
+    assert lines.index(f"client key:    {key}") + 1 == lines.index(f"admission key: {key}"), (
+        "the client key is printed above the admission key"
+    )
+
+
+def test_identity_prints_the_client_key_a_renewal_kept_beside_its_own_admission_key(
+    tmp_path: Path,
+    bundle: dict[str, Any],
+    client_certificate: Issued,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    # A renewed identity holds a certificate that is not the one it paired with, so the two keys
+    # differ, and only the stored one says which client this is.
+    paired = "c" * 64
+    credentials_module.save(tmp_path / "kept", 45678, bundle, client_key=paired)
+
+    assert cli.main(["identity", "--directory", str(tmp_path / "kept")]) == 0
+
+    lines = capsys.readouterr().out.splitlines()
+    assert f"client key:    {paired}" in lines
+    assert f"admission key: {admission_key(client_certificate)}" in lines
+
+
+@pytest.mark.parametrize(
+    ("expires", "line"),
+    [
+        ("2001-02-03T04:05:06Z", "expires:       2001-02-03T04:05:06Z (expired)"),
+        ("2126-08-15T09:00:00Z", "expires:       2126-08-15T09:00:00Z"),
+        (
+            "whenever",
+            "expires:       whenever (not a moment this client can read, so the gate decides)",
+        ),
+    ],
+    ids=["passed", "to come", "unreadable"],
+)
+def test_identity_says_whether_the_certificate_has_expired(
+    tmp_path: Path,
+    bundle: dict[str, Any],
+    capsys: pytest.CaptureFixture[str],
+    expires: str,
+    line: str,
+) -> None:
+    # Every command that dials refuses an expired certificate before dialing, so this is where it
+    # is seen without one being tried.
+    credentials_module.save(tmp_path / "kept", 45678, {**bundle, "expires": expires})
+
+    assert cli.main(["identity", "--directory", str(tmp_path / "kept")]) == 0
+    assert line in capsys.readouterr().out.splitlines()
+
+
+@pytest.mark.parametrize(
+    ("password", "line"),
+    [(None, "key:           not encrypted"), ("not-a-real-one", "key:           encrypted")],
+    ids=["none", "a password"],
+)
+def test_identity_says_whether_the_key_is_under_a_password_and_asks_for_none(
+    tmp_path: Path,
+    bundle: dict[str, Any],
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    password: str | None,
+    line: str,
+) -> None:
+    # Read off the label the key was written under, so nobody is asked anything: a command that
+    # loads the key would ask at a terminal, and with none would fail.
+    def never(prompt: str = "Password: ", stream: object = None) -> str:
+        raise AssertionError("identity asked for a password")
+
+    monkeypatch.setattr("getpass.getpass", never)
+    credentials_module.save(tmp_path / "kept", 45678, bundle, key_password=password)
+
+    assert cli.main(["identity", "--directory", str(tmp_path / "kept")]) == 0
+    assert line in capsys.readouterr().out.splitlines()
 
 
 def _shows_no_credential(printed: str, bundle: dict[str, Any], *also: str) -> None:
@@ -79,23 +176,23 @@ def _shows_no_credential(printed: str, bundle: dict[str, Any], *also: str) -> No
     assert "PRIVATE KEY" not in printed
 
 
-def test_whoami_prints_what_the_credentials_are_and_nothing_they_hold(
+def test_identity_prints_what_the_credentials_are_and_nothing_they_hold(
     tmp_path: Path, bundle: dict[str, Any], capsys: pytest.CaptureFixture[str]
 ) -> None:
     credentials_module.save(tmp_path / "kept", 45678, bundle)
 
-    assert cli.main(["whoami", "--directory", str(tmp_path / "kept")]) == 0
+    assert cli.main(["identity", "--directory", str(tmp_path / "kept")]) == 0
 
     captured = capsys.readouterr()
     _shows_no_credential(captured.out + captured.err, bundle)
 
 
-def test_whoami_says_where_it_looked_when_there_is_nothing_there(
+def test_identity_says_where_it_looked_when_there_is_nothing_there(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     # Reported the way every other refusal is, under its class's name, which is what a script
     # greps for; there is no second path through `main` for the standard library's exceptions.
-    assert cli.main(["whoami", "--directory", str(tmp_path / "nothing")]) == 1
+    assert cli.main(["identity", "--directory", str(tmp_path / "nothing")]) == 1
 
     printed = capsys.readouterr().err
     assert printed.startswith("NotPaired: no paired client")
@@ -408,6 +505,38 @@ def test_pairing_prints_what_was_approved_rather_than_what_was_asked(
     assert f"expires: {bundle['expires']}" in printed, "the lifetime the operator picked"
 
 
+def test_pairing_prints_the_key_the_audit_names_this_client_by(
+    tmp_path: Path,
+    gate: FakeGate,
+    bundle: dict[str, Any],
+    client_certificate: Issued,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    # The audit file names this client by it on every line from now on, so this is how the
+    # operator tells which lines are which program's.
+    from test_pairing import INVITATION, Gate
+
+    gate.handler = Gate(gate, gate.host_certificate, bundle=bundle)
+
+    code = cli.main(
+        [
+            "pair",
+            "--port",
+            str(gate.port),
+            "--name",
+            "agent-invented",
+            "--invitation",
+            INVITATION,
+            "--directory",
+            str(tmp_path / "kept"),
+        ]
+    )
+
+    assert code == 0
+    lines = capsys.readouterr().out.splitlines()
+    assert f"admission key: {admission_key(client_certificate)}" in lines
+
+
 def test_pairing_from_the_command_line_passes_on_what_it_was_given(
     tmp_path: Path,
     gate: FakeGate,
@@ -463,7 +592,11 @@ def test_pairing_from_the_command_line_passes_on_what_it_was_given(
 
 
 def test_revoking_gives_up_the_admission_and_removes_what_was_stored(
-    tmp_path: Path, gate: FakeGate, bundle: dict[str, Any], capsys: pytest.CaptureFixture[str]
+    tmp_path: Path,
+    gate: FakeGate,
+    bundle: dict[str, Any],
+    client_certificate: Issued,
+    capsys: pytest.CaptureFixture[str],
 ) -> None:
     # Removed because nothing can use it any more: a private key kept for a certificate the gate
     # refuses protects nothing. Pairing again stores a new one in the same place.
@@ -477,6 +610,9 @@ def test_revoking_gives_up_the_admission_and_removes_what_was_stored(
     assert code == 0
     assert gate.requests == [("DELETE", "/gate/certificate")]
     assert "revoked CN=agent-invented" in printed
+    assert f"admission key: {admission_key(client_certificate)}" in printed.splitlines(), (
+        "the key the audit names this client by, read before the files went"
+    )
     assert not where.exists()
 
 
@@ -613,7 +749,7 @@ def test_naming_the_identity_twice_is_an_argument_error(tmp_path: Path) -> None:
     # in silence: `pair --directory D --profile work` stored where `status --profile work` would
     # never look. Exit code 2, which the module docstring reserves for arguments that are wrong.
     with pytest.raises(SystemExit) as raised:
-        cli.main(["whoami", "--profile", "work", "--directory", str(tmp_path / "kept")])
+        cli.main(["identity", "--profile", "work", "--directory", str(tmp_path / "kept")])
 
     assert raised.value.code == 2
 
@@ -628,14 +764,14 @@ def test_naming_the_identity_twice_is_an_argument_error(tmp_path: Path) -> None:
         "--max-response-bytes",
     ],
 )
-def test_whoami_takes_no_option_about_a_connection_it_never_makes(
+def test_identity_takes_no_option_about_a_connection_it_never_makes(
     option: str, tmp_path: Path
 ) -> None:
-    # `whoami` answers out of the stored identity and never dials, so an option about the socket
+    # `identity` answers out of the stored identity and never dials, so an option about the socket
     # or about waiting out an answer could change nothing it does. Refused, exit code 2, rather
     # than accepted and ignored, which is what `--connection-timeout` used to be here.
     with pytest.raises(SystemExit) as raised:
-        cli.main(["whoami", "--directory", str(tmp_path / "kept"), option, "5"])
+        cli.main(["identity", "--directory", str(tmp_path / "kept"), option, "5"])
 
     assert raised.value.code == 2
 
@@ -645,9 +781,9 @@ def test_a_profile_that_is_a_path_is_an_argument_error(
     profile: str, capsys: pytest.CaptureFixture[str]
 ) -> None:
     # `pair --profile ../escaped` stored the identity beside the profiles directory and said so,
-    # exit 0, and `whoami --profile /tmp` looked for one there. A path is `--directory`.
+    # exit 0, and `identity --profile /tmp` looked for one there. A path is `--directory`.
     with pytest.raises(SystemExit) as raised:
-        cli.main(["whoami", "--profile", profile])
+        cli.main(["identity", "--profile", profile])
 
     assert raised.value.code == 2
     assert "not one directory's name" in capsys.readouterr().err
