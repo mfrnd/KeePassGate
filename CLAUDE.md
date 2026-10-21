@@ -44,7 +44,9 @@ can keep its key under a password, make the connection it goes over, and test ag
 gate the client's own tests use. **And a client can ask about itself**: who the gate takes it for,
 with the key the operator knows it by, and what it may do at a group or an entry before it tries.
 **And field references are followed**: the reference client compiles them as KeePass does, on its
-own side and under the caller's own rules, held to KeePass's own compiler.
+own side and under the caller's own rules, held to KeePass's own compiler. **And there is a package
+a release can publish**: `build.ps1 -Task Package` zips the plugin with everything it loads, its
+license and the notices, beside a `SHA256SUMS`.
 
 ## Read these before proposing anything
 
@@ -620,6 +622,12 @@ a database's custom data. Each gathers what it settled in its own `RESULTS.md`. 
   the closing quote.** `-p:KeePassDevDir=C:\Program Files\KeePass\` reaches `dotnet` as one
   argument that swallows the `--nologo` after it. `Resolve-KeePass` trims a trailing separator for
   that reason, keeping it only on a drive root.
+- **`ContinuousIntegrationBuild` maps nothing outside a git checkout.** The SDK builds the `/_/`
+  path map from the source roots its git support reads out of `.git`, so in a source download or a
+  `git archive` the switch is set and every full path is compiled into the plugin and its symbols.
+  `build.ps1 -Task Package` asks git for the top of the repository first and refuses anything else,
+  and refuses a tree with uncommitted changes, since the plugin reports HEAD's commit as the one it
+  was built from.
 - **C# 7.3 is available, and the packaging is why.** A `.plgx` would be recompiled by KeePass's
   in-box CodeDOM provider, which caps the language at C# 5. This ships a plain DLL and escapes that
   entirely; the probes are conservative only because `Add-Type` compiles them.
@@ -685,6 +693,7 @@ file.
 .\build.ps1 -Task Client   # PyKeePassGate on its own: ruff, mypy, pytest
 .\build.ps1 -Task All      # the default, then the end to end tests
 .\build.ps1 -Task Deploy   # copy the plugin into plugins\KeePassGate in the provided KeePass
+.\build.ps1 -Task Package  # the plugin as Release, zipped with a SHA256SUMS into dist\, from a clean clone
 .\run-debug.ps1            # deploy, then start that KeePass, Debug
 .\run-release.ps1          # deploy, then start that KeePass, Release
 ```
@@ -807,13 +816,14 @@ routes read and change the database, two launchers start the pinned KeePass with
 a profile has a home of its own, the plugin has a window under the Tools menu, `docs/` says how
 to use the result, a client's certificate can be renewed and given up, a program built on the client
 can keep its key under a password, make its connection and test against a stand-in gate, a client
-can ask who the gate takes it for and what it may do at a node, the audit records every pairing,
-renewal and revocation, and the client follows field references as KeePass does, under the caller's
-own rules.
+can ask who the gate takes it for and what it may do at a node, the audit records every pairing and
+renewal the operator answers and every client revoked, the client follows field references as
+KeePass does, under the caller's own rules, and `build.ps1 -Task Package` makes the zip a release
+would publish.
 
 **Start with [`docs/`](docs/README.md) if the question is what this does**, and with the documents
 below if the question is why it does it that way. What is left is not a step: there is no release
-packaging and no Scoop manifest.
+yet, only the zip `build.ps1 -Task Package` makes for one, and no Scoop manifest.
 
 **The storage decision survived the thing most likely to invalidate it.** The `GroupForm` snapshot
 hazard is real and now measured rather than remembered: `SnapshotHazardTests` reads the mechanism off

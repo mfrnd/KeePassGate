@@ -15,6 +15,10 @@
 # What the coverage collector writes, one report per test assembly per run.
 /.cov/
 
+# What `build.ps1 -Task Package` makes: a zip a release would publish and the sums beside it.
+# Published from here when there is a release, and never committed.
+/dist/
+
 # The KeePass this repository pins, fetched by `tools/KeePass.ps1` and named after its
 # version. Provided rather than committed: it is somebody else's program.
 /.keepass/

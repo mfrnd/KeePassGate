@@ -19,7 +19,9 @@ nowhere to go. **Twenty-four routes read and change groups, entries, fields and 
 declaring the verb it needs and the node it is about, two of them saying what the caller may do
 there, and the router refuses anything the admission record and the rules on that node do not both
 allow, writing every decision to an audit file outside the database, with every pairing and
-renewal the operator answers and every client revoked.
+renewal the operator answers and every client revoked. **There is a package a release can publish**:
+`build.ps1 -Task Package` zips the plugin with everything it loads, its license and the notices,
+beside a `SHA256SUMS`, from a clean clone.
 
 **License: MIT.** GPLv2 is not required. KeePass is GPL-2.0-or-later and grants no plugin exception,
 but the FSF's own requirement is a GPL-compatible license, and MIT is one, so a permissive
@@ -93,6 +95,7 @@ that does not depend on where the bytes came from.
 .\build.ps1 -Task KeePass   # provide the pinned KeePass, and say whether a newer one is out
 .\build.ps1 -Task All       # the default, then the end to end tests
 .\build.ps1 -Task Deploy    # copy the plugin into plugins\KeePassGate in the provided KeePass
+.\build.ps1 -Task Package   # the plugin as Release, zipped with a SHA256SUMS into dist\, from a clean clone
 .\run-debug.ps1             # deploy, then start that KeePass with the Debug build in it
 .\run-release.ps1           # the same, with the build that would ship
 uv run pre-commit install   # once per clone: the fast half of the gate, run at every commit

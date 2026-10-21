@@ -41,5 +41,7 @@ The first version, so there is nothing earlier to describe a change from: everyt
   connection it goes over; field references are followed as KeePass follows them, under the
   client's own rules; and `pykeepassgate.testing` is a stand-in gate for the tests of a program
   built on it. Until the first release is published it is installed from a checkout.
+- **A package for the release**: `build.ps1 -Task Package` zips the plugin and everything it loads,
+  with its license and notices, beside a `SHA256SUMS`.
 
 [`docs/`](docs/README.md) says how to use all of it.
