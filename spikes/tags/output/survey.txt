@@ -1,0 +1,182 @@
+NOTOUCH KeePass.DataExchange.CsvTableEntryReader+<>c__DisplayClass3_0.<EntryCommit>b__0: PwGroup.AddEntry
+NOTOUCH KeePass.DataExchange.ExportUtil.FilterCloneGroup: PwGroup.AssignProperties, PwGroup.AddEntry, PwGroup.AddGroup
+NOTOUCH KeePass.DataExchange.Formats.AmpXml250.LoadCategoryNode: PwGroup.AddGroup, PwGroup.set_Name, ProtectedStringDictionary.Set, PwEntry.set_ExpiryTime, PwEntry.set_Expires
+NOTOUCH KeePass.DataExchange.Formats.AmpXml250.AddEntryIfValid: PwGroup.AddEntry
+touch   KeePass.DataExchange.Formats.AnyPwCsv144.ProcessCsvLine: PwGroup.AddEntry
+NOTOUCH KeePass.DataExchange.Formats.BitwardenJson112.ImportEntry: PwGroup.AddEntry
+NOTOUCH KeePass.DataExchange.Formats.BitwardenJson112.ImportLogin: ProtectedStringDictionary.Set
+NOTOUCH KeePass.DataExchange.Formats.BitwardenJson112.ImportCard: PwEntry.set_Expires, PwEntry.set_ExpiryTime
+NOTOUCH KeePass.DataExchange.Formats.CodeWalletTxt605.Import: PwGroup.AddEntry
+NOTOUCH KeePass.DataExchange.Formats.DashlaneCsv2.AddEntry: PwGroup.AddEntry
+NOTOUCH KeePass.DataExchange.Formats.DashlaneJson6.ImportEntry: PwGroup.AddEntry, PwEntry.set_Expires, PwEntry.set_ExpiryTime
+NOTOUCH KeePass.DataExchange.Formats.DataVaultCsv47.Import: PwGroup.AddEntry
+NOTOUCH KeePass.DataExchange.Formats.DesktopKnoxXml32.ImportEntry: PwGroup.set_Name, PwGroup.AddGroup, PwGroup.AddEntry
+NOTOUCH KeePass.DataExchange.Formats.EnpassTxt5.Import: PwGroup.AddEntry, ProtectedStringDictionary.Set
+NOTOUCH KeePass.DataExchange.Formats.EnpassTxt5.FinishEntry: ProtectedStringDictionary.Set
+NOTOUCH KeePass.DataExchange.Formats.FlexWalletXml17.ImportCategory: PwGroup.AddGroup
+NOTOUCH KeePass.DataExchange.Formats.FlexWalletXml17.ImportEntry: PwGroup.AddEntry
+NOTOUCH KeePass.DataExchange.Formats.HandySafeProXml12.AddFolder: PwGroup.AddGroup, PwGroup.set_Name
+NOTOUCH KeePass.DataExchange.Formats.HandySafeProXml12.AddCard: PwGroup.AddEntry
+NOTOUCH KeePass.DataExchange.Formats.HandySafeTxt512.Import: PwGroup.set_Name, PwGroup.AddGroup
+NOTOUCH KeePass.DataExchange.Formats.HandySafeTxt512.AddEntry: PwGroup.AddEntry, ProtectedStringDictionary.Set
+NOTOUCH KeePass.DataExchange.Formats.KasperskyPwMgrTxt90.ImportBlock: PwGroup.set_Name, PwGroup.AddGroup
+NOTOUCH KeePass.DataExchange.Formats.KasperskyPwMgrTxt90.ImportEntry: PwGroup.AddEntry
+touch   KeePass.DataExchange.Formats.KeePassKdb1.ReadGroup: PwGroup.set_Name, PwGroup.AddGroup
+touch   KeePass.DataExchange.Formats.KeePassKdb1.ReadEntry: PwEntry.set_ExpiryTime, PwEntry.set_Expires, ProtectedBinaryDictionary.Set, PwGroup.AddEntry
+NOTOUCH KeePass.DataExchange.Formats.KeePassKdb1.WriteMetaStream: ProtectedStringDictionary.Set, ProtectedBinaryDictionary.Set
+touch   KeePass.DataExchange.Formats.KeePassXml1.ReadEntry: PwEntry.set_Expires, PwEntry.set_ExpiryTime, ProtectedBinaryDictionary.Set, PwGroup.AddEntry
+NOTOUCH KeePass.DataExchange.Formats.KeePassXXml041.ReadGroup: PwGroup.AddGroup, PwGroup.set_Name
+touch   KeePass.DataExchange.Formats.KeePassXXml041.ReadEntry: PwGroup.AddEntry, PwEntry.set_Expires, PwEntry.set_ExpiryTime, ProtectedBinaryDictionary.Set
+NOTOUCH KeePass.DataExchange.Formats.KeeperJson16.ImportRecords: PwGroup.AddEntry
+NOTOUCH KeePass.DataExchange.Formats.KeyFolderXml1.ImportGroup: PwGroup.set_Name, PwGroup.AddGroup
+touch   KeePass.DataExchange.Formats.KeyFolderXml1.ImportEntry: PwGroup.AddEntry, PwEntry.set_Expires, PwEntry.set_ExpiryTime
+NOTOUCH KeePass.DataExchange.Formats.LastPassCsv2+<>c__DisplayClass13_0.<ImportCsv>b__3: PwGroup.AddEntry
+NOTOUCH KeePass.DataExchange.Formats.MozillaBookmarksHtml100.ImportGroup: PwGroup.AddEntry, PwGroup.AddGroup
+NOTOUCH KeePass.DataExchange.Formats.MozillaBookmarksJson100.AddObject: PwGroup.set_Name, PwGroup.AddGroup, PwGroup.AddEntry
+NOTOUCH KeePass.DataExchange.Formats.MSecureCsv355.AddEntry3: PwGroup.set_Name, PwGroup.AddGroup, PwGroup.AddEntry, PwEntry.set_Expires, PwEntry.set_ExpiryTime
+NOTOUCH KeePass.DataExchange.Formats.MSecureCsv355.AddEntry6: PwGroup.AddEntry
+NOTOUCH KeePass.DataExchange.Formats.NetworkPwMgrCsv4.Import: PwGroup.set_Notes, PwGroup.AddEntry
+NOTOUCH KeePass.DataExchange.Formats.NortonIdSafeCsv2013.Import: PwGroup.AddEntry
+NOTOUCH KeePass.DataExchange.Formats.NPasswordNpw102.ReadGroup: PwGroup.AddGroup, PwGroup.set_Name
+NOTOUCH KeePass.DataExchange.Formats.NPasswordNpw102.ReadEntry: PwGroup.AddEntry, ProtectedStringDictionary.Set, PwEntry.set_Expires, PwEntry.set_ExpiryTime
+NOTOUCH KeePass.DataExchange.Formats.OnePw1Pux8.ImportRoot: PwGroup.set_Name, PwGroup.AddGroup, PwGroup.set_Notes
+touch   KeePass.DataExchange.Formats.OnePw1Pux8.ImportItem: PwGroup.AddEntry
+NOTOUCH KeePass.DataExchange.Formats.OnePw1Pux8.ImportAttachment: ProtectedBinaryDictionary.Set
+touch   KeePass.DataExchange.Formats.OnePwProCsv599.ProcessCsvLine: PwGroup.AddGroup, PwGroup.AddEntry, ProtectedStringDictionary.Set, PwEntry.set_Expires, PwEntry.set_ExpiryTime
+NOTOUCH KeePass.DataExchange.Formats.OnePwProCsv599.AddCustomFields: ProtectedStringDictionary.Set
+NOTOUCH KeePass.DataExchange.Formats.PassKeeper12.Import: PwObjectList`1.Remove
+NOTOUCH KeePass.DataExchange.Formats.PassKeeper12.ImportEntry: PwGroup.AddEntry
+touch   KeePass.DataExchange.Formats.PinsTxt450.ImportLine: PwGroup.AddEntry, ProtectedStringDictionary.Set, PwEntry.set_ExpiryTime, PwEntry.set_Expires
+NOTOUCH KeePass.DataExchange.Formats.PpKeeperHtml270.Import: PwGroup.AddEntry
+NOTOUCH KeePass.DataExchange.Formats.PVaultTxt14.Import: PwGroup.AddEntry
+NOTOUCH KeePass.DataExchange.Formats.PwAgentXml2.ReadGroup: PwGroup.AddGroup, PwGroup.set_Name
+touch   KeePass.DataExchange.Formats.PwAgentXml2.ReadEntry: PwGroup.AddEntry, PwEntry.set_ExpiryTime, PwEntry.set_Expires
+NOTOUCH KeePass.DataExchange.Formats.PwAgentXml3.ReadGroup: PwGroup.AddGroup, PwGroup.set_Name
+NOTOUCH KeePass.DataExchange.Formats.PwAgentXml3.ReadEntry: PwGroup.AddEntry
+NOTOUCH KeePass.DataExchange.Formats.PwAgentXml3.ReadAttachment: ProtectedBinaryDictionary.Set
+NOTOUCH KeePass.DataExchange.Formats.PwDepotXml26.Import: PwGroup.AddGroup
+NOTOUCH KeePass.DataExchange.Formats.PwDepotXml26.ReadGroup: PwGroup.AddGroup, PwGroup.set_Name
+touch   KeePass.DataExchange.Formats.PwDepotXml26.ReadEntry: PwGroup.AddEntry, PwEntry.set_ExpiryTime, PwEntry.set_Expires
+NOTOUCH KeePass.DataExchange.Formats.PwExporterXml105.ImportEntry: PwGroup.AddEntry
+NOTOUCH KeePass.DataExchange.Formats.PwKeeperCsv70.ProcessCsvLine: PwGroup.AddEntry
+NOTOUCH KeePass.DataExchange.Formats.PwMemory2008Xml104.Import: PwGroup.set_Name, PwGroup.AddGroup, PwGroup.AddEntry
+NOTOUCH KeePass.DataExchange.Formats.PwPrompterDat12.Import: PwGroup.AddEntry
+touch   KeePass.DataExchange.Formats.PwSafeXml302.ImportEntry: PwEntry.set_ExpiryTime, PwEntry.set_Expires, ProtectedStringDictionary.Set, PwGroup.AddEntry
+NOTOUCH KeePass.DataExchange.Formats.PwSaverXml412.ImportGroup: PwGroup.AddGroup, PwGroup.set_Name
+NOTOUCH KeePass.DataExchange.Formats.PwSaverXml412.ImportEntry: PwGroup.AddEntry
+NOTOUCH KeePass.DataExchange.Formats.PwsPlusCsv1007.Import: PwGroup.AddGroup, PwGroup.AddEntry
+NOTOUCH KeePass.DataExchange.Formats.PwTresorXml100.ReadGroup: PwGroup.AddGroup, PwGroup.set_Name
+NOTOUCH KeePass.DataExchange.Formats.PwTresorXml100.ReadEntry: PwGroup.AddEntry
+touch   KeePass.DataExchange.Formats.RevelationXml04.ImportGroup: PwGroup.AddGroup, PwGroup.set_Name, PwGroup.set_Notes
+touch   KeePass.DataExchange.Formats.RevelationXml04.ImportEntry: PwGroup.AddEntry
+NOTOUCH KeePass.DataExchange.Formats.RoboFormHtml69.ImportPriv: PwGroup.AddEntry
+NOTOUCH KeePass.DataExchange.Formats.SafeWalletXml3.AddEntry: PwGroup.AddEntry
+NOTOUCH KeePass.DataExchange.Formats.SafeWalletXml3.AddWebEntry: PwGroup.AddEntry
+NOTOUCH KeePass.DataExchange.Formats.SafeWalletXml3.AddGroup: PwGroup.AddGroup, PwGroup.set_Name
+NOTOUCH KeePass.DataExchange.Formats.SecurityTxt12.AddSecLine: PwGroup.set_Name, PwGroup.AddGroup, PwGroup.AddEntry
+touch   KeePass.DataExchange.Formats.SplashIdCsv402.ProcessCsvLine: PwGroup.set_Name, PwGroup.AddGroup, PwGroup.AddEntry
+touch   KeePass.DataExchange.Formats.SteganosCsv20.Import: PwGroup.set_Name, PwGroup.AddGroup, PwGroup.AddEntry
+NOTOUCH KeePass.DataExchange.Formats.SteganosUI2007.Import: PwObjectList`1.Remove
+NOTOUCH KeePass.DataExchange.Formats.SteganosUI2007.ImportEntry: PwGroup.AddEntry
+NOTOUCH KeePass.DataExchange.Formats.StickyPwXml50.ImportGroups: PwGroup.set_Name, PwGroup.AddGroup
+NOTOUCH KeePass.DataExchange.Formats.StickyPwXml50.ImportMemos: ProtectedBinaryDictionary.Set
+NOTOUCH KeePass.DataExchange.Formats.StickyPwXml50.AddToParent: PwGroup.AddEntry
+touch   KeePass.DataExchange.Formats.StickyPwXml50.ImportTimes: PwEntry.set_Expires, PwEntry.set_ExpiryTime
+NOTOUCH KeePass.DataExchange.Formats.TrueKeyCsv4.Import: PwGroup.AddEntry, PwEntry.set_Expires, PwEntry.set_ExpiryTime
+NOTOUCH KeePass.DataExchange.Formats.TurboPwsCsv5.Import: PwGroup.AddGroup, PwGroup.AddEntry
+NOTOUCH KeePass.DataExchange.Formats.VisKeeperTxt3.Import: PwGroup.AddGroup
+NOTOUCH KeePass.DataExchange.Formats.VisKeeperTxt3.ImportEntry: PwGroup.AddEntry
+touch   KeePass.DataExchange.Formats.Whisper32Csv116.Import: PwGroup.AddEntry, PwEntry.set_Expires, PwEntry.set_ExpiryTime
+NOTOUCH KeePass.DataExchange.Formats.ZdnPwProTxt314.AddEntry: PwGroup.AddEntry, ProtectedStringDictionary.Set, PwEntry.set_Expires, PwEntry.set_ExpiryTime
+NOTOUCH KeePass.DataExchange.GxiImporter.Import: PwGroup.AddGroup, PwGroup.AddEntry
+NOTOUCH KeePass.DataExchange.GxiImporter.ImportGroup: PwGroup.AddGroup, PwGroup.set_Name
+NOTOUCH KeePass.DataExchange.GxiImporter.ImportEntry: PwGroup.AddEntry
+NOTOUCH KeePass.DataExchange.GxiImporter.ImportBinaryKvp: ProtectedBinaryDictionary.Set
+NOTOUCH KeePass.DataExchange.ImportUtil.AppendToField: ProtectedStringDictionary.Set
+NOTOUCH KeePass.DataExchange.ImportUtil.CreateFieldWithIndex: ProtectedStringDictionary.Set
+touch   KeePass.Forms.CsvImportForm.PerformImport: PwEntry.set_ExpiryTime, PwEntry.set_Expires, PwGroup.AddEntry
+NOTOUCH KeePass.Forms.CsvImportForm.FindCreateGroup: PwGroup.set_Name, PwGroup.AddGroup
+NOTOUCH KeePass.Forms.DatabaseOperationsForm+<>c__DisplayClass13_0.<OnBtnDelete>b__0: PwObjectList`1.Remove
+NOTOUCH KeePass.Forms.DuplicationForm.ApplyTo: ProtectedStringDictionary.Set
+NOTOUCH KeePass.Forms.EcasTriggerForm.UpdateEventListEx: PwObjectList`1.Remove
+NOTOUCH KeePass.Forms.EcasTriggerForm.UpdateConditionListEx: PwObjectList`1.Remove
+NOTOUCH KeePass.Forms.EcasTriggerForm.UpdateActionListEx: PwObjectList`1.Remove
+NOTOUCH KeePass.Forms.EditAutoTypeItemForm.ColorizeKeySeq: PwEntry.set_Strings
+NOTOUCH KeePass.Forms.EditStringForm.OnBtnOK: ProtectedStringDictionary.Remove, ProtectedStringDictionary.Set
+touch   KeePass.Forms.GroupForm.OnBtnOK: PwGroup.set_Name, PwGroup.set_Notes
+NOTOUCH KeePass.Forms.MainForm.ShowEntriesByTag: PwGroup.AddEntry
+NOTOUCH KeePass.Forms.MainForm.MoveOrCopySelectedEntries: PwObjectList`1.Remove, PwGroup.AddEntry
+touch   KeePass.Forms.MainForm.SetSelectedEntryExpiry: PwEntry.set_Expires, PwEntry.set_ExpiryTime
+NOTOUCH KeePass.Forms.MainForm.AddEntryEx: PwEntry.set_Expires, PwEntry.set_ExpiryTime, PwGroup.AddEntry
+NOTOUCH KeePass.Forms.MainForm.MoveToPreviousParentGroup: PwObjectList`1.Remove, PwGroup.AddEntry, PwGroup.AddGroup
+touch   KeePass.Forms.MainForm.OnEntryBinaryClick: ProtectedBinaryDictionary.Set
+NOTOUCH KeePass.Forms.MainForm.GetCurrentEntries: PwGroup.AddEntry
+NOTOUCH KeePass.Forms.MainForm.EnsureRecycleBin: PwGroup.AddGroup
+touch   KeePass.Forms.MainForm.DeleteSelectedEntries: PwObjectList`1.Remove, PwGroup.AddEntry
+touch   KeePass.Forms.MainForm.DeleteSelectedGroup: PwObjectList`1.Remove, PwGroup.AddGroup
+touch   KeePass.Forms.MainForm.OnEntryOtpGenSettings: PwEntry.set_Strings
+NOTOUCH KeePass.Forms.MainForm.GetSelectedEntriesAsGroup: PwGroup.AddEntry
+NOTOUCH KeePass.Forms.MainForm.OnFileNew: PwGroup.AddGroup, PwGroup.AddEntry
+NOTOUCH KeePass.Forms.MainForm.OnEntryDuplicate: PwGroup.AddEntry
+NOTOUCH KeePass.Forms.MainForm.OnGroupsDragDrop: PwObjectList`1.Remove, PwGroup.AddGroup
+NOTOUCH KeePass.Forms.MainForm.OnGroupAdd: PwGroup.AddGroup, PwObjectList`1.Remove
+NOTOUCH KeePass.Forms.MainForm.OnToolsPwGenerator: PwGroup.AddEntry, ProtectedStringDictionary.Set, PwObjectList`1.Remove
+NOTOUCH KeePass.Forms.MainForm.OnToolsGeneratePasswordList: PwGroup.AddEntry, PwObjectList`1.Remove, ProtectedStringDictionary.Set
+NOTOUCH KeePass.Forms.MainForm+<>c__DisplayClass684_0.<ShowExpiredEntries>b__0: PwGroup.AddEntry
+NOTOUCH KeePass.Forms.OtpGeneratorForm+<>c__DisplayClass15_0.<SaveSettings>b__0: ProtectedStringDictionary.Set, ProtectedStringDictionary.Remove
+NOTOUCH KeePass.Forms.PwEntryForm.NormalizeStrings: ProtectedStringDictionary.Set
+NOTOUCH KeePass.Forms.PwEntryForm.UpdateEntryStrings: ProtectedStringDictionary.Set
+touch   KeePass.Forms.PwEntryForm.SaveEntry: PwEntry.set_Strings, PwEntry.set_Expires, PwEntry.set_ExpiryTime, PwEntry.set_Binaries
+NOTOUCH KeePass.Forms.PwEntryForm.OnBtnStrDelete: ProtectedStringDictionary.Remove
+NOTOUCH KeePass.Forms.PwEntryForm.OnBtnBinDelete: ProtectedBinaryDictionary.Remove
+NOTOUCH KeePass.Forms.PwEntryForm.OnBtnHistoryDelete: PwObjectList`1.Remove
+NOTOUCH KeePass.Forms.PwEntryForm.PerformStrMove: ProtectedStringDictionary.Remove
+NOTOUCH KeePass.Forms.PwEntryForm.OpenSelBin: ProtectedBinaryDictionary.Set
+NOTOUCH KeePass.Forms.PwEntryForm.BinImportFiles: ProtectedBinaryDictionary.Set
+NOTOUCH KeePass.Forms.PwEntryForm.OnCtxBinNew: ProtectedBinaryDictionary.Set
+NOTOUCH KeePass.Forms.PwEntryForm.OnBinAfterLabelEdit: ProtectedBinaryDictionary.Remove, ProtectedBinaryDictionary.Set
+NOTOUCH KeePass.Forms.TanWizardForm.AddTan: PwGroup.AddEntry
+NOTOUCH KeePass.UI.ListViewGroupingMenu.SetGrouping: PwGroup.AddEntry
+NOTOUCH KeePass.UI.UIUtil.DeleteSelectedItems: PwObjectList`1.Remove
+NOTOUCH KeePass.Util.EntryUtil.PasteGroupFromClipboard: PwGroup.AddGroup
+NOTOUCH KeePass.Util.EntryUtil.PasteEntriesFromClipboard: PwGroup.AddEntry
+touch   KeePass.Util.EntryUtil.ReplaceNewPasswordPlaceholder: ProtectedStringDictionary.Set
+NOTOUCH KeePass.Util.EntryUtil.RemoveOtpSecrets: ProtectedStringDictionary.Remove
+touch   KeePass.Util.EntryUtil.ReplaceHmacOtpPlaceholder: ProtectedStringDictionary.Set
+touch   KeePass.Util.EntryUtil.ExpireTanEntryIfOption: PwEntry.set_ExpiryTime, PwEntry.set_Expires
+NOTOUCH KeePass.Util.EntryUtil.FindDuplicatePasswords: PwGroup.AddEntry
+NOTOUCH KeePass.Util.EntryUtil.FindSimilarPasswordsP: PwGroup.AddEntry
+NOTOUCH KeePass.Util.EntryUtil.FindSimilarPasswordsC: PwGroup.AddEntry
+NOTOUCH KeePass.Util.EntryUtil+<>c__DisplayClass38_0.<ImportOtpAuth>b__0: ProtectedStringDictionary.Remove, ProtectedStringDictionary.Set
+NOTOUCH KeePass.Util.MultipleValues.MultipleValuesEntryContext.EnsureStandardStrings: ProtectedStringDictionary.Set
+NOTOUCH KeePass.Util.MultipleValues.MultipleValuesEntryContext.MultiInitStrings: ProtectedStringDictionary.Set
+NOTOUCH KeePass.Util.MultipleValues.MultipleValuesEntryContext.MultiApplyStrings: ProtectedStringDictionary.Set, ProtectedStringDictionary.Remove
+NOTOUCH KeePass.Util.MultipleValues.MultipleValuesEntryContext.MultiInitProperties: PwEntry.set_Expires, PwEntry.set_ExpiryTime
+NOTOUCH KeePass.Util.MultipleValues.MultipleValuesEntryContext.MultiApplyProperties: PwEntry.set_Expires, PwEntry.set_ExpiryTime
+NOTOUCH KeePass.Util.PwGeneratorUtil.GenerateAuto: ProtectedStringDictionary.Set
+NOTOUCH KeePass.Util.SearchUtil.CreateResultsGroup: PwGroup.set_Notes
+NOTOUCH KeePass.Util.XmlUtil+<>c__DisplayClass29_0.<EnsureStandardFieldsExist>b__0: ProtectedStringDictionary.Set
+NOTOUCH KeePassLib.Collections.ProtectedBinaryDictionary.CloneDeep: ProtectedBinaryDictionary.Set
+NOTOUCH KeePassLib.Collections.ProtectedStringDictionary.CopyTo: ProtectedStringDictionary.Set
+NOTOUCH KeePassLib.Collections.ProtectedStringDictionary.EnableProtection: ProtectedStringDictionary.Set
+NOTOUCH KeePassLib.PwDatabase.MergeInCustomIcons: PwObjectList`1.Remove
+NOTOUCH KeePassLib.PwDatabase.ApplyDeletions: PwObjectList`1.Remove
+NOTOUCH KeePassLib.PwDatabase.RelocateGroups: PwObjectList`1.Remove
+NOTOUCH KeePassLib.PwDatabase.RelocateEntries: PwObjectList`1.Remove
+NOTOUCH KeePassLib.PwDatabase.DeleteDuplicateEntries: PwObjectList`1.Remove
+NOTOUCH KeePassLib.PwDatabase.DeleteEmptyGroups: PwObjectList`1.Remove
+NOTOUCH KeePassLib.PwDatabase+<>c__DisplayClass175_0.<MergeIn>b__0: PwGroup.AssignProperties
+touch   KeePassLib.PwDatabase+<>c__DisplayClass175_0.<MergeIn>b__1: PwEntry.AssignProperties
+touch   KeePassLib.PwEntry.RestoreFromBackup: PwEntry.AssignProperties
+NOTOUCH KeePassLib.PwEntry.CreateVirtual: PwEntry.set_Strings
+NOTOUCH KeePassLib.PwGroup.CloneStructure: PwGroup.AddGroup, PwGroup.AddEntry
+NOTOUCH KeePassLib.PwGroup.FindCreateGroup: PwGroup.AddGroup
+NOTOUCH KeePassLib.PwGroup.FindCreateSubTree: PwGroup.AddGroup
+NOTOUCH KeePassLib.PwGroup.AddGroup: PwGroup.AddGroup
+NOTOUCH KeePassLib.PwGroup.AddEntry: PwGroup.AddEntry
+NOTOUCH KeePassLib.PwGroup.SrxpClearString: ProtectedStringDictionary.Set
+NOTOUCH KeePassLib.PwGroup+<>c__DisplayClass166_0.<SrxpFilterCloneSelf>b__0: PwGroup.set_Name
+NOTOUCH KeePassLib.Serialization.KdbxFile.ReadXmlElement: PwGroup.set_Name, PwGroup.set_Notes, PwGroup.AddGroup, PwGroup.AddEntry
+NOTOUCH KeePassLib.Serialization.KdbxFile.EndXmlElement: ProtectedStringDictionary.Set, ProtectedBinaryDictionary.Set
+NOTOUCH KeePassLib.Serialization.KdbxFile.WriteEntries: PwGroup.AddEntry
+NOTOUCH KeePassLib.Utility.StrUtil.NormalizeNewLines: ProtectedStringDictionary.Set

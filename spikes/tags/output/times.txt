@@ -1,0 +1,8 @@
+clock: 200 steps in 1 s; smallest 0,5077 ms, median 1,5200 ms, largest 1,6209 ms
+kdbx: in memory 639282482932374827 (Utc), read back 639282482930000000 (Utc), lost 237,4827 ms
+back-to-back touches with the same time: 1000 of 1000
+merge, newer remote: title remote, time moved True, now the remote's True
+merge, older remote: title remote, time moved False
+merge, equal times: title same-time-remote, time moved False
+merge, moved remote: now in G, modified moved False, location moved True
+local move: modified moved False, location moved True

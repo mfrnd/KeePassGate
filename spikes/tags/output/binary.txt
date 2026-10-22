@@ -1,0 +1,21 @@
+field PbCryptDelegate m_fExtCrypt readonly=False
+field Int64 m_lID readonly=False
+field Byte[] m_pbData readonly=False
+field UInt32 m_uDataLen readonly=False
+field Boolean m_bProtected readonly=False
+field PbMemProt m_mp readonly=False
+field Object m_objSync readonly=True
+field Nullable`1 m_oiHash readonly=False
+method public  get_IsProtected
+method public  get_Length
+method private Init
+method private Encrypt
+method private Decrypt
+method public  ReadData
+method public  ReadXorredData
+method public  GetHashCode
+method public  Equals
+method public  Equals
+method public  Equals
+property IsProtected settable=False
+property Length settable=False

@@ -1,0 +1,5 @@
+entry strings only (10 strings, 2 KB notes): HMACSHA256 0,0089 ms
+  1 MB attachment: protected ReadData     0,64 ms, HMACSHA256     0,48 ms (2081 MB/s), SHA256Cng     0,49 ms (2055 MB/s), SHA256Managed     0,48 ms
+ 10 MB attachment: protected ReadData     6,84 ms, HMACSHA256     6,09 ms (1642 MB/s), SHA256Cng     5,86 ms (1706 MB/s), SHA256Managed     5,79 ms
+100 MB attachment: protected ReadData   155,98 ms, HMACSHA256   123,56 ms (809 MB/s), SHA256Cng   128,12 ms (781 MB/s), SHA256Managed    56,20 ms
+group (name, 500 B notes, parent): HMACSHA256 0,0029 ms
