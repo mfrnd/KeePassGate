@@ -147,7 +147,7 @@ evening, because it fails without a message.
 
 ### Driving KeePass through the desktop
 
-Seven traps, all of which look like the plugin failing rather than the harness.
+Eight traps, all of which look like the plugin failing rather than the harness.
 
 | Fact | How it was established |
 | --- | --- |
@@ -158,6 +158,7 @@ Seven traps, all of which look like the plugin failing rather than the harness.
 | Access keys are readable from the accessibility tree, `Alt+f` for the File menu and `d` for Database Settings, so the keyboard route needs no hard-coded English | read `AutomationElement.Current.AccessKey` |
 | An accessible name set on a label **replaces** the text a reader gets back, so identifying controls that way hides the very text a test wants to assert | the end to end test read `KpgVersionLabel` where `Version 0.1.0` was expected |
 | **A `ListView` in details view is a `DataGrid` to UI automation, not a `List`**, with `Selection`, `Grid` and `Table` patterns, and its rows are `DataItem`s named by their first column. Looked for as a `List` it is not there, and a description of the window's lists says it has none | the authority chooser's list was not found in a live run; the same dialog, shown off screen and read by a .NET Framework client as the test host reads it, reported a `DataGrid` |
+| **The first walk into a window's controls leaves a thread no AppDomain can unload.** `System.Windows.Automation` loads its client-side providers into the domain that asks, and their `WinEventTracker` starts a queue on a background thread waiting in `MsgWaitForMultipleObjects` with no timeout and no way to stop, so `AppDomain.Unload` gives up on it after fifteen seconds with `CannotUnloadAppDomainException`. NUnit unloads the test assembly's domain at the end of a run, which is the "Exception encountered unloading application domain" every end to end run ended with. Registering an empty set of client-side providers does not stop it. Ending that thread at the end of the run, with one work item through the queue's own way in, does: `ClientSideProviderQueue` | a probe ran one automation call in a child domain against the pinned KeePass and unloaded it, three times each: finding the window by its handle and reading its name unloaded in milliseconds, one `FindAll` over its descendants failed after 15.3 seconds every time, and the same with the queue ended unloaded in 6 to 9 milliseconds, and in 4 to 8 on a second run. Run one at a time, the seven end to end fixtures that read a dialog each ended this way, and the five that only find the main window did not. `spikes/automation-unload` holds the probe, the per fixture runner and the output |
 
 So the shape that works: discover the keys through the accessibility tree with the menu opened and
 closed through it, then drive the menu purely from synthesized keystrokes, then read the result back
