@@ -53,7 +53,7 @@ source can already do it in two calls, each properly decided and each recorded.
 gives.
 
 **Optimistic concurrency.** An `If-Match` over the modification time is the obvious shape and nothing
-needs it yet.
+needs it yet. Step 28 of `DESIGN.md` reverses this, and is open.
 
 **A group's expiry.** KeePass keeps one on a group as well as on an entry, and a group's is neither
 served nor accepted. KeePass does nothing with it but draw the group with its expired icon: the

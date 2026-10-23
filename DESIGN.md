@@ -1553,6 +1553,12 @@ Each step is refusable, and each ends with something that runs.
     with no method does, and that both formats follow the read model's rules: a withheld value is
     named and never printed as empty, and what the gate did not say is left out. `field`, which a
     script reads one value with, fails on a withheld one rather than printing a word in its place.
+28. **Optimistic concurrency**: an `ETag` on a read of one group or one entry, and `If-Match` on
+    the requests about them, answered `412` when the node no longer holds what the tag says,
+    which reverses `API.md` §407's "nothing needs it yet". A request without `If-Match` writes
+    as before. The tag is the entry's for its fields and attachments, by the rule that the
+    nearest addressable node answers, and it is compared under the writer's lock at the write.
+    The client keeps the tag on what it reads and hands it back when asked to.
 
 Steps 5 to 8 are the ones that prove the design. Step 5 is deliberately early, because the
 `CustomData` dialog hazard is the thing most likely to invalidate the storage decision, and finding
