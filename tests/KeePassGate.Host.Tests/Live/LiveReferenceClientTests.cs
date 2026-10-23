@@ -24,7 +24,9 @@ namespace KeePassGate.Host.Tests.Live
     /// the admission key it works out from its certificate is the one the gate names it by, a
     /// protected value reaches it through the field route only because the rule grants `P`, and
     /// the two refusals a client waits out, a dialog open on the entry and a lock, arrive under the
-    /// names a program catches them by.
+    /// names a program catches them by. And a write made with `--if-match` carries the tag a read
+    /// printed to the plugin as the plugin handed it out, quotes and all, goes ahead under the
+    /// current one and is refused with `PreconditionFailed` under one the entry has changed since.
     ///
     /// **The real package, run the way the gate runs it**: its command line through `uv run
     /// --frozen` in the repository, so what is exercised is what the lockfile pins and not a copy.
@@ -37,8 +39,10 @@ namespace KeePassGate.Host.Tests.Live
     /// **The grant is written before KeePass starts**, for the reason `LiveApiTests` gives, and
     /// names the profile the client asks for, which the approval then names in the database. It
     /// grants `protected` with `create`, `read`, `update` and `list`, so the password the client
-    /// stores is one it may read back and change. The invitation is read off the screen and handed
-    /// over on standard input, the way the command line reads one it was not given.
+    /// stores is one it may read back and change, and `attachments` beside them, so that the rule
+    /// reads everything an entry's tag covers and the plugin hands the client one. The invitation
+    /// is read off the screen and handed over on standard input, the way the command line reads
+    /// one it was not given.
     ///
     /// **The lock comes last**, because nothing after it answers anything but `503 locked`, and a
     /// test unlocking KeePass again would be typing the master password into it.
@@ -56,9 +60,14 @@ namespace KeePassGate.Host.Tests.Live
         private const string Stored = "not-a-real-password-live";
         private const string Rotated = "a-rotated-invented-password";
         private const string TurnedAway = "a-password-a-dialog-turns-away";
+        private const string Conditioned = "agent-invented-under-a-tag";
+        private const string Overtaken = "agent-invented-under-a-stale-tag";
 
         /// <summary>What the grant comes to at the entry and at the root, as the KPG tab writes it.</summary>
-        private const string Mask = "CRU..L.P";
+        private const string Mask = "CRU..LAP";
+
+        /// <summary>What the plugin logs, at a level worth a look, for the stale write this test sends.</summary>
+        private const string PreconditionLine = "a change was refused, its precondition failing";
 
         /// <summary>What the plugin logs when the lock reaches it, as `LiveLockTests` reads it.</summary>
         private const string LockedLine = "locked, answering with the responder";
@@ -90,6 +99,10 @@ namespace KeePassGate.Host.Tests.Live
         private Run _readRotated;
         private Run _entryAccess;
         private Run _rootAccess;
+        private Run _tagRead;
+        private Run _conditioned;
+        private Run _stale;
+        private Run _afterConditions;
         private Run _renewed;
         private Run _renewedIdentity;
         private Run _renewedWhoami;
@@ -113,7 +126,8 @@ namespace KeePassGate.Host.Tests.Live
             var keePass = _session.KeePass;
             _identity = Path.Combine(Path.GetDirectoryName(keePass.DatabasePath), "client");
 
-            keePass.Grant("{\"" + Profile + "\":[\"create\",\"read\",\"update\",\"list\",\"protected\"]}");
+            keePass.Grant(
+                "{\"" + Profile + "\":[\"create\",\"read\",\"update\",\"list\",\"attachments\",\"protected\"]}");
 
             var driver = KeePassDriver.Start(keePass);
             WaitUntilServing(keePass, driver);
@@ -141,6 +155,21 @@ namespace KeePassGate.Host.Tests.Live
 
                 _entryAccess = Client("access --entry " + Created() + Where(), CommandTimeout);
                 _rootAccess = Client("access --group root" + Where(), CommandTimeout);
+
+                // The lost update, through the command line: a write under the tag a read printed
+                // goes ahead, and a second under the same tag, which that write has made stale,
+                // is refused and writes nothing.
+                _tagRead = Client("show " + Created() + " -o json" + Where(), CommandTimeout);
+                var read = TagIn(_tagRead);
+                _conditioned = Client(
+                    "update " + Created() + " --username \"" + Conditioned + "\" --if-match " + Argument(read) +
+                    Where(),
+                    CommandTimeout);
+                _stale = Client(
+                    "update " + Created() + " --username \"" + Overtaken + "\" --if-match " + Argument(read) +
+                    Where(),
+                    CommandTimeout);
+                _afterConditions = Client("show " + Created() + Where(), CommandTimeout);
 
                 // The client's own renewal, through the real dialog, which ends in the client
                 // giving up the certificate it renewed from: the two routes the Python client had
@@ -321,6 +350,24 @@ namespace KeePassGate.Host.Tests.Live
         }
 
         [Test]
+        public void A_write_under_the_tag_it_read_goes_ahead_and_one_under_a_stale_tag_changes_nothing()
+        {
+            Assert.That(_tagRead, Is.Not.Null, "the client never paired, so nothing was asked");
+            Assert.That(_tagRead.ExitCode, Is.Zero, _tagRead.ToString());
+            Assert.That(TagIn(_tagRead), Does.Match("^\"[0-9a-f]{32}\"$"), "the tag, quotes and all");
+
+            Assert.That(_conditioned.ExitCode, Is.Zero, _conditioned.ToString());
+
+            Assert.That(_stale.ExitCode, Is.EqualTo(1), _stale.ToString());
+            Assert.That(_stale.Errors, Does.Contain("PreconditionFailed: "), _stale.ToString());
+            Assert.That(_stale.Errors, Does.Contain("412"), _stale.ToString());
+
+            Assert.That(_afterConditions.ExitCode, Is.Zero, _afterConditions.ToString());
+            Assert.That(_afterConditions.Output, Does.Contain("UserName: " + Conditioned),
+                "the write under the current tag landed, and the stale one wrote nothing over it");
+        }
+
+        [Test]
         public void A_write_under_an_open_entry_dialog_is_refused_as_busy_and_changes_nothing()
         {
             Assert.That(_busy, Is.Not.Null, "the client never paired, so nothing was asked");
@@ -351,11 +398,14 @@ namespace KeePassGate.Host.Tests.Live
         {
             // Once, for that write: filtering the phrase alone would also pass a session in which
             // every write was refused as busy, which is the failure the writes above exist to see.
+            // The stale write's refusal is logged as well, once, for the same reason.
             var failures = LiveSession.FailuresIn(_pluginLog);
             var busy = failures.Where(line => line.Contains(BusyLine)).ToArray();
-            var unexpected = failures.Except(busy).ToArray();
+            var stale = failures.Where(line => line.Contains(PreconditionLine)).ToArray();
+            var unexpected = failures.Except(busy).Except(stale).ToArray();
 
             Assert.That(busy, Has.Length.EqualTo(1), _pluginLog);
+            Assert.That(stale, Has.Length.EqualTo(1), _pluginLog);
             Assert.That(unexpected, Is.Empty, string.Join(Environment.NewLine, unexpected));
         }
 
@@ -381,6 +431,31 @@ namespace KeePassGate.Host.Tests.Live
         private static string ClientKeyIn(Run run)
         {
             return Printed(run, "client key:");
+        }
+
+        /// <summary>The `etag` a command printed under `-o json`, or null when it printed none.</summary>
+        private static string TagIn(Run run)
+        {
+            if (run == null || run.ExitCode != 0)
+            {
+                return null;
+            }
+
+            var tag = Newtonsoft.Json.Linq.JObject.Parse(run.Output)["etag"];
+            return tag == null ? null : (string)tag;
+        }
+
+        /// <summary>
+        /// A tag as one argument, quotes and all: each quote inside escaped, and the whole in quotes.
+        /// </summary>
+        /// <remarks>
+        /// That is not the whole of the rules a Windows program reads its command line with, which
+        /// also give a backslash before a quote a meaning of its own. A tag is hex digits between
+        /// quotes and holds no backslash, so here it is all they ask.
+        /// </remarks>
+        private static string Argument(string tag)
+        {
+            return "\"" + (tag ?? string.Empty).Replace("\"", "\\\"") + "\"";
         }
 
         /// <summary>What a command printed after a label at the start of a line, or null.</summary>
