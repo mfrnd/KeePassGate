@@ -80,11 +80,13 @@ prints when it pairs is its client key as well, for good.
 
 **`permitted` means the rules allowed it, and nothing more.** The line is written as the rules
 answer, before the body is checked and before anything is read or written, so a request can be
-`permitted` here and still be answered with a refusal of its body, a conflict, `503 busy`,
-`503 locked` or a failure. None of those gets a line of its own: what the request came to is what
-the program was answered. Why a change was refused is in the plugin's log, a warning per refusal,
-which is where to look when a program's writes keep coming back `busy`: some of the reasons, a
-dialog left open or a database file changed on disk, clear only when somebody at the desk acts.
+`permitted` here and still be answered with a refusal of its body, a conflict, `412` for a group
+or an entry that changed since the program read it, `503 busy`, `503 locked` or a failure. None of
+those gets a line of its own: what the request came to is what the program was answered. Why a
+change was refused is in the plugin's log, a warning per refusal, `412` included, which is where to
+look when a program's writes keep coming back `busy`: some of the reasons, a dialog left open or a
+database file changed on disk, clear only when somebody at the desk acts. A program refused `412`
+over and over is either writing over somebody or guessing, and the log is where that shows.
 
 **A program asking what it may do at a group or an entry is a decision as well**, and written down
 like any other: `permitted` when some profile it holds may do something there, `refused` when none

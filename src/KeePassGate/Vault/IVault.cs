@@ -66,6 +66,23 @@ namespace KeePassGate.Vault
         /// <summary>A group by identifier or by the root alias, or null when there is none.</summary>
         VaultGroup Group(string uuid);
 
+        /// <summary>
+        /// A group's tag, by identifier or by the root alias, or null when there is none.
+        /// </summary>
+        /// <remarks>
+        /// **Asked on its own, and only by a route that will use it.** A tag is a digest of
+        /// everything the node holds, so a lookup that only wants to know which node a request is
+        /// about, which is what the router asks for every request, never takes one.
+        ///
+        /// **Taken before what it is served with**, by every route that serves both. A read runs
+        /// beside the user interface thread and nothing stops a change landing in the middle of
+        /// one, so a tag and its content can come from either side of it. Tag first, and the worst
+        /// a client holds is an older tag beside newer content, which a write it makes under that
+        /// tag is refused over with `412`; the other order handed it a newer tag beside older
+        /// content, which a write would have carried straight over the change it never saw.
+        /// </remarks>
+        string GroupTag(string uuid);
+
         /// <summary>Every group under this one, one level down, or null when it is not there.</summary>
         IReadOnlyList<VaultGroup> Subgroups(string uuid);
 
@@ -75,6 +92,12 @@ namespace KeePassGate.Vault
 
         /// <summary>An entry by identifier, or null when there is none.</summary>
         VaultEntry Entry(string uuid);
+
+        /// <summary>
+        /// An entry's tag, which is its fields' and its attachments' too, or null when there is
+        /// none. Asked and taken as <see cref="GroupTag"/> says.
+        /// </summary>
+        string EntryTag(string uuid);
 
         /// <summary>An entry and everything it holds, or null when there is none.</summary>
         VaultEntryDetail Read(string uuid);
@@ -130,14 +153,27 @@ namespace KeePassGate.Vault
         /// </param>
         VaultWrite CreateGroup(string parentUuid, string name, string notes);
 
-        VaultWrite UpdateGroup(string uuid, string name, string notes);
+        /// <param name="tagging">
+        /// Whether the change is made only while the group still holds what `If-Match` named, and
+        /// whether its answer carries the tag it leaves. Every change taking one asks the
+        /// precondition of the node its target answers for, a field's and an attachment's being
+        /// their entry: under the writer's lock, against the node as the change finds it, and
+        /// after every refusal that does not depend on the precondition, as RFC 9110 section
+        /// 13.2.1 orders them, so a node that is gone is still `404`, one that is taken or not
+        /// empty still `409`, and one under an open dialog still `503 busy`. Answered
+        /// <see cref="VaultWrite.PreconditionFailed"/> when it does not hold, and an update
+        /// naming nothing to change is asked it as well.
+        /// </param>
+        VaultWrite UpdateGroup(string uuid, string name, string notes, VaultTagging tagging);
 
         /// <summary>Removes a group, which is refused while it still holds anything.</summary>
         /// <remarks>
         /// A recursive delete would let one grant on a parent destroy entries that were never
         /// individually decided or recorded, which is the opposite of what a per-node rule is for.
+        /// A removal answers no tag whatever <paramref name="tagging"/> asks, since it leaves
+        /// nothing to tag.
         /// </remarks>
-        VaultWrite DeleteGroup(string uuid);
+        VaultWrite DeleteGroup(string uuid, VaultTagging tagging);
 
         /// <param name="expiry">
         /// When the new entry expires, or null, as <see cref="VaultExpiry.Never"/>, for an entry
@@ -151,25 +187,35 @@ namespace KeePassGate.Vault
         /// <see cref="VaultExpiry.Auto"/> is a create's, and a vault given it here answers a failure
         /// on this side, as it does an empty name for a new field.
         /// </param>
+        /// <param name="tagging">As <see cref="UpdateGroup"/> takes it, about the entry.</param>
         VaultWrite UpdateEntry(
-            string uuid, IReadOnlyDictionary<string, string> fields, VaultExpiry expiry = null);
+            string uuid,
+            IReadOnlyDictionary<string, string> fields,
+            VaultTagging tagging,
+            VaultExpiry expiry = null);
 
-        VaultWrite DeleteEntry(string uuid);
+        /// <param name="tagging">As <see cref="DeleteGroup"/> takes it, about the entry.</param>
+        VaultWrite DeleteEntry(string uuid, VaultTagging tagging);
 
         /// <summary>Adds a string that is not there, and refuses one that is.</summary>
         /// <param name="name">Not empty, for the reason <see cref="CreateGroup"/> gives.</param>
-        VaultWrite CreateField(string entryUuid, string name, string value, bool isProtected);
+        /// <param name="tagging">
+        /// As <see cref="UpdateGroup"/> takes it, about the entry, which answers for the string. A
+        /// string's removal answers with the entry's tag too, since the entry is still there.
+        /// </param>
+        VaultWrite CreateField(
+            string entryUuid, string name, string value, bool isProtected, VaultTagging tagging);
 
         /// <summary>Changes a string that is there, and refuses one that is not.</summary>
-        VaultWrite UpdateField(string entryUuid, string name, string value);
+        VaultWrite UpdateField(string entryUuid, string name, string value, VaultTagging tagging);
 
-        VaultWrite DeleteField(string entryUuid, string name);
+        VaultWrite DeleteField(string entryUuid, string name, VaultTagging tagging);
 
         /// <param name="name">Not empty, for the reason <see cref="CreateGroup"/> gives.</param>
-        VaultWrite CreateAttachment(string entryUuid, string name, byte[] content);
+        VaultWrite CreateAttachment(string entryUuid, string name, byte[] content, VaultTagging tagging);
 
-        VaultWrite UpdateAttachment(string entryUuid, string name, byte[] content);
+        VaultWrite UpdateAttachment(string entryUuid, string name, byte[] content, VaultTagging tagging);
 
-        VaultWrite DeleteAttachment(string entryUuid, string name);
+        VaultWrite DeleteAttachment(string entryUuid, string name, VaultTagging tagging);
     }
 }

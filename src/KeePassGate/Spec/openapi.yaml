@@ -32,8 +32,8 @@ info:
     9.3.2 says a `head` is identical to its `get` except that no content is sent, so one handler is
     what makes that true by construction rather than by two implementations agreeing. The plugin
     refuses to load a `get` with no `head`, and a pair that disagrees about its `x-kpg-verb`,
-    its `x-kpg-attachments`, needing a certificate, carrying a body, or the query parameters it
-    takes. The answer omits `Content-Length` rather than sending a wrong one, which section 9.3.2
+    its `x-kpg-attachments`, needing a certificate, carrying a body, the query parameters it
+    takes, or whether it takes `If-Match`. The answer omits `Content-Length` rather than sending a wrong one, which section 9.3.2
     permits for a value determined only while generating content, and section 8.6 requires of
     anything else.
 
@@ -157,6 +157,23 @@ info:
     `200`, because the node holds what the request asked it to hold. The comparison is made on
     KeePass's thread under the writer's lock, where the change itself would be made, so a write
     landing in between cannot make the answer wrong.
+
+    **A read of one group or one entry carries an `ETag`, to a client that may read all of it**,
+    which `ETag` under the headers says the whole of: a group's for the group, and an entry's for
+    the entry and for everything inside it, its fields and attachments, one at a time or listed.
+    It is taken before what it is answered with, so a change landing in the middle of a read can
+    leave a client an older tag beside newer content and never a newer tag beside older content.
+    A change answers with the tag it left in its body, as `etag`, rather than in a header. A
+    listing of groups or entries carries none.
+
+    **And every request about one of them may carry `If-Match`**, which `IfMatch` under the
+    parameters says the whole of: the request is served only while the node holds what the tag
+    says, and answered `412` when it does not. It is optional, so a request without one is served
+    as it always was. That is the lost update this is for: a program that read an entry, worked on
+    it, and wrote back what it read beside its own change carried the old values over whatever the
+    operator changed in KeePass in between, and nothing told either of them. The operations that
+    declare no `If-Match` never read the header: each is about a listing, an access answer, a
+    create or the gate itself, none of which has a tag a condition could name.
 
 servers:
   - url: https://127.0.0.1:{port}
@@ -665,6 +682,8 @@ paths:
           $ref: "#/components/responses/Unavailable"
 
   /groups/{uuid}:
+    parameters:
+      - $ref: "#/components/parameters/IfMatch"
     get:
       operationId: readGroup
       summary: One group's own settings.
@@ -677,6 +696,9 @@ paths:
       responses:
         "200":
           description: The group.
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
           content:
             application/json:
               schema:
@@ -685,6 +707,8 @@ paths:
           $ref: "#/components/responses/Unpaired"
         "404":
           $ref: "#/components/responses/Unreachable"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
         "503":
           $ref: "#/components/responses/Unavailable"
     head:
@@ -700,10 +724,15 @@ paths:
       responses:
         "200":
           description: There, and reachable by this client.
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
         "401":
           $ref: "#/components/responses/Unpaired"
         "404":
           $ref: "#/components/responses/Unreachable"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
         "503":
           $ref: "#/components/responses/Unavailable"
     put:
@@ -740,6 +769,8 @@ paths:
           $ref: "#/components/responses/Unpaired"
         "404":
           $ref: "#/components/responses/Unreachable"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
         "415":
           $ref: "#/components/responses/UnsupportedMediaType"
         "500":
@@ -769,6 +800,8 @@ paths:
           $ref: "#/components/responses/Unreachable"
         "409":
           $ref: "#/components/responses/Conflict"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
         "500":
           $ref: "#/components/responses/Internal"
         "503":
@@ -1035,6 +1068,8 @@ paths:
           $ref: "#/components/responses/Unavailable"
 
   /entries/{uuid}:
+    parameters:
+      - $ref: "#/components/parameters/IfMatch"
     get:
       operationId: readEntry
       summary: One entry and every string it holds.
@@ -1050,6 +1085,9 @@ paths:
       responses:
         "200":
           description: The entry.
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
           content:
             application/json:
               schema:
@@ -1058,6 +1096,8 @@ paths:
           $ref: "#/components/responses/Unpaired"
         "404":
           $ref: "#/components/responses/Unreachable"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
         "503":
           $ref: "#/components/responses/Unavailable"
     head:
@@ -1073,10 +1113,15 @@ paths:
       responses:
         "200":
           description: There, and reachable by this client.
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
         "401":
           $ref: "#/components/responses/Unpaired"
         "404":
           $ref: "#/components/responses/Unreachable"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
         "503":
           $ref: "#/components/responses/Unavailable"
     put:
@@ -1108,6 +1153,8 @@ paths:
           $ref: "#/components/responses/Unreachable"
         "409":
           $ref: "#/components/responses/Conflict"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
         "415":
           $ref: "#/components/responses/UnsupportedMediaType"
         "500":
@@ -1132,12 +1179,16 @@ paths:
           $ref: "#/components/responses/Unpaired"
         "404":
           $ref: "#/components/responses/Unreachable"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
         "500":
           $ref: "#/components/responses/Internal"
         "503":
           $ref: "#/components/responses/Unavailable"
 
   /entries/{uuid}/fields:
+    parameters:
+      - $ref: "#/components/parameters/IfMatch"
     get:
       operationId: listFields
       summary: The names of an entry's strings.
@@ -1150,6 +1201,9 @@ paths:
       responses:
         "200":
           description: The field names.
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
           content:
             application/json:
               schema:
@@ -1158,6 +1212,8 @@ paths:
           $ref: "#/components/responses/Unpaired"
         "404":
           $ref: "#/components/responses/Unreachable"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
         "503":
           $ref: "#/components/responses/Unavailable"
     head:
@@ -1173,10 +1229,15 @@ paths:
       responses:
         "200":
           description: There, and reachable by this client.
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
         "401":
           $ref: "#/components/responses/Unpaired"
         "404":
           $ref: "#/components/responses/Unreachable"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
         "503":
           $ref: "#/components/responses/Unavailable"
     post:
@@ -1245,6 +1306,8 @@ paths:
           $ref: "#/components/responses/Unreachable"
         "409":
           $ref: "#/components/responses/Conflict"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
         "415":
           $ref: "#/components/responses/UnsupportedMediaType"
         "500":
@@ -1253,6 +1316,8 @@ paths:
           $ref: "#/components/responses/Unavailable"
 
   /entries/{uuid}/fields/{name}:
+    parameters:
+      - $ref: "#/components/parameters/IfMatch"
     get:
       operationId: readField
       summary: One string's value.
@@ -1271,6 +1336,9 @@ paths:
       responses:
         "200":
           description: The field.
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
           content:
             application/json:
               schema:
@@ -1279,6 +1347,8 @@ paths:
           $ref: "#/components/responses/Unpaired"
         "404":
           $ref: "#/components/responses/Unreachable"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
         "503":
           $ref: "#/components/responses/Unavailable"
     head:
@@ -1295,10 +1365,15 @@ paths:
       responses:
         "200":
           description: There, and reachable by this client.
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
         "401":
           $ref: "#/components/responses/Unpaired"
         "404":
           $ref: "#/components/responses/Unreachable"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
         "503":
           $ref: "#/components/responses/Unavailable"
     put:
@@ -1334,6 +1409,8 @@ paths:
           $ref: "#/components/responses/Unpaired"
         "404":
           $ref: "#/components/responses/Unreachable"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
         "415":
           $ref: "#/components/responses/UnsupportedMediaType"
         "500":
@@ -1371,12 +1448,16 @@ paths:
           $ref: "#/components/responses/Unreachable"
         "409":
           $ref: "#/components/responses/Conflict"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
         "500":
           $ref: "#/components/responses/Internal"
         "503":
           $ref: "#/components/responses/Unavailable"
 
   /entries/{uuid}/attachments:
+    parameters:
+      - $ref: "#/components/parameters/IfMatch"
     get:
       operationId: listAttachments
       summary: The names and sizes of an entry's attachments.
@@ -1390,6 +1471,9 @@ paths:
       responses:
         "200":
           description: The attachments.
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
           content:
             application/json:
               schema:
@@ -1398,6 +1482,8 @@ paths:
           $ref: "#/components/responses/Unpaired"
         "404":
           $ref: "#/components/responses/Unreachable"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
         "503":
           $ref: "#/components/responses/Unavailable"
     head:
@@ -1414,10 +1500,15 @@ paths:
       responses:
         "200":
           description: There, and reachable by this client.
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
         "401":
           $ref: "#/components/responses/Unpaired"
         "404":
           $ref: "#/components/responses/Unreachable"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
         "503":
           $ref: "#/components/responses/Unavailable"
     post:
@@ -1465,6 +1556,8 @@ paths:
           $ref: "#/components/responses/Unreachable"
         "409":
           $ref: "#/components/responses/Conflict"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
         "415":
           $ref: "#/components/responses/UnsupportedMediaType"
         "500":
@@ -1473,6 +1566,8 @@ paths:
           $ref: "#/components/responses/Unavailable"
 
   /entries/{uuid}/attachments/{name}:
+    parameters:
+      - $ref: "#/components/parameters/IfMatch"
     get:
       operationId: readAttachment
       summary: One attachment's contents, base64 encoded.
@@ -1484,6 +1579,9 @@ paths:
       responses:
         "200":
           description: The attachment.
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
           content:
             application/json:
               schema:
@@ -1492,6 +1590,8 @@ paths:
           $ref: "#/components/responses/Unpaired"
         "404":
           $ref: "#/components/responses/Unreachable"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
         "413":
           $ref: "#/components/responses/TooLarge"
         "503":
@@ -1511,10 +1611,15 @@ paths:
       responses:
         "200":
           description: There, and reachable by this client.
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
         "401":
           $ref: "#/components/responses/Unpaired"
         "404":
           $ref: "#/components/responses/Unreachable"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
         "413":
           $ref: "#/components/responses/TooLarge"
         "503":
@@ -1551,6 +1656,8 @@ paths:
           $ref: "#/components/responses/Unpaired"
         "404":
           $ref: "#/components/responses/Unreachable"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
         "415":
           $ref: "#/components/responses/UnsupportedMediaType"
         "500":
@@ -1576,6 +1683,8 @@ paths:
           $ref: "#/components/responses/Unpaired"
         "404":
           $ref: "#/components/responses/Unreachable"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
         "500":
           $ref: "#/components/responses/Internal"
         "503":
@@ -2024,6 +2133,8 @@ components:
           description: |
             What was created. A field or an attachment answers with its name, which is what
             addresses it.
+        etag:
+          $ref: "#/components/schemas/WrittenTag"
 
     Ok:
       type: object
@@ -2032,6 +2143,23 @@ components:
       properties:
         ok:
           type: boolean
+        etag:
+          $ref: "#/components/schemas/WrittenTag"
+
+    # In the body and not as an `ETag` header, because RFC 9110 section 9.3.4 makes an `ETag` on
+    # the answer to a `PUT` say the representation sent was stored as sent, and on a `POST` or a
+    # `DELETE` it names nothing the request had, while this is the tag of the whole node.
+    WrittenTag:
+      type: string
+      description: |
+        The tag of the node the change left, written as `ETag` writes one, quotes and all, so that
+        it goes back as `If-Match` unchanged and a client can write again without reading in
+        between: on an update, and on a field or an attachment added or taken off, which is the
+        entry's tag. Taken where the change was made, before the save, so it is the tag of exactly
+        what was written. Present only for a client the `ETag` header would be sent to; absent on a
+        group or an entry removed, since nothing is left to tag, and on a new group or entry,
+        since what a create is sent to is a listing, which has no tag, and a client that wants the
+        new node's reads it.
 
   responses:
     # Not now, as against not at all. A lock is not a decision, so the audit records none: a
@@ -2271,6 +2399,22 @@ components:
     # a client that only adds believes it stored what it did not, and neither other answer is
     # open: a `404` would call an entry it may add to absent, and writing over the name is what
     # `update` is for.
+    PreconditionFailed:
+      description: |
+        The node is there and no longer holds what `If-Match` said, so nothing was read or changed:
+        `{"error":"precondition failed"}`. Another client, the operator in KeePass, a merge or a
+        plugin changed it after the tag was taken. Not retried, because asking again asks the same
+        question of the same node; what mends it is reading the node again, which hands back the
+        tag it holds now, and deciding again whether the change still makes sense. An `If-Match`
+        that cannot be read at all is answered this way too, because every way of ignoring it ends
+        with the write going ahead, and so is any `If-Match` from a client the `ETag` header is not
+        sent to, whose rule does not read everything the tag covers: reading again hands such a
+        client no tag, and what mends it is sending none.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
     Conflict:
       description: |
         The database already says otherwise: a name that is taken, a name the database cannot
@@ -2319,7 +2463,76 @@ components:
       schema:
         type: integer
 
+    ETag:
+      description: |
+        What the group or the entry holds, condensed into 32 hexadecimal digits in quotes, a strong
+        tag as RFC 9110 section 8.8.3 spells one: `"3f9c0e7a1b2d4c5e6f708192a3b4c5d6"`. It is
+        opaque, and a client compares it, keeps it and hands it back rather than reading anything
+        into it. An entry has one tag for itself and everything in it, so the entry, its fields,
+        one field, its attachments and one attachment all answer with the same tag, as the rules
+        answer for all of them by the entry; a group's tag is its own.
+
+        **What it covers is what these routes serve, as they serve it, and nothing more**: for an
+        entry its identifier, the group it is in, when it was created and last changed, every
+        string with its name, whether it is protected and its value, every attachment with its
+        name, its size and, up to the largest this gate hands out, its bytes, and when it expires;
+        for a group its identifier, the group it is in, its two times, its name and its notes. The
+        identifier keeps two nodes that hold the same from sharing a tag, which would tell a client
+        so. Any change to one of those, made here, in KeePass, by a merge or by another plugin, is
+        a new tag. A time enters to the second, as it is served, which is all a database opened
+        again keeps of it. A rule is not in it, since no route serves one.
+
+        **Sent only to a client that may read everything it covers**: `read` on a group, and on an
+        entry `read` reaching its attachments, and its protected values too when it holds any, in
+        one rule. A tag is a digest of the content, and one handed to a client that may not read
+        all of it would let that client test guesses at the rest by writing them where it may
+        write. A client that is not sent one has any `If-Match` it sends answered `412`, since a
+        condition it cannot be told the answer to is one it cannot meet.
+
+        **And it says nothing about what it was made from.** It is keyed with a secret derived from
+        the database's own host key, which no client holds, so nothing outside the gate can compute
+        a tag for a guess. One content gives one tag for as long as the database's authority
+        stands, across a lock, a restart and a reload, and recreating the authority changes every
+        tag. A listing carries none, since it answers about a collection.
+      required: false
+      schema:
+        type: string
+
   parameters:
+    # On the six paths whose target has a tag, which is every operation about one group or one
+    # entry and about an entry's fields and attachments, reads among them. The one header parameter
+    # this document may declare: the router reads `Content-Type` as well, which is declared as a
+    # body's media type rather than as a parameter. The plugin refuses to load a document declaring
+    # another header, this one required or with a schema beyond a bare string, or this one on an
+    # operation that does not answer 412.
+    IfMatch:
+      name: If-Match
+      in: header
+      required: false
+      description: |
+        Do this only if the node still holds what one of these tags says, as RFC 9110 section
+        13.1.1 has it: one tag or several on the line, comma separated, each in quotes as `ETag`
+        hands it out, or `*` for whatever the node holds. The tag is the group's for a group and the
+        entry's for the entry and everything in it, so a field written against a tag taken from the
+        entry's own read is refused if anything in the entry changed since, not only that field.
+        Compared strongly, so a weak tag never matches. Absent, nothing is asked and the request is
+        served as it always was: a write goes ahead whatever changed since the caller last read.
+
+        **Answered `412`, and the node left as it was**, when it does not hold what was asked, when
+        the field cannot be read, an empty one included, and when this client is not one the
+        `ETag` header is sent to, since a tag it was never given is not one it can name. A node that
+        is not there, or that the rules do not reach, is the `404` it always is, whatever was
+        asked, and so is every other refusal that does not depend on the tag: a name taken or a
+        group that still holds something is `409`, and a dialog open on the node `503 busy`, as RFC
+        9110 section 13.2.1 orders them. The header sent twice is `400`, as any header this gate
+        reads is.
+
+        **A write's condition is checked where the write is made**, on KeePass's thread under the
+        writer's lock, against the node as the change would find it, so nothing can land between
+        the check and the change. A read's is checked against the tag the read is answered with.
+      schema:
+        type: string
+
     # The alias is not a route of its own, since no identifier can be spelled `root`, and it is
     # there because no verb implies another: an identifier can as easily come from an operator
     # pasting it into an agent's configuration as from a listing.

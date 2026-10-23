@@ -31,6 +31,8 @@ namespace KeePassGate.Transport
             { 405, "Method Not Allowed" },
             { 409, "Conflict" },
             { 411, "Length Required" },
+            // An `If-Match` the node no longer meets, RFC 9110 section 15.5.13.
+            { 412, "Precondition Failed" },
             { 413, "Content Too Large" },
             { 414, "URI Too Long" },
             // A body sent under a media type this API does not speak, RFC 9110 section 15.5.16.

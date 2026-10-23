@@ -18,6 +18,24 @@ namespace KeePassGate.Host.Tests.Live
 
         public string Body { get; set; }
 
+        /// <summary>The `ETag` the answer carried, exactly as sent, or null when it carried none.</summary>
+        public string Tag { get; set; }
+
+        /// <summary>The tag a change answered with in its body, as `etag`, or null when it gave none.</summary>
+        public string Written
+        {
+            get
+            {
+                if (Body == null || !Body.StartsWith("{", StringComparison.Ordinal))
+                {
+                    return null;
+                }
+
+                var written = Newtonsoft.Json.Linq.JObject.Parse(Body)["etag"];
+                return written == null ? null : (string)written;
+            }
+        }
+
         public string ServerSubject { get; set; }
 
         public string Failure { get; set; }
@@ -79,12 +97,31 @@ namespace KeePassGate.Host.Tests.Live
             string body,
             TimeSpan wait)
         {
+            return Send(port, serverName, certificate, method, path, body, null, wait);
+        }
+
+        /// <summary>The same, carrying <paramref name="ifMatch"/> as `If-Match` unless it is null.</summary>
+        public static LiveReply Send(
+            int port,
+            string serverName,
+            X509Certificate2 certificate,
+            string method,
+            string path,
+            string body,
+            string ifMatch,
+            TimeSpan wait)
+        {
             var reply = new LiveReply();
             var payload = body == null ? Array.Empty<byte>() : Encoding.UTF8.GetBytes(body);
 
             var head = new StringBuilder();
             head.Append(method).Append(' ').Append(path).Append(" HTTP/1.1\r\n");
             head.Append("Host: ").Append(serverName).Append("\r\n");
+
+            if (ifMatch != null)
+            {
+                head.Append("If-Match: ").Append(ifMatch).Append("\r\n");
+            }
 
             if (body != null)
             {
@@ -145,6 +182,7 @@ namespace KeePassGate.Host.Tests.Live
                             raw.Substring(9, 3), CultureInfo.InvariantCulture);
                         var blank = raw.IndexOf("\r\n\r\n", StringComparison.Ordinal);
                         reply.Body = blank < 0 ? string.Empty : raw.Substring(blank + 4);
+                        reply.Tag = Field(blank < 0 ? raw : raw.Substring(0, blank), "ETag");
                     }
                 }
             }
@@ -154,6 +192,22 @@ namespace KeePassGate.Host.Tests.Live
             }
 
             return reply;
+        }
+
+        /// <summary>One header field's value out of an answer's head, or null when it has none.</summary>
+        private static string Field(string head, string name)
+        {
+            foreach (var line in head.Split(new[] { "\r\n" }, StringSplitOptions.None))
+            {
+                var colon = line.IndexOf(':');
+                if (colon > 0
+                    && string.Equals(line.Substring(0, colon).Trim(), name, StringComparison.OrdinalIgnoreCase))
+                {
+                    return line.Substring(colon + 1).Trim();
+                }
+            }
+
+            return null;
         }
     }
 }

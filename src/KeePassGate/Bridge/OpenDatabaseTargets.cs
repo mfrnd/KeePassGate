@@ -1050,7 +1050,28 @@ namespace KeePassGate.Bridge
                 // a certificate export for an answer that was already known.
                 _databaseId = reading.Material.AuthorityDigest;
                 _writer = writer;
-                _vault = new KdbxVault(database, writer, log);
+                _vault = new KdbxVault(database, writer, new NodeTags(TagKey(reading.Material)), log);
+            }
+
+            /// <summary>The database's tag key, with the copy of the host key it came from wiped.</summary>
+            /// <remarks>
+            /// A target exists only once <see cref="HostFor"/> has read the host certificate out of
+            /// the stored PKCS#12, so the bytes are there to derive from.
+            /// </remarks>
+            private static byte[] TagKey(AuthorityMaterial material)
+            {
+                var pkcs12 = material.HostPkcs12;
+                try
+                {
+                    return NodeTags.KeyFrom(pkcs12);
+                }
+                finally
+                {
+                    if (pkcs12 != null)
+                    {
+                        Array.Clear(pkcs12, 0, pkcs12.Length);
+                    }
+                }
             }
 
             /// <summary>

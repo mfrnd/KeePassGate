@@ -139,6 +139,31 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void A_node_s_tag_is_the_same_after_KeePass_starts_again_and_new_with_a_new_authority()
+        {
+            // The key is derived from the host certificate as the database stores it, so a client
+            // that read before a restart writes after it under the tag it holds. A key drawn when
+            // the plugin loaded refused every such write for nothing anybody wrote.
+            CreateAuthorityIn(_first);
+            var root = _targets.Current()[0].Vault;
+            var before = root.GroupTag(root.RootAlias);
+
+            _first.SaveCloseAndReopen();
+            _open[0] = _first.Database;
+
+            using (var started = new OpenDatabaseTargets(delegate { return _open; }, _log))
+            {
+                var again = started.Current()[0].Vault;
+                Assert.That(again.GroupTag(again.RootAlias), Is.EqualTo(before), "the same tag from a new start");
+
+                ServiceFor(_first).Recreate();
+                var recreated = started.Current()[0].Vault;
+                Assert.That(recreated.GroupTag(recreated.RootAlias), Is.Not.EqualTo(before),
+                    "and a new authority is a new host certificate, so a new key");
+            }
+        }
+
+        [Test]
         public void Recreating_the_authority_gives_a_new_target()
         {
             CreateAuthorityIn(_first);

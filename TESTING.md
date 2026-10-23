@@ -88,7 +88,11 @@ break it quietly.
 `GlobalWindowManager.AddWindow` is public, so the plugin is driven exactly as KeePass drives it:
 initialize, open the real dialog, close it, terminate, and check that nothing of ours is left behind.
 The authority is exercised against a real `PwDatabase` as well, written to a real KDBX4 file and
-opened again, because a dictionary cannot prove that KeePass keeps what it is given.
+opened again, because a dictionary cannot prove that KeePass keeps what it is given. So are a
+node's tags, in `NodeTagsTests`, where every change is made the way KeePass makes it rather than
+through the API: an edit as the entry dialog leaves it, a move as the main window makes one, a
+synchronize at an equal modification time, a save and a reopen, and an operator's edit landing on
+KeePass's thread just before a queued write, which has to be refused.
 
 The access control rules are split the same way, and the split is worth reading as an example of the
 whole arrangement. What a grant **means** is decided against `IAclNode`, a document and a parent, so
@@ -162,8 +166,11 @@ driven the same way, and leaves nothing behind.
 
 **The API**, in `LiveApiTests`: a real client with a certificate the database's own authority issued
 creates an entry through the gate, adds a field, reads it back, lists it, and the entry is read out
-of the `.kdbx` after KeePass has exited. A second client, whose record names a profile no rule
-mentions, is answered exactly as a missing entry would be. The grant and both admission records are
+of the `.kdbx` after KeePass has exited. Then the lost update: another write overtakes the read, a
+write under the tag that read handed back is refused `412`, and a write under the tag read again
+goes ahead and hands back the next, which a third write uses without reading in between; the file
+holds the overtaking change and the two that followed. A second client, whose record names a
+profile no rule mentions, is answered exactly as a missing entry would be. The grant and both admission records are
 written before KeePass starts, because a running KeePass would overwrite anything put into the file
 underneath it.
 

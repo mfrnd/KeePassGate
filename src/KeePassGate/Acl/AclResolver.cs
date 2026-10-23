@@ -355,6 +355,57 @@ namespace KeePassGate.Acl
         }
 
         /// <summary>
+        /// Whether one of these profiles may, under a single rule, read this node as far in as
+        /// every one of these reaches.
+        /// </summary>
+        /// <remarks>
+        /// **One rule, never several added up**, for the reason <see cref="DecideAny"/> answers
+        /// profile by profile: a switch belongs to the rule it is written in, so one profile's
+        /// `read` over attachments and another's over protected values do not make a client that
+        /// may read an entry whole, and the gate refuses a request that would need both at once.
+        ///
+        /// Asked by the routes before they hand a client a node's tag, which is a digest over
+        /// everything the node holds. A tag handed to a client that may not read all of it is a
+        /// way to test guesses at the part it may not read, `API.md` §410, so the question is
+        /// exactly whether there is such a part.
+        /// </remarks>
+        public static bool ReadsWhole(IAclNode node, IEnumerable<string> profiles, params AclReach[] reaches)
+        {
+            if (node == null || profiles == null)
+            {
+                return false;
+            }
+
+            var read = new AclDocuments();
+
+            foreach (var profile in profiles)
+            {
+                if (string.IsNullOrEmpty(profile)
+                    || !Decide(node, profile, AclVerb.Read, AclReach.Fields, read).Permitted)
+                {
+                    continue;
+                }
+
+                var whole = true;
+                foreach (var reach in reaches ?? Array.Empty<AclReach>())
+                {
+                    if (!Decide(node, profile, AclVerb.Read, reach, read).Permitted)
+                    {
+                        whole = false;
+                        break;
+                    }
+                }
+
+                if (whole)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
         /// Whether a switch reaches one of these verbs, all granted to this profile here, that a
         /// switch can qualify.
         /// </summary>

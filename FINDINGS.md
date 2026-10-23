@@ -370,3 +370,58 @@ GitHub does not support container jobs on Windows runners at all.
 **Required status checks are available and not configured.** The workflow reports and does not
 block, which is a property of the repository's settings rather than of the gate. Requiring the
 gate before a merge is one setting and costs nothing.
+
+## 20. What a version of a node can be made of
+
+**KeePass keeps no version of a group or an entry, and its modification time is not one.** The
+obvious tag for `If-Match` was the modification time, perhaps beside the time a node last moved,
+and all of what follows was measured against KeePass 2.61.1 before choosing:
+
+| What was measured | What it showed |
+| --- | --- |
+| `DateTime.UtcNow`, which `Touch` stamps, sampled in a loop | steps of 0.5 to 1.5 milliseconds on the development machine, so two changes inside one step share a time; Windows can step as coarsely as 15.6 |
+| a thousand `Touch` calls with a change between each pair | every pair carried the same time |
+| a KDBX 4 save read back | the time keeps whole seconds and loses the rest, so every time changes across a reload with nothing changed |
+| a synchronize where the other copy's strings changed at the very same time | its strings are taken and the time stays where it was |
+| a synchronize where the other copy's change carries an older time | nothing is taken, and the time stays |
+| a move, by `Remove` and `AddEntry` as the main window makes one, and one arriving by merge | `LocationChanged` moves and the modification time does not |
+| every method of `KeePass.exe` and `KeePassLib` that changes a string, an attachment, an expiry, a name, notes or a parent, read off the IL | every edit KeePass makes from its own windows ends in `Touch` or a set of the time, apart from importers, which make new nodes, and the entry dialog's working copy, which `SaveEntry` stamps; what a plugin does is nobody's promise |
+
+So a tag made of times misses a change in four ways: two inside one step, a merge at an equal
+time, a move unless `LocationChanged` is in it, and a plugin that never calls `Touch`. The tag is
+a digest of the content instead, and `NodeTagsTests` drives each of those cases, the merge among
+them, against real KeePass objects. The two times a route serves are in it too, to the second as
+they are served, which the reload above keeps, so a time changed with nothing else is still a
+change and a reload is still not one.
+
+**A plain digest of an entry is a way to guess its password**, which is why the tag is an HMAC.
+A client with `read` and without `protected` sees every string but the protected ones, so over a
+plain hash it could try candidates offline until one reproduced the tag. The key is derived from
+the host certificate's stored PKCS#12, which no client holds, so a tag is the same across a
+restart; it was drawn at load first, which made every tag change whenever KeePass started.
+
+**A keyed digest is still a way to guess, if it is handed to a client that cannot read what it
+covers.** Measured in the review of the step that added it: a client whose rule held `update` and
+`protected` and not `read` wrote an empty update to learn the tag, then wrote each candidate PIN
+into the password and compared the tag that came back with the first, and had a three digit one in
+614 writes and 7.8 seconds; a rule holding `read` beside another profile's `update` and
+`protected` recovered an eleven character password of a known shape in four. A key stops a tag
+being computed and not being compared, so a tag now goes only to a rule that may read everything it
+covers, `API.md` §410.
+
+**A value a read decodes is not always the bytes the store keeps.** A protected string another
+program wrote with bytes that are not UTF-8 is served with each bad sequence replaced, and KeePass
+keeps the decoded form once it has been read, so a tag over the stored bytes changed the first time
+the value was read as a string. The tag hashes the value as a read decodes it.
+
+**What a digest costs, on the development machine under .NET Framework 4.8:** six microseconds for
+a group, and the same for an entry's ten strings with two kilobytes of notes, protected ones
+decrypted. Attachment bytes go through SHA-256 at about 2 GB/s, which is 5 milliseconds for
+10 MB, against 8 milliseconds to decrypt a protected attachment of that size, and only up to the
+largest attachment the gate hands out, 512 KiB, above which the size stands for the bytes: the
+review measured a 201 MiB attachment costing 260 milliseconds and 201 MiB of memory to every
+request that looked the entry up, the router's among them, and 32 at once holding 1.6 GB. **And
+attachments are hashed once per object**, because `ProtectedBinary` offers nothing that changes its
+bytes and KeePass keeps the object's own hash code inside it; `KeePassContractTests` pins that, and
+two readers asking at once wait on one digest rather than taking two. The probes that measured all
+of this are on `spikes/entity-tags`.

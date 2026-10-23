@@ -53,6 +53,28 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_head_carries_the_fields_its_handler_named_and_no_body()
+        {
+            // RFC 9110 section 9.3.2: a head is its get with the content left off, and only the
+            // content. The tag is the field a client sends a head for, so a writer that dropped the
+            // handler's fields on a head would answer every one of them with nothing to compare.
+            var stream = new ConversationStream("HEAD /entries/x HTTP/1.1\r\n\r\n");
+            var named = new WebHeaderCollection();
+            named.Add("ETag", "\"0123456789abcdef0123456789abcdef\"");
+
+            GateConversation.Serve(
+                stream,
+                Paired(),
+                new SpyHandler(c => c.Respond(200, "{\"uuid\":\"x\"}", named)),
+                _options,
+                _log);
+
+            Assert.That(stream.Status, Is.EqualTo(200));
+            Assert.That(stream.Response, Does.Contain("ETag: \"0123456789abcdef0123456789abcdef\"\r\n"));
+            Assert.That(stream.Body, Is.Empty);
+        }
+
+        [Test]
         public void A_field_the_answer_named_is_written_after_the_ones_every_answer_carries()
         {
             var stream = new ConversationStream("OPTIONS /gate/status HTTP/1.1\r\n\r\n");

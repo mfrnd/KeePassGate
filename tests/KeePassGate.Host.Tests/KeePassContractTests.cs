@@ -288,6 +288,41 @@ namespace KeePassGate.Host.Tests
                 "the options are read through `Program.Config.Defaults`, so that is where they have to be");
         }
 
+        [Test]
+        public void An_attachment_still_cannot_be_changed_once_it_is_made()
+        {
+            // What `NodeTags` keeps a digest against: an attachment's bytes, hashed once per object,
+            // on the strength of the object never changing. What this pins is the public surface:
+            // every public instance member reads and no public property can be set, so nothing
+            // outside KeePassLib, this plugin or another, can change one in place. KeePassLib's own
+            // code is not pinned, and what stands for it is that KeePass keeps the object's hash
+            // code inside it once asked, which it could not do of an object whose bytes moved; a
+            // KeePass that stopped keeping it is told apart below. A KeePass that added a way to
+            // change one in place would leave a tag standing over bytes it no longer describes.
+            var type = typeof(KeePassLib.Security.ProtectedBinary);
+
+            // cspell:ignore Xorred
+            var readers = new[]
+            {
+                "get_IsProtected", "get_Length", "ReadData", "ReadXorredData", "GetHashCode", "Equals",
+            };
+
+            foreach (var method in type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly))
+            {
+                Assert.That(readers, Does.Contain(method.Name),
+                    "ProtectedBinary has a public " + method.Name + " that may change it in place");
+            }
+
+            foreach (var property in type.GetProperties(BindingFlags.Public | BindingFlags.Instance))
+            {
+                Assert.That(property.CanWrite, Is.False, "ProtectedBinary." + property.Name + " can be set");
+            }
+
+            Assert.That(type.GetField("m_oiHash", BindingFlags.NonPublic | BindingFlags.Instance), Is.Not.Null,
+                "KeePass no longer keeps an attachment's hash code inside it, so it may no longer be relying on "
+                + "the bytes staying put either");
+        }
+
         [TestCase(KeePassContract.GroupFormTypeName)]
         [TestCase(KeePassContract.EntryFormTypeName)]
         public void Both_node_dialogs_still_keep_their_own_copy_of_custom_data(string typeName)

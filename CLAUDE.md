@@ -358,8 +358,46 @@ designing around them.
   of what the API answers; one handler, so the two cannot come to disagree about whether
   something is there. The plugin refuses to load a `get` with no `head`, or a pair that differs in
   anything that decides who may ask or what is asked: the verb, the reach, the certificate, the
-  body, the query parameters or the guard. The answer omits `Content-Length` rather than sending
-  a wrong one, which RFC 9110 section 9.3.2 permits.
+  body, the query parameters, `If-Match` or the guard. The answer omits `Content-Length` rather
+  than sending a wrong one, which RFC 9110 section 9.3.2 permits.
+- **A node's `ETag` is a keyed digest of what it holds, never a clock and never a plain hash.**
+  `NodeTags` takes an HMAC-SHA256 over exactly what the routes serve, as they serve it: an entry's
+  identifier, its group, its two times to the second, every string with its name, whether it is
+  protected and its value as a read decodes it, every attachment's name, size and, up to
+  `VaultAttachment.MostServed`, the SHA-256 of its bytes, and its expiry; a group's identifier, its
+  parent, its two times, its name and its notes. Rules stay out. A clock on its own was measured
+  and refused, in `FINDINGS.md` under "What a version of a node can be made of": it misses two
+  changes inside one step, a merge at an equal time, a move and a plugin that never calls `Touch`.
+  An entry has one tag for itself, its fields and its attachments, as the rules answer for all three
+  by the entry. **The tag is taken before what it is served with**, so a change landing in the
+  middle of a read leaves a client an older tag beside newer content, which a write then fails over,
+  rather than the other way round, which a write would have carried over the change. Attachment
+  digests are kept per `ProtectedBinary` in a `ConditionalWeakTable` of `Lazy` values, so two
+  readers decrypt one once between them, on the strength of KeePass never changing one in place,
+  which `KeePassContractTests` pins. A lookup takes no tag: `IVault.EntryTag` and `GroupTag` are
+  asked only by a route that will hand one out.
+
+  **The key is derived from the host certificate's stored PKCS#12**, `NodeTags.KeyFrom`, never the
+  gate key, which every paired client holds. So a tag is the same across a lock, a restart and a
+  reload, and changes only when the authority is recreated. **This reverses a key drawn when the
+  plugin loaded**, which changed every tag whenever KeePass started, for nothing anybody wrote.
+
+  **A tag is handed only to a client whose one rule may read everything it covers**: `read` on a
+  group; on an entry `read` reaching attachments, and protected values too when it holds any,
+  `AclResolver.ReadsWhole`. Anybody else gets no tag, and any `If-Match` it sends fails. **This
+  reverses handing every caller the tag**, which a review measured as a way to recover a password a
+  client may update and not read, by writing guesses and comparing the tags that came back, `API.md`
+  §410. A key stops a tag being computed; only not handing it out stops it being compared.
+
+  **`If-Match` is optional, at the operator's word**, so a request without one is served as it
+  always was, and one whose node no longer holds what the tag says is `412`, `API.md` §410. It is
+  declared on exactly the operations whose target has a tag, reads among them, and the router hands
+  it on only for those; `ApiTests` sweeps every one of them by `operationId` against the document,
+  so a document declaring it somewhere a handler does not ask fails. A write's is asked inside the
+  change, under the writer's lock, after every refusal that does not depend on it, as RFC 9110
+  section 13.2.1 orders them, and one that cannot be read matches nothing, because every way of
+  ignoring it ends with the write going ahead. A write answers with its tag in the body, as
+  `etag`, since RFC 9110 section 9.3.4 gives an `ETag` header on a `PUT` another meaning.
 - **A plain DLL on .NET Framework 4.8**, not a `.plgx`.
 - **The access control model is one document per node**: `AclDocument`, `AclResolver`, `AclGrant`,
   `AclVerb`, `AclDefault`, with `KdbxNodes` adapting a `PwGroup` or a `PwEntry`. Grants live under
@@ -435,8 +473,9 @@ designing around them.
 Every one of these was established by running code, and most contradict what the documentation
 suggests. The code is on branches of its own: `spikes/tls-and-certificates` holds the nine that
 measured TLS and X.509, `spikes/build-environment` the one that measured whether the gate can
-fail while nothing is wrong, and `spikes/revocation-merge` the one that measured how KeePass merges
-a database's custom data. Each gathers what it settled in its own `RESULTS.md`. Run them from
+fail while nothing is wrong, `spikes/revocation-merge` the one that measured how KeePass merges
+a database's custom data, and `spikes/entity-tags` the one that measured what a node's version
+could be made of. Each gathers what it settled in its own `RESULTS.md`. Run them from
 **Windows PowerShell**, not PowerShell 7, which is .NET Core and answers a different question.
 
 - **`X509Chain` does not pin an anchor.** `ExtraStore` plus `AllowUnknownCertificateAuthority`
@@ -636,6 +675,12 @@ a database's custom data. Each gathers what it settled in its own `RESULTS.md`. 
   `pykeepassgate.refs` compares ASCII without case and refuses a placeholder that matches a name only
   beyond it, rather than guess at .NET Framework's tables. `ReferenceVectors.json` holds the cases,
   made by KeePass itself.
+- **KeePass's modification time is not a version.** `Touch` stamps `DateTime.UtcNow`, which steps
+  every 0.5 to 1.5 milliseconds here, so a thousand changes back to back shared their times in
+  every pair; a KDBX 4 file keeps whole seconds, so every time moves across a reload; a synchronize
+  takes the other copy's strings at an equal time and leaves the time alone; and a move stamps only
+  `LocationChanged`. `FINDINGS.md` has the table, `NodeTagsTests` drives the merge and the
+  reload, and `spikes/entity-tags` holds the probes.
 - **`dotnet test` with a filter that matches nothing exits 0**, having run nothing, and its trx
   counts nothing. A gate that believes the exit code is green over an empty run, so `build.ps1`
   reads each tier's trx and refuses one in which nothing executed, `Assert-Executed`.

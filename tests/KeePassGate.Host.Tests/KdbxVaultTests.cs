@@ -37,7 +37,7 @@ namespace KeePassGate.Host.Tests
         {
             _database = TemporaryDatabase.New();
             _saves = 0;
-            _vault = new KdbxVault(_database.Database, Writer(), null);
+            _vault = new KdbxVault(_database.Database, Writer(), TestTags.Fixed, null);
         }
 
         [TearDown]
@@ -126,7 +126,7 @@ namespace KeePassGate.Host.Tests
         public void Fields_are_named_without_being_quoted()
         {
             var uuid = Created(_vault.CreateEntry(_vault.RootAlias, Named("an invented service")));
-            _vault.CreateField(uuid, "Invented", "a value", false);
+            _vault.CreateField(uuid, "Invented", "a value", false, VaultTagging.None);
 
             var fields = _vault.Fields(uuid);
 
@@ -141,14 +141,14 @@ namespace KeePassGate.Host.Tests
         {
             var uuid = Created(_vault.CreateEntry(_vault.RootAlias, Named("an invented service")));
 
-            Assert.That(_vault.CreateField(uuid, "Invented", "first", false).Ok, Is.True);
-            Assert.That(_vault.CreateField(uuid, "Invented", "again", false).IsConflict, Is.True,
+            Assert.That(_vault.CreateField(uuid, "Invented", "first", false, VaultTagging.None).Ok, Is.True);
+            Assert.That(_vault.CreateField(uuid, "Invented", "again", false, VaultTagging.None).IsConflict, Is.True,
                 "create adds what is not there, and says so when it already is");
 
-            Assert.That(_vault.UpdateField(uuid, "Invented", "second").Ok, Is.True);
+            Assert.That(_vault.UpdateField(uuid, "Invented", "second", VaultTagging.None).Ok, Is.True);
             Assert.That(_vault.Field(uuid, "Invented"), Is.EqualTo("second"));
 
-            Assert.That(_vault.UpdateField(uuid, "NotThere", "x").Ok, Is.False,
+            Assert.That(_vault.UpdateField(uuid, "NotThere", "x", VaultTagging.None).Ok, Is.False,
                 "and update changes what is there, and says nothing is when it is not");
         }
 
@@ -159,7 +159,7 @@ namespace KeePassGate.Host.Tests
             // not the moment to decide it differently.
             var uuid = Created(_vault.CreateEntry(_vault.RootAlias, Named("an invented service")));
 
-            _vault.UpdateField(uuid, PwDefs.PasswordField, "a different one");
+            _vault.UpdateField(uuid, PwDefs.PasswordField, "a different one", VaultTagging.None);
 
             Assert.That(_vault.Read(uuid).Protected, Does.Contain(PwDefs.PasswordField));
         }
@@ -207,7 +207,7 @@ namespace KeePassGate.Host.Tests
             var uuid = Created(_vault.CreateEntry(_vault.RootAlias, Named("an invented service")));
             foreach (var name in new[] { "Zeta brace", "Brace", "middle", "Alpha" })
             {
-                Assume.That(_vault.CreateField(uuid, name, "a value", false).Ok, Is.True);
+                Assume.That(_vault.CreateField(uuid, name, "a value", false, VaultTagging.None).Ok, Is.True);
             }
 
             var entry = _database.Database.RootGroup.FindEntry(new PwUuid(KeePassLib.Utility.MemUtil.HexStringToByteArray(uuid)), true);
@@ -224,8 +224,8 @@ namespace KeePassGate.Host.Tests
             // the operator marked when it was created and nothing else.
             var uuid = Created(_vault.CreateEntry(_vault.RootAlias, Named("an invented service")));
 
-            Assert.That(_vault.CreateField(uuid, "Invented", "a value", false).Ok, Is.True);
-            Assert.That(_vault.CreateField(uuid, "AlsoInvented", "a value", true).Ok, Is.True);
+            Assert.That(_vault.CreateField(uuid, "Invented", "a value", false, VaultTagging.None).Ok, Is.True);
+            Assert.That(_vault.CreateField(uuid, "AlsoInvented", "a value", true, VaultTagging.None).Ok, Is.True);
 
             Assert.That(_vault.Read(uuid).Protected, Has.No.Member("Invented"));
             Assert.That(_vault.Read(uuid).Protected, Does.Contain("AlsoInvented"));
@@ -269,11 +269,11 @@ namespace KeePassGate.Host.Tests
         public void A_field_can_be_taken_off_again()
         {
             var uuid = Created(_vault.CreateEntry(_vault.RootAlias, Named("an invented service")));
-            _vault.CreateField(uuid, "Invented", "a value", false);
+            _vault.CreateField(uuid, "Invented", "a value", false, VaultTagging.None);
 
-            Assert.That(_vault.DeleteField(uuid, "Invented").Ok, Is.True);
+            Assert.That(_vault.DeleteField(uuid, "Invented", VaultTagging.None).Ok, Is.True);
             Assert.That(_vault.Field(uuid, "Invented"), Is.Null);
-            Assert.That(_vault.DeleteField(uuid, "Invented").Ok, Is.False);
+            Assert.That(_vault.DeleteField(uuid, "Invented", VaultTagging.None).Ok, Is.False);
         }
 
         [Test]
@@ -282,7 +282,7 @@ namespace KeePassGate.Host.Tests
             var uuid = Created(_vault.CreateEntry(_vault.RootAlias, Named("an invented service")));
             var content = Encoding.UTF8.GetBytes("an invented attachment, several bytes long");
 
-            Assert.That(_vault.CreateAttachment(uuid, "notes..txt", content).Ok, Is.True);
+            Assert.That(_vault.CreateAttachment(uuid, "notes..txt", content, VaultTagging.None).Ok, Is.True);
 
             var listed = _vault.Attachments(uuid).Single();
 
@@ -298,7 +298,7 @@ namespace KeePassGate.Host.Tests
             // answered without the plaintext, which is the copy a refusal for size is there to
             // avoid, and in the same read, so nothing can replace it in between.
             var uuid = Created(_vault.CreateEntry(_vault.RootAlias, Named("an invented service")));
-            Assume.That(_vault.CreateAttachment(uuid, "big.bin", new byte[] { 1, 2, 3, 4 }).Ok, Is.True);
+            Assume.That(_vault.CreateAttachment(uuid, "big.bin", new byte[] { 1, 2, 3, 4 }, VaultTagging.None).Ok, Is.True);
 
             var measured = _vault.Attachment(uuid, "big.bin", 3);
 
@@ -313,13 +313,13 @@ namespace KeePassGate.Host.Tests
         {
             var uuid = Created(_vault.CreateEntry(_vault.RootAlias, Named("an invented service")));
 
-            Assert.That(_vault.CreateAttachment(uuid, "one", new byte[] { 1 }).Ok, Is.True);
-            Assert.That(_vault.CreateAttachment(uuid, "one", new byte[] { 2 }).IsConflict, Is.True);
+            Assert.That(_vault.CreateAttachment(uuid, "one", new byte[] { 1 }, VaultTagging.None).Ok, Is.True);
+            Assert.That(_vault.CreateAttachment(uuid, "one", new byte[] { 2 }, VaultTagging.None).IsConflict, Is.True);
 
-            Assert.That(_vault.UpdateAttachment(uuid, "one", new byte[] { 3, 4 }).Ok, Is.True);
+            Assert.That(_vault.UpdateAttachment(uuid, "one", new byte[] { 3, 4 }, VaultTagging.None).Ok, Is.True);
             Assert.That(Stored(uuid, "one"), Is.EqualTo(new byte[] { 3, 4 }));
 
-            Assert.That(_vault.DeleteAttachment(uuid, "one").Ok, Is.True);
+            Assert.That(_vault.DeleteAttachment(uuid, "one", VaultTagging.None).Ok, Is.True);
             Assert.That(_vault.Attachments(uuid), Is.Empty);
         }
 
@@ -345,15 +345,15 @@ namespace KeePassGate.Host.Tests
             // `create` took the real one off and left an unprotected value where KeePass reads the
             // password from.
             var uuid = Created(_vault.CreateEntry(_vault.RootAlias, Named("an invented service")));
-            _vault.UpdateField(uuid, PwDefs.PasswordField, "not-a-real-password");
+            _vault.UpdateField(uuid, PwDefs.PasswordField, "not-a-real-password", VaultTagging.None);
 
             Assume.That(Entry(uuid).Strings.Exists(PasswordAlias), Is.True,
                 "the database itself cannot tell the two names apart, which is what this is about");
 
             Assert.That(_vault.Field(uuid, PasswordAlias), Is.Null, "reading it finds nothing");
-            Assert.That(_vault.UpdateField(uuid, PasswordAlias, "planted").Ok, Is.False, "writing it");
-            Assert.That(_vault.DeleteField(uuid, PasswordAlias).Ok, Is.False, "taking it off");
-            Assert.That(_vault.CreateField(uuid, PasswordAlias, "planted", false).IsConflict, Is.True,
+            Assert.That(_vault.UpdateField(uuid, PasswordAlias, "planted", VaultTagging.None).Ok, Is.False, "writing it");
+            Assert.That(_vault.DeleteField(uuid, PasswordAlias, VaultTagging.None).Ok, Is.False, "taking it off");
+            Assert.That(_vault.CreateField(uuid, PasswordAlias, "planted", false, VaultTagging.None).IsConflict, Is.True,
                 "and putting one there is the conflict a name the entry already has gets");
 
             Assert.That(Entry(uuid).Strings.ReadSafe(PwDefs.PasswordField), Is.EqualTo("not-a-real-password"));
@@ -364,15 +364,15 @@ namespace KeePassGate.Host.Tests
         public void An_attachment_name_the_database_cannot_tell_from_another_reaches_neither()
         {
             var uuid = Created(_vault.CreateEntry(_vault.RootAlias, Named("an invented service")));
-            _vault.CreateAttachment(uuid, "notes.txt", new byte[] { 1, 2, 3 });
+            _vault.CreateAttachment(uuid, "notes.txt", new byte[] { 1, 2, 3 }, VaultTagging.None);
 
             var alias = "notes\u00AD.txt";
             Assume.That(Entry(uuid).Binaries.Get(alias), Is.Not.Null, "the same collation, on the other dictionary");
 
             Assert.That(_vault.Attachment(uuid, alias, int.MaxValue), Is.Null);
-            Assert.That(_vault.UpdateAttachment(uuid, alias, new byte[] { 9 }).Ok, Is.False);
-            Assert.That(_vault.DeleteAttachment(uuid, alias).Ok, Is.False);
-            Assert.That(_vault.CreateAttachment(uuid, alias, new byte[] { 9 }).IsConflict, Is.True);
+            Assert.That(_vault.UpdateAttachment(uuid, alias, new byte[] { 9 }, VaultTagging.None).Ok, Is.False);
+            Assert.That(_vault.DeleteAttachment(uuid, alias, VaultTagging.None).Ok, Is.False);
+            Assert.That(_vault.CreateAttachment(uuid, alias, new byte[] { 9 }, VaultTagging.None).IsConflict, Is.True);
 
             Assert.That(Stored(uuid, "notes.txt"), Is.EqualTo(new byte[] { 1, 2, 3 }));
         }
@@ -386,7 +386,7 @@ namespace KeePassGate.Host.Tests
             var uuid = Created(_vault.CreateEntry(_vault.RootAlias, Named("an invented service")));
             var aliased = new Dictionary<string, string> { { PasswordAlias, "planted" } };
 
-            Assert.That(_vault.UpdateEntry(uuid, aliased).IsConflict, Is.True);
+            Assert.That(_vault.UpdateEntry(uuid, aliased, VaultTagging.None).IsConflict, Is.True);
             Assert.That(Entry(uuid).Strings.ReadSafe(PwDefs.PasswordField), Is.Empty,
                 "and nothing of the body reached the entry");
 
@@ -406,7 +406,7 @@ namespace KeePassGate.Host.Tests
                 { "Cafe\u0301", "another" },
             };
 
-            Assert.That(_vault.UpdateEntry(uuid, both).IsConflict, Is.True);
+            Assert.That(_vault.UpdateEntry(uuid, both, VaultTagging.None).IsConflict, Is.True);
             Assert.That(_vault.Fields(uuid).Select(f => f.Name), Has.No.Member("Caf\u00E9"));
         }
 
@@ -417,7 +417,7 @@ namespace KeePassGate.Host.Tests
             // table's business, and after the path fix that includes a name with a separator in it.
             var uuid = Created(_vault.CreateEntry(_vault.RootAlias, Named("an invented service")));
 
-            Assert.That(_vault.CreateAttachment(uuid, "a/b", new byte[] { 1 }).Ok, Is.True);
+            Assert.That(_vault.CreateAttachment(uuid, "a/b", new byte[] { 1 }, VaultTagging.None).Ok, Is.True);
             Assert.That(Stored(uuid, "a/b"), Is.Not.Null);
         }
 
@@ -429,7 +429,7 @@ namespace KeePassGate.Host.Tests
             var group = Created(_vault.CreateGroup(_vault.RootAlias, "Fictitious", null));
             _vault.CreateEntry(group, Named("an invented service"));
 
-            var refused = _vault.DeleteGroup(group);
+            var refused = _vault.DeleteGroup(group, VaultTagging.None);
 
             Assert.That(refused.IsConflict, Is.True);
             Assert.That(_vault.Group(group), Is.Not.Null);
@@ -438,7 +438,7 @@ namespace KeePassGate.Host.Tests
         [Test]
         public void The_root_group_cannot_be_removed()
         {
-            Assert.That(_vault.DeleteGroup(_vault.RootAlias).IsConflict, Is.True);
+            Assert.That(_vault.DeleteGroup(_vault.RootAlias, VaultTagging.None).IsConflict, Is.True);
             Assert.That(_vault.Group(_vault.RootAlias), Is.Not.Null);
         }
 
@@ -447,7 +447,7 @@ namespace KeePassGate.Host.Tests
         {
             var group = Created(_vault.CreateGroup(_vault.RootAlias, "Fictitious", null));
 
-            Assert.That(_vault.DeleteGroup(group).Ok, Is.True);
+            Assert.That(_vault.DeleteGroup(group, VaultTagging.None).Ok, Is.True);
             Assert.That(_vault.Group(group), Is.Null);
         }
 
@@ -462,7 +462,7 @@ namespace KeePassGate.Host.Tests
             var group = Created(_vault.CreateGroup(_vault.RootAlias, "Fictitious", null));
             var uuid = Created(_vault.CreateEntry(group, Named("an invented service")));
 
-            Assert.That(_vault.DeleteEntry(uuid).Ok, Is.True);
+            Assert.That(_vault.DeleteEntry(uuid, VaultTagging.None).Ok, Is.True);
 
             var kept = _database.Database.RootGroup.FindEntry(new PwUuid(MemUtil.HexStringToByteArray(uuid)), true);
 
@@ -477,7 +477,7 @@ namespace KeePassGate.Host.Tests
             _database.Database.RecycleBinEnabled = true;
             var group = Created(_vault.CreateGroup(_vault.RootAlias, "Fictitious", null));
             var uuid = Created(_vault.CreateEntry(group, Named("an invented service")));
-            Assert.That(_vault.DeleteEntry(uuid).Ok, Is.True);
+            Assert.That(_vault.DeleteEntry(uuid, VaultTagging.None).Ok, Is.True);
 
             var bin = _database.Database.RootGroup.FindGroup(_database.Database.RecycleBinUuid, true);
 
@@ -547,7 +547,7 @@ namespace KeePassGate.Host.Tests
             _database.Database.RecycleBinEnabled = false;
             var uuid = Created(_vault.CreateEntry(_vault.RootAlias, Named("an invented service")));
 
-            Assert.That(_vault.DeleteEntry(uuid).Ok, Is.True);
+            Assert.That(_vault.DeleteEntry(uuid, VaultTagging.None).Ok, Is.True);
             Assert.That(_vault.Entry(uuid), Is.Null);
             Assert.That(_database.Database.DeletedObjects.UCount, Is.GreaterThan(0u),
                 "and it is written down as deleted, so a merge does not bring it back");
@@ -563,7 +563,7 @@ namespace KeePassGate.Host.Tests
             // default `HistoryMaxItems`, and be told `200` each time.
             var group = Created(_vault.CreateGroup(_vault.RootAlias, "Fictitious", null));
             var uuid = Created(_vault.CreateEntry(group, Named("an invented service")));
-            _vault.UpdateEntry(uuid, Named("renamed"));
+            _vault.UpdateEntry(uuid, Named("renamed"), VaultTagging.None);
 
             var entry = _database.RootGroup.FindEntry(new PwUuid(MemUtil.HexStringToByteArray(uuid)), true);
             var modified = entry.LastModificationTime;
@@ -571,9 +571,9 @@ namespace KeePassGate.Host.Tests
             var revisions = entry.History.UCount;
             var saves = _saves;
 
-            Assert.That(_vault.UpdateEntry(uuid, new Dictionary<string, string>()).Ok, Is.True,
+            Assert.That(_vault.UpdateEntry(uuid, new Dictionary<string, string>(), VaultTagging.None).Ok, Is.True,
                 "an update that asks for nothing is not a refusal: the entry holds what it asked");
-            Assert.That(_vault.UpdateGroup(group, null, null).Ok, Is.True);
+            Assert.That(_vault.UpdateGroup(group, null, null, VaultTagging.None).Ok, Is.True);
 
             Assert.That(entry.LastModificationTime, Is.EqualTo(modified));
             Assert.That(entry.UsageCount, Is.EqualTo(used));
@@ -586,9 +586,9 @@ namespace KeePassGate.Host.Tests
         {
             // The lookup is what keeps this from being an `ok` about nothing at all. A node that is
             // not there gets what every other route gives it.
-            Assert.That(_vault.UpdateEntry(new string('a', 32), new Dictionary<string, string>()).Ok,
+            Assert.That(_vault.UpdateEntry(new string('a', 32), new Dictionary<string, string>(), VaultTagging.None).Ok,
                 Is.False);
-            Assert.That(_vault.UpdateGroup(new string('a', 32), null, null).Ok, Is.False);
+            Assert.That(_vault.UpdateGroup(new string('a', 32), null, null, VaultTagging.None).Ok, Is.False);
         }
 
         [Test]
@@ -599,9 +599,9 @@ namespace KeePassGate.Host.Tests
             // `update` alone pushed the real ones out of the history again, one call at a time.
             var group = Created(_vault.CreateGroup(_vault.RootAlias, "Fictitious", "invented notes"));
             var uuid = Created(_vault.CreateEntry(group, Named("an invented service"), VaultExpiry.At(Moment)));
-            Assume.That(_vault.CreateField(uuid, "Invented", "a value", false).Ok, Is.True);
-            Assume.That(_vault.UpdateField(uuid, PwDefs.PasswordField, "not-a-real-password").Ok, Is.True);
-            Assume.That(_vault.CreateAttachment(uuid, "note.txt", new byte[] { 1, 2, 3 }).Ok, Is.True);
+            Assume.That(_vault.CreateField(uuid, "Invented", "a value", false, VaultTagging.None).Ok, Is.True);
+            Assume.That(_vault.UpdateField(uuid, PwDefs.PasswordField, "not-a-real-password", VaultTagging.None).Ok, Is.True);
+            Assume.That(_vault.CreateAttachment(uuid, "note.txt", new byte[] { 1, 2, 3 }, VaultTagging.None).Ok, Is.True);
 
             var entry = Entry(uuid);
             var parent = entry.ParentGroup;
@@ -613,15 +613,15 @@ namespace KeePassGate.Host.Tests
             var saves = _saves;
             Assume.That(_database.Database.Modified, Is.False, "every write so far was saved");
 
-            Assert.That(_vault.UpdateEntry(uuid, Named("an invented service"), VaultExpiry.At(Moment)).Ok, Is.True,
+            Assert.That(_vault.UpdateEntry(uuid, Named("an invented service"), VaultTagging.None, VaultExpiry.At(Moment)).Ok, Is.True,
                 "an entry");
-            Assert.That(_vault.UpdateField(uuid, "Invented", "a value").Ok, Is.True, "a field");
-            Assert.That(_vault.UpdateField(uuid, PwDefs.PasswordField, "not-a-real-password").Ok, Is.True,
+            Assert.That(_vault.UpdateField(uuid, "Invented", "a value", VaultTagging.None).Ok, Is.True, "a field");
+            Assert.That(_vault.UpdateField(uuid, PwDefs.PasswordField, "not-a-real-password", VaultTagging.None).Ok, Is.True,
                 "a protected one, compared without being handed out");
-            Assert.That(_vault.UpdateAttachment(uuid, "note.txt", new byte[] { 1, 2, 3 }).Ok, Is.True,
+            Assert.That(_vault.UpdateAttachment(uuid, "note.txt", new byte[] { 1, 2, 3 }, VaultTagging.None).Ok, Is.True,
                 "an attachment");
-            Assert.That(_vault.UpdateGroup(group, "Fictitious", "invented notes").Ok, Is.True, "a group");
-            Assert.That(_vault.UpdateGroup(group, "Fictitious", null).Ok, Is.True, "and half of one");
+            Assert.That(_vault.UpdateGroup(group, "Fictitious", "invented notes", VaultTagging.None).Ok, Is.True, "a group");
+            Assert.That(_vault.UpdateGroup(group, "Fictitious", null, VaultTagging.None).Ok, Is.True, "and half of one");
 
             Assert.That(entry.History.UCount, Is.EqualTo(revisions), "no revision is added");
             Assert.That(entry.LastModificationTime, Is.EqualTo(modified));
@@ -645,9 +645,9 @@ namespace KeePassGate.Host.Tests
                 { "Invented", "a value" },
             };
 
-            Assert.That(_vault.UpdateEntry(uuid, asked, VaultExpiry.At(Moment)).Ok, Is.True,
+            Assert.That(_vault.UpdateEntry(uuid, asked, VaultTagging.None, VaultExpiry.At(Moment)).Ok, Is.True,
                 "a name the entry does not carry is a string to add");
-            Assert.That(_vault.UpdateEntry(uuid, Named("an invented service"), VaultExpiry.At(Moment.AddSeconds(1))).Ok,
+            Assert.That(_vault.UpdateEntry(uuid, Named("an invented service"), VaultTagging.None, VaultExpiry.At(Moment.AddSeconds(1))).Ok,
                 Is.True, "and a moment it does not expire at is one to move to");
 
             Assert.That(Entry(uuid).Strings.ReadSafe("Invented"), Is.EqualTo("a value"));
@@ -669,13 +669,13 @@ namespace KeePassGate.Host.Tests
             var none = new Dictionary<string, string>();
             var saves = _saves;
 
-            Assert.That(_vault.UpdateEntry(never, none, VaultExpiry.Never).Ok, Is.True);
-            Assert.That(_vault.UpdateEntry(dated, none, VaultExpiry.At(Moment)).Ok, Is.True);
+            Assert.That(_vault.UpdateEntry(never, none, VaultTagging.None, VaultExpiry.Never).Ok, Is.True);
+            Assert.That(_vault.UpdateEntry(dated, none, VaultTagging.None, VaultExpiry.At(Moment)).Ok, Is.True);
             Assert.That(_saves, Is.EqualTo(saves), "both of those were already there");
             Assert.That(Entry(never).History.UCount + Entry(dated).History.UCount, Is.Zero);
 
-            Assert.That(_vault.UpdateEntry(never, none, VaultExpiry.At(Moment)).Ok, Is.True);
-            Assert.That(_vault.UpdateEntry(dated, none, VaultExpiry.Never).Ok, Is.True);
+            Assert.That(_vault.UpdateEntry(never, none, VaultTagging.None, VaultExpiry.At(Moment)).Ok, Is.True);
+            Assert.That(_vault.UpdateEntry(dated, none, VaultTagging.None, VaultExpiry.Never).Ok, Is.True);
             Assert.That(_saves, Is.EqualTo(saves + 2), "and these two were not");
             Assert.That(Entry(never).Expires, Is.True);
             Assert.That(Entry(dated).Expires, Is.False);
@@ -688,11 +688,11 @@ namespace KeePassGate.Host.Tests
             // the request asks for, so the same bytes kept unprotected are already there. A file
             // from other software can hold an attachment that way.
             var uuid = Created(_vault.CreateEntry(_vault.RootAlias, Named("an invented service")));
-            Assume.That(_vault.CreateAttachment(uuid, "note.txt", new byte[] { 1 }).Ok, Is.True);
+            Assume.That(_vault.CreateAttachment(uuid, "note.txt", new byte[] { 1 }, VaultTagging.None).Ok, Is.True);
             Entry(uuid).Binaries.Set("note.txt", new KeePassLib.Security.ProtectedBinary(false, new byte[] { 4, 5 }));
             var saves = _saves;
 
-            Assert.That(_vault.UpdateAttachment(uuid, "note.txt", new byte[] { 4, 5 }).Ok, Is.True);
+            Assert.That(_vault.UpdateAttachment(uuid, "note.txt", new byte[] { 4, 5 }, VaultTagging.None).Ok, Is.True);
 
             Assert.That(_saves, Is.EqualTo(saves));
             Assert.That(Entry(uuid).Binaries.Get("note.txt").IsProtected, Is.False, "left exactly as it was");
@@ -713,11 +713,11 @@ namespace KeePassGate.Host.Tests
         public void What_was_written_is_in_the_file_afterwards()
         {
             var uuid = Created(_vault.CreateEntry(_vault.RootAlias, Named("an invented service")));
-            _vault.CreateField(uuid, "Invented", "a value", false);
+            _vault.CreateField(uuid, "Invented", "a value", false, VaultTagging.None);
 
             _database.SaveCloseAndReopen();
 
-            var reopened = new KdbxVault(_database.Database, Writer(), null);
+            var reopened = new KdbxVault(_database.Database, Writer(), TestTags.Fixed, null);
 
             Assert.That(reopened.Field(uuid, "Invented"), Is.EqualTo("a value"));
         }
@@ -725,7 +725,7 @@ namespace KeePassGate.Host.Tests
         [Test]
         public void A_vault_with_no_writer_reads_and_refuses_to_change_anything()
         {
-            var readOnly = new KdbxVault(_database.Database, null, null);
+            var readOnly = new KdbxVault(_database.Database, null, TestTags.Fixed, null);
 
             Assert.That(readOnly.WriteBlocked, Is.Not.Null);
             Assert.That(readOnly.Group(readOnly.RootAlias), Is.Not.Null);
@@ -742,10 +742,10 @@ namespace KeePassGate.Host.Tests
             var group = Created(_vault.CreateGroup(_vault.RootAlias, "Fictitious", null));
             var uuid = Created(_vault.CreateEntry(group, Named("an invented service")));
 
-            Assert.That(_vault.CreateField(uuid, "Invented", "a value", true).Ok, Is.True);
+            Assert.That(_vault.CreateField(uuid, "Invented", "a value", true, VaultTagging.None).Ok, Is.True);
             Assume.That(_vault.Read(uuid).Protected, Does.Contain("Invented"));
 
-            Assert.That(_vault.UpdateEntry(uuid, new Dictionary<string, string> { { "Invented", "another" } }).Ok,
+            Assert.That(_vault.UpdateEntry(uuid, new Dictionary<string, string> { { "Invented", "another" } }, VaultTagging.None).Ok,
                 Is.True);
 
             Assert.That(_vault.Read(uuid).Protected, Does.Contain("Invented"),
@@ -754,7 +754,7 @@ namespace KeePassGate.Host.Tests
             _database.SaveCloseAndReopen();
 
             // A new vault, because reopening builds a new `PwDatabase` and the old one is closed.
-            var reopened = new KdbxVault(_database.Database, Writer(), null);
+            var reopened = new KdbxVault(_database.Database, Writer(), TestTags.Fixed, null);
 
             Assert.That(reopened.Read(uuid).Protected, Does.Contain("Invented"),
                 "and the file has to agree, because this name is not one KeePass puts back");
@@ -775,7 +775,7 @@ namespace KeePassGate.Host.Tests
             var before = Entry(uuid).LocationChanged;
             Thread.Sleep(10);
 
-            Assert.That(_vault.DeleteEntry(uuid).Ok, Is.True);
+            Assert.That(_vault.DeleteEntry(uuid, VaultTagging.None).Ok, Is.True);
 
             var recycled = Entry(uuid);
 
@@ -795,7 +795,7 @@ namespace KeePassGate.Host.Tests
             var group = Created(_vault.CreateGroup(_vault.RootAlias, "Fictitious", null));
             var uuid = new PwUuid(MemUtil.HexStringToByteArray(group));
 
-            Assert.That(_vault.DeleteGroup(group).Ok, Is.True);
+            Assert.That(_vault.DeleteGroup(group, VaultTagging.None).Ok, Is.True);
 
             var bin = _database.Database.RootGroup.FindGroup(_database.Database.RecycleBinUuid, true);
 
@@ -812,9 +812,9 @@ namespace KeePassGate.Host.Tests
             // none was an entry whose previous password existed nowhere: the audit records no
             // field name and no value on purpose, and no route reads or clears history.
             var uuid = Created(_vault.CreateEntry(_vault.RootAlias, Named("an invented service")));
-            Assume.That(_vault.UpdateField(uuid, PwDefs.PasswordField, "the first one").Ok, Is.True);
+            Assume.That(_vault.UpdateField(uuid, PwDefs.PasswordField, "the first one", VaultTagging.None).Ok, Is.True);
 
-            Assert.That(_vault.UpdateField(uuid, PwDefs.PasswordField, "the second one").Ok, Is.True);
+            Assert.That(_vault.UpdateField(uuid, PwDefs.PasswordField, "the second one", VaultTagging.None).Ok, Is.True);
 
             var history = Entry(uuid).History;
 
@@ -834,13 +834,13 @@ namespace KeePassGate.Host.Tests
 
             var changes = new Func<VaultWrite>[]
             {
-                () => _vault.UpdateEntry(uuid, Named("renamed")),
-                () => _vault.CreateField(uuid, "Invented", "a value", false),
-                () => _vault.UpdateField(uuid, "Invented", "another value"),
-                () => _vault.DeleteField(uuid, "Invented"),
-                () => _vault.CreateAttachment(uuid, "note.txt", new byte[] { 1 }),
-                () => _vault.UpdateAttachment(uuid, "note.txt", new byte[] { 2 }),
-                () => _vault.DeleteAttachment(uuid, "note.txt"),
+                () => _vault.UpdateEntry(uuid, Named("renamed"), VaultTagging.None),
+                () => _vault.CreateField(uuid, "Invented", "a value", false, VaultTagging.None),
+                () => _vault.UpdateField(uuid, "Invented", "another value", VaultTagging.None),
+                () => _vault.DeleteField(uuid, "Invented", VaultTagging.None),
+                () => _vault.CreateAttachment(uuid, "note.txt", new byte[] { 1 }, VaultTagging.None),
+                () => _vault.UpdateAttachment(uuid, "note.txt", new byte[] { 2 }, VaultTagging.None),
+                () => _vault.DeleteAttachment(uuid, "note.txt", VaultTagging.None),
             };
 
             for (var i = 0; i < changes.Length; i++)
@@ -854,8 +854,8 @@ namespace KeePassGate.Host.Tests
         public void A_revision_is_in_the_file_afterwards()
         {
             var uuid = Created(_vault.CreateEntry(_vault.RootAlias, Named("an invented service")));
-            Assume.That(_vault.UpdateField(uuid, PwDefs.PasswordField, "the first one").Ok, Is.True);
-            Assert.That(_vault.UpdateField(uuid, PwDefs.PasswordField, "the second one").Ok, Is.True);
+            Assume.That(_vault.UpdateField(uuid, PwDefs.PasswordField, "the first one", VaultTagging.None).Ok, Is.True);
+            Assert.That(_vault.UpdateField(uuid, PwDefs.PasswordField, "the second one", VaultTagging.None).Ok, Is.True);
 
             _database.SaveCloseAndReopen();
 
@@ -876,13 +876,13 @@ namespace KeePassGate.Host.Tests
 
             for (var i = 0; i < 5; i++)
             {
-                Assert.That(_vault.UpdateField(uuid, PwDefs.PasswordField, "value " + i).Ok, Is.True);
+                Assert.That(_vault.UpdateField(uuid, PwDefs.PasswordField, "value " + i, VaultTagging.None).Ok, Is.True);
             }
 
             Assert.That(Entry(uuid).History.UCount, Is.EqualTo(2u), "the limit the operator set");
 
             _database.Database.HistoryMaxItems = 0;
-            Assert.That(_vault.UpdateField(uuid, PwDefs.PasswordField, "and one more").Ok, Is.True);
+            Assert.That(_vault.UpdateField(uuid, PwDefs.PasswordField, "and one more", VaultTagging.None).Ok, Is.True);
 
             Assert.That(Entry(uuid).History.UCount, Is.Zero,
                 "an operator keeping no history keeps none through the API either");
@@ -923,8 +923,8 @@ namespace KeePassGate.Host.Tests
             Assert.That(Entry(uuid).Expires, Is.True);
             Assert.That(Entry(uuid).ExpiryTime, Is.EqualTo(Moment.UtcDateTime));
 
-            var reopened = new KdbxVault(_database.Database, Writer(), null);
-            Assert.That(reopened.UpdateEntry(uuid, new Dictionary<string, string>(), VaultExpiry.Never).Ok, Is.True);
+            var reopened = new KdbxVault(_database.Database, Writer(), TestTags.Fixed, null);
+            Assert.That(reopened.UpdateEntry(uuid, new Dictionary<string, string>(), VaultTagging.None, VaultExpiry.Never).Ok, Is.True);
 
             _database.SaveCloseAndReopen();
 
@@ -933,8 +933,8 @@ namespace KeePassGate.Host.Tests
                 "the moment is left where it was, as KeePass's own dialog leaves it");
 
             var later = Moment.AddYears(1);
-            reopened = new KdbxVault(_database.Database, Writer(), null);
-            Assert.That(reopened.UpdateEntry(uuid, new Dictionary<string, string>(), VaultExpiry.At(later)).Ok, Is.True);
+            reopened = new KdbxVault(_database.Database, Writer(), TestTags.Fixed, null);
+            Assert.That(reopened.UpdateEntry(uuid, new Dictionary<string, string>(), VaultTagging.None, VaultExpiry.At(later)).Ok, Is.True);
 
             _database.SaveCloseAndReopen();
 
@@ -951,7 +951,7 @@ namespace KeePassGate.Host.Tests
             var uuid = Created(_vault.CreateEntry(_vault.RootAlias, Named("an invented service")));
             var saves = _saves;
 
-            Assert.That(_vault.UpdateEntry(uuid, new Dictionary<string, string>(), VaultExpiry.At(Moment)).Ok, Is.True);
+            Assert.That(_vault.UpdateEntry(uuid, new Dictionary<string, string>(), VaultTagging.None, VaultExpiry.At(Moment)).Ok, Is.True);
 
             Assert.That(_saves, Is.EqualTo(saves + 1));
             Assert.That(Entry(uuid).History.UCount, Is.EqualTo(1u));
@@ -1032,7 +1032,7 @@ namespace KeePassGate.Host.Tests
             var uuid = Created(_vault.CreateEntry(_vault.RootAlias, Named("an invented service"), VaultExpiry.At(Moment)));
             var saves = _saves;
 
-            var write = _vault.UpdateEntry(uuid, Named("renamed"), VaultExpiry.Auto);
+            var write = _vault.UpdateEntry(uuid, Named("renamed"), VaultTagging.None, VaultExpiry.Auto);
 
             Assert.That(write.IsFailed, Is.True, write.Reason);
             Assert.That(_saves, Is.EqualTo(saves));
@@ -1152,12 +1152,12 @@ namespace KeePassGate.Host.Tests
             // about the rules. Compiled on the way out, a reference in an entry a client may read
             // would hand it the password of one it may not, so what is served is what is stored.
             var secret = Created(_vault.CreateEntry(_vault.RootAlias, Named("an invented vault")));
-            Assert.That(_vault.UpdateField(secret, PwDefs.PasswordField, "an-invented-secret").Ok, Is.True);
+            Assert.That(_vault.UpdateField(secret, PwDefs.PasswordField, "an-invented-secret", VaultTagging.None).Ok, Is.True);
 
             var reference = "{REF:P@I:" + secret + "}";
             var uuid = Created(_vault.CreateEntry(_vault.RootAlias, Named(reference)));
-            Assert.That(_vault.CreateField(uuid, "Pointer", reference, false).Ok, Is.True);
-            Assert.That(_vault.CreateField(uuid, "Variable", "%TEMP%", false).Ok, Is.True);
+            Assert.That(_vault.CreateField(uuid, "Pointer", reference, false, VaultTagging.None).Ok, Is.True);
+            Assert.That(_vault.CreateField(uuid, "Variable", "%TEMP%", false, VaultTagging.None).Ok, Is.True);
 
             Assert.That(_vault.Entry(uuid).Title, Is.EqualTo(reference), "a listing");
             Assert.That(_vault.Read(uuid).Fields["Pointer"], Is.EqualTo(reference), "a read");
@@ -1174,8 +1174,8 @@ namespace KeePassGate.Host.Tests
             var uuid = Created(_vault.CreateEntry(_vault.RootAlias, Named("an invented service")));
 
             Assert.That(_vault.CreateGroup(_vault.RootAlias, string.Empty, null).IsFailed, Is.True, "a group");
-            Assert.That(_vault.CreateField(uuid, string.Empty, "a value", false).IsFailed, Is.True, "a field");
-            Assert.That(_vault.CreateAttachment(uuid, string.Empty, new byte[] { 1 }).IsFailed, Is.True,
+            Assert.That(_vault.CreateField(uuid, string.Empty, "a value", false, VaultTagging.None).IsFailed, Is.True, "a field");
+            Assert.That(_vault.CreateAttachment(uuid, string.Empty, new byte[] { 1 }, VaultTagging.None).IsFailed, Is.True,
                 "an attachment");
 
             Assert.That(_vault.Groups(), Has.Count.EqualTo(1), "no group was made");
@@ -1194,14 +1194,14 @@ namespace KeePassGate.Host.Tests
 
             foreach (var name in new[] { "Title", "UserName", "Password", "URL", "Notes" })
             {
-                Assert.That(_vault.DeleteField(uuid, name).IsConflict, Is.True, name);
+                Assert.That(_vault.DeleteField(uuid, name, VaultTagging.None).IsConflict, Is.True, name);
             }
 
             Assert.That(_vault.Fields(uuid).Select(f => f.Name),
                 Is.SupersetOf(new[] { "Title", "UserName", "Password", "URL", "Notes" }));
-            Assert.That(_vault.UpdateField(uuid, "Title", string.Empty).Ok, Is.True, "emptying is the way");
-            Assert.That(_vault.CreateField(uuid, "Invented", "a value", false).Ok, Is.True);
-            Assert.That(_vault.DeleteField(uuid, "Invented").Ok, Is.True, "and any other field goes as before");
+            Assert.That(_vault.UpdateField(uuid, "Title", string.Empty, VaultTagging.None).Ok, Is.True, "emptying is the way");
+            Assert.That(_vault.CreateField(uuid, "Invented", "a value", false, VaultTagging.None).Ok, Is.True);
+            Assert.That(_vault.DeleteField(uuid, "Invented", VaultTagging.None).Ok, Is.True, "and any other field goes as before");
         }
 
         [Test]
@@ -1219,8 +1219,8 @@ namespace KeePassGate.Host.Tests
             // A group of its own for the removal, because a group only goes when it is empty and
             // the entry above is put back by its own undo before that line is reached.
             var spare = Created(_vault.CreateGroup(_vault.RootAlias, "Empty", null));
-            Assert.That(_vault.CreateField(entry, "Invented", "a value", true).Ok, Is.True);
-            Assert.That(_vault.CreateAttachment(entry, "note.txt", new byte[] { 1, 2, 3 }).Ok, Is.True);
+            Assert.That(_vault.CreateField(entry, "Invented", "a value", true, VaultTagging.None).Ok, Is.True);
+            Assert.That(_vault.CreateAttachment(entry, "note.txt", new byte[] { 1, 2, 3 }, VaultTagging.None).Ok, Is.True);
 
             var before = Describe();
 
@@ -1229,29 +1229,30 @@ namespace KeePassGate.Host.Tests
             var stuck = new KdbxVault(
                 _database.Database,
                 new DatabaseWriter(CurrentThread.Instance, database => { }, null, null, null),
+                TestTags.Fixed,
                 null);
 
             Assert.That(stuck.CreateEntry(group, Named("never written")).IsUnsaved, Is.True);
             Assert.That(stuck.CreateGroup(group, "never written", null).IsUnsaved, Is.True);
-            Assert.That(stuck.UpdateEntry(entry, Named("renamed")).IsUnsaved, Is.True);
-            Assert.That(stuck.UpdateEntry(entry, Named("renamed"), VaultExpiry.At(Moment.AddYears(1))).IsUnsaved, Is.True);
-            Assert.That(stuck.UpdateEntry(entry, new Dictionary<string, string>(), VaultExpiry.Never).IsUnsaved, Is.True);
-            Assert.That(stuck.UpdateGroup(group, "renamed", "notes").IsUnsaved, Is.True);
-            Assert.That(stuck.CreateField(entry, "Another", "x", false).IsUnsaved, Is.True);
-            Assert.That(stuck.UpdateField(entry, "Invented", "changed").IsUnsaved, Is.True);
-            Assert.That(stuck.DeleteField(entry, "Invented").IsUnsaved, Is.True);
-            Assert.That(stuck.CreateAttachment(entry, "second.txt", new byte[] { 9 }).IsUnsaved, Is.True);
-            Assert.That(stuck.UpdateAttachment(entry, "note.txt", new byte[] { 7 }).IsUnsaved, Is.True);
-            Assert.That(stuck.DeleteAttachment(entry, "note.txt").IsUnsaved, Is.True);
+            Assert.That(stuck.UpdateEntry(entry, Named("renamed"), VaultTagging.None).IsUnsaved, Is.True);
+            Assert.That(stuck.UpdateEntry(entry, Named("renamed"), VaultTagging.None, VaultExpiry.At(Moment.AddYears(1))).IsUnsaved, Is.True);
+            Assert.That(stuck.UpdateEntry(entry, new Dictionary<string, string>(), VaultTagging.None, VaultExpiry.Never).IsUnsaved, Is.True);
+            Assert.That(stuck.UpdateGroup(group, "renamed", "notes", VaultTagging.None).IsUnsaved, Is.True);
+            Assert.That(stuck.CreateField(entry, "Another", "x", false, VaultTagging.None).IsUnsaved, Is.True);
+            Assert.That(stuck.UpdateField(entry, "Invented", "changed", VaultTagging.None).IsUnsaved, Is.True);
+            Assert.That(stuck.DeleteField(entry, "Invented", VaultTagging.None).IsUnsaved, Is.True);
+            Assert.That(stuck.CreateAttachment(entry, "second.txt", new byte[] { 9 }, VaultTagging.None).IsUnsaved, Is.True);
+            Assert.That(stuck.UpdateAttachment(entry, "note.txt", new byte[] { 7 }, VaultTagging.None).IsUnsaved, Is.True);
+            Assert.That(stuck.DeleteAttachment(entry, "note.txt", VaultTagging.None).IsUnsaved, Is.True);
 
             // And through a name the store cannot tell from a stored one. Such a name is not one
             // the entry carries, so the strip reaches nothing and there is nothing to put back:
             // putting it back under the caller's spelling is what renamed the password's key.
-            Assert.That(stuck.DeleteField(entry, PasswordAlias).IsUnsaved, Is.False);
-            Assert.That(stuck.DeleteAttachment(entry, "note\u00AD.txt").IsUnsaved, Is.False);
+            Assert.That(stuck.DeleteField(entry, PasswordAlias, VaultTagging.None).IsUnsaved, Is.False);
+            Assert.That(stuck.DeleteAttachment(entry, "note\u00AD.txt", VaultTagging.None).IsUnsaved, Is.False);
 
-            Assert.That(stuck.DeleteEntry(entry).IsUnsaved, Is.True);
-            Assert.That(stuck.DeleteGroup(spare).IsUnsaved, Is.True);
+            Assert.That(stuck.DeleteEntry(entry, VaultTagging.None).IsUnsaved, Is.True);
+            Assert.That(stuck.DeleteGroup(spare, VaultTagging.None).IsUnsaved, Is.True);
 
             Assert.That(Describe(), Is.EqualTo(before),
                 "each of those was taken back out, so the tree reads exactly as it did before");
@@ -1265,12 +1266,12 @@ namespace KeePassGate.Host.Tests
             // on disk, was worked out and then written nowhere, so an agent retrying a busy write
             // for as long as it was allowed to left nothing to find.
             var log = new RecordingLog();
-            var vault = new KdbxVault(_database.Database, Writer(), log);
+            var vault = new KdbxVault(_database.Database, Writer(), TestTags.Fixed, log);
             var uuid = Created(vault.CreateEntry(vault.RootAlias, Named("an invented service")));
 
-            Assert.That(vault.CreateField(uuid, "Invented", "a value", false).Ok, Is.True);
-            Assert.That(vault.CreateField(uuid, "Invented", "again", false).IsConflict, Is.True);
-            Assert.That(new KdbxVault(_database.Database, null, log).CreateEntry(vault.RootAlias, Named("x")).IsFailed,
+            Assert.That(vault.CreateField(uuid, "Invented", "a value", false, VaultTagging.None).Ok, Is.True);
+            Assert.That(vault.CreateField(uuid, "Invented", "again", false, VaultTagging.None).IsConflict, Is.True);
+            Assert.That(new KdbxVault(_database.Database, null, TestTags.Fixed, log).CreateEntry(vault.RootAlias, Named("x")).IsFailed,
                 Is.True);
 
             var key = new KeePassLib.Keys.CompositeKey();
@@ -1280,7 +1281,7 @@ namespace KeePassGate.Host.Tests
 
             try
             {
-                Assert.That(new KdbxVault(nowhere, Writer(), log).CreateEntry(KdbxVault.Root, Named("x")).IsBusy, Is.True);
+                Assert.That(new KdbxVault(nowhere, Writer(), TestTags.Fixed, log).CreateEntry(KdbxVault.Root, Named("x")).IsBusy, Is.True);
             }
             finally
             {

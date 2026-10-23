@@ -23,7 +23,8 @@ namespace KeePassGate.Spec
             AclVerb verb,
             AclReach reach,
             OpenApiSchema body,
-            ISet<string> query)
+            ISet<string> query,
+            bool takesIfMatch)
         {
             OperationId = operationId;
             Method = method;
@@ -35,6 +36,7 @@ namespace KeePassGate.Spec
             Body = body;
             _query = query;
             Query = new ReadOnlyCollection<string>(new List<string>(query));
+            TakesIfMatch = takesIfMatch;
         }
 
         private readonly ISet<string> _query;
@@ -131,6 +133,19 @@ namespace KeePassGate.Spec
         {
             return name != null && _query.Contains(name);
         }
+
+        /// <summary>
+        /// Whether the operation declares `If-Match`, which is every operation whose target has an
+        /// `ETag`: one group, one entry, and an entry's fields and attachments.
+        /// </summary>
+        /// <remarks>
+        /// **Read off the document, so that the document says which requests a condition can stop.**
+        /// The router hands the condition on only for these, and a handler only ever asks it of the
+        /// node it answers about. Anywhere else the header is not read, which is what an operation
+        /// whose target has no tag can do with one: a listing answers about a collection, and a
+        /// collection here has nothing to match.
+        /// </remarks>
+        public bool TakesIfMatch { get; private set; }
     }
 
     /// <summary>
@@ -171,6 +186,12 @@ namespace KeePassGate.Spec
 
         /// <summary>What a change that was made and not saved is answered with.</summary>
         public const string NotSavedStatus = "500";
+
+        /// <summary>The header a request names the tag it expects in, RFC 9110 section 13.1.1.</summary>
+        public const string IfMatchHeader = "If-Match";
+
+        /// <summary>What a request whose `If-Match` does not hold is answered with.</summary>
+        public const string PreconditionFailedStatus = "412";
 
         private const string ResourceName = "KeePassGate.Spec.openapi.yaml";
 
@@ -473,6 +494,18 @@ namespace KeePassGate.Spec
                         captures[name] = declared.Schema;
                     }
 
+                    var takesIfMatch = TakesIfMatch(path.Value.Parameters, operation.Parameters, operation.OperationId);
+                    if (takesIfMatch && !Answers(operation, PreconditionFailedStatus))
+                    {
+                        // What a condition that does not hold is answered with. Declaring the
+                        // header and not the answer is a document a client is generated from
+                        // that cannot say what its own condition does.
+                        throw new InvalidOperationException(
+                            operation.OperationId + " declares " + IfMatchHeader + " and no " +
+                            PreconditionFailedStatus + ", so the document does not say what a" +
+                            " condition that does not hold is answered with.");
+                    }
+
                     operations.Add(new SpecOperation(
                         operation.OperationId,
                         method,
@@ -482,7 +515,8 @@ namespace KeePassGate.Spec
                         verb.Value,
                         reach,
                         body,
-                        QueryNames(path.Value.Parameters, operation.Parameters)));
+                        QueryNames(path.Value.Parameters, operation.Parameters),
+                        takesIfMatch));
                 }
             }
 
@@ -628,6 +662,16 @@ namespace KeePassGate.Spec
                         " disagree about the query parameters they take, so they are not one" +
                         " request with the content left off.");
                 }
+
+                // A condition is part of what is asked, so a head that ignored one its get honors
+                // would say the node is there and unchanged where the get answers `412`.
+                if (head.TakesIfMatch != operation.TakesIfMatch)
+                {
+                    throw new InvalidOperationException(
+                        head.OperationId + " and " + operation.OperationId +
+                        " disagree about taking " + IfMatchHeader + ", so they are not one" +
+                        " request with the content left off.");
+                }
             }
         }
 
@@ -641,6 +685,84 @@ namespace KeePassGate.Spec
         {
             var names = new HashSet<string>(StringComparer.Ordinal);
 
+            foreach (var parameter in Located(onThePath, onTheOperation, ParameterLocation.Query))
+            {
+                var unsupported = BodyCheck.SupportsQuery(parameter.Schema);
+                if (unsupported != null)
+                {
+                    // The router asks whether a name is declared and never looks at its
+                    // value, so anything this says about one is something nothing keeps.
+                    throw new InvalidOperationException(
+                        "The routing table declares a query parameter " + parameter.Name +
+                        " this cannot check: " + unsupported);
+                }
+
+                names.Add(parameter.Name);
+            }
+
+            return names;
+        }
+
+        /// <summary>
+        /// Whether either list declares `If-Match`, refusing any other header parameter and any
+        /// `If-Match` declared as something the router does not do with it.
+        /// </summary>
+        /// <remarks>
+        /// **`If-Match` is the one header parameter the document declares.** The router reads one
+        /// other header, `Content-Type`, and that one is declared as the media type of a body
+        /// rather than as a parameter; the transport reads its own. Any other header parameter
+        /// would be a promise nothing keeps, which is what refusing an unenforced schema keyword
+        /// is about too.
+        ///
+        /// **And it is declared as the router treats it**: not required, since a request without
+        /// one is served unconditionally, and a bare string, since what it says is read by
+        /// `VaultPrecondition` rather than checked against a schema. A document declaring it
+        /// `required` would be one a client is generated from that says a request without it is
+        /// refused, while the router serves it.
+        /// </remarks>
+        private static bool TakesIfMatch(
+            IList<OpenApiParameter> onThePath, IList<OpenApiParameter> onTheOperation, string operationId)
+        {
+            var takes = false;
+
+            foreach (var parameter in Located(onThePath, onTheOperation, ParameterLocation.Header))
+            {
+                if (!string.Equals(parameter.Name, IfMatchHeader, StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new InvalidOperationException(
+                        operationId + " declares a header parameter " + parameter.Name +
+                        ", and " + IfMatchHeader + " is the only one the document may declare.");
+                }
+
+                if (parameter.Required)
+                {
+                    throw new InvalidOperationException(
+                        operationId + " declares " + IfMatchHeader + " required, and a request" +
+                        " without one is served unconditionally.");
+                }
+
+                var unsupported = BodyCheck.SupportsQuery(parameter.Schema);
+                if (unsupported != null)
+                {
+                    throw new InvalidOperationException(
+                        operationId + " declares " + IfMatchHeader + " with a schema this does not" +
+                        " check: " + unsupported);
+                }
+
+                takes = true;
+            }
+
+            return takes;
+        }
+
+        /// <summary>Every parameter either list declares in this location, the path's first.</summary>
+        /// <remarks>
+        /// One walk for every question about the two lists, so that how they combine cannot come
+        /// to differ between a query name and a header.
+        /// </remarks>
+        private static IEnumerable<OpenApiParameter> Located(
+            IList<OpenApiParameter> onThePath, IList<OpenApiParameter> onTheOperation, ParameterLocation location)
+        {
             foreach (var parameters in new[] { onThePath, onTheOperation })
             {
                 if (parameters == null)
@@ -650,26 +772,12 @@ namespace KeePassGate.Spec
 
                 foreach (var parameter in parameters)
                 {
-                    if (parameter.In != ParameterLocation.Query)
+                    if (parameter.In == location)
                     {
-                        continue;
+                        yield return parameter;
                     }
-
-                    var unsupported = BodyCheck.SupportsQuery(parameter.Schema);
-                    if (unsupported != null)
-                    {
-                        // The router asks whether a name is declared and never looks at its
-                        // value, so anything this says about one is something nothing keeps.
-                        throw new InvalidOperationException(
-                            "The routing table declares a query parameter " + parameter.Name +
-                            " this cannot check: " + unsupported);
-                    }
-
-                    names.Add(parameter.Name);
                 }
             }
-
-            return names;
         }
 
         /// <summary>The path parameter either list declares under this name, or null.</summary>

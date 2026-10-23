@@ -52,14 +52,93 @@ source can already do it in two calls, each properly decided and each recorded.
 **Recursive delete.** A group that still holds something is refused, for the reason `deleteGroup`
 gives.
 
-**Optimistic concurrency.** An `If-Match` over the modification time is the obvious shape and nothing
-needs it yet. Step 28 of `DESIGN.md` reverses this, and is open.
+**Optimistic concurrency was here, and both halves of what this said were wrong.** It read "an
+`If-Match` over the modification time is the obvious shape and nothing needs it yet". Something
+did: the operator asked for it, for the lost update below. And the modification time turned out
+not to be a shape at all once it was measured. §410 has what replaced it.
 
 **A group's expiry.** KeePass keeps one on a group as well as on an entry, and a group's is neither
 served nor accepted. KeePass does nothing with it but draw the group with its expired icon: the
 entries inside an expired group are listed, searched and auto-typed as any others, so there is
 nothing in it for a client to heed. An entry's own is served and set, which `Entry` and
 `EntryFields` say.
+
+## Optimistic concurrency §410
+
+**The lost update.** A program reads an entry, works on it, and writes back what it read beside its
+own change. Whatever the operator changed in KeePass in the meantime, or another client, or a
+synchronize, is carried over by the old values, and nothing tells either side. An agent is the
+caller that does exactly this, because it reads, thinks for a while and then writes.
+
+**So a read of one group or one entry carries an `ETag`, and every request about one may carry
+`If-Match`**, answered `412` when the node no longer holds what the tag says, as RFC 9110 section
+13.1.1 has it. The targets that have a tag are a group, an entry, and an entry's fields and
+attachments, one at a time or listed, which all carry the entry's tag, because a field and an
+attachment are not nodes and the entry answers for them, §401. A listing of groups or entries
+answers about a collection and carries none, and so does an access answer, a create sent to a
+collection and the gate's own routes: those declare no `If-Match` and never read the header,
+which is what a server may do for a resource it has no tag for, and the only conditional header
+read anywhere is this one.
+
+**Only for a client whose rule may read everything the tag covers.** For a group that is `read`;
+for an entry, `read` reaching its attachments, and its protected values too when it holds any, in
+one rule, since a switch belongs to the rule it is written in. Any other caller is handed no tag,
+on a read or in a write's answer, and any `If-Match` it sends is answered `412` without anything
+being written, because a condition it can never be told the answer to is one it cannot meet and
+ignoring it would make the write unconditional. **This is the second answer, and the first was
+wrong.** Every caller was handed the tag, and the tag is a digest of the content: a client that may
+update a password and not read it wrote a guess, compared the tag that came back with the one it
+held, and had the password in as many writes as it had guesses, measured at 614 writes and under
+eight seconds; a client holding `list` alone polled the tag to learn when a protected value changed.
+A key keeps a tag from being computed and does nothing about it being compared. Mixing a time or a
+counter into the tag stops a write reproducing an old tag, and leaves the comparison between two
+reads, which a client that may not read the value can still make; a signed token over a counter is
+the same thing with a second key. Handing the tag only to a caller that may read everything it
+covers takes the question away, since such a caller learns nothing from a tag that a read does not
+already tell it.
+
+**`If-Match` is optional**, at the operator's word, and that was argued rather than assumed. A
+required one, answering `428` without it, would make the safe write the easy one for an agent; it
+would also turn every write a script makes into a read first, which a script that wanted to write
+blindly would do anyway and learn nothing from. Optional leaves the choice with the caller, which
+is where the knowledge of whether it read anything is.
+
+**The tag is a keyed digest of the content, not a clock.** The modification time was the obvious
+tag and was measured before it was used, `FINDINGS.md` under "What a version of a node can be made
+of": it steps every half to one and a half milliseconds, so two changes inside one step share it; a
+synchronize takes the other copy's strings at an equal time and leaves it alone; a move does not
+touch it; and a plugin that never calls `Touch` moves nothing. A digest of what the routes serve
+misses none of those. What it covers is what the routes serve, as they serve them: the times to the
+second, which is all a file keeps of them, the strings as a read decodes them, and an attachment's
+bytes up to the largest the gate hands out, above which its size stands for it, since no client can
+read or write those bytes through the gate.
+
+**It is an HMAC under a key derived from the database's host certificate**, as the database stores
+it, which no client holds: the gate key would have been the obvious choice and every paired client
+has it. So nothing outside the gate can compute a tag for a guess, and one content gives one tag
+across a lock, a restart and a reload, until the authority is recreated. **This reverses a key drawn
+when the plugin loaded and kept in memory**, which made every tag change whenever KeePass started:
+a client that read on one day and wrote on the next was refused for nothing anybody wrote, and the
+operator asked why a tag should change when the node had not.
+
+**A write's condition is decided where the write is made**, under the writer's lock on KeePass's
+thread, against the node as the change finds it, so nothing can land between the check and the
+change, and after every refusal that does not depend on it, as RFC 9110 section 13.2.1 orders
+them: a node gone is `404`, a name taken or a group not empty `409`, and a dialog open on the node
+`503 busy`, whatever the tag says. An update that would change nothing is asked the condition too,
+under the same lock, and then writes nothing. A read's is decided against the tag it is answered
+with, and that tag is taken before what it is answered with, so a change landing in the middle of a
+read leaves a client an older tag over newer content, which its next write fails over, and never a
+newer tag over older content, which its next write would carry straight over the change.
+
+**A write answers with the tag it left, in its body as `etag`** and not as an `ETag` header: RFC
+9110 section 9.3.4 makes an `ETag` on the answer to a `PUT` say the body sent was stored as sent,
+and on a `POST` or a `DELETE` it names nothing the request had, while this is the tag of the whole
+node. Taking a field or an attachment off answers the entry's tag, since the entry is still there;
+removing a group or an entry, or creating one, answers none.
+
+**A condition says nothing about a node the caller may not reach.** It is asked after the router
+has decided, so a refused node is the same `404` whatever tag was named.
 
 ## Durability §408
 

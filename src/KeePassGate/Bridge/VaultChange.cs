@@ -56,7 +56,17 @@ namespace KeePassGate.Bridge
         /// <remarks>
         /// `openapi.yaml` §504 argues it: writing anyway took a history revision, moved the node's
         /// modification time and usage count, and saved the whole database, for a request whose
-        /// answer would have been the same without any of it.
+        /// answer would have been the same without any of it. So a client with `update` and no
+        /// other verb could move an entry's timestamps at will and, in `HistoryMaxItems` calls,
+        /// push every real revision out of the history KeePass keeps so that an overwritten
+        /// password can be recovered.
+        ///
+        /// **A body naming nothing is one of these**, since every value it names is already held,
+        /// and it goes through the writer like any other update rather than being answered on the
+        /// connection thread. It used to be answered there, with a lookup and its own copy of the
+        /// precondition, which put a node that was busy or gone in front of the precondition on one
+        /// path and behind it on the other, and asked the precondition outside the lock every
+        /// other change asks it under.
         /// </remarks>
         public static VaultChange Unchanged(VaultWrite outcome)
         {
