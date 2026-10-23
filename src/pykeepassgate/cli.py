@@ -1750,7 +1750,7 @@ def _fetch(arguments: argparse.Namespace) -> int:
 
 
 def _attaching(
-    arguments: argparse.Namespace, write: Callable[[api.GateClient, bytes], None], done: str
+    arguments: argparse.Namespace, write: Callable[[api.GateClient, bytes], object], done: str
 ) -> int:
     """Read the file an attachment comes from, and only then dial, write it and say so.
 

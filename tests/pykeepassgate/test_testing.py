@@ -20,7 +20,7 @@ from cryptography.x509.oid import ExtendedKeyUsageOID
 
 from pykeepassgate import api
 from pykeepassgate.errors import GateBusy, RouteRefused
-from pykeepassgate.testing import Authority, FakeGate, held
+from pykeepassgate.testing import Authority, FakeGate, held, written
 
 
 def test_it_imports_no_test_framework() -> None:
@@ -68,6 +68,14 @@ def test_a_held_approval_is_answered_as_the_plugin_answers_it() -> None:
     assert json.loads(body) == {"error": "busy", "heldUntil": "2026-10-14T09:06:00Z"}
 
 
+def test_a_write_is_answered_with_its_tag_in_the_body_as_the_plugin_answers_it() -> None:
+    # `VaultHandlers.Answer`: `ok`, or what a create made, with `etag` beside it when there is one.
+    assert written() == (200, '{"ok":true}')
+    assert written('"0a1b"') == (200, '{"ok":true,"etag":"\\"0a1b\\""}')
+    assert written('"0a1b"', uuid="Account") == (201, '{"uuid":"Account","etag":"\\"0a1b\\""}')
+    assert written(uuid="7b1c") == (201, '{"uuid":"7b1c"}')
+
+
 def test_a_gate_nobody_scripted_answers_that_it_has_no_such_route(
     gate: FakeGate, tmp_path: Path, bundle: dict[str, object]
 ) -> None:
@@ -98,8 +106,15 @@ def test_a_connection_that_named_nothing_is_said_to_have_named_nothing(gate: Fak
         gate.named()
 
 
-def answered(gate: FakeGate, authority: Authority) -> bytes:
-    """The whole answer to one request, as the bytes the stand-in wrote, head and all."""
+def answered(
+    gate: FakeGate,
+    authority: Authority,
+    request: bytes = b"GET /gate/status HTTP/1.1\r\nHost: abc.def.kpg\r\n\r\n",
+) -> bytes:
+    """The whole answer to one request, as the bytes the stand-in wrote, head and all.
+
+    The request is written as given, so a test can send a head the client never would.
+    """
     # Not `create_default_context`, whose strict checks want extensions the stand-in's authority
     # leaves out, as the plugin's does: the client's own context is built the same way.
     context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
@@ -108,7 +123,7 @@ def answered(gate: FakeGate, authority: Authority) -> bytes:
     with socket.create_connection(("127.0.0.1", gate.port), timeout=10) as raw, context.wrap_socket(
         raw, server_hostname="abc.def.kpg"
     ) as wrapped:
-        wrapped.sendall(b"GET /gate/status HTTP/1.1\r\nHost: abc.def.kpg\r\n\r\n")
+        wrapped.sendall(request)
         received = b""
         while chunk := wrapped.recv(4096):
             received += chunk
@@ -178,6 +193,62 @@ def test_a_handler_can_ask_which_method_it_is_answering(
 def test_the_method_is_asked_only_while_a_request_is_answered(gate: FakeGate) -> None:
     with pytest.raises(AssertionError, match="no request is being answered"):
         gate.method()
+
+    with pytest.raises(AssertionError, match="no request is being answered"):
+        gate.if_match()
+
+    with pytest.raises(AssertionError, match="no request is being answered"):
+        gate.tag('"0a1b"')
+
+
+@pytest.mark.parametrize(
+    ("header", "reason"),
+    [
+        (b"If-Match: \"0a1b\"\r\nIf-Match: \"2c3d\"\r\n", "a header is repeated"),
+        (b"X-Invented: one\x01two\r\n", "a header value holds a control character"),
+    ],
+    ids=["repeated", "control"],
+)
+def test_a_head_the_plugin_refuses_is_refused_here_too(
+    gate: FakeGate, authority: Authority, header: bytes, reason: str
+) -> None:
+    # `HttpRequestReader`: refused before any route, so a program tested here is not tested
+    # against a gate that takes more than the plugin does.
+    asked: list[str] = []
+
+    def answer_asked(path: str, body: str, client: bytes | None) -> tuple[int, str]:
+        asked.append(path)
+        return 200, "{}"
+
+    gate.handler = answer_asked
+
+    answer = answered(
+        gate, authority, b"GET /gate/status HTTP/1.1\r\nHost: abc.def.kpg\r\n" + header + b"\r\n"
+    )
+    head, _, body = answer.partition(b"\r\n\r\n")
+
+    assert head.startswith(b"HTTP/1.1 400 ")
+    assert json.loads(body) == {"error": reason}
+    assert asked == [], "and the handler was never asked"
+
+
+@pytest.mark.parametrize("tag", ['"é"', "0a1b", '"a\r\nX-Invented: 1"', '""x'])
+def test_a_tag_the_plugin_could_not_send_is_answered_as_a_defect(
+    gate: FakeGate, authority: Authority, tag: str
+) -> None:
+    # Raised inside the handler, which used to end the thread answering it, so the client saw a
+    # connection closed without a word and the test said nothing about why.
+    def answer(path: str, body: str, client: bytes | None) -> tuple[int, str]:
+        gate.tag(tag)
+        return 200, "{}"
+
+    gate.handler = answer
+
+    head = answered(gate, authority).split(b"\r\n\r\n")[0]
+
+    assert head.startswith(b"HTTP/1.1 500 ")
+    assert len(gate.failures) == 1
+    assert isinstance(gate.failures[0], ValueError)
 
 
 def test_a_peer_that_goes_quiet_is_let_go(gate: FakeGate) -> None:

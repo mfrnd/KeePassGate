@@ -441,6 +441,11 @@ class Response:
     #: When the gate said to come back, in seconds, if it said. Only a `503` carries it.
     retry_after: float | None = None
 
+    #: The `ETag` the gate answered with, quotes and all, or `None` when it sent none. A read about
+    #: one group or one entry carries one, to a client whose rule may read everything it covers,
+    #: and nothing else does: a write hands back the tag it left in its body, as `etag`.
+    etag: str | None = None
+
     def json(self) -> dict[str, Any]:
         """The body as an object, or a refusal if it is not one."""
         try:
@@ -624,7 +629,9 @@ class Connection:
         self.server_certificate = der
         self.responder = _responder(der)
 
-    def send(self, method: str, path: str, body: str = "") -> Response:
+    def send(
+        self, method: str, path: str, body: str = "", if_match: str | None = None
+    ) -> Response:
         """Write one request and read the whole answer, unless a responder answered the handshake.
 
         Nothing is written to a responder. What a locked database answers is `503 locked` on
@@ -633,6 +640,9 @@ class Connection:
         the database was locked reads nothing but could answer with a fabricated secret. Waiting
         for the answer to decide that has already handed over the request, which on a write is
         the value being stored.
+
+        `if_match` is sent as `If-Match` exactly as given, which is a tag as `etag` holds one,
+        several of them with commas between, or `*`.
         """
         if self.responder:
             # Nothing says when to come back, because there is no response to read it off. What a
@@ -643,6 +653,7 @@ class Connection:
             )
 
         _check(method, path)
+        check_condition(if_match)
         payload = body.encode("utf-8")
         head = (
             f"{method} {path} HTTP/1.1\r\n"
@@ -650,7 +661,8 @@ class Connection:
             # sent because HTTP/1.1 requires a `Host`, not because the gate reads it.
             f"Host: {self._socket.server_hostname}\r\n"
             "Content-Type: application/json\r\n"
-            f"Content-Length: {len(payload)}\r\n"
+            + (f"If-Match: {if_match}\r\n" if if_match is not None else "")
+            + f"Content-Length: {len(payload)}\r\n"
             "\r\n"
         )
 
@@ -854,19 +866,53 @@ def _check(method: str, path: str) -> None:
         raise ProtocolError(f"that path holds something a request line cannot: {path!r}")
 
 
-def _declared_length(head: str) -> int | None:
-    """What the answer said its body would be, if it said."""
-    for line in head.split("\r\n")[1:]:
-        name, _, value = line.partition(":")
-        if name.strip().lower() != "content-length":
-            continue
+def check_condition(if_match: str | None) -> None:
+    """Refuse an `If-Match` that could not be one header line, before it reaches the wire.
 
-        try:
-            return int(value.strip())
-        except ValueError:
-            raise ProtocolError(f"that is not a content length: {value.strip()!r}") from None
+    A carriage return or a line feed in it would end the header and start another, which is the
+    head the gate parses replaced with whatever the caller wrote, and a tag is caller data: it is
+    whatever came back from somewhere, and the threat model says a caller can be prompt-injected.
+    So only what a header value can hold goes, visible ASCII, spaces and tabs, which RFC 9110
+    allows between the tags of a list, and not nothing, since an empty one asks for something no
+    node holds and is never what a caller meant.
+
+    Public because the client asks it before anything is dialed, and the command line before it
+    asks for anything at a terminal: `send` asks it again, as the last thing between a caller and
+    the wire.
+    """
+    if if_match is None:
+        return
+
+    if not if_match.strip(" \t") or any(
+        character != "\t" and not " " <= character <= "~" for character in if_match
+    ):
+        raise ProtocolError(f"that is not a tag this client will send: {if_match!r}")
+
+
+def _header(head: str, wanted: str) -> str | None:
+    """The first value of one header in an answer's head, without the spaces around it, or `None`.
+
+    One reader for every header this client reads, so that what counts as present, and which of
+    two is the one, cannot come to differ between them. The gate writes each header once.
+    """
+    for line in head.split("\r\n")[1:]:
+        name, colon, value = line.partition(":")
+        if colon and name.strip().lower() == wanted:
+            return value.strip(" \t")
 
     return None
+
+
+def _declared_length(head: str) -> int | None:
+    """What the answer said its body would be, if it said."""
+    value = _header(head, "content-length")
+    if value is None:
+        return None
+
+    try:
+        return int(value)
+    except ValueError:
+        raise ProtocolError(f"that is not a content length: {value!r}") from None
 
 
 def _parse(raw: bytes) -> Response:
@@ -908,7 +954,19 @@ def _parse(raw: bytes) -> Response:
         status=status,
         body=body.decode("utf-8", "replace"),
         retry_after=_retry_after(head),
+        etag=_etag(head),
     )
+
+
+def _etag(head: str) -> str | None:
+    """The `ETag` the answer carried, or `None` when it carried none.
+
+    Kept as the field value came, quotes and all, because it is opaque and goes back to the gate
+    as it is: `If-Match` names a tag the way `ETag` gave it. What goes is the spaces around it,
+    which RFC 9110 section 5.5 makes no part of a field's value, so nothing of the tag itself is
+    taken; an empty one is no tag.
+    """
+    return _header(head, "etag") or None
 
 
 def _retry_after(head: str) -> float | None:
@@ -922,16 +980,13 @@ def _retry_after(head: str) -> float | None:
     Nothing is trusted beyond the number itself. What gets waited is bounded by the budget the
     caller gave, so a peer asking for a day gets no more than the caller was prepared to spend.
     """
-    for line in head.split("\r\n")[1:]:
-        name, _, value = line.partition(":")
-        if name.strip().lower() != "retry-after":
-            continue
+    value = _header(head, "retry-after")
+    if value is None:
+        return None
 
-        try:
-            seconds = int(value.strip())
-        except ValueError:
-            return None
+    try:
+        seconds = int(value)
+    except ValueError:
+        return None
 
-        return None if seconds < 0 else float(seconds)
-
-    return None
+    return None if seconds < 0 else float(seconds)

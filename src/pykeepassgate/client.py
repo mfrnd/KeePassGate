@@ -30,6 +30,7 @@ from .errors import (
     GateError,
     GateUnavailable,
     NotAdmitted,
+    PreconditionFailed,
     ProtocolError,
     RenewalRefused,
     RenewalRefusedForever,
@@ -554,8 +555,8 @@ class GateClient:
         return Group.listing(self.get("/groups"))
 
     def group(self, uuid: str = ROOT) -> Group:
-        """One group's own settings, which needs `read` rather than `list`."""
-        return Group.of(self.get(f"/groups/{_segment(uuid)}"))
+        """One group's own settings, which needs `read` rather than `list`, and its `etag`."""
+        return Group.of(*self._read_tagged(f"/groups/{_segment(uuid)}"))
 
     def subgroups(self, uuid: str = ROOT) -> list[Group]:
         """The groups directly inside this one."""
@@ -569,19 +570,39 @@ class GateClient:
 
         return made(self.send("POST", f"/groups/{_segment(parent)}/groups", body))
 
-    def update_group(self, uuid: str, name: str | None = None, notes: str | None = None) -> None:
-        """Rename a group, or change its notes. Only what is named is written."""
+    def update_group(
+        self,
+        uuid: str,
+        name: str | None = None,
+        notes: str | None = None,
+        *,
+        if_match: str | None = None,
+    ) -> str | None:
+        """Rename a group, or change its notes. Only what is named is written.
+
+        `if_match` is the `etag` of the group as it was read, and makes the write wait on the
+        group still holding exactly that: `PreconditionFailed` when it does not, with nothing
+        changed. Left out, the write goes ahead whatever changed since. What comes back is the
+        group's tag as the change left it, for the next write to name without reading first.
+        Every write below takes and answers the same way.
+
+        **Only for a client the gate hands tags to**, which is one whose rule reads everything the
+        tag covers: `read` on a group, and on an entry `read` reaching its attachments and, when
+        it holds any, its protected values. Any other client is answered with no tag, `None` here,
+        and any `if_match` it sends is `PreconditionFailed`, since a tag it was never given is
+        not one it can name.
+        """
         body: dict[str, Any] = {}
         if name is not None:
             body["Name"] = name
         if notes is not None:
             body["Notes"] = notes
 
-        self.send("PUT", f"/groups/{_segment(uuid)}", body)
+        return self._written("PUT", f"/groups/{_segment(uuid)}", body, if_match)
 
-    def delete_group(self, uuid: str) -> None:
+    def delete_group(self, uuid: str, *, if_match: str | None = None) -> None:
         """Remove a group, which the gate refuses while it still holds anything."""
-        self.send("DELETE", f"/groups/{_segment(uuid)}")
+        self._written("DELETE", f"/groups/{_segment(uuid)}", None, if_match)
 
     def group_access(self, uuid: str = ROOT) -> Access:
         """What this client may do at a group, one mask for each profile it holds.
@@ -615,9 +636,10 @@ class GateClient:
     def entry(self, uuid: str) -> Entry:
         """One entry and every string it holds.
 
-        The protected ones arrive only when this client may read them.
+        The protected ones arrive only when this client may read them. Its `etag` covers it and
+        everything in it, which is what a write to it, its fields or its attachments can name.
         """
-        return Entry.read(self.get(f"/entries/{_segment(uuid)}"))
+        return Entry.read(*self._read_tagged(f"/entries/{_segment(uuid)}"))
 
     def create_entry(
         self,
@@ -654,22 +676,26 @@ class GateClient:
         url: str | None = None,
         notes: str | None = None,
         expires: datetime | Literal[False] | None = None,
-    ) -> None:
+        *,
+        if_match: str | None = None,
+    ) -> str | None:
         """Change the standard fields of an entry. Only what is named is written.
 
         `expires` moves the entry's expiry to a moment, and `False` takes it off, which is how a
         program that rotates an expired password leaves it unmarked. Left out, the expiry stays
         as it is. `"auto"` is a new entry's alone and is refused here with `ValueError`.
+
+        `if_match` and what comes back are `update_group`'s, about the entry.
         """
         body = self._standard(title, username, password, url, notes)
         if expires is not None:
             body[EXPIRES] = _expiry(expires, creating=False)
 
-        self.send("PUT", f"/entries/{_segment(uuid)}", body)
+        return self._written("PUT", f"/entries/{_segment(uuid)}", body, if_match)
 
-    def delete_entry(self, uuid: str) -> None:
+    def delete_entry(self, uuid: str, *, if_match: str | None = None) -> None:
         """Remove an entry, to the recycle bin when the database keeps one."""
-        self.send("DELETE", f"/entries/{_segment(uuid)}")
+        self._written("DELETE", f"/entries/{_segment(uuid)}", None, if_match)
 
     def entry_access(self, uuid: str) -> Access:
         """What this client may do at an entry, one mask for each profile it holds.
@@ -682,43 +708,62 @@ class GateClient:
     # Fields
 
     def fields(self, uuid: str) -> list[Field]:
-        """The names of an entry's strings, never their values."""
-        return Field.listing(self.get(f"/entries/{_segment(uuid)}/fields"))
+        """The names of an entry's strings, never their values, each with the entry's `etag`."""
+        return Field.listing(*self._read_tagged(f"/entries/{_segment(uuid)}/fields"))
 
     def field(self, uuid: str, name: str) -> Field:
-        """One string's value."""
-        return Field.read(self.get(f"/entries/{_segment(uuid)}/fields/{_segment(name)}"))
+        """One string's value, and the `etag` of the entry holding it."""
+        return Field.read(*self._read_tagged(f"/entries/{_segment(uuid)}/fields/{_segment(name)}"))
 
-    def create_field(self, uuid: str, name: str, value: str, protected: bool = False) -> None:
+    def create_field(
+        self,
+        uuid: str,
+        name: str,
+        value: str,
+        protected: bool = False,
+        *,
+        if_match: str | None = None,
+    ) -> str | None:
         """Add a string this entry does not have. Refused when the name is already taken.
 
         `protected=True` stores it protected whatever the name. Leaving it out does not mean
         unprotected: the marker is not sent, and the database protects the value if it protects
         that name, as it does `Password`.
+
+        `if_match` is the entry's `etag`, and what comes back the entry's tag afterwards, as
+        `update_group` says of a group.
         """
         body: dict[str, Any] = {"name": name, "value": value}
         if protected:
             body["protected"] = "true"
 
-        self.send("POST", f"/entries/{_segment(uuid)}/fields", body)
+        return self._written("POST", f"/entries/{_segment(uuid)}/fields", body, if_match)
 
-    def update_field(self, uuid: str, name: str, value: str) -> None:
+    def update_field(
+        self, uuid: str, name: str, value: str, *, if_match: str | None = None
+    ) -> str | None:
         """Change a string this entry already has. Refused when there is no such name.
 
         What it does not change is whether the field is protected: the operator arranged that, and
-        writing a value is not the moment to decide it differently.
+        writing a value is not the moment to decide it differently. `if_match` is the entry's
+        `etag`, so the write is refused if anything in the entry changed, not only this field.
         """
-        self.send("PUT", f"/entries/{_segment(uuid)}/fields/{_segment(name)}", {"value": value})
+        return self._written(
+            "PUT", f"/entries/{_segment(uuid)}/fields/{_segment(name)}", {"value": value}, if_match
+        )
 
-    def strip_field(self, uuid: str, name: str) -> None:
-        """Take a string off an entry.
+    def strip_field(self, uuid: str, name: str, *, if_match: str | None = None) -> str | None:
+        """Take a string off an entry, and answer with the entry's tag as that left it.
 
         A strip rather than a delete: it removes a part of the entry and leaves the entry, so it
-        needs `strip` on the entry and says nothing about whether the entry itself may be removed.
-        The five standard fields every entry has are refused, `RouteRefused` with `409`: empty one
-        with `update_field` instead.
+        needs `strip` on the entry and says nothing about whether the entry itself may be removed,
+        and the entry left still has a tag for the next write to name. The five standard fields
+        every entry has are refused, `RouteRefused` with `409`: empty one with `update_field`
+        instead.
         """
-        self.send("DELETE", f"/entries/{_segment(uuid)}/fields/{_segment(name)}")
+        return self._written(
+            "DELETE", f"/entries/{_segment(uuid)}/fields/{_segment(name)}", None, if_match
+        )
 
     # Attachments
 
@@ -726,36 +771,49 @@ class GateClient:
         """The names and sizes of an entry's attachments, never their contents.
 
         Needs the attachment switch as well as `list`, which is what the seventh letter of a grant
-        means: not "may read attachments" but "and the attachments too".
+        means: not "may read attachments" but "and the attachments too". Each comes with the
+        entry's `etag`, as `fields` hands them out.
         """
-        return Attachment.listing(self.get(f"/entries/{_segment(uuid)}/attachments"))
+        return Attachment.listing(*self._read_tagged(f"/entries/{_segment(uuid)}/attachments"))
 
     def attachment(self, uuid: str, name: str) -> Attachment:
-        """One attachment, contents and all."""
-        return Attachment.read(self.get(f"/entries/{_segment(uuid)}/attachments/{_segment(name)}"))
+        """One attachment, contents and all, and the `etag` of the entry holding it."""
+        return Attachment.read(
+            *self._read_tagged(f"/entries/{_segment(uuid)}/attachments/{_segment(name)}")
+        )
 
-    def create_attachment(self, uuid: str, name: str, content: bytes) -> None:
-        """Add an attachment this entry does not have."""
-        self.send(
+    def create_attachment(
+        self, uuid: str, name: str, content: bytes, *, if_match: str | None = None
+    ) -> str | None:
+        """Add an attachment this entry does not have. `if_match` is the entry's `etag`."""
+        return self._written(
             "POST",
             f"/entries/{_segment(uuid)}/attachments",
             {"name": name, "content": base64.b64encode(content).decode("ascii")},
+            if_match,
         )
 
-    def update_attachment(self, uuid: str, name: str, content: bytes) -> None:
-        """Replace an attachment this entry already has."""
-        self.send(
+    def update_attachment(
+        self, uuid: str, name: str, content: bytes, *, if_match: str | None = None
+    ) -> str | None:
+        """Replace an attachment this entry already has. `if_match` is the entry's `etag`."""
+        return self._written(
             "PUT",
             f"/entries/{_segment(uuid)}/attachments/{_segment(name)}",
             {"content": base64.b64encode(content).decode("ascii")},
+            if_match,
         )
 
-    def strip_attachment(self, uuid: str, name: str) -> None:
-        """Take an attachment off an entry.
+    def strip_attachment(
+        self, uuid: str, name: str, *, if_match: str | None = None
+    ) -> str | None:
+        """Take an attachment off an entry, and answer with the entry's tag as that left it.
 
         Needs `strip`, and not the attachment switch: removing shows nobody anything.
         """
-        self.send("DELETE", f"/entries/{_segment(uuid)}/attachments/{_segment(name)}")
+        return self._written(
+            "DELETE", f"/entries/{_segment(uuid)}/attachments/{_segment(name)}", None, if_match
+        )
 
     @staticmethod
     def _standard(
@@ -780,35 +838,44 @@ class GateClient:
         self,
         path: str,
         *,
+        if_match: str | None = None,
         retry_busy_timeout: transport.Given = transport.KEEP,
         retry_locked_timeout: transport.Given = transport.KEEP,
         retry_undecided_timeout: transport.Given = transport.KEEP,
-    ) -> None:
+    ) -> str | None:
         """Whether a route answers, and whether this client may reach it, without the answer.
 
         One method for every `head` the document declares, because a `head` is generic in a way
         a `get` is not: it carries no content, so there is nothing to shape per route. What it
-        reports is the status, which is the whole of what was asked.
+        reports is the status, which is the whole of what was asked, and the `ETag` the answer
+        carried, which is the one thing a `head` says beyond it: the tag of the group or entry the
+        route is about, or `None` from a route that has none or to a client the gate hands none to.
 
-        It hands back nothing: a refusal is an exception here as it is everywhere else in this
-        client, so reaching the next line is the answer. What a refusal cannot carry is the
-        gate's word, since that is written in a body and this answer has none: a `RouteRefused`
-        from here holds the status and an empty `error`. The gate omits `Content-Length` on
-        these, which RFC 9110 section 9.3.2 permits for a value determined only while
-        generating content, so this one reads to the close the gate sends anyway.
+        A refusal is an exception here as it is everywhere else in this client, so reaching the
+        next line is the answer. What a refusal cannot carry is the gate's word, since that is
+        written in a body and this answer has none: a `RouteRefused` from here holds the status and
+        an empty `error`. The gate omits `Content-Length` on these, which RFC 9110 section 9.3.2
+        permits for a value determined only while generating content, so this one reads to the
+        close the gate sends anyway. With `if_match`, a node that has changed since is
+        `PreconditionFailed`, which is a way to ask whether a tag is still current without reading
+        anything.
         """
-        self.send(
+        return self._exchange(
             "HEAD",
             path,
+            None,
+            _refuse,
+            if_match=if_match,
             retry_busy_timeout=retry_busy_timeout,
             retry_locked_timeout=retry_locked_timeout,
             retry_undecided_timeout=retry_undecided_timeout,
-        )
+        ).etag
 
     def get(
         self,
         path: str,
         *,
+        if_match: str | None = None,
         retry_busy_timeout: transport.Given = transport.KEEP,
         retry_locked_timeout: transport.Given = transport.KEEP,
         retry_undecided_timeout: transport.Given = transport.KEEP,
@@ -817,6 +884,7 @@ class GateClient:
         return self.send(
             "GET",
             path,
+            if_match=if_match,
             retry_busy_timeout=retry_busy_timeout,
             retry_locked_timeout=retry_locked_timeout,
             retry_undecided_timeout=retry_undecided_timeout,
@@ -828,6 +896,7 @@ class GateClient:
         path: str,
         body: dict[str, Any] | None = None,
         *,
+        if_match: str | None = None,
         retry_busy_timeout: transport.Given = transport.KEEP,
         retry_locked_timeout: transport.Given = transport.KEEP,
         retry_undecided_timeout: transport.Given = transport.KEEP,
@@ -850,15 +919,23 @@ class GateClient:
         refusal a client cannot fix by waiting must not be sent round a loop, and a write that
         failed for any other reason may well have landed. A budget given for one call is refused
         as the client's own are, before anything is dialed.
+
+        `if_match` goes as `If-Match`, exactly as given: a tag as `etag` holds one, several with
+        commas between, or `*`. The gate reads it on the routes about one group or one entry and
+        nowhere else. A tag a read hands back comes in a header this does not return: the read
+        methods above keep it on what they answer with, and `head` answers with it.
         """
-        return self._request(
-            method,
-            path,
-            body,
-            _refuse,
-            retry_busy_timeout=retry_busy_timeout,
-            retry_locked_timeout=retry_locked_timeout,
-            retry_undecided_timeout=retry_undecided_timeout,
+        return _object(
+            self._exchange(
+                method,
+                path,
+                body,
+                _refuse,
+                if_match=if_match,
+                retry_busy_timeout=retry_busy_timeout,
+                retry_locked_timeout=retry_locked_timeout,
+                retry_undecided_timeout=retry_undecided_timeout,
+            )
         )
 
     def _request(
@@ -868,13 +945,10 @@ class GateClient:
         body: dict[str, Any] | None,
         refuse: Callable[[transport.Response], None],
         *,
-        retry_busy_timeout: transport.Given = transport.KEEP,
-        retry_locked_timeout: transport.Given = transport.KEEP,
-        retry_undecided_timeout: transport.Given = transport.KEEP,
         connection_timeout: float | None = None,
         held: float | None = None,
     ) -> dict[str, Any]:
-        """What `send` does, with what each refusal means given by the caller.
+        """One request whose refusals mean what the caller says, under this client's budgets.
 
         A renewal's refusals mean things no other route's do, and one of them carries a moment in
         its body, so the route that has them says what they are rather than every route learning
@@ -883,6 +957,60 @@ class GateClient:
         `connection_timeout` too, and `None` is this client's. And it can be answered with an
         approval the gate holds, which `held` is how long to go on asking for, `None` for not.
         """
+        return _object(
+            self._exchange(
+                method, path, body, refuse, connection_timeout=connection_timeout, held=held
+            )
+        )
+
+    def _read_tagged(self, path: str) -> tuple[dict[str, Any], str | None]:
+        """One read, and the tag it was answered with, which the read model keeps."""
+        reply = self._exchange("GET", path, None, _refuse)
+        return reply.json(), reply.etag
+
+    def _written(
+        self, method: str, path: str, body: dict[str, Any] | None, if_match: str | None
+    ) -> str | None:
+        """One write, under `if_match` when it was given, and the tag of what it left.
+
+        Read out of the answer's body, as `etag`, where the gate puts it: RFC 9110 section 9.3.4
+        has an `ETag` on the answer to a `PUT` say the body sent was stored as sent, and this is
+        the tag of the whole node. `None` where the gate gave none: a group or an entry removed,
+        which leaves nothing to tag, a create of a group or an entry, which is sent to a listing,
+        and every write by a client the gate hands no tag to.
+        """
+        reply = self._exchange(method, path, body, _refuse, if_match=if_match)
+        left = _object(reply).get("etag")
+        if left is None:
+            return None
+
+        if not isinstance(left, str):
+            raise ProtocolError("the gate answered a write with a tag that is not text")
+
+        return left
+
+    def _exchange(
+        self,
+        method: str,
+        path: str,
+        body: dict[str, Any] | None,
+        refuse: Callable[[transport.Response], None],
+        *,
+        if_match: str | None = None,
+        retry_busy_timeout: transport.Given = transport.KEEP,
+        retry_locked_timeout: transport.Given = transport.KEEP,
+        retry_undecided_timeout: transport.Given = transport.KEEP,
+        connection_timeout: float | None = None,
+        held: float | None = None,
+    ) -> transport.Response:
+        """What `_request` does, answering with the whole reply, its tag among it.
+
+        **A condition goes round the retry loop unchanged**, because a `503` says the gate did
+        nothing, so the node is where it was when the condition was written, unless somebody
+        else changed it meanwhile, which is exactly what the condition is there to catch. One that
+        could not be a header line is refused first, before anything is dialed, as a budget is.
+        """
+        transport.check_condition(if_match)
         retry = transport.Retry(
             busy=transport.given(retry_busy_timeout, self._retry_busy_timeout),
             locked=transport.given(retry_locked_timeout, self._retry_locked_timeout),
@@ -894,7 +1022,7 @@ class GateClient:
 
         while True:
             try:
-                reply = self._once(method, path, payload, connection_timeout)
+                reply = self._once(method, path, payload, connection_timeout, if_match)
                 refuse(reply)
             except GateUnavailable as refusal:
                 # Safe to repeat whichever it was: the gate refuses before it acts, so a `503` is
@@ -906,13 +1034,15 @@ class GateClient:
 
                 raise
 
-            if not reply.body:
-                return {}
-
-            return reply.json()
+            return reply
 
     def _once(
-        self, method: str, path: str, payload: str, connection_timeout: float | None = None
+        self,
+        method: str,
+        path: str,
+        payload: str,
+        connection_timeout: float | None = None,
+        if_match: str | None = None,
     ) -> transport.Response:
         """One attempt, on a connection of its own and under a name of its own.
 
@@ -950,7 +1080,15 @@ class GateClient:
             max_response_bytes=self._max_response_bytes,
             dial=self._dial,
         ) as connection:
-            return connection.send(method, path, payload)
+            return connection.send(method, path, payload, if_match)
+
+
+def _object(reply: transport.Response) -> dict[str, Any]:
+    """An answer's body as an object, and an empty one for an answer with no body, as a `head`'s."""
+    if not reply.body:
+        return {}
+
+    return reply.json()
 
 
 def _expiry(value: object, *, creating: bool) -> str:
@@ -1145,6 +1283,11 @@ def _refuse(reply: transport.Response) -> None:
     # and a client that knows only `200` turns all four of them into refusals.
     if reply.status in (200, 201):
         return
+
+    if reply.status == 412:
+        # Its own refusal rather than `RouteRefused` alone, because what a caller does next is
+        # different from every other refusal: read the node again and decide again.
+        raise PreconditionFailed(reply.error())
 
     if reply.status == 503:
         raise transport.unavailable(

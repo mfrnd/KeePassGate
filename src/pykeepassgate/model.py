@@ -50,6 +50,28 @@ def made(body: dict[str, Any]) -> str:
     return _text(body, "uuid")
 
 
+def _tag_of(etag: str | None, what: str, read: bool, how: str) -> str:
+    """A tag the gate answered with, or the reason there is none, as `AttributeError`.
+
+    Absent rather than empty: a listing carries no tag, because it answers about a collection, and
+    a read carries none to a client whose rule does not read everything the tag covers, which the
+    gate decides and says nothing more about. Either way there is nothing to hand to `if_match`,
+    and an empty string there would ask for something no node holds.
+    """
+    if etag is None:
+        raise AttributeError(
+            f"the gate gave no tag for this {what}: it hands one only to a client whose rule reads "
+            "everything the tag covers, which for an entry is its attachments as well and, when "
+            "it holds any, its protected values, so a write from this client cannot be made "
+            "conditional on it"
+            if read
+            else f"this {what} was listed rather than read, so the gate gave no tag for it. "
+            f"Read it with {how} first."
+        )
+
+    return etag
+
+
 def _text(body: dict[str, Any], key: str) -> str:
     """A member the document declares as text, or a refusal to guess at one.
 
@@ -285,7 +307,12 @@ class Group:
 
     A listing fills in where it is and what it is called. Reading one fills in the notes as well,
     and only then does `notes` exist: they are free text, which the gate hands out for `read` and
-    not for `list`, so a listed group raises `AttributeError` rather than answering `None`.
+    not for `list`, so a listed group raises `AttributeError` rather than answering `None`. The
+    same goes for `etag`, which only a read carries.
+
+    **The tag takes no part in comparing two of these**, here or on any read model: it says which
+    version of the node a write may be made against, and two reads of a node that has not changed
+    describe the same group whether or not the gate tagged both.
     """
 
     uuid: str
@@ -294,6 +321,17 @@ class Group:
     created: datetime | None = None
     modified: datetime | None = None
     read_notes: str | None = field(default=None, repr=False)
+    read_etag: str | None = field(default=None, repr=False, compare=False)
+
+    @property
+    def etag(self) -> str:
+        """The tag the gate read this group with, for `if_match`, once it has been read.
+
+        Opaque, kept exactly as the gate sent it, quotes and all: a write handed it is refused
+        with `PreconditionFailed` when the group has changed since, its name, its notes or where
+        it is.
+        """
+        return _tag_of(self.read_etag, "group", self.is_read, "GateClient.group()")
 
     @property
     def is_root(self) -> bool:
@@ -317,8 +355,8 @@ class Group:
         return self.read_notes
 
     @classmethod
-    def of(cls, body: dict[str, Any]) -> Group:
-        """Read one out of an answer."""
+    def of(cls, body: dict[str, Any], etag: str | None = None) -> Group:
+        """Read one out of an answer, with the tag that answer carried, if it carried one."""
         return cls(
             uuid=_text(body, "uuid"),
             name=_text(body, "name"),
@@ -326,6 +364,9 @@ class Group:
             created=_moment(body.get("created")),
             modified=_moment(body.get("modified")),
             read_notes=_text(body, "notes") if "notes" in body else None,
+            # Kept only with the notes, which only a read carries, so that a group either was read,
+            # notes and tag alike, or was listed and has neither.
+            read_etag=etag if "notes" in body else None,
         )
 
     @classmethod
@@ -361,6 +402,17 @@ class Entry:
     #: strings. Empty on a read entry, which holds both in `fields` with the rest.
     summary: Fields = field(default_factory=Fields, repr=False)
     expiry: _Expiry | None = field(default=None, repr=False)
+    read_etag: str | None = field(default=None, repr=False, compare=False)
+
+    @property
+    def etag(self) -> str:
+        """The tag the gate read this entry with, for `if_match`, once it has been read.
+
+        One tag for the entry and everything in it, so a write to one of its fields or attachments
+        handed it is refused with `PreconditionFailed` when anything in the entry changed since,
+        not only that field. Opaque, and kept exactly as the gate sent it.
+        """
+        return _tag_of(self.read_etag, "entry", self.is_read, "GateClient.entry()")
 
     @property
     def title(self) -> str:
@@ -473,8 +525,8 @@ class Entry:
         )
 
     @classmethod
-    def read(cls, body: dict[str, Any]) -> Entry:
-        """One out of a read, which carries everything the entry holds."""
+    def read(cls, body: dict[str, Any], etag: str | None = None) -> Entry:
+        """One out of a read, which carries everything the entry holds, and its tag."""
         # A `null` is a protected value this client may not read, which `Fields` keeps as a name
         # with no value behind it: never the word "None", and never an empty string.
         return cls(
@@ -485,6 +537,7 @@ class Entry:
             fields=Fields(_strings(body, "fields")),
             protected=_names(body, "protected"),
             expiry=_expiry(body),
+            read_etag=etag,
         )
 
 
@@ -504,6 +557,17 @@ class Field:
     #: client read the entry does not grant `P`. Asked without a `try`, where `value` raises.
     withheld: bool = False
     _value: str | None = field(default=None, repr=False)
+    read_etag: str | None = field(default=None, repr=False, compare=False)
+
+    @property
+    def etag(self) -> str:
+        """The tag of the entry holding this field, as its read or its listing carried it.
+
+        The entry's rather than the field's own, because a field is not a node: the entry answers
+        for it, as the rules do. Both routes a field comes from are about one entry, so the gate
+        tags either, and one that came without a tag came to a client the gate hands none to.
+        """
+        return _tag_of(self.read_etag, "field", True, "GateClient.field()")
 
     @property
     def value(self) -> str:
@@ -530,16 +594,21 @@ class Field:
         return self.withheld or self._value is not None
 
     @classmethod
-    def listing(cls, body: dict[str, Any]) -> list[Field]:
-        """The names a listing answered with, which carries no values."""
+    def listing(cls, body: dict[str, Any], etag: str | None = None) -> list[Field]:
+        """The names a listing answered with, which carries no values.
+
+        With the tag of the entry the listing was answered with, when it carried one: the entry
+        answers for its fields, so a client that may list them and take one off names that tag in
+        its `if_match` without reading any of them.
+        """
         return [
-            cls(name=_text(item, "name"), protected=_flag(item, "protected"))
+            cls(name=_text(item, "name"), protected=_flag(item, "protected"), read_etag=etag)
             for item in _objects(body, "fields")
         ]
 
     @classmethod
-    def read(cls, body: dict[str, Any]) -> Field:
-        """One string's value, read on its own."""
+    def read(cls, body: dict[str, Any], etag: str | None = None) -> Field:
+        """One string's value, read on its own, with the tag of the entry holding it."""
         # The gate answers a protected value this client may not read with `null`, which is
         # `withheld` here rather than a value of `None` or the word "None".
         value = _nullable(body, "value")
@@ -549,6 +618,7 @@ class Field:
             protected=_flag(body, "protected"),
             withheld=value is None,
             _value=value,
+            read_etag=etag,
         )
 
 
@@ -561,6 +631,15 @@ class Attachment:
     #: Left out of the repr, which prints the name and the size: an attachment is a key or a
     #: recovery file as often as anything, and a repr is what a log line or a traceback carries.
     content: bytes | None = field(default=None, repr=False)
+    read_etag: str | None = field(default=None, repr=False, compare=False)
+
+    @property
+    def etag(self) -> str:
+        """The tag of the entry holding this attachment, as its read or its listing carried it.
+
+        Either route is about one entry, as `Field.etag` says of a field's.
+        """
+        return _tag_of(self.read_etag, "attachment", True, "GateClient.attachment()")
 
     @property
     def is_read(self) -> bool:
@@ -568,20 +647,25 @@ class Attachment:
         return self.content is not None
 
     @classmethod
-    def listing(cls, body: dict[str, Any]) -> list[Attachment]:
-        """The names and sizes a listing answered with, never the contents."""
+    def listing(cls, body: dict[str, Any], etag: str | None = None) -> list[Attachment]:
+        """The names and sizes a listing answered with, never the contents.
+
+        With the tag of the entry the listing was answered with, when it carried one, as
+        `Field.listing` takes it.
+        """
         return [
-            cls(name=_text(item, "name"), size=_size(item, "size"))
+            cls(name=_text(item, "name"), size=_size(item, "size"), read_etag=etag)
             for item in _objects(body, "attachments")
         ]
 
     @classmethod
-    def read(cls, body: dict[str, Any]) -> Attachment:
-        """One attachment, contents and all."""
+    def read(cls, body: dict[str, Any], etag: str | None = None) -> Attachment:
+        """One attachment, contents and all, with the tag of the entry holding it."""
         return cls(
             name=_text(body, "name"),
             size=_size(body, "size"),
             content=_content(body.get("content")),
+            read_etag=etag,
         )
 
 
