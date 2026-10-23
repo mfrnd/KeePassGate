@@ -8,7 +8,7 @@ Guidance for anyone, human or AI assistant, working in this repository.
 mutual TLS, so that automation and AI agents can each be given a narrow, revocable, audited slice of
 a database.
 
-**Status: steps 1 to 27 of the build order are done and the API is served.** The plugin loads
+**Status: the whole build order is done and the API is served.** The plugin loads
 into KeePass, the KPG tab creates, recreates and deletes the database's own certificate authority,
 the gate listens on loopback and answers over mutual TLS 1.3, a client is served only if
 the database holds an admission record for its certificate, and **a stranger can now become one**:
@@ -51,8 +51,10 @@ says what this is for and shows it, around a moving picture of the whole journey
 to a revoked client, which the Screenshots fixture takes with the stills, and a diagram of the
 pieces. **And the command line covers every route**: a command for each route the library
 serves, held to the routing table as the library is, and `-o json` on every one for a program.
-**Step 28, optimistic concurrency, is being built**: what the build order plans for it is in
-`DESIGN.md` §132.
+**And a write can be made against what was read**: a read of one group or one entry carries an
+`ETag`, a keyed digest of what the node holds, to a client whose rule reads all of it, and a
+request carrying `If-Match` is answered `412` when the node has changed since, decided under the
+writer's lock.
 
 ## Read these before proposing anything
 
@@ -872,7 +874,7 @@ here can hang or crash the password manager.
 
 ## Where to start
 
-[`DESIGN.md`](DESIGN.md) §132 ends with a multi-step build order. **Steps 1 to 27 are done.** The
+[`DESIGN.md`](DESIGN.md) §132 ends with a multi-step build order. **All of them are done.** The
 skeleton loads and shows a KPG tab, that tab creates, recreates and deletes the authority, the gate
 serves the document's routes over mutual TLS to a client the authority issued and the database holds
 a record for, a stranger can pair, a locked database answers `503 locked`, a grant means something
@@ -886,13 +888,13 @@ can ask who the gate takes it for and what it may do at a node, the audit record
 renewal the operator answers and every client revoked, the client follows field references as
 KeePass does, under the caller's own rules, `build.ps1 -Task Package` makes the zip a release
 would publish, the README tells somebody arriving what this is, around a picture of the
-whole journey that moves and a diagram of the pieces, and the command line reaches every route
-and prints JSON for a program.
+whole journey that moves and a diagram of the pieces, the command line reaches every route
+and prints JSON for a program, and a write can be made against what was read, refused with `412`
+when the node has changed since.
 
 **Start with [`docs/`](docs/README.md) if the question is what this does**, and with the documents
-below if the question is why it does it that way. What is left is step 28, optimistic
-concurrency, and beyond the build order there is no release yet, only the zip
-`build.ps1 -Task Package` makes for one, and no Scoop manifest.
+below if the question is why it does it that way. What is left is not a step: there is no release
+yet, only the zip `build.ps1 -Task Package` makes for one, and no Scoop manifest.
 
 **The storage decision survived the thing most likely to invalidate it.** The `GroupForm` snapshot
 hazard is real and now measured rather than remembered: `SnapshotHazardTests` reads the mechanism off
