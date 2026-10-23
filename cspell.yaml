@@ -65,9 +65,11 @@ words:
   - pscustomobject
 
   # What this branch's own sources and prose need, over what the mainline already knows.
+  - ALLINPUT
   - cctor
   - Clientside
   - findall
   - Hashtable
+  - MSAA
   - nologo
   - testhost

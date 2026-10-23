@@ -1,0 +1,157 @@
+StartStopDelegate.Invoke: Void Invoke(EventHookParams ByRef)
+== MS.Internal.AutomationProxies.QueueProcessor::Boolean PostSyncWorkItem(MS.Internal.AutomationProxies.QueueItem)
+     0 ldarg.1 
+     1 newobj SyncQueueItem::Void .ctor(MS.Internal.AutomationProxies.QueueItem)
+     6 stloc.0 
+     7 ldarg.0 
+     8 ldfld QueueProcessor::System.Collections.Queue _q
+    13 ldloc.0 
+    14 callvirt Queue::Void Enqueue(System.Object)
+    19 ldarg.0 
+    20 ldfld QueueProcessor::System.Threading.AutoResetEvent _ev
+    25 callvirt EventWaitHandle::Boolean Set()
+    30 pop 
+    31 ldloc.0 
+    32 ldfld SyncQueueItem::System.Threading.AutoResetEvent _ev
+    37 ldc.i4 2000
+    42 ldc.i4.0 
+    43 callvirt WaitHandle::Boolean WaitOne(Int32, Boolean)
+    48 ret 
+== MS.Internal.AutomationProxies.QueueProcessor::Void WaitForWork()
+     0 ldarg.0 
+     1 ldfld QueueProcessor::System.Threading.AutoResetEvent _ev
+     6 callvirt WaitHandle::Microsoft.Win32.SafeHandles.SafeWaitHandle get_SafeWaitHandle()
+    11 stloc.0 
+    12 ldloca.s 1
+    14 initobj NativeMethods::MS.Win32.NativeMethods+MSG
+    20 nop 
+    21 br.s -> 41
+    23 ldloc.1 
+    24 ldfld MSG::Int32 message
+    29 ldc.i4.s 18
+    31 beq.s -> 83
+    33 ldloca.s 1
+    35 call Misc::IntPtr DispatchMessage(MSG ByRef)
+    40 pop 
+    41 ldloca.s 1
+    43 ldsfld IntPtr::IntPtr Zero
+    48 ldc.i4.0 
+    49 ldc.i4.0 
+    50 ldc.i4.1 
+    51 call UnsafeNativeMethods::Boolean PeekMessage(MSG ByRef, IntPtr, Int32, Int32, Int32)
+    56 brtrue.s -> 23
+    58 br.s -> 83
+    60 ldarg.0 
+    61 ldfld QueueProcessor::System.Collections.Queue _q
+    66 callvirt Queue::System.Object Dequeue()
+    71 castclass MS.Internal.AutomationProxies.QueueItem
+    76 stloc.3 
+    77 ldloc.3 
+    78 callvirt QueueItem::Void Process()
+    83 ldarg.0 
+    84 ldfld QueueProcessor::System.Collections.Queue _q
+    89 callvirt Queue::Int32 get_Count()
+    94 ldc.i4.0 
+    95 bgt.s -> 60
+    97 ldloc.0 
+    98 ldc.i4.0 
+    99 ldc.i4.m1 
+   100 ldc.i4 255
+   105 call Misc::Int32 MsgWaitForMultipleObjects(Microsoft.Win32.SafeHandles.SafeWaitHandle, Boolean, Int32, Int32)
+   110 stloc.2 
+   111 ldloc.2 
+   112 ldc.i4.m1 
+   113 beq.s -> 123
+   115 ldloc.2 
+   116 ldc.i4 258
+   121 bne.un.s -> 125
+   123 leave.s -> 142
+   125 leave.s -> 20
+   127 stloc.s 4
+   129 ldloc.s 4
+   131 call Misc::Boolean IsCriticalException(System.Exception)
+   136 brfalse.s -> 140
+   138 rethrow 
+   140 leave.s -> 20
+   142 ret 
+  clause Clause try 21+106 handler 127+15
+== MS.Internal.AutomationProxies.QueueProcessor::Void StartOnThread()
+     0 ldarg.0 
+     1 ldftn QueueProcessor::Void WaitForWork()
+     7 newobj ThreadStart::Void .ctor(System.Object, IntPtr)
+    12 stloc.0 
+    13 ldloc.0 
+    14 newobj Thread::Void .ctor(System.Threading.ThreadStart)
+    19 stloc.1 
+    20 ldloc.1 
+    21 ldc.i4.1 
+    22 callvirt Thread::Void set_IsBackground(Boolean)
+    27 ldloc.1 
+    28 callvirt Thread::Void Start()
+    33 ret 
+== MS.Internal.AutomationProxies.QueueItem+MSAAWinEventItem::Void Process()
+     0 ldarg.0 
+     1 ldfld MSAAWinEventItem::StartStopDelegate _ssd
+     6 callvirt StartStopDelegate::Void Invoke()
+    11 ret 
+== MS.Internal.AutomationProxies.QueueItem+SyncQueueItem::Void Process()
+     0 ldarg.0 
+     1 ldfld SyncQueueItem::MS.Internal.AutomationProxies.QueueItem _qItem
+     6 callvirt QueueItem::Void Process()
+    11 ldarg.0 
+    12 ldfld SyncQueueItem::System.Threading.AutoResetEvent _ev
+    17 callvirt EventWaitHandle::Boolean Set()
+    22 pop 
+    23 ret 
+== MS.Internal.AutomationProxies.WinEventTracker::MS.Internal.AutomationProxies.QueueProcessor GetCallbackQueue()
+     0 ldsfld WinEventTracker::System.Object _queueLock
+     5 stloc.0 
+     6 ldc.i4.0 
+     7 stloc.1 
+     8 ldloc.0 
+     9 ldloca.s 1
+    11 call Monitor::Void Enter(System.Object, Boolean ByRef)
+    16 ldsfld WinEventTracker::MS.Internal.AutomationProxies.QueueProcessor _callbackQueue
+    21 brtrue.s -> 43
+    23 newobj QueueProcessor::Void .ctor()
+    28 stsfld WinEventTracker::MS.Internal.AutomationProxies.QueueProcessor _callbackQueue
+    33 ldsfld WinEventTracker::MS.Internal.AutomationProxies.QueueProcessor _callbackQueue
+    38 callvirt QueueProcessor::Void StartOnThread()
+    43 leave.s -> 55
+    45 ldloc.1 
+    46 brfalse.s -> 54
+    48 ldloc.0 
+    49 call Monitor::Void Exit(System.Object)
+    54 endfinally 
+    55 ldsfld WinEventTracker::MS.Internal.AutomationProxies.QueueProcessor _callbackQueue
+    60 ret 
+  clause Finally try 8+37 handler 45+10
+== MS.Internal.AutomationProxies.WinEventTracker::Void .cctor()
+     0 ldc.i4.s 51
+     2 newarr System.Int32
+     7 dup 
+     8 ldtoken <PrivateImplementationDetails>::__StaticArrayInitTypeSize=204 1A4F54687CF16921240B3E4E9D1039A4807EDC5FF2845880F8D575596C8FA87F
+    13 call RuntimeHelpers::Void InitializeArray(System.Array, System.RuntimeFieldHandle)
+    18 stsfld WinEventTracker::Int32[] _eventIdToIndex
+    23 ldnull 
+    24 stsfld WinEventTracker::MS.Internal.AutomationProxies.QueueProcessor _callbackQueue
+    29 newobj Object::Void .ctor()
+    34 stsfld WinEventTracker::System.Object _queueLock
+    39 ldsfld WinEventTracker::Int32[] _eventIdToIndex
+    44 ldlen 
+    45 conv.i4 
+    46 newarr System.Collections.Hashtable
+    51 stsfld WinEventTracker::System.Collections.Hashtable[] _ahp
+    56 ldc.i4.0 
+    57 stsfld WinEventTracker::UInt32 _globalEventKey
+    62 ldnull 
+    63 ldftn WinEventTracker::Void StartListening(EventHookParams ByRef)
+    69 newobj StartStopDelegate::Void .ctor(System.Object, IntPtr)
+    74 stsfld WinEventTracker::StartStopDelegate _startDelegate
+    79 ldnull 
+    80 ldftn WinEventTracker::Void StopListening(EventHookParams ByRef)
+    86 newobj StartStopDelegate::Void .ctor(System.Object, IntPtr)
+    91 stsfld WinEventTracker::StartStopDelegate _stopDelegate
+    96 ldc.i4.0 
+    97 stsfld WinEventTracker::UInt32 _CSRSSProcessId
+   102 ret 

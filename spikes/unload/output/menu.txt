@@ -1,0 +1,15 @@
+find: found File key Alt+f
+  static threads and queues inside: UIAutomationClient:ClientEventManager._callbackQueue=null; UIAutomationClientsideProviders:WinEventTracker._callbackQueue=SET
+  unload: CannotUnloadAppDomainException 15269 ms
+pattern: got the pattern, state Collapsed
+  static threads and queues inside: UIAutomationClient:ClientEventManager._callbackQueue=null; UIAutomationClientsideProviders:WinEventTracker._callbackQueue=SET
+  unload: CannotUnloadAppDomainException 15288 ms
+expand: expanded and collapsed, 0 menu items seen
+  static threads and queues inside: UIAutomationClient:ClientEventManager._callbackQueue=null; UIAutomationClientsideProviders:WinEventTracker._callbackQueue=SET
+  unload: CannotUnloadAppDomainException 15312 ms
+expand-read: expanded and collapsed, 37 menu items seen
+  static threads and queues inside: UIAutomationClient:ClientEventManager._callbackQueue=null; UIAutomationClientsideProviders:WinEventTracker._callbackQueue=SET
+  unload: CannotUnloadAppDomainException 15274 ms
+expand-read-remove: expanded and collapsed, 37 menu items seen
+  static threads and queues inside: UIAutomationClient:ClientEventManager._callbackQueue=null; UIAutomationClientsideProviders:WinEventTracker._callbackQueue=SET
+  unload: CannotUnloadAppDomainException 15287 ms

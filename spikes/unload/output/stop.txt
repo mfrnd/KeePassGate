@@ -1,0 +1,9 @@
+findall                unload CannotUnloadAppDomainException 16615 ms   hooks 3; queue SET
+stop                   unload ok 4 ms                                   hooks 3; stopped in 0 ms; queue null
+stop-again             unload ok 8 ms                                   hooks 3; stopped in 0 ms; again: queue SET; stopped in 0 ms; queue null
+findall                unload CannotUnloadAppDomainException 15305 ms   hooks 3; queue SET
+stop                   unload ok 5 ms                                   hooks 3; stopped in 0 ms; queue null
+stop-again             unload ok 8 ms                                   hooks 3; stopped in 0 ms; again: queue SET; stopped in 0 ms; queue null
+findall                unload CannotUnloadAppDomainException 15272 ms   hooks 3; queue SET
+stop                   unload ok 5 ms                                   hooks 3; stopped in 0 ms; queue null
+stop-again             unload ok 7 ms                                   hooks 3; stopped in 0 ms; again: queue SET; stopped in 0 ms; queue null

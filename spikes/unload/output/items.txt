@@ -1,0 +1,20 @@
+QueueItem: MS.Internal.AutomationProxies.QueueItem
+  Method Void Process()
+  Constructor Void .ctor()
+  NestedType MS.Internal.AutomationProxies.QueueItem+SyncQueueItem
+  NestedType MS.Internal.AutomationProxies.QueueItem+WinEventItem
+  NestedType MS.Internal.AutomationProxies.QueueItem+MSAAWinEventItem
+== MS.Internal.AutomationProxies.QueueItem+SyncQueueItem
+  Method Void Process()
+  Constructor Void .ctor(MS.Internal.AutomationProxies.QueueItem)
+  Field System.Threading.AutoResetEvent _ev
+  Field MS.Internal.AutomationProxies.QueueItem _qItem
+== MS.Internal.AutomationProxies.QueueItem+WinEventItem
+  Method Void Process()
+  Constructor Void .ctor(EventHookParams ByRef, StartStopDelegate)
+  Field EventHookParams _hp
+  Field StartStopDelegate _ssd
+== MS.Internal.AutomationProxies.QueueItem+MSAAWinEventItem
+  Method Void Process()
+  Constructor Void .ctor(StartStopDelegate)
+  Field StartStopDelegate _ssd

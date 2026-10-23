@@ -1,0 +1,30 @@
+nothing        unload ok 0 ms                                   [UIAutomationClient UIAutomationTypes] not loaded
+empty-nothing  unload ok 0 ms                                   [UIAutomationClient UIAutomationClientsideProviders UIAutomationProvider UIAutomationTypes] queue null
+handle         unload ok 2 ms                                   [UIAutomationClient UIAutomationClientsideProviders UIAutomationProvider UIAutomationTypes] queue null
+empty-handle   unload ok 1 ms                                   [UIAutomationClient UIAutomationClientsideProviders UIAutomationProvider UIAutomationTypes] queue null
+name           unload ok 1 ms                                   [UIAutomationClient UIAutomationClientsideProviders UIAutomationProvider UIAutomationTypes] queue null
+empty-name     unload ok 1 ms                                   [UIAutomationClient UIAutomationClientsideProviders UIAutomationProvider UIAutomationTypes] queue null
+id             unload ok 1 ms                                   [UIAutomationClient UIAutomationClientsideProviders UIAutomationProvider UIAutomationTypes] queue null
+empty-id       unload ok 1 ms                                   [UIAutomationClient UIAutomationClientsideProviders UIAutomationProvider UIAutomationTypes] queue null
+findall        unload CannotUnloadAppDomainException 15275 ms   [UIAutomationClient UIAutomationClientsideProviders UIAutomationProvider UIAutomationTypes] queue SET
+empty-findall  unload CannotUnloadAppDomainException 15268 ms   [UIAutomationClient UIAutomationClientsideProviders UIAutomationProvider UIAutomationTypes] queue SET
+nothing        unload ok 0 ms                                   [UIAutomationClient UIAutomationTypes] not loaded
+empty-nothing  unload ok 1 ms                                   [UIAutomationClient UIAutomationClientsideProviders UIAutomationProvider UIAutomationTypes] queue null
+handle         unload ok 2 ms                                   [UIAutomationClient UIAutomationClientsideProviders UIAutomationProvider UIAutomationTypes] queue null
+empty-handle   unload ok 1 ms                                   [UIAutomationClient UIAutomationClientsideProviders UIAutomationProvider UIAutomationTypes] queue null
+name           unload ok 1 ms                                   [UIAutomationClient UIAutomationClientsideProviders UIAutomationProvider UIAutomationTypes] queue null
+empty-name     unload ok 2 ms                                   [UIAutomationClient UIAutomationClientsideProviders UIAutomationProvider UIAutomationTypes] queue null
+id             unload ok 2 ms                                   [UIAutomationClient UIAutomationClientsideProviders UIAutomationProvider UIAutomationTypes] queue null
+empty-id       unload ok 2 ms                                   [UIAutomationClient UIAutomationClientsideProviders UIAutomationProvider UIAutomationTypes] queue null
+findall        unload CannotUnloadAppDomainException 15277 ms   [UIAutomationClient UIAutomationClientsideProviders UIAutomationProvider UIAutomationTypes] queue SET
+empty-findall  unload CannotUnloadAppDomainException 15267 ms   [UIAutomationClient UIAutomationClientsideProviders UIAutomationProvider UIAutomationTypes] queue SET
+nothing        unload ok 0 ms                                   [UIAutomationClient UIAutomationTypes] not loaded
+empty-nothing  unload ok 0 ms                                   [UIAutomationClient UIAutomationClientsideProviders UIAutomationProvider UIAutomationTypes] queue null
+handle         unload ok 1 ms                                   [UIAutomationClient UIAutomationClientsideProviders UIAutomationProvider UIAutomationTypes] queue null
+empty-handle   unload ok 2 ms                                   [UIAutomationClient UIAutomationClientsideProviders UIAutomationProvider UIAutomationTypes] queue null
+name           unload ok 1 ms                                   [UIAutomationClient UIAutomationClientsideProviders UIAutomationProvider UIAutomationTypes] queue null
+empty-name     unload ok 1 ms                                   [UIAutomationClient UIAutomationClientsideProviders UIAutomationProvider UIAutomationTypes] queue null
+id             unload ok 2 ms                                   [UIAutomationClient UIAutomationClientsideProviders UIAutomationProvider UIAutomationTypes] queue null
+empty-id       unload ok 2 ms                                   [UIAutomationClient UIAutomationClientsideProviders UIAutomationProvider UIAutomationTypes] queue null
+findall        unload CannotUnloadAppDomainException 15288 ms   [UIAutomationClient UIAutomationClientsideProviders UIAutomationProvider UIAutomationTypes] queue SET
+empty-findall  unload CannotUnloadAppDomainException 15270 ms   [UIAutomationClient UIAutomationClientsideProviders UIAutomationProvider UIAutomationTypes] queue SET

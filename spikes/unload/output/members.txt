@@ -1,0 +1,34 @@
+== MS.Internal.AutomationProxies.WinEventTracker
+  Method Void AddToNotificationList(IntPtr, ProxyRaiseEvents, EvtIdProperty[], Int32)
+  Method MS.Internal.AutomationProxies.QueueProcessor GetCallbackQueue()
+  Method Void RemoveToNotificationList(IntPtr, EvtIdProperty[], ProxyRaiseEvents, Int32)
+  Method Void StartListening(EventHookParams ByRef)
+  Method Void StopListening(EventHookParams ByRef)
+  Method Void WinEventProc(Int32, Int32, IntPtr, Int32, Int32, Int32, UInt32)
+  Method Void BuildEventsList(EventFlag, IntPtr, ProxyRaiseEvents, EvtIdProperty[], Int32)
+  Method Boolean IsConsoleProcess(Int32)
+  Method UInt32 get_CSRSSProcessId()
+  Constructor Void .cctor()
+  Property UInt32 CSRSSProcessId
+  Field Int32[] _eventIdToIndex
+  Field MS.Internal.AutomationProxies.QueueProcessor _callbackQueue
+  Field System.Object _queueLock
+  Field System.Collections.Hashtable[] _ahp
+  Field UInt32 _globalEventKey
+  Field StartStopDelegate _startDelegate
+  Field StartStopDelegate _stopDelegate
+  Field UInt32 _CSRSSProcessId
+  NestedType MS.Internal.AutomationProxies.WinEventTracker+ProxyRaiseEvents
+  NestedType MS.Internal.AutomationProxies.WinEventTracker+EvtIdProperty
+  NestedType MS.Internal.AutomationProxies.WinEventTracker+EventHookParams
+  NestedType MS.Internal.AutomationProxies.WinEventTracker+StartStopDelegate
+  NestedType MS.Internal.AutomationProxies.WinEventTracker+EventFlag
+  NestedType MS.Internal.AutomationProxies.WinEventTracker+EventCreateParams
+== MS.Internal.AutomationProxies.QueueProcessor
+  Method Void StartOnThread()
+  Method Boolean PostSyncWorkItem(MS.Internal.AutomationProxies.QueueItem)
+  Method Void WaitForWork()
+  Constructor Void .ctor(Int32)
+  Constructor Void .ctor()
+  Field System.Collections.Queue _q
+  Field System.Threading.AutoResetEvent _ev
