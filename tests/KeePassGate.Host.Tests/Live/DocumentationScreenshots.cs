@@ -124,7 +124,7 @@ namespace KeePassGate.Host.Tests.Live
             // The rule the access pages are screenshotted showing. Written into the database rather
             // than chosen in the dialog: what the pictures are of is an editor reading a real rule,
             // and driving a dropdown to produce one would screenshot the automation instead.
-            _session.KeePass.Grant("{\"" + Profile + "\":[\"read\",\"list\",\"attachments\"]}");
+            _session.KeePass.Grant(Rules.Granting(Profile, "RLA"));
 
             // And the names that rule is written against, which is what the profiles page lists.
             // The second one carries no rule anywhere and is held by the same client, so the page

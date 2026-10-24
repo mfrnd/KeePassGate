@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using KeePassGate.Acl;
 
 namespace KeePassGate.Tests.Fakes
@@ -47,14 +48,13 @@ namespace KeePassGate.Tests.Fakes
         /// <summary>Writes one rule here, which is what most of these trees need.</summary>
         public TestNode Granting(string profile, params AclVerb[] verbs)
         {
-            return Holding("{\"" + profile + "\":[" + Written(verbs) + "]}");
+            return Holding(Written(AclDefault.Inherit, profile, verbs));
         }
 
         /// <summary>Writes a rule here that stops anything it does not name.</summary>
         public TestNode Sealing(string profile, params AclVerb[] verbs)
         {
-            return Holding("{\"" + AclDocument.DefaultKey + "\":\"deny\",\""
-                + profile + "\":[" + Written(verbs) + "]}");
+            return Holding(Written(AclDefault.Deny, profile, verbs));
         }
 
         /// <summary>Points this node's parent at itself, which no database can do and a bug can.</summary>
@@ -64,15 +64,12 @@ namespace KeePassGate.Tests.Fakes
             return this;
         }
 
-        private static string Written(AclVerb[] verbs)
+        /// <summary>The rule as the grant editor writes it, through the plugin's own writer.</summary>
+        private static string Written(AclDefault fallback, string profile, AclVerb[] verbs)
         {
-            var text = string.Empty;
-            for (var i = 0; i < verbs.Length; i++)
-            {
-                text += (i > 0 ? ",\"" : "\"") + AclVerbs.Write(verbs[i]) + "\"";
-            }
-
-            return text;
+            return AclDocument.Of(
+                fallback,
+                new Dictionary<string, IEnumerable<AclVerb>> { { profile, verbs } }).Write();
         }
     }
 }
