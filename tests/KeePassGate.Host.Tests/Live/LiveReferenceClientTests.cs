@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Windows.Automation;
+using KeePassGate.Testing;
 using KeePassGate.Ui;
 using NUnit.Framework;
 using Run = KeePassGate.Host.Tests.Live.ReferenceClient.Run;
@@ -126,8 +127,7 @@ namespace KeePassGate.Host.Tests.Live
             var keePass = _session.KeePass;
             _identity = Path.Combine(Path.GetDirectoryName(keePass.DatabasePath), "client");
 
-            keePass.Grant(
-                "{\"" + Profile + "\":[\"create\",\"read\",\"update\",\"list\",\"attachments\",\"protected\"]}");
+            keePass.Grant(Rules.Granting(Profile, "CRULAP"));
 
             var driver = KeePassDriver.Start(keePass);
             WaitUntilServing(keePass, driver);
