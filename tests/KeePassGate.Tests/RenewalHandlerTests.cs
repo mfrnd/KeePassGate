@@ -8,6 +8,7 @@ using KeePassGate.Gate;
 using KeePassGate.Pairing;
 using KeePassGate.Pipeline;
 using KeePassGate.Spec;
+using KeePassGate.Testing;
 using KeePassGate.Tests.Fakes;
 using KeePassGate.Transport;
 using KeePassGate.Vault;
@@ -1153,7 +1154,7 @@ namespace KeePassGate.Tests
                 RenewalHandler.Path,
                 new Dictionary<string, string>(StringComparer.Ordinal),
                 new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase),
-                body.Length);
+                Bodies.LengthOf(body));
 
             var context = new GateContext(head, body, client);
             new ServedDatabase(null, _authority).PutOn(context);

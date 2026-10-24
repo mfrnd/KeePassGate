@@ -5,6 +5,7 @@ using KeePassGate.Acl;
 using KeePassGate.Diagnostics;
 using KeePassGate.Pipeline;
 using KeePassGate.Spec;
+using KeePassGate.Testing;
 using KeePassGate.Tests.Fakes;
 using KeePassGate.Transport;
 using NUnit.Framework;
@@ -645,7 +646,7 @@ namespace KeePassGate.Tests
                 path,
                 new Dictionary<string, string>(),
                 new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase),
-                text.Length);
+                Bodies.LengthOf(text));
 
             return new GateContext(head, text, client);
         }

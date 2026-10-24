@@ -338,10 +338,10 @@ namespace KeePassGate.Tests
                 new[] { "DELETE", entry + "/fields/Account", null },
                 new[] { "GET", entry + "/attachments", null },
                 new[] { "HEAD", entry + "/attachments", null },
-                new[] { "POST", entry + "/attachments", "{\"name\":\"other.txt\",\"content\":\"" + Base64("invented") + "\"}" },
+                new[] { "POST", entry + "/attachments", Bodies.Of(("name", "other.txt"), ("content", Base64("invented"))) },
                 new[] { "GET", entry + "/attachments/notes.txt", null },
                 new[] { "HEAD", entry + "/attachments/notes.txt", null },
-                new[] { "PUT", entry + "/attachments/notes.txt", "{\"content\":\"" + Base64("changed") + "\"}" },
+                new[] { "PUT", entry + "/attachments/notes.txt", Bodies.Of(("content", Base64("changed"))) },
                 new[] { "DELETE", entry + "/attachments/notes.txt", null },
                 new[] { "DELETE", entry, null },
             };
@@ -592,7 +592,7 @@ namespace KeePassGate.Tests
             Assert.That(Send("PUT", aliased, "{\"value\":\"chosen-by-the-caller\"}").Status, Is.EqualTo(404));
             Assert.That(Send("DELETE", aliased, null).Status, Is.EqualTo(404));
             Assert.That(Send("POST", "/entries/" + _entry + "/fields",
-                "{\"name\":\"" + PasswordAlias + "\",\"value\":\"chosen-by-the-caller\"}").Status,
+                Bodies.Of(("name", PasswordAlias), ("value", "chosen-by-the-caller"))).Status,
                 Is.EqualTo(404));
 
             Assert.That(_vault.Field(_entry, "Password"), Is.EqualTo("not-a-real-password"));
@@ -669,7 +669,7 @@ namespace KeePassGate.Tests
             _vault.Granting(_group, AllButProtected);
             var content = Convert.ToBase64String(Encoding.UTF8.GetBytes("an invented attachment"));
             Send("POST", "/entries/" + _entry + "/attachments",
-                "{\"name\":\"notes.txt\",\"content\":\"" + content + "\"}");
+                Bodies.Of(("name", "notes.txt"), ("content", content)));
 
             _vault.AttachmentReads = 0;
             var asked = Get("/entries/" + _entry + "/attachments/notes%C2%AD.txt");
@@ -715,7 +715,7 @@ namespace KeePassGate.Tests
             foreach (var marker in new[] { "True", "TRUE", "yes", "1", "on", "" })
             {
                 var answer = Send("POST", "/entries/" + _entry + "/fields",
-                    "{\"name\":\"Recovery\",\"value\":\"invented\",\"protected\":\"" + marker + "\"}");
+                    Bodies.Of(("name", "Recovery"), ("value", "invented"), ("protected", marker)));
 
                 Assert.That(answer.Status, Is.EqualTo(400), marker);
                 Assert.That(answer.Json, Does.Contain("malformed"), marker);
@@ -806,7 +806,7 @@ namespace KeePassGate.Tests
             // plain delete to one that had asked for more.
             _vault.Granting(_vault.RootAlias, AllButProtected);
 
-            var listed = Send("GET", "/entries", "{\"group\":\"" + _group + "\"}");
+            var listed = Send("GET", "/entries", Bodies.Of(("group", _group)));
             var removed = Send("DELETE", "/entries/" + _entry, "{\"recursive\":\"true\"}");
 
             Assert.That(listed.Status, Is.EqualTo(404));
@@ -973,7 +973,7 @@ namespace KeePassGate.Tests
 
             Assert.That(
                 Send("POST", "/entries/" + _entry + "/attachments",
-                    "{\"name\":\"notes.txt\",\"content\":\"" + content + "\"}").Status,
+                    Bodies.Of(("name", "notes.txt"), ("content", content))).Status,
                 Is.EqualTo(201));
 
             var read = Get("/entries/" + _entry + "/attachments/notes.txt");
@@ -1051,9 +1051,9 @@ namespace KeePassGate.Tests
             var largest = Convert.ToBase64String(new byte[VaultHandlers.MaxAttachmentBytes]);
 
             Assert.That(Send("POST", "/entries/" + _entry + "/attachments",
-                "{\"name\":\"big.bin\",\"content\":\"" + largest + "\"}").Status, Is.EqualTo(201));
+                Bodies.Of(("name", "big.bin"), ("content", largest))).Status, Is.EqualTo(201));
             Assert.That(Send("PUT", "/entries/" + _entry + "/attachments/big.bin",
-                "{\"content\":\"" + largest + "\"}").Status, Is.EqualTo(200));
+                Bodies.Of(("content", largest))).Status, Is.EqualTo(200));
 
             Assert.That(Get("/entries/" + _entry + "/attachments/big.bin").Status, Is.EqualTo(200));
         }
@@ -1071,13 +1071,13 @@ namespace KeePassGate.Tests
                 "this is about the size the document's length admits");
 
             Assert.That(Send("POST", "/entries/" + _entry + "/attachments",
-                "{\"name\":\"big.bin\",\"content\":\"" + over + "\"}").Status, Is.EqualTo(400));
+                Bodies.Of(("name", "big.bin"), ("content", over))).Status, Is.EqualTo(400));
             Assert.That(_vault.Attachments(_entry), Is.Empty, "nothing is stored");
 
             Assume.That(_vault.CreateAttachment(_entry, "small.bin", new byte[] { 1 }, VaultTagging.None).Ok, Is.True);
 
             Assert.That(Send("PUT", "/entries/" + _entry + "/attachments/small.bin",
-                "{\"content\":\"" + over + "\"}").Status, Is.EqualTo(400));
+                Bodies.Of(("content", over))).Status, Is.EqualTo(400));
             Assert.That(_vault.Attachment(_entry, "small.bin"), Is.EqualTo(new byte[] { 1 }),
                 "what was there is left alone");
         }
@@ -1090,7 +1090,7 @@ namespace KeePassGate.Tests
 
             Assert.That(
                 Send("POST", "/entries/" + _entry + "/attachments",
-                    "{\"name\":\"notes.txt\",\"content\":\"" + content + "\"}").Status,
+                    Bodies.Of(("name", "notes.txt"), ("content", content))).Status,
                 Is.EqualTo(201),
                 "the attachment has to be there before removing it means anything");
 
@@ -1125,7 +1125,7 @@ namespace KeePassGate.Tests
             var content = Convert.ToBase64String(new byte[] { 1, 2, 3 });
 
             Send("POST", "/entries/" + _entry + "/attachments",
-                "{\"name\":\"a/b\",\"content\":\"" + content + "\"}");
+                Bodies.Of(("name", "a/b"), ("content", content)));
 
             var read = Get("/entries/" + _entry + "/attachments/a%2Fb");
 
@@ -1648,14 +1648,14 @@ namespace KeePassGate.Tests
             _vault.Granting(_group, AllButProtected);
             var planted = "https://invented.example/?p={REF:P@I:0123456789ABCDEF}";
 
-            Assert.That(Send("PUT", "/entries/" + _entry, "{\"URL\":\"" + planted + "\"}").Status,
+            Assert.That(Send("PUT", "/entries/" + _entry, Bodies.Of(("URL", planted))).Status,
                 Is.EqualTo(400));
-            Assert.That(Send("POST", "/groups/" + _group + "/entries", "{\"URL\":\"" + planted + "\"}").Status,
+            Assert.That(Send("POST", "/groups/" + _group + "/entries", Bodies.Of(("URL", planted))).Status,
                 Is.EqualTo(400));
-            Assert.That(Send("PUT", "/entries/" + _entry + "/fields/URL", "{\"value\":\"" + planted + "\"}").Status,
+            Assert.That(Send("PUT", "/entries/" + _entry + "/fields/URL", Bodies.Of(("value", planted))).Status,
                 Is.EqualTo(400));
             Assert.That(Send("POST", "/entries/" + _entry + "/fields",
-                "{\"name\":\"URL\",\"value\":\"" + planted + "\"}").Status, Is.EqualTo(400));
+                Bodies.Of(("name", "URL"), ("value", planted))).Status, Is.EqualTo(400));
 
             Assert.That(_vault.Field(_entry, "URL"), Is.Null, "and none of them reached the database");
         }
@@ -1972,7 +1972,7 @@ namespace KeePassGate.Tests
             // `expires` a read answers goes back as it came and nothing is guessed at.
             _vault.Granting(_group, Rules.Granting("agent", "CU"));
             var entries = _vault.Entries().Count;
-            var body = "{\"Title\":\"x\",\"expires\":\"" + expires + "\"}";
+            var body = Bodies.Of(("Title", "x"), ("expires", expires));
 
             var created = Send("POST", "/groups/" + _group + "/entries", body);
             var updated = Send("PUT", "/entries/" + _entry, body);
@@ -2050,7 +2050,7 @@ namespace KeePassGate.Tests
                 parameters[query] = queryValue;
             }
 
-            var context = new GateContext(new HttpRequestHead(method, path, parameters, headers, text.Length), text, Paired());
+            var context = new GateContext(new HttpRequestHead(method, path, parameters, headers, Bodies.LengthOf(text)), text, Paired());
             new ServedDatabase(_vault).PutOn(context);
 
             _router.Handle(context);
@@ -2061,7 +2061,7 @@ namespace KeePassGate.Tests
         private GateContext Context(string method, string path, string body)
         {
             var text = body ?? string.Empty;
-            var context = new GateContext(Head(method, path, text.Length), text, Paired());
+            var context = new GateContext(Head(method, path, Bodies.LengthOf(text)), text, Paired());
 
             new ServedDatabase(_vault).PutOn(context);
             return context;
@@ -2072,7 +2072,7 @@ namespace KeePassGate.Tests
             return Head(method, path, 0);
         }
 
-        private static HttpRequestHead Head(string method, string path, int length)
+        private static HttpRequestHead Head(string method, string path, long length)
         {
             return new HttpRequestHead(
                 method,

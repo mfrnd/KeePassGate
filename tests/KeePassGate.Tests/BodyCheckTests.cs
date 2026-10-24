@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using KeePassGate.Pipeline;
 using KeePassGate.Spec;
+using KeePassGate.Testing;
 using KeePassGate.Transport;
 using Microsoft.OpenApi.Any;
 using Microsoft.OpenApi.Models;
@@ -51,7 +52,7 @@ namespace KeePassGate.Tests
         {
             Assert.That(Validate(Schema(), JsonBody.Read("{\"name\":\"\",\"profiles\":[]}")), Is.Not.Null);
             Assert.That(
-                Validate(Schema(), JsonBody.Read("{\"name\":\"" + new string('x', 65) + "\",\"profiles\":[]}")),
+                Validate(Schema(), JsonBody.Read(Bodies.Of(("name", new string('x', 65)), ("profiles", Array.Empty<string>())))),
                 Is.Not.Null);
         }
 
@@ -63,9 +64,11 @@ namespace KeePassGate.Tests
             var grinning = char.ConvertFromUtf32(0x1F600);
             var most = string.Concat(Enumerable.Repeat(grinning, 64));
 
-            Assert.That(Validate(Schema(), JsonBody.Read("{\"name\":\"" + most + "\",\"profiles\":[]}")), Is.Null);
             Assert.That(
-                Validate(Schema(), JsonBody.Read("{\"name\":\"" + most + grinning + "\",\"profiles\":[]}")),
+                Validate(Schema(), JsonBody.Read(Bodies.Of(("name", most), ("profiles", Array.Empty<string>())))),
+                Is.Null);
+            Assert.That(
+                Validate(Schema(), JsonBody.Read(Bodies.Of(("name", most + grinning), ("profiles", Array.Empty<string>())))),
                 Is.Not.Null,
                 "and one more is still one too many");
         }
@@ -73,10 +76,10 @@ namespace KeePassGate.Tests
         [Test]
         public void An_array_longer_than_declared_is_refused()
         {
-            var many = string.Join(",", Enumerable.Repeat("\"p\"", 4));
+            var many = Enumerable.Repeat("p", 4);
 
             Assert.That(
-                Validate(Schema(), JsonBody.Read("{\"name\":\"a\",\"profiles\":[" + many + "]}")),
+                Validate(Schema(), JsonBody.Read(Bodies.Of(("name", "a"), ("profiles", many)))),
                 Is.Not.Null);
         }
 
@@ -91,7 +94,7 @@ namespace KeePassGate.Tests
             foreach (var refused in new[] { "P0D", "P366D", "P030D", "p30d", "P30", "30", " P30D", "P30D " })
             {
                 Assert.That(
-                    BodyCheck.Validate(schema, JsonBody.Read("{\"lifetime\":\"" + refused + "\"}")),
+                    BodyCheck.Validate(schema, JsonBody.Read(Bodies.Of(("lifetime", refused)))),
                     Is.EqualTo(BodyCheck.Refusal),
                     refused);
             }
@@ -120,7 +123,7 @@ namespace KeePassGate.Tests
 
             foreach (var each in written)
             {
-                var body = JsonBody.Read("{\"lifetime\":" + Newtonsoft.Json.JsonConvert.ToString(each) + "}");
+                var body = JsonBody.Read(Bodies.Of(("lifetime", each)));
                 var routerTakes = BodyCheck.Validate(schema, body) == null;
                 var handlerTakes = Authority.Lifetime.Read(each).HasValue;
 
@@ -197,7 +200,7 @@ namespace KeePassGate.Tests
 
             var slow = new string('a', 27) + "!";
             var spent = System.Diagnostics.Stopwatch.StartNew();
-            var answer = BodyCheck.Validate(schema, JsonBody.Read("{\"name\":\"" + slow + "\"}"));
+            var answer = BodyCheck.Validate(schema, JsonBody.Read(Bodies.Of(("name", slow))));
             spent.Stop();
 
             Assert.That(answer, Is.EqualTo(BodyCheck.Refusal));
@@ -482,7 +485,7 @@ namespace KeePassGate.Tests
                 "/a",
                 new Dictionary<string, string>(),
                 new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase),
-                text.Length);
+                Bodies.LengthOf(text));
 
             return new GateContext(head, text, Paired());
         }
@@ -493,22 +496,15 @@ namespace KeePassGate.Tests
         /// </summary>
         private static string Rewrite(JsonBody body)
         {
-            var parts = new List<string>();
+            // Escaped on the way back, since what the reader hands over is decoded text, and a
+            // quote or a backslash in it pasted back between quotes is another body.
+            var members = new List<(string, object)>();
             foreach (var name in body.Names)
             {
-                var text = body.Text(name);
-                if (text != null)
-                {
-                    parts.Add("\"" + name + "\":\"" + text + "\"");
-                    continue;
-                }
-
-                var items = body.Array(name);
-                parts.Add("\"" + name + "\":[" +
-                          string.Join(",", items.Select(i => "\"" + i + "\"")) + "]");
+                members.Add((name, (object)body.Text(name) ?? body.Array(name)));
             }
 
-            return "{" + string.Join(",", parts) + "}";
+            return Bodies.Of(members.ToArray());
         }
 
         private static ClientIdentity Paired()

@@ -102,7 +102,7 @@ namespace KeePassGate.Testing
                 serverDer = der;
                 var binding = PairingProof.Binding(der);
                 var proof = WrongProof ?? PairingProof.Client(_token, binding, nonce);
-                return "{\"proof\":\"" + Convert.ToBase64String(proof) + "\"}";
+                return Bodies.Of(("proof", Convert.ToBase64String(proof)));
             });
 
             if (!reply.Answered || reply.Status != 200 || reply.Json == null)
