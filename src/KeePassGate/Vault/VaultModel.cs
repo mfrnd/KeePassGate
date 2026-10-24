@@ -52,7 +52,7 @@ namespace KeePassGate.Vault
         public VaultEntry(
             string uuid, string group, string title, string url,
             DateTimeOffset created, DateTimeOffset modified, IAclNode node,
-            bool titleProtected, bool urlProtected, DateTimeOffset? expires)
+            bool titleProtected, bool urlProtected, DateTimeOffset? expires, bool? holdsProtected)
         {
             Uuid = uuid;
             Group = group;
@@ -64,6 +64,7 @@ namespace KeePassGate.Vault
             TitleProtected = titleProtected;
             UrlProtected = urlProtected;
             Expires = expires;
+            HoldsProtected = holdsProtected;
         }
 
         public string Uuid { get; private set; }
@@ -114,6 +115,17 @@ namespace KeePassGate.Vault
         public DateTimeOffset? Expires { get; private set; }
 
         public IAclNode Node { get; private set; }
+
+        /// <summary>
+        /// Whether any of the entry's strings is protected, said by a lookup of the one entry and
+        /// null in a listing, which is not asked.
+        /// </summary>
+        /// <remarks>
+        /// What decides whether a client's rule has to carry `protected` before it is handed the
+        /// entry's tag. Nothing new is told by it: a client that may read the entry is told which
+        /// of its fields are protected anyway.
+        /// </remarks>
+        public bool? HoldsProtected { get; private set; }
     }
 
     /// <summary>One of an entry's strings, named and described but not quoted.</summary>
@@ -159,6 +171,17 @@ namespace KeePassGate.Vault
             Content = content;
         }
 
+        /// <summary>
+        /// The largest attachment the gate hands out, which is also the largest it takes and the
+        /// largest whose bytes a node's tag is taken over.
+        /// </summary>
+        /// <remarks>
+        /// Here rather than with the routes, so that the vault, which tags a node, and the routes,
+        /// which serve one, read the same number. `VaultHandlers.MaxAttachmentBytes` says why it is
+        /// this one.
+        /// </remarks>
+        public const int MostServed = 512 * 1024;
+
         public string Name { get; private set; }
 
         public int Size { get; private set; }
@@ -170,11 +193,46 @@ namespace KeePassGate.Vault
         public byte[] Content { get; private set; }
     }
 
+    /// <summary>
+    /// What a change does about the node's tag: whether it is made only while the node still
+    /// holds what `If-Match` named, and whether it answers with the tag it leaves.
+    /// </summary>
+    /// <remarks>
+    /// **Every change takes one, and none takes it by default**, so that a caller that forgets
+    /// the request's precondition does not compile into a write that ignores it. The handler
+    /// decides both halves from who is asking: only a caller whose rule may read everything the
+    /// tag covers is handed a tag or has its `If-Match` asked, which is what keeps a tag from
+    /// telling a client anything about a value its rule does not let it read.
+    /// </remarks>
+    public sealed class VaultTagging
+    {
+        /// <summary>No precondition, and no tag in the answer.</summary>
+        public static readonly VaultTagging None = new VaultTagging(null, false);
+
+        public VaultTagging(VaultPrecondition precondition, bool answers)
+        {
+            Precondition = precondition;
+            Answers = answers;
+        }
+
+        /// <summary>What `If-Match` asked of the node, or null when nothing is asked.</summary>
+        public VaultPrecondition Precondition { get; private set; }
+
+        /// <summary>Whether the answer carries the tag the change left.</summary>
+        public bool Answers { get; private set; }
+
+        /// <summary>Whether the node's tag has to be taken at all, for the precondition or for the answer.</summary>
+        public bool NeedsTag
+        {
+            get { return Precondition != null || Answers; }
+        }
+    }
+
     /// <summary>What happened to a change, and whether it is worth trying again.</summary>
     /// <remarks>
-    /// Pairing's three answers with three more that a change to a named node can have and an
-    /// admission record cannot: a create's identifier, a conflict, and a node that is not
-    /// there. `Busy` is told apart from
+    /// Pairing's three answers with four more that a change to a named node can have and an
+    /// admission record cannot: a create's identifier, a conflict, a node that is not there, and
+    /// a node that no longer holds what `If-Match` said. `Busy` is told apart from
     /// a failure because a dialog open on the node will not be open forever, and a client that
     /// knows the difference can wait instead of giving up.
     ///
@@ -246,8 +304,32 @@ namespace KeePassGate.Vault
         /// </remarks>
         public bool IsFailed { get; private set; }
 
+        /// <summary>
+        /// The node did not hold what the request's `If-Match` said it should, so nothing was
+        /// changed.
+        /// </summary>
+        /// <remarks>
+        /// A refusal about the request, answered `412`, and decided under the writer's lock, on
+        /// KeePass's thread, against the node as the change would have found it: a precondition
+        /// checked on a connection thread before the write could be overtaken by a write landing in
+        /// between, which is the lost update the precondition is there to prevent.
+        /// </remarks>
+        public bool IsPreconditionFailed { get; private set; }
+
         /// <summary>What was created, when something was.</summary>
         public string Uuid { get; private set; }
+
+        /// <summary>
+        /// The tag of the node the request was about as the change left it, when the write was
+        /// asked for it, and null otherwise.
+        /// </summary>
+        /// <remarks>
+        /// Asked for through <see cref="VaultTagging.Answers"/>, by a caller that may be handed the
+        /// node's tag, and never given for a group or an entry removed, which leaves nothing to
+        /// tag, or one created, whose request was sent to a collection. Taken where the change was
+        /// made, before the save, so that it is the tag of exactly what was written.
+        /// </remarks>
+        public string Tag { get; private set; }
 
         /// <summary>
         /// Why, for the operator: `KdbxVault` writes it to the log when a change is refused. Never
@@ -255,14 +337,23 @@ namespace KeePassGate.Vault
         /// </summary>
         public string Reason { get; private set; }
 
-        public static VaultWrite Done()
+        public static VaultWrite Done(string tag = null)
         {
-            return new VaultWrite(true, false, false, null, null);
+            return new VaultWrite(true, false, false, null, null) { Tag = tag };
         }
 
-        public static VaultWrite Created(string uuid)
+        public static VaultWrite Created(string uuid, string tag = null)
         {
-            return new VaultWrite(true, false, false, uuid, null);
+            return new VaultWrite(true, false, false, uuid, null) { Tag = tag };
+        }
+
+        /// <summary>The node no longer holds what `If-Match` said, and nothing was changed.</summary>
+        public static VaultWrite PreconditionFailed()
+        {
+            return new VaultWrite(false, false, false, null, "the node no longer holds what If-Match named")
+            {
+                IsPreconditionFailed = true,
+            };
         }
 
         public static VaultWrite Busy(string reason)

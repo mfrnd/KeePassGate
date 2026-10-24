@@ -118,6 +118,22 @@ busy for as long as it writes. A trigger set on saving a database runs for these
 other, message boxes included. And each save counts as activity, so a program that writes
 regularly keeps KeePass from locking itself after a period of KeePass inactivity.
 
+**A program can ask not to write over what changed since it read.** Reading a group or an entry
+hands back a tag of what it holds, and a program that hands the tag back with its write is
+refused, with nothing changed, when that changed in between: for an entry anything in it, its
+fields and attachments included, and for a group its own name, notes, place and times, but not the
+groups and entries inside it. The change can be an edit made in KeePass, another program's write or
+a synchronize. A program that does not hand one back writes over whatever is there, which is what
+every write did before, and the entry's history keeps what it replaced, as for any change. Which
+kind a program is, is its author's choice rather than something a rule can require.
+
+A tag goes only to a program whose rule may read everything it covers: `read` on a group, and on an
+entry `read` reaching its attachments, and its protected values too when it holds any. Any other
+program is handed none and cannot write under one, because a tag compared by a program that may
+not read what it covers would let it test guesses at that. A tag is made with a secret kept in the
+database's own certificate, so it says nothing about what is in the entry to anyone else, and it
+stays the same when KeePass starts again; recreating the database's authority changes every tag.
+
 **The lock after global user inactivity is the one writes cannot postpone.** KeePass has two
 timeouts, both under **Tools**, **Options**, **Security**. **Lock workspace after KeePass
 inactivity** counts from the last thing KeePass did on its own screen, and a save made for a

@@ -275,6 +275,7 @@ def _parser() -> argparse.ArgumentParser:
     update_group.add_argument("uuid", help="the group's identifier, or root")
     update_group.add_argument("--name", help="what to call it from now on")
     update_group.add_argument("--notes", help="the notes")
+    _conditioned(update_group)
     _shared(update_group)
     _dialed(update_group)
     update_group.set_defaults(run=_update_group)
@@ -284,6 +285,7 @@ def _parser() -> argparse.ArgumentParser:
         help="delete a group, which the gate refuses while it holds anything",
     )
     remove_group.add_argument("uuid", help="the group's identifier")
+    _conditioned(remove_group)
     _shared(remove_group)
     _dialed(remove_group)
     remove_group.set_defaults(run=_remove_group)
@@ -384,13 +386,14 @@ def _parser() -> argparse.ArgumentParser:
             "a terminal it is asked for, showing a * for each character"
         ),
     )
-
+    _conditioned(update)
     _shared(update)
     _dialed(update)
     update.set_defaults(run=_update)
 
     remove = commands.add_parser("remove", help="delete an entry")
     remove.add_argument("uuid", help="the entry's identifier")
+    _conditioned(remove)
     _shared(remove)
     _dialed(remove)
     remove.set_defaults(run=_remove)
@@ -430,6 +433,7 @@ def _parser() -> argparse.ArgumentParser:
             "protects that name"
         ),
     )
+    _conditioned(add_field)
     _shared(add_field)
     _dialed(add_field)
     add_field.set_defaults(run=_add_field)
@@ -440,6 +444,7 @@ def _parser() -> argparse.ArgumentParser:
     update_field.add_argument("uuid", help="the entry's identifier")
     update_field.add_argument("name", help="the string's name")
     _valued(update_field)
+    _conditioned(update_field)
     _shared(update_field)
     _dialed(update_field)
     update_field.set_defaults(run=_update_field)
@@ -450,6 +455,7 @@ def _parser() -> argparse.ArgumentParser:
     )
     strip_field.add_argument("uuid", help="the entry's identifier")
     strip_field.add_argument("name", help="the string's name")
+    _conditioned(strip_field)
     _shared(strip_field)
     _dialed(strip_field)
     strip_field.set_defaults(run=_strip_field)
@@ -477,6 +483,7 @@ def _parser() -> argparse.ArgumentParser:
     add_attachment.add_argument(
         "--from", dest="source", type=Path, required=True, help="the file to read it from"
     )
+    _conditioned(add_attachment)
     _shared(add_attachment)
     _dialed(add_attachment)
     add_attachment.set_defaults(run=_add_attachment)
@@ -489,6 +496,7 @@ def _parser() -> argparse.ArgumentParser:
     update_attachment.add_argument(
         "--from", dest="source", type=Path, required=True, help="the file to read it from"
     )
+    _conditioned(update_attachment)
     _shared(update_attachment)
     _dialed(update_attachment)
     update_attachment.set_defaults(run=_update_attachment)
@@ -498,6 +506,7 @@ def _parser() -> argparse.ArgumentParser:
     )
     strip_attachment.add_argument("uuid", help="the entry's identifier")
     strip_attachment.add_argument("name", help="the attachment's name")
+    _conditioned(strip_attachment)
     _shared(strip_attachment)
     _dialed(strip_attachment)
     strip_attachment.set_defaults(run=_strip_attachment)
@@ -574,6 +583,39 @@ def _valued(parser: argparse.ArgumentParser) -> None:
             "showing a * for each character"
         ),
     )
+
+
+def _conditioned(parser: argparse.ArgumentParser) -> None:
+    """The tag a write is made under, which `-o json` printed from a read as `etag`."""
+    parser.add_argument(
+        "--if-match",
+        metavar="ETAG",
+        type=_condition,
+        help=(
+            "write only while the node still holds what this tag says, as -o json printed it "
+            "from a read, quotes and all; refused with exit 1, and nothing changed, when "
+            "somebody changed it since or when the gate gives this client no tags. Left off, "
+            "the write goes ahead whatever changed"
+        ),
+    )
+
+
+def _condition(text: str) -> str:
+    """A tag a write can be made under, refused here as an argument rather than after dialing."""
+    try:
+        transport.check_condition(text)
+    except ProtocolError as error:
+        raise argparse.ArgumentTypeError(str(error)) from None
+
+    return text
+
+
+def _left(document: dict[str, object], etag: str | None) -> dict[str, object]:
+    """A document with the tag the gate gave, set only when it gave one: absent is not empty."""
+    if etag is not None:
+        document["etag"] = etag
+
+    return document
 
 
 def _shared(parser: argparse.ArgumentParser) -> None:
@@ -1382,9 +1424,11 @@ def _update_group(arguments: argparse.Namespace) -> int:
         key_password=_key_password(arguments),
         **_dialing(arguments),
     )
-    client.update_group(arguments.uuid, name=arguments.name, notes=arguments.notes)
+    etag = client.update_group(
+        arguments.uuid, name=arguments.name, notes=arguments.notes, if_match=arguments.if_match
+    )
 
-    _emit(arguments, {"uuid": arguments.uuid}, [f"updated {arguments.uuid}"])
+    _emit(arguments, _left({"uuid": arguments.uuid}, etag), [f"updated {arguments.uuid}"])
     return 0
 
 
@@ -1396,20 +1440,21 @@ def _remove_group(arguments: argparse.Namespace) -> int:
         key_password=_key_password(arguments),
         **_dialing(arguments),
     )
-    client.delete_group(arguments.uuid)
+    client.delete_group(arguments.uuid, if_match=arguments.if_match)
 
     _emit(arguments, {"uuid": arguments.uuid}, [f"removed {arguments.uuid}"])
     return 0
 
 
 def _group(group: api.Group) -> dict[str, object]:
-    """A group as `-o json` prints it: notes only when it was read, which a listing is not."""
+    """A group as `-o json` prints it: notes and a tag only when it was read, not listed."""
     document: dict[str, object] = {"uuid": group.uuid, "name": group.name, "parent": group.parent}
     _said(document, "created", group.created)
     _said(document, "modified", group.modified)
     if group.is_read:
         document["notes"] = group.notes
 
+    _left(document, group.read_etag)
     return document
 
 
@@ -1493,6 +1538,7 @@ def _show(arguments: argparse.Namespace) -> int:
     document["fields"] = {name: values[name] for name in sorted(values)}
     document["protected"] = list(entry.protected)
     document["withheld"] = list(entry.withheld)
+    _left(document, entry.read_etag)
 
     _emit(arguments, document, lines)
     return 0
@@ -1554,7 +1600,7 @@ def _update(arguments: argparse.Namespace) -> int:
         # Read rather than argued, as `add` reads one.
         password = _secret("New password: ").rstrip("\n")
 
-    client.update_entry(
+    etag = client.update_entry(
         arguments.uuid,
         title=arguments.title,
         username=arguments.username,
@@ -1562,9 +1608,10 @@ def _update(arguments: argparse.Namespace) -> int:
         url=arguments.url,
         notes=arguments.notes,
         expires=arguments.expires,
+        if_match=arguments.if_match,
     )
 
-    _emit(arguments, {"uuid": arguments.uuid}, [f"updated {arguments.uuid}"])
+    _emit(arguments, _left({"uuid": arguments.uuid}, etag), [f"updated {arguments.uuid}"])
     return 0
 
 
@@ -1576,7 +1623,7 @@ def _remove(arguments: argparse.Namespace) -> int:
         key_password=_key_password(arguments),
         **_dialing(arguments),
     )
-    client.delete_entry(arguments.uuid)
+    client.delete_entry(arguments.uuid, if_match=arguments.if_match)
     _emit(arguments, {"uuid": arguments.uuid}, [f"removed {arguments.uuid}"])
     return 0
 
@@ -1591,9 +1638,14 @@ def _fields(arguments: argparse.Namespace) -> int:
     )
     found = client.fields(arguments.uuid)
 
+    # Each with the entry's tag when the gate gave one, since a field the listing named is taken
+    # off under that tag without being read first.
     _emit(
         arguments,
-        [{"name": field.name, "protected": field.protected} for field in found],
+        [
+            _left({"name": field.name, "protected": field.protected}, field.read_etag)
+            for field in found
+        ],
         [
             _printable(field.name) + (" (protected)" if field.protected else "")
             for field in found
@@ -1617,11 +1669,9 @@ def _field(arguments: argparse.Namespace) -> int:
     # reads one value a word it would take for the value, and set somewhere as a password.
     value = found.value
 
-    _emit(
-        arguments,
-        {"name": found.name, "protected": found.protected, "value": value},
-        [_printable(value)],
-    )
+    document: dict[str, object] = {"name": found.name, "protected": found.protected, "value": value}
+    _left(document, found.read_etag)
+    _emit(arguments, document, [_printable(value)])
     return 0
 
 
@@ -1642,11 +1692,17 @@ def _add_field(arguments: argparse.Namespace) -> int:
         **_dialing(arguments),
     )
     value = _value(arguments, f"Value of {arguments.name}: ")
-    client.create_field(arguments.uuid, arguments.name, value, protected=arguments.protected)
+    etag = client.create_field(
+        arguments.uuid,
+        arguments.name,
+        value,
+        protected=arguments.protected,
+        if_match=arguments.if_match,
+    )
 
     _emit(
         arguments,
-        {"uuid": arguments.uuid, "name": arguments.name},
+        _left({"uuid": arguments.uuid, "name": arguments.name}, etag),
         [f"added {_printable(arguments.name)} to {arguments.uuid}"],
     )
     return 0
@@ -1661,11 +1717,11 @@ def _update_field(arguments: argparse.Namespace) -> int:
         **_dialing(arguments),
     )
     value = _value(arguments, f"New value of {arguments.name}: ")
-    client.update_field(arguments.uuid, arguments.name, value)
+    etag = client.update_field(arguments.uuid, arguments.name, value, if_match=arguments.if_match)
 
     _emit(
         arguments,
-        {"uuid": arguments.uuid, "name": arguments.name},
+        _left({"uuid": arguments.uuid, "name": arguments.name}, etag),
         [f"updated {_printable(arguments.name)} on {arguments.uuid}"],
     )
     return 0
@@ -1679,11 +1735,11 @@ def _strip_field(arguments: argparse.Namespace) -> int:
         key_password=_key_password(arguments),
         **_dialing(arguments),
     )
-    client.strip_field(arguments.uuid, arguments.name)
+    etag = client.strip_field(arguments.uuid, arguments.name, if_match=arguments.if_match)
 
     _emit(
         arguments,
-        {"uuid": arguments.uuid, "name": arguments.name},
+        _left({"uuid": arguments.uuid, "name": arguments.name}, etag),
         [f"stripped {_printable(arguments.name)} from {arguments.uuid}"],
     )
     return 0
@@ -1702,7 +1758,10 @@ def _attachments(arguments: argparse.Namespace) -> int:
 
     _emit(
         arguments,
-        [{"name": attachment.name, "size": attachment.size} for attachment in found],
+        [
+            _left({"name": attachment.name, "size": attachment.size}, attachment.read_etag)
+            for attachment in found
+        ],
         [f"{attachment.size:>10}  {_printable(attachment.name)}" for attachment in found],
     )
     return 0
@@ -1736,21 +1795,21 @@ def _fetch(arguments: argparse.Namespace) -> int:
         print(str(error), file=sys.stderr)
         return 2
 
-    _emit(
-        arguments,
-        {
-            "uuid": arguments.uuid,
-            "name": arguments.name,
-            "size": len(content),
-            "path": str(arguments.to),
-        },
-        [f"wrote {len(content)} bytes to {arguments.to}"],
-    )
+    document: dict[str, object] = {
+        "uuid": arguments.uuid,
+        "name": arguments.name,
+        "size": len(content),
+        "path": str(arguments.to),
+    }
+    _left(document, attachment.read_etag)
+    _emit(arguments, document, [f"wrote {len(content)} bytes to {arguments.to}"])
     return 0
 
 
 def _attaching(
-    arguments: argparse.Namespace, write: Callable[[api.GateClient, bytes], None], done: str
+    arguments: argparse.Namespace,
+    write: Callable[[api.GateClient, bytes], str | None],
+    done: str,
 ) -> int:
     """Read the file an attachment comes from, and only then dial, write it and say so.
 
@@ -1772,11 +1831,11 @@ def _attaching(
         key_password=_key_password(arguments),
         **_dialing(arguments),
     )
-    write(client, content)
+    etag = write(client, content)
 
     _emit(
         arguments,
-        {"uuid": arguments.uuid, "name": arguments.name, "size": len(content)},
+        _left({"uuid": arguments.uuid, "name": arguments.name, "size": len(content)}, etag),
         [f"{done}, {len(content)} bytes"],
     )
     return 0
@@ -1785,7 +1844,9 @@ def _attaching(
 def _add_attachment(arguments: argparse.Namespace) -> int:
     return _attaching(
         arguments,
-        lambda client, content: client.create_attachment(arguments.uuid, arguments.name, content),
+        lambda client, content: client.create_attachment(
+            arguments.uuid, arguments.name, content, if_match=arguments.if_match
+        ),
         f"added {_printable(arguments.name)} to {arguments.uuid}",
     )
 
@@ -1793,7 +1854,9 @@ def _add_attachment(arguments: argparse.Namespace) -> int:
 def _update_attachment(arguments: argparse.Namespace) -> int:
     return _attaching(
         arguments,
-        lambda client, content: client.update_attachment(arguments.uuid, arguments.name, content),
+        lambda client, content: client.update_attachment(
+            arguments.uuid, arguments.name, content, if_match=arguments.if_match
+        ),
         f"updated {_printable(arguments.name)} on {arguments.uuid}",
     )
 
@@ -1806,11 +1869,11 @@ def _strip_attachment(arguments: argparse.Namespace) -> int:
         key_password=_key_password(arguments),
         **_dialing(arguments),
     )
-    client.strip_attachment(arguments.uuid, arguments.name)
+    etag = client.strip_attachment(arguments.uuid, arguments.name, if_match=arguments.if_match)
 
     _emit(
         arguments,
-        {"uuid": arguments.uuid, "name": arguments.name},
+        _left({"uuid": arguments.uuid, "name": arguments.name}, etag),
         [f"stripped {_printable(arguments.name)} from {arguments.uuid}"],
     )
     return 0

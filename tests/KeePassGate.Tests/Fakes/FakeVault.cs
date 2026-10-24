@@ -227,6 +227,83 @@ namespace KeePassGate.Tests.Fakes
             return group == null ? null : group.Describe();
         }
 
+        /// <summary>How many tags have been taken, so that a test can say a route took none.</summary>
+        public int TagsTaken { get; private set; }
+
+        public string GroupTag(string uuid)
+        {
+            Looking();
+
+            var group = Find(uuid);
+            if (group == null)
+            {
+                return null;
+            }
+
+            TagsTaken++;
+            return group.Tag();
+        }
+
+        public string EntryTag(string uuid)
+        {
+            Looking();
+
+            if (string.Equals(uuid, Vanishes, StringComparison.Ordinal))
+            {
+                return null;
+            }
+
+            var entry = FindEntry(uuid);
+            return entry == null ? null : Tag(entry);
+        }
+
+        /// <summary>
+        /// What the entry holds, condensed as the real vault condenses it: protection as the
+        /// database decides it, and an attachment's bytes only up to the largest the gate serves,
+        /// each one counted as a read, since the real vault decrypts it to hash it.
+        /// </summary>
+        private string Tag(Held entry)
+        {
+            TagsTaken++;
+
+            var parts = new List<string>
+            {
+                "entry",
+                entry.Uuid,
+                entry.Group,
+                entry.Expires.HasValue
+                    ? entry.Expires.Value.UtcTicks.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                    : "never",
+            };
+
+            foreach (var field in entry.Fields)
+            {
+                parts.Add(field.Key);
+                parts.Add(Guards(entry, field.Key) ? "protected" : "plain");
+                parts.Add(field.Value);
+            }
+
+            foreach (var attachment in entry.Attachments)
+            {
+                parts.Add(attachment.Key);
+                parts.Add(attachment.Value.Length.ToString(System.Globalization.CultureInfo.InvariantCulture));
+
+                if (attachment.Value.Length <= VaultAttachment.MostServed)
+                {
+                    AttachmentReads++;
+                    parts.Add(Convert.ToBase64String(attachment.Value));
+                }
+            }
+
+            return Tags.Of(parts.ToArray());
+        }
+
+        /// <summary>The entry as one lookup describes it, saying whether it holds a protected value.</summary>
+        private VaultEntry Single(Held entry)
+        {
+            return entry.Describe(entry.Fields.Keys.Any(n => Guards(entry, n)));
+        }
+
         public IReadOnlyList<VaultGroup> Subgroups(string uuid)
         {
             Looking();
@@ -255,7 +332,7 @@ namespace KeePassGate.Tests.Fakes
             }
 
             var entry = FindEntry(uuid);
-            return entry == null ? null : entry.Describe();
+            return entry == null ? null : Single(entry);
         }
 
         /// <summary>An entry that is there until it is read, which is a delete mid-request.</summary>
@@ -295,7 +372,7 @@ namespace KeePassGate.Tests.Fakes
             return entry == null
                 ? null
                 : new VaultEntryDetail(
-                    entry.Describe(),
+                    Single(entry),
                     new Dictionary<string, string>(entry.Fields, StringComparer.Ordinal),
                     entry.Fields.Keys.Where(n => Guards(entry, n)).ToList());
         }
@@ -415,19 +492,19 @@ namespace KeePassGate.Tests.Fakes
                     return VaultWrite.Missing();
                 }
 
+                if (Busy != null)
+                {
+                    return VaultWrite.Busy(Busy);
+                }
+
                 var uuid = Add(parent.Uuid, name);
                 _groups[uuid].Notes = notes ?? string.Empty;
                 return VaultWrite.Created(uuid);
             });
         }
 
-        public VaultWrite UpdateGroup(string uuid, string name, string notes)
+        public VaultWrite UpdateGroup(string uuid, string name, string notes, VaultTagging tagging)
         {
-            if (name == null && notes == null)
-            {
-                return Untouched(() => Find(uuid) != null);
-            }
-
             return Change(() =>
             {
                 var group = Find(uuid);
@@ -436,13 +513,19 @@ namespace KeePassGate.Tests.Fakes
                     return VaultWrite.Missing();
                 }
 
+                var refused = Refused(tagging, () => group.Tag());
+                if (refused != null)
+                {
+                    return refused;
+                }
+
                 group.Name = name ?? group.Name;
                 group.Notes = notes ?? group.Notes;
-                return VaultWrite.Done();
+                return VaultWrite.Done(tagging.Answers ? group.Tag() : null);
             });
         }
 
-        public VaultWrite DeleteGroup(string uuid)
+        public VaultWrite DeleteGroup(string uuid, VaultTagging tagging)
         {
             return Change(() =>
             {
@@ -463,6 +546,12 @@ namespace KeePassGate.Tests.Fakes
                     return VaultWrite.Conflict("the group still holds something");
                 }
 
+                var refused = Refused(tagging, () => group.Tag());
+                if (refused != null)
+                {
+                    return refused;
+                }
+
                 _groups.Remove(group.Uuid);
                 return VaultWrite.Done();
             });
@@ -477,6 +566,11 @@ namespace KeePassGate.Tests.Fakes
                 if (group == null)
                 {
                     return VaultWrite.Missing();
+                }
+
+                if (Busy != null)
+                {
+                    return VaultWrite.Busy(Busy);
                 }
 
                 var uuid = AddEntry(group.Uuid, string.Empty);
@@ -520,13 +614,11 @@ namespace KeePassGate.Tests.Fakes
         }
 
         public VaultWrite UpdateEntry(
-            string uuid, IReadOnlyDictionary<string, string> fields, VaultExpiry expiry = null)
+            string uuid,
+            IReadOnlyDictionary<string, string> fields,
+            VaultTagging tagging,
+            VaultExpiry expiry = null)
         {
-            if ((fields == null || fields.Count == 0) && expiry == null)
-            {
-                return Untouched(() => FindEntry(uuid) != null);
-            }
-
             if (expiry != null && expiry.IsAuto)
             {
                 return VaultWrite.Failed("only a new entry takes the expiry the options set");
@@ -540,13 +632,19 @@ namespace KeePassGate.Tests.Fakes
                     return VaultWrite.Missing();
                 }
 
+                if (fields != null && Clashes(entry.Fields.Keys, fields.Keys))
+                {
+                    return VaultWrite.Conflict("that field is already there");
+                }
+
+                var refused = Refused(tagging, () => Tag(entry));
+                if (refused != null)
+                {
+                    return refused;
+                }
+
                 if (fields != null)
                 {
-                    if (Clashes(entry.Fields.Keys, fields.Keys))
-                    {
-                        return VaultWrite.Conflict("that field is already there");
-                    }
-
                     foreach (var field in fields)
                     {
                         entry.Fields[field.Key] = field.Value;
@@ -558,11 +656,11 @@ namespace KeePassGate.Tests.Fakes
                     entry.Expires = expiry.When;
                 }
 
-                return VaultWrite.Done();
+                return VaultWrite.Done(Left(tagging, entry));
             });
         }
 
-        public VaultWrite DeleteEntry(string uuid)
+        public VaultWrite DeleteEntry(string uuid, VaultTagging tagging)
         {
             return Change(() =>
             {
@@ -572,12 +670,19 @@ namespace KeePassGate.Tests.Fakes
                     return VaultWrite.Missing();
                 }
 
+                var refused = Refused(tagging, () => Tag(entry));
+                if (refused != null)
+                {
+                    return refused;
+                }
+
                 _entries.Remove(entry.Uuid);
                 return VaultWrite.Done();
             });
         }
 
-        public VaultWrite CreateField(string entryUuid, string name, string value, bool isProtected)
+        public VaultWrite CreateField(
+            string entryUuid, string name, string value, bool isProtected, VaultTagging tagging)
         {
             return Change(() =>
             {
@@ -592,6 +697,12 @@ namespace KeePassGate.Tests.Fakes
                     return VaultWrite.Conflict("that field is already there");
                 }
 
+                var refused = Refused(tagging, () => Tag(entry));
+                if (refused != null)
+                {
+                    return refused;
+                }
+
                 entry.Fields[name] = value ?? string.Empty;
 
                 if (isProtected)
@@ -599,11 +710,11 @@ namespace KeePassGate.Tests.Fakes
                     entry.Protected.Add(name);
                 }
 
-                return VaultWrite.Created(name);
+                return VaultWrite.Created(name, Left(tagging, entry));
             });
         }
 
-        public VaultWrite UpdateField(string entryUuid, string name, string value)
+        public VaultWrite UpdateField(string entryUuid, string name, string value, VaultTagging tagging)
         {
             return Change(() =>
             {
@@ -613,27 +724,40 @@ namespace KeePassGate.Tests.Fakes
                     return VaultWrite.Missing();
                 }
 
+                var refused = Refused(tagging, () => Tag(entry));
+                if (refused != null)
+                {
+                    return refused;
+                }
+
                 entry.Fields[name] = value ?? string.Empty;
-                return VaultWrite.Done();
+                return VaultWrite.Done(Left(tagging, entry));
             });
         }
 
-        public VaultWrite DeleteField(string entryUuid, string name)
+        public VaultWrite DeleteField(string entryUuid, string name, VaultTagging tagging)
         {
             return Change(() =>
             {
                 var entry = FindEntry(entryUuid);
-                if (entry == null || !Holds(entry.Fields.Keys, name) || !entry.Fields.Remove(name))
+                if (entry == null || !Holds(entry.Fields.Keys, name))
                 {
                     return VaultWrite.Missing();
                 }
 
+                var refused = Refused(tagging, () => Tag(entry));
+                if (refused != null)
+                {
+                    return refused;
+                }
+
+                entry.Fields.Remove(name);
                 entry.Protected.Remove(name);
-                return VaultWrite.Done();
+                return VaultWrite.Done(Left(tagging, entry));
             });
         }
 
-        public VaultWrite CreateAttachment(string entryUuid, string name, byte[] content)
+        public VaultWrite CreateAttachment(string entryUuid, string name, byte[] content, VaultTagging tagging)
         {
             return Change(() =>
             {
@@ -648,12 +772,18 @@ namespace KeePassGate.Tests.Fakes
                     return VaultWrite.Conflict("that attachment is already there");
                 }
 
+                var refused = Refused(tagging, () => Tag(entry));
+                if (refused != null)
+                {
+                    return refused;
+                }
+
                 entry.Attachments[name] = content ?? Array.Empty<byte>();
-                return VaultWrite.Created(name);
+                return VaultWrite.Created(name, Left(tagging, entry));
             });
         }
 
-        public VaultWrite UpdateAttachment(string entryUuid, string name, byte[] content)
+        public VaultWrite UpdateAttachment(string entryUuid, string name, byte[] content, VaultTagging tagging)
         {
             return Change(() =>
             {
@@ -663,22 +793,35 @@ namespace KeePassGate.Tests.Fakes
                     return VaultWrite.Missing();
                 }
 
+                var refused = Refused(tagging, () => Tag(entry));
+                if (refused != null)
+                {
+                    return refused;
+                }
+
                 entry.Attachments[name] = content ?? Array.Empty<byte>();
-                return VaultWrite.Done();
+                return VaultWrite.Done(Left(tagging, entry));
             });
         }
 
-        public VaultWrite DeleteAttachment(string entryUuid, string name)
+        public VaultWrite DeleteAttachment(string entryUuid, string name, VaultTagging tagging)
         {
             return Change(() =>
             {
                 var entry = FindEntry(entryUuid);
-                if (entry == null || !Holds(entry.Attachments.Keys, name) || !entry.Attachments.Remove(name))
+                if (entry == null || !Holds(entry.Attachments.Keys, name))
                 {
                     return VaultWrite.Missing();
                 }
 
-                return VaultWrite.Done();
+                var refused = Refused(tagging, () => Tag(entry));
+                if (refused != null)
+                {
+                    return refused;
+                }
+
+                entry.Attachments.Remove(name);
+                return VaultWrite.Done(Left(tagging, entry));
             });
         }
 
@@ -696,36 +839,44 @@ namespace KeePassGate.Tests.Fakes
         }
 
         /// <summary>
-        /// An update that named nothing, which `KdbxVault` answers without writing anything.
+        /// The refusals every change makes once the node is found and its content-independent
+        /// refusals are made, in the real vault's order: a dialog on the node, then the condition.
         /// </summary>
         /// <remarks>
-        /// Here so that the two agree about it. A body naming no member is one the document allows
-        /// on both update routes, and the real vault stopped stamping a modification time, a usage
-        /// count and a history revision for one; a stand-in that went on writing would let a test
-        /// pass on behavior nothing has.
+        /// That order is RFC 9110 section 13.2.1's, and the real vault's, so this keeps it: a fake
+        /// answering `503` where the vault answers `412`, or the other way round, would let a
+        /// handler test pass on an order nothing has. A change that turns out to change nothing is
+        /// asked the condition as well, since the real vault asks it before it compares anything.
         /// </remarks>
-        private VaultWrite Untouched(Func<bool> present)
+        private VaultWrite Refused(VaultTagging tagging, Func<string> tag)
         {
-            Looking();
-
-            if (WriteBlocked != null)
+            if (tagging == null)
             {
-                return VaultWrite.Failed(WriteBlocked);
+                throw new ArgumentNullException(nameof(tagging));
             }
 
-            return present() ? VaultWrite.Done() : VaultWrite.Missing();
+            if (Busy != null)
+            {
+                return VaultWrite.Busy(Busy);
+            }
+
+            return VaultPrecondition.Fails(tagging.Precondition, tagging.NeedsTag ? tag() : null)
+                ? VaultWrite.PreconditionFailed()
+                : null;
+        }
+
+        private string Left(VaultTagging tagging, Held entry)
+        {
+            return tagging.Answers ? Tag(entry) : null;
         }
 
         private VaultWrite Change(Func<VaultWrite> change)
         {
             Looking();
 
-            if (WriteBlocked != null)
-            {
-                return VaultWrite.Failed(WriteBlocked);
-            }
-
-            return Busy != null ? VaultWrite.Busy(Busy) : change();
+            // Not `Busy`, which each change answers itself once it has found the node, so that a
+            // node gone or a name taken is answered first, as the real vault answers them.
+            return WriteBlocked != null ? VaultWrite.Failed(WriteBlocked) : change();
         }
 
         /// <summary>Counts one lookup or change, and runs what <see cref="After"/> left once it is due.</summary>
@@ -813,6 +964,12 @@ namespace KeePassGate.Tests.Fakes
                 return new VaultGroup(
                     Uuid, Name, Notes, Parent, DateTimeOffset.MinValue, DateTimeOffset.MinValue, Rules);
             }
+
+            /// <summary>What the group holds, condensed, as the real vault condenses it.</summary>
+            public string Tag()
+            {
+                return Tags.Of("group", Uuid, Parent, Name, Notes);
+            }
         }
 
         private sealed class Held
@@ -853,7 +1010,11 @@ namespace KeePassGate.Tests.Fakes
             /// <summary>When it expires, or null when it does not, as the real vault describes one.</summary>
             public DateTimeOffset? Expires { get; set; }
 
-            public VaultEntry Describe()
+            /// <param name="holdsProtected">
+            /// Whether any of its strings is protected, which a single lookup says and a listing
+            /// leaves null, as in the real vault.
+            /// </param>
+            public VaultEntry Describe(bool? holdsProtected = null)
             {
                 string title;
                 string url;
@@ -864,7 +1025,33 @@ namespace KeePassGate.Tests.Fakes
                 return new VaultEntry(
                     Uuid, Group, title ?? string.Empty, url ?? string.Empty,
                     DateTimeOffset.MinValue, DateTimeOffset.MinValue, Node,
-                    Protected.Contains("Title"), Protected.Contains("URL"), Expires);
+                    Protected.Contains("Title"), Protected.Contains("URL"), Expires,
+                    holdsProtected);
+            }
+        }
+
+        /// <summary>A digest of the parts, each behind its length, as the real vault's tags are made.</summary>
+        /// <remarks>
+        /// Content rather than a counter, so that a change that puts back what was there gives
+        /// the tag back as well, which is what the real one does, and with no key, since nothing
+        /// here is a secret.
+        /// </remarks>
+        private static class Tags
+        {
+            public static string Of(params string[] parts)
+            {
+                var joined = new System.Text.StringBuilder();
+                foreach (var part in parts)
+                {
+                    var text = part ?? string.Empty;
+                    joined.Append(text.Length).Append(':').Append(text);
+                }
+
+                using (var sha256 = System.Security.Cryptography.SHA256.Create())
+                {
+                    var digest = sha256.ComputeHash(System.Text.Encoding.UTF8.GetBytes(joined.ToString()));
+                    return BitConverter.ToString(digest, 0, 16).Replace("-", string.Empty).ToLowerInvariant();
+                }
             }
         }
     }

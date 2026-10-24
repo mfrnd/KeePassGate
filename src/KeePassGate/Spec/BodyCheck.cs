@@ -133,7 +133,8 @@ namespace KeePassGate.Spec
         /// **Stricter than a path parameter's**, because the router asks only whether a query name
         /// is declared and never holds a value to anything. So a query parameter is a string and
         /// says nothing more, and a document that wants a bound on one, the paging `API.md` §407
-        /// expects included, brings the check with it or does not load.
+        /// expects included, brings the check with it or does not load. `If-Match` is held to the
+        /// same, since what it says is read by `VaultPrecondition` and not by a schema.
         /// </remarks>
         public static string SupportsQuery(OpenApiSchema schema)
         {
@@ -144,7 +145,7 @@ namespace KeePassGate.Spec
 
             if (!string.Equals(schema.Type, "string", StringComparison.Ordinal))
             {
-                return "a query parameter is a string, and this declares " + Describe(schema.Type);
+                return "a query or header parameter is a string, and this declares " + Describe(schema.Type);
             }
 
             return Unimplemented(schema);

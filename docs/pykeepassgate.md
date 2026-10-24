@@ -636,6 +636,82 @@ that is not there or will not read is exit code 2 with nothing sent, as a place 
 write to is. Adding needs `C` and replacing `U`, each with `A`; stripping needs `S` alone, as
 stripping a field does.
 
+## Write against what was read
+
+A program that reads an entry, works on it, and writes it back carries what it read over whatever
+changed in the meantime: an edit the operator made in KeePass, another client's write, a merge.
+Every read of a group or an entry hands back the tag of what it read, and every write can be made
+on the condition that the node still holds exactly that:
+
+```python
+entry = client.entry(uuid)
+rotated = rotate(entry.password)
+
+try:
+    client.update_entry(uuid, password=rotated, if_match=entry.etag)
+except api.PreconditionFailed:
+    ...     # it changed since it was read: read it again, and decide again
+```
+
+**`etag` is the tag the read was answered with**, on a group, an entry, a field and an attachment
+read on their own, and on each field and attachment an entry's listings name, which are about
+that one entry. It is absent on a group or an entry only listed, which carries none, and
+`AttributeError` says how to get one. It is opaque and kept exactly as the gate sent it, quotes
+and all, to be handed back unchanged. An entry has one tag for itself and everything in it, so a
+field or an attachment carries its entry's, and a write to one field under it is refused if
+anything in the entry changed, not only that field. Two reads of a node compare equal whatever
+tag each came with, since the tag is not part of what the node holds.
+
+**The gate hands a tag only to a client whose rule reads everything it covers**: `read` on a
+group, and on an entry `read` reaching its attachments and, when the entry holds any, its
+protected values, from one rule. A tag is a digest of the content, so one handed to a client that
+may not read all of it would let that client test guesses at the rest by writing them where it
+may write. Any other client reads as before with no `etag`, where `AttributeError` says why, its
+writes return `None`, and any `if_match` it sends is `PreconditionFailed`, since it cannot know
+what it would be asking.
+
+**`if_match` is on every write about one group or one entry**: `update_group`, `delete_group`,
+`update_entry`, `delete_entry`, `create_field`, `update_field`, `strip_field`,
+`create_attachment`, `update_attachment` and `strip_attachment`. A node that no longer holds what
+it names is `PreconditionFailed`, `412`, with nothing changed. A refusal that does not depend on
+the tag comes first: a node that is not there, or not reachable, is the `404` it always is, a name
+taken or a group still holding something is `409`, and a dialog open on the node is `503 busy`.
+Left out, nothing is asked, and the write goes ahead whatever changed. `"*"` asks only that the
+node is there. `get`, `head` and `send` take it as well, for a route this client has no method
+for, and `head` answers with the tag the route carries, which is a way to ask whether a tag is
+still current without reading anything. One that could not be sent as a header is refused with
+`ProtocolError` before anything is dialed.
+
+**A write answers with the tag it left**, so a second write can name it without reading in
+between. The gate puts it in the body of its answer, as `etag`, and each method returns it: every
+update, `create_field` and `create_attachment`, and `strip_field` and `strip_attachment`, since
+the entry is still there. `delete_group` and `delete_entry` return `None`, since what they were
+about is gone, and `create_group` and `create_entry` return what addresses the new node, which a
+read then tags.
+
+**A tag says nothing about what it was made from.** It is a keyed digest the plugin makes with a
+secret derived from the database's own host certificate, which no client holds, so a client
+cannot compute a tag for a guess. The same content keeps the same tag across a lock, a KeePass
+restart and a reload, and recreating the database's certificate authority changes every tag,
+which costs a `412` and never an overwrite.
+
+From the command line, `-o json` prints a read's tag as `etag`, and every write about one group or
+one entry takes it back as `--if-match`, exactly as printed, quotes and all:
+
+```shell
+etag=$(pykeepassgate show <uuid> -o json | jq -er .etag)
+pykeepassgate update <uuid> --password --if-match "$etag"
+```
+
+`jq -e` fails when the document has no `etag`, which is what a client the gate hands no tag to
+gets; plain `jq -r` prints `null` there, and a write made under that would be refused with a `412`
+for a tag nobody sent. A tag that could not be sent is refused as an argument, with exit `2`,
+before anything is asked for or dialed. A write refused by the gate prints its `412` on standard
+error and exits `1` with nothing changed. Under `-o json` a write prints the tag it left as `etag`
+as well, where the gate gave one, and so do `fields` and `attachments` beside each name, so a
+script can chain writes without reading between them. `plain` prints no tag at all, so what it has
+always printed stays as it was.
+
 ## Ask what it may do before trying
 
 ```shell
@@ -687,7 +763,9 @@ holds less than the database does still prints it.
 than printed as nothing, so `show` has no `expires` when the gate said nothing about one, and
 `null` when it said the entry never expires. Members are named as the gate names them, so
 `whoami -o json` prints what `GET /gate/whoami` answered. A write prints what it addressed, such as
-`{"uuid": "..."}` from `add`.
+`{"uuid": "..."}` from `add`. A read of one group, entry, field or attachment prints its tag as
+`etag`, and a write the tag it left, where the gate gave one, for
+[`--if-match`](#write-against-what-was-read).
 
 **A failure is never a document.** It is the sentence on standard error and the exit code, `1` or
 `2`, whichever format was asked for, so a pipe into `jq` reads nothing rather than half an answer.
@@ -714,6 +792,8 @@ except api.GateUnavailable:
     ...     # any other 503, which `.error` names: not now, and nothing was done
 except api.NotAdmitted:
     ...     # never admitted, revoked, or expired. Pair again.
+except api.PreconditionFailed:
+    ...     # changed since the tag was read: read it again and decide again
 except api.RouteRefused:
     ...     # the rules do not allow this. Ask the operator, not the gate.
 ```
@@ -725,6 +805,7 @@ except api.RouteRefused:
 | `AuthorityUndecided` | The database holds more than one certificate authority, because two copies of it that each made one met in a synchronize, and the operator has not kept one. The gate answers this to every request until somebody chooses at KeePass, which asks on its own screen, so it waits on a person rather than ending on its own. A client of an authority that is not kept stops reaching the database once one is, and pairs again. |
 | `GateUnavailable` | The base of the three above, so catching it catches every `503`, and raised on its own for a `503` whose word this client does not know, or that names none. `.error` is the word, and `.retry_after` the delay the gate asked for. No budget waits it out, because nothing on this side knows what ends it. |
 | `NotAdmitted` | The gate does not admit this certificate: it was never admitted, it was revoked, or it has expired. One that has expired by this machine's clock, by more than the five minutes a clock running ahead of the gate's is allowed, is named as expired, with the moment, before anything is dialed, rather than left for the gate to refuse as it refuses a stranger. To go on reaching the gate, pair again: a renewal needs a certificate that has not expired. To give the identity up, `revoke` removes what is stored for it, and `forget` from a program. |
+| `PreconditionFailed` | A request made with `if_match` that the gate did not serve, so nothing was read or changed: `412`. Most often the node no longer holds what the tag says: another client, the operator in KeePass, a merge or a plugin changed it after the tag was taken, and what mends it is reading the node again, which hands back its tag as it is now, and deciding again whether the change still makes sense. The same `412` answers an `if_match` the gate cannot read as one, and any `if_match` from a client the gate hands no tag to, whose rule does not read everything a tag covers; what mends those is sending none. Not retried, since asking again asks the same question of the same node. It is a `RouteRefused` with `.status` `412`, so a caller catching that already catches this. |
 | `RouteRefused` | The gate refused it. `.status` says which: `404` is absent or not reachable and nothing can be done, while `400` and `409` are about the request itself, and `413` is something too large to carry, an attachment bigger than this gate hands out or a body bigger than it takes, which `.error` says in a sentence. `500` is none of those: the gate failed, and the operator's KeePass is where to look. After `500 not saved` or `500 internal error` nothing was left written that sending it again would duplicate; after `500 not verified` the change may be on the disk, so look first. `500 not recorded` is told only to `pair` and `renew`: the operator approved, the record did not reach the disk and was taken back out, and nothing was handed over, so asking again puts the dialog in front of the operator again; a renewing client's certificate still works, and a pairing's invitation is spent. |
 | `Withheld` | A protected value this client may not read, from every way of reading one: the database protects it, and the rule that lets this client read or list the entry does not grant `P`. The message names the field; the operator can add `P` to that rule. The rest of the answer stands, and `entry.withheld` or `field.withheld` says the same without a `try`: `{name: entry.fields[name] for name in entry.fields if name not in entry.withheld}` reads every value this client may read. |
 | `Unresolved` | From `refs.resolve` alone: a value it will not give as KeePass would, and the message says why. A reference searching by anything but a whole identifier, a reference to an entry this client cannot read, a placeholder KeePass replaces and the resolver does not, references going round in a circle or deeper than KeePass follows, a field's name spelled in another case in letters beyond ASCII, or a standard string held under no name spelled exactly so beside a name beyond ASCII. Use the value as stored, refer by identifier, or ask the operator to let this client read the entry referred to. |
@@ -739,12 +820,12 @@ except api.RouteRefused:
 | `RenewalUnanswered` | Nobody answered the renewal dialog, and nothing changed. Ask again when somebody is at the screen. |
 | `RenewalError` | The base of the five above, for a caller that only wants to know whether the operator let the renewal happen. Never raised on its own: whatever else stops a renewal is the exception any route would raise for it. |
 | `MalformedToken` | The text handed over is not an invitation, so nothing was sent. Check what was pasted. |
-| `ProtocolError` | Something on the wire is not what the protocol allows: an answer this client cannot read, or a request it will not send. Do not retry an answer it cannot read: the two halves disagree about the wire, which `tests/pykeepassgate/test_protocol.py` exists to stop. An answer longer than `max_response_bytes` is refused this way too, and the message says so: raise the setting rather than retry. |
+| `ProtocolError` | Something on the wire is not what the protocol allows: an answer this client cannot read, or a request it will not send, such as an `if_match` that could not be one header line, which is refused before anything is dialed. Do not retry an answer it cannot read: the two halves disagree about the wire, which `tests/pykeepassgate/test_protocol.py` exists to stop. An answer longer than `max_response_bytes` is refused this way too, and the message says so: raise the setting rather than retry. |
 | `NotPaired` | Nothing is stored for a paired client where this looked: nothing has paired under that profile, its identity was given up, or the directory named is not the one the pairing used. Pair, or name the profile or the directory it used. A `StorageError`, so catching that catches this as well. |
 | `StorageError` | From `pair`, before anything is sent: the directory cannot hold credentials, and the message says why. Nothing is spent, so fix that and pair again. Afterwards: what is stored for this client will not read, or could not be written, and the message names the file or the directory to look at. A key stored under a password is one of these when no password was given, or the one given does not open it, and the message names `identity.pem`. |
 | `TransportError` | No whole answer arrived: nothing is listening, the handshake failed, which a paragraph below explains, or the connection broke or timed out once the request was on its way. After a read, send it again. After a write, the change may have landed, so look before sending it again: read or list what it changed, where the rules allow that, or ask the operator. |
 | `ValueError` | A setting or an argument that could not work, refused where it is given and before anything is dialed, stored or spent: a port, a timeout, a retry budget, a response cap, a lifetime, a profile's name, an expiry, a key password or a `dial`. The message names it, and never repeats a password. Correct it in the calling program. |
-| `AttributeError` | Something this client never read, which is absence and not emptiness: a listed entry's `username`, `password`, `notes`, `expires` or `custom()`, a listed group's `notes`, a listed field's `value`, or the `expires` of a read that said nothing about it. Read the node first. A withheld value is never this, so `getattr` with a default and `hasattr` cannot turn one into a default. |
+| `AttributeError` | Something this client never read, which is absence and not emptiness: a listed entry's `username`, `password`, `notes`, `expires` or `custom()`, a listed group's `notes`, a listed field's `value`, the `expires` of a read that said nothing about it, or the `etag` of a group or an entry only listed. Read the node first. The `etag` of a read the gate gave no tag for is this as well, and reading again does not change it: the gate hands tags only to a client whose rule reads everything a tag covers, which the message says. A withheld value is never this, so `getattr` with a default and `hasattr` cannot turn one into a default. |
 | `KeyError` | A name `entry.fields` or `entry.custom()` does not hold, as from any mapping. `get` answers its default for that, and for nothing else. |
 | `TypeError` | A `dial` that handed back something other than a connected socket, which is a mistake in the program's own `dial`; what it handed back is closed first, if it can be. A socket it handed back already closed is a `TransportError` saying the socket could not be used, rather than that a handshake failed. |
 
@@ -878,7 +959,7 @@ answer and with each refusal this client raises.
 from cryptography.x509.oid import ExtendedKeyUsageOID
 
 from pykeepassgate import api
-from pykeepassgate.testing import Authority, FakeGate
+from pykeepassgate.testing import Authority, FakeGate, written
 
 authority = Authority(directory)            # writes authority.pem into it
 host = authority.issue("host", ExtendedKeyUsageOID.SERVER_AUTH, "host.pem")
@@ -903,15 +984,37 @@ def entry(path: str, body: str, client: bytes | None) -> tuple[int, str]:
     return 200, '{"uuid":"..."}'
 ```
 
+`gate.if_match()` is the request's `If-Match`, as its value arrived, or `None`. `gate.tag(etag)`
+puts an `ETag` on the read being answered, as the plugin tags a read, and `written(etag)` is the
+answer to a write that landed, with the tag it left in the body as `etag`, which is where the
+plugin puts a write's. So a test can play an entry that changes under a program holding its tag.
+Which tag matches is the handler's to decide, since this gate holds no node, and so is whether
+the program is one the plugin would hand a tag to at all, since it holds no rule either: a test of
+one it would not answers without `tag` and answers every `If-Match` with `412`.
+
+```python
+def entry(path: str, body: str, client: bytes | None) -> tuple[int, str]:
+    if gate.method() == "PUT":
+        if gate.if_match() != '"read"':
+            return 412, '{"error":"precondition failed"}'
+        return written('"next"')
+    gate.tag('"read"')
+    return 200, ENTRY  # an entry's read, as the plugin answers one
+```
+
 `gate.requests` and `gate.names` record what arrived, and `retry_after`, `declare`, `truncate` and
 `linger` make the answers a gate in trouble gives. `held(until)` is the answer the plugin gives a
 pairing or a renewal whose approval it holds until a moment, `503 busy` with `heldUntil`, for a
 handler to return while a test watches `pair` or `renew` ask again. **Its answers carry the head the plugin's do**:
 the reason phrase, `Content-Type: application/json; charset=utf-8`, `Cache-Control: no-store`,
 `X-Content-Type-Options: nosniff`, and on a `503` `Retry-After: 2`, which `retry_after` changes,
-or takes away when it is `None`. The one header it cannot give is the `Allow` the plugin puts on a
-`405`. It imports no test framework, and the client's own tests build it through fixtures of their
-own.
+or takes away when it is `None`, and an `ETag` wherever `tag` put one. The one header it cannot
+give is the `Allow` the plugin puts on a `405`. **And it refuses what the plugin refuses before any
+route sees it**: a header sent twice, or one whose value holds a control character, is `400` with
+the plugin's reason and never reaches the handler. A handler that raises, `tag` refusing a tag
+the plugin could not have sent among the causes, is answered `500 internal error`, as the plugin
+answers a defect of its own, and what it raised is kept in `gate.failures`. It imports no test
+framework, and the client's own tests build it through fixtures of their own.
 
 **One refusal it makes on its own, and differently from the plugin.** A client certificate that is
 offered is verified in the handshake, its chain and its dates, because `ssl` cannot ask for one

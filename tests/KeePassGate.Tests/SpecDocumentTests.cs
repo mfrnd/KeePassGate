@@ -241,6 +241,27 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void The_operations_taking_a_condition_are_the_ones_whose_target_has_a_tag()
+        {
+            // One group, one entry, and an entry's fields and attachments: every operation on those
+            // six paths, reads and heads among them, and nothing else. A listing of groups or
+            // entries answers about a collection, which has no tag to match, and neither does a
+            // create sent to one.
+            var conditional = SpecDocument.Embedded().Operations
+                .Where(o => o.TakesIfMatch)
+                .Select(o => o.OperationId)
+                .OrderBy(name => name, StringComparer.Ordinal);
+
+            Assert.That(conditional, Is.EqualTo(new[]
+            {
+                "createAttachment", "createField", "deleteEntry", "deleteGroup",
+                "headAttachment", "headAttachments", "headEntry", "headField", "headFields", "headGroup",
+                "listAttachments", "listFields", "readAttachment", "readEntry", "readField", "readGroup",
+                "stripAttachment", "stripField", "updateAttachment", "updateEntry", "updateField", "updateGroup",
+            }));
+        }
+
+        [Test]
         public void Every_body_it_declares_is_one_this_can_check()
         {
             // `SpecDocument.Parse` refuses a schema the checker does not implement, so this is
@@ -821,6 +842,98 @@ namespace KeePassGate.Tests
             Assert.That(writable, Is.Not.Null, "it is still castable; what matters is what that buys");
             Assert.Throws<NotSupportedException>(() => writable.Add("limit"));
             Assert.That(operation.DeclaresQuery("limit"), Is.False);
+        }
+
+        [Test]
+        public void An_operation_declaring_If_Match_takes_a_condition()
+        {
+            var document = SpecDocument.Parse(Document(Conditional("\"412\":{\"description\":\"o\"},")));
+
+            Assert.That(document.Operations.All(o => o.TakesIfMatch), Is.True);
+        }
+
+        [Test]
+        public void If_Match_without_the_answer_to_it_stops_the_document_being_read()
+        {
+            // A client generated from the document would have no way to know what its own
+            // condition does when it does not hold.
+            var raised = Assert.Throws<InvalidOperationException>(
+                () => SpecDocument.Parse(Document(Conditional(string.Empty))));
+
+            Assert.That(raised.Message, Does.Contain("412"));
+        }
+
+        [Test]
+        public void A_header_parameter_nothing_reads_stops_the_document_being_read()
+        {
+            // `If-Match` is the one header a request is read for, so any other declared is a
+            // parameter the document promises and nothing checks.
+            var raised = Assert.Throws<InvalidOperationException>(() => SpecDocument.Parse(Document(
+                "\"/a\":{\"parameters\":[{\"name\":\"X-Invented\",\"in\":\"header\",\"schema\":{\"type\":\"string\"}}]," +
+                "\"get\":{\"operationId\":\"readA\",\"x-kpg-verb\":\"read\",\"responses\":{\"200\":{\"description\":\"o\"}}}," +
+                "\"head\":{\"operationId\":\"headA\",\"x-kpg-verb\":\"read\",\"responses\":{\"200\":{\"description\":\"o\"}}}}")));
+
+            Assert.That(raised.Message, Does.Contain("X-Invented"));
+        }
+
+        [Test]
+        public void A_head_that_ignores_the_condition_its_get_honors_stops_it_too()
+        {
+            var raised = Assert.Throws<InvalidOperationException>(() => SpecDocument.Parse(Document(
+                "\"/a\":{" +
+                "\"get\":{\"operationId\":\"readA\",\"x-kpg-verb\":\"read\"," + IfMatch +
+                "\"responses\":{\"200\":{\"description\":\"o\"},\"412\":{\"description\":\"o\"}}}," +
+                "\"head\":{\"operationId\":\"headA\",\"x-kpg-verb\":\"read\",\"responses\":{\"200\":{\"description\":\"o\"}}}}")));
+
+            Assert.That(raised.Message, Does.Contain(SpecDocument.IfMatchHeader));
+        }
+
+        [Test]
+        public void A_head_that_honors_a_condition_its_get_ignores_stops_it_as_well()
+        {
+            // The other direction, which is the same disagreement: the get would serve what the
+            // head says has changed.
+            var raised = Assert.Throws<InvalidOperationException>(() => SpecDocument.Parse(Document(
+                "\"/a\":{" +
+                "\"get\":{\"operationId\":\"readA\",\"x-kpg-verb\":\"read\",\"responses\":{\"200\":{\"description\":\"o\"}}}," +
+                "\"head\":{\"operationId\":\"headA\",\"x-kpg-verb\":\"read\"," + IfMatch +
+                "\"responses\":{\"200\":{\"description\":\"o\"},\"412\":{\"description\":\"o\"}}}}")));
+
+            Assert.That(raised.Message, Does.Contain(SpecDocument.IfMatchHeader));
+        }
+
+        [TestCase("\"required\":true,\"schema\":{\"type\":\"string\"}", "required")]
+        [TestCase("\"schema\":{\"type\":\"integer\"}", "schema")]
+        [TestCase("\"schema\":{\"type\":\"string\",\"maxLength\":10}", "schema")]
+        public void If_Match_declared_as_something_the_router_does_not_do_stops_the_document_being_read(
+            string declared, string named)
+        {
+            // Required would promise that a request without one is refused, while the router
+            // serves it unconditionally; a schema would promise a check nothing makes.
+            var parameter = "\"parameters\":[{\"name\":\"If-Match\",\"in\":\"header\"," + declared + "}],";
+
+            var raised = Assert.Throws<InvalidOperationException>(() => SpecDocument.Parse(Document(
+                TakingIfMatch(parameter, "\"412\":{\"description\":\"o\"},"))));
+
+            Assert.That(raised.Message, Does.Contain(SpecDocument.IfMatchHeader).And.Contain(named));
+        }
+
+        private const string IfMatch =
+            "\"parameters\":[{\"name\":\"If-Match\",\"in\":\"header\",\"schema\":{\"type\":\"string\"}}],";
+
+        /// <summary>A get and its head, both declaring `If-Match` and answering with these.</summary>
+        private static string Conditional(string precondition)
+        {
+            return TakingIfMatch(IfMatch, precondition);
+        }
+
+        private static string TakingIfMatch(string parameter, string precondition)
+        {
+            return "\"/a\":{" +
+                   "\"get\":{\"operationId\":\"readA\",\"x-kpg-verb\":\"read\"," + parameter +
+                   "\"responses\":{" + precondition + "\"200\":{\"description\":\"o\"}}}," +
+                   "\"head\":{\"operationId\":\"headA\",\"x-kpg-verb\":\"read\"," + parameter +
+                   "\"responses\":{" + precondition + "\"200\":{\"description\":\"o\"}}}}";
         }
 
         private static string Document(string paths)

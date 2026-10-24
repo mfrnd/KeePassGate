@@ -6,6 +6,7 @@ using KeePassGate.Diagnostics;
 using KeePassGate.Pairing;
 using KeePassGate.Pipeline;
 using KeePassGate.Transport;
+using KeePassGate.Vault;
 
 namespace KeePassGate.Spec
 {
@@ -93,6 +94,12 @@ namespace KeePassGate.Spec
 
         /// <summary>Where the router leaves the protected-scope question, ready to be recorded.</summary>
         public const string ReachItem = "kpg.reach";
+
+        /// <summary>
+        /// Where the router leaves what `If-Match` asks, for an operation that declares it and a
+        /// request that carried one: a <see cref="VaultPrecondition"/>, absent otherwise.
+        /// </summary>
+        public const string PreconditionItem = "kpg.precondition";
 
         /// <summary>
         /// Where the router leaves what each profile is granted at the node, for an operation
@@ -510,6 +517,18 @@ namespace KeePassGate.Spec
                 if (operation.Body != null && !Checked(context, operation))
                 {
                     return;
+                }
+
+                // After everything that refuses, so that a condition says nothing about a node
+                // the caller may not reach: a refused node is the same `404` whatever the tag.
+                // The handler asks it of the node, at the read or under the writer's lock.
+                if (operation.TakesIfMatch)
+                {
+                    var precondition = VaultPrecondition.Read(context.GetHeader(SpecDocument.IfMatchHeader));
+                    if (precondition != null)
+                    {
+                        context.Items[PreconditionItem] = precondition;
+                    }
                 }
 
                 // The handler runs as it would for the GET, and what it wrote is dropped by the

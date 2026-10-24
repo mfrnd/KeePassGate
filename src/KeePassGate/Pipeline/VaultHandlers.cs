@@ -1,6 +1,7 @@
 using System;
 using System.Globalization;
 using System.Collections.Generic;
+using System.Net;
 using KeePassGate.Acl;
 using KeePassGate.Spec;
 using KeePassGate.Transport;
@@ -92,16 +93,28 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            var group = vault.Group(Captured(context, "uuid"));
+            var uuid = Captured(context, "uuid");
+
+            // Looked up twice: once to say whether this caller may be handed the tag, and again
+            // after the tag is taken, for what is served with it, for the reason
+            // `IVault.GroupTag` gives.
+            var group = vault.Group(uuid);
+            var tag = MayTag(context, group) ? vault.GroupTag(uuid) : null;
+            group = group == null ? null : vault.Group(uuid);
             if (group == null)
             {
                 Gone(context);
                 return;
             }
 
+            if (PreconditionFails(context, tag))
+            {
+                return;
+            }
+
             var json = new JsonWriter();
             Describe(json, group);
-            context.Respond(200, json.Done());
+            context.Respond(200, json.Done(), Tagged(tag));
         }
 
         public static void CreateGroup(IGateContext context)
@@ -125,9 +138,11 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
+            var uuid = Captured(context, "uuid");
             var body = JsonBody.Read(context.Body);
-            Answer(context, vault.UpdateGroup(
-                Captured(context, "uuid"), body.Text("Name"), body.Text("Notes")));
+            var tagging = Tagging(context, MayTag(context, vault.Group(uuid)), true);
+
+            Answer(context, vault.UpdateGroup(uuid, body.Text("Name"), body.Text("Notes"), tagging));
         }
 
         public static void DeleteGroup(IGateContext context)
@@ -138,7 +153,8 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            Answer(context, vault.DeleteGroup(Captured(context, "uuid")));
+            var uuid = Captured(context, "uuid");
+            Answer(context, vault.DeleteGroup(uuid, Tagging(context, MayTag(context, vault.Group(uuid)), false)));
         }
 
         public static void ListEntries(IGateContext context)
@@ -199,10 +215,20 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            var entry = vault.Read(Captured(context, "uuid"));
+            var uuid = Captured(context, "uuid");
+            var tag = EntryTag(context, vault, uuid);
+            var entry = vault.Read(uuid);
             if (entry == null)
             {
                 Gone(context);
+                return;
+            }
+
+            // Asked again of what was read, which says whether the entry holds a protected value
+            // as of after the tag was taken.
+            tag = MayTag(context, entry.Entry) ? tag : null;
+            if (PreconditionFails(context, tag))
+            {
                 return;
             }
 
@@ -248,7 +274,7 @@ namespace KeePassGate.Pipeline
 
             json.End();
 
-            context.Respond(200, json.Done());
+            context.Respond(200, json.Done(), Tagged(tag));
         }
 
         public static void CreateEntry(IGateContext context)
@@ -317,7 +343,7 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            Answer(context, vault.UpdateEntry(uuid, fields, expiry));
+            Answer(context, vault, uuid, vault.UpdateEntry(uuid, fields, Tagging(context, MayTag(context, entry), true), expiry));
         }
 
         public static void DeleteEntry(IGateContext context)
@@ -328,7 +354,8 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            Answer(context, vault.DeleteEntry(Captured(context, "uuid")));
+            var uuid = Captured(context, "uuid");
+            Answer(context, vault.DeleteEntry(uuid, Tagging(context, MayTag(context, vault.Entry(uuid)), false)));
         }
 
         public static void ListFields(IGateContext context)
@@ -341,11 +368,20 @@ namespace KeePassGate.Pipeline
 
             // One read, which answers for the entry as well as for its strings. Asking whether the
             // entry was there and then listing it was two, and an entry removed between them was
-            // listed as one holding no strings at all.
-            var fields = vault.Fields(Captured(context, "uuid"));
+            // listed as one holding no strings at all. The tag is taken first, for the reason
+            // `IVault.GroupTag` gives, and an entry gone since is gone here.
+            var uuid = Captured(context, "uuid");
+            var tag = EntryTag(context, vault, uuid);
+            var fields = vault.Fields(uuid);
             if (fields == null)
             {
                 Gone(context);
+                return;
+            }
+
+            tag = Confirmed(context, vault, uuid, tag);
+            if (PreconditionFails(context, tag))
+            {
                 return;
             }
 
@@ -361,7 +397,7 @@ namespace KeePassGate.Pipeline
             }
 
             json.End();
-            context.Respond(200, json.Done());
+            context.Respond(200, json.Done(), Tagged(tag));
         }
 
         public static void ReadField(IGateContext context)
@@ -374,8 +410,10 @@ namespace KeePassGate.Pipeline
 
             var uuid = Captured(context, "uuid");
             var name = Captured(context, "name");
-            var value = vault.Field(uuid, name);
 
+            // The tag, before the value it is served with, for the reason `IVault.GroupTag` gives.
+            var tag = EntryTag(context, vault, uuid);
+            var value = vault.Field(uuid, name);
             if (value == null)
             {
                 Gone(context);
@@ -425,6 +463,14 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
+            // Asked of this lookup, which is after the tag, so it is the entry as of then that
+            // decides whether this caller may still be handed it.
+            tag = MayTag(context, entry) ? tag : null;
+            if (PreconditionFails(context, tag))
+            {
+                return;
+            }
+
             var withheld = guarded && !ReachesProtected(context, entry.Node, AclVerb.Read);
             if (withheld)
             {
@@ -434,7 +480,7 @@ namespace KeePassGate.Pipeline
             json.Text("value", withheld ? null : value);
             json.Flag("protected", guarded);
 
-            context.Respond(200, json.Done());
+            context.Respond(200, json.Done(), Tagged(tag));
         }
 
         public static void CreateField(IGateContext context)
@@ -484,7 +530,8 @@ namespace KeePassGate.Pipeline
             // and then storing only `guarded` meant a caller could re-create a standard field
             // unprotected after stripping it, and every later client with `read` and no
             // `protected` was handed it in clear until KeePass next normalized the file.
-            Answer(context, vault.CreateField(uuid, name, made, guarded || vault.Protects(name)));
+            Answer(context, vault, uuid, vault.CreateField(
+                uuid, name, made, guarded || vault.Protects(name), Tagging(context, MayTag(context, entry), true)));
         }
 
         public static void UpdateField(IGateContext context)
@@ -518,7 +565,7 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            Answer(context, vault.UpdateField(uuid, name, written));
+            Answer(context, vault, uuid, vault.UpdateField(uuid, name, written, Tagging(context, MayTag(context, entry), true)));
         }
 
         public static void StripField(IGateContext context)
@@ -555,7 +602,7 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            Answer(context, vault.DeleteField(uuid, name));
+            Answer(context, vault, uuid, vault.DeleteField(uuid, name, Tagging(context, MayTag(context, entry), true)));
         }
 
         public static void ListAttachments(IGateContext context)
@@ -566,11 +613,19 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            // One read, for the reason `ListFields` gives.
-            var attachments = vault.Attachments(Captured(context, "uuid"));
+            // The tag and then one read, for the reasons `ListFields` gives.
+            var uuid = Captured(context, "uuid");
+            var tag = EntryTag(context, vault, uuid);
+            var attachments = vault.Attachments(uuid);
             if (attachments == null)
             {
                 Gone(context);
+                return;
+            }
+
+            tag = Confirmed(context, vault, uuid, tag);
+            if (PreconditionFails(context, tag))
+            {
                 return;
             }
 
@@ -586,7 +641,7 @@ namespace KeePassGate.Pipeline
             }
 
             json.End();
-            context.Respond(200, json.Done());
+            context.Respond(200, json.Done(), Tagged(tag));
         }
 
         /// <summary>
@@ -607,9 +662,10 @@ namespace KeePassGate.Pipeline
         /// together, because a document and a constant that drift apart make an attachment that can
         /// be read and never restored. The document alone cannot say it exactly, since a base64
         /// length names two sizes at this one, so `Decoded` asks the constant of what it decoded as
-        /// well.
+        /// well. It is <see cref="VaultAttachment.MostServed"/>, so that the largest attachment a
+        /// node's tag hashes is the largest a route serves.
         /// </remarks>
-        public const int MaxAttachmentBytes = 512 * 1024;
+        public const int MaxAttachmentBytes = VaultAttachment.MostServed;
 
         public static void ReadAttachment(IGateContext context)
         {
@@ -622,15 +678,23 @@ namespace KeePassGate.Pipeline
             var uuid = Captured(context, "uuid");
             var name = Captured(context, "name");
 
-            // The ceiling goes with the question, so an attachment over it comes back measured
-            // and not decrypted: its size is kept beside its encrypted bytes. Asking a listing
-            // first and reading second was two reads, and an attachment replaced between them,
-            // by the operator's own OK or a synchronize, was decrypted whole at whatever size it
-            // had become before anything refused it.
+            // The tag first, for the reason `IVault.GroupTag` gives. Then the ceiling goes with
+            // the question, so an attachment over it comes back measured and not decrypted: its
+            // size is kept beside its encrypted bytes. Asking a listing first and reading second
+            // was two reads, and an attachment replaced between them, by the operator's own OK or
+            // a synchronize, was decrypted whole at whatever size it had become before anything
+            // refused it.
+            var tag = EntryTag(context, vault, uuid);
             var attachment = vault.Attachment(uuid, name, MaxAttachmentBytes);
             if (attachment == null)
             {
                 Gone(context);
+                return;
+            }
+
+            tag = Confirmed(context, vault, uuid, tag);
+            if (PreconditionFails(context, tag))
+            {
                 return;
             }
 
@@ -653,7 +717,7 @@ namespace KeePassGate.Pipeline
             json.Number("size", content.Length);
             json.Text("content", Convert.ToBase64String(content));
 
-            context.Respond(200, json.Done());
+            context.Respond(200, json.Done(), Tagged(tag));
         }
 
         public static void CreateAttachment(IGateContext context)
@@ -679,7 +743,9 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            Answer(context, vault.CreateAttachment(Captured(context, "uuid"), name, content));
+            var uuid = Captured(context, "uuid");
+            Answer(context, vault, uuid, vault.CreateAttachment(
+                uuid, name, content, Tagging(context, MayTag(context, vault.Entry(uuid)), true)));
         }
 
         public static void UpdateAttachment(IGateContext context)
@@ -699,8 +765,9 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            Answer(context, vault.UpdateAttachment(
-                Captured(context, "uuid"), Captured(context, "name"), content));
+            var uuid = Captured(context, "uuid");
+            Answer(context, vault, uuid, vault.UpdateAttachment(
+                uuid, Captured(context, "name"), content, Tagging(context, MayTag(context, vault.Entry(uuid)), true)));
         }
 
         public static void StripAttachment(IGateContext context)
@@ -711,7 +778,9 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            Answer(context, vault.DeleteAttachment(Captured(context, "uuid"), Captured(context, "name")));
+            var uuid = Captured(context, "uuid");
+            Answer(context, vault, uuid, vault.DeleteAttachment(
+                uuid, Captured(context, "name"), Tagging(context, MayTag(context, vault.Entry(uuid)), true)));
         }
 
         /// <summary>
@@ -1390,14 +1459,183 @@ namespace KeePassGate.Pipeline
             json.Text("modified", Moments.Wire(group.Modified));
         }
 
+        /// <summary>What the request's `If-Match` asks, or null when it carried none.</summary>
+        /// <remarks>
+        /// Left by the router, and only for an operation the document declares `If-Match` on, so a
+        /// handler cannot ask a condition of a route the document says takes none.
+        /// </remarks>
+        private static VaultPrecondition Precondition(IGateContext context)
+        {
+            object found;
+            return context.Items.TryGetValue(SpecRouter.PreconditionItem, out found)
+                ? found as VaultPrecondition
+                : null;
+        }
+
+        /// <summary>Whether this caller may be handed a group's tag and have its `If-Match` asked.</summary>
+        /// <remarks>
+        /// **Only a caller that may read everything the tag covers**, `API.md` §410. A tag is a
+        /// digest of what the node holds, and one handed to a client that may not read all of it
+        /// lets that client test guesses at the rest: it writes a guess where it may write, and the
+        /// tag that comes back, or the `412` that does not, says whether the node now holds what
+        /// it held when the tag was taken. A group's tag covers what `read` serves, so `read` is
+        /// the whole question.
+        /// </remarks>
+        private static bool MayTag(IGateContext context, VaultGroup group)
+        {
+            return group != null && AclResolver.ReadsWhole(group.Node, context.Client.Profiles);
+        }
+
+        /// <summary>Whether this caller may be handed an entry's tag and have its `If-Match` asked.</summary>
+        /// <remarks>
+        /// An entry's tag covers its attachments' bytes, so `read` has to reach them, and its
+        /// protected values when it holds any, so `read` has to reach those too, in one rule, as
+        /// <see cref="AclResolver.ReadsWhole"/> asks. A lookup that did not say whether the entry
+        /// holds one is answered as if it did.
+        /// </remarks>
+        private static bool MayTag(IGateContext context, VaultEntry entry)
+        {
+            if (entry == null)
+            {
+                return false;
+            }
+
+            return entry.HoldsProtected == false
+                ? AclResolver.ReadsWhole(entry.Node, context.Client.Profiles, AclReach.Attachments)
+                : AclResolver.ReadsWhole(entry.Node, context.Client.Profiles, AclReach.Attachments, AclReach.Protected);
+        }
+
+        /// <summary>
+        /// An entry's tag, for a caller that may be handed it, and null for one that may not or an
+        /// entry that is not there.
+        /// </summary>
+        /// <remarks>
+        /// Taken before what it is served with, for the reason `IVault.GroupTag` gives, and only
+        /// for a caller that may have it, since taking one digests every string and attachment.
+        /// What is served afterwards is asked again through <see cref="Confirmed"/>.
+        /// </remarks>
+        private static string EntryTag(IGateContext context, IVault vault, string uuid)
+        {
+            return MayTag(context, vault.Entry(uuid)) ? vault.EntryTag(uuid) : null;
+        }
+
+        /// <summary>
+        /// A tag taken earlier, still handed out only when the entry as it is now may still be
+        /// tagged for this caller.
+        /// </summary>
+        /// <remarks>
+        /// Whether the entry holds a protected value is part of the question, and the entry can
+        /// take one between the lookup that decided and the tag. Asked again after, so a tag that
+        /// could cover a value this caller may not read goes out only if that value came and went
+        /// between two lookups, which leaves the tag naming content the entry no longer holds.
+        /// </remarks>
+        private static string Confirmed(IGateContext context, IVault vault, string uuid, string tag)
+        {
+            return tag != null && MayTag(context, vault.Entry(uuid)) ? tag : null;
+        }
+
+        /// <summary>What a change is to ask of its node, and whether it answers with the tag it leaves.</summary>
+        /// <remarks>
+        /// **A caller that may not be handed the tag has its `If-Match` failed rather than
+        /// ignored.** Ignoring it would make the write unconditional, which is the one thing a
+        /// client sending a precondition did not ask for. Failed in the vault rather than here,
+        /// so that a node gone, taken or busy is still answered first, as RFC 9110 section 13.2.1
+        /// orders it.
+        /// </remarks>
+        private static VaultTagging Tagging(IGateContext context, bool mayTag, bool answers)
+        {
+            var precondition = Precondition(context);
+            if (!mayTag && precondition != null)
+            {
+                precondition = VaultPrecondition.Nothing();
+            }
+
+            return new VaultTagging(precondition, mayTag && answers);
+        }
+
+        /// <summary>
+        /// Whether a read is refused because the node no longer holds what `If-Match` said,
+        /// answered here when it is.
+        /// </summary>
+        /// <remarks>
+        /// **A read on a route declaring `If-Match` asks too**, and a client naming a tag on a read
+        /// is asking to be told that what it holds is current. Asked of the tag the read was taken
+        /// with, which is the tag it would be answered with, and null, which a caller that may not
+        /// be handed one has, matches nothing. The routes that declare no `If-Match` never read
+        /// the header, `API.md` §410.
+        /// </remarks>
+        private static bool PreconditionFails(IGateContext context, string tag)
+        {
+            if (!VaultPrecondition.Fails(Precondition(context), tag))
+            {
+                return false;
+            }
+
+            PreconditionFailed(context);
+            return true;
+        }
+
+        /// <summary>What a request whose condition does not hold is answered with.</summary>
+        private static void PreconditionFailed(IGateContext context)
+        {
+            context.Respond(412, HttpResponse.ErrorBody(PreconditionFailedError));
+        }
+
+        /// <summary>The word a `412` carries.</summary>
+        public const string PreconditionFailedError = "precondition failed";
+
+        /// <summary>A tag as `ETag` writes it: strong, and in quotes, as RFC 9110 section 8.8.3 spells one.</summary>
+        /// <remarks>
+        /// Strong because the tag is a digest of everything the node holds rather than a guess at
+        /// whether two versions are close enough, and because `If-Match` compares strongly, so a
+        /// weak tag could never be handed back and matched. One tag serves every route the node
+        /// answers for, since what it says is what the node holds: an entry's fields and
+        /// attachments are the entry's.
+        /// </remarks>
+        private static string Quoted(string tag)
+        {
+            return "\"" + tag + "\"";
+        }
+
+        /// <summary>The `ETag` a read about a node carries, or null when it carries none.</summary>
+        private static WebHeaderCollection Tagged(string tag)
+        {
+            if (tag == null)
+            {
+                return null;
+            }
+
+            return new WebHeaderCollection { { "ETag", Quoted(tag) } };
+        }
+
+        /// <summary>
+        /// What a change to an entry answers with, its tag handed back only while this caller may
+        /// still be handed it.
+        /// </summary>
+        private static void Answer(IGateContext context, IVault vault, string uuid, VaultWrite write)
+        {
+            Answer(context, write, write == null ? null : Confirmed(context, vault, uuid, write.Tag));
+        }
+
+        private static void Answer(IGateContext context, VaultWrite write)
+        {
+            Answer(context, write, write == null ? null : write.Tag);
+        }
+
         /// <summary>
         /// What a change answers with.
         /// </summary>
         /// <remarks>
         /// A refusal that says nothing is there is the same 404 as a node the rules refuse, so a
         /// client cannot tell a name it may not use from one that is not taken.
+        ///
+        /// **The tag goes in the body, as `etag`, and not in an `ETag` header.** RFC 9110 section
+        /// 9.3.4 makes an `ETag` on the answer to a `PUT` mean the representation the request sent
+        /// was stored as it was, and on a `POST` or a `DELETE` it names no representation the
+        /// request had, while every tag here is the tag of the whole node the change left. Written
+        /// as `ETag` would write it, quotes and all, so that it goes back as `If-Match` unchanged.
         /// </remarks>
-        private static void Answer(IGateContext context, VaultWrite write)
+        private static void Answer(IGateContext context, VaultWrite write, string tag)
         {
             if (write == null)
             {
@@ -1413,15 +1651,37 @@ namespace KeePassGate.Pipeline
 
             if (write.Ok)
             {
+                // The node's tag as the change left it, where there is one: a client that writes
+                // again can name it without reading in between.
+                var json = new JsonWriter();
+
                 if (write.Uuid == null)
                 {
-                    context.Respond(200, "{\"ok\":true}");
+                    json.Flag("ok", true);
+                    if (tag != null)
+                    {
+                        json.Text("etag", Quoted(tag));
+                    }
+
+                    context.Respond(200, json.Done());
                     return;
                 }
 
-                var json = new JsonWriter();
                 json.Text("uuid", write.Uuid);
+                if (tag != null)
+                {
+                    json.Text("etag", Quoted(tag));
+                }
+
                 context.Respond(Created, json.Done());
+                return;
+            }
+
+            if (write.IsPreconditionFailed)
+            {
+                // Not retried and not a conflict: the node is there and holds something other
+                // than what the request was written against, and only reading it again says what.
+                PreconditionFailed(context);
                 return;
             }
 

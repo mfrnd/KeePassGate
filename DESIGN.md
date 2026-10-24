@@ -1553,6 +1553,24 @@ Each step is refusable, and each ends with something that runs.
     with no method does, and that both formats follow the read model's rules: a withheld value is
     named and never printed as empty, and what the gate did not say is left out. `field`, which a
     script reads one value with, fails on a withheld one rather than printing a word in its place.
+28. **Optimistic concurrency**: an `ETag` on a read of one group or one entry, and `If-Match` on
+    the requests about them, answered `412` when the node no longer holds what the tag says,
+    which reverses `API.md` §407's "nothing needs it yet". A request without `If-Match` writes
+    as before. The tag is the entry's for its fields and attachments, by the rule that the
+    nearest addressable node answers, and it is compared under the writer's lock at the write.
+    The client keeps the tag on what it reads and hands it back when asked to.
+    **Done.** Until here two clients writing one entry, or a client and the operator, lost
+    whichever change landed first, and nothing said so. What this settles is what a version of a
+    node is: not KeePass's modification time, which was measured and misses a change four ways,
+    and not a plain digest, which would let a client test guesses at a protected value it may not
+    read, but a keyed digest of exactly what the routes serve, under a key derived from the
+    database's host certificate so that it is the same across a restart, taken before what it is
+    served with so that a race can only make a tag older, and handed only to a client whose rule
+    may read all of it, since a tag compared by one that may not is a way to test guesses at the
+    rest. And it settles that a write's condition is decided where the write is made, under the
+    writer's lock and after every refusal that does not depend on it, so nothing lands between
+    the check and the change, and that the document says which operations take one and the plugin
+    will not load a document that disagrees with itself.
 
 Steps 5 to 8 are the ones that prove the design. Step 5 is deliberately early, because the
 `CustomData` dialog hazard is the thing most likely to invalidate the storage decision, and finding

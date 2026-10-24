@@ -308,3 +308,35 @@ class RouteRefused(GateError):
         super().__init__(f"{answered}: {error}" if error else answered)
         self.status = status
         self.error = error
+
+    def __reduce__(self) -> tuple[type[RouteRefused], tuple[object, ...]]:
+        """Pickled by what it was made of, rather than by the message made of that.
+
+        The message is all `Exception` keeps by default, and handed back to this constructor it is
+        a status missing and a reason holding the whole sentence, which a copy taken to another
+        process then repeats inside itself.
+        """
+        return type(self), (self.status, self.error)
+
+
+class PreconditionFailed(RouteRefused):
+    """The gate did nothing, because the condition `if_match` gave did not hold: `412`.
+
+    Most often the node no longer holds what the tag said: somebody changed it after the tag was
+    read, another client, the operator in KeePass, a merge or a plugin. Two more reasons answer
+    the same: an `if_match` the gate cannot read as one, and any `if_match` from a client the gate
+    hands no tag to, whose rule does not read everything a tag covers, since it cannot know what
+    it would be asking. Not retried, since asking again asks the same question of the same node.
+    What mends the first is reading the node again, which hands back the tag it holds now, and
+    deciding again whether the change still makes sense with what it holds; what mends the last is
+    sending none. A `RouteRefused`, so a caller that catches every refusal already catches this
+    one, with `status` `412`.
+    """
+
+    def __init__(self, error: str) -> None:
+        """Keep the word the gate gave, which is `precondition failed`."""
+        super().__init__(412, error)
+
+    def __reduce__(self) -> tuple[type[RouteRefused], tuple[object, ...]]:
+        """Pickled by the word it was made of, which is all this constructor takes."""
+        return type(self), (self.error,)

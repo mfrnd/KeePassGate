@@ -62,6 +62,7 @@ namespace KeePassGate.Host.Tests
             _vault = new KdbxVault(
                 _database.Database,
                 new DatabaseWriter(CurrentThread.Instance, Save, null, _dialogs, NullGateLog.Instance),
+                TestTags.Fixed,
                 NullGateLog.Instance);
         }
 
@@ -84,8 +85,8 @@ namespace KeePassGate.Host.Tests
             var group = Created(_vault.CreateGroup(_vault.RootAlias, "Outer", null));
             var entry = Created(_vault.CreateEntry(group, Named("Invented")));
 
-            Assert.That(_vault.CreateField(entry, "Ticket", "4b21", false).Ok, Is.True);
-            Assert.That(_vault.CreateAttachment(entry, "note.txt", new byte[] { 1, 2, 3 }).Ok, Is.True);
+            Assert.That(_vault.CreateField(entry, "Ticket", "4b21", false, VaultTagging.None).Ok, Is.True);
+            Assert.That(_vault.CreateAttachment(entry, "note.txt", new byte[] { 1, 2, 3 }, VaultTagging.None).Ok, Is.True);
 
             using (var form = EntryDialogFor(Entry(entry)))
             {
@@ -94,14 +95,14 @@ namespace KeePassGate.Host.Tests
 
                 try
                 {
-                    Refused(_vault.UpdateEntry(entry, Named("Renamed")), "UpdateEntry");
-                    Refused(_vault.CreateField(entry, "Second", "9c30", false), "CreateField");
-                    Refused(_vault.UpdateField(entry, "Ticket", "0000"), "UpdateField");
-                    Refused(_vault.DeleteField(entry, "Ticket"), "DeleteField");
-                    Refused(_vault.CreateAttachment(entry, "other.txt", new byte[] { 4 }), "CreateAttachment");
-                    Refused(_vault.UpdateAttachment(entry, "note.txt", new byte[] { 5 }), "UpdateAttachment");
-                    Refused(_vault.DeleteAttachment(entry, "note.txt"), "DeleteAttachment");
-                    Refused(_vault.DeleteEntry(entry), "DeleteEntry");
+                    Refused(_vault.UpdateEntry(entry, Named("Renamed"), VaultTagging.None), "UpdateEntry");
+                    Refused(_vault.CreateField(entry, "Second", "9c30", false, VaultTagging.None), "CreateField");
+                    Refused(_vault.UpdateField(entry, "Ticket", "0000", VaultTagging.None), "UpdateField");
+                    Refused(_vault.DeleteField(entry, "Ticket", VaultTagging.None), "DeleteField");
+                    Refused(_vault.CreateAttachment(entry, "other.txt", new byte[] { 4 }, VaultTagging.None), "CreateAttachment");
+                    Refused(_vault.UpdateAttachment(entry, "note.txt", new byte[] { 5 }, VaultTagging.None), "UpdateAttachment");
+                    Refused(_vault.DeleteAttachment(entry, "note.txt", VaultTagging.None), "DeleteAttachment");
+                    Refused(_vault.DeleteEntry(entry, VaultTagging.None), "DeleteEntry");
 
                     Assert.That(_saves, Is.Zero, "a refused write saves nothing");
                 }
@@ -133,9 +134,9 @@ namespace KeePassGate.Host.Tests
 
                 try
                 {
-                    Assume.That(_vault.UpdateEntry(watched, Named("Renamed")).IsBusy, Is.True);
+                    Assume.That(_vault.UpdateEntry(watched, Named("Renamed"), VaultTagging.None).IsBusy, Is.True);
 
-                    var outcome = _vault.UpdateEntry(other, Named("Renamed"));
+                    var outcome = _vault.UpdateEntry(other, Named("Renamed"), VaultTagging.None);
 
                     Assert.That(outcome.Ok, Is.True, outcome.Reason);
                 }
@@ -162,8 +163,8 @@ namespace KeePassGate.Host.Tests
 
                 try
                 {
-                    Refused(_vault.UpdateGroup(group, "Renamed", null), "UpdateGroup");
-                    Refused(_vault.DeleteGroup(group), "DeleteGroup");
+                    Refused(_vault.UpdateGroup(group, "Renamed", null, VaultTagging.None), "UpdateGroup");
+                    Refused(_vault.DeleteGroup(group, VaultTagging.None), "DeleteGroup");
                     Assert.That(_saves, Is.Zero);
 
                     var entry = _vault.CreateEntry(group, Named("Invented"));
@@ -198,7 +199,7 @@ namespace KeePassGate.Host.Tests
 
                 try
                 {
-                    var outcome = _vault.UpdateEntry(entry, Named("Renamed"));
+                    var outcome = _vault.UpdateEntry(entry, Named("Renamed"), VaultTagging.None);
 
                     Assert.That(outcome.Ok, Is.True, outcome.Reason);
                 }
@@ -229,7 +230,7 @@ namespace KeePassGate.Host.Tests
 
                 try
                 {
-                    Refused(_vault.DeleteGroup(group), "DeleteGroup");
+                    Refused(_vault.DeleteGroup(group, VaultTagging.None), "DeleteGroup");
                     Assert.That(_saves, Is.Zero, "a refused write saves nothing");
                 }
                 finally
@@ -256,7 +257,7 @@ namespace KeePassGate.Host.Tests
 
                 try
                 {
-                    Refused(_vault.DeleteGroup(group), "DeleteGroup");
+                    Refused(_vault.DeleteGroup(group, VaultTagging.None), "DeleteGroup");
                 }
                 finally
                 {
@@ -264,7 +265,7 @@ namespace KeePassGate.Host.Tests
                 }
             }
 
-            Assert.That(_vault.DeleteGroup(group).Ok, Is.True, "and once it is closed the group may go");
+            Assert.That(_vault.DeleteGroup(group, VaultTagging.None).Ok, Is.True, "and once it is closed the group may go");
         }
 
         [Test]

@@ -103,6 +103,14 @@ rules, and the placeholders for the entry's own strings, and refuses with `Unres
 cannot answer as KeePass would, such as a search by title. `pykeepassgate show <uuid> --resolve`
 prints an entry that way.
 
+**A write can wait on the node still holding what was read.** A group, an entry, a field or an
+attachment read on its own carries `etag`, and every write about one takes `if_match=`: the write
+is refused with `PreconditionFailed`, and nothing changed, when somebody changed the node after it
+was read, the operator in KeePass among them. An entry's tag covers everything in it, and a write
+answers with the tag it left, for the next write to name. The gate hands tags only to a client
+whose rule reads everything a tag covers, and answers any other client's `if_match` with
+`PreconditionFailed`.
+
 **Nothing it hands back prints a value.** The `repr` of an entry, its fields, a field, an
 attachment or a response names what it is and shows none of what it holds, so a log line or a
 traceback carries no secret. A value is printed only by reading it.
@@ -158,6 +166,7 @@ catches whatever this client raises of its own and nothing the standard library 
 | `RenewalRefusedForever` | The operator refused every renewal of this certificate. Pair again, with an invitation from the operator, before the one this client holds expires. |
 | `RenewalUnanswered` | Nobody answered the renewal dialog, and nothing changed. Ask again when somebody is at the screen. |
 | `RenewalError` | The base of the five above, for a caller that only wants to know whether the operator let the renewal happen. Never raised on its own. |
+| `PreconditionFailed` | The gate did not serve a request made with `if_match`, so nothing was read or changed: `412`. Most often the node no longer holds what the tag named: somebody changed it after the tag was taken, another client, the operator in KeePass, a merge or a plugin. Read it again, which hands back its tag as it is now, and decide again. An `if_match` the gate cannot read, or any from a client the gate hands no tag to, is answered the same; send none. A `RouteRefused` with `status` `412`, so catching that catches this. |
 | `RouteRefused` | Everything else the gate refuses, carrying the status and the reason it gave, usually one word: a `413` says in a sentence what was too large. A refused `head` carries the status alone, because its answer has no body to say anything in. A `404` is deliberately both "no such node" and "not yours", so a client cannot map a database by asking: if the node should be there, the rule is too narrow and the operator has to widen it. |
 | `Withheld` | A protected value this client may not read, from every way of reading one: the rule that lets it read or list the entry does not grant `P`, which the operator can add. Never `None` or an empty string in its place; `entry.withheld` and `field.withheld` name what is kept back without a `try`, so `{name: entry.fields[name] for name in entry.fields if name not in entry.withheld}` reads every value this client may read. |
 | `Unresolved` | From `pykeepassgate.refs.resolve` alone: a value it will not give as KeePass would, such as a reference that searches by title or names an entry this client cannot read, or a placeholder KeePass replaces and it does not. The message says which. |
@@ -167,7 +176,7 @@ catches whatever this client raises of its own and nothing the standard library 
 | `StorageError` | From `pair`, before anything is sent: the directory cannot hold credentials, and the message says why. Nothing is spent, so fix that and pair again. Afterwards: what is stored for this client will not read, or could not be written, and the message names the file or the directory to look at. A key stored under a password is one of these when no password was given, or the one given does not open it. |
 | `TransportError` | No whole answer arrived: nothing is listening, the handshake failed, as below, or the connection broke or timed out once the request was on its way. After a read, send it again. After a write, the change may have landed, so look before sending it again: read or list what it changed, where the rules allow that, or ask the operator. |
 | `ValueError` | A setting or an argument that could not work, refused where it is given and before anything is dialed, stored or spent: a port, a timeout, a retry budget, a response cap, a lifetime, a profile's name, an expiry, a key password or a `dial`. The message names it. |
-| `AttributeError` | Something this client never read: a listed entry's `username`, `password`, `notes`, `expires` or `custom()`, a listed group's `notes`, a listed field's `value`. Read it first. Never raised for a withheld value. |
+| `AttributeError` | Something this client never read: a listed entry's `username`, `password`, `notes`, `expires` or `custom()`, a listed group's `notes`, a listed field's `value`, a listed group's or entry's `etag`. Read it first. Also the `etag` of a read the gate gave no tag for, because this client's rule does not read everything a tag covers, which the message says. Never raised for a withheld value. |
 | `KeyError` | A name `entry.fields` or `entry.custom()` does not hold, as from any mapping. |
 | `TypeError` | A `dial` that handed back something other than a connected socket. |
 

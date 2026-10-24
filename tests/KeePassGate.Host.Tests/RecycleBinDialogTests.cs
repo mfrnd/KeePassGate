@@ -56,6 +56,7 @@ namespace KeePassGate.Host.Tests
                 _database.Database,
                 new DatabaseWriter(
                     CurrentThread.Instance, database => database.Save(null), null, _dialogs, null),
+                TestTags.Fixed,
                 null);
         }
 
@@ -96,7 +97,7 @@ namespace KeePassGate.Host.Tests
 
             using (Opened())
             {
-                var refused = _vault.DeleteEntry(entry);
+                var refused = _vault.DeleteEntry(entry, VaultTagging.None);
 
                 Assert.That(refused.IsBusy, Is.True, refused.Reason);
                 Assert.That(refused.Reason, Does.Contain("database settings dialog"));
@@ -115,7 +116,7 @@ namespace KeePassGate.Host.Tests
 
             using (Opened())
             {
-                var refused = _vault.DeleteGroup(group);
+                var refused = _vault.DeleteGroup(group, VaultTagging.None);
 
                 Assert.That(refused.IsBusy, Is.True, refused.Reason);
                 Assert.That(_vault.Group(group), Is.Not.Null);
@@ -133,12 +134,12 @@ namespace KeePassGate.Host.Tests
             var first = Created(_vault.CreateEntry(group, Named("an invented service")));
             var second = Created(_vault.CreateEntry(group, Named("another invented service")));
 
-            Assume.That(_vault.DeleteEntry(first).Ok, Is.True, "which makes the bin");
+            Assume.That(_vault.DeleteEntry(first, VaultTagging.None).Ok, Is.True, "which makes the bin");
             Assume.That(_database.Database.RecycleBinUuid.Equals(PwUuid.Zero), Is.False);
 
             using (Opened())
             {
-                Assert.That(_vault.DeleteEntry(second).Ok, Is.True);
+                Assert.That(_vault.DeleteEntry(second, VaultTagging.None).Ok, Is.True);
                 Assert.That(_vault.Entry(second), Is.Null);
             }
         }
@@ -151,7 +152,7 @@ namespace KeePassGate.Host.Tests
             {
                 var entry = Created(_vault.CreateEntry(_vault.RootAlias, Named("an invented service")));
 
-                Assert.That(_vault.DeleteEntry(entry).Ok, Is.True);
+                Assert.That(_vault.DeleteEntry(entry, VaultTagging.None).Ok, Is.True);
                 Assert.That(_database.Database.RecycleBinUuid.Equals(PwUuid.Zero), Is.False);
             }
         }
@@ -163,12 +164,12 @@ namespace KeePassGate.Host.Tests
 
             using (var dialog = Opened())
             {
-                Assume.That(_vault.DeleteEntry(entry).IsBusy, Is.True);
+                Assume.That(_vault.DeleteEntry(entry, VaultTagging.None).IsBusy, Is.True);
 
                 // The gesture under test, and the only place the closing is not simply cleanup.
                 dialog.Close();
 
-                Assert.That(_vault.DeleteEntry(entry).Ok, Is.True);
+                Assert.That(_vault.DeleteEntry(entry, VaultTagging.None).Ok, Is.True);
                 Assert.That(_vault.Entry(entry), Is.Null);
             }
         }

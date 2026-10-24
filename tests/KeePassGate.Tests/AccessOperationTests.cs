@@ -6,6 +6,7 @@ using KeePassGate.Pipeline;
 using KeePassGate.Spec;
 using KeePassGate.Tests.Fakes;
 using KeePassGate.Transport;
+using KeePassGate.Vault;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
@@ -130,7 +131,7 @@ namespace KeePassGate.Tests
             // The reason for one mask per profile, and the test that fails if they are ever
             // combined: `R` under one profile and `P` under another are not a protected read.
             _vault.Granting(_vault.RootAlias, "{\"reader\":[\"read\"],\"auditor\":[\"list\",\"protected\"]}");
-            Assume.That(_vault.CreateField(_entry, "Password", "an invented secret", true).Ok, Is.True);
+            Assume.That(_vault.CreateField(_entry, "Password", "an invented secret", true, VaultTagging.None).Ok, Is.True);
 
             var grants = Grants(Send("GET", "/entries/" + _entry + "/access", "reader", "auditor"));
 

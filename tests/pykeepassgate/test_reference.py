@@ -293,6 +293,38 @@ def test_every_query_parameter_the_gate_reads_is_one_this_client_sends(
     assert "include_expired" in inspect.signature(GateClient.entries).parameters
 
 
+def test_every_operation_the_gate_holds_to_a_tag_can_be_sent_one_from_here(
+    document: dict[str, Any],
+) -> None:
+    """A condition the gate reads and this client cannot send is a gap, as a query name would be.
+
+    `If-Match` is declared on the paths whose target has a tag. Every write on them takes
+    `if_match`, and every read is reached with one through `get` and `head`, which take it too,
+    since a read made under a condition hands back nothing a plain read does not.
+    """
+    conditional = set()
+    for methods in document["paths"].values():
+        for method, operation in methods.items():
+            if method not in METHODS:
+                continue
+
+            for given in methods.get("parameters", []) + operation.get("parameters", []):
+                parameter = followed(given, document)
+                if parameter["in"] == "header" and parameter["name"] == "If-Match":
+                    conditional.add((method, operation["operationId"]))
+
+    assert conditional, "the document declares no condition at all"
+
+    for method, name in sorted(conditional):
+        owner, call = COVERED[name]
+        if method in ("get", "head"):
+            owner, call = GateClient, method
+
+        assert "if_match" in inspect.signature(getattr(owner, call)).parameters, (
+            f"{name} takes If-Match and {owner.__name__}.{call} cannot send one"
+        )
+
+
 def test_the_expiry_this_client_reads_and_writes_is_the_member_the_document_declares(
     document: dict[str, Any],
 ) -> None:

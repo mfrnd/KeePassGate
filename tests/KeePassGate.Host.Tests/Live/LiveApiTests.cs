@@ -43,6 +43,10 @@ namespace KeePassGate.Host.Tests.Live
         private LiveReply _listed;
         private LiveReply _addedField;
         private LiveReply _refused;
+        private LiveReply _overtaken;
+        private LiveReply _stale;
+        private LiveReply _current;
+        private LiveReply _againUnread;
         private bool _exited;
         private string _pluginLog;
         private string _uuid;
@@ -59,7 +63,9 @@ namespace KeePassGate.Host.Tests.Live
             // `protected` among them, because this client writes a password and reads it back. A
             // rule without it would be refused at the write and answered with `null` at the read,
             // which is the other half of this and is proved against the fake rather than here.
-            keePass.Grant("{\"reader\":[\"create\",\"read\",\"update\",\"delete\",\"list\",\"protected\"]}");
+            // `attachments` too, because an entry's tag is handed only to a rule that reads all of
+            // it, and the lost update below is written under one.
+            keePass.Grant("{\"reader\":[\"create\",\"read\",\"update\",\"delete\",\"list\",\"attachments\",\"protected\"]}");
 
             using (var admitted = keePass.IssueClientCertificate("agent-fictitious"))
             using (var stranger = keePass.IssueClientCertificate("agent-no-rules"))
@@ -83,6 +89,21 @@ namespace KeePassGate.Host.Tests.Live
 
                 // The same request, from a client whose record names a profile no rule mentions.
                 _refused = Send(keePass, stranger, "GET", "/entries/" + _uuid, null);
+
+                // The lost update, and what stops it. The read above is one client's; another
+                // changes the entry; the first then writes against the tag it read, and is
+                // refused. Read again, it writes under the tag it now holds, and then again under
+                // the tag that write handed back, without reading in between.
+                _overtaken = Send(keePass, admitted, "PUT", "/entries/" + _uuid,
+                    "{\"Notes\":\"changed by another client\"}");
+                _stale = Send(keePass, admitted, "PUT", "/entries/" + _uuid,
+                    "{\"Notes\":\"what the first client meant\"}", _read.Tag);
+
+                var reread = Send(keePass, admitted, "GET", "/entries/" + _uuid, null);
+                _current = Send(keePass, admitted, "PUT", "/entries/" + _uuid,
+                    "{\"UserName\":\"agent-fictitious\"}", reread.Tag);
+                _againUnread = Send(keePass, admitted, "PUT", "/entries/" + _uuid,
+                    "{\"URL\":\"https://invented.invalid\"}", _current.Written);
 
                 process.CloseMainWindow();
                 _exited = process.WaitForExit(30000);
@@ -145,6 +166,31 @@ namespace KeePassGate.Host.Tests.Live
         }
 
         [Test]
+        public void A_write_against_what_another_client_has_since_changed_is_refused_and_lost_nothing()
+        {
+            Assert.That(_read.Tag, Does.Match("^\"[0-9a-f]{32}\"$"), "a read carries its entry's tag");
+            Assert.That(_overtaken.Status, Is.EqualTo(200), _overtaken.Body);
+            Assert.That(_stale.Answered, Is.True, _stale.Failure);
+            Assert.That(_stale.Status, Is.EqualTo(412), _stale.Body);
+
+            // And the file, with KeePass gone, holds the change the refusal kept.
+            var made = _session.KeePass.ReadEntries().First(e => e.Uuid.ToHexString() == _uuid);
+            Assert.That(made.Strings.ReadSafe("Notes"), Is.EqualTo("changed by another client"));
+        }
+
+        [Test]
+        public void A_write_against_the_tag_it_now_holds_goes_ahead_and_hands_back_the_next()
+        {
+            Assert.That(_current.Status, Is.EqualTo(200), _current.Body);
+            Assert.That(_current.Written, Is.Not.Null.And.Not.EqualTo(_read.Tag));
+            Assert.That(_againUnread.Status, Is.EqualTo(200), _againUnread.Body);
+
+            var made = _session.KeePass.ReadEntries().First(e => e.Uuid.ToHexString() == _uuid);
+            Assert.That(made.Strings.ReadSafe("UserName"), Is.EqualTo("agent-fictitious"));
+            Assert.That(made.Strings.ReadSafe("URL"), Is.EqualTo("https://invented.invalid"));
+        }
+
+        [Test]
         public void The_entry_shows_up_in_a_listing()
         {
             Assert.That(_listed.Status, Is.EqualTo(200), _listed.Body);
@@ -197,9 +243,15 @@ namespace KeePassGate.Host.Tests.Live
         }
 
         [Test]
-        public void The_plugin_logged_nothing_that_needs_looking_at()
+        public void The_plugin_logged_nothing_that_needs_looking_at_but_the_stale_write()
         {
-            Assert.That(LiveSession.FailuresIn(_pluginLog), Is.Empty);
+            // The stale write is refused and the refusal is logged, once: filtering the phrase
+            // alone would also pass a session in which every conditioned write was refused.
+            var failures = LiveSession.FailuresIn(_pluginLog);
+            var stale = failures.Where(line => line.Contains("a change was refused, its precondition failing")).ToArray();
+
+            Assert.That(stale, Has.Length.EqualTo(1), _pluginLog);
+            Assert.That(failures.Except(stale), Is.Empty);
         }
 
         private static string Uuid(LiveReply reply)
@@ -211,8 +263,21 @@ namespace KeePassGate.Host.Tests.Live
         private static LiveReply Send(
             ThrowawayKeePass keePass, X509Certificate2 certificate, string method, string path, string body)
         {
+            return Send(keePass, certificate, method, path, body, null);
+        }
+
+        /// <summary>The same, carrying <paramref name="ifMatch"/> as `If-Match` unless it is null.</summary>
+        private static LiveReply Send(
+            ThrowawayKeePass keePass,
+            X509Certificate2 certificate,
+            string method,
+            string path,
+            string body,
+            string ifMatch)
+        {
             return LiveGateClient.Send(
-                keePass.Port, keePass.NewGateName(), certificate, method, path, body);
+                keePass.Port, keePass.NewGateName(), certificate, method, path, body, ifMatch,
+                LiveGateClient.Answered);
         }
 
         /// <summary>

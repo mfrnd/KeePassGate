@@ -11,6 +11,11 @@ against its own script, and the plugin's own tests are where the rules are held.
 So the parts worth testing against it are the ones a script can say: that a program sends what it
 means to, and does what it should with each answer and each refusal this client raises for one.
 
+**Two refusals it makes on its own, as the plugin makes them**: a header sent twice, and a header
+value holding a control character, each answered `400` with the plugin's reason before the handler
+is asked anything. And a handler that raises is answered `500 internal error`, as the plugin
+answers a defect of its own, with what it raised kept in `FakeGate.failures`.
+
 **One refusal it makes on its own, and differently from the plugin.** A client certificate that is
 offered is verified in the handshake, chain and dates, since `ssl` cannot ask for one without: an
 expired, not yet valid or foreign one ends the handshake with an alert, which the client raises as
@@ -165,6 +170,21 @@ def held(until: dt.datetime) -> tuple[int, str]:
     return 503, json.dumps({"error": "busy", "heldUntil": moment}, separators=(",", ":"))
 
 
+def written(etag: str | None = None, uuid: str | None = None) -> tuple[int, str]:
+    """What the plugin answers a write that landed, with the tag it left when it gave one.
+
+    `200` and `{"ok":true}`, or `201` and the `uuid` that addresses what a create made, with
+    `etag` beside either when there is one: the plugin puts a write's tag in the body, quoted as
+    `ETag` writes one, and only for a client whose rule reads everything the tag covers. A
+    handler returns it, as it would any answer.
+    """
+    document: dict[str, object] = {"ok": True} if uuid is None else {"uuid": uuid}
+    if etag is not None:
+        document["etag"] = etag
+
+    return (200 if uuid is None else 201), json.dumps(document, separators=(",", ":"))
+
+
 def _no_route(_path: str, _body: str, _client: bytes | None) -> tuple[int, str]:
     """What a gate nobody has scripted answers: a route it does not have."""
     return 404, '{"error":"no such route"}'
@@ -202,6 +222,11 @@ class FakeGate:
 
         #: What answers each request, which is all this gate knows about any route.
         self.handler: Handler = _no_route
+
+        #: What the handler raised, in order, each answered `500` as the plugin answers a defect of
+        #: its own: a test that scripted something impossible finds out here, rather than from a
+        #: connection that closed without a word.
+        self.failures: list[BaseException] = []
 
         #: How long a peer may stay quiet, in seconds, before the thread answering it gives up, so
         #: one that goes quiet mid-request ends its thread rather than parking it.
@@ -283,6 +308,43 @@ class FakeGate:
 
         return method
 
+    def if_match(self) -> str | None:
+        """The `If-Match` the request being answered carried, as its value arrived, or `None`.
+
+        Asked from inside the handler, as `method` is, so a test can answer `412` to a request
+        made against a tag of a node that has changed since. Whether a tag matches is the test's
+        to decide: this gate knows no node, so it holds none, and no rule either, so a test of a
+        client the plugin hands no tag to answers its `If-Match` with `412` itself.
+        """
+        self._in_handler()
+        found: str | None = getattr(self._answering, "if_match", None)
+        return found
+
+    def tag(self, etag: str) -> None:
+        """Answer the read being answered with this `ETag`, exactly as given.
+
+        What the plugin does for a read about one group or one entry, to a client whose rule may
+        read everything the tag covers. A write's tag is not a header: the plugin puts it in the
+        body, as `etag`, which `written` makes. Called from inside the handler, before it
+        returns, and for that answer alone.
+
+        Refused with `ValueError` unless it is one header value the plugin could have written,
+        visible ASCII in quotes: anything else could not be sent, and the refusal is answered as
+        the plugin answers a defect, so a test sees it in `failures` rather than in a connection
+        that closed without a word.
+        """
+        self._in_handler()
+        if len(etag) < 2 or etag[0] != '"' or etag[-1] != '"' or any(
+            not "!" <= character <= "~" for character in etag
+        ):
+            raise ValueError(f"that is not a tag the gate could send: {etag!r}")
+
+        self._answering.etag = etag
+
+    def _in_handler(self) -> None:
+        """Refuse a question about the request being answered from outside a handler."""
+        self.method()
+
     def _serve(self) -> None:
         while not self._stop.is_set():
             try:
@@ -327,18 +389,33 @@ class FakeGate:
     def _answer(self, raw: socket.socket) -> None:
         try:
             with self._context.wrap_socket(raw, server_side=True) as wrapped:
-                head, body = _read_request(wrapped)
+                head, body, headers = _read_request(wrapped)
                 if head is None:
                     return
 
                 method, path = head
+                if isinstance(headers, str):
+                    # Refused as the plugin refuses the head, before any route sees it.
+                    wrapped.sendall(_response(400, json.dumps({"error": headers})))
+                    return
+
                 self.requests.append((method, path))
                 client = wrapped.getpeercert(binary_form=True)
                 self._answering.method = method
+                self._answering.if_match = headers.get("if-match")
+                self._answering.etag = None
+                etag: str | None = None
                 try:
                     status, answer = self.handler(path, body, client)
+                    etag = self._answering.etag
+                except Exception as failure:
+                    # A script's defect, answered rather than left to end the thread silently.
+                    self.failures.append(failure)
+                    status, answer = 500, '{"error":"internal error"}'
                 finally:
                     self._answering.method = None
+                    self._answering.if_match = None
+                    self._answering.etag = None
 
                 # What the gate does for a HEAD: no content, and no length rather than a wrong
                 # one. RFC 9112 section 6.3 and RFC 9110 section 8.6. Modeled here because a
@@ -346,9 +423,9 @@ class FakeGate:
                 # tested against the gate it has.
                 retry_after = self.retry_after if status == 503 else None
                 if method == "HEAD":
-                    written = _response(status, "", "", retry_after)
+                    written = _response(status, "", "", retry_after, etag)
                 else:
-                    written = _response(status, answer, self.declare, retry_after)
+                    written = _response(status, answer, self.declare, retry_after, etag)
                 if self.truncate:
                     written = written[: len(written) - self.truncate]
 
@@ -359,12 +436,21 @@ class FakeGate:
             return
 
 
-def _read_request(wrapped: ssl.SSLSocket) -> tuple[tuple[str, str] | None, str]:
+def _read_request(
+    wrapped: ssl.SSLSocket,
+) -> tuple[tuple[str, str] | None, str, dict[str, str] | str]:
+    """The method and path, the body, and every header by its name in lower case.
+
+    In place of the headers, the reason the plugin's reader would refuse the head, for the two it
+    refuses a client of this library could send: a header given twice, which it will not guess
+    between, and a value holding a control character. Answered `400` with that reason, as the
+    plugin answers it, so a client tested here is not tested against a gate that takes more.
+    """
     buffer = bytearray()
     while b"\r\n\r\n" not in buffer:
         chunk = wrapped.recv(4096)
         if not chunk:
-            return None, ""
+            return None, "", {}
 
         buffer += chunk
 
@@ -372,18 +458,32 @@ def _read_request(wrapped: ssl.SSLSocket) -> tuple[tuple[str, str] | None, str]:
     lines = head.decode("ascii", "replace").split("\r\n")
     parts = lines[0].split(" ")
     if len(parts) < 2:
-        return None, ""
+        return None, "", {}
+
+    headers: dict[str, str] = {}
+    for line in lines[1:]:
+        name, _, value = line.partition(":")
+        name = name.strip().lower()
+        value = value.strip(" \t")
+        if any(
+            character != "\t" and (character < " " or character == "\x7f") for character in value
+        ):
+            return (parts[0], parts[1]), "", "a header value holds a control character"
+
+        if name in headers:
+            return (parts[0], parts[1]), "", "a header is repeated"
+
+        headers[name] = value
 
     length = 0
-    for line in lines[1:]:
-        if line.lower().startswith("content-length:"):
-            try:
-                length = int(line.split(":", 1)[1].strip())
-            except ValueError:
-                # Answered rather than raised. A `ValueError` here escapes the thread, where the
-                # client sees only a connection closed without a word and a test says nothing
-                # about why. `_answer` treats a head of `None` as nothing to serve.
-                return None, ""
+    if "content-length" in headers:
+        try:
+            length = int(headers["content-length"])
+        except ValueError:
+            # Answered rather than raised. A `ValueError` here escapes the thread, where the
+            # client sees only a connection closed without a word and a test says nothing
+            # about why. `_answer` treats a head of `None` as nothing to serve.
+            return None, "", {}
 
     while len(rest) < length:
         chunk = wrapped.recv(4096)
@@ -392,11 +492,15 @@ def _read_request(wrapped: ssl.SSLSocket) -> tuple[tuple[str, str] | None, str]:
 
         rest += chunk
 
-    return (parts[0], parts[1]), rest.decode("utf-8", "replace")
+    return (parts[0], parts[1]), rest.decode("utf-8", "replace"), headers
 
 
 def _response(
-    status: int, body: str, declare: str | None = None, retry_after: str | None = None
+    status: int,
+    body: str,
+    declare: str | None = None,
+    retry_after: str | None = None,
+    etag: str | None = None,
 ) -> bytes:
     """The head the plugin's `HttpResponse.Write` writes, and the body.
 
@@ -418,6 +522,7 @@ def _response(
         + "Cache-Control: no-store\r\n"
         "X-Content-Type-Options: nosniff\r\n"
         + (f"Retry-After: {retry_after}\r\n" if retry_after is not None else "")
+        + (f"ETag: {etag}\r\n" if etag is not None else "")
         + "Connection: close\r\n"
         "\r\n"
     )

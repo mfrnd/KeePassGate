@@ -33,15 +33,20 @@ The first version, so there is nothing earlier to describe a change from: everyt
   database's groups, entries, fields and attachments, who the caller is and what it may do at a
   group or an entry, and which version of the plugin is answering and the commit it was built from.
   An update naming only what a node holds already writes nothing, and a node that goes away under a
-  request is answered as gone, or as locked, never as empty.
+  request is answered as gone, or as locked, never as empty. A read of one group or one entry
+  carries an `ETag` to a client whose rule may read all of it, the same across a restart, a change
+  answers with the tag it left in its body, and a request carrying `If-Match` is answered `412` and
+  changes nothing when the node no longer holds what the tag says.
 - **PyKeePassGate**, the reference client, as a library and as a command line. Each refusal is an
   exception saying what to do next, and each word a `503` carries has a budget of its own to wait
   it out with; a value the rules withhold is raised as withheld rather than read as empty; nothing
   it hands back prints a value; its key can be kept under a password; a program can make the
   connection it goes over; field references are followed as KeePass follows them, under the
   client's own rules; `pykeepassgate.testing` is a stand-in gate for the tests of a program
-  built on it; and the command line has a command for every route, each printing lines for a
-  person or, with `-o json`, one document for a program. Until the first release is published it is installed from a checkout.
+  built on it; the command line has a command for every route, each printing lines for a person
+  or, with `-o json`, one document for a program; and a write can be made against what was read,
+  with the tag a read hands back. Until the first release is published it is installed from a
+  checkout.
 - **A package for the release**: `build.ps1 -Task Package` zips the plugin and everything it loads,
   with its license and notices, beside a `SHA256SUMS`.
 

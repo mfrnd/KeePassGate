@@ -55,17 +55,25 @@ namespace KeePassGate.Bridge
 
         private readonly PwDatabase _database;
         private readonly DatabaseWriter _writer;
+        private readonly NodeTags _tags;
         private readonly IGateLog _log;
 
-        public KdbxVault(PwDatabase database, DatabaseWriter writer, IGateLog log)
+        /// <param name="tags">This database's tags, keyed as <see cref="NodeTags.KeyFrom"/> says.</param>
+        public KdbxVault(PwDatabase database, DatabaseWriter writer, NodeTags tags, IGateLog log)
         {
             if (database == null)
             {
                 throw new ArgumentNullException(nameof(database));
             }
 
+            if (tags == null)
+            {
+                throw new ArgumentNullException(nameof(tags));
+            }
+
             _database = database;
             _writer = writer;
+            _tags = tags;
             _log = log ?? NullGateLog.Instance;
         }
 
@@ -101,6 +109,12 @@ namespace KeePassGate.Bridge
         private VaultGroup GroupInside(string uuid)
         {
             return Describe(FindGroup(uuid));
+        }
+
+        private string GroupTagInside(string uuid)
+        {
+            var group = FindGroup(uuid);
+            return group == null ? null : _tags.Of(group);
         }
 
         private IReadOnlyList<VaultGroup> SubgroupsInside(string uuid)
@@ -157,7 +171,13 @@ namespace KeePassGate.Bridge
 
         private VaultEntry EntryInside(string uuid)
         {
-            return Describe(FindEntry(uuid));
+            return Single(FindEntry(uuid));
+        }
+
+        private string EntryTagInside(string uuid)
+        {
+            var entry = FindEntry(uuid);
+            return entry == null ? null : Tag(entry);
         }
 
         private VaultEntryDetail ReadInside(string uuid)
@@ -184,7 +204,7 @@ namespace KeePassGate.Bridge
                 }
             }
 
-            return new VaultEntryDetail(Describe(entry), fields, guarded);
+            return new VaultEntryDetail(Describe(entry, guarded.Count > 0), fields, guarded);
         }
 
         private IReadOnlyList<VaultEntry> EntriesInside(string groupUuid)
@@ -331,12 +351,9 @@ namespace KeePassGate.Bridge
             });
         }
 
-        public VaultWrite UpdateGroup(string uuid, string name, string notes)
+        public VaultWrite UpdateGroup(string uuid, string name, string notes, VaultTagging tagging)
         {
-            if (name == null && notes == null)
-            {
-                return Untouched(() => FindGroup(uuid) != null);
-            }
+            tagging = tagging ?? VaultTagging.None;
 
             return Change(() =>
             {
@@ -352,14 +369,19 @@ namespace KeePassGate.Bridge
                     return VaultWrite.Busy(blocked);
                 }
 
+                var tag = Before(tagging, group);
+                if (VaultPrecondition.Fails(tagging.Precondition, tag))
+                {
+                    return VaultWrite.PreconditionFailed();
+                }
+
                 if ((name == null || string.Equals(group.Name, name, StringComparison.Ordinal))
                     && (notes == null || string.Equals(group.Notes, notes, StringComparison.Ordinal)))
                 {
-                    // What `Untouched` answers for a body naming nothing, and for the same reason:
-                    // the group already holds what was asked for. Asked here rather than beside
-                    // that, because it is a question about the values, and this is where they are
-                    // read under the writer's lock rather than on a connection thread.
-                    return VaultChange.Unchanged(VaultWrite.Done());
+                    // The group already holds what was asked for, which a body naming nothing asks
+                    // as well, and `VaultChange.Unchanged` says why that writes nothing. The tag
+                    // taken for the precondition is the tag the group still has.
+                    return VaultChange.Unchanged(VaultWrite.Done(tagging.Answers ? tag : null));
                 }
 
                 var wasName = group.Name;
@@ -378,7 +400,7 @@ namespace KeePassGate.Bridge
 
                 group.Touch(true, false);
 
-                return new VaultChange(VaultWrite.Done(), () =>
+                return new VaultChange(VaultWrite.Done(After(tagging, group)), () =>
                 {
                     group.Name = wasName;
                     group.Notes = wasNotes;
@@ -387,8 +409,10 @@ namespace KeePassGate.Bridge
             });
         }
 
-        public VaultWrite DeleteGroup(string uuid)
+        public VaultWrite DeleteGroup(string uuid, VaultTagging tagging)
         {
+            tagging = tagging ?? VaultTagging.None;
+
             return Change(() =>
             {
                 var group = FindGroup(uuid);
@@ -413,6 +437,11 @@ namespace KeePassGate.Bridge
                 if (blocked != null)
                 {
                     return VaultWrite.Busy(blocked);
+                }
+
+                if (VaultPrecondition.Fails(tagging.Precondition, Before(tagging, group)))
+                {
+                    return VaultWrite.PreconditionFailed();
                 }
 
                 var parent = group.ParentGroup;
@@ -529,12 +558,12 @@ namespace KeePassGate.Bridge
         }
 
         public VaultWrite UpdateEntry(
-            string uuid, IReadOnlyDictionary<string, string> fields, VaultExpiry expiry = null)
+            string uuid,
+            IReadOnlyDictionary<string, string> fields,
+            VaultTagging tagging,
+            VaultExpiry expiry = null)
         {
-            if ((fields == null || fields.Count == 0) && expiry == null)
-            {
-                return Untouched(() => FindEntry(uuid) != null);
-            }
+            tagging = tagging ?? VaultTagging.None;
 
             if (expiry != null && expiry.IsAuto)
             {
@@ -561,11 +590,17 @@ namespace KeePassGate.Bridge
                     return VaultWrite.Busy(blocked);
                 }
 
+                var tag = Before(tagging, entry);
+                if (VaultPrecondition.Fails(tagging.Precondition, tag))
+                {
+                    return VaultWrite.PreconditionFailed();
+                }
+
                 if (AlreadyHolds(entry, fields) && AlreadyExpires(entry, expiry))
                 {
                     // Before `Backing`, which is the history revision this would otherwise take of
-                    // an entry nothing is about to change.
-                    return VaultChange.Unchanged(VaultWrite.Done());
+                    // an entry nothing is about to change. A body naming nothing lands here too.
+                    return VaultChange.Unchanged(VaultWrite.Done(tagging.Answers ? tag : null));
                 }
 
                 var restore = Restoring(entry);
@@ -612,7 +647,7 @@ namespace KeePassGate.Bridge
 
                 entry.Touch(true, false);
 
-                return new VaultChange(VaultWrite.Done(), () =>
+                return new VaultChange(VaultWrite.Done(After(tagging, entry)), () =>
                 {
                     foreach (var was in before)
                     {
@@ -634,8 +669,10 @@ namespace KeePassGate.Bridge
             });
         }
 
-        public VaultWrite DeleteEntry(string uuid)
+        public VaultWrite DeleteEntry(string uuid, VaultTagging tagging)
         {
+            tagging = tagging ?? VaultTagging.None;
+
             return Change(() =>
             {
                 var entry = FindEntry(uuid);
@@ -650,6 +687,11 @@ namespace KeePassGate.Bridge
                     return VaultWrite.Busy(blocked);
                 }
 
+                if (VaultPrecondition.Fails(tagging.Precondition, Before(tagging, entry)))
+                {
+                    return VaultWrite.PreconditionFailed();
+                }
+
                 // No history revision here either, and for the same reason KeePass's own delete
                 // makes none: a removal keeps the whole entry, in the recycle bin, so a revision
                 // would be a second copy of something nothing has changed.
@@ -657,8 +699,11 @@ namespace KeePassGate.Bridge
             });
         }
 
-        public VaultWrite CreateField(string entryUuid, string name, string value, bool isProtected)
+        public VaultWrite CreateField(
+            string entryUuid, string name, string value, bool isProtected, VaultTagging tagging)
         {
+            tagging = tagging ?? VaultTagging.None;
+
             if (string.IsNullOrEmpty(name))
             {
                 return Logged(VaultWrite.Failed("a field needs a name"));
@@ -683,12 +728,17 @@ namespace KeePassGate.Bridge
                     return VaultWrite.Busy(blocked);
                 }
 
+                if (VaultPrecondition.Fails(tagging.Precondition, Before(tagging, entry)))
+                {
+                    return VaultWrite.PreconditionFailed();
+                }
+
                 var restore = Restoring(entry);
                 var restoreHistory = Backing(entry);
                 entry.Strings.Set(name, new ProtectedString(isProtected, value ?? string.Empty));
                 entry.Touch(true, false);
 
-                return new VaultChange(VaultWrite.Created(name), () =>
+                return new VaultChange(VaultWrite.Created(name, After(tagging, entry)), () =>
                 {
                     entry.Strings.Remove(name);
                     restoreHistory();
@@ -697,12 +747,14 @@ namespace KeePassGate.Bridge
             });
         }
 
-        public VaultWrite UpdateField(string entryUuid, string name, string value)
+        public VaultWrite UpdateField(string entryUuid, string name, string value, VaultTagging tagging)
         {
+            tagging = tagging ?? VaultTagging.None;
+
             return Change(() =>
             {
                 var entry = FindEntry(entryUuid);
-                if (!Holds(entry, name))
+                if (entry == null || !Holds(entry, name))
                 {
                     return VaultWrite.Missing();
                 }
@@ -711,6 +763,13 @@ namespace KeePassGate.Bridge
                 if (blocked != null)
                 {
                     return VaultWrite.Busy(blocked);
+                }
+
+                // The entry's tag, since the entry is what answers for the field.
+                var tag = Before(tagging, entry);
+                if (VaultPrecondition.Fails(tagging.Precondition, tag))
+                {
+                    return VaultWrite.PreconditionFailed();
                 }
 
                 // Kept as protected as it already was. Whether a field is protected is a property of
@@ -722,7 +781,7 @@ namespace KeePassGate.Bridge
 
                 if (existing != null && existing.Equals(replacement, false))
                 {
-                    return VaultChange.Unchanged(VaultWrite.Done());
+                    return VaultChange.Unchanged(VaultWrite.Done(tagging.Answers ? tag : null));
                 }
 
                 var restore = Restoring(entry);
@@ -731,7 +790,7 @@ namespace KeePassGate.Bridge
                 entry.Strings.Set(name, replacement);
                 entry.Touch(true, false);
 
-                return new VaultChange(VaultWrite.Done(), () =>
+                return new VaultChange(VaultWrite.Done(After(tagging, entry)), () =>
                 {
                     entry.Strings.Set(name, existing);
                     restoreHistory();
@@ -740,11 +799,18 @@ namespace KeePassGate.Bridge
             });
         }
 
-        public VaultWrite DeleteField(string entryUuid, string name)
+        public VaultWrite DeleteField(string entryUuid, string name, VaultTagging tagging)
         {
+            tagging = tagging ?? VaultTagging.None;
+
             return Change(() =>
             {
                 var entry = FindEntry(entryUuid);
+                if (entry == null)
+                {
+                    return VaultWrite.Missing();
+                }
+
                 if (!Holds(entry, name))
                 {
                     return VaultWrite.Missing();
@@ -765,6 +831,11 @@ namespace KeePassGate.Bridge
                     return VaultWrite.Busy(blocked);
                 }
 
+                if (VaultPrecondition.Fails(tagging.Precondition, Before(tagging, entry)))
+                {
+                    return VaultWrite.PreconditionFailed();
+                }
+
                 var was = entry.Strings.Get(name);
                 var restore = Restoring(entry);
                 var restoreHistory = Backing(entry);
@@ -772,7 +843,9 @@ namespace KeePassGate.Bridge
                 entry.Strings.Remove(name);
                 entry.Touch(true, false);
 
-                return new VaultChange(VaultWrite.Done(), () =>
+                // The entry's tag, since the entry is still there, and a client that removes one
+                // field and then changes another needs it to say which entry it is changing.
+                return new VaultChange(VaultWrite.Done(After(tagging, entry)), () =>
                 {
                     entry.Strings.Set(name, was);
                     restoreHistory();
@@ -781,8 +854,11 @@ namespace KeePassGate.Bridge
             });
         }
 
-        public VaultWrite CreateAttachment(string entryUuid, string name, byte[] content)
+        public VaultWrite CreateAttachment(
+            string entryUuid, string name, byte[] content, VaultTagging tagging)
         {
+            tagging = tagging ?? VaultTagging.None;
+
             if (string.IsNullOrEmpty(name))
             {
                 return Logged(VaultWrite.Failed("an attachment needs a name"));
@@ -807,12 +883,17 @@ namespace KeePassGate.Bridge
                     return VaultWrite.Busy(blocked);
                 }
 
+                if (VaultPrecondition.Fails(tagging.Precondition, Before(tagging, entry)))
+                {
+                    return VaultWrite.PreconditionFailed();
+                }
+
                 var restore = Restoring(entry);
                 var restoreHistory = Backing(entry);
                 entry.Binaries.Set(name, new ProtectedBinary(true, content ?? Array.Empty<byte>()));
                 entry.Touch(true, false);
 
-                return new VaultChange(VaultWrite.Created(name), () =>
+                return new VaultChange(VaultWrite.Created(name, After(tagging, entry)), () =>
                 {
                     entry.Binaries.Remove(name);
                     restoreHistory();
@@ -821,12 +902,15 @@ namespace KeePassGate.Bridge
             });
         }
 
-        public VaultWrite UpdateAttachment(string entryUuid, string name, byte[] content)
+        public VaultWrite UpdateAttachment(
+            string entryUuid, string name, byte[] content, VaultTagging tagging)
         {
+            tagging = tagging ?? VaultTagging.None;
+
             return Change(() =>
             {
                 var entry = FindEntry(entryUuid);
-                if (!Keeps(entry, name))
+                if (entry == null || !Keeps(entry, name))
                 {
                     return VaultWrite.Missing();
                 }
@@ -835,6 +919,12 @@ namespace KeePassGate.Bridge
                 if (blocked != null)
                 {
                     return VaultWrite.Busy(blocked);
+                }
+
+                var tag = Before(tagging, entry);
+                if (VaultPrecondition.Fails(tagging.Precondition, tag))
+                {
+                    return VaultWrite.PreconditionFailed();
                 }
 
                 var was = entry.Binaries.Get(name);
@@ -845,7 +935,7 @@ namespace KeePassGate.Bridge
                 // asks the lengths before it decrypts either side.
                 if (was != null && was.Equals(replacement, false))
                 {
-                    return VaultChange.Unchanged(VaultWrite.Done());
+                    return VaultChange.Unchanged(VaultWrite.Done(tagging.Answers ? tag : null));
                 }
 
                 var restore = Restoring(entry);
@@ -854,7 +944,7 @@ namespace KeePassGate.Bridge
                 entry.Binaries.Set(name, replacement);
                 entry.Touch(true, false);
 
-                return new VaultChange(VaultWrite.Done(), () =>
+                return new VaultChange(VaultWrite.Done(After(tagging, entry)), () =>
                 {
                     entry.Binaries.Set(name, was);
                     restoreHistory();
@@ -863,12 +953,14 @@ namespace KeePassGate.Bridge
             });
         }
 
-        public VaultWrite DeleteAttachment(string entryUuid, string name)
+        public VaultWrite DeleteAttachment(string entryUuid, string name, VaultTagging tagging)
         {
+            tagging = tagging ?? VaultTagging.None;
+
             return Change(() =>
             {
                 var entry = FindEntry(entryUuid);
-                if (!Keeps(entry, name))
+                if (entry == null || !Keeps(entry, name))
                 {
                     return VaultWrite.Missing();
                 }
@@ -879,6 +971,11 @@ namespace KeePassGate.Bridge
                     return VaultWrite.Busy(blocked);
                 }
 
+                if (VaultPrecondition.Fails(tagging.Precondition, Before(tagging, entry)))
+                {
+                    return VaultWrite.PreconditionFailed();
+                }
+
                 var was = entry.Binaries.Get(name);
                 var restore = Restoring(entry);
                 var restoreHistory = Backing(entry);
@@ -886,7 +983,8 @@ namespace KeePassGate.Bridge
                 entry.Binaries.Remove(name);
                 entry.Touch(true, false);
 
-                return new VaultChange(VaultWrite.Done(), () =>
+                // The entry's tag, as a field's removal answers it.
+                return new VaultChange(VaultWrite.Done(After(tagging, entry)), () =>
                 {
                     entry.Binaries.Set(name, was);
                     restoreHistory();
@@ -898,6 +996,16 @@ namespace KeePassGate.Bridge
         public VaultGroup Group(string uuid)
         {
             return Reading(() => GroupInside(uuid));
+        }
+
+        public string GroupTag(string uuid)
+        {
+            return Reading(() => GroupTagInside(uuid));
+        }
+
+        public string EntryTag(string uuid)
+        {
+            return Reading(() => EntryTagInside(uuid));
         }
 
         public IReadOnlyList<VaultGroup> Subgroups(string uuid)
@@ -1094,6 +1202,13 @@ namespace KeePassGate.Bridge
             {
                 _log.Warn("a change was refused as busy: " + write.Reason);
             }
+            else if (write.IsPreconditionFailed)
+            {
+                // Something only the client can clear, by reading again, and still worth a line:
+                // a client refused this way over and over is one writing over somebody, or
+                // guessing, and the operator is the one who can tell which.
+                _log.Warn("a change was refused, its precondition failing: " + write.Reason);
+            }
             else if (write.IsConflict)
             {
                 _log.Warn("a change was refused as a conflict: " + write.Reason);
@@ -1113,43 +1228,35 @@ namespace KeePassGate.Bridge
         }
 
         /// <summary>
-        /// An update that named nothing to change, answered without changing anything.
+        /// The node's tag as a change finds it, when the change has to take one, and null when it
+        /// does not.
         /// </summary>
         /// <remarks>
-        /// **A body naming no member is a body the document allows**, on both update routes: every
-        /// member of each is optional, so `{}` is valid against the declared schema and refusing it
-        /// in code would be this plugin disagreeing with its own routing table. What it asks for is
-        /// nothing, and what it now gets is nothing.
-        ///
-        /// It used to be a full write. The change ran, found nothing to set, and still called
-        /// `Touch`, which moves the modification time, the access time and the usage count; on an
-        /// entry `Backing` had already taken a history revision first, and then the whole database
-        /// was saved to hold it. So a client with `update` and no other verb could move an entry's
-        /// timestamps at will and, in `HistoryMaxItems` calls, push every real revision of it out
-        /// of the history that KeePass keeps precisely so an overwritten password can be recovered.
-        /// Every one of those calls was answered `200`, and each of them was correct in saying that
-        /// the entry now held what the request asked it to hold.
-        ///
-        /// The node is still looked up, because the answer for one that is not there is the `404`
-        /// every route gives and not an `ok`. That read runs on the connection thread like every
-        /// other read here rather than on the writer's, which is the same race every read on this
-        /// class already has and which costs nothing when the answer changes nothing.
-        ///
-        /// **A body naming only what the node already holds asks for nothing as well**, and writes
-        /// nothing as this does, but it is decided inside the change rather than here, after every
-        /// check a change makes: that one has to compare values, and a comparison made on this
-        /// thread could be overtaken by a write landing before the one it decided about.
-        /// <see cref="VaultChange.Unchanged"/> is that.
+        /// Taken once, under the writer's lock, after every refusal that does not depend on it,
+        /// and used twice where the change turns out to change nothing: for the precondition and
+        /// for the answer, which is the tag the node still has. A tag is a digest over every
+        /// string and attachment the node holds, so taking it on a write that asks for neither is
+        /// work on KeePass's thread that nothing reads.
         /// </remarks>
-        private VaultWrite Untouched(Func<bool> present)
+        private string Before(VaultTagging tagging, PwGroup group)
         {
-            var blocked = WriteBlocked;
-            if (blocked != null)
-            {
-                return Logged(VaultWrite.Failed(blocked));
-            }
+            return tagging.NeedsTag ? _tags.Of(group) : null;
+        }
 
-            return Reading(present) ? VaultWrite.Done() : VaultWrite.Missing();
+        private string Before(VaultTagging tagging, PwEntry entry)
+        {
+            return tagging.NeedsTag ? Tag(entry) : null;
+        }
+
+        /// <summary>The tag a change left, when its answer is to carry one, and null otherwise.</summary>
+        private string After(VaultTagging tagging, PwGroup group)
+        {
+            return tagging.Answers ? _tags.Of(group) : null;
+        }
+
+        private string After(VaultTagging tagging, PwEntry entry)
+        {
+            return tagging.Answers ? Tag(entry) : null;
         }
 
         /// <summary>Whether every string a body names already holds the value it asks for.</summary>
@@ -1796,6 +1903,41 @@ namespace KeePassGate.Bridge
 
         private VaultEntry Describe(PwEntry entry)
         {
+            return Describe(entry, null);
+        }
+
+        /// <summary>An entry as one lookup answers about it, saying whether it holds a protected value.</summary>
+        /// <remarks>
+        /// A listing leaves that out, since it answers about a collection and nothing in it is
+        /// asked about one entry's tag.
+        /// </remarks>
+        private VaultEntry Single(PwEntry entry)
+        {
+            if (entry == null)
+            {
+                return null;
+            }
+
+            var holds = false;
+            foreach (var pair in entry.Strings)
+            {
+                if (Guards(pair.Key, pair.Value))
+                {
+                    holds = true;
+                    break;
+                }
+            }
+
+            return Describe(entry, holds);
+        }
+
+        private string Tag(PwEntry entry)
+        {
+            return _tags.Of(entry, Guards);
+        }
+
+        private VaultEntry Describe(PwEntry entry, bool? holdsProtected)
+        {
             if (entry == null)
             {
                 return null;
@@ -1811,7 +1953,8 @@ namespace KeePassGate.Bridge
                 KdbxNodes.Of(entry),
                 Guards(entry, PwDefs.TitleField),
                 Guards(entry, PwDefs.UrlField),
-                entry.Expires ? When(entry.ExpiryTime) : (DateTimeOffset?)null);
+                entry.Expires ? When(entry.ExpiryTime) : (DateTimeOffset?)null,
+                holdsProtected);
         }
 
         /// <summary>Whether one of an entry's strings is protected.</summary>
@@ -1835,18 +1978,20 @@ namespace KeePassGate.Bridge
         ///
         /// The flag term stays, because a custom field's protection is only ever the flag: the
         /// database says nothing about a name it does not know, and `UpdateField` keeps whatever
-        /// the operator marked.
+        /// the operator marked. It is asked first, being one field read where the database's
+        /// answer is five comparisons by the current culture, and a tag asks this of every string.
         /// </remarks>
         private bool Guards(string field, ProtectedString value)
         {
-            return Protects(field) || (value != null && value.IsProtected);
+            return (value != null && value.IsProtected) || Protects(field);
         }
 
         /// <summary>
         /// KeePass keeps its times as UTC and says so with the kind, except where it does not, so
         /// this says so for it rather than letting a local time be read as a universal one.
         /// </summary>
-        private static DateTimeOffset When(DateTime time)
+        /// <remarks>Shared with <see cref="NodeTags"/>, so that a tag reads a moment as a route serves it.</remarks>
+        internal static DateTimeOffset When(DateTime time)
         {
             return new DateTimeOffset(DateTime.SpecifyKind(time.ToUniversalTime(), DateTimeKind.Utc));
         }
