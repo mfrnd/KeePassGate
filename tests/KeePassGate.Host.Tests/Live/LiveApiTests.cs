@@ -4,6 +4,7 @@ using System.Linq;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using KeePassGate.Audit;
+using KeePassGate.Testing;
 using KeePassGate.Transport;
 using NUnit.Framework;
 
@@ -65,12 +66,12 @@ namespace KeePassGate.Host.Tests.Live
             // which is the other half of this and is proved against the fake rather than here.
             // `attachments` too, because an entry's tag is handed only to a rule that reads all of
             // it, and the lost update below is written under one.
-            keePass.Grant("{\"reader\":[\"create\",\"read\",\"update\",\"delete\",\"list\",\"attachments\",\"protected\"]}");
+            keePass.Grant(Rules.Granting("agent", "CRUDLAP"));
 
             using (var admitted = keePass.IssueClientCertificate("agent-fictitious"))
             using (var stranger = keePass.IssueClientCertificate("agent-no-rules"))
             {
-                keePass.Admit(admitted, "reader");
+                keePass.Admit(admitted, "agent");
                 keePass.Admit(stranger, "nobody");
 
                 var process = keePass.Start();

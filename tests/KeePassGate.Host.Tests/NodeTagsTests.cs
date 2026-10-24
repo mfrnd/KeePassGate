@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using KeePassGate.Bridge;
+using KeePassGate.Testing;
 using KeePassGate.Ui;
 using KeePassGate.Vault;
 using KeePassLib;
@@ -152,7 +153,7 @@ namespace KeePassGate.Host.Tests
             _entry.LastModificationTime = Moment;
             var tag = EntryTag();
 
-            _entry.CustomData.Set("KPG", "{\"reader\":[\"read\"]}");
+            _entry.CustomData.Set("KPG", Rules.Granting("reader", "R"));
             _entry.CreateBackup(_database.Database);
             _entry.LastAccessTime = Moment.AddDays(1);
             _entry.UsageCount += 5;

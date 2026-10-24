@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows.Forms;
 using KeePassGate.Acl;
+using KeePassGate.Testing;
 using KeePassGate.Tests.Fakes;
 using KeePassGate.Ui;
 using NUnit.Framework;
@@ -190,7 +191,7 @@ namespace KeePassGate.Tests
             // next one. Each took the dialog's buttons for itself, so the first gave OK and Cancel
             // back under the second, and the second then put back the nothing it had found.
             Using(
-                "{\"reader\":[\"read\"]}",
+                Rules.Granting("reader", "R"),
                 (form, panel, grid) =>
                 {
                     var accept = new Button();
@@ -230,7 +231,7 @@ namespace KeePassGate.Tests
             // moved the focus into it. The letters worked, but only after checking one with the
             // pointer first.
             Using(
-                "{\"reader\":[]}",
+                Rules.Granting("reader", ""),
                 (form, panel, grid) =>
                 {
                     panel.Press(0, MaskColumn);
@@ -337,7 +338,7 @@ namespace KeePassGate.Tests
         public void Escape_leaves_the_rule_where_it_was()
         {
             Using(
-                "{\"reader\":[\"read\"]}",
+                Rules.Granting("reader", "R"),
                 (form, panel, grid) =>
                 {
                     panel.Press(0, MaskColumn);
@@ -356,7 +357,7 @@ namespace KeePassGate.Tests
         public void A_letter_that_names_no_verb_is_left_for_whatever_wants_it()
         {
             Using(
-                "{\"reader\":[]}",
+                Rules.Granting("reader", ""),
                 (form, panel, grid) =>
                 {
                     panel.Press(0, MaskColumn);
@@ -391,7 +392,7 @@ namespace KeePassGate.Tests
             // Changing it in place would be two edits wearing one gesture: the old profile silently
             // loses its rule and the new one silently gains whatever the row held.
             Using(
-                "{\"reader\":[\"read\"]}",
+                Rules.Granting("reader", "R"),
                 (form, panel, grid) =>
                 {
                     panel.Press(0, ProfileColumn);
@@ -407,7 +408,7 @@ namespace KeePassGate.Tests
         public void The_permissions_of_a_rule_that_exists_can_be_changed()
         {
             Using(
-                "{\"reader\":[\"read\"]}",
+                Rules.Granting("reader", "R"),
                 (form, panel, grid) =>
                 {
                     panel.Press(0, MaskColumn);
@@ -428,7 +429,7 @@ namespace KeePassGate.Tests
             // first cell current and selects it as the window is made, so the first rule on every
             // tab opened in the selection color as though somebody had chosen it.
             Using(
-                "{\"reader\":[\"read\"]}",
+                Rules.Granting("reader", "R"),
                 (form, panel, grid) =>
                 {
                     Assert.That(grid.SelectedCells, Is.Empty, "the first rule opened drawn as chosen");
@@ -443,7 +444,7 @@ namespace KeePassGate.Tests
             // the rebuild took the current cell away while the grid kept the focus, so once a rule
             // had been chosen the keyboard opened nothing until an arrow key gave it a cell back.
             Using(
-                "{\"reader\":[\"read\"]}",
+                Rules.Granting("reader", "R"),
                 (form, panel, grid) =>
                 {
                     grid.Focus();
@@ -542,7 +543,7 @@ namespace KeePassGate.Tests
             // changed and that the rules stay readable. The table was disabled for it, and a
             // disabled grid takes neither its scroll bar nor the wheel, so only the rules that fit
             // could be read.
-            var store = new FakeGrantStore(Rules(MoreRulesThanFit));
+            var store = new FakeGrantStore(Rules.Numbered(MoreRulesThanFit, "RL"));
 
             using (var form = OffScreenForm.New())
             using (var panel = new GrantPanel(
@@ -668,7 +669,7 @@ namespace KeePassGate.Tests
             // gray, and the only rule on either comes from the group above; what the seal adds is
             // the line drawn through the mask that no longer arrives.
             var arriving = Ink(null);
-            var refused = Ink("{\"default\":\"deny\"}");
+            var refused = Ink(Rules.Sealing());
 
             Assert.That(refused, Is.GreaterThan(arriving),
                 "a grant the seal is refusing is drawn exactly like one in force");
@@ -776,7 +777,7 @@ namespace KeePassGate.Tests
         private static void Sealed(Action<Form, GrantPanel, DataGridView> work)
         {
             Using(
-                "{\"default\":\"deny\"}",
+                Rules.Sealing(),
                 TestNode.Root("a group above").Granting("reader", AclVerb.Read, AclVerb.List),
                 work);
         }
@@ -805,22 +806,7 @@ namespace KeePassGate.Tests
         /// </summary>
         private static void Cramped(Action<Form, GrantPanel, DataGridView> work)
         {
-            Using(Rules(MoreRulesThanFit), null, TooShortForEveryRow, work);
-        }
-
-        /// <summary>A document naming enough profiles to overflow a short table.</summary>
-        private static string Rules(int count)
-        {
-            var text = new System.Text.StringBuilder("{");
-
-            for (var i = 0; i < count; i++)
-            {
-                text.Append(i > 0 ? ",\"profile-" : "\"profile-")
-                    .Append(i.ToString("00", System.Globalization.CultureInfo.InvariantCulture))
-                    .Append("\":[\"read\",\"list\"]");
-            }
-
-            return text.Append('}').ToString();
+            Using(Rules.Numbered(MoreRulesThanFit, "RL"), null, TooShortForEveryRow, work);
         }
 
         /// <param name="size">

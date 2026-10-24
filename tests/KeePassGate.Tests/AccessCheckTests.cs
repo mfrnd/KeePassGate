@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using KeePassGate.Acl;
 using KeePassGate.Pipeline;
+using KeePassGate.Testing;
 using KeePassGate.Tests.Fakes;
 using NUnit.Framework;
 
@@ -262,7 +263,7 @@ namespace KeePassGate.Tests
             // The record holds `ops` and the list does not, so the client asks holding `reader`
             // alone and the rule for `ops` answers about nobody. Written as the rules refusing,
             // that sends the operator looking for a rule; the reason is that they removed a name.
-            var entry = TestNode.Root("root").Holding("{\"ops\":[\"read\"],\"audit\":[\"read\"]}").Child("an entry");
+            var entry = TestNode.Root("root").Holding(Rules.Granting("ops", "R", "audit", "R")).Child("an entry");
 
             var permitted = _check.Decide(
                 Removing(new[] { "reader" }, "ops", "audit", "legacy"), "readEntry", AclVerb.Read, AclReach.Fields, entry)
@@ -301,16 +302,16 @@ namespace KeePassGate.Tests
         {
             // A removal is asked of the group it leaves and of the node itself, so one removed name
             // can be what the container needed and another what the node did: `ops` may remove
-            // from the root and not this entry, `audit` this entry and nothing from the root.
+            // from the root and not this entry, `cleaner` this entry and nothing from the root.
             var entry = TestNode.Root("root").Granting("ops", AclVerb.Delete)
-                .Child("an entry").Holding("{\"audit\":[\"delete\"],\"ops\":[]}");
+                .Child("an entry").Holding(Rules.Granting("cleaner", "D", "ops", ""));
 
-            _check.Decide(Removing(Array.Empty<string>(), "ops", "audit"), "deleteEntry", AclVerb.Delete, AclReach.Fields, entry);
+            _check.Decide(Removing(Array.Empty<string>(), "ops", "cleaner"), "deleteEntry", AclVerb.Delete, AclReach.Fields, entry);
 
             var recorded = _audit.Entries.Single();
 
             Assert.That(recorded.Reason, Is.EqualTo(AccessCheck.ProfileRemoved));
-            Assert.That(recorded.RemovedProfiles, Is.EqualTo(new[] { "ops", "audit" }));
+            Assert.That(recorded.RemovedProfiles, Is.EqualTo(new[] { "ops", "cleaner" }));
         }
 
         [Test]
@@ -401,7 +402,7 @@ namespace KeePassGate.Tests
         public void A_question_about_every_verb_carries_what_each_profile_is_granted()
         {
             var entry = TestNode.Root("root")
-                .Holding("{\"reader\":[\"read\"],\"editor\":[\"update\"]}")
+                .Holding(Rules.Granting("reader", "R", "editor", "U"))
                 .Child("an entry");
 
             var decision = _check.Decide(

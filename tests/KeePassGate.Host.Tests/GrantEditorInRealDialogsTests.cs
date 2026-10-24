@@ -3,6 +3,7 @@ using System.Linq;
 using System.Reflection;
 using System.Windows.Forms;
 using KeePass.Forms;
+using KeePassGate.Testing;
 using KeePassGate;
 using KeePassGate.Acl;
 using KeePassGate.Authority;
@@ -81,8 +82,8 @@ namespace KeePassGate.Host.Tests
             var group = GroupUnderRoot("Fictitious");
             var first = EntryIn(group);
             var second = EntryIn(group);
-            first.CustomData.Set(AclDocument.CustomDataKey, "{\"reader\":[\"read\"]}");
-            second.CustomData.Set(AclDocument.CustomDataKey, "{\"editor\":[\"update\"]}");
+            first.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting("reader", "R"));
+            second.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting("editor", "U"));
 
             // Built by reflection because the constructor is internal to KeePass. That is
             // the point of the test rather than an obstacle to it: this is a shape only
@@ -138,11 +139,11 @@ namespace KeePassGate.Host.Tests
             // The tab says these are the rules the revision had, and an operator reads it before
             // restoring one. Built from the store alone, it showed only what the group grants.
             var group = GroupUnderRoot("Fictitious");
-            group.CustomData.Set(AclDocument.CustomDataKey, "{\"reader\":[\"read\",\"list\",\"protected\"]}");
+            group.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting("reader", "RLP"));
             var entry = EntryIn(group);
-            entry.CustomData.Set(AclDocument.CustomDataKey, "{\"default\":\"deny\",\"editor\":[\"update\"]}");
+            entry.CustomData.Set(AclDocument.CustomDataKey, Rules.Sealing("editor", "U"));
             entry.CreateBackup(_database.Database);
-            entry.CustomData.Set(AclDocument.CustomDataKey, "{\"auditor\":[\"list\"]}");
+            entry.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting("auditor", "L"));
             var revision = entry.History.GetAt(0);
 
             using (var dialog = new PwEntryForm())
@@ -165,7 +166,7 @@ namespace KeePassGate.Host.Tests
             // not changed, so they have to be there: a table showing only the inherited rows
             // reads as a group granting nothing of its own while it hands out passwords.
             var group = GroupUnderRoot("Fictitious");
-            group.CustomData.Set(AclDocument.CustomDataKey, "{\"reader\":[\"read\",\"list\",\"protected\"]}");
+            group.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting("reader", "RLP"));
 
             using (var dialog = GroupFormWithoutACopy(group))
             {
@@ -216,7 +217,7 @@ namespace KeePassGate.Host.Tests
             // of a merged selection, whose OK deletes whatever it no longer carries from every
             // entry in it, or of a revision KeePass keeps nothing of.
             var entry = EntryIn(GroupUnderRoot("Fictitious"));
-            entry.CustomData.Set(AclDocument.CustomDataKey, "{\"reader\":[\"read\"]}");
+            entry.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting("reader", "R"));
 
             using (var dialog = EntryFormWithout(missing, entry))
             {
@@ -285,7 +286,7 @@ namespace KeePassGate.Host.Tests
             // that said this database names no profiles, which is false of the database and sends
             // the operator to the wrong page.
             var group = GroupUnderRoot("Fictitious");
-            group.CustomData.Set(AclDocument.CustomDataKey, "{\"reader\":[\"read\"]}");
+            group.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting("reader", "R"));
 
             using (var dialog = GroupFormWithoutADatabase(group))
             {
@@ -329,7 +330,7 @@ namespace KeePassGate.Host.Tests
             // and choosing the same rule again wrote nothing. Brought forward, it reads the copy
             // again, and the copy wins.
             var group = GroupUnderRoot("Fictitious");
-            group.CustomData.Set(AclDocument.CustomDataKey, "{\"reader\":[\"read\"]}");
+            group.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting("reader", "R"));
 
             using (var dialog = new GroupForm())
             {
@@ -404,7 +405,7 @@ namespace KeePassGate.Host.Tests
             // the node, so anything this panel touches while merely being looked at is a change the
             // operator did not make and is then asked to save.
             var group = GroupUnderRoot("Fictitious");
-            group.CustomData.Set(AclDocument.CustomDataKey, "{\"reader\":[\"read\"]}");
+            group.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting("reader", "R"));
 
             var written = group.CustomData.Get(AclDocument.CustomDataKey);
             var touched = group.LastModificationTime;
@@ -435,7 +436,7 @@ namespace KeePassGate.Host.Tests
         public void Opening_an_entry_dialog_and_changing_nothing_leaves_the_entry_and_the_database_alone()
         {
             var entry = EntryIn(GroupUnderRoot("Fictitious"));
-            entry.CustomData.Set(AclDocument.CustomDataKey, "{\"reader\":[\"read\"]}");
+            entry.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting("reader", "R"));
 
             var written = entry.CustomData.Get(AclDocument.CustomDataKey);
             var touched = entry.LastModificationTime;
@@ -518,12 +519,13 @@ namespace KeePassGate.Host.Tests
                 var store = NodeDialog.Of(dialog, null).Store();
                 Assert.That(store, Is.Not.Null);
 
-                store.Write("{\"default\":\"inherit\",\"reader\":[\"read\"]}");
+                var rule = Rules.Granting("reader", "R");
+                store.Write(rule);
 
                 Assert.That(group.CustomData.Get(AclDocument.CustomDataKey), Is.Null,
                     "the live group is untouched until the dialog is accepted");
                 Assert.That(WorkingCopyOf(dialog).Get(AclDocument.CustomDataKey),
-                    Is.EqualTo("{\"default\":\"inherit\",\"reader\":[\"read\"]}"));
+                    Is.EqualTo(rule));
             }
         }
 
@@ -545,12 +547,13 @@ namespace KeePassGate.Host.Tests
                 var store = NodeDialog.Of(dialog, null).Store();
                 Assert.That(store, Is.Not.Null);
 
-                store.Write("{\"default\":\"inherit\",\"reader\":[\"read\"]}");
+                var rule = Rules.Granting("reader", "R");
+                store.Write(rule);
 
                 Assert.That(entry.CustomData.Get(AclDocument.CustomDataKey), Is.Null,
                     "the live entry is untouched until the dialog is accepted");
                 Assert.That(WorkingCopyOf(dialog).Get(AclDocument.CustomDataKey),
-                    Is.EqualTo("{\"default\":\"inherit\",\"reader\":[\"read\"]}"));
+                    Is.EqualTo(rule));
             }
         }
 
@@ -561,15 +564,15 @@ namespace KeePassGate.Host.Tests
             // in `OnFormLoad` and the entry dialog in `InitPropertiesTab`. Both run after the
             // window is announced, so the tab is built while the copy is still null either way.
             var entry = EntryIn(GroupUnderRoot("Fictitious"));
-            entry.CustomData.Set(AclDocument.CustomDataKey, "{\"reader\":[\"read\"]}");
+            var rule = Rules.Granting("reader", "R");
+            entry.CustomData.Set(AclDocument.CustomDataKey, rule);
 
             using (var dialog = new PwEntryForm())
             {
                 dialog.InitEx(entry, PwEditMode.EditExistingEntry, _database.Database, _icons, false, false);
 
                 Assert.That(WorkingCopyOf(dialog), Is.Null, "measured, not assumed");
-                Assert.That(NodeDialog.Of(dialog, null).Store().Read(),
-                    Is.EqualTo("{\"reader\":[\"read\"]}"));
+                Assert.That(NodeDialog.Of(dialog, null).Store().Read(), Is.EqualTo(rule));
             }
         }
 
@@ -589,7 +592,7 @@ namespace KeePassGate.Host.Tests
             {
                 dialog.InitEx(entry, PwEditMode.EditExistingEntry, _database.Database, _icons, false, false);
                 Load(dialog, entry.CustomData);
-                NodeDialog.Of(dialog, null).Store().Write("{\"default\":\"deny\",\"reader\":[\"read\",\"list\"]}");
+                NodeDialog.Of(dialog, null).Store().Write(Rules.Sealing("reader", "RL"));
 
                 AcceptAsKeePassWould(dialog, entry);
             }
@@ -611,7 +614,7 @@ namespace KeePassGate.Host.Tests
             // empty document as a rule granting nothing from there down, which is not what taking
             // the last rule away means.
             var entry = EntryIn(GroupUnderRoot("Fictitious"));
-            entry.CustomData.Set(AclDocument.CustomDataKey, "{\"reader\":[\"read\"]}");
+            entry.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting("reader", "R"));
 
             using (var dialog = new PwEntryForm())
             {
@@ -633,15 +636,15 @@ namespace KeePassGate.Host.Tests
             // copy is still null. Reading from the node is what stops an editor opened on a group
             // with rules from showing none.
             var group = GroupUnderRoot("Fictitious");
-            group.CustomData.Set(AclDocument.CustomDataKey, "{\"reader\":[\"read\"]}");
+            var rule = Rules.Granting("reader", "R");
+            group.CustomData.Set(AclDocument.CustomDataKey, rule);
 
             using (var dialog = new GroupForm())
             {
                 dialog.InitEx(group, false, null, _database.Database);
 
                 Assert.That(WorkingCopyOf(dialog), Is.Null, "measured, not assumed");
-                Assert.That(NodeDialog.Of(dialog, null).Store().Read(),
-                    Is.EqualTo("{\"reader\":[\"read\"]}"));
+                Assert.That(NodeDialog.Of(dialog, null).Store().Read(), Is.EqualTo(rule));
             }
         }
 
@@ -649,7 +652,7 @@ namespace KeePassGate.Host.Tests
         public void A_rule_already_on_a_group_is_read_back_through_the_dialog()
         {
             var group = GroupUnderRoot("Fictitious");
-            group.CustomData.Set(AclDocument.CustomDataKey, "{\"reader\":[\"read\",\"list\"]}");
+            group.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting("reader", "RL"));
 
             using (var dialog = new GroupForm())
             {
@@ -667,7 +670,7 @@ namespace KeePassGate.Host.Tests
         public void Removing_the_last_rule_takes_the_key_out_of_the_copy()
         {
             var group = GroupUnderRoot("Fictitious");
-            group.CustomData.Set(AclDocument.CustomDataKey, "{\"default\":\"inherit\",\"reader\":[\"read\"]}");
+            group.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting("reader", "R"));
 
             using (var dialog = new GroupForm())
             {
@@ -686,7 +689,7 @@ namespace KeePassGate.Host.Tests
         public void An_entry_inherits_from_the_group_it_is_in()
         {
             var group = GroupUnderRoot("Fictitious");
-            group.CustomData.Set(AclDocument.CustomDataKey, "{\"reader\":[\"read\",\"attachments\"]}");
+            group.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting("reader", "RA"));
             var entry = EntryIn(group);
 
             using (var dialog = new PwEntryForm())
@@ -761,7 +764,7 @@ namespace KeePassGate.Host.Tests
             // into force and this is the node it would be in force on.
             Name("reader");
             var group = GroupUnderRoot("Fictitious");
-            group.CustomData.Set(AclDocument.CustomDataKey, "{\"ops\":[\"read\"],\"reader\":[\"list\"]}");
+            group.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting("ops", "R", "reader", "L"));
 
             using (var dialog = new GroupForm())
             {
@@ -787,7 +790,7 @@ namespace KeePassGate.Host.Tests
             {
                 dialog.InitEx(group, false, null, _database.Database);
                 Load(dialog, group.CustomData);
-                NodeDialog.Of(dialog, null).Store().Write("{\"default\":\"deny\",\"reader\":[\"read\",\"list\"]}");
+                NodeDialog.Of(dialog, null).Store().Write(Rules.Sealing("reader", "RL"));
 
                 AcceptAsKeePassWould(dialog, group);
             }
