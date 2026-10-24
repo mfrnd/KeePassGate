@@ -9,6 +9,7 @@ using KeePassGate.Gate;
 using KeePassGate.Pairing;
 using KeePassGate.Pipeline;
 using KeePassGate.Spec;
+using KeePassGate.Testing;
 using KeePassGate.Tests.Fakes;
 using KeePassGate.Transport;
 using NUnit.Framework;
@@ -1037,7 +1038,7 @@ namespace KeePassGate.Tests
             return Send(
                 "POST",
                 PairingHandler.HelloPath,
-                "{\"proof\":\"" + Convert.ToBase64String(proof) + "\"}",
+                Bodies.Of(("proof", Convert.ToBase64String(proof))),
                 _connection,
                 Approving());
         }
@@ -1117,7 +1118,7 @@ namespace KeePassGate.Tests
                 path,
                 new Dictionary<string, string>(),
                 new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase),
-                body == null ? 0 : body.Length);
+                Bodies.LengthOf(body));
 
             var context = new GateContext(head, body, client);
             if (pairing != null)

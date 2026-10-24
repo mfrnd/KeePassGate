@@ -10,6 +10,7 @@ using KeePassGate.Gate;
 using KeePassGate.Pairing;
 using KeePassGate.Pipeline;
 using KeePassGate.Spec;
+using KeePassGate.Testing;
 using KeePassGate.Tests.Fakes;
 using KeePassGate.Transport;
 using NUnit.Framework;
@@ -723,7 +724,7 @@ namespace KeePassGate.Tests
                 path,
                 query,
                 new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase),
-                body == null ? 0 : body.Length);
+                Bodies.LengthOf(body));
 
             return new GateContext(head, body ?? string.Empty, client);
         }

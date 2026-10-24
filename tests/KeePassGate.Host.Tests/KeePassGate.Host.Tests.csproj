@@ -47,6 +47,7 @@
     <Compile Include="..\Shared\PrivateKeyFiles.cs" Link="Shared\PrivateKeyFiles.cs" />
     <Compile Include="..\Shared\CertificateUris.cs" Link="Shared\CertificateUris.cs" />
     <Compile Include="..\Shared\Rules.cs" Link="Shared\Rules.cs" />
+    <Compile Include="..\Shared\Bodies.cs" Link="Shared\Bodies.cs" />
   </ItemGroup>
 
   <ItemGroup>

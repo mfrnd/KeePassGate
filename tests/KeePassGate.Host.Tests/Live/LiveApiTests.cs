@@ -78,12 +78,12 @@ namespace KeePassGate.Host.Tests.Live
                 WaitUntilServing(keePass, process);
 
                 _created = Send(keePass, admitted, "POST", "/groups/root/entries",
-                    "{\"Title\":\"" + Title + "\",\"Password\":\"not-a-real-password\"}");
+                    Bodies.Of(("Title", Title), ("Password", "not-a-real-password")));
 
                 _uuid = Uuid(_created);
 
                 _addedField = Send(keePass, admitted, "POST", "/entries/" + _uuid + "/fields",
-                    "{\"name\":\"" + Custom + "\",\"value\":\"a value\"}");
+                    Bodies.Of(("name", Custom), ("value", "a value")));
 
                 _read = Send(keePass, admitted, "GET", "/entries/" + _uuid, null);
                 _listed = Send(keePass, admitted, "GET", "/entries", null);

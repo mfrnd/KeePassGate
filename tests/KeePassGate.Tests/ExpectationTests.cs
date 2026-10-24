@@ -3,6 +3,7 @@ using System.Linq;
 using System.Text;
 using KeePassGate.Authority;
 using KeePassGate.Pipeline;
+using KeePassGate.Testing;
 using KeePassGate.Tests.Fakes;
 using KeePassGate.Transport;
 using NUnit.Framework;
@@ -62,7 +63,7 @@ namespace KeePassGate.Tests
         [Test]
         public void The_body_still_arrives_and_still_reaches_the_handler()
         {
-            var handler = new SpyHandler(context => context.Respond(200, "{\"seen\":\"" + context.Body + "\"}"));
+            var handler = new SpyHandler(context => context.Respond(200, Bodies.Of(("seen", context.Body))));
             var stream = new ConversationStream(
                 "POST /gate/status HTTP/1.1\r\nExpect: 100-continue\r\nContent-Length: 4\r\n\r\nbody");
 
