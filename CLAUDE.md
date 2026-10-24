@@ -476,8 +476,10 @@ Every one of these was established by running code, and most contradict what the
 suggests. The code is on branches of its own: `spikes/tls-and-certificates` holds the nine that
 measured TLS and X.509, `spikes/build-environment` the one that measured whether the gate can
 fail while nothing is wrong, `spikes/revocation-merge` the one that measured how KeePass merges
-a database's custom data, and `spikes/entity-tags` the one that measured what a node's version
-could be made of. Each gathers what it settled in its own `RESULTS.md`. Run them from
+a database's custom data, `spikes/entity-tags` the one that measured what a node's version
+could be made of, and `spikes/automation-unload` the one that measured why a domain that drove
+KeePass through UI automation cannot unload. Each gathers what it settled in its own `RESULTS.md`.
+Run them from
 **Windows PowerShell**, not PowerShell 7, which is .NET Core and answers a different question.
 
 - **`X509Chain` does not pin an anchor.** `ExtraStore` plus `AllowUnknownCertificateAuthority`
@@ -629,6 +631,18 @@ could be made of. Each gathers what it settled in its own `RESULTS.md`. Run them
   boundary. Do not ask the window which control that is: a `NumericUpDown` publishes no editable
   child, so its row answers as a focused `Pane`, while a grid cell does publish as a focused `Edit`
   and would be moved off a picture that was already steady. The caller names the control.
+- **UI automation's managed client leaves a thread no AppDomain can unload.** The first walk into
+  a window's controls loads the client-side providers into the domain that asks, and their
+  `WinEventTracker` starts a queue on a background thread waiting in native code with no timeout
+  and no way to be told to stop, so `AppDomain.Unload` gives up on it after fifteen seconds. NUnit
+  unloads the test assembly's domain at the end of a run, which is why every end to end run ended
+  with "Exception encountered unloading application domain". `ClientSideProviderQueue` ends the
+  thread once the last fixture in the `Live` namespace has finished, through the queue's own way
+  in, and `ClientSideProviderQueueTests` pins the framework's private names it reaches for, in the
+  host tier. An empty set of client-side providers does not prevent it, and was measured not to;
+  `RunConfiguration.DisableAppDomain` does, and costs `GrantTabFitsTests` its themed child domain
+  for the whole assembly or the end to end runs the test host's binding redirects for them alone.
+  `spikes/automation-unload` holds the probe and the numbers.
 - **`WM_SETTEXT` reaches a `TextBox` and not a `Label`.** A label paints from its managed `Text` and
   never reads the window's, so writing to one from outside changes nothing and reports success.
   Three of `Steadied`'s four substitutions were labels and had never once taken effect; what kept
