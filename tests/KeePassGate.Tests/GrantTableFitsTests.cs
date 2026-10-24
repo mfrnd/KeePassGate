@@ -3,6 +3,7 @@ using System.Drawing;
 using System.Threading;
 using System.Windows.Forms;
 using KeePassGate.Acl;
+using KeePassGate.Testing;
 using KeePassGate.Tests.Fakes;
 using KeePassGate.Ui;
 using NUnit.Framework;
@@ -186,8 +187,8 @@ namespace KeePassGate.Tests
             var above = TestNode.Root("root").Granting("reader", AclVerb.Read);
 
             return new GrantPanel(
-                new GrantSheet("{\"editor\":[\"read\",\"update\"]}", above, new[] { "reader", "editor" }, null),
-                new FakeGrantStore("{\"editor\":[\"read\",\"update\"]}") { Refusal = new InvalidOperationException("this measurement writes nothing") },
+                new GrantSheet(Rules.Granting("editor", "RU"), above, new[] { "reader", "editor" }, null),
+                new FakeGrantStore(Rules.Granting("editor", "RU")) { Refusal = new InvalidOperationException("this measurement writes nothing") },
                 GrantTab.GroupScope,
                 null);
         }

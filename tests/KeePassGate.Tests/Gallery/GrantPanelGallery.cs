@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using KeePassGate.Acl;
+using KeePassGate.Testing;
 using KeePassGate.Tests.Fakes;
 using KeePassGate.Ui;
 using NUnit.Framework;
@@ -40,7 +41,7 @@ namespace KeePassGate.Tests.Gallery
             // against.
             Shoot(
                 "grant-03-one-rule",
-                "{\"reader\":[\"read\",\"list\"]}",
+                Rules.Granting("reader", "RL"),
                 null,
                 Offered);
 
@@ -48,7 +49,7 @@ namespace KeePassGate.Tests.Gallery
             // gray and has nothing to remove, which is the difference this page exists to draw.
             Shoot(
                 "grant-04-local-and-inherited",
-                "{\"editor\":[\"read\",\"update\"]}",
+                Rules.Granting("editor", "RU"),
                 Above(),
                 Offered);
 
@@ -59,8 +60,7 @@ namespace KeePassGate.Tests.Gallery
             // what is in it and these are the two ends of that.
             Shoot(
                 "grant-06-widest-and-narrowest-masks",
-                "{\"reader\":[\"create\",\"read\",\"update\",\"strip\",\"delete\",\"list\",\"attachments\",\"protected\"],"
-                + "\"editor\":[]}",
+                Rules.Granting("ops", "CRUSDLAP", "editor", ""),
                 null,
                 Offered);
 
@@ -68,7 +68,7 @@ namespace KeePassGate.Tests.Gallery
             // is said.
             Shoot(
                 "grant-07-sealed",
-                "{\"default\":\"deny\",\"reader\":[\"read\"]}",
+                Rules.Sealing("reader", "R"),
                 null,
                 Offered);
 
@@ -77,7 +77,7 @@ namespace KeePassGate.Tests.Gallery
             // seal is refusing it, so the mask carries the line that says it no longer arrives.
             Shoot(
                 "grant-08-sealed-over-inherited",
-                "{\"default\":\"deny\"}",
+                Rules.Sealing(),
                 Above(),
                 Offered);
 
@@ -87,16 +87,16 @@ namespace KeePassGate.Tests.Gallery
 
             // Readable here and unreadable above, which is a different warning about a different
             // node and the same band.
-            Shoot("grant-10-unreadable-above", "{\"reader\":[\"read\"]}", Broken(), Offered);
+            Shoot("grant-10-unreadable-above", Rules.Granting("reader", "R"), Broken(), Offered);
 
             // More rules than the table can show at once.
-            Shoot("grant-11-scrolling", Many(12), null, Offered);
+            Shoot("grant-11-scrolling", Rules.Numbered(12, "RL"), null, Offered);
 
             // A name nobody would type and everybody eventually has, against a column that shares
             // what the other two leave.
             Shoot(
                 "grant-12-long-profile-name",
-                "{\"a-profile-with-a-name-somebody-really-did-type\":[\"read\",\"list\"]}",
+                Rules.Granting("a-profile-with-a-name-somebody-really-did-type", "RL"),
                 null,
                 Offered);
         }
@@ -129,24 +129,6 @@ namespace KeePassGate.Tests.Gallery
         private static IAclNode Broken()
         {
             return TestNode.Root("root").Holding("{this will not read either");
-        }
-
-        /// <summary>A document naming enough profiles to overflow the table.</summary>
-        private static string Many(int count)
-        {
-            var text = new System.Text.StringBuilder("{");
-
-            for (var i = 0; i < count; i++)
-            {
-                if (i > 0)
-                {
-                    text.Append(',');
-                }
-
-                text.Append("\"profile-").Append(i.ToString("00", System.Globalization.CultureInfo.InvariantCulture)).Append("\":[\"read\",\"list\"]");
-            }
-
-            return text.Append('}').ToString();
         }
 
         /// <summary>A store that answers with one document and keeps whatever it is given.</summary>

@@ -55,6 +55,10 @@ ignoreRegExpList:
   # A code point written as an escape, which is a number rather than a word. It appears in C# and
   # in the JSON this serves, and both spell it the same way.
   - "/\\\\u[0-9a-fA-F]{4}/g"
+  # A `CRUSDLAP` mask in quotes, all eight places or only the letters it holds, which is a rule
+  # rather than a word. Only the letters in their own order, so a word that happens to be made of
+  # them is still checked.
+  - "/\"[C.]?[R.]?[U.]?[S.]?[D.]?[L.]?[A.]?[P.]?\"/g"
 
 words:
   # the message that settles whether a window draws focus rectangles

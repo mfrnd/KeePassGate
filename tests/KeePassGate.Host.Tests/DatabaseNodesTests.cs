@@ -1,6 +1,7 @@
 using System.Linq;
 using KeePassGate.Acl;
 using KeePassGate.Bridge;
+using KeePassGate.Testing;
 using KeePassLib;
 using KeePassLib.Security;
 using NUnit.Framework;
@@ -35,10 +36,11 @@ namespace KeePassGate.Host.Tests
         {
             var database = Tree();
             var deepest = database.RootGroup.GetGroups(true).Single(group => group.Name == "deeper");
-            deepest.CustomData.Set(AclDocument.CustomDataKey, "{\"ops\":[\"read\"]}");
+            var rule = Rules.Granting("ops", "R");
+            deepest.CustomData.Set(AclDocument.CustomDataKey, rule);
 
             var found = new DatabaseNodes(database).All()
-                .Count(node => node.Read() == "{\"ops\":[\"read\"]}");
+                .Count(node => node.Read() == rule);
 
             Assert.That(found, Is.EqualTo(1));
         }
@@ -51,7 +53,7 @@ namespace KeePassGate.Host.Tests
             // would read as one that still decides something.
             var database = Tree();
             var entry = database.RootGroup.Entries.Single();
-            entry.CustomData.Set(AclDocument.CustomDataKey, "{\"ops\":[\"read\"]}");
+            entry.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting("ops", "R"));
             entry.CreateBackup(database);
             entry.CreateBackup(database);
             entry.CustomData.Remove(AclDocument.CustomDataKey);
