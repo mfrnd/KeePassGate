@@ -106,7 +106,7 @@ def test_the_gate_says_what_each_profile_may_do_at_a_node(
         ({}, "L", False),
         ({"cleaner": "...S...."}, "SA", True),
         ({"cleaner": "....D..."}, "DP", True),
-        ({"reader": ".R.....A"}, "SA", False),
+        ({"reader": ".R....A."}, "SA", False),
     ],
     ids=[
         "one mask holds both",
@@ -126,8 +126,9 @@ def test_a_question_about_a_verb_and_a_switch_is_asked_of_one_mask_at_a_time(
     grants: dict[str, str], letters: str, allowed: bool
 ) -> None:
     # One profile's `R` and another's `P` do not read a protected value, which is why the gate
-    # answers a mask per profile rather than one made of all of them.
-    assert Access(grants=grants).allows(letters) is allowed
+    # answers a mask per profile rather than one made of all of them. Read as an answer is, so a
+    # mask in the table that the gate would never write fails here rather than answering no.
+    assert Access.of({"grants": grants}).allows(letters) is allowed
 
 
 @pytest.mark.parametrize("letters", ["", "P", "AP", "X", "rp", "R P"])
@@ -135,7 +136,7 @@ def test_a_question_naming_no_verb_or_a_letter_no_mask_has_is_refused(letters: s
     # A switch on its own grants nothing, so a question about one alone is answered by nothing the
     # gate does; and a letter the notation does not have is a mistake in the calling program.
     with pytest.raises(ValueError, match=repr(letters)):
-        Access(grants={"reader": "CRUSDLAP"}).allows(letters)
+        Access.of({"grants": {"reader": "CRUSDLAP"}}).allows(letters)
 
 
 def test_what_a_client_may_do_prints_as_the_masks_it_is() -> None:
