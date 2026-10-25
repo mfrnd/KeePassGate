@@ -23,10 +23,12 @@ secret this side invented.
 uv run --no-project --with pykeepass python surface.py
 ```
 
-`surface.json` classifies every public member of `PyKeePass` as one of three things: **served** by
-routes the gate already has, **needs-routes** because nothing in the design forbids it and the gate
-does not serve it yet, or **refused** because it needs the file, the key, the XML document, or an
-operation the design deliberately does not offer.
+`surface.json` classifies every public member of `PyKeePass`, `Entry`, `Group` and `Attachment` as
+one of four things: **served** by routes the gate already has, with the meaning pykeepass gives it;
+**served-differently**, where the gate has the operation but it means something else, so a facade
+must not offer it under that name; **needs-routes** because nothing in the design forbids it and
+the gate does not serve it yet; or **refused** because it needs the file, the key, the XML
+document, or an operation the design deliberately does not offer.
 
 The probe reads the library's own `dir()` and reports anything the table does not cover, so a
 member added or removed upstream fails the run rather than going unnoticed. It exits non-zero when
