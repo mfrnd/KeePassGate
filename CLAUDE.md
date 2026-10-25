@@ -69,6 +69,7 @@ being built**: what the build order plans for it is in `DESIGN.md` §132.
 | [`PAIRING.md`](PAIRING.md) | how a stranger becomes a client, with the flow diagrams |
 | [`FINDINGS.md`](FINDINGS.md) | what was measured rather than assumed, and what turned out wrong |
 | [`TESTING.md`](TESTING.md) | the four test tiers, what each one buys, and how to run them |
+| [`RELEASING.md`](RELEASING.md) | how a version is published, and the settings a release needs |
 
 **One document is historical and says so at the top.** [`ANALYSIS.md`](ANALYSIS.md) is the argument
 that was made, and several of its conclusions were later reversed; it opens with a banner naming

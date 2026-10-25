@@ -1,0 +1,214 @@
+# Publishes a release. A `v` tag pushed on a commit of `master` publishes what that commit holds,
+# and nothing else does: every other way in builds and checks the same things and publishes them
+# nowhere, or somewhere that costs nothing.
+#
+# **Three ways in, and what each one may do.** A tag is a release. Running this by hand from the
+# Actions page is a rehearsal: every job that publishes runs, against a target that is thrown away
+# or costs nothing, so the one thing a release still does for the first time is the address it
+# publishes to. A pull request that touches what a release is built from is a check: it builds
+# and checks everything and publishes nothing, with no job holding more than read access.
+#
+# **The version is the one `Directory.Build.props` holds**, never one read off the tag, because
+# that is where it is written once and where the routing document, the plugin and the client are
+# held to it. The tag only picks the commit to release, and a tag naming another version is
+# refused before anything is built, as is one whose changelog heading still reads unreleased, or
+# one on a commit `master` does not hold.
+#
+# **PyPI last**, because a version number there can never be used again, even after deleting it:
+# everything that could still fail fails before the one step that cannot be taken back. And
+# through Trusted Publishing, so that no token is kept anywhere: PyPI takes the identity GitHub
+# gives the job, for this repository, this file and its environment, and nothing else.
+#
+# **The actions are pinned by commit**, as in `gate.yml`, and for the same reason.
+
+name: release
+
+on:
+  push:
+    tags: ['v*']
+  pull_request:
+    paths:
+      - .github/workflows/release.yml
+      - CHANGELOG.md
+      - Directory.Build.props
+      - pyproject.toml
+      - uv.lock
+  workflow_dispatch:
+
+concurrency:
+  group: release-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  decide:
+    name: what this release publishes
+    runs-on: windows-latest
+    timeout-minutes: 10
+    outputs:
+      mode: ${{ steps.decide.outputs.mode }}
+      version: ${{ steps.decide.outputs.version }}
+      python: ${{ steps.decide.outputs.python }}
+      client: ${{ steps.decide.outputs.client }}
+    steps:
+      # The whole history and every tag, because which half a patch releases is what changed since
+      # the tag before it, and whether a tag may be released is whether `master` holds its commit.
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          fetch-depth: 0
+
+      - id: decide
+        shell: powershell
+        run: |
+          $mode = switch ($env:GITHUB_EVENT_NAME) {
+            'push' { 'release' }
+            'workflow_dispatch' { 'rehearsal' }
+            default { 'check' }
+          }
+
+          $props = Get-Content Directory.Build.props -Raw
+          if ($props -notmatch '<Version>([^<]+)</Version>') {
+            throw 'Directory.Build.props holds no <Version>, which is the one place a version is written.'
+          }
+          $version = $Matches[1]
+          if ($version -notmatch '^(\d+)\.(\d+)\.(\d+)$') {
+            throw "Directory.Build.props holds the version '$version', which is not a major, a minor and a patch."
+          }
+          $patch = [int] $Matches[3]
+
+          if ($mode -eq 'release') {
+            if ($env:GITHUB_REF_NAME -ne "v$version") {
+              throw "The tag $env:GITHUB_REF_NAME names another version than the $version this commit holds. Delete it, and tag v$version or the commit that holds the version wanted."
+            }
+            & git merge-base --is-ancestor HEAD origin/master
+            if ($LASTEXITCODE -ne 0) {
+              throw "The tag $env:GITHUB_REF_NAME is on a commit master does not hold, and a release is only ever of one that went through the gate."
+            }
+          }
+
+          # The heading is the version, then the half a patch releases, then unreleased until it
+          # is not. A release refuses a heading that still reads unreleased, since the changelog
+          # would then be wrong the moment the release is out. A rehearsal and a check take it,
+          # because they run before the pull request that marks it released.
+          $heading = @(Get-Content CHANGELOG.md | Where-Object { $_ -match "^## $([regex]::Escape($version))(,|$)" })
+          if ($heading.Count -ne 1) {
+            throw "CHANGELOG.md has $($heading.Count) headings for $version, where a version has exactly one."
+          }
+          if ($mode -eq 'release' -and $heading[0] -match 'unreleased') {
+            throw "CHANGELOG.md still calls $version unreleased: '$($heading[0])'."
+          }
+
+          # A minor version releases both halves, a patch the half whose files it changed since the
+          # tag before it, CONVENTIONS.md "Versions". Only a release asks, because a rehearsal and
+          # a check are there to try everything.
+          $client = $true
+          if ($mode -eq 'release' -and $patch -ne 0) {
+            # Asked with errors let through, since Windows PowerShell turns what git writes to
+            # standard error into a stopping error under the runner's preference, and no tag
+            # before this one is an answer rather than a failure.
+            $ErrorActionPreference = 'Continue'
+            $previous = & git describe --tags --abbrev=0 --match 'v[0-9]*' HEAD^ 2>$null
+            $found = $LASTEXITCODE -eq 0
+            $ErrorActionPreference = 'Stop'
+            if (-not $found -or -not $previous) {
+              throw "v$version is a patch, and no tag before it shows what it patches."
+            }
+            $changed = @(& git diff --name-only "$previous" HEAD)
+            $client = [bool] @($changed | Where-Object { $_ -like 'src/pykeepassgate/*' -or $_ -eq 'pyproject.toml' }).Count
+            Write-Host "Changed since ${previous}: $($changed.Count) file(s); the client $(if ($client) { 'ships' } else { 'does not' })."
+          }
+
+          # A rehearsal publishes to TestPyPI under a development version of its own, since a
+          # number taken there cannot be taken again either, and the run number never repeats.
+          $python = if ($mode -eq 'rehearsal') { "$version.dev$env:GITHUB_RUN_NUMBER" } else { $version }
+
+          Write-Host "mode $mode, version $version, client $client as $python"
+          # Without a byte order mark, which Windows PowerShell's own UTF-8 writes first, and which
+          # would then be part of the first name.
+          $lines = "mode=$mode", "version=$version", "python=$python", "client=$($client.ToString().ToLowerInvariant())"
+          [System.IO.File]::AppendAllText($env:GITHUB_OUTPUT, (($lines -join "`n") + "`n"), (New-Object System.Text.UTF8Encoding $false))
+
+  client:
+    name: the client, built and checked
+    needs: decide
+    if: needs.decide.outputs.client == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+
+      - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
+
+      # Only a rehearsal writes another version, into this checkout and nowhere else, since
+      # hatchling reads it from the same line the plugin does.
+      - name: the rehearsal's own version
+        if: needs.decide.outputs.python != needs.decide.outputs.version
+        env:
+          VERSION: ${{ needs.decide.outputs.version }}
+          PYTHON: ${{ needs.decide.outputs.python }}
+        run: |
+          sed -i "s|<Version>$VERSION</Version>|<Version>$PYTHON</Version>|" Directory.Build.props
+          grep -q "<Version>$PYTHON</Version>" Directory.Build.props
+
+      # A wheel and a source distribution, each named for the version, and nothing else: anything
+      # more in the directory would be uploaded beside them.
+      - name: build
+        env:
+          PYTHON: ${{ needs.decide.outputs.python }}
+        run: |
+          uv build --out-dir dist
+          ls dist
+          test -f "dist/pykeepassgate-$PYTHON-py3-none-any.whl"
+          test -f "dist/pykeepassgate-$PYTHON.tar.gz"
+          test "$(ls dist | wc -l)" -eq 2
+          uv run --frozen twine check --strict dist/*
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: client
+          path: dist/
+          if-no-files-found: error
+
+  # A rehearsal's upload, to TestPyPI, which is a separate index with accounts and projects of its
+  # own: what lands there is a development version nobody installs by accident.
+  testpypi:
+    name: the client, rehearsed on TestPyPI
+    needs: [decide, client]
+    if: needs.decide.outputs.mode == 'rehearsal'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: testpypi
+      url: https://test.pypi.org/project/pykeepassgate/${{ needs.decide.outputs.python }}/
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: client
+          path: dist/
+
+      - uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
+        with:
+          repository-url: https://test.pypi.org/legacy/
+
+  pypi:
+    name: the client, published on PyPI
+    needs: [decide, client]
+    if: needs.decide.outputs.mode == 'release'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: pypi
+      url: https://pypi.org/project/pykeepassgate/${{ needs.decide.outputs.version }}/
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: client
+          path: dist/
+
+      - uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
