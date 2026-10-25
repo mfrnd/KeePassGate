@@ -8,7 +8,7 @@ Guidance for anyone, human or AI assistant, working in this repository.
 mutual TLS, so that automation and AI agents can each be given a narrow, revocable, audited slice of
 a database.
 
-**Status: steps 1 to 29 of the build order are done and the API is served.** The plugin loads
+**Status: the whole build order is done and the API is served.** The plugin loads
 into KeePass, the KPG tab creates, recreates and deletes the database's own certificate authority,
 the gate listens on loopback and answers over mutual TLS 1.3, a client is served only if
 the database holds an admission record for its certificate, and **a stranger can now become one**:
@@ -55,8 +55,9 @@ serves, held to the routing table as the library is, and `-o json` on every one 
 `ETag`, a keyed digest of what the node holds, to a client whose rule reads all of it, and a
 request carrying `If-Match` is answered `412` when the node has changed since, decided under the
 writer's lock. **And `master` takes a merge only once the gate has passed**: a ruleset requires the one
-check `gate passed`, which stands for every job the workflow runs. **Step 30, the release, is
-being built**: what the build order plans for it is in `DESIGN.md` §132.
+check `gate passed`, which stands for every job the workflow runs. **And a `v` tag publishes a
+release**: the plugin's zip as a GitHub release and the client on PyPI, last, through Trusted
+Publishing, after a rehearsal against a draft and TestPyPI, as `RELEASING.md` describes.
 
 ## Read these before proposing anything
 
@@ -897,7 +898,7 @@ here can hang or crash the password manager.
 
 ## Where to start
 
-[`DESIGN.md`](DESIGN.md) §132 ends with a multi-step build order. **Steps 1 to 29 are done.** The
+[`DESIGN.md`](DESIGN.md) §132 ends with a multi-step build order. **All of them are done.** The
 skeleton loads and shows a KPG tab, that tab creates, recreates and deletes the authority, the gate
 serves the document's routes over mutual TLS to a client the authority issued and the database holds
 a record for, a stranger can pair, a locked database answers `503 locked`, a grant means something
@@ -913,11 +914,12 @@ KeePass does, under the caller's own rules, `build.ps1 -Task Package` makes the 
 would publish, the README tells somebody arriving what this is, around a picture of the
 whole journey that moves and a diagram of the pieces, the command line reaches every route
 and prints JSON for a program, a write can be made against what was read, refused with `412`
-when the node has changed since, and a merge into `master` waits for the whole gate to pass.
+when the node has changed since, a merge into `master` waits for the whole gate to pass, and a
+tag publishes both halves.
 
 **Start with [`docs/`](docs/README.md) if the question is what this does**, and with the documents
-below if the question is why it does it that way. What is left is step 30, the release, and
-beyond the build order there is no Scoop manifest.
+below if the question is why it does it that way. What is left is not a step: the first release is
+a tag, once the settings `RELEASING.md` lists are made, and there is no Scoop manifest.
 
 **The storage decision survived the thing most likely to invalidate it.** The `GroupForm` snapshot
 hazard is real and now measured rather than remembered: `SnapshotHazardTests` reads the mechanism off
