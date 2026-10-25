@@ -13,19 +13,13 @@ what is missing is a statement: a route with no method here is a route the gate 
 
 ## Install
 
-**Not on PyPI yet.** The name is held there by
-[a placeholder](https://pypi.org/project/pykeepassgate/), 0.0.1, which is not this client, so
-`uv add pykeepassgate` and `pip install pykeepassgate` install something else until the first
-release is published. Until then it is installed from a checkout of
-[the repository](https://github.com/mfrnd/KeePassGate), whose `pyproject.toml` is the client's:
-
 ```shell
-git clone https://github.com/mfrnd/KeePassGate
-uv add ./KeePassGate              # as a dependency of the project this is run in
-uv tool install ./KeePassGate     # or the command line on its own
+uv add pykeepassgate              # as a dependency of the project this is run in
+uv tool install pykeepassgate     # or the command line on its own
 ```
 
-`pip install ./KeePassGate` takes the same path. One dependency, `cryptography`, because the gate
+`pip install pykeepassgate` takes the same path. A client works with a plugin of the same major
+and minor version, as `0.1`, whatever the patch on either side. One dependency, `cryptography`, because the gate
 hands over a PKCS#12 and Python's `ssl` reads PEM. Everything else, the command line included, is
 the standard library.
 

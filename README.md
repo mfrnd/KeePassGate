@@ -56,8 +56,11 @@ log. [`docs/architecture.md`](docs/architecture.md) explains each piece in more 
 
 ## Try it
 
-There is no release yet, so the plugin is built from this repository. That takes Windows, the
-[.NET SDK](https://dotnet.microsoft.com/download) and, for the client,
+The plugin is published as a zip on [the releases page](https://github.com/mfrnd/KeePassGate/releases)
+and the client as [`pykeepassgate`](https://pypi.org/project/pykeepassgate/) on PyPI, and
+[`docs/getting-started.md`](docs/getting-started.md) installs them into a KeePass already in use.
+The quickest way to look around without touching that KeePass is a clone of this repository, which
+takes Windows, the [.NET SDK](https://dotnet.microsoft.com/download) and, for the client,
 [uv](https://docs.astral.sh/uv/).
 
 ```powershell
