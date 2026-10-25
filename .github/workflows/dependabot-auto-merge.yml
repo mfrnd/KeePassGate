@@ -1,0 +1,69 @@
+# Switches auto-merge on for the Dependabot pull requests that may merge themselves, and for no
+# other pull request.
+#
+# **Which ones**, by the group `dependabot.yml` puts them in: `prose-tools`, whatever it moves,
+# and `actions`, unless one of its updates is a major version. `python` and `libraries` wait for a
+# person, as does any pull request Dependabot opens outside a group, a security update among them.
+#
+# **The merge still waits for everything a merge waits for.** Auto-merge holds until the ruleset
+# on `master` is satisfied, which is `gate passed`. The release workflow's check is not required,
+# since it runs only on the pull requests that touch what a release is built from, so when this
+# one does, this job waits for that run to pass before switching auto-merge on.
+
+name: dependabot-auto-merge
+
+on: pull_request
+
+permissions:
+  contents: read
+
+jobs:
+  enable:
+    name: auto-merge for a Dependabot update
+    if: github.event.pull_request.user.login == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      actions: read
+      contents: write
+      pull-requests: write
+    steps:
+      - id: meta
+        uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
+
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        if: >-
+          steps.meta.outputs.dependency-group == 'prose-tools' ||
+          (steps.meta.outputs.dependency-group == 'actions' &&
+           steps.meta.outputs.update-type != 'version-update:semver-major')
+
+      - name: auto-merge
+        if: >-
+          steps.meta.outputs.dependency-group == 'prose-tools' ||
+          (steps.meta.outputs.dependency-group == 'actions' &&
+           steps.meta.outputs.update-type != 'version-update:semver-major')
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NUMBER: ${{ github.event.pull_request.number }}
+          TITLE: ${{ github.event.pull_request.title }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          # The paths the release workflow checks, read from it rather than written twice.
+          changed=$(gh pr diff "$NUMBER" --name-only)
+          watched=$(yq '.on.pull_request.paths[]' .github/workflows/release.yml)
+          if printf '%s\n' "$changed" | grep -qxF -f <(printf '%s\n' "$watched"); then
+            run=''
+            for attempt in $(seq 1 30); do
+              run=$(gh run list --workflow release.yml --commit "$SHA" --event pull_request \
+                --json databaseId --jq '.[0].databaseId // empty')
+              if [ -n "$run" ]; then break; fi
+              sleep 10
+            done
+            if [ -z "$run" ]; then
+              echo "This touches what a release is built from, and no release check ran on $SHA." >&2
+              exit 1
+            fi
+            gh run watch "$run" --exit-status --interval 30
+          fi
+
+          gh pr merge "$NUMBER" --auto --merge --subject "$TITLE (#$NUMBER)" --match-head-commit "$SHA"

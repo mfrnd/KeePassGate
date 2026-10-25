@@ -38,6 +38,8 @@ on:
       - CHANGELOG.md
       - Directory.Build.props
       - pyproject.toml
+      - src/KeePassGate/KeePassGate.csproj
+      - THIRD-PARTY-NOTICES.md
       - uv.lock
   workflow_dispatch:
 

@@ -11,7 +11,7 @@
 # whatever its maintainers move it to next, and what every run executes would then change with no
 # commit here to show it. The pins are the one thing in this file expected to change: when an
 # action's maintainers retire the runtime it runs on, a newer release is pinned here, in a commit of
-# its own.
+# its own. `dependabot.yml` proposes each one, moving the commit and the release beside it together.
 #
 # **Pull requests, and pushes to `master` only.** Every step's branch is stacked on the one below
 # it and its pull request is based there, so a push to the branch and the pull request's merge

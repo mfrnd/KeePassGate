@@ -1,0 +1,72 @@
+# Opens an issue when KeePass releases a version newer than the one this repository pins.
+#
+# **KeePass is pinned rather than found**, by `keepass.version` and the archive's hash in
+# `keepass.sha256`, and no dependency service reads either, so nothing else would notice a new
+# release. Moving the pin is deliberately a person's job: `tools/KeePass.ps1` refuses a version
+# with no line in `keepass.sha256` and prints the hash that arrived, so it can be pinned after
+# looking, and every tier then runs against it before anything ships built on it.
+#
+# **The version KeePass itself publishes**, from the file its own update check reads. Its first
+# line is a signature, and the version is the line naming `KeePass`. An issue already open for the
+# same version is not opened twice.
+
+name: keepass-watch
+
+on:
+  schedule:
+    - cron: '30 5 * * 1'
+  workflow_dispatch:
+
+concurrency:
+  group: keepass-watch
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  watch:
+    name: a newer KeePass
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+
+      - name: compare
+        run: |
+          pinned=$(tr -d '[:space:]' < keepass.version)
+          latest=$(curl -fsS --max-time 30 https://keepass.info/update/version2x.txt |
+            tr -d '\r' | sed -n 's/^KeePass:\([0-9.]*\)$/\1/p')
+          if [ -z "$latest" ]; then
+            echo "KeePass's version file named no version." >&2
+            exit 1
+          fi
+          echo "pinned $pinned, latest $latest"
+
+          newest=$(printf '%s\n%s\n' "$pinned" "$latest" | sort -V | tail -1)
+          if [ "$newest" = "$pinned" ]; then
+            exit 0
+          fi
+
+          title="KeePass $latest is out; the pin is $pinned"
+          if gh issue list --state open --search "\"$title\" in:title" --json title --jq '.[].title' |
+              grep -qxF "$title"; then
+            echo "Already open: $title"
+            exit 0
+          fi
+
+          gh issue create --title "$title" --body "KeePass $latest has been released, and \`keepass.version\` pins $pinned.
+
+          To move the pin:
+
+          1. Write $latest into \`keepass.version\`.
+          2. Run \`.\\build.ps1 -Task KeePass\`. \`tools/KeePass.ps1\` refuses the version, since \`keepass.sha256\` has no line for it, and prints the hash of the archive that arrived.
+          3. Check that hash against the one KeePass publishes, then add the line to \`keepass.sha256\`.
+          4. Run the gate and the end to end tier against it, and open a pull request.
+
+          Opened by \`.github/workflows/keepass-watch.yml\`."

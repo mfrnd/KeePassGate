@@ -1,0 +1,86 @@
+# Keeps every pinned dependency current, in a pull request the gate checks like any other.
+#
+# **Everything here is pinned on purpose**: the actions by commit, the client's tools by `uv.lock`,
+# the prose tools by `package-lock.json`, and the plugin's libraries by an exact version in its
+# project. A pin is what keeps a run reproducible, and it is also what keeps a fix from arriving:
+# nothing moves one unless somebody does. This is that somebody, once a week, so a security fix in
+# a pinned action or library reaches a pull request rather than waiting to be noticed.
+#
+# **One pull request per kind a week**, each kind grouped, because a dozen pull requests a week
+# would be read less carefully than four. A security update is never grouped or delayed: GitHub
+# opens it on its own as soon as the advisory is out.
+#
+# **A version is proposed once it is a week old**, the cooldown below. A compromised release is
+# usually found and pulled within days, and a week costs nothing a security update needs, since
+# those skip the cooldown.
+#
+# **Only the prose tools and the actions merge themselves**, through `dependabot-auto-merge.yml`,
+# because a green gate shows that an update breaks nothing and not that it is what it claims to
+# be. The prose tools only read this repository's Markdown. An action does more: one merged this
+# way runs in the next release with that job's access, which is why only a minor or a patch
+# version merges itself, a week after its release, and why every action stays pinned by commit.
+# The plugin's libraries ship inside the release zip and the lock holds what the client installs,
+# so those wait for a person.
+#
+# **KeePass is not here.** It is downloaded and pinned by `keepass.version` and `keepass.sha256`,
+# which no ecosystem below reads, so `keepass-watch.yml` watches for a new release of it instead.
+
+version: 2
+
+updates:
+  # Each action is pinned by commit with its release in a comment beside it, and both are moved
+  # together, which is what `gate.yml`'s header asks of a new pin.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 7
+    groups:
+      actions:
+        patterns: ['*']
+
+  # The lock only. The floors in `pyproject.toml` are what an installed client promises to work
+  # with, and each one is there for a reason its comment gives, so a floor moves by hand or not at
+  # all, never because a newer release exists.
+  - package-ecosystem: uv
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 7
+    versioning-strategy: lockfile-only
+    groups:
+      python:
+        patterns: ['*']
+
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 7
+    groups:
+      prose-tools:
+        patterns: ['*']
+
+  # The plugin's own libraries ship inside the release zip, inside somebody's KeePass, so a new
+  # major version, which may change what the plugin relies on, waits for a person to read it.
+  # Minor and patch versions arrive grouped, and `release.yml` packages the zip on that pull
+  # request, which is what refuses an assembly the notices do not name.
+  - package-ecosystem: nuget
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 7
+    ignore:
+      - dependency-name: '*'
+        update-types: ['version-update:semver-major']
+    groups:
+      libraries:
+        patterns: ['*']
