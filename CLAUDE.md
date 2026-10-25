@@ -878,6 +878,8 @@ the tools this branch carries.
   `__version__` comes from the installed metadata, and the routing document's `info.version`, which
   YAML cannot take from anywhere, is held to it by a test on each side. Moving it is one line there
   and the same in `openapi.yaml`; `CONVENTIONS.md` says when, and `CHANGELOG.md` says what moved.
+  A minor version releases both halves and a patch only the half it fixes, so a patch number may
+  exist on one side only, and the same major and minor version is what makes two halves a pair.
 
 ## Security posture
 
