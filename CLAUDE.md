@@ -54,7 +54,8 @@ serves, held to the routing table as the library is, and `-o json` on every one 
 **And a write can be made against what was read**: a read of one group or one entry carries an
 `ETag`, a keyed digest of what the node holds, to a client whose rule reads all of it, and a
 request carrying `If-Match` is answered `412` when the node has changed since, decided under the
-writer's lock.
+writer's lock. **And `master` takes a merge only once the gate has passed**: a ruleset requires the one
+check `gate passed`, which stands for every job the workflow runs.
 
 ## Read these before proposing anything
 
@@ -823,11 +824,15 @@ skips** anything else: no error, no message, no entry in its plugin list. `Plugi
 against the constant read out of KeePass itself. The entry point must likewise be named for the file,
 `KeePassGate.KeePassGateExt` in `KeePassGate.dll`, namespace included.
 
-**There is CI, and there is no branch protection.** The workflow runs every gate on every pull
-request and on every push to `master`, and no check is required before a merge. A red check
-therefore reports and does not block: read it before merging, because nothing else will. Requiring
-the gate is one setting on a public repository, and GitHub offers it on a private one only under a
-paid plan.
+**There is CI, and `master` requires it.** The workflow runs every gate on every pull request and
+on every push to `master`, and a ruleset on `master` requires one check, `gate passed`, which passes
+only when every other job did. So `master` changes through a pull request, merged with a merge
+commit, and is never force pushed or deleted. The ruleset asks for no approval, because a sole
+maintainer cannot approve their own pull request, and the repository's administrators may bypass
+it. It names `gate passed` rather than each gate, because the gates are what `build.ps1 -ListGates`
+answers, and a list written into a setting would go stale the first time a gate was added. This
+reverses "there is no branch protection", which held until the build order's pull requests had all
+been merged, since a required check on a stack being merged would have held every one of them.
 
 ## Testing
 
@@ -903,8 +908,8 @@ renewal the operator answers and every client revoked, the client follows field 
 KeePass does, under the caller's own rules, `build.ps1 -Task Package` makes the zip a release
 would publish, the README tells somebody arriving what this is, around a picture of the
 whole journey that moves and a diagram of the pieces, the command line reaches every route
-and prints JSON for a program, and a write can be made against what was read, refused with `412`
-when the node has changed since.
+and prints JSON for a program, a write can be made against what was read, refused with `412`
+when the node has changed since, and a merge into `master` waits for the whole gate to pass.
 
 **Start with [`docs/`](docs/README.md) if the question is what this does**, and with the documents
 below if the question is why it does it that way. What is left is not a step: there is no release

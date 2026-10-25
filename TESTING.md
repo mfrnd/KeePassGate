@@ -405,8 +405,9 @@ figure did.
 
 ## Before a commit
 
-There is CI, and there is no branch protection, because none is configured.
-`.\build.ps1 -Task All` is the gate, and nothing stops a push that skipped it.
+There is CI, and `master` requires its `gate passed` check before a pull request merges into it,
+as `CLAUDE.md` explains. `.\build.ps1 -Task All` is the gate, and nothing stops a push to
+a branch that skipped it: what is stopped is the merge.
 
 **The fast half can run at the commit itself, once it is installed.** `.pre-commit-config.yaml`
 holds the checks cheap enough to run on what is being committed: the client's style and types, the
