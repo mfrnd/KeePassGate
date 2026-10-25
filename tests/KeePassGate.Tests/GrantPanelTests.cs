@@ -52,7 +52,7 @@ namespace KeePassGate.Tests
         [Test]
         public void A_rule_is_drawn_as_its_mask()
         {
-            var store = new FakeGrantStore(Rules.Granting("reader", "RL"));
+            var store = new FakeGrantStore(Rules.Granting(("reader", "RL")));
 
             using (var panel = Panel(store, null))
             {
@@ -80,7 +80,7 @@ namespace KeePassGate.Tests
         {
             // The one that decides whether looking at a database leaves it modified. The grid
             // commits for reasons that are not edits, and every one of them lands here.
-            var store = new FakeGrantStore(Rules.Granting("reader", "R"));
+            var store = new FakeGrantStore(Rules.Granting(("reader", "R")));
 
             using (var panel = Panel(store, null))
             {
@@ -109,7 +109,7 @@ namespace KeePassGate.Tests
         [Test]
         public void Removing_the_last_rule_takes_the_key_away()
         {
-            var store = new FakeGrantStore(Rules.Granting("reader", "R"));
+            var store = new FakeGrantStore(Rules.Granting(("reader", "R")));
 
             using (var panel = Panel(store, null))
             {
@@ -174,7 +174,7 @@ namespace KeePassGate.Tests
         {
             var above = TestNode.Root("root").Granting("reader", AclVerb.Read);
 
-            using (var panel = Panel(new FakeGrantStore(Rules.Granting("editor", "RU")), above))
+            using (var panel = Panel(new FakeGrantStore(Rules.Granting(("editor", "RU"))), above))
             {
                 Assert.That(panel.Lines, Is.EqualTo(new[] { "editor .RU.....", "reader .R......" }));
             }
@@ -189,7 +189,7 @@ namespace KeePassGate.Tests
             // rule away, are the whole of the difference on screen.
             var above = TestNode.Root("root").Granting("reader", AclVerb.Read);
 
-            using (var panel = Panel(new FakeGrantStore(Rules.Granting("editor", "R")), above))
+            using (var panel = Panel(new FakeGrantStore(Rules.Granting(("editor", "R"))), above))
             {
                 var grid = ControlTree.FindByName<DataGridView>(panel, GrantTab.GridControlName);
                 Assert.That(grid, Is.Not.Null);
@@ -220,7 +220,7 @@ namespace KeePassGate.Tests
             // would come out of the two that are already sharing. `GrantTabFitsTests` measures it.
             var above = TestNode.Root("root").Granting("reader", AclVerb.Read, AclVerb.Update);
 
-            using (var panel = Panel(new FakeGrantStore(Rules.Granting("reader", "R")), above))
+            using (var panel = Panel(new FakeGrantStore(Rules.Granting(("reader", "R"))), above))
             {
                 var grid = ControlTree.FindByName<DataGridView>(panel, GrantTab.GridControlName);
                 var narrowed = Row(grid, "reader");
@@ -238,7 +238,7 @@ namespace KeePassGate.Tests
             // it told an operator who had just widened an entry that the group still bounded it.
             var above = TestNode.Root("root").Granting("editor", AclVerb.Read);
 
-            using (var panel = Panel(new FakeGrantStore(Rules.Granting("editor", "CRP")), above))
+            using (var panel = Panel(new FakeGrantStore(Rules.Granting(("editor", "CRP"))), above))
             {
                 var grid = ControlTree.FindByName<DataGridView>(panel, GrantTab.GridControlName);
 
@@ -251,7 +251,7 @@ namespace KeePassGate.Tests
         {
             var above = TestNode.Root("root").Granting("editor", AclVerb.Read, AclVerb.List);
 
-            using (var panel = Panel(new FakeGrantStore(Rules.Granting("editor", "RU")), above))
+            using (var panel = Panel(new FakeGrantStore(Rules.Granting(("editor", "RU"))), above))
             {
                 var grid = ControlTree.FindByName<DataGridView>(panel, GrantTab.GridControlName);
 
@@ -264,7 +264,7 @@ namespace KeePassGate.Tests
         {
             var above = TestNode.Root("root").Granting("reader", AclVerb.Read);
 
-            using (var panel = Panel(new FakeGrantStore(Rules.Granting("reader", "R")), above))
+            using (var panel = Panel(new FakeGrantStore(Rules.Granting(("reader", "R"))), above))
             {
                 var grid = ControlTree.FindByName<DataGridView>(panel, GrantTab.GridControlName);
 
@@ -277,7 +277,7 @@ namespace KeePassGate.Tests
         {
             // Nothing above names this profile, so there is no narrowing to report and a tooltip
             // saying so would be a sentence about an absence.
-            using (var panel = Panel(new FakeGrantStore(Rules.Granting("reader", "R")), null))
+            using (var panel = Panel(new FakeGrantStore(Rules.Granting(("reader", "R"))), null))
             {
                 var grid = ControlTree.FindByName<DataGridView>(panel, GrantTab.GridControlName);
 
@@ -418,7 +418,7 @@ namespace KeePassGate.Tests
         [Test]
         public void An_edit_that_could_not_be_kept_is_said_on_the_tab_and_refused()
         {
-            var store = new FakeGrantStore(Rules.Granting("reader", "R"));
+            var store = new FakeGrantStore(Rules.Granting(("reader", "R")));
             var sheet = new GrantSheet(store.Read(), null, null, "This KeePass keeps it somewhere else.");
 
             using (var panel = new GrantPanel(sheet, store, GrantTab.GroupScope, null))
@@ -467,7 +467,7 @@ namespace KeePassGate.Tests
         [Test]
         public void The_pick_list_holds_the_profiles_that_have_no_rule_here_yet()
         {
-            var store = new FakeGrantStore(Rules.Granting("reader", "R"));
+            var store = new FakeGrantStore(Rules.Granting(("reader", "R")));
 
             using (var panel = Panel(store, null))
             {
@@ -494,7 +494,7 @@ namespace KeePassGate.Tests
         [Test]
         public void A_profile_that_already_has_a_rule_here_is_refused_rather_than_started_again()
         {
-            var store = new FakeGrantStore(Rules.Granting("reader", "RL"));
+            var store = new FakeGrantStore(Rules.Granting(("reader", "RL")));
 
             using (var panel = Panel(store, null))
             {
@@ -513,7 +513,7 @@ namespace KeePassGate.Tests
             // are all of them, which the rows say. It cost four lines of a page that has 314
             // pixels. The case below, where the database names no profiles at all, is the one
             // worth a sentence: there the table is empty and nothing says where one comes from.
-            var store = new FakeGrantStore(Rules.Granting("reader", "R", "editor", "U"));
+            var store = new FakeGrantStore(Rules.Granting(("reader", "R"), ("editor", "U")));
 
             using (var panel = Panel(store, null))
             {
@@ -568,7 +568,7 @@ namespace KeePassGate.Tests
             // because adding the name again puts it back in force.
             var above = TestNode.Root("root").Granting("retired", AclVerb.Read);
 
-            using (var panel = Panel(new FakeGrantStore(Rules.Granting("ops", "RL")), above))
+            using (var panel = Panel(new FakeGrantStore(Rules.Granting(("ops", "RL"))), above))
             {
                 var grid = ControlTree.FindByName<DataGridView>(panel, GrantTab.GridControlName);
 
@@ -606,7 +606,7 @@ namespace KeePassGate.Tests
         [Test]
         public void A_rule_for_a_profile_the_database_names_is_drawn_plainly()
         {
-            using (var panel = Panel(new FakeGrantStore(Rules.Granting("reader", "R")), null))
+            using (var panel = Panel(new FakeGrantStore(Rules.Granting(("reader", "R"))), null))
             {
                 var grid = ControlTree.FindByName<DataGridView>(panel, GrantTab.GridControlName);
 

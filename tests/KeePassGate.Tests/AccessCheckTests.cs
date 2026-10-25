@@ -263,7 +263,7 @@ namespace KeePassGate.Tests
             // The record holds `ops` and the list does not, so the client asks holding `reader`
             // alone and the rule for `ops` answers about nobody. Written as the rules refusing,
             // that sends the operator looking for a rule; the reason is that they removed a name.
-            var entry = TestNode.Root("root").Holding(Rules.Granting("ops", "R", "audit", "R")).Child("an entry");
+            var entry = TestNode.Root("root").Holding(Rules.Granting(("ops", "R"), ("audit", "R"))).Child("an entry");
 
             var permitted = _check.Decide(
                 Removing(new[] { "reader" }, "ops", "audit", "legacy"), "readEntry", AclVerb.Read, AclReach.Fields, entry)
@@ -304,7 +304,7 @@ namespace KeePassGate.Tests
             // can be what the container needed and another what the node did: `ops` may remove
             // from the root and not this entry, `cleaner` this entry and nothing from the root.
             var entry = TestNode.Root("root").Granting("ops", AclVerb.Delete)
-                .Child("an entry").Holding(Rules.Granting("cleaner", "D", "ops", ""));
+                .Child("an entry").Holding(Rules.Granting(("cleaner", "D"), ("ops", "")));
 
             _check.Decide(Removing(Array.Empty<string>(), "ops", "cleaner"), "deleteEntry", AclVerb.Delete, AclReach.Fields, entry);
 
@@ -402,7 +402,7 @@ namespace KeePassGate.Tests
         public void A_question_about_every_verb_carries_what_each_profile_is_granted()
         {
             var entry = TestNode.Root("root")
-                .Holding(Rules.Granting("reader", "R", "editor", "U"))
+                .Holding(Rules.Granting(("reader", "R"), ("editor", "U")))
                 .Child("an entry");
 
             var decision = _check.Decide(

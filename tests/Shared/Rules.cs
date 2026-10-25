@@ -29,21 +29,24 @@ namespace KeePassGate.Testing
     public static class Rules
     {
         /// <summary>
-        /// A document granting each profile its mask, the rest asking the group above: a profile
-        /// and its mask, then any number more of the same.
+        /// A document granting each profile its mask, the rest asking the group above.
         /// </summary>
-        public static string Granting(string profile, string mask, params string[] more)
+        /// <remarks>
+        /// A pair per profile rather than profiles and masks in turn, so a profile cannot lose its
+        /// mask to a miscount, nor take the next profile's.
+        /// </remarks>
+        public static string Granting(params (string Profile, string Mask)[] rules)
         {
-            return Written(AclDefault.Inherit, Paired(profile, mask, more));
+            return Written(AclDefault.Inherit, rules);
         }
 
         /// <summary>
         /// A document sealing the node, so a profile it does not name is refused here whatever is
         /// granted above, with the profiles and masks it does name.
         /// </summary>
-        public static string Sealing(params string[] profilesAndMasks)
+        public static string Sealing(params (string Profile, string Mask)[] rules)
         {
-            return Written(AclDefault.Deny, Paired(null, null, profilesAndMasks));
+            return Written(AclDefault.Deny, rules);
         }
 
         /// <summary>
@@ -52,57 +55,40 @@ namespace KeePassGate.Testing
         /// </summary>
         public static string Numbered(int count, string mask)
         {
-            var pairs = new List<KeyValuePair<string, string>>();
+            var rules = new List<(string Profile, string Mask)>();
             for (var i = 0; i < count; i++)
             {
-                pairs.Add(new KeyValuePair<string, string>(
-                    "profile-" + i.ToString("00", CultureInfo.InvariantCulture), mask));
+                rules.Add(("profile-" + i.ToString("00", CultureInfo.InvariantCulture), mask));
             }
 
-            return Written(AclDefault.Inherit, pairs);
+            return Written(AclDefault.Inherit, rules);
         }
 
-        private static List<KeyValuePair<string, string>> Paired(string profile, string mask, string[] more)
-        {
-            if (more.Length % 2 != 0)
-            {
-                throw new ArgumentException("Every profile needs a mask after it.", nameof(more));
-            }
-
-            var pairs = new List<KeyValuePair<string, string>>();
-            if (profile != null)
-            {
-                pairs.Add(new KeyValuePair<string, string>(profile, mask));
-            }
-
-            for (var i = 0; i < more.Length; i += 2)
-            {
-                pairs.Add(new KeyValuePair<string, string>(more[i], more[i + 1]));
-            }
-
-            return pairs;
-        }
-
-        private static string Written(AclDefault fallback, List<KeyValuePair<string, string>> pairs)
+        private static string Written(AclDefault fallback, IEnumerable<(string Profile, string Mask)> rules)
         {
             var grants = new Dictionary<string, IEnumerable<AclVerb>>(StringComparer.Ordinal);
-            foreach (var pair in pairs)
+            foreach (var rule in rules)
             {
-                var verbs = Verbs(pair.Value);
+                if (rule.Profile == null)
+                {
+                    throw new ArgumentException("A rule names no profile.", nameof(rules));
+                }
+
+                var verbs = Verbs(rule.Mask);
                 if (verbs == null)
                 {
                     throw new ArgumentException(
-                        "\"" + pair.Value + "\" for " + pair.Key + " is not a mask: either all " +
+                        "\"" + rule.Mask + "\" for " + rule.Profile + " is not a mask: either all " +
                         VerbMask.Width + " places of " + VerbMask.Letters + ", a dot for each verb it " +
-                        "does not hold, or only the letters it holds, in that order.", nameof(pairs));
+                        "does not hold, or only the letters it holds, in that order.", nameof(rules));
                 }
 
-                if (grants.ContainsKey(pair.Key))
+                if (grants.ContainsKey(rule.Profile))
                 {
-                    throw new ArgumentException(pair.Key + " is named twice.", nameof(pairs));
+                    throw new ArgumentException(rule.Profile + " is named twice.", nameof(rules));
                 }
 
-                grants.Add(pair.Key, verbs);
+                grants.Add(rule.Profile, verbs);
             }
 
             return AclDocument.Of(fallback, grants).Write();

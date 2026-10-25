@@ -22,7 +22,7 @@ namespace KeePassGate.Tests
         [TestCase("", "........")]
         public void Only_the_letters_say_what_all_eight_places_do(string letters, string places)
         {
-            Assert.That(Rules.Granting("agent", letters), Is.EqualTo(Rules.Granting("agent", places)));
+            Assert.That(Rules.Granting(("agent", letters)), Is.EqualTo(Rules.Granting(("agent", places))));
         }
 
         [Test]
@@ -34,7 +34,7 @@ namespace KeePassGate.Tests
                 { "editor", new[] { AclVerb.Read, AclVerb.Update } },
             };
 
-            Assert.That(Rules.Granting("agent", "RL", "editor", "RU"),
+            Assert.That(Rules.Granting(("agent", "RL"), ("editor", "RU")),
                 Is.EqualTo(AclDocument.Of(AclDefault.Inherit, grants).Write()));
             Assert.That(Rules.Sealing(), Is.EqualTo(AclDocument.Of(AclDefault.Deny, null).Write()));
         }
@@ -50,14 +50,15 @@ namespace KeePassGate.Tests
         [TestCase((string)null, TestName = "no mask at all")]
         public void Anything_else_is_refused_as_the_test_sets_up(string mask)
         {
-            Assert.That(() => Rules.Granting("agent", mask), Throws.ArgumentException);
+            Assert.That(() => Rules.Granting(("agent", mask)), Throws.ArgumentException);
         }
 
         [Test]
-        public void A_profile_without_a_mask_or_named_twice_is_refused()
+        public void A_rule_naming_no_profile_or_one_named_already_is_refused()
         {
-            Assert.That(() => Rules.Granting("agent", "R", "editor"), Throws.ArgumentException);
-            Assert.That(() => Rules.Granting("agent", "R", "agent", "L"), Throws.ArgumentException);
+            Assert.That(() => Rules.Granting((null, "R")), Throws.ArgumentException);
+            Assert.That(() => Rules.Sealing(("agent", "R"), (null, "L")), Throws.ArgumentException);
+            Assert.That(() => Rules.Granting(("agent", "R"), ("agent", "L")), Throws.ArgumentException);
         }
     }
 }

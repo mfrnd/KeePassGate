@@ -56,7 +56,7 @@ namespace KeePassGate.Tests
         public void An_existing_rule_reads_back_as_the_mask_it_is()
         {
             var sheet = new GrantSheet(
-                Rules.Sealing("editor", "RUA"), null, null, null);
+                Rules.Sealing(("editor", "RUA")), null, null, null);
 
             var row = sheet.Rows.Single();
 
@@ -72,7 +72,7 @@ namespace KeePassGate.Tests
             // The whole reason this is asked at all: `StringDictionaryEx.Set` stamps a fresh
             // modification time even for an identical value, which turns "look at the tab and press
             // OK" into an unsaved database.
-            var stored = Rules.Granting("reader", "R");
+            var stored = Rules.Granting(("reader", "R"));
 
             Assert.That(new GrantSheet(stored, null, null, null).Changed, Is.False);
         }
@@ -92,9 +92,9 @@ namespace KeePassGate.Tests
             // writes into. Held against what it read when the dialog opened, the sheet went on
             // showing the rule, judged the same rule chosen again as no change, and wrote the old
             // document back over the delete on any other edit.
-            var sheet = new GrantSheet(Rules.Granting("reader", "R"), null, null, null);
+            var sheet = new GrantSheet(Rules.Granting(("reader", "R")), null, null, null);
 
-            Assert.That(sheet.Reload(Rules.Granting("reader", "R")), Is.False, "nothing moved, so nothing is redrawn");
+            Assert.That(sheet.Reload(Rules.Granting(("reader", "R"))), Is.False, "nothing moved, so nothing is redrawn");
             Assert.That(sheet.Reload(null), Is.True);
             Assert.That(sheet.Rows, Is.Empty);
             Assert.That(sheet.Changed, Is.False, "what the copy holds is what the sheet holds now");
@@ -106,7 +106,7 @@ namespace KeePassGate.Tests
         [Test]
         public void Removing_the_last_rule_takes_the_key_away_rather_than_leaving_an_empty_one()
         {
-            var sheet = new GrantSheet(Rules.Granting("reader", "R"), null, null, null);
+            var sheet = new GrantSheet(Rules.Granting(("reader", "R")), null, null, null);
 
             Assert.That(sheet.Remove("reader"), Is.True);
 
@@ -149,7 +149,7 @@ namespace KeePassGate.Tests
                 .Granting("reader", AclVerb.Read)
                 .Child("group").Granting("editor", AclVerb.Read, AclVerb.Update);
 
-            var sheet = new GrantSheet(Rules.Granting("auditor", "L"), above, null, null);
+            var sheet = new GrantSheet(Rules.Granting(("auditor", "L")), above, null, null);
 
             var rows = sheet.Rows;
 
@@ -164,7 +164,7 @@ namespace KeePassGate.Tests
         public void A_local_rule_says_what_it_is_narrowing()
         {
             var above = TestNode.Root("root").Granting("reader", AclVerb.Read, AclVerb.Update);
-            var sheet = new GrantSheet(Rules.Granting("reader", "R"), above, null, null);
+            var sheet = new GrantSheet(Rules.Granting(("reader", "R")), above, null, null);
 
             var row = sheet.Rows.Single();
 
@@ -304,7 +304,7 @@ namespace KeePassGate.Tests
             // What the editor does when it cannot reach the dialog's own copy of the custom data.
             // The rules stay readable, which is the point of opening the tab.
             var sheet = new GrantSheet(
-                Rules.Granting("reader", "R"), null, null, "This KeePass keeps group settings somewhere this cannot reach.");
+                Rules.Granting(("reader", "R")), null, null, "This KeePass keeps group settings somewhere this cannot reach.");
 
             Assert.That(sheet.CanEdit, Is.False);
             Assert.That(sheet.Warning, Does.Contain("cannot reach"));
@@ -405,7 +405,7 @@ namespace KeePassGate.Tests
             // One row per profile is the whole shape of the table. A pick list offering a name that
             // is already on it is offering to write a rule over one the operator can see.
             var sheet = new GrantSheet(
-                Rules.Granting("reader", "R"), null, new[] { "reader", "editor" }, null);
+                Rules.Granting(("reader", "R")), null, new[] { "reader", "editor" }, null);
 
             Assert.That(sheet.Available, Is.EqualTo(new[] { "editor" }));
         }
@@ -425,7 +425,7 @@ namespace KeePassGate.Tests
         [Test]
         public void A_profile_comes_back_when_its_rule_is_taken_off()
         {
-            var sheet = new GrantSheet(Rules.Granting("reader", "R"), null, new[] { "reader" }, null);
+            var sheet = new GrantSheet(Rules.Granting(("reader", "R")), null, new[] { "reader" }, null);
 
             Assert.That(sheet.Available, Is.Empty);
 
@@ -440,7 +440,7 @@ namespace KeePassGate.Tests
             // Local and inherited alike: a client holds only the names the list still names, so
             // a rule for any other reaches nobody, wherever it was written.
             var above = TestNode.Root("root").Granting("retired", AclVerb.Read);
-            var sheet = new GrantSheet(Rules.Granting("ops", "R", "reader", "L"), above, new[] { "reader" }, null);
+            var sheet = new GrantSheet(Rules.Granting(("ops", "R"), ("reader", "L")), above, new[] { "reader" }, null);
 
             Assert.That(sheet.Rows.Select(row => row.ToString()), Is.EqualTo(new[]
             {
@@ -455,7 +455,7 @@ namespace KeePassGate.Tests
         {
             // The editor is handed an empty list when the database's cannot be read, and the gate
             // grants nothing then either, so every row says so.
-            var sheet = new GrantSheet(Rules.Granting("reader", "L"), null, System.Array.Empty<string>(), null);
+            var sheet = new GrantSheet(Rules.Granting(("reader", "L")), null, System.Array.Empty<string>(), null);
 
             Assert.That(sheet.Rows.Single().Named, Is.False);
         }

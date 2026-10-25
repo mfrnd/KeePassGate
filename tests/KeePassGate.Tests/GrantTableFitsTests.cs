@@ -187,8 +187,8 @@ namespace KeePassGate.Tests
             var above = TestNode.Root("root").Granting("reader", AclVerb.Read);
 
             return new GrantPanel(
-                new GrantSheet(Rules.Granting("editor", "RU"), above, new[] { "reader", "editor" }, null),
-                new FakeGrantStore(Rules.Granting("editor", "RU")) { Refusal = new InvalidOperationException("this measurement writes nothing") },
+                new GrantSheet(Rules.Granting(("editor", "RU")), above, new[] { "reader", "editor" }, null),
+                new FakeGrantStore(Rules.Granting(("editor", "RU"))) { Refusal = new InvalidOperationException("this measurement writes nothing") },
                 GrantTab.GroupScope,
                 null);
         }

@@ -41,7 +41,7 @@ namespace KeePassGate.Tests.Gallery
             // against.
             Shoot(
                 "grant-03-one-rule",
-                Rules.Granting("reader", "RL"),
+                Rules.Granting(("reader", "RL")),
                 null,
                 Offered);
 
@@ -49,7 +49,7 @@ namespace KeePassGate.Tests.Gallery
             // gray and has nothing to remove, which is the difference this page exists to draw.
             Shoot(
                 "grant-04-local-and-inherited",
-                Rules.Granting("editor", "RU"),
+                Rules.Granting(("editor", "RU")),
                 Above(),
                 Offered);
 
@@ -60,7 +60,7 @@ namespace KeePassGate.Tests.Gallery
             // what is in it and these are the two ends of that.
             Shoot(
                 "grant-06-widest-and-narrowest-masks",
-                Rules.Granting("ops", "CRUSDLAP", "editor", ""),
+                Rules.Granting(("ops", "CRUSDLAP"), ("editor", "")),
                 null,
                 Offered);
 
@@ -68,7 +68,7 @@ namespace KeePassGate.Tests.Gallery
             // is said.
             Shoot(
                 "grant-07-sealed",
-                Rules.Sealing("reader", "R"),
+                Rules.Sealing(("reader", "R")),
                 null,
                 Offered);
 
@@ -87,7 +87,7 @@ namespace KeePassGate.Tests.Gallery
 
             // Readable here and unreadable above, which is a different warning about a different
             // node and the same band.
-            Shoot("grant-10-unreadable-above", Rules.Granting("reader", "R"), Broken(), Offered);
+            Shoot("grant-10-unreadable-above", Rules.Granting(("reader", "R")), Broken(), Offered);
 
             // More rules than the table can show at once.
             Shoot("grant-11-scrolling", Rules.Numbered(12, "RL"), null, Offered);
@@ -96,7 +96,7 @@ namespace KeePassGate.Tests.Gallery
             // what the other two leave.
             Shoot(
                 "grant-12-long-profile-name",
-                Rules.Granting("a-profile-with-a-name-somebody-really-did-type", "RL"),
+                Rules.Granting(("a-profile-with-a-name-somebody-really-did-type", "RL")),
                 null,
                 Offered);
         }

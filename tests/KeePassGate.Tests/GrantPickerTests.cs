@@ -191,7 +191,7 @@ namespace KeePassGate.Tests
             // next one. Each took the dialog's buttons for itself, so the first gave OK and Cancel
             // back under the second, and the second then put back the nothing it had found.
             Using(
-                Rules.Granting("reader", "R"),
+                Rules.Granting(("reader", "R")),
                 (form, panel, grid) =>
                 {
                     var accept = new Button();
@@ -231,7 +231,7 @@ namespace KeePassGate.Tests
             // moved the focus into it. The letters worked, but only after checking one with the
             // pointer first.
             Using(
-                Rules.Granting("reader", ""),
+                Rules.Granting(("reader", "")),
                 (form, panel, grid) =>
                 {
                     panel.Press(0, MaskColumn);
@@ -338,7 +338,7 @@ namespace KeePassGate.Tests
         public void Escape_leaves_the_rule_where_it_was()
         {
             Using(
-                Rules.Granting("reader", "R"),
+                Rules.Granting(("reader", "R")),
                 (form, panel, grid) =>
                 {
                     panel.Press(0, MaskColumn);
@@ -357,7 +357,7 @@ namespace KeePassGate.Tests
         public void A_letter_that_names_no_verb_is_left_for_whatever_wants_it()
         {
             Using(
-                Rules.Granting("reader", ""),
+                Rules.Granting(("reader", "")),
                 (form, panel, grid) =>
                 {
                     panel.Press(0, MaskColumn);
@@ -392,7 +392,7 @@ namespace KeePassGate.Tests
             // Changing it in place would be two edits wearing one gesture: the old profile silently
             // loses its rule and the new one silently gains whatever the row held.
             Using(
-                Rules.Granting("reader", "R"),
+                Rules.Granting(("reader", "R")),
                 (form, panel, grid) =>
                 {
                     panel.Press(0, ProfileColumn);
@@ -408,7 +408,7 @@ namespace KeePassGate.Tests
         public void The_permissions_of_a_rule_that_exists_can_be_changed()
         {
             Using(
-                Rules.Granting("reader", "R"),
+                Rules.Granting(("reader", "R")),
                 (form, panel, grid) =>
                 {
                     panel.Press(0, MaskColumn);
@@ -429,7 +429,7 @@ namespace KeePassGate.Tests
             // first cell current and selects it as the window is made, so the first rule on every
             // tab opened in the selection color as though somebody had chosen it.
             Using(
-                Rules.Granting("reader", "R"),
+                Rules.Granting(("reader", "R")),
                 (form, panel, grid) =>
                 {
                     Assert.That(grid.SelectedCells, Is.Empty, "the first rule opened drawn as chosen");
@@ -444,7 +444,7 @@ namespace KeePassGate.Tests
             // the rebuild took the current cell away while the grid kept the focus, so once a rule
             // had been chosen the keyboard opened nothing until an arrow key gave it a cell back.
             Using(
-                Rules.Granting("reader", "R"),
+                Rules.Granting(("reader", "R")),
                 (form, panel, grid) =>
                 {
                     grid.Focus();
