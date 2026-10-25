@@ -837,6 +837,16 @@ answers, and a list written into a setting would go stale the first time a gate 
 reverses "there is no branch protection", which held until the build order's pull requests had all
 been merged, since a required check on a stack being merged would have held every one of them.
 
+**Pins move in pull requests of their own, proposed rather than noticed.** `.github/dependabot.yml`
+opens one grouped pull request a week for each kind: the actions' commits, `uv.lock`, the prose
+tools and the plugin's libraries, never a library's next major version and never a floor in
+`pyproject.toml`, and each a week after its release. Only the prose tools and a minor or patch
+version of the actions merge themselves, through `dependabot-auto-merge.yml`, since a green gate
+shows that an update breaks nothing and not that it is what it claims to be; the libraries and the
+lock wait for a person. KeePass is pinned where no such service reads, so `keepass-watch.yml` opens an
+issue when it releases a newer version, and moving that pin stays a person's job, since
+`tools/KeePass.ps1` refuses a version until its hash is written down.
+
 ## Testing
 
 [`TESTING.md`](TESTING.md) is the full account. In short: unit tests that never load KeePass, host
