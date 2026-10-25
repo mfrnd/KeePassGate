@@ -918,8 +918,8 @@ when the node has changed since, a merge into `master` waits for the whole gate 
 tag publishes both halves.
 
 **Start with [`docs/`](docs/README.md) if the question is what this does**, and with the documents
-below if the question is why it does it that way. What is left is not a step: the first release is
-a tag, once the settings `RELEASING.md` lists are made, and there is no Scoop manifest.
+below if the question is why it does it that way. What is left is not a step: there is no Scoop
+manifest.
 
 **The storage decision survived the thing most likely to invalidate it.** The `GroupForm` snapshot
 hazard is real and now measured rather than remembered: `SnapshotHazardTests` reads the mechanism off
