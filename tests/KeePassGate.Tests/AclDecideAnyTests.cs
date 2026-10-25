@@ -24,7 +24,7 @@ namespace KeePassGate.Tests
         public void Each_profile_is_answered_with_what_its_nearest_rule_grants()
         {
             var entry = TestNode.Root("root")
-                .Holding(Rules.Granting("reader", "RLP", "editor", "CU"))
+                .Holding(Rules.Granting(("reader", "RLP"), ("editor", "CU")))
                 .Child("an entry");
 
             var decision = AclResolver.DecideAny(entry, new[] { "reader", "editor" });
@@ -42,7 +42,7 @@ namespace KeePassGate.Tests
             // not add up to reading a protected value, because `P` reaches only the verbs of its
             // own rule, and a union of the two masks would say that they do.
             var entry = TestNode.Root("root")
-                .Holding(Rules.Granting("reader", "R", "auditor", "LP"))
+                .Holding(Rules.Granting(("reader", "R"), ("auditor", "LP")))
                 .Child("an entry");
             var both = new[] { "reader", "auditor" };
 
@@ -60,7 +60,7 @@ namespace KeePassGate.Tests
             // over every profile's rules would give the reader's mask a `P` its own rule does not
             // hold, which the case above cannot see, since there the two share no verb.
             var entry = TestNode.Root("root")
-                .Holding(Rules.Granting("reader", "RA", "auditor", "RP"))
+                .Holding(Rules.Granting(("reader", "RA"), ("auditor", "RP")))
                 .Child("an entry");
 
             var decision = AclResolver.DecideAny(entry, new[] { "reader", "auditor" });
@@ -75,11 +75,11 @@ namespace KeePassGate.Tests
             // a dot one it would be refused, for every verb, both switches, and every shape of
             // tree the rules have an answer for.
             var root = TestNode.Root("root").Holding(
-                Rules.Granting("reader", "RLA", "editor", "CUP", "cleaner", "SDAP"));
-            var nearer = root.Child("nearer").Holding(Rules.Granting("reader", "LP", "editor", ""));
+                Rules.Granting(("reader", "RLA"), ("editor", "CUP"), ("cleaner", "SDAP")));
+            var nearer = root.Child("nearer").Holding(Rules.Granting(("reader", "LP"), ("editor", "")));
             var sealedGroup = root.Child("sealed").Sealing("cleaner", AclVerb.Read, AclVerb.Attachments);
             var broken = root.Child("broken").Holding("{\"reader\":");
-            var switchesOnly = root.Child("switches").Holding(Rules.Granting("reader", "AP"));
+            var switchesOnly = root.Child("switches").Holding(Rules.Granting(("reader", "AP")));
 
             var nodes = new IAclNode[]
             {
@@ -127,7 +127,7 @@ namespace KeePassGate.Tests
         {
             // Eight dots rather than left out, so the answer names every profile the rules were
             // asked about. One profile granting something is enough for the whole question.
-            var entry = TestNode.Root("root").Holding(Rules.Granting("reader", "R", "editor", "")).Child("an entry");
+            var entry = TestNode.Root("root").Holding(Rules.Granting(("reader", "R"), ("editor", ""))).Child("an entry");
 
             var decision = AclResolver.DecideAny(entry, new[] { "editor", "reader" });
 
@@ -141,8 +141,8 @@ namespace KeePassGate.Tests
             // What the rules grant at the node rather than what would succeed there: a `delete`
             // the group above refuses is still reported, though removing the node asks that
             // group too, and so is a `strip` on a group, though no operation strips a group.
-            var group = TestNode.Root("root").Child("group").Holding(Rules.Granting("cleaner", "S"));
-            var entry = group.Child("an entry").Holding(Rules.Granting("cleaner", "D"));
+            var group = TestNode.Root("root").Child("group").Holding(Rules.Granting(("cleaner", "S")));
+            var entry = group.Child("an entry").Holding(Rules.Granting(("cleaner", "D")));
 
             var atGroup = AclResolver.DecideAny(group, new[] { "cleaner" });
             var atEntry = AclResolver.DecideAny(entry, new[] { "cleaner" });
@@ -223,7 +223,7 @@ namespace KeePassGate.Tests
             // grant. The first refusal would send the operator to a rule that refused the profile
             // asked about first.
             var root = TestNode.Root("root").Granting("editor", AclVerb.Update);
-            var group = root.Child("a group").Holding(Rules.Granting("reader", ""));
+            var group = root.Child("a group").Holding(Rules.Granting(("reader", "")));
 
             var decision = AclResolver.DecideAny(group.Child("an entry"), new[] { "reader", "editor" });
 

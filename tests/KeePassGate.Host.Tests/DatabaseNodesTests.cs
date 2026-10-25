@@ -36,7 +36,7 @@ namespace KeePassGate.Host.Tests
         {
             var database = Tree();
             var deepest = database.RootGroup.GetGroups(true).Single(group => group.Name == "deeper");
-            var rule = Rules.Granting("ops", "R");
+            var rule = Rules.Granting(("ops", "R"));
             deepest.CustomData.Set(AclDocument.CustomDataKey, rule);
 
             var found = new DatabaseNodes(database).All()
@@ -53,7 +53,7 @@ namespace KeePassGate.Host.Tests
             // would read as one that still decides something.
             var database = Tree();
             var entry = database.RootGroup.Entries.Single();
-            entry.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting("ops", "R"));
+            entry.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting(("ops", "R")));
             entry.CreateBackup(database);
             entry.CreateBackup(database);
             entry.CustomData.Remove(AclDocument.CustomDataKey);

@@ -55,7 +55,7 @@ namespace KeePassGate.Tests
         public void An_empty_rule_takes_everything_away_from_there_down()
         {
             var root = TestNode.Root("root").Granting("reader", AclVerb.Read);
-            var group = root.Child("private").Holding(Rules.Granting("reader", ""));
+            var group = root.Child("private").Holding(Rules.Granting(("reader", "")));
 
             Assert.That(AclResolver.Permits(root.Child("shared"), Reader, AclVerb.Read), Is.True);
             Assert.That(AclResolver.Permits(group.Child("an entry"), Reader, AclVerb.Read), Is.False);
@@ -116,7 +116,7 @@ namespace KeePassGate.Tests
             // over protected values do not add up to reading an entry whole, because the gate
             // refuses any request needing both from two rules.
             var entry = TestNode.Root("root")
-                .Holding(Rules.Granting("files", "RA", "secrets", "RP", "both", "RAP"))
+                .Holding(Rules.Granting(("files", "RA"), ("secrets", "RP"), ("both", "RAP")))
                 .Child("an entry");
 
             Assert.That(AclResolver.ReadsWhole(entry, new[] { "files" }, AclReach.Attachments), Is.True);
@@ -346,7 +346,7 @@ namespace KeePassGate.Tests
             // An operation declaring `none` touches no data and never asks this. If one ever did,
             // the answer is no, because no rule grants it and a rule that seemed to would be a
             // rule that had been read wrongly.
-            var entry = TestNode.Root("root").Holding(Rules.Granting("reader", "R")).Child("an entry");
+            var entry = TestNode.Root("root").Holding(Rules.Granting(("reader", "R"))).Child("an entry");
 
             Assert.That(AclResolver.Permits(entry, Reader, AclVerb.None), Is.False);
         }

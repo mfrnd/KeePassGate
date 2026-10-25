@@ -66,7 +66,7 @@ namespace KeePassGate.Host.Tests.Live
             // which is the other half of this and is proved against the fake rather than here.
             // `attachments` too, because an entry's tag is handed only to a rule that reads all of
             // it, and the lost update below is written under one.
-            keePass.Grant(Rules.Granting("agent", "CRUDLAP"));
+            keePass.Grant(Rules.Granting(("agent", "CRUDLAP")));
 
             using (var admitted = keePass.IssueClientCertificate("agent-fictitious"))
             using (var stranger = keePass.IssueClientCertificate("agent-no-rules"))

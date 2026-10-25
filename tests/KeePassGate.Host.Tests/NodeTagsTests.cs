@@ -153,7 +153,7 @@ namespace KeePassGate.Host.Tests
             _entry.LastModificationTime = Moment;
             var tag = EntryTag();
 
-            _entry.CustomData.Set("KPG", Rules.Granting("reader", "R"));
+            _entry.CustomData.Set("KPG", Rules.Granting(("reader", "R")));
             _entry.CreateBackup(_database.Database);
             _entry.LastAccessTime = Moment.AddDays(1);
             _entry.UsageCount += 5;

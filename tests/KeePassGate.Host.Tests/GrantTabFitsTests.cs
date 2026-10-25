@@ -155,7 +155,7 @@ namespace KeePassGate.Host.Tests
         /// The unreadable one is the tallest, because it adds a warning and a button under it, and
         /// it is also the one an operator meets when something is already wrong.
         /// </remarks>
-        internal static readonly string[] States = { null, Rules.Granting("reader", "RL"), "not a document" };
+        internal static readonly string[] States = { null, Rules.Granting(("reader", "RL")), "not a document" };
 
         /// <summary>
         /// Whether the table keeps its heading and one row, which staying inside the page does not
@@ -239,7 +239,7 @@ namespace KeePassGate.Host.Tests
         {
             var group = new PwGroup(true, true, "A group above", PwIcon.Folder);
             database.RootGroup.AddGroup(group, true);
-            group.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting("editor", "R"));
+            group.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting(("editor", "R")));
 
             return KdbxNodes.Of(group);
         }

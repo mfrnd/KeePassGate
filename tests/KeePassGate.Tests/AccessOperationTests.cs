@@ -45,7 +45,7 @@ namespace KeePassGate.Tests
         {
             _vault.Granting(
                 _vault.RootAlias,
-                Rules.Granting("reader", "RLP", "uploader", "CA"));
+                Rules.Granting(("reader", "RLP"), ("uploader", "CA")));
 
             var answer = Send("GET", "/groups/" + _group + "/access", "reader", "uploader");
 
@@ -71,7 +71,7 @@ namespace KeePassGate.Tests
         {
             // The 404 a client is told says nothing about which; the line is the operator's, and
             // without the identifier it could not say which reference a resolve was following.
-            _vault.Granting(_vault.RootAlias, Rules.Granting("reader", "R"));
+            _vault.Granting(_vault.RootAlias, Rules.Granting(("reader", "R")));
             var absent = new string('c', 32);
 
             var answer = Send("GET", "/entries/" + absent, "reader");
@@ -86,7 +86,7 @@ namespace KeePassGate.Tests
         [Test]
         public void An_entry_that_is_there_is_written_down_by_its_node_alone()
         {
-            _vault.Granting(_vault.RootAlias, Rules.Granting("reader", "R"));
+            _vault.Granting(_vault.RootAlias, Rules.Granting(("reader", "R")));
 
             Assert.That(Send("GET", "/entries/" + _entry, "reader").Status, Is.EqualTo(200));
             Assert.That(_audit.Entries.Single().Requested, Is.Null);
@@ -107,7 +107,7 @@ namespace KeePassGate.Tests
         [Test]
         public void The_root_group_is_asked_by_its_alias()
         {
-            _vault.Granting(_vault.RootAlias, Rules.Granting("reader", "L"));
+            _vault.Granting(_vault.RootAlias, Rules.Granting(("reader", "L")));
 
             Assert.That(Grants(Send("GET", "/groups/root/access", "reader"))["reader"], Is.EqualTo(".....L.."));
         }
@@ -115,12 +115,12 @@ namespace KeePassGate.Tests
         [Test]
         public void An_entry_answers_with_the_rule_nearest_to_it()
         {
-            _vault.Granting(_vault.RootAlias, Rules.Granting("editor", "RL"));
+            _vault.Granting(_vault.RootAlias, Rules.Granting(("editor", "RL")));
 
             Assert.That(Grants(Send("GET", "/entries/" + _entry + "/access", "editor"))["editor"],
                 Is.EqualTo(".R...L.."), "what the root grants reaches down to it");
 
-            _vault.Granting(_entry, Rules.Granting("editor", "RUP"));
+            _vault.Granting(_entry, Rules.Granting(("editor", "RUP")));
 
             Assert.That(Grants(Send("GET", "/entries/" + _entry + "/access", "editor"))["editor"],
                 Is.EqualTo(".RU....P"), "and a rule of its own wins, as for every other question");
@@ -131,7 +131,7 @@ namespace KeePassGate.Tests
         {
             // The reason for one mask per profile, and the test that fails if they are ever
             // combined: `R` under one profile and `P` under another are not a protected read.
-            _vault.Granting(_vault.RootAlias, Rules.Granting("reader", "R", "auditor", "LP"));
+            _vault.Granting(_vault.RootAlias, Rules.Granting(("reader", "R"), ("auditor", "LP")));
             Assume.That(_vault.CreateField(_entry, "Password", "an invented secret", true, VaultTagging.None).Ok, Is.True);
 
             var grants = Grants(Send("GET", "/entries/" + _entry + "/access", "reader", "auditor"));
@@ -145,7 +145,7 @@ namespace KeePassGate.Tests
         [Test]
         public void A_profile_granted_nothing_there_is_eight_dots()
         {
-            _vault.Granting(_vault.RootAlias, Rules.Granting("reader", "R"));
+            _vault.Granting(_vault.RootAlias, Rules.Granting(("reader", "R")));
 
             Assert.That(Grants(Send("GET", "/entries/" + _entry + "/access", "reader", "editor"))["editor"],
                 Is.EqualTo("........"));
@@ -156,8 +156,8 @@ namespace KeePassGate.Tests
         {
             // Absent and refused answer the same `404`, which is what keeps a client that may reach
             // nothing from mapping the database by asking what it may do.
-            _vault.Granting(_vault.RootAlias, Rules.Granting("reader", "R"));
-            _vault.Granting(_entry, Rules.Granting("reader", ""));
+            _vault.Granting(_vault.RootAlias, Rules.Granting(("reader", "R")));
+            _vault.Granting(_entry, Rules.Granting(("reader", "")));
 
             var refused = Send("GET", "/entries/" + _entry + "/access", "reader");
             var absent = Send("GET", "/entries/" + new string('0', 32) + "/access", "reader");
@@ -170,7 +170,7 @@ namespace KeePassGate.Tests
         [Test]
         public void Every_question_is_written_down_once_whichever_way_it_goes()
         {
-            _vault.Granting(_vault.RootAlias, Rules.Granting("reader", "R"));
+            _vault.Granting(_vault.RootAlias, Rules.Granting(("reader", "R")));
 
             Send("GET", "/entries/" + _entry + "/access", "reader");
             Send("GET", "/entries/" + _entry + "/access", "nobody");
@@ -185,7 +185,7 @@ namespace KeePassGate.Tests
         [Test]
         public void A_HEAD_is_answered_as_its_GET_is()
         {
-            _vault.Granting(_vault.RootAlias, Rules.Granting("reader", "L"));
+            _vault.Granting(_vault.RootAlias, Rules.Granting(("reader", "L")));
 
             Assert.That(Send("HEAD", "/groups/" + _group + "/access", "reader").Status, Is.EqualTo(200));
             Assert.That(Send("HEAD", "/groups/" + _group + "/access", "nobody").Status, Is.EqualTo(404));
@@ -195,7 +195,7 @@ namespace KeePassGate.Tests
         public void A_database_that_locks_under_the_question_is_answered_as_locked()
         {
             // Not a node that has gone, so not the `404` one gets: the nodes are all still there.
-            _vault.Granting(_vault.RootAlias, Rules.Granting("reader", "R"));
+            _vault.Granting(_vault.RootAlias, Rules.Granting(("reader", "R")));
             _vault.After(0, _vault.Lock);
 
             var answer = Send("GET", "/entries/" + _entry + "/access", "reader");
@@ -208,7 +208,7 @@ namespace KeePassGate.Tests
         [Test]
         public void Any_other_method_is_told_the_two_this_path_serves()
         {
-            _vault.Granting(_vault.RootAlias, Rules.Granting("reader", "R"));
+            _vault.Granting(_vault.RootAlias, Rules.Granting(("reader", "R")));
 
             var context = Context("PUT", "/entries/" + _entry + "/access", "reader");
             _router.Handle(context);
@@ -255,7 +255,7 @@ namespace KeePassGate.Tests
                 Assert.That(mask.IsMatch(written), Is.True, written);
             }
 
-            _vault.Granting(_vault.RootAlias, Rules.Granting("reader", "RLP"));
+            _vault.Granting(_vault.RootAlias, Rules.Granting(("reader", "RLP")));
             var answered = Grants(Send("GET", "/groups/root/access", "reader", "other"));
             Assert.That(mask.IsMatch(answered["reader"]), Is.True, answered["reader"]);
             Assert.That(mask.IsMatch(answered["other"]), Is.True, answered["other"]);
