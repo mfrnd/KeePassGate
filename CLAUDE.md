@@ -469,10 +469,15 @@ designing around them.
   the caller's rule does not open raises `Withheld` from every way of reading it, never `None` or
   an empty string, while its name stays where the gate put it.
 
-  Measured on `spikes/pykeepass-compatibility`, taken from `master` and never merged: of the 56 public
-  members on `PyKeePass`, 23 are servable over the routes the gate already has, 6 would need routes
-  nothing forbids, and 27 cannot exist here. Its `RESULTS.md` has the per member table and what
-  would have to change on each side.
+  Measured on `spikes/pykeepass-compatibility`, taken from `master` and never merged, and remeasured
+  on 2026-10-25 over the four classes a program holds, `PyKeePass`, `Entry`, `Group` and
+  `Attachment`: of their 122 public members, 65 are servable over the routes the gate already has,
+  4 are served under a name that means something else there, the deletes, which go to the recycle
+  bin where `pykeepass`'s are for good, 13 would need routes nothing forbids, among them the
+  database's name and description and an entry's tags and history, and 40 cannot exist here. The
+  first measurement counted `PyKeePass` alone, the deletes as served and `trash_*` and `deref` as
+  missing, and its `RESULTS.md` records both, with the per member table and what would have to
+  change on each side.
 
 ## Measured facts that cost time if rediscovered
 
