@@ -63,6 +63,22 @@ entries inside an expired group are listed, searched and auto-typed as any other
 nothing in it for a client to heed. An entry's own is served and set, which `Entry` and
 `EntryFields` say.
 
+**An entry's auto-type settings**, whether it auto-types, its sequence and the windows it is
+associated with, are neither served nor accepted, and adding them would be a way around the rules
+rather than a field. Auto-type is KeePass typing an entry's values into another window, the
+password among them. A client allowed to update an entry and not to read its password could
+associate the entry with a window of its own, or write a sequence that types the password into a
+field it reads, and the next time the operator auto-types there, KeePass would hand the client the
+value the rules withhold, while the audit records an update and nothing more. The `protected` switch cannot
+govern it either, since the value never crosses the gate. So auto-type stays the operator's, set in
+KeePass's own entry dialog.
+
+**Destroying what a removal keeps.** The recycle bin is out of reach, so an entry already in it is
+answered `404`, and no operation clears an entry's history: each keeps an overwritten or removed
+value recoverable, and making it unrecoverable is the operator's, in KeePass, as emptying the bin
+is. A client that may delete an entry sends it to the bin, and one that may update it leaves a
+revision behind, so neither can take away what the operator would restore.
+
 ## Optimistic concurrency §410
 
 **The lost update.** A program reads an entry, works on it, and writes back what it read beside its
