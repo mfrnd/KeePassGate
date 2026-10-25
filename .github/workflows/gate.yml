@@ -17,8 +17,16 @@
 # it and its pull request is based there, so a push to the branch and the pull request's merge
 # result check the same tree, and running on both would check it twice. A pull request is checked
 # once, as the merge it would make, and `master` after every merge. A branch with no pull request
-# gets no run from this file. A pull request's run gives way to a newer push to it, and every push
-# to `master` runs in a group of its own, so no merge's check is canceled or replaced.
+# gets no run from this file. A pull request's run gives way to a newer push to it, and to nothing
+# else: its group is named for the pull request's number, so two pull requests never share one.
+# Every push to `master` runs in a group of its own, named for the commit, so no merge's check is
+# canceled or replaced. The group used to be named for the ref, and pull requests' checks were
+# canceled in `master`'s group while a stack of them was being merged.
+#
+# **One check is the one a merge waits for**, `gate passed`, which the ruleset on `master` requires.
+# It needs every other job and passes only when all of them did, so the ruleset names one check
+# rather than the list `build.ps1 -ListGates` answers, which would go stale the first time a gate
+# was added or a runner was given one.
 #
 # **Read access and nothing more.** No step writes to the repository, so every job's token is
 # declared read only here rather than left to whatever the repository's settings grant.
@@ -44,7 +52,7 @@ on:
   pull_request:
 
 concurrency:
-  group: gate-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
+  group: gate-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.sha }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
@@ -144,3 +152,22 @@ jobs:
       - name: leave nothing running
         if: always() && runner.os == 'Windows'
         run: Get-Process KeePass -ErrorAction SilentlyContinue | Stop-Process -Force
+
+  # Always run, because a job skipped after a failure above it reports as skipped, and a skipped
+  # required check is one a merge does not wait on. Anything but success from every job is a
+  # failure here, a cancellation and a skip included.
+  passed:
+    name: gate passed
+    needs: [gates, gate]
+    if: always()
+    runs-on: windows-latest
+    timeout-minutes: 5
+    steps:
+      - shell: powershell
+        env:
+          LISTED: ${{ needs.gates.result }}
+          CHECKED: ${{ needs.gate.result }}
+        run: |
+          if ($env:LISTED -ne 'success' -or $env:CHECKED -ne 'success') {
+            throw "Listing the gates ended as $env:LISTED and running them as $env:CHECKED."
+          }
