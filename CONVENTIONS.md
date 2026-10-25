@@ -96,6 +96,16 @@ raises or returns, or what the operator has to do. A change that adds without br
 minor version as well, because the halves move together and a client using the addition needs the
 gate that serves it.
 
+**A minor version releases both halves, and a patch releases only the half it fixes.** An `x.y.0`
+publishes the plugin, with the routing document inside it, and PyKeePassGate together, and the
+same major and minor version is the promise that a client and a gate work together. A patch moves
+the one number, since it is written once, and publishes only the half whose files it changed: the
+plugin for anything under `src/KeePassGate`, the client for anything under `src/pykeepassgate` or
+`pyproject.toml`. A patch that changed neither has nothing to release. So a patch number may exist
+on one side only, and the client at `0.1.2` beside the plugin at `0.1.1` is a pair, because both
+are `0.1`. A full split, with a protocol version the gate serves, waits for 1.0 or a second client.
+[`RELEASING.md`](RELEASING.md) is how a version is published.
+
 **From the first release on, every change goes into [`CHANGELOG.md`](CHANGELOG.md)**, under the
 version it will ship in and in the same commit as the change, as the design documents do. Until
 then everything is the first version, and the changelog says so.

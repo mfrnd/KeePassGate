@@ -55,7 +55,9 @@ serves, held to the routing table as the library is, and `-o json` on every one 
 `ETag`, a keyed digest of what the node holds, to a client whose rule reads all of it, and a
 request carrying `If-Match` is answered `412` when the node has changed since, decided under the
 writer's lock. **And `master` takes a merge only once the gate has passed**: a ruleset requires the one
-check `gate passed`, which stands for every job the workflow runs.
+check `gate passed`, which stands for every job the workflow runs. **And a `v` tag publishes a
+release**: the plugin's zip as a GitHub release and the client on PyPI, last, through Trusted
+Publishing, after a rehearsal against a draft and TestPyPI, as `RELEASING.md` describes.
 
 ## Read these before proposing anything
 
@@ -68,6 +70,7 @@ check `gate passed`, which stands for every job the workflow runs.
 | [`PAIRING.md`](PAIRING.md) | how a stranger becomes a client, with the flow diagrams |
 | [`FINDINGS.md`](FINDINGS.md) | what was measured rather than assumed, and what turned out wrong |
 | [`TESTING.md`](TESTING.md) | the four test tiers, what each one buys, and how to run them |
+| [`RELEASING.md`](RELEASING.md) | how a version is published, and the settings a release needs |
 
 **One document is historical and says so at the top.** [`ANALYSIS.md`](ANALYSIS.md) is the argument
 that was made, and several of its conclusions were later reversed; it opens with a banner naming
@@ -877,6 +880,8 @@ the tools this branch carries.
   `__version__` comes from the installed metadata, and the routing document's `info.version`, which
   YAML cannot take from anywhere, is held to it by a test on each side. Moving it is one line there
   and the same in `openapi.yaml`; `CONVENTIONS.md` says when, and `CHANGELOG.md` says what moved.
+  A minor version releases both halves and a patch only the half it fixes, so a patch number may
+  exist on one side only, and the same major and minor version is what makes two halves a pair.
 
 ## Security posture
 
@@ -909,11 +914,12 @@ KeePass does, under the caller's own rules, `build.ps1 -Task Package` makes the 
 would publish, the README tells somebody arriving what this is, around a picture of the
 whole journey that moves and a diagram of the pieces, the command line reaches every route
 and prints JSON for a program, a write can be made against what was read, refused with `412`
-when the node has changed since, and a merge into `master` waits for the whole gate to pass.
+when the node has changed since, a merge into `master` waits for the whole gate to pass, and a
+tag publishes both halves.
 
 **Start with [`docs/`](docs/README.md) if the question is what this does**, and with the documents
-below if the question is why it does it that way. What is left is not a step: there is no release
-yet, only the zip `build.ps1 -Task Package` makes for one, and no Scoop manifest.
+below if the question is why it does it that way. What is left is not a step: the first release is
+a tag, once the settings `RELEASING.md` lists are made, and there is no Scoop manifest.
 
 **The storage decision survived the thing most likely to invalidate it.** The `GroupForm` snapshot
 hazard is real and now measured rather than remembered: `SnapshotHazardTests` reads the mechanism off

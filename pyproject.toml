@@ -64,6 +64,9 @@ dev = [
     "pytest>=8",
     "pytest-cov>=5",
     "ruff>=0.6",
+    # Only the release workflow runs it, to check that what it built is a distribution PyPI will
+    # take, on a pull request as well, where nothing is uploaded and nothing else would look.
+    "twine>=6",
 ]
 
 # ---------------------------------------------------------------------------------------------

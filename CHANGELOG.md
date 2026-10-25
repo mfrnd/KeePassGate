@@ -6,7 +6,8 @@ moves: at 0.x, a minor version for anything added to or broken in either half, a
 fix that changes no interface.
 
 Newest first. A version is written here before it is released, under its own heading, and says
-**unreleased** until it is.
+**unreleased** until it is. A patch releases only the half it fixes, so its heading names that
+half, as `0.1.1, the plugin, unreleased`, and a minor version names none, since it releases both.
 
 ## 0.1.0, unreleased
 

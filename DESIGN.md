@@ -1531,7 +1531,7 @@ Each step is refusable, and each ends with something that runs.
     `sha256sum -c` reads beside it, built so that no path in either names the account that built
     them. It packages a clean clone and nothing else, refuses an assembly the notices do not name,
     and reads the zip and its sums back before it reports them. Publishing one is not a step of this
-    order: there is no release yet, and no Scoop manifest.
+    order: there is no release yet, and no Scoop manifest. Step 30 reverses the first half of that.
 26. **The project's front page**: a `README.md` that tells somebody arriving what this is and shows
     it, with a diagram of the pieces; a picture of the whole journey that moves, from a database
     holding entries to a revoked client, taken by the same fixture as the rest so that it is
@@ -1584,6 +1584,24 @@ Each step is refusable, and each ends with something that runs.
     rather than passing it, because a required check that is skipped counts as passed; and that
     the ruleset asks for no approval, since a sole maintainer cannot give one, and lets the
     repository's administrators past it, which is the one way around it.
+30. **The release**: a `v` tag on `master` publishes what the gate already checks, the plugin's
+    zip and its `SHA256SUMS` as a GitHub release and PyKeePassGate on PyPI, PyPI last, through
+    Trusted Publishing so that no token is kept anywhere. The tag has to name the version
+    `Directory.Build.props` holds, and the changelog has to call that version released. A minor
+    version moves both halves together, and a patch publishes only the half it fixes. Every job
+    that publishes is rehearsed by hand first, against a target that costs nothing: a draft
+    release that is deleted again, and TestPyPI under a development version.
+    **Done.** Until here nothing published either half, and the name on PyPI was held by a
+    placeholder uploaded by hand with an account token. What this settles is that the version is
+    the one the commit holds and the tag only picks the commit, so a tag that disagrees, sits off
+    `master` or finds the version still unreleased publishes nothing; that the plugin, which no
+    package manager installs, is a GitHub release and the client a PyPI project published with no
+    token kept anywhere; that a patch publishes only the half whose files it changed; that PyPI,
+    whose numbers can never be used again, comes after everything that can still fail, the release
+    on GitHub read back included; and that every job that publishes is rehearsed against targets
+    that cost nothing, so a first release does nothing for the first time but the address it
+    publishes to. The release itself is not a step: it is a tag, once the settings `RELEASING.md`
+    lists are made.
 
 Steps 5 to 8 are the ones that prove the design. Step 5 is deliberately early, because the
 `CustomData` dialog hazard is the thing most likely to invalidate the storage decision, and finding

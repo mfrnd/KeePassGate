@@ -224,6 +224,13 @@ words:
   # library type the documentation has to name
   - timedelta
 
+  # publish a release: the two package indexes, named as the workflow names their environments,
+  # the account the repository lives under, and the operator Windows PowerShell refuses a match with
+  - pypi
+  - testpypi
+  - mfrnd
+  - notmatch
+
 # **The British spelling of a word, refused wherever it is written.** This repository writes American
 # English, and choosing the language catches only part of that: the American dictionary accepts
 # much of the British doubled L, and a language's own dictionary accepts more of the rest. These are
