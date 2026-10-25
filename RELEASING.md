@@ -27,8 +27,14 @@ fails at the step that needs it until it is done.
 3. **GitHub**, under Settings then Environments: `pypi`, its deployments limited to tags matching
    `v*`, and `testpypi`, limited to the branch `master`. A reviewer on `pypi` is one more click
    before anything is published, and optional.
-4. **The account token** that uploaded the placeholder `0.0.1` can then be revoked on PyPI, since
-   nothing uses it.
+4. **GitHub**, under Settings then Rules then Rulesets: `release tags`, for tags matching `v*`,
+   blocking their creation, update and deletion, with repository administrators allowed past it.
+   The `pypi` environment decides which runs may publish; this decides who may make the tag that
+   starts one, and keeps a published tag from ever moving. A release does not fail without it,
+   which is what makes it the one to forget.
+5. **No API token on PyPI**, for the account or the project. Publishing needs none, and one made
+   later would be a second way to publish that passes by the tag, the checks before it and the
+   reviewer on `pypi`.
 
 ## A rehearsal
 
@@ -59,5 +65,6 @@ builds and checks everything and publishes nothing.
    ```
 
 3. **Watch the run.** A tag the workflow refuses has published nothing: delete it, locally and with
-   `git push origin :refs/tags/v0.1.0`, and tag the right commit. A tag that published is never
-   moved, and a release found wrong is followed by the next patch.
+   `git push origin :refs/tags/v0.1.0`, which only an administrator can, past the tag ruleset, and
+   tag the right commit. A tag that published is never moved, and a release found wrong is
+   followed by the next patch.
