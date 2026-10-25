@@ -1572,6 +1572,12 @@ Each step is refusable, and each ends with something that runs.
     the check and the change, and that the document says which operations take one and the plugin
     will not load a document that disagrees with itself.
 
+29. **The required gate**: a last job in the workflow, `gate passed`, which needs every other job
+    and passes only when all of them did, and a ruleset on `master` requiring it, with a pull
+    request and a merge commit for every change and neither a force push nor a deletion. A pull
+    request's checks are grouped by its number rather than its ref, so one pull request's run
+    never cancels another's or a merge's.
+
 Steps 5 to 8 are the ones that prove the design. Step 5 is deliberately early, because the
 `CustomData` dialog hazard is the thing most likely to invalidate the storage decision, and finding
 that out after building five layers on top of it would be expensive.
