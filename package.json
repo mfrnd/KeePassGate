@@ -9,7 +9,7 @@
     "lint": "npm run lint:md && npm run lint:spelling"
   },
   "devDependencies": {
-    "cspell": "8.19.4",
-    "markdownlint-cli2": "0.23.2"
+    "cspell": "10.4.0",
+    "markdownlint-cli2": "0.23.3"
   }
 }
