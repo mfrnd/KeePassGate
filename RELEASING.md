@@ -8,7 +8,9 @@ all of it, and its header has the reasons.
 **A release is a `v` tag on a commit of `master`.** The version is the one `Directory.Build.props`
 holds, and the tag only picks the commit to release: a tag naming another version, on a commit
 `master` does not hold, or for a version the changelog still calls unreleased is refused before
-anything is built. **PyPI comes last**, because a version number there can never be used again,
+anything is built. **The plugin is a GitHub release** under the tag, its zip and `SHA256SUMS`
+attached and the changelog's section for the version as its text, and **the client is on PyPI**.
+**PyPI comes last**, because a version number there can never be used again,
 even after deleting it, so everything that could still fail fails before it.
 
 ## Once, before the first release
@@ -31,8 +33,10 @@ fails at the step that needs it until it is done.
 ## A rehearsal
 
 **Run `release` by hand from the Actions page, on `master`.** It builds and checks everything a
-release would, and publishes the client to TestPyPI under a development version of its own,
-`0.1.0.dev` and the run's number, since a number taken there cannot be taken again either. What a
+release would, makes the GitHub release as a draft under a tag nobody pushed, which a draft does
+not create, reads its files back and deletes it, and publishes the client to TestPyPI under a
+development version of its own, `0.1.0.dev` and the run's number, since a number taken there
+cannot be taken again either. What a
 release still does for the first time is the address it publishes to and nothing else, so rehearse
 after any change to the workflow and before the first release.
 

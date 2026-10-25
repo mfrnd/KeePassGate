@@ -14,6 +14,11 @@
 # refused before anything is built, as is one whose changelog heading still reads unreleased, or
 # one on a commit `master` does not hold.
 #
+# **The plugin as a GitHub release, the client on PyPI.** The plugin is installed by putting a zip's
+# contents into KeePass's `plugins`, which no package manager does, so its zip and `SHA256SUMS`
+# are attached to a release under the tag, with the changelog's section for the version as its
+# text. That job alone may write to the repository.
+#
 # **PyPI last**, because a version number there can never be used again, even after deleting it:
 # everything that could still fail fails before the one step that cannot be taken back. And
 # through Trusted Publishing, so that no token is kept anywhere: PyPI takes the identity GitHub
@@ -29,6 +34,7 @@ on:
   pull_request:
     paths:
       - .github/workflows/release.yml
+      - build.ps1
       - CHANGELOG.md
       - Directory.Build.props
       - pyproject.toml
@@ -51,6 +57,7 @@ jobs:
       mode: ${{ steps.decide.outputs.mode }}
       version: ${{ steps.decide.outputs.version }}
       python: ${{ steps.decide.outputs.python }}
+      plugin: ${{ steps.decide.outputs.plugin }}
       client: ${{ steps.decide.outputs.client }}
     steps:
       # The whole history and every tag, because which half a patch releases is what changed since
@@ -103,6 +110,7 @@ jobs:
           # A minor version releases both halves, a patch the half whose files it changed since the
           # tag before it, CONVENTIONS.md "Versions". Only a release asks, because a rehearsal and
           # a check are there to try everything.
+          $plugin = $true
           $client = $true
           if ($mode -eq 'release' -and $patch -ne 0) {
             # Asked with errors let through, since Windows PowerShell turns what git writes to
@@ -116,19 +124,134 @@ jobs:
               throw "v$version is a patch, and no tag before it shows what it patches."
             }
             $changed = @(& git diff --name-only "$previous" HEAD)
+            $plugin = [bool] @($changed | Where-Object { $_ -like 'src/KeePassGate/*' }).Count
             $client = [bool] @($changed | Where-Object { $_ -like 'src/pykeepassgate/*' -or $_ -eq 'pyproject.toml' }).Count
-            Write-Host "Changed since ${previous}: $($changed.Count) file(s); the client $(if ($client) { 'ships' } else { 'does not' })."
+            Write-Host "Changed since ${previous}: $($changed.Count) file(s); the plugin $(if ($plugin) { 'ships' } else { 'does not' }), the client $(if ($client) { 'ships' } else { 'does not' })."
+            if (-not $plugin -and -not $client) {
+              throw "v$version is a patch that changed neither half since $previous, so it has nothing to release."
+            }
           }
 
           # A rehearsal publishes to TestPyPI under a development version of its own, since a
           # number taken there cannot be taken again either, and the run number never repeats.
           $python = if ($mode -eq 'rehearsal') { "$version.dev$env:GITHUB_RUN_NUMBER" } else { $version }
 
-          Write-Host "mode $mode, version $version, client $client as $python"
+          Write-Host "mode $mode, version $version, plugin $plugin, client $client as $python"
           # Without a byte order mark, which Windows PowerShell's own UTF-8 writes first, and which
           # would then be part of the first name.
-          $lines = "mode=$mode", "version=$version", "python=$python", "client=$($client.ToString().ToLowerInvariant())"
+          $lines = "mode=$mode", "version=$version", "python=$python",
+            "plugin=$($plugin.ToString().ToLowerInvariant())", "client=$($client.ToString().ToLowerInvariant())"
           [System.IO.File]::AppendAllText($env:GITHUB_OUTPUT, (($lines -join "`n") + "`n"), (New-Object System.Text.UTF8Encoding $false))
+
+  plugin:
+    name: the plugin, packaged and checked
+    needs: decide
+    if: needs.decide.outputs.plugin == 'true'
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      # The whole history, since `Package` builds only a commit of a clone and stamps every entry
+      # in the zip with the time it was committed.
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          fetch-depth: 0
+
+      - name: the pinned KeePass
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
+        with:
+          path: .keepass
+          key: keepass-${{ hashFiles('keepass.sha256') }}
+
+      # `Package` reads the zip and its sums back before it reports them; what is asked here is
+      # only that the zip is the version this run decided, beside its sums and nothing else.
+      - name: package
+        shell: powershell
+        env:
+          VERSION: ${{ needs.decide.outputs.version }}
+        run: |
+          ./build.ps1 -Task Package
+          $names = @(Get-ChildItem dist | ForEach-Object Name | Sort-Object)
+          if (($names -join ' ') -ne "KeePassGate-$env:VERSION.zip SHA256SUMS") {
+            throw "dist holds $($names -join ', '), where a release of $env:VERSION attaches its zip and SHA256SUMS."
+          }
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: plugin
+          path: dist/
+          if-no-files-found: error
+
+  # A release under the tag, with the changelog's section for the version as its text and the
+  # plugin's files attached when the plugin ships. A rehearsal makes the same release as a draft
+  # under a tag nobody pushed, which a draft does not create, reads every file back, and deletes
+  # it again. A release reads its files back too: an upload that reported success and attached
+  # something else is found here, before PyPI.
+  #
+  # The status function is GitHub's, and keeps GitHub's spelling. cspell:ignore cancelled
+  github:
+    name: the release on GitHub
+    needs: [decide, plugin]
+    if: >-
+      !cancelled() && needs.decide.result == 'success' && needs.decide.outputs.mode != 'check' &&
+      (needs.plugin.result == 'success' || needs.plugin.result == 'skipped')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      MODE: ${{ needs.decide.outputs.mode }}
+      VERSION: ${{ needs.decide.outputs.version }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+
+      - if: needs.decide.outputs.plugin == 'true'
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: plugin
+          path: dist/
+
+      - name: release
+        run: |
+          # The changelog's links are relative to the repository, and a release page is not, so
+          # each is pointed at the commit being released.
+          awk -v heading="## $VERSION" 'index($0, heading ",") == 1 || $0 == heading { on = 1; next } on && /^## / { exit } on' \
+            CHANGELOG.md |
+            sed -E "s#\]\(([^):/#][^):]*)\)#](https://github.com/$GITHUB_REPOSITORY/blob/$GITHUB_SHA/\1)#g" > notes.md
+          test -s notes.md
+
+          # No files at all for a patch to the client alone, whose release is its text.
+          mkdir -p dist
+          files=()
+          for file in dist/*; do
+            if [ -e "$file" ]; then files+=("$file"); fi
+          done
+          if [ "$MODE" = release ]; then
+            tag="v$VERSION"
+            gh release create "$tag" --verify-tag --title "KeePassGate $VERSION" --notes-file notes.md "${files[@]}"
+          else
+            tag="v$VERSION-rehearsal.$GITHUB_RUN_NUMBER"
+            gh release create "$tag" --draft --target "$GITHUB_SHA" --title "KeePassGate $VERSION, rehearsed" \
+              --notes-file notes.md "${files[@]}"
+          fi
+
+          id=$(gh api "repos/$GITHUB_REPOSITORY/releases" --paginate --jq ".[] | select(.tag_name == \"$tag\") | .id")
+          test -n "$id"
+          if [ "$MODE" != release ]; then
+            trap 'gh api -X DELETE "repos/$GITHUB_REPOSITORY/releases/$id"' EXIT
+          fi
+
+          mkdir back
+          gh api "repos/$GITHUB_REPOSITORY/releases/$id/assets" --jq '.[] | "\(.id) \(.name)"' |
+            while read -r asset name; do
+              gh api -H 'Accept: application/octet-stream' "repos/$GITHUB_REPOSITORY/releases/assets/$asset" > "back/$name"
+            done
+          diff -r dist back
+
+          if [ "$MODE" != release ] && git ls-remote --exit-code --tags origin "refs/tags/$tag"; then
+            echo "The rehearsal's draft made the tag $tag, which a draft does not." >&2
+            exit 1
+          fi
 
   client:
     name: the client, built and checked
@@ -194,10 +317,14 @@ jobs:
         with:
           repository-url: https://test.pypi.org/legacy/
 
+  # After the release on GitHub, which runs whether or not the plugin ships, so a client-only patch
+  # waits for it as well, and spelled out because a skipped plugin job would otherwise skip this.
   pypi:
     name: the client, published on PyPI
-    needs: [decide, client]
-    if: needs.decide.outputs.mode == 'release'
+    needs: [decide, client, github]
+    if: >-
+      !cancelled() && needs.decide.outputs.mode == 'release' &&
+      needs.client.result == 'success' && needs.github.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment:
