@@ -5,6 +5,7 @@ using KeePassGate.Audit;
 using KeePassGate.Authority;
 using KeePassGate.Pipeline;
 using KeePassGate.Spec;
+using KeePassGate.Testing;
 using KeePassGate.Tests.Fakes;
 using KeePassGate.Transport;
 using KeePassGate.Vault;
@@ -210,7 +211,7 @@ namespace KeePassGate.Tests
             using (var certificate = _authority.IssueAdmittedClient("reader"))
             {
                 const string body = "{\"certificate\":\"somebody else's\"}";
-                var context = new GateContext(Head("DELETE", body.Length), body, Paired(certificate));
+                var context = new GateContext(Head("DELETE", Bodies.LengthOf(body)), body, Paired(certificate));
                 new ServedDatabase(null, _authority).PutOn(context);
 
                 _router.Handle(context);
@@ -248,7 +249,7 @@ namespace KeePassGate.Tests
             return ClientIdentity.Paired(_authority.DatabaseId, certificate, new[] { "reader" });
         }
 
-        private static HttpRequestHead Head(string method, int length)
+        private static HttpRequestHead Head(string method, long length)
         {
             return new HttpRequestHead(
                 method,

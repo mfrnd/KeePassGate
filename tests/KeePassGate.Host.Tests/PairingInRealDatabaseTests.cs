@@ -14,6 +14,7 @@ using KeePassGate.Diagnostics;
 using KeePassGate.Gate;
 using KeePassGate.Pairing;
 using KeePassGate.Pipeline;
+using KeePassGate.Testing;
 using KeePassGate.Transport;
 using KeePassGate.Ui;
 using NUnit.Framework;
@@ -1037,7 +1038,7 @@ namespace KeePassGate.Host.Tests
 
             var hello = Post(
                 PairingHandler.HelloPath,
-                "{\"proof\":\"" + Convert.ToBase64String(PairingProof.Client(token, binding, nonce)) + "\"}",
+                Bodies.Of(("proof", Convert.ToBase64String(PairingProof.Client(token, binding, nonce)))),
                 connection);
 
             handler.Hello(hello);
@@ -1077,7 +1078,7 @@ namespace KeePassGate.Host.Tests
                 path,
                 new Dictionary<string, string>(),
                 new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase),
-                body.Length);
+                Bodies.LengthOf(body));
 
             var context = new GateContext(head, body, ClientIdentity.Stranger("database"));
             connection.PutOn(context);
