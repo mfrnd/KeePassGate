@@ -43,15 +43,15 @@
          is what this very commit does to it. No schema library is
          taken for the body checking beside it, and the counts that decided that are on the
          `spikes/json-reading` branch. MIT. -->
-    <PackageReference Include="Microsoft.OpenApi" Version="1.6.30" />
-    <PackageReference Include="Microsoft.OpenApi.Readers" Version="1.6.30" />
+    <PackageReference Include="Microsoft.OpenApi" Version="1.6.31" />
+    <PackageReference Include="Microsoft.OpenApi.Readers" Version="1.6.31" />
     <!-- Reading and writing JSON: one assembly, MIT, and nothing arrives with it.
          `System.Text.Json` was measured at nine on this framework, one of them
          `System.Runtime.CompilerServices.Unsafe`, which wants a binding redirect a plugin cannot
          supply because the only configuration file in play is KeePass's own. The counts are on the
          `spikes/json-reading` branch. What stays written here is the policy over what it parses, which
          is a decision rather than a grammar. -->
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
   </ItemGroup>
 
   <ItemGroup>
