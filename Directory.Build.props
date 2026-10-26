@@ -2,8 +2,10 @@
 
   <PropertyGroup>
     <!-- The plugin ships as a plain DLL, so C# is not capped at 5 by the plgx recompiler.
-         7.3 is the highest the .NET Framework compiler in Visual Studio 2019 supports. -->
-    <LangVersion>7.3</LangVersion>
+         13 because NUnit 4.6 marks its `Action` overloads with `OverloadResolutionPriority`,
+         which an older language ignores, leaving every lambda passed to `Assert.Throws`
+         matching two overloads. Named rather than `latest`, so a newer SDK changes nothing. -->
+    <LangVersion>13</LangVersion>
     <TargetFramework>net48</TargetFramework>
     <Deterministic>true</Deterministic>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>

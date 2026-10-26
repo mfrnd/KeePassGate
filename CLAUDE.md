@@ -720,9 +720,14 @@ Run them from
   `build.ps1 -Task Package` asks git for the top of the repository first and refuses anything else,
   and refuses a tree with uncommitted changes, since the plugin reports HEAD's commit as the one it
   was built from.
-- **C# 7.3 is available, and the packaging is why.** A `.plgx` would be recompiled by KeePass's
+- **C# 13 is available, and the packaging is why.** A `.plgx` would be recompiled by KeePass's
   in-box CodeDOM provider, which caps the language at C# 5. This ships a plain DLL and escapes that
-  entirely; the probes are conservative only because `Add-Type` compiles them.
+  entirely; the probes are conservative only because `Add-Type` compiles them. A feature that needs
+  the runtime's help, such as a default interface method, still does not compile for `net48`.
+- **NUnit 4.6 needs C# 13, and neither its package nor the compiler names it.** It adds an
+  `Action` overload beside every `TestDelegate` one, on `Assert.Throws`, `DoesNotThrow`, `Catch`
+  and `That`, and marks the new ones `OverloadResolutionPriority(1)`. A language before 13 ignores
+  the attribute, so a lambda matches both and every call is `CS0121`.
 
 ### The trap that shaped the design
 
@@ -803,8 +808,10 @@ it: `uv run pre-commit install` does, once per clone. It is not the gate, and `T
 what it leaves to `build.ps1`.
 
 The projects are SDK-style, target `net48` and build with the **.NET SDK's `dotnet` CLI**, which is
-what makes `dotnet test` available; they open in Visual Studio 2019 as well. `msbuild` is not on
-`PATH`, so if it is ever needed directly, locate it:
+what makes `dotnet test` available. **`global.json` holds the SDK to 9 or later**, the first to
+compile C# 13, and rolls forward to the newest installed, so a machine with only an older SDK
+refuses to build rather than failing on the language. `msbuild` is not on `PATH`, so if it is
+ever needed directly, locate it:
 
 ```powershell
 $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
