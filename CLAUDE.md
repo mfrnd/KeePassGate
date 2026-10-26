@@ -840,15 +840,19 @@ skips** anything else: no error, no message, no entry in its plugin list. `Plugi
 against the constant read out of KeePass itself. The entry point must likewise be named for the file,
 `KeePassGate.KeePassGateExt` in `KeePassGate.dll`, namespace included.
 
-**There is CI, and `master` requires it.** The workflow runs every gate on every pull request and
-on every push to `master`, and a ruleset on `master` requires one check, `gate passed`, which passes
-only when every other job did. So `master` changes through a pull request, merged with a merge
-commit, and is never force pushed or deleted. The ruleset asks for no approval, because a sole
-maintainer cannot approve their own pull request, and the repository's administrators may bypass
-it. It names `gate passed` rather than each gate, because the gates are what `build.ps1 -ListGates`
-answers, and a list written into a setting would go stale the first time a gate was added. This
-reverses "there is no branch protection", which held until the build order's pull requests had all
-been merged, since a required check on a stack being merged would have held every one of them.
+**There is CI, and `master` requires it.** The workflow runs every gate on every pull request and on
+every push to `master`, and a ruleset on `master` requires one check, `gate passed`, which passes
+only when every other job did, on a branch up to date with `master`. GitHub does not run a pull
+request's checks again when `master` moves, so a check that passed before another merge landed is no
+check of the two together; a branch that is behind is updated, which runs the gate again, before it
+merges, and rebased rather than merged, so its commits stay its own. So `master` changes through a
+pull request, merged with a merge commit, and is never force pushed or deleted. The ruleset asks for
+no approval, because a sole maintainer cannot approve their own pull request, and the repository's
+administrators may bypass it. It names `gate passed` rather than each gate, because the gates are
+what `build.ps1 -ListGates` answers, and a list written into a setting would go stale the first time
+a gate was added. This reverses "there is no branch protection", which held until the build order's
+pull requests had all been merged, since a required check on a stack being merged would have held
+every one of them.
 
 **Pins move in pull requests of their own, proposed rather than noticed.** `.github/dependabot.yml`
 opens one grouped pull request a week for each kind: the actions' commits, `uv.lock`, the prose
