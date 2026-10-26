@@ -53,8 +53,8 @@ at the gate.
 | --- | --- | --- | --- | --- | --- |
 | **served** | 24 | 25 | 11 | 5 | PyKeePassGate can implement it now, over routes the gate already serves, with the meaning pykeepass gives it |
 | **served-differently** | 2 | 1 | 1 | 0 | the gate has the operation, but it means something else, so a facade must not offer it under that name |
-| **needs-routes** | 4 | 7 | 2 | 0 | nothing in the design forbids it; the gate does not serve it yet |
-| **refused** | 26 | 7 | 6 | 1 | it needs the file, the key, the XML document, or an operation the design refuses |
+| **needs-routes** | 0 | 7 | 2 | 0 | nothing in the design forbids it; the gate does not serve it yet |
+| **refused** | 30 | 7 | 6 | 1 | it needs the file, the key, the XML document, or an operation the design refuses |
 | **public members** | 56 | 40 | 20 | 6 | |
 
 `spikes/pykeepass/surface.json` has the per member table and the reason for each.
@@ -80,11 +80,8 @@ gate's behavior is the decided one, `API.md` §407, so a facade offers `trash_en
 `trash_group`, which mean what the gate does, and leaves the four deletes out, since a method that
 looks like pykeepass's and does something else is worse than no method.
 
-## The 13 that only need routes
+## The 9 that only need routes
 
-- **The database's metadata**: `database_name`, `database_description`, `default_username` and
-  `recyclebin_group`, which the gate could serve with the root group to authorize against. The bin
-  itself stays out of reach, so naming it is all a route would do.
 - **An entry's tags**: `Entry.tags`, KeePass's own way of sorting entries, neither served nor
   written. Of everything missing, the one that matters most to a program.
 - **An entry's history**: `Entry.history` and `Entry.is_a_history_entry`. Every update already keeps
@@ -93,9 +90,9 @@ looks like pykeepass's and does something else is worse than no method.
 - **Icons, the last access time and order**: `Entry.icon`, `Group.icon`, `Entry.atime`,
   `Group.atime`, `Entry.index` and `Entry.reindex`. Nothing forbids them and nothing needs them.
 
-## The 40 that cannot exist here
+## The 44 that cannot exist here
 
-Three kinds, and only the first is about `pykeepass` at all:
+Five kinds, and only the first is about `pykeepass` at all:
 
 - **The file and the key**: `save`, `read`, `reload`, `password`, `keyfile`, `transformed_key`,
   `database_salt`, `encryption_algorithm`, `kdf_algorithm`, `version`. A client never holding these
@@ -120,6 +117,12 @@ Three kinds, and only the first is about `pykeepass` at all:
   and destroying one is the operator's, as emptying the recycle bin is; `Entry.save_history`,
   because every update already keeps one; and `touch` on both, because the times are KeePass's,
   moved by the writes that change something.
+- **The database's metadata**: `database_name`, `database_description`, `default_username` and
+  `recyclebin_group`. These were counted as needing a route, the root group to authorize against,
+  until the operator ruled on 2026-10-26 that none is served, `API.md` §407: the status route names
+  a database by its authority's digest so that a client is not told what the operator calls it, no
+  client needs the name to tell its databases apart, the default username is a question about what
+  a create fills in, and the bin is out of reach.
 
 ## What would have to change
 
@@ -129,8 +132,8 @@ writing bytes. That is a change to somebody else's library, and even with it the
 would still fail, because there is no document to walk. Subclassing does not avoid this: overriding
 `__init__` and `save` leaves `xpath`, `tree` and `payload` reaching for a tree that was never built.
 
-**For a facade, this side would have to change, and only a little.** A route for the database's
-metadata, tags on an entry, and a decision to accept the read-per-candidate cost on four of the
+**For a facade, this side would have to change, and only a little.** Tags on an entry and a
+decision to accept the read-per-candidate cost on four of the
 `find_*` methods, none of which touches a principle; history, which needs a design of its own; and
 the four deletes left out on purpose.
 

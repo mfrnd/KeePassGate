@@ -37,10 +37,10 @@
       "delete_entry": ["served-differently", "DELETE /entries/{uuid} sends the entry to the recycle bin, where pykeepass's removes it for good, so a facade offers trash_entry and not this"],
       "delete_group": ["served-differently", "DELETE /groups/{uuid} refuses a group that is not empty and sends an empty one to the recycle bin, where pykeepass's removes the group and everything in it for good"],
 
-      "database_description": ["needs-routes", "database metadata, no route today"],
-      "database_name": ["needs-routes", "database metadata, no route today"],
-      "default_username": ["needs-routes", "database metadata, no route today"],
-      "recyclebin_group": ["needs-routes", "database metadata the gate does not name; the bin itself stays out of reach"],
+      "database_description": ["refused", "what the operator wrote for themselves; API.md §407"],
+      "database_name": ["refused", "the status route names a database without naming it; API.md §407"],
+      "default_username": ["refused", "a question about what a create fills in, not a value to read; API.md §407"],
+      "recyclebin_group": ["refused", "the bin is out of reach, so naming it is all a route would do; API.md §407"],
 
       "add_binary": ["refused", "same"],
       "binaries": ["refused", "a database wide binary pool has no node for the ACL to authorize against"],
