@@ -108,7 +108,10 @@ are `0.1`. A full split, with a protocol version the gate serves, waits for 1.0 
 
 **From the first release on, every change goes into [`CHANGELOG.md`](CHANGELOG.md)**, under the
 version it will ship in and in the same commit as the change, as the design documents do. Until
-then everything is the first version, and the changelog says so.
+then everything is the first version, and the changelog records as much. **A dependency's update
+is the one exception**: Dependabot makes it and cannot write the changelog, so the pull request
+that makes the version names every shipped dependency that moved, as
+[`RELEASING.md`](RELEASING.md#a-release) has it.
 
 ## Terminology
 
