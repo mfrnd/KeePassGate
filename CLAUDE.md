@@ -8,7 +8,7 @@ Guidance for anyone, human or AI assistant, working in this repository.
 mutual TLS, so that automation and AI agents can each be given a narrow, revocable, audited slice of
 a database.
 
-**Status: steps 1 to 30 of the build order are done and the API is served.** The plugin loads
+**Status: the whole build order is done and the API is served.** The plugin loads
 into KeePass, the KPG tab creates, recreates and deletes the database's own certificate authority,
 the gate listens on loopback and answers over mutual TLS 1.3, a client is served only if
 the database holds an admission record for its certificate, and **a stranger can now become one**:
@@ -57,8 +57,9 @@ request carrying `If-Match` is answered `412` when the node has changed since, d
 writer's lock. **And `master` takes a merge only once the gate has passed**: a ruleset requires the one
 check `gate passed`, which stands for every job the workflow runs. **And a `v` tag publishes a
 release**: the plugin's zip as a GitHub release and the client on PyPI, last, through Trusted
-Publishing, after a rehearsal against a draft and TestPyPI, as `RELEASING.md` describes. **Step
-31, code scanning, is being built**: what the build order plans for it is in `DESIGN.md` §132.
+Publishing, after a rehearsal against a draft and TestPyPI, as `RELEASING.md` describes. **And
+CodeQL reads what the gate does not**: the C#, the Python and the workflows, on every pull request,
+every push to `master` and once a week.
 
 ## Read these before proposing anything
 
@@ -869,8 +870,10 @@ issue when it releases a newer version, and moving that pin stays a person's job
 on every pull request, every push to `master` and once a week, with the `security-and-quality`
 queries, and puts what it finds on the repository's Security tab. The C# is compiled by
 `build.ps1 -Task Build` against the pinned KeePass, because CodeQL analyzes a compiled language from
-what the compiler sees, and without the build every call into KeePass resolves to nothing. The
-PowerShell is left out, because CodeQL reads none.
+what the compiler sees, and without the build every call into KeePass resolves to nothing. **A pull
+request's analysis reports only what its own lines introduce**, so a green one with nothing found
+judges the change and not the code, and the whole of it is judged by the run on `master` and the
+weekly one. The PowerShell is left out, because CodeQL reads none.
 
 ## Testing
 
@@ -933,7 +936,7 @@ here can hang or crash the password manager.
 
 ## Where to start
 
-[`DESIGN.md`](DESIGN.md) §132 ends with a multi-step build order. **Steps 1 to 30 are done.** The
+[`DESIGN.md`](DESIGN.md) §132 ends with a multi-step build order. **All of them are done.** The
 skeleton loads and shows a KPG tab, that tab creates, recreates and deletes the authority, the gate
 serves the document's routes over mutual TLS to a client the authority issued and the database holds
 a record for, a stranger can pair, a locked database answers `503 locked`, a grant means something
@@ -949,11 +952,12 @@ KeePass does, under the caller's own rules, `build.ps1 -Task Package` makes the 
 would publish, the README tells somebody arriving what this is, around a picture of the
 whole journey that moves and a diagram of the pieces, the command line reaches every route
 and prints JSON for a program, a write can be made against what was read, refused with `412`
-when the node has changed since, a merge into `master` waits for the whole gate to pass, and a
-tag publishes both halves.
+when the node has changed since, a merge into `master` waits for the whole gate to pass, a
+tag publishes both halves, and CodeQL analyzes every language it reads.
 
 **Start with [`docs/`](docs/README.md) if the question is what this does**, and with the documents
-below if the question is why it does it that way. What is left is step 31, code scanning.
+below if the question is why it does it that way. What is left is not a step: whether a code
+scanning alert stops a merge, decided once the first full analysis's findings are triaged.
 
 **The storage decision survived the thing most likely to invalidate it.** The `GroupForm` snapshot
 hazard is real and now measured rather than remembered: `SnapshotHazardTests` reads the mechanism off

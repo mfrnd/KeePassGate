@@ -1611,6 +1611,14 @@ Each step is refusable, and each ends with something that runs.
     a build, those calls resolve to nothing. The actions are pinned by commit, as every workflow's
     are. Whether an alert stops a merge is a rule of the ruleset, made once the first run's findings
     are triaged rather than before.
+    **Done.** Until here nothing followed a value from where it arrives to where it is used: the
+    gate compiles, lints, types and tests, and each of those judges a line or a unit on its own.
+    What this settles is that the C# is analyzed as built, against the pinned KeePass, because a
+    compiled language is analyzed from what the compiler sees; that a pull request's analysis
+    reports only what the pull request's own lines introduce, so the whole code is judged by the run
+    on `master` and the weekly one; that the PowerShell is not covered, since CodeQL reads none; and
+    that no finding blocks a merge until the ruleset is made to, once the first full analysis has
+    been triaged.
 
 Steps 5 to 8 are the ones that prove the design. Step 5 is deliberately early, because the
 `CustomData` dialog hazard is the thing most likely to invalidate the storage decision, and finding
