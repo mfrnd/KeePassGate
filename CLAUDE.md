@@ -865,6 +865,13 @@ lock wait for a person. KeePass is pinned where no such service reads, so `keepa
 issue when it releases a newer version, and moving that pin stays a person's job, since
 `tools/KeePass.ps1` refuses a version until its hash is written down.
 
+**CodeQL reads what the gate does not.** `codeql.yml` analyzes the C#, the Python and the workflows
+on every pull request, every push to `master` and once a week, with the `security-and-quality`
+queries, and puts what it finds on the repository's Security tab. The C# is compiled by
+`build.ps1 -Task Build` against the pinned KeePass, because CodeQL analyzes a compiled language from
+what the compiler sees, and without the build every call into KeePass resolves to nothing. The
+PowerShell is left out, because CodeQL reads none.
+
 ## Testing
 
 [`TESTING.md`](TESTING.md) is the full account. In short: unit tests that never load KeePass, host

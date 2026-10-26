@@ -1,0 +1,91 @@
+# Analyzes the code with CodeQL: the C#, the Python and the workflows, each a job of its own, and
+# the findings go to the repository's Security tab rather than into this run's log.
+#
+# **Built the way the gate builds it.** The C# is compiled by `build.ps1 -Task Build`, against the
+# KeePass the repository pins and verifies, because CodeQL analyzes a compiled language from the
+# compiler's own view of it. Analyzed without a build, every call into `KeePass.exe` resolves to
+# nothing, and a value that passes through KeePass's types on its way from a request to a response
+# is one the analysis would lose at the first call. The Python and the workflows are read as they
+# are, since there is nothing to build.
+#
+# **`security-and-quality`**: the security queries, and the reliability and maintainability ones
+# beside them. Where those overlap `ruff` or the compiler's warnings, all errors here, they find
+# what those already refused and so find nothing; the rest are new. One is known to disagree with a
+# decision: catching every exception, which the places `CLAUDE.md` names do on purpose, so those
+# findings are dismissed with the reason. A finding blocks nothing unless the ruleset is made to.
+#
+# **Pull requests, pushes to `master`, and once a week.** The first two as the gate has them, a pull
+# request's run grouped by its number and a push's by its commit, so neither cancels the other. The
+# third because the queries change while the code does not: a query published since the last
+# change finds what it finds in code nobody touched, and only a run on a clock would show it.
+#
+# **The actions are pinned by commit**, with the release each commit is beside it, for the reason
+# `gate.yml` gives, and `dependabot.yml` proposes each new one.
+#
+# **Writing findings is all this may do.** Every job reads the repository and writes security
+# events, which is what uploading a result is, and nothing else.
+
+name: codeql
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  schedule:
+    - cron: '17 3 * * 1'
+
+concurrency:
+  group: codeql-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    name: ${{ matrix.language }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      security-events: write
+    strategy:
+      # Every language reports for itself, as the gate's checks do.
+      fail-fast: false
+      matrix:
+        include:
+          - language: csharp
+            runner: windows-latest
+            build-mode: manual
+          - language: python
+            runner: ubuntu-latest
+            build-mode: none
+          - language: actions
+            runner: ubuntu-latest
+            build-mode: none
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: the pinned KeePass
+        if: matrix.language == 'csharp'
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .keepass
+          key: keepass-${{ hashFiles('keepass.sha256') }}
+
+      - uses: github/codeql-action/init@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+          queries: security-and-quality
+
+      # Windows PowerShell, which is what the gate is written for. Between `init` and `analyze`,
+      # because CodeQL watches the compiler run rather than reading the project files.
+      - name: build
+        if: matrix.build-mode == 'manual'
+        shell: powershell
+        run: ./build.ps1 -Task Build
+
+      - uses: github/codeql-action/analyze@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
+        with:
+          category: /language:${{ matrix.language }}
