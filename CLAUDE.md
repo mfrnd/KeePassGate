@@ -8,7 +8,7 @@ Guidance for anyone, human or AI assistant, working in this repository.
 mutual TLS, so that automation and AI agents can each be given a narrow, revocable, audited slice of
 a database.
 
-**Status: the whole build order is done and the API is served.** The plugin loads
+**Status: steps 1 to 30 of the build order are done and the API is served.** The plugin loads
 into KeePass, the KPG tab creates, recreates and deletes the database's own certificate authority,
 the gate listens on loopback and answers over mutual TLS 1.3, a client is served only if
 the database holds an admission record for its certificate, and **a stranger can now become one**:
@@ -57,7 +57,8 @@ request carrying `If-Match` is answered `412` when the node has changed since, d
 writer's lock. **And `master` takes a merge only once the gate has passed**: a ruleset requires the one
 check `gate passed`, which stands for every job the workflow runs. **And a `v` tag publishes a
 release**: the plugin's zip as a GitHub release and the client on PyPI, last, through Trusted
-Publishing, after a rehearsal against a draft and TestPyPI, as `RELEASING.md` describes.
+Publishing, after a rehearsal against a draft and TestPyPI, as `RELEASING.md` describes. **Step
+31, code scanning, is being built**: what the build order plans for it is in `DESIGN.md` §132.
 
 ## Read these before proposing anything
 
@@ -925,7 +926,7 @@ here can hang or crash the password manager.
 
 ## Where to start
 
-[`DESIGN.md`](DESIGN.md) §132 ends with a multi-step build order. **All of them are done.** The
+[`DESIGN.md`](DESIGN.md) §132 ends with a multi-step build order. **Steps 1 to 30 are done.** The
 skeleton loads and shows a KPG tab, that tab creates, recreates and deletes the authority, the gate
 serves the document's routes over mutual TLS to a client the authority issued and the database holds
 a record for, a stranger can pair, a locked database answers `503 locked`, a grant means something
@@ -945,8 +946,7 @@ when the node has changed since, a merge into `master` waits for the whole gate 
 tag publishes both halves.
 
 **Start with [`docs/`](docs/README.md) if the question is what this does**, and with the documents
-below if the question is why it does it that way. What is left is not a step: there is no Scoop
-manifest.
+below if the question is why it does it that way. What is left is step 31, code scanning.
 
 **The storage decision survived the thing most likely to invalidate it.** The `GroupForm` snapshot
 hazard is real and now measured rather than remembered: `SnapshotHazardTests` reads the mechanism off

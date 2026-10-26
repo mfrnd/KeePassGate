@@ -1602,6 +1602,15 @@ Each step is refusable, and each ends with something that runs.
     that cost nothing, so a first release does nothing for the first time but the address it
     publishes to. The release itself is not a step: it is a tag, once the settings `RELEASING.md`
     lists are made.
+31. **Code scanning**: CodeQL analyzes the C#, the Python and the workflows on every pull request,
+    on every push to `master` and once a week, so a query published since the last change is tried
+    on code nobody touched. The `security-and-quality` queries, the security ones and the
+    reliability and maintainability ones beside them, whose findings report and block nothing until
+    the ruleset is made to. The C# is built the way the gate builds it, against the pinned KeePass,
+    so a value passing through KeePass's own types is one the analysis can follow; analyzed without
+    a build, those calls resolve to nothing. The actions are pinned by commit, as every workflow's
+    are. Whether an alert stops a merge is a rule of the ruleset, made once the first run's findings
+    are triaged rather than before.
 
 Steps 5 to 8 are the ones that prove the design. Step 5 is deliberately early, because the
 `CustomData` dialog hazard is the thing most likely to invalidate the storage decision, and finding
