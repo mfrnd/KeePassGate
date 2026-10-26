@@ -73,6 +73,17 @@ value the rules withhold, while the audit records an update and nothing more. Th
 govern it either, since the value never crosses the gate. So auto-type stays the operator's, set in
 KeePass's own entry dialog.
 
+**The database's name, description and default username**, and which group is its recycle bin,
+are neither served nor accepted. The name and the description are what the operator wrote in
+KeePass for themselves, and either can name a person or describe what the database is for, while
+`GET /gate/status` names the database by the first characters of its authority's digest, which is
+what tells a client which database answered without telling it what the operator calls it. Serving
+the name would undo that and help no client: one paired with several databases already tells them
+apart by the client profile each pairing is stored under, a name it chose itself. The default
+username is what KeePass's own Add Entry dialog fills in, so if it is ever wanted it is a question
+about what `createEntry` fills in rather than a value to read. And the recycle bin is out of reach,
+so naming it is all a route would do.
+
 **Destroying what a removal keeps.** The recycle bin is out of reach, so an entry already in it is
 answered `404`, and no operation clears an entry's history: each keeps an overwritten or removed
 value recoverable, and making it unrecoverable is the operator's, in KeePass, as emptying the bin
