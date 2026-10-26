@@ -57,7 +57,9 @@ request carrying `If-Match` is answered `412` when the node has changed since, d
 writer's lock. **And `master` takes a merge only once the gate has passed**: a ruleset requires the one
 check `gate passed`, which stands for every job the workflow runs. **And a `v` tag publishes a
 release**: the plugin's zip as a GitHub release and the client on PyPI, last, through Trusted
-Publishing, after a rehearsal against a draft and TestPyPI, as `RELEASING.md` describes.
+Publishing, after a rehearsal against a draft and TestPyPI, as `RELEASING.md` describes. **And
+CodeQL reads what the gate does not**: the C#, the Python and the workflows, on every pull request,
+every push to `master` and once a week.
 
 ## Read these before proposing anything
 
@@ -864,6 +866,15 @@ lock wait for a person. KeePass is pinned where no such service reads, so `keepa
 issue when it releases a newer version, and moving that pin stays a person's job, since
 `tools/KeePass.ps1` refuses a version until its hash is written down.
 
+**CodeQL reads what the gate does not.** `codeql.yml` analyzes the C#, the Python and the workflows
+on every pull request, every push to `master` and once a week, with the `security-and-quality`
+queries, and puts what it finds on the repository's Security tab. The C# is compiled by
+`build.ps1 -Task Build` against the pinned KeePass, because CodeQL analyzes a compiled language from
+what the compiler sees, and without the build every call into KeePass resolves to nothing. **A pull
+request's analysis reports only what its own lines introduce**, so a green one with nothing found
+judges the change and not the code, and the whole of it is judged by the run on `master` and the
+weekly one. The PowerShell is left out, because CodeQL reads none.
+
 ## Testing
 
 [`TESTING.md`](TESTING.md) is the full account. In short: unit tests that never load KeePass, host
@@ -941,12 +952,12 @@ KeePass does, under the caller's own rules, `build.ps1 -Task Package` makes the 
 would publish, the README tells somebody arriving what this is, around a picture of the
 whole journey that moves and a diagram of the pieces, the command line reaches every route
 and prints JSON for a program, a write can be made against what was read, refused with `412`
-when the node has changed since, a merge into `master` waits for the whole gate to pass, and a
-tag publishes both halves.
+when the node has changed since, a merge into `master` waits for the whole gate to pass, a
+tag publishes both halves, and CodeQL analyzes every language it reads.
 
 **Start with [`docs/`](docs/README.md) if the question is what this does**, and with the documents
-below if the question is why it does it that way. What is left is not a step: there is no Scoop
-manifest.
+below if the question is why it does it that way. What is left is not a step: whether a code
+scanning alert stops a merge, decided once the first full analysis's findings are triaged.
 
 **The storage decision survived the thing most likely to invalidate it.** The `GroupForm` snapshot
 hazard is real and now measured rather than remembered: `SnapshotHazardTests` reads the mechanism off
