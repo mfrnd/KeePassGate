@@ -9,6 +9,12 @@ Newest first. A version is written here before it is released, under its own hea
 **unreleased** until it is. A patch releases only the half it fixes, so its heading names that
 half, as `0.1.1, the plugin, unreleased`, and a minor version names none, since it releases both.
 
+## 0.1.1, the plugin, unreleased
+
+- **The plugin is compiled at C# 13**, and the build needs the .NET SDK 9 or later. Nothing it does
+  changes: the compiled plugin differs only in caching a delegate made from a static method rather
+  than making one at every use, and in an attribute the compiler adds.
+
 ## 0.1.0, 2026-10-25
 
 The first version, so there is nothing earlier to describe a change from: everything in it is new.
