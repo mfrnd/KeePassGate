@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Windows.Automation;
 using System.Windows.Forms;
@@ -284,13 +285,11 @@ namespace KeePassGate.Host.Tests.Live
             driver.ShutDown();
 
             _ruleOnTheRoot = _session.KeePass.ReadRootCustomData(AclDocument.CustomDataKey);
-            foreach (var stored in _session.KeePass.ReadEntries())
+            foreach (var found in _session.KeePass.ReadEntries()
+                         .Select(stored => stored.CustomData.Get(AclDocument.CustomDataKey))
+                         .Where(found => !string.IsNullOrEmpty(found)))
             {
-                var found = stored.CustomData.Get(AclDocument.CustomDataKey);
-                if (!string.IsNullOrEmpty(found))
-                {
-                    _ruleOnTheEntry = found;
-                }
+                _ruleOnTheEntry = found;
             }
 
             Assert.That(_ruleOnTheRoot, Does.Contain(Profile),

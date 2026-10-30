@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Windows.Forms;
 using KeePassGate.Audit;
 using KeePassGate.Authority;
@@ -277,12 +278,9 @@ namespace KeePassGate.Ui
         private void Revoked(PendingDatabase database, IDictionary<string, string> clients)
         {
             var revoked = new List<string>();
-            foreach (var key in database.Stored)
+            foreach (var key in database.Stored.Where(AuthorityKeys.IsRevocation))
             {
-                if (AuthorityKeys.IsRevocation(key))
-                {
-                    revoked.Add(AuthorityKeys.AdmissionKeyInRevocation(key));
-                }
+                revoked.Add(AuthorityKeys.AdmissionKeyInRevocation(key));
             }
 
             if (revoked.Count == 0)

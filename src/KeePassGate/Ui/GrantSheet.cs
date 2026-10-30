@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using KeePassGate.Acl;
 using KeePassGate.Authority;
 
@@ -155,12 +156,10 @@ namespace KeePassGate.Ui
             {
                 _named = new HashSet<string>(offered, StringComparer.Ordinal);
 
-                foreach (var profile in offered)
+                foreach (var profile in offered.Where(
+                    profile => AuthorityIssuer.IsUsableProfileName(profile) && !_offered.Contains(profile)))
                 {
-                    if (AuthorityIssuer.IsUsableProfileName(profile) && !_offered.Contains(profile))
-                    {
-                        _offered.Add(profile);
-                    }
+                    _offered.Add(profile);
                 }
 
                 _offered.Sort(StringComparer.Ordinal);
@@ -229,12 +228,9 @@ namespace KeePassGate.Ui
                 }
 
                 var free = new List<string>();
-                foreach (var profile in _offered)
+                foreach (var profile in _offered.Where(profile => !taken.Contains(profile)))
                 {
-                    if (!taken.Contains(profile))
-                    {
-                        free.Add(profile);
-                    }
+                    free.Add(profile);
                 }
 
                 return free;
@@ -287,12 +283,9 @@ namespace KeePassGate.Ui
             {
                 var names = new List<string>(_rules.Keys);
 
-                foreach (var profile in _above.Profiles)
+                foreach (var profile in _above.Profiles.Where(profile => !_rules.ContainsKey(profile)))
                 {
-                    if (!_rules.ContainsKey(profile))
-                    {
-                        names.Add(profile);
-                    }
+                    names.Add(profile);
                 }
 
                 names.Sort(StringComparer.Ordinal);

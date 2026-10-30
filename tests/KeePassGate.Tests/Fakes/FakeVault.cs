@@ -1034,9 +1034,8 @@ namespace KeePassGate.Tests.Fakes
             public static string Of(params string[] parts)
             {
                 var joined = new System.Text.StringBuilder();
-                foreach (var part in parts)
+                foreach (var text in parts.Select(part => part ?? string.Empty))
                 {
-                    var text = part ?? string.Empty;
                     joined.Append(text.Length).Append(':').Append(text);
                 }
 

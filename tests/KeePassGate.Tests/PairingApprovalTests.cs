@@ -966,13 +966,9 @@ namespace KeePassGate.Tests
         private static string Texts(Control form)
         {
             var text = new System.Text.StringBuilder();
-            foreach (var control in ControlTree.Descendants(form))
+            foreach (var label in ControlTree.Descendants(form).OfType<Label>())
             {
-                var label = control as Label;
-                if (label != null)
-                {
-                    text.AppendLine(label.Text);
-                }
+                text.AppendLine(label.Text);
             }
 
             return text.ToString();

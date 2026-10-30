@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Text;
 
 namespace KeePassGate.Transport
@@ -562,20 +563,10 @@ namespace KeePassGate.Transport
                 return false;
             }
 
-            foreach (var c in text)
-            {
-                var allowed = (c >= 'a' && c <= 'z')
-                              || (c >= 'A' && c <= 'Z')
-                              || (c >= '0' && c <= '9')
-                              || "!#$%&'*+-.^_`|~".IndexOf(c) >= 0;
-
-                if (!allowed)
-                {
-                    return false;
-                }
-            }
-
-            return true;
+            return text.All(c => (c >= 'a' && c <= 'z')
+                                 || (c >= 'A' && c <= 'Z')
+                                 || (c >= '0' && c <= '9')
+                                 || "!#$%&'*+-.^_`|~".IndexOf(c) >= 0);
         }
 
         /// <summary>What came of reading a head, which is not the same as what to answer.</summary>

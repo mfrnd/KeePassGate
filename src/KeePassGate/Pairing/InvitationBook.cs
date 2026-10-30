@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Security.Cryptography;
 using KeePassGate.Diagnostics;
 
@@ -171,12 +172,10 @@ namespace KeePassGate.Pairing
                 return mine;
             }
 
-            foreach (var invitation in Outstanding())
+            foreach (var invitation in Outstanding().Where(
+                invitation => string.Equals(invitation.DatabaseId, databaseId, StringComparison.Ordinal)))
             {
-                if (string.Equals(invitation.DatabaseId, databaseId, StringComparison.Ordinal))
-                {
-                    mine.Add(invitation);
-                }
+                mine.Add(invitation);
             }
 
             return mine;
@@ -260,12 +259,9 @@ namespace KeePassGate.Pairing
                 return matched;
             }
 
-            foreach (var invitation in Outstanding())
+            foreach (var invitation in Outstanding().Where(invitation => invitation.Answers(serverName)))
             {
-                if (invitation.Answers(serverName))
-                {
-                    matched.Add(invitation);
-                }
+                matched.Add(invitation);
             }
 
             return matched;

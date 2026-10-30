@@ -882,18 +882,7 @@ namespace KeePassGate.Pairing
         /// </summary>
         private static IReadOnlyList<string> Once(IReadOnlyList<string> profiles)
         {
-            var seen = new HashSet<string>(StringComparer.Ordinal);
-            var once = new List<string>();
-
-            foreach (var profile in profiles)
-            {
-                if (seen.Add(profile))
-                {
-                    once.Add(profile);
-                }
-            }
-
-            return once;
+            return profiles.Distinct(StringComparer.Ordinal).ToList();
         }
 
         /// <summary>

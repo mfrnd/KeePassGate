@@ -19,7 +19,8 @@ none, since it releases both.
   or suppressed with its reason where it is made, and nothing the plugin does changes. Its six calls
   into Windows go through one class, and the path of a file it writes is joined by a helper that
   refuses a part taking the place of those before it. A check the code before it had already
-  settled, and a loop that only asked whether there was anything, are gone.
+  settled, and a loop that only asked whether there was anything, are gone. A loop that filters,
+  maps or tests a list is the query it is.
 - **PyKeePassGate refuses to connect over a TLS context offering anything but TLS 1.3**, before it
   dials, which every context it makes already did, so nothing a program built on it does changes.
 

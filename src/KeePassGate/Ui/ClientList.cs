@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Globalization;
+using System.Linq;
 using System.Windows.Forms;
 using KeePassGate.Authority;
 using KeePassGate.Diagnostics;
@@ -1383,24 +1384,18 @@ namespace KeePassGate.Ui
             var clients = new Dictionary<string, string>(StringComparer.Ordinal);
             if (records != null)
             {
-                foreach (var record in records)
+                foreach (var record in records.Where(
+                    record => record != null && !clients.ContainsKey(record.ClientKey)))
                 {
-                    if (record != null && !clients.ContainsKey(record.ClientKey))
-                    {
-                        clients[record.ClientKey] = Describe(record);
-                    }
+                    clients[record.ClientKey] = Describe(record);
                 }
             }
 
-            var shared = new HashSet<string>(StringComparer.Ordinal);
-            var seen = new HashSet<string>(StringComparer.Ordinal);
-            foreach (var name in clients.Values)
-            {
-                if (!seen.Add(name))
-                {
-                    shared.Add(name);
-                }
-            }
+            var shared = new HashSet<string>(
+                clients.Values.GroupBy(name => name, StringComparer.Ordinal)
+                              .Where(named => named.Count() > 1)
+                              .Select(named => named.Key),
+                StringComparer.Ordinal);
 
             var shortened = ShortKeys(clients.Keys);
             var named = new List<KeyValuePair<string, string>>(clients);
@@ -1442,12 +1437,9 @@ namespace KeePassGate.Ui
             var keys = new List<string>();
             if (clientKeys != null)
             {
-                foreach (var key in clientKeys)
+                foreach (var key in clientKeys.Where(key => !string.IsNullOrEmpty(key) && !keys.Contains(key)))
                 {
-                    if (!string.IsNullOrEmpty(key) && !keys.Contains(key))
-                    {
-                        keys.Add(key);
-                    }
+                    keys.Add(key);
                 }
             }
 

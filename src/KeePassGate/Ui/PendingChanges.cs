@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using KeePassGate.Acl;
 using KeePassGate.Authority;
 using KeePassGate.Diagnostics;
@@ -275,12 +276,9 @@ namespace KeePassGate.Ui
                 var written = ProfileNames.Read(_database.PluginCustomData == null
                     ? null
                     : _database.PluginCustomData.Get(ProfileNames.CustomDataKey));
-                foreach (var name in new List<string>(_leftOut))
+                foreach (var name in new List<string>(_leftOut).Where(name => !written.Holds(name)))
                 {
-                    if (!written.Holds(name))
-                    {
-                        LeftOut(name);
-                    }
+                    LeftOut(name);
                 }
 
                 _leftOut.Clear();
@@ -629,12 +627,10 @@ namespace KeePassGate.Ui
                 var keys = new List<string>();
 
                 var store = Underneath;
-                foreach (var key in store == null ? Array.Empty<string>() : store.Keys)
+                foreach (var key in (store == null ? Array.Empty<string>() : store.Keys)
+                             .Where(key => !_removed.Contains(key) && !_written.ContainsKey(key)))
                 {
-                    if (!_removed.Contains(key) && !_written.ContainsKey(key))
-                    {
-                        keys.Add(key);
-                    }
+                    keys.Add(key);
                 }
 
                 foreach (var key in _written.Keys)

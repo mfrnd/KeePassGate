@@ -344,13 +344,10 @@ namespace KeePassGate.Authority
         private HashSet<string> Retired()
         {
             var retired = new HashSet<string>(StringComparer.Ordinal);
-            foreach (var key in Keys())
+            foreach (var fingerprint in Keys().Select(AuthorityKeys.FingerprintInRetirement)
+                                              .Where(fingerprint => fingerprint != null))
             {
-                var fingerprint = AuthorityKeys.FingerprintInRetirement(key);
-                if (fingerprint != null)
-                {
-                    retired.Add(fingerprint);
-                }
+                retired.Add(fingerprint);
             }
 
             return retired;

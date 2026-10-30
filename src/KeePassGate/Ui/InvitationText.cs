@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using KeePassGate.Pairing;
 
 namespace KeePassGate.Ui
@@ -95,14 +96,8 @@ namespace KeePassGate.Ui
                 return None;
             }
 
-            var soonest = invitations[0];
-            foreach (var invitation in invitations)
-            {
-                if (invitation.Expires < soonest.Expires)
-                {
-                    soonest = invitation;
-                }
-            }
+            var soonest = invitations.Aggregate(
+                (earliest, invitation) => invitation.Expires < earliest.Expires ? invitation : earliest);
 
             var minutes = (int)Math.Ceiling((soonest.Expires - now).TotalMinutes);
 

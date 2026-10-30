@@ -1,6 +1,7 @@
 using System;
 using System.Globalization;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using KeePassGate.Acl;
 using KeePassGate.Spec;
@@ -429,12 +430,10 @@ namespace KeePassGate.Pipeline
             var fields = vault.Fields(uuid);
             if (fields != null)
             {
-                foreach (var field in fields)
+                foreach (var field in fields.Where(
+                    field => string.Equals(field.Name, name, StringComparison.Ordinal)))
                 {
-                    if (string.Equals(field.Name, name, StringComparison.Ordinal))
-                    {
-                        guarded = field.IsProtected;
-                    }
+                    guarded = field.IsProtected;
                 }
             }
 

@@ -68,10 +68,8 @@ namespace KeePassGate.Authority
             AdmissionRecord found = null;
             var revoked = false;
 
-            foreach (var pair in Stored(out listed))
+            foreach (var key in Stored(out listed).Select(pair => pair.Key))
             {
-                var key = pair.Key;
-
                 // Every key is compared, both ways, and neither comparison stops at the first
                 // difference. A dictionary lookup would be quicker and would leak how much of a
                 // digest was right.

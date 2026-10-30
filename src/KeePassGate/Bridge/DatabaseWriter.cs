@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using KeePassLib;
 using KeePassGate.Acl;
@@ -837,12 +838,9 @@ namespace KeePassGate.Bridge
         {
             var held = new Dictionary<string, string>(StringComparer.Ordinal);
 
-            foreach (var key in store.Keys)
+            foreach (var key in store.Keys.Where(Revocable))
             {
-                if (Revocable(key))
-                {
-                    held[key] = store.Get(key);
-                }
+                held[key] = store.Get(key);
             }
 
             return held;
@@ -877,20 +875,15 @@ namespace KeePassGate.Bridge
         /// </remarks>
         private static void Restore(CustomDataStore store, Dictionary<string, string> held)
         {
-            foreach (var key in store.Keys)
+            foreach (var key in store.Keys.Where(key => Revocable(key) && !held.ContainsKey(key)))
             {
-                if (Revocable(key) && !held.ContainsKey(key))
-                {
-                    store.Remove(key);
-                }
+                store.Remove(key);
             }
 
-            foreach (var pair in held)
+            foreach (var pair in held.Where(
+                pair => !string.Equals(store.Get(pair.Key), pair.Value, StringComparison.Ordinal)))
             {
-                if (!string.Equals(store.Get(pair.Key), pair.Value, StringComparison.Ordinal))
-                {
-                    store.Set(pair.Key, pair.Value);
-                }
+                store.Set(pair.Key, pair.Value);
             }
         }
 

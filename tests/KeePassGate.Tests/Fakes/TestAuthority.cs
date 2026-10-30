@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using KeePassGate.Authority;
@@ -98,12 +99,10 @@ namespace KeePassGate.Tests.Fakes
 
         private void Name(IEnumerable<string> profiles)
         {
-            foreach (var profile in profiles ?? Array.Empty<string>())
+            foreach (var profile in (profiles ?? Array.Empty<string>())
+                         .Where(profile => profile != null && !_named.Contains(profile)))
             {
-                if (profile != null && !_named.Contains(profile))
-                {
-                    _named.Add(profile);
-                }
+                _named.Add(profile);
             }
         }
 
@@ -148,12 +147,9 @@ namespace KeePassGate.Tests.Fakes
         {
             var holding = new List<AdmissionRecord>();
 
-            foreach (var record in _admissions.All().Records)
+            foreach (var record in _admissions.All().Records.Where(record => record.Profiles.Contains(profile)))
             {
-                if (System.Linq.Enumerable.Contains(record.Profiles, profile))
-                {
-                    holding.Add(record);
-                }
+                holding.Add(record);
             }
 
             return holding;

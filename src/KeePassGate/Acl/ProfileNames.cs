@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using KeePassGate.Authority;
 using KeePassGate.Transport;
 using Newtonsoft.Json;
@@ -229,17 +230,15 @@ namespace KeePassGate.Acl
             var left = new List<string>();
 
             // Removals first, so that a name the operator took out makes room for one they put in.
-            foreach (var name in before.Names)
+            foreach (var name in before.Names.Where(name => !mine.Holds(name)))
             {
-                if (!mine.Holds(name))
-                {
-                    merged.Remove(name);
-                }
+                merged.Remove(name);
             }
 
-            foreach (var name in mine.Names)
+            foreach (var name in mine.Names.Where(name => !before.Holds(name)))
             {
-                if (!before.Holds(name) && merged.Add(name) != null)
+                var refused = merged.Add(name);
+                if (refused != null)
                 {
                     left.Add(name);
                 }

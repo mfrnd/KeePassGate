@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using KeePassGate.Acl;
 using KeePassGate.Diagnostics;
@@ -770,12 +771,9 @@ namespace KeePassGate.Spec
                     continue;
                 }
 
-                foreach (var parameter in parameters)
+                foreach (var parameter in parameters.Where(parameter => parameter.In == location))
                 {
-                    if (parameter.In == location)
-                    {
-                        yield return parameter;
-                    }
+                    yield return parameter;
                 }
             }
         }

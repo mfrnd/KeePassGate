@@ -308,9 +308,8 @@ namespace KeePassGate.Host.Tests.Live
         private int UntilTheCapsChange()
         {
             var soonest = int.MaxValue;
-            foreach (var cap in _caps)
+            foreach (var until in _caps.Select(cap => cap.Left > KeyFades ? cap.Left - KeyFades : FadeStep))
             {
-                var until = cap.Left > KeyFades ? cap.Left - KeyFades : FadeStep;
                 soonest = Math.Min(soonest, Math.Max(1, until));
             }
 
