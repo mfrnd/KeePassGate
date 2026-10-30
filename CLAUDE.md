@@ -54,10 +54,11 @@ If a **new** question needs measuring, it gets its own branch from `master`, nam
 - **Its history is not here**, only the tree it ended with, so `RESULTS.md` lists each pull request
   with what it changed. The comment above each case describes it as first written, and a later pull
   request may have changed the case since.
-- **`spikes/suppressions/measure` is not part of that tree.** It is what #9 added, from a branch of
-  its own that removed the other workflows, and #9 was never merged. Its scripts made what
-  `RESULTS.md` section 8 records about how many comments a review may carry, and `results-9.jsonl`
-  is every answer as it came back.
+- **`spikes/suppressions/measure` is not part of that tree.** It is what #9 and #10 added, each from
+  a branch of its own that removed the other workflows, and neither was merged. Their scripts made
+  what `RESULTS.md` section 8 records about how many comments a review may carry and about threads
+  over a range of lines, and `results-9.jsonl` and `ranges/results-10.jsonl` are every answer as it
+  came back.
 - **Nobody else's source is here.** CodeQL's query library and `github/codeql-action` are GitHub's,
   so `RESULTS.md` cites each by path at the release it names instead of carrying it.
 

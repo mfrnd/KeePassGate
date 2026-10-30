@@ -69,6 +69,16 @@ Open the pull request, which runs that step, and start
 `python measure/driver.py <checkout> <pull request> <results directory>` on the machine, then
 `measure/sequence.py` with the same arguments.
 
+**#10 ran the same way and measured threads over a range of lines**, from `measure/ranges`.
+`setup.py` edits `src/Probe/Cases.cs` in a checkout of such a branch and writes
+`measure/comments.json`, with every range cut as the review tool cuts it, and `steps.sh`, given the
+checkout, pushes each step's plan after the first and prints GitHub's answers. The first plan, which
+the pull request's opening runs, is the first four comments:
+
+```json
+{"step": "R1", "set": "first review", "offset": 0, "batches": [4], "pause": 1, "retry": false}
+```
+
 ## Reading a re-run
 
 Pull request, alert and analysis numbers belong to the repository that made them, so a re-run is

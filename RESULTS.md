@@ -20,6 +20,7 @@ were recorded here, and [`README.md`](README.md) describes how to make another.
 | What keeps the default branch's list true? | Uploading everything, dismissing each alert the code suppresses with the comment's reason, and opening again every such dismissal the code no longer backs |
 | Which CodeQL runs? | The highest version GitHub enables by default on the day, unless the workflow pins one; `tools: linked` runs the bundle the pinned action ships |
 | How many comments may one review carry? | **80.** A review of 81 is refused at once as a secondary rate limit and makes nothing. A review of 60 or more took GitHub past ten seconds, which it answered with 502 while making the review all the same. Eight reviews of 20, twenty seconds apart, all went through |
+| Can a thread cover the lines around a suppression? | **Yes, inside one hunk of GitHub's diff.** Three lines either side, cut to the file and to the hunk, were taken at a file's first and last lines and on the base side; a range two lines past its hunk was refused with 422. Deleting every comment of a review deletes the review |
 | Verdict | **Filter on a pull request, dismiss on the default branch, and fail on any finding nothing suppresses in the whole SARIF**, since a pull request's own upload holds only the lines it changed, and put the suppressions to review twenty comments at a time |
 
 ## 1. What ran, in order
@@ -42,6 +43,7 @@ one.
 | #8 | had `main` upload the whole SARIF and run `tools/sync_dismissals.py`, and had the filter drop a security finding like any other | dismissing on `main`, section 7 |
 | #7, finished after #8 | changed `C14`'s flagged line; changed `C15`'s to one CodeQL does not report, its right operand being a local rather than a call, which leaves its comment over no finding; added `C16`, a new finding whose reason runs past 280 characters; then merged | dismissing on `main`, section 7, and fingerprints, section 4 |
 | #9, never merged | from a branch that removed the other workflows, posted the 122 comments KeePassGate's pull request #51 was refused as one review, then single reviews of 80, 40, 60 and 81 comments, and eight of 20 | how many comments a review may carry, section 8 |
+| #10, never merged | from a branch that removed the other workflows, added a line at the top of `Cases.cs`, one in its middle and one at its end, and removed one; then posted comments over three lines either side of each, one range past its hunk, and the first four again as a review whose comments were then deleted | threads over a range of lines, section 8 |
 
 ## 2. Which comments suppress
 
@@ -324,6 +326,31 @@ than the workflow's. `measure/results-9.jsonl` is every answer as it came back.
   half of that.
 - **`measure/driver.py` ran A to B3 and took a 502 for a refusal**, so it was narrowing in on the ten
   seconds rather than on the limit, and it was stopped there. `measure/sequence.py` ran C1 and C2.
+
+### Threads over a range of lines
+
+Measured on #10, after KeePassGate's review threads, each on its suppression's own line, turned out
+to show nothing of the code the suppression covers: GitHub shows a thread's diff only down to the
+line the thread is on. `measure/ranges/setup.py` makes four hunks in `src/Probe/Cases.cs` and a
+comment over each, three lines either side of its line, cut to the file and to the hunk;
+`measure/ranges/steps.sh` posts them through `measure/measure.py` with the workflow's token, and
+`measure/ranges/results-10.jsonl` is every answer as it came back.
+
+| Step | Comments | Answer | Comments made |
+| --- | --- | --- | --- |
+| R1 | lines 1 to 5, 59 to 65 and 127 to 130 of the new side, and 99 to 105 of the old | 200 | 4 |
+| R2 | lines 57 to 65, two lines past the hunk that starts at 59 | 422, "Line could not be resolved" | 0 |
+| R3 | R1's four again, as a second review | 200 | 4 |
+
+- **A range inside one hunk is taken as it is sent**, on either side. GitHub stored each with the
+  `start_line` and `line` it was given, and its `diff_hunk` ends on the range's last line, three
+  lines below the line it is about. The ranges cut at the file's first line and at its last were
+  taken the same way.
+- **A range reaching past its hunk is refused at once, with 422, and makes nothing**, so a review
+  whose ranges GitHub does not find in its own diff can go again with each thread on one line.
+- **Deleting every comment of a review deletes the review.** With R3's four comments deleted by the
+  maintainer's token, a second apart, the review answered 404 and the pull request listed R1's
+  alone.
 
 ## 9. Which CodeQL runs
 
