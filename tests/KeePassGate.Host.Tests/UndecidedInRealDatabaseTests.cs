@@ -83,12 +83,12 @@ namespace KeePassGate.Host.Tests
                 .Keep(_candidates[1]);
             Assume.That(kept.Succeeded, Is.True, kept.Message);
 
-            var target = _targets.Current().Single();
-
-            Assert.That(target.DatabaseId, Is.EqualTo(_candidates[1]));
-            Assert.That(target.Unavailable, Is.Null);
-            Assert.That(target.Authority, Is.Not.Null);
-            target.Dispose();
+            using (var target = _targets.Current().Single())
+            {
+                Assert.That(target.DatabaseId, Is.EqualTo(_candidates[1]));
+                Assert.That(target.Unavailable, Is.Null);
+                Assert.That(target.Authority, Is.Not.Null);
+            }
         }
 
         /// <summary>

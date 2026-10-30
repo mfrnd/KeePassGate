@@ -40,6 +40,7 @@ namespace KeePassGate.Tests
 
         public void BeforeTest(ITest test)
         {
+            // codeql[cs/missed-using-statement] disposed only when it is not kept, which no `using` can do
             Mutex mutex;
             try
             {
@@ -50,17 +51,28 @@ namespace KeePassGate.Tests
                 return;
             }
 
+            // Let go of on every way out that does not hold it, a throw from the wait among them.
+            var acquired = false;
             try
             {
-                if (!mutex.WaitOne(Patience))
-                {
-                    mutex.Dispose();
-                    return;
-                }
+                acquired = mutex.WaitOne(Patience);
             }
             catch (AbandonedMutexException)
             {
                 // Its holder ended without letting go, and the wait was granted all the same.
+                acquired = true;
+            }
+            finally
+            {
+                if (!acquired)
+                {
+                    mutex.Dispose();
+                }
+            }
+
+            if (!acquired)
+            {
+                return;
             }
 
             // codeql[cs/static-field-written-by-instance] the run's one mutex, held by the thread that took it

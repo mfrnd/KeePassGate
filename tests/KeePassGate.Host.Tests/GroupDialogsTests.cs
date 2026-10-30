@@ -364,7 +364,7 @@ namespace KeePassGate.Host.Tests
 
             using (var form = new PwEntryForm())
             {
-                form.InitEx(typed, PwEditMode.AddNewEntry, _database.Database, new ImageList(), false, true);
+                form.InitEx(typed, PwEditMode.AddNewEntry, _database.Database, _icons, false, true);
                 GlobalWindowManager.AddWindow(form);
 
                 try
@@ -603,7 +603,7 @@ namespace KeePassGate.Host.Tests
         private PwEntryForm EntryDialogFor(PwEntry entry)
         {
             var form = new PwEntryForm();
-            form.InitEx(entry, PwEditMode.EditExistingEntry, _database.Database, new ImageList(), false, false);
+            form.InitEx(entry, PwEditMode.EditExistingEntry, _database.Database, _icons, false, false);
             return form;
         }
 
@@ -624,7 +624,7 @@ namespace KeePassGate.Host.Tests
                 .Invoke(merged);
 
             var form = new PwEntryForm();
-            form.InitEx((PwEntry)merged[2], PwEditMode.EditExistingEntry, _database.Database, new ImageList(), false, false);
+            form.InitEx((PwEntry)merged[2], PwEditMode.EditExistingEntry, _database.Database, _icons, false, false);
             typeof(PwEntryForm)
                 .GetProperty("MultipleValuesEntryContext")
                 .SetValue(form, context, null);

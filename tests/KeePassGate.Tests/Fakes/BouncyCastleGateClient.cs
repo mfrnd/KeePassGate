@@ -113,29 +113,30 @@ namespace KeePassGate.Tests.Fakes
         private static string ReadToEnd(Stream stream)
         {
             var buffer = new byte[4096];
-            var body = new MemoryStream();
-
-            while (true)
+            using (var body = new MemoryStream())
             {
-                int read;
-                try
+                while (true)
                 {
-                    read = stream.Read(buffer, 0, buffer.Length);
-                }
-                catch (IOException error) when (!(error is TlsFatalAlertReceived))
-                {
-                    break;
+                    int read;
+                    try
+                    {
+                        read = stream.Read(buffer, 0, buffer.Length);
+                    }
+                    catch (IOException error) when (!(error is TlsFatalAlertReceived))
+                    {
+                        break;
+                    }
+
+                    if (read <= 0)
+                    {
+                        break;
+                    }
+
+                    body.Write(buffer, 0, read);
                 }
 
-                if (read <= 0)
-                {
-                    break;
-                }
-
-                body.Write(buffer, 0, read);
+                return Encoding.UTF8.GetString(body.ToArray());
             }
-
-            return Encoding.UTF8.GetString(body.ToArray());
         }
 
         private sealed class Client : DefaultTlsClient

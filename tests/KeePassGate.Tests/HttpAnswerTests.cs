@@ -26,7 +26,10 @@ namespace KeePassGate.Tests
             Assert.That(bytes.Length, Is.EqualTo(HttpAnswer.ChunkBytes + 2),
                 "the two bytes of the character have to straddle the boundary for this to test anything");
 
-            Assert.That(HttpAnswer.ReadToEnd(new MemoryStream(bytes)), Is.EqualTo(body));
+            using (var stream = new MemoryStream(bytes))
+            {
+                Assert.That(HttpAnswer.ReadToEnd(stream), Is.EqualTo(body));
+            }
         }
 
         [Test]
@@ -44,7 +47,10 @@ namespace KeePassGate.Tests
         [Test]
         public void A_stream_that_says_nothing_reads_as_nothing()
         {
-            Assert.That(HttpAnswer.ReadToEnd(new MemoryStream(Array.Empty<byte>())), Is.Empty);
+            using (var stream = new MemoryStream(Array.Empty<byte>()))
+            {
+                Assert.That(HttpAnswer.ReadToEnd(stream), Is.Empty);
+            }
         }
 
         /// <summary>A stream that hands over one byte per read, as a slow socket does.</summary>
