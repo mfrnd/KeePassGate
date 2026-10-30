@@ -519,7 +519,8 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            var made = body == null ? null : body.Text("value");
+            // There is a body here: without one there is no name, and a missing name was refused above.
+            var made = body.Text("value");
             if (Compiled(name, made))
             {
                 Resolved(context);

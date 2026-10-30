@@ -17,7 +17,8 @@ half, as `0.1.1, the plugin, unreleased`, and a minor version names none, since 
 - **The plugin's code answers every finding of CodeQL's `security-and-quality` queries**, each fixed
   or suppressed with its reason where it is made, and nothing the plugin does changes. Its six calls
   into Windows go through one class, and the path of a file it writes is joined by a helper that
-  refuses a part taking the place of those before it.
+  refuses a part taking the place of those before it. A check the code before it had already
+  settled, and a loop that only asked whether there was anything, are gone.
 
 ## 0.1.0, 2026-10-25
 

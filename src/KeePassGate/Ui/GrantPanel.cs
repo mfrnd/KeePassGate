@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Globalization;
+using System.Linq;
 using System.Windows.Forms;
 using KeePassGate.Acl;
 using KeePassGate.Diagnostics;
@@ -839,17 +840,7 @@ namespace KeePassGate.Ui
 
         private static bool Any(IEnumerable<string> names)
         {
-            if (names == null)
-            {
-                return false;
-            }
-
-            foreach (var name in names)
-            {
-                return true;
-            }
-
-            return false;
+            return names != null && Enumerable.Any(names);
         }
 
         /// <summary>
