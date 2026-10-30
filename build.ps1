@@ -349,7 +349,8 @@ function Invoke-Lint {
     # A doc comment that describes two members describes neither. It happens when a member moves and
     # its documentation does not, and the compiler is no help: it takes the last `<summary>` it sees
     # and never mentions the rest, so the wrong description sits on the wrong member until somebody
-    # reads both.
+    # reads both. One with no `<summary>` describes nothing where it is read, since the summary is
+    # what a reader of the member's tooltip gets.
     Invoke-Step 'doc comments' {
         & (Join-Path $root 'tools/DocComments.ps1')
     }

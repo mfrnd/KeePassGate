@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Refuses a doc comment that describes more than one thing, or nothing at all.
+    Refuses a doc comment that describes more than one member, or that has no summary.
 
 .DESCRIPTION
     Two `<summary>` elements in one block is what happens when a member moves and its documentation
@@ -12,12 +12,18 @@
     corrected in one copy and left stale in the other, so the tree carried a sentence and its own
     correction in two places at once.
 
-    A block with nothing after it is the same accident with the member deleted rather than moved.
+    A block with no `<summary>` documents nothing at the place it is read. The summary is what a
+    reader of the member's tooltip gets, so a block holding only a `<param>`, a `<remarks>` or a
+    `<returns>` leaves that reader with the signature and nothing more, however much it explains to
+    somebody reading the source. CodeQL's `cs/xmldoc/missing-summary` asks for one on public types,
+    methods and constructors; this asks it of every block, because a private member's tooltip is
+    read by the same people.
 
-    Deliberately not a style check. It says nothing about whether a member is documented, how the
-    prose reads, or which tags are used: only that a block describes exactly one thing and that the
-    thing is there. `GenerateDocumentationFile` already catches malformed XML, which is a different
-    fault and worth having as well.
+    Deliberately not a style check. It asks nothing about whether a member is documented or how the
+    prose reads: only that a block describes exactly one member and has a summary to describe it
+    with. Two faults are left to the compiler, which refuses both once `GenerateDocumentationFile`
+    is on and warnings are errors: malformed XML, and a block with no member after it, which is
+    CS1587 in front of a closing brace, at the end of a file and inside a method alike.
 #>
 
 [CmdletBinding()]
@@ -72,13 +78,13 @@ foreach ($where in $Path) {
             # inside a block somebody spaced out. Neither ends it.
             if ($line.StartsWith('[') -or $line -eq '') { continue }
 
-            # A closing brace is not a member. A block sitting in front of one documents the
-            # end of a type, which is the same accident as a block at the end of a file, and it
-            # was passing because the brace was taken for what the block described.
-            if ($line -eq '}') {
-                $problems += "$relative`:$blockStart is a doc comment with no member after it."
-                $blockStart = -1
-                continue
+            # Whatever comes next is taken for the member, a closing brace included: a block with
+            # no member after it is CS1587, which the compiler refuses wherever the block sits.
+            # What is asked here is what the compiler does not ask. A block with no summary
+            # documents nothing where it is read, since the summary is what a reader of the
+            # member's tooltip gets.
+            if ($summaries -eq 0) {
+                $problems += "$relative`:$blockStart is a doc comment with no <summary>, so it documents nothing where it is read."
             }
 
             if ($summaries -gt 1) {
@@ -91,16 +97,12 @@ foreach ($where in $Path) {
 
             $blockStart = -1
         }
-
-        if ($blockStart -ge 0) {
-            $problems += "$relative`:$blockStart is a doc comment with no member after it."
-        }
     }
 }
 
 if ($problems.Count -gt 0) {
     foreach ($problem in $problems) { Write-Host "  $problem" -ForegroundColor Red }
-    throw "$($problems.Count) doc comment(s) describe more than one member, or none."
+    throw "$($problems.Count) doc comment(s) describe more than one member, or have no <summary>."
 }
 
-Write-Host '  every doc comment describes exactly one member' -ForegroundColor DarkGray
+Write-Host '  every doc comment has a summary and describes exactly one member' -ForegroundColor DarkGray
