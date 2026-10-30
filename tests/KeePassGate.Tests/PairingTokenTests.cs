@@ -54,8 +54,7 @@ namespace KeePassGate.Tests
             {
                 foreach (var c in PairingToken.Encode(PairingToken.New()))
                 {
-                    var plain = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9')
-                                || c == '-' || c == '_';
+                    var plain = Ascii.IsLetterOrDigit(c) || c == '-' || c == '_';
 
                     Assert.That(plain, Is.True, "a token contained " + c);
                 }

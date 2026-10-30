@@ -1516,6 +1516,7 @@ namespace KeePassGate.Bridge
 
             var protection = _database.MemoryProtection;
 
+            // codeql[cs/complex-condition] the five standard fields as a table, each beside its own switch
             return (Names(field, PwDefs.TitleField) && protection.ProtectTitle)
                 || (Names(field, PwDefs.UserNameField) && protection.ProtectUserName)
                 || (Names(field, PwDefs.PasswordField) && protection.ProtectPassword)
@@ -1870,8 +1871,7 @@ namespace KeePassGate.Bridge
 
             foreach (var c in uuid)
             {
-                var hex = (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
-                if (!hex)
+                if (!Ascii.IsHexDigit(c))
                 {
                     return null;
                 }

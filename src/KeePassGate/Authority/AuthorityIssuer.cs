@@ -398,10 +398,7 @@ namespace KeePassGate.Authority
                 return false;
             }
 
-            return profile.All(c => (c >= 'a' && c <= 'z')
-                                    || (c >= 'A' && c <= 'Z')
-                                    || (c >= '0' && c <= '9')
-                                    || c == '-' || c == '_');
+            return profile.All(c => Ascii.IsLetterOrDigit(c) || c == '-' || c == '_');
         }
 
         public static bool IsUsableSubjectName(string subjectName)
@@ -420,10 +417,7 @@ namespace KeePassGate.Authority
                 return false;
             }
 
-            return subjectName.All(c => (c >= 'a' && c <= 'z')
-                                        || (c >= 'A' && c <= 'Z')
-                                        || (c >= '0' && c <= '9')
-                                        || c == '-' || c == '_' || c == '.' || c == ' ');
+            return subjectName.All(c => Ascii.IsLetterOrDigit(c) || c == '-' || c == '_' || c == '.' || c == ' ');
         }
 
         private static X509Extension ProfileClaims(IEnumerable<string> profiles)
