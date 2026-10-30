@@ -132,3 +132,17 @@ def test_prepare_names_what_it_did_for_each_event(
                  "--event", event]
     assert code_scanning.main(arguments) == 0
     assert printed in capsys.readouterr().out
+
+
+def test_a_finding_carries_its_rule_s_title_its_last_line_and_the_places_it_links_to() -> None:
+    result = _result("cs/quality", "src/A.cs", 3, message="Disposed [here](1).")
+    result["locations"][0]["physicalLocation"]["region"]["endLine"] = 7
+    result["relatedLocations"] = [
+        {"id": 1, "physicalLocation": {"artifactLocation": {"uri": "src/A.cs"},
+                                       "region": {"startLine": 9}}},
+        {"id": 2, "physicalLocation": {"artifactLocation": {"uri": "src/A.cs"}}}]
+    log = _log(result)
+    log["runs"][0]["tool"]["driver"]["rules"][0]["shortDescription"] = {"text": "Quality"}
+    finding = code_scanning.findings(log)[0]
+    assert (finding.name, finding.end_line, finding.related) == (
+        "Quality", 7, ((1, "src/A.cs", 9),))

@@ -19,9 +19,11 @@
 # comment above it that gives the reason, as `CLAUDE.md` describes under Conventions. Code scanning
 # ignores the mark CodeQL puts on a suppressed finding, so each analysis is kept as CodeQL wrote it,
 # and the last job uploads it: on a pull request without the findings the code suppresses, so that
-# none becomes an alert there, and on `master` and the weekly run with all of them. Then that job
-# fails on any finding nothing suppresses, anywhere in the code. The ruleset's own check does not do
-# that much, since it reads only the lines a pull request changed.
+# none becomes an alert there, and on `master` and the weekly run with all of them. Every
+# suppression a pull request adds, changes or removes is put to review there, in a thread the merge
+# waits for, beside one comment listing them and counting the rest. Then that job fails on any
+# finding nothing suppresses, anywhere in the code. The ruleset's own check does not do that much,
+# since it reads only the lines a pull request changed.
 #
 # **Pull requests, pushes to `master`, and once a week.** The first two as the gate has them, a pull
 # request's run grouped by its number and a push's by its commit, so neither cancels the other. The
@@ -31,8 +33,9 @@
 # **The actions are pinned by commit**, with the release each commit is beside it, for the reason
 # `gate.yml` gives, and `dependabot.yml` proposes each new one.
 #
-# **Writing findings is all this may do.** Every job reads the repository and writes security
-# events: an analysis that fails uploads that it failed, and the last job uploads the rest.
+# **Each job may do what it needs and nothing more.** Every job reads the repository and writes
+# security events: an analysis that fails uploads that it failed, and the last job uploads the rest.
+# The last job also writes to pull requests, which is what a review thread and a comment are.
 
 name: codeql
 
@@ -120,6 +123,7 @@ jobs:
     permissions:
       contents: read
       security-events: write
+      pull-requests: write
     steps:
       - name: every analysis finished
         if: needs.analyze.result != 'success'
@@ -129,7 +133,12 @@ jobs:
           echo "::error::the analyses ended as $RESULT, which leaves nothing whole to judge."
           exit 1
 
+      # The whole history: a pull request's checkout is the commit merging it, which the review
+      # compares with its first parent, the branch it merges into, and GitHub's diff, where the
+      # threads go, starts from where the pull request's branch left that one, its merge base.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
 
       - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         with:
@@ -184,6 +193,21 @@ jobs:
             done
             echo "upload $id landed"
           done
+
+      # Before the verdict, so that what it warns about is on the pull request whatever the
+      # verdict is. It fails only when it cannot write there, a fork's pull request among them.
+      - name: the review of every suppression
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          PULL_REQUEST: ${{ github.event.pull_request.number }}
+          COMMIT: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if [ -n "$PULL_REQUEST" ]; then
+            uv run --locked python tools/suppression_review.py --analyzed analyzed \
+              --repository "$GITHUB_REPOSITORY" --pull-request "$PULL_REQUEST" --commit "$COMMIT"
+          else
+            uv run --locked python tools/suppression_review.py --analyzed analyzed
+          fi
 
       - name: the verdict
         run: uv run --locked python tools/code_scanning.py verdict --analyzed analyzed

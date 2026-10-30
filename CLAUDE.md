@@ -717,6 +717,21 @@ Run them from
   one in a `/* */` over several lines suppress nothing, while spaces inside the brackets are trimmed
   and the keyword is read in any case. Measured against the pinned bundle by
   `tools/suppression_vectors.py`, which `tests/tools/SuppressionVectors.json` records.
+- **GitHub refuses a pull request review of more than 80 comments, and answers 502 to a large one
+  it goes on making.** A review of 81 is refused at once as a secondary rate limit, with no
+  `retry-after` and nothing made, which is the documented 80 content-generating requests a minute
+  with each comment counted as one. GitHub takes a quarter to a third of a second a comment, and a
+  review it is still making after about ten seconds is answered 502 and finished all the same, so
+  a 5xx leaves open whether a review landed. `tools/suppression_review.py` posts twenty to a review,
+  twenty seconds apart, and reads back what a 5xx left; `spikes/codeql-suppressions` measured it.
+- **GitHub takes a review thread only on a line its own diff shows, and that diff is GitHub's.** A
+  renamed file is listed with its old name and only its changed hunks, a rename that changes
+  nothing takes no thread on any line, and a name git quotes comes back plain. A file of 25,000 new
+  lines refuses every line with 422, "diff is too large", while one of 5,000 takes its lines though
+  GitHub's list of the files gives it no diff either. A comment on the whole file is taken where
+  no line is, and is a thread the merge waits for like any other. So `tools/suppression_review.py`
+  reads what a pull request changes from GitHub's list and puts a note on the whole file where no
+  line takes it; `spikes/codeql-suppressions` measured all of it.
 - **`dotnet test` with a filter that matches nothing exits 0**, having run nothing, and its trx
   counts nothing. A gate that believes the exit code is green over an empty run, so `build.ps1`
   reads each tier's trx and refuses one in which nothing executed, `Assert-Executed`.
@@ -886,7 +901,12 @@ its lines introduce**, and code scanning ignores the mark CodeQL puts on a suppr
 each analysis is kept as CodeQL wrote it and judged by the job `code scanning passed`, which
 `tools/code_scanning.py` does the work of: it uploads a pull request's findings without the ones
 the code suppresses and everything else as it is, and fails on any finding nothing suppresses,
-anywhere in the code. The PowerShell is left out, because CodeQL reads none.
+anywhere in the code. **And no suppression merges unseen**: `tools/suppression_review.py` opens a
+review thread on every suppression a pull request adds, changes or removes, which the merge waits
+for, keeps one comment on the pull request listing what it suppresses and counting the rest by
+rule, and warns about a suppression under which CodeQL found nothing and a finding CodeQL
+suppressed that no comment accounts for. It fails only when it cannot write to the pull request,
+which is what a fork's pull request is given. The PowerShell is left out, because CodeQL reads none.
 
 ## Testing
 

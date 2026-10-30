@@ -39,6 +39,30 @@ class Finding:
     message: str
     severity: str | None
     suppressed: bool
+    # What the review quotes: the rule's own title, the last line CodeQL flagged when it flagged
+    # more than one, and the places its message links to, by the number the message gives each.
+    name: str = ""
+    end_line: int | None = None
+    related: tuple[tuple[int, str, int], ...] = ()
+
+
+def _names(run: dict[str, Any]) -> dict[str, str]:
+    """The title of every rule a run names, its short description."""
+    tool = run["tool"]
+    return {rule["id"]: rule.get("shortDescription", {}).get("text", "")
+            for component in [tool["driver"], *tool.get("extensions", [])]
+            for rule in component.get("rules", [])}
+
+
+def _related(result: dict[str, Any]) -> tuple[tuple[int, str, int], ...]:
+    """The places a result's message links to, each as its number, its file and its line."""
+    places = []
+    for location in result.get("relatedLocations", []):
+        where = location.get("physicalLocation", {})
+        line = where.get("region", {}).get("startLine")
+        if "id" in location and line is not None:
+            places.append((int(location["id"]), str(where["artifactLocation"]["uri"]), int(line)))
+    return tuple(places)
 
 
 def _severities(run: dict[str, Any]) -> dict[str, str | None]:
@@ -60,6 +84,7 @@ def findings(sarif: dict[str, Any]) -> list[Finding]:
     found: list[Finding] = []
     for run in sarif["runs"]:
         severities = _severities(run)
+        names = _names(run)
         for result in run["results"]:
             where = result["locations"][0]["physicalLocation"]
             found.append(Finding(
@@ -69,6 +94,9 @@ def findings(sarif: dict[str, Any]) -> list[Finding]:
                 message=result["message"]["text"],
                 severity=severities.get(result["ruleId"]),
                 suppressed=_suppressed(result),
+                name=names.get(result["ruleId"], ""),
+                end_line=where["region"].get("endLine"),
+                related=_related(result),
             ))
     return found
 
@@ -80,28 +108,30 @@ def without_suppressed(sarif: dict[str, Any]) -> dict[str, Any]:
     return {**sarif, "runs": runs}
 
 
-def _read(path: Path) -> dict[str, Any]:
+def read(path: Path) -> dict[str, Any]:
+    """One SARIF log, as CodeQL wrote it."""
     loaded: dict[str, Any] = json.loads(path.read_text(encoding="utf-8"))
     return loaded
 
 
-def _logs(folder: Path) -> list[Path]:
-    logs = sorted(folder.rglob("*.sarif"))
-    if not logs:
+def logs(folder: Path) -> list[Path]:
+    """Every SARIF log under `folder`, refusing a folder that holds none."""
+    found = sorted(folder.rglob("*.sarif"))
+    if not found:
         raise SystemExit(f"No SARIF file under {folder}: the analysis wrote nothing to judge.")
-    return logs
+    return found
 
 
 def prepare(analyzed: Path, upload: Path, pull_request: bool) -> list[str]:
     """Write into `upload` what each language uploads, and name every finding left out."""
     upload.mkdir(parents=True, exist_ok=True)
     dropped: list[str] = []
-    for log in _logs(analyzed):
+    for log in logs(analyzed):
         target = upload / log.name
         if not pull_request:
             shutil.copyfile(log, target)
             continue
-        sarif = _read(log)
+        sarif = read(log)
         for finding in findings(sarif):
             if finding.suppressed:
                 kind = f"security, {finding.severity}" if finding.severity else "quality"
@@ -110,7 +140,8 @@ def prepare(analyzed: Path, upload: Path, pull_request: bool) -> list[str]:
     return dropped
 
 
-def _escape(text: str, *, value: bool = False) -> str:
+def escape(text: str, *, value: bool = False) -> str:
+    """Text a workflow command reads as it is, as its message or, with `value`, as a property."""
     escaped = text.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
     if value:
         escaped = escaped.replace(":", "%3A").replace(",", "%2C")
@@ -119,13 +150,13 @@ def _escape(text: str, *, value: bool = False) -> str:
 
 def annotation(finding: Finding) -> str:
     """The workflow command that marks a finding at its line, as an error."""
-    where = f"file={_escape(finding.path, value=True)},line={finding.line}"
-    return f"::error {where},title={_escape(finding.rule, value=True)}::{_escape(finding.message)}"
+    where = f"file={escape(finding.path, value=True)},line={finding.line}"
+    return f"::error {where},title={escape(finding.rule, value=True)}::{escape(finding.message)}"
 
 
 def verdict(analyzed: Path) -> tuple[list[Finding], int]:
     """The findings nothing suppresses, and how many the code does."""
-    every = [finding for log in _logs(analyzed) for finding in findings(_read(log))]
+    every = [finding for log in logs(analyzed) for finding in findings(read(log))]
     left = [finding for finding in every if not finding.suppressed]
     return left, len(every) - len(left)
 
