@@ -8,8 +8,8 @@ about CodeQL and GitHub rather than about the plugin, and they were answered by 
 throwaway public repository, and with the CodeQL command line.
 
 This branch is taken from `master` and holds nothing else: no plugin, no tests, no design
-documents. Those are on the mainline branches, which carry what this probe established and not the
-code that established it.
+documents. What the probe settled is in [`RESULTS.md`](RESULTS.md), with every pull request it ran
+listed in order.
 
 ## Running it
 
@@ -40,6 +40,16 @@ gh api -X POST repos/<owner>/<repository>/rulesets --input spikes\suppressions\r
 
 It requires a pull request before every merge, with every review thread resolved and merge commits
 only, and code scanning results from CodeQL with both thresholds at `all`. Every measurement is then
-a pull request, and the run on `main` after it merges. Nothing is built or analyzed on the machine
-that pushes: the runner builds the C#, and every result is read from GitHub's API or from the SARIF
-a run keeps.
+a pull request, and the run on `main` after it merges. `RESULTS.md` lists them in the order they
+ran, with what each changed, since the tree here is only the state the last one left. Nothing is
+built or analyzed on the machine that pushes: the runner builds the C#, and every result is read
+from GitHub's API or from the SARIF a run keeps.
+
+## Reading a re-run
+
+Pull request, alert and analysis numbers belong to the repository that made them, so a re-run is
+compared on what happened to each case rather than on its numbers: whether its finding was marked
+suppressed, made an alert, kept that alert across an edit, or held up a merge. The workflows carry no
+`tools:` input, so a re-run is analyzed by whichever CodeQL GitHub enables by default that day, and
+each SARIF names the version it was made with under `runs[].tool.driver.semanticVersion`. A
+difference is a finding: record it in `RESULTS.md` beside what it contradicts.

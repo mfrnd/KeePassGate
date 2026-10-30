@@ -61,6 +61,8 @@ words:
   - noresult
 
   # What this branch's own sources and prose need, over what the mainline already knows.
+  - draugr
+  - noqa
   - returncode
   - SARIF
   - timespec
