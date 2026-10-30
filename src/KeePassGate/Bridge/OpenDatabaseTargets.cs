@@ -148,6 +148,7 @@ namespace KeePassGate.Bridge
                     // this stays out of the four places that catch everything.
                     if (!handedOver)
                     {
+                        // codeql[cs/missed-using-statement] disposed only when it is not kept, which no `using` can do
                         foreach (var taken in targets)
                         {
                             taken.Dispose();
@@ -704,40 +705,56 @@ namespace KeePassGate.Bridge
                 _cache.Remove(database);
             }
 
+            // codeql[cs/missed-using-statement] disposed only when it is not kept, which no `using` can do
             var reading = new AuthorityStore(new CustomDataStore(database), _log).Read();
             if (reading.Presence == AuthorityPresence.Undecided)
             {
                 return Undecided(database, stored, reading);
             }
 
-            if (!reading.IsPresent)
+            // The target takes the reading and lets go of it with its last holder. Every other way
+            // out lets go of it here, a throw from the log or from `HostFor` among them, and in a
+            // `finally` rather than a `catch` for the reason `Current` gives.
+            MaterialTarget target;
+            var handedOver = false;
+            try
             {
-                // No authority, or one that cannot be read, and nothing to serve either way. The
-                // tab is where an operator is told why, and a database that was never served is
-                // left at that. One that was being served until this reading is said here too,
-                // once, because every client of it is about to be dropped and the log is where an
-                // operator looks for why: a synchronize that brought an authority this cannot read,
-                // or somebody else's edit of the key.
-                if (served != null)
+                if (!reading.IsPresent)
                 {
-                    _log.Warn("stopped serving " + served + ": " + (reading.Presence == AuthorityPresence.None
-                        ? "it holds no authority now"
-                        : "its authority cannot be read now, " + string.Join("; ", reading.Problems)));
+                    // No authority, or one that cannot be read, and nothing to serve either way. The
+                    // tab is where an operator is told why, and a database that was never served is
+                    // left at that. One that was being served until this reading is reported here too,
+                    // once, because every client of it is about to be dropped and the log is where an
+                    // operator looks for why: a synchronize that brought an authority this cannot read,
+                    // or somebody else's edit of the key.
+                    if (served != null)
+                    {
+                        _log.Warn("stopped serving " + served + ": " + (reading.Presence == AuthorityPresence.None
+                            ? "it holds no authority now"
+                            : "its authority cannot be read now, " + string.Join("; ", reading.Problems)));
+                    }
+
+                    return null;
                 }
 
-                reading.Dispose();
-                return null;
-            }
+                var host = HostFor(reading.Material);
+                if (host == null)
+                {
+                    return null;
+                }
 
-            var host = HostFor(reading.Material);
-            if (host == null)
+                target = new MaterialTarget(
+                    database, reading, host, _writer, _log);
+                handedOver = true;
+            }
+            finally
             {
-                reading.Dispose();
-                return null;
+                if (!handedOver)
+                {
+                    reading.Dispose();
+                }
             }
 
-            var target = new MaterialTarget(
-                database, reading, host, _writer, _log);
             var path = PathOf(database);
 
             // Open again, which is the other answer to what was kept when it went away. Without
@@ -765,7 +782,7 @@ namespace KeePassGate.Bridge
         {
             var targets = new List<UndecidedTarget>();
 
-            try
+            using (reading)
             {
                 foreach (var candidate in reading.Candidates)
                 {
@@ -800,10 +817,6 @@ namespace KeePassGate.Bridge
 
                 _log.Warn("not serving a database that holds " + reading.Candidates.Count +
                           " authorities until the operator keeps one: " + string.Join(", ", shorts));
-            }
-            finally
-            {
-                reading.Dispose();
             }
 
             var path = PathOf(database);

@@ -220,16 +220,12 @@ namespace KeePassGate.Ui
 
         private static void RemovePage(TabControl tabControl, TabPage page)
         {
-            try
+            using (page)
             {
                 if (tabControl != null && tabControl.TabPages.Contains(page))
                 {
                     tabControl.TabPages.Remove(page);
                 }
-            }
-            finally
-            {
-                page.Dispose();
             }
         }
 
