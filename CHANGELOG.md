@@ -21,7 +21,8 @@ none, since it releases both.
   refuses a part taking the place of those before it. A check the code before it had already
   settled, and a loop that only asked whether there was anything, are gone. A loop that filters,
   maps or tests a list is the query it is, and the ASCII letters, digits and hexadecimal digits the
-  wire's grammars allow are asked of one class.
+  wire's grammars allow are asked of one class. The writers it builds JSON with, and the stream
+  a request's body is read into, are disposed once they are read.
 - **PyKeePassGate refuses to connect over a TLS context offering anything but TLS 1.3**, before it
   dials, which every context it makes already did, so nothing a program built on it does changes.
 

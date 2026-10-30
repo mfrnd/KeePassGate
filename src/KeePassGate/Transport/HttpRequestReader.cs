@@ -239,57 +239,59 @@ namespace KeePassGate.Transport
             // Grown as bytes arrive rather than allocated to what was announced. A caller that has
             // proved nothing yet chooses the number in `Content-Length`, and sizing the buffer from
             // it means a megabyte is spent on a request that never sends one.
-            var body = new MemoryStream();
-            var chunk = new byte[Math.Min(head.ContentLength, ChunkBytes)];
-            var read = 0L;
-
-            while (read < head.ContentLength)
+            using (var body = new MemoryStream())
             {
-                var wanted = (int)Math.Min(head.ContentLength - read, chunk.Length);
+                var chunk = new byte[Math.Min(head.ContentLength, ChunkBytes)];
+                var read = 0L;
 
-                int got;
+                while (read < head.ContentLength)
+                {
+                    var wanted = (int)Math.Min(head.ContentLength - read, chunk.Length);
+
+                    int got;
+                    try
+                    {
+                        got = stream.Read(chunk, 0, wanted);
+                    }
+                    catch (IOException)
+                    {
+                        refusal = EndedEarly;
+                        return null;
+                    }
+                    catch (ObjectDisposedException)
+                    {
+                        // A client that hung up mid-body, which is the same thing to this server as one
+                        // that stopped sending. Caught here for the reason the head reader catches it:
+                        // left to travel, it reaches the connection catch-all and is counted against
+                        // the plugin rather than against the client that chose it.
+                        refusal = EndedEarly;
+                        return null;
+                    }
+
+                    if (got <= 0)
+                    {
+                        refusal = EndedEarly;
+                        return null;
+                    }
+
+                    body.Write(chunk, 0, got);
+                    read += got;
+                }
+
                 try
                 {
-                    got = stream.Read(chunk, 0, wanted);
+                    // Throwing rather than replacing. The static `Encoding.UTF8` rewrites every byte it
+                    // cannot read as U+FFFD, which is repair, in the one module whose whole policy is
+                    // that a framing it does not understand is refused rather than guessed at. A body
+                    // that is not UTF-8 would otherwise reach a handler as text nobody sent and be
+                    // stored that way.
+                    return StrictUtf8.GetString(body.GetBuffer(), 0, (int)body.Length);
                 }
-                catch (IOException)
+                catch (DecoderFallbackException)
                 {
-                    refusal = EndedEarly;
+                    refusal = NotUtf8;
                     return null;
                 }
-                catch (ObjectDisposedException)
-                {
-                    // A client that hung up mid-body, which is the same thing to this server as one
-                    // that stopped sending. Caught here for the reason the head reader catches it:
-                    // left to travel, it reaches the connection catch-all and is counted against
-                    // the plugin rather than against the client that chose it.
-                    refusal = EndedEarly;
-                    return null;
-                }
-
-                if (got <= 0)
-                {
-                    refusal = EndedEarly;
-                    return null;
-                }
-
-                body.Write(chunk, 0, got);
-                read += got;
-            }
-
-            try
-            {
-                // Throwing rather than replacing. The static `Encoding.UTF8` rewrites every byte it
-                // cannot read as U+FFFD, which is repair, in the one module whose whole policy is
-                // that a framing it does not understand is refused rather than guessed at. A body
-                // that is not UTF-8 would otherwise reach a handler as text nobody sent and be
-                // stored that way.
-                return StrictUtf8.GetString(body.GetBuffer(), 0, (int)body.Length);
-            }
-            catch (DecoderFallbackException)
-            {
-                refusal = NotUtf8;
-                return null;
             }
         }
 
