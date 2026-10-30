@@ -407,8 +407,7 @@ class TestPinning:
             "agent-invented", x509.oid.ExtendedKeyUsageOID.CLIENT_AUTH, "client.pem"
         )
 
-        gate = FakeGate(host, lasting.pem)
-        try:
+        with FakeGate(host, lasting.pem) as gate:
             gate.handler = answers(200, {"ok": True})
             context = transport.paired_context(lasting.pem, client.pem)
 
@@ -416,8 +415,6 @@ class TestPinning:
                 gate.port, context, "abc.def.kpg", connection_timeout=10.0
             ) as connection:
                 assert connection.send("GET", "/gate/status").status == 200
-        finally:
-            gate.close()
 
         end = host.certificate.not_valid_after_utc
         assert end.year - dt.datetime.now(dt.UTC).year in (99, 100)
