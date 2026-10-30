@@ -63,6 +63,7 @@ namespace KeePassGate.Tests
                 // Its holder ended without letting go, and the wait was granted all the same.
             }
 
+            // codeql[cs/static-field-written-by-instance] the run's one mutex, held by the thread that took it
             _held = mutex;
         }
 
@@ -74,6 +75,7 @@ namespace KeePassGate.Tests
                 return;
             }
 
+            // codeql[cs/static-field-written-by-instance] the run's one mutex, held by the thread that took it
             _held = null;
             mutex.ReleaseMutex();
             mutex.Dispose();
