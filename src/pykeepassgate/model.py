@@ -252,6 +252,7 @@ class Fields(Mapping[str, str]):
         """The names whose values the gate withheld, in the order it gave them."""
         return self._withheld
 
+    # codeql[py/unexpected-raise-in-special-method] withheld is not missing, so it is no `KeyError`
     def __getitem__(self, name: str) -> str:
         """The value of the string by this name, or `Withheld` when the gate kept it back."""
         if name in self._values:
@@ -735,6 +736,7 @@ def _mask(value: object) -> bool:
 
 
 @dataclass(frozen=True)
+# codeql[py/equals-hash-mismatch] `@dataclass` makes its `__eq__`, over the grants `__hash__` reads
 class Access:
     """What this client may do at one group or entry, one mask for each profile it holds.
 
