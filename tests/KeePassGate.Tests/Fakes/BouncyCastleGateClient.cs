@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Net.Sockets;
 using System.Text;
+using KeePassGate.Testing;
 using Org.BouncyCastle.Asn1.Sec;
 using Org.BouncyCastle.Crypto;
 using Org.BouncyCastle.Crypto.Generators;
@@ -41,7 +42,7 @@ namespace KeePassGate.Tests.Fakes
         {
             var reply = new GateReply();
 
-            try
+            var thrown = Thrown.By(() =>
             {
                 using (var tcp = new TcpClient())
                 {
@@ -68,10 +69,11 @@ namespace KeePassGate.Tests.Fakes
                         protocol.Close();
                     }
                 }
-            }
-            catch (Exception error)
+            });
+
+            if (thrown != null)
             {
-                reply.Failure = error.GetType().Name + ": " + error.Message;
+                reply.Failure = thrown.GetType().Name + ": " + thrown.Message;
                 return reply;
             }
 

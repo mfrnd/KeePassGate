@@ -2,6 +2,7 @@ using System;
 using KeePassGate.Authority;
 using KeePassGate.Bridge;
 using KeePassGate.Diagnostics;
+using KeePassGate.Testing;
 using KeePassGate.Ui;
 using KeePassGate.Vault;
 using KeePassLib;
@@ -192,15 +193,9 @@ namespace KeePassGate.Host.Tests
 
             var writer = Writer(new RunsUiThread(), db =>
             {
-                try
-                {
-                    db.Save(new CancelsPartWay());
-                }
-                catch (Exception)
-                {
-                    // What `MainForm.SaveDatabase` does with it: a warning of its own, and a
-                    // return that tells its caller nothing.
-                }
+                // What `MainForm.SaveDatabase` does with it: a warning of its own, and a
+                // return that tells its caller nothing.
+                _ = Thrown.By(() => db.Save(new CancelsPartWay()));
             });
 
             var outcome = writer.Change(

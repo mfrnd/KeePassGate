@@ -252,16 +252,12 @@ namespace KeePassGate.Host.Tests.Live
 
             var asking = new Thread(() =>
             {
-                try
+                failed = Thrown.By(() =>
                 {
                     reply = LiveGateClient.Send(
                         keePass.Port, keePass.NewGateName(), old, "POST", RenewalHandler.Path, "{}",
                         LiveGateClient.OnTheOperator);
-                }
-                catch (Exception error)
-                {
-                    failed = error;
-                }
+                });
             }) { IsBackground = true };
             asking.Start();
 
@@ -293,16 +289,12 @@ namespace KeePassGate.Host.Tests.Live
 
             var renewing = new Thread(() =>
             {
-                try
+                failed = Thrown.By(() =>
                 {
                     reply = LiveGateClient.Send(
                         keePass.Port, keePass.NewGateName(), asking, "POST", RenewalHandler.Path, "{}",
                         LiveGateClient.OnTheOperator);
-                }
-                catch (Exception error)
-                {
-                    failed = error;
-                }
+                });
             }) { IsBackground = true };
             renewing.Start();
 
@@ -365,16 +357,12 @@ namespace KeePassGate.Host.Tests.Live
 
             var renewing = new Thread(() =>
             {
-                try
+                failed = Thrown.By(() =>
                 {
                     reply = LiveGateClient.Send(
                         keePass.Port, keePass.NewGateName(), asking, "POST", RenewalHandler.Path, "{}",
                         LiveGateClient.OnTheOperator);
-                }
-                catch (Exception error)
-                {
-                    failed = error;
-                }
+                });
             }) { IsBackground = true };
             renewing.Start();
 

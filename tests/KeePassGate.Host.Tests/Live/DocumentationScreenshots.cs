@@ -393,7 +393,7 @@ namespace KeePassGate.Host.Tests.Live
                 Exception failed = null;
                 var asking = new Thread(() =>
                 {
-                    try
+                    failed = Thrown.By(() =>
                     {
                         reply = LiveGateClient.Send(
                             keePass.Port,
@@ -403,11 +403,7 @@ namespace KeePassGate.Host.Tests.Live
                             KeePassGate.Pairing.RenewalHandler.Path,
                             "{\"lifetime\":\"P30D\"}",
                             LiveGateClient.OnTheOperator);
-                    }
-                    catch (Exception error)
-                    {
-                        failed = error;
-                    }
+                    });
                 }) { IsBackground = true };
                 asking.Start();
 

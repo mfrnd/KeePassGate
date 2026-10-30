@@ -6,6 +6,7 @@ using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading;
+using KeePassGate.Testing;
 
 namespace KeePassGate.Tests.Fakes
 {
@@ -90,7 +91,7 @@ namespace KeePassGate.Tests.Fakes
         {
             var reply = new GateReply();
 
-            try
+            var thrown = Thrown.By(() =>
             {
                 using (var tcp = new TcpClient())
                 {
@@ -137,10 +138,11 @@ namespace KeePassGate.Tests.Fakes
                         reply.Raw = ReadToEnd(tls);
                     }
                 }
-            }
-            catch (Exception error)
+            });
+
+            if (thrown != null)
             {
-                reply.Failure = error.GetType().Name + ": " + error.Message;
+                reply.Failure = thrown.GetType().Name + ": " + thrown.Message;
                 return reply;
             }
 
@@ -176,7 +178,7 @@ namespace KeePassGate.Tests.Fakes
         {
             var reply = new GateReply();
 
-            try
+            var thrown = Thrown.By(() =>
             {
                 using (var tcp = new TcpClient())
                 {
@@ -190,10 +192,11 @@ namespace KeePassGate.Tests.Fakes
                     reply.Raw = ReadToEnd(stream);
                     reply.Answered = !string.IsNullOrEmpty(reply.Raw);
                 }
-            }
-            catch (Exception error)
+            });
+
+            if (thrown != null)
             {
-                reply.Failure = error.GetType().Name + ": " + error.Message;
+                reply.Failure = thrown.GetType().Name + ": " + thrown.Message;
             }
 
             return reply;

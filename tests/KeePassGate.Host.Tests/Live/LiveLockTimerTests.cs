@@ -2,6 +2,7 @@ using System;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using KeePassGate.Pairing;
+using KeePassGate.Testing;
 using NUnit.Framework;
 
 namespace KeePassGate.Host.Tests.Live
@@ -100,15 +101,11 @@ namespace KeePassGate.Host.Tests.Live
 
         private void Ask(ThrowawayKeePass keePass, string name, X509Certificate2 renewing)
         {
-            try
+            _failed = Thrown.By(() =>
             {
                 _reply = LiveGateClient.Send(
                     keePass.Port, name, renewing, "POST", RenewalHandler.Path, "{}", LiveGateClient.OnTheOperator);
-            }
-            catch (Exception error)
-            {
-                _failed = error;
-            }
+            });
         }
     }
 }
