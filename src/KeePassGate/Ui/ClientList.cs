@@ -231,6 +231,7 @@ namespace KeePassGate.Ui
         /// <summary>How many revoked clients a merge brought back, as the last listing counted.</summary>
         private int _cameBack;
 
+        /// <summary>The list, with nothing behind Allow renewal.</summary>
         /// <param name="revoke">
         /// Takes an admission away, by its key, and answers with why it could not, or null when it
         /// did. By key, because a record that will not read has nothing else to be named by. The
@@ -241,6 +242,7 @@ namespace KeePassGate.Ui
         {
         }
 
+        /// <summary>The list, with the host behind Allow renewal as well as each row's X.</summary>
         /// <param name="revoke">As above.</param>
         /// <param name="allowRenewal">
         /// Lifts the standing answer to renewing one certificate, by its key, and answers with why
@@ -680,6 +682,7 @@ namespace KeePassGate.Ui
             Fill(listing, reaches, named, null);
         }
 
+        /// <summary>The same, naming in red each client whose renewals stand refused.</summary>
         /// <param name="listing">As above.</param>
         /// <param name="reaches">As above.</param>
         /// <param name="named">As above.</param>

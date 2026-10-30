@@ -1459,6 +1459,10 @@ namespace KeePassGate.Ui
             Save();
         }
 
+        /// <summary>
+        /// Rebuilds the table from the sheet, scrolled where it was, and brings the seal and the
+        /// warning beside it up to date.
+        /// </summary>
         /// <param name="settle">
         /// The profile an edit was about, whose rule the keyboard is on once the table is rebuilt,
         /// or null to leave it where it was.

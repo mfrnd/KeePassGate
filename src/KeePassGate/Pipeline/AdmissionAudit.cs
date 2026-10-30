@@ -93,6 +93,7 @@ namespace KeePassGate.Pipeline
         {
         }
 
+        /// <summary>Writing to this audit by the caller's clock, on the caller's allowance.</summary>
         /// <param name="pace">
         /// The allowance the clients' decision lines are counted against, which these share: a
         /// client gets one allowance for everything it can make the audit write, not one per kind.

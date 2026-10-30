@@ -124,6 +124,9 @@ namespace KeePassGate.Ui
 
         private AclDefault _default;
 
+        /// <summary>
+        /// Reads one node's rules, its own and those it inherits, for the editor to show.
+        /// </summary>
         /// <param name="stored">The document written on this node, or null when there is none.</param>
         /// <param name="above">
         /// The node this one hangs under, for what it inherits. Null at the root group, which

@@ -85,6 +85,10 @@ namespace KeePassGate.Tests.Fakes
             return Send(port, serverName, certificate, request, gap, 0);
         }
 
+        /// <summary>
+        /// Connects over TLS 1.3, writes the request at the pace asked for, and reads what came
+        /// back, or why nothing did.
+        /// </summary>
         /// <param name="promptly">How many bytes from the start go at once, before the gap applies.</param>
         private static GateReply Send(
             int port, string serverName, X509Certificate2 certificate, byte[] request, TimeSpan gap, int promptly)

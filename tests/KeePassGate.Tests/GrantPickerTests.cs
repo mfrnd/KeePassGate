@@ -804,6 +804,7 @@ namespace KeePassGate.Tests
             Using(Rules.Numbered(MoreRulesThanFit, "RL"), null, TooShortForEveryRow, work);
         }
 
+        /// <summary>The same, at a size of the test's choosing.</summary>
         /// <param name="size">
         /// How big the window is, or an empty size for the ordinary one. A short window is the only
         /// way a row comes to be off the bottom of the table, and every other test here wants the

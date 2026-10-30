@@ -58,6 +58,10 @@ namespace KeePassGate.Bridge
         private readonly NodeTags _tags;
         private readonly IGateLog _log;
 
+        /// <summary>
+        /// Over one open database, changed through the plugin's single writer, or only read when
+        /// there is none.
+        /// </summary>
         /// <param name="tags">This database's tags, keyed as <see cref="NodeTags.KeyFrom"/> says.</param>
         public KdbxVault(PwDatabase database, DatabaseWriter writer, NodeTags tags, IGateLog log)
         {

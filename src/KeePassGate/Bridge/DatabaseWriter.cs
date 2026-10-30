@@ -89,6 +89,10 @@ namespace KeePassGate.Bridge
         /// </remarks>
         private int _saves;
 
+        /// <summary>
+        /// A writer that makes each change and its save in one call marshaled to the user
+        /// interface thread.
+        /// </summary>
         /// <param name="redraw">
         /// What tells KeePass that its window is out of date about a database, run on the user
         /// interface thread. It is handed the database, and whether the tree and the list are out of
@@ -890,6 +894,10 @@ namespace KeePassGate.Bridge
             }
         }
 
+        /// <summary>
+        /// The change <see cref="Change(PwDatabase, Func{VaultChange})"/> makes, with something to
+        /// run once it stands.
+        /// </summary>
         /// <param name="landed">
         /// Run on the user interface thread once the change stands: saved and verified, or saved
         /// and left in place because the file could not be verified, which undoes nothing. Not on

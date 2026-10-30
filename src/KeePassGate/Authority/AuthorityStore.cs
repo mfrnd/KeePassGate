@@ -29,6 +29,10 @@ namespace KeePassGate.Authority
         private readonly IKeyValueStore _store;
         private readonly AdmissionStore _admissions;
 
+        /// <summary>
+        /// Over one database's custom data, reaching its admission records through an
+        /// `AdmissionStore` of its own.
+        /// </summary>
         /// <remarks>
         /// The admission records are counted and removed through `AdmissionStore` rather than by a
         /// second copy of the same enumeration here. There were two, and only one of them was

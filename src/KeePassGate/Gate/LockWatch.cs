@@ -152,6 +152,9 @@ namespace KeePassGate.Gate
         {
         }
 
+        /// <summary>
+        /// A watch that subscribes to the database events only once <see cref="Start"/> is called.
+        /// </summary>
         /// <param name="connections">
         /// Asked for the connections each time rather than handed them once, so that a watch built
         /// before the listener exists still finds it. The listener is no longer replaced while the

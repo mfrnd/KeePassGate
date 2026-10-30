@@ -87,6 +87,7 @@ namespace KeePassGate.Pairing
         {
         }
 
+        /// <summary>The same, with the plugin's one book of approvals waiting to be written.</summary>
         /// <param name="held">
         /// The approvals held for a retry, which a lock, a close and an exit clear, shared with
         /// pairing, or null for a book of this handler's own.
@@ -97,6 +98,7 @@ namespace KeePassGate.Pairing
         {
         }
 
+        /// <summary>The same, given its options, issuer and clock rather than the defaults.</summary>
         /// <param name="session">
         /// The certificates whose renewals the operator refused in this session, which outlast any
         /// one request.

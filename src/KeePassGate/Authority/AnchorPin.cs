@@ -77,6 +77,9 @@ namespace KeePassGate.Authority
             return Chains(leaf, anchor, ignoreExpiry, out evaluated);
         }
 
+        /// <summary>
+        /// The same, and whether the chain engine could answer the question at all.
+        /// </summary>
         /// <param name="evaluated">
         /// False only when the engine threw: a locked down machine store, a CryptoAPI service
         /// that is not running, a provider that will not load. That is not the same as a

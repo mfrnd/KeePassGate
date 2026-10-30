@@ -83,6 +83,7 @@ namespace KeePassGate.Bridge
 
         private readonly byte[] _key;
 
+        /// <summary>For one database, keeping a copy of its key rather than the caller's array.</summary>
         /// <param name="key">The database's tag key, as <see cref="KeyFrom"/> derives it.</param>
         public NodeTags(byte[] key)
         {

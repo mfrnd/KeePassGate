@@ -108,12 +108,14 @@ namespace KeePassGate.Pairing
 
         public string Reason { get; private set; }
 
+        /// <summary>The operator's yes, and the profiles the new certificate is to carry.</summary>
         /// <param name="lifetime">How long the new certificate lasts, or null for a year.</param>
         public static RenewalApproval Approved(IReadOnlyList<string> profiles, TimeSpan? lifetime = null)
         {
             return new RenewalApproval(PairingDecision.Approved, profiles, lifetime, null, "approved");
         }
 
+        /// <summary>The operator's no to this renewal.</summary>
         /// <param name="standing">
         /// What every later renewal of this certificate is answered with, or null for once only.
         /// </param>
