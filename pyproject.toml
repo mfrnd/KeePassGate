@@ -67,6 +67,12 @@ dev = [
     # Only the release workflow runs it, to check that what it built is a distribution PyPI will
     # take, on a pull request as well, where nothing is uploaded and nothing else would look.
     "twine>=6",
+    # Only `tools/suppressions.py` reads them: a grammar of each language CodeQL takes suppressions
+    # in, so that a comment is found where the language has one and never inside a string. Chosen
+    # over Roslyn and `tokenize` once both were built and found the same comments in every file.
+    "tree-sitter>=0.26",
+    "tree-sitter-c-sharp>=0.23.5",
+    "tree-sitter-python>=0.25",
 ]
 
 # ---------------------------------------------------------------------------------------------
@@ -76,7 +82,7 @@ dev = [
 [tool.ruff]
 line-length = 100
 target-version = "py314"
-src = ["src", "tests/pykeepassgate"]
+src = ["src", "tests/pykeepassgate", "tools", "tests/tools"]
 
 [tool.ruff.lint]
 # The default set plus what catches real mistakes in a client that talks to a password manager:
@@ -149,7 +155,8 @@ convention = "pep257"
 
 [tool.mypy]
 python_version = "3.14"
-files = ["src/pykeepassgate", "tests/pykeepassgate"]
+files = ["src/pykeepassgate", "tests/pykeepassgate", "tools", "tests/tools"]
+mypy_path = "tools"
 strict = true
 # A reference implementation says what it means. These three turn "it type checks" into "it says
 # what it is": no silent `Any` crossing a boundary, no untyped call slipping through, and a warning
@@ -160,11 +167,13 @@ warn_unused_ignores = true
 
 
 [tool.pytest.ini_options]
-testpaths = ["tests/pykeepassgate"]
+testpaths = ["tests/pykeepassgate", "tests/tools"]
+# The tools are scripts rather than a package, so their tests import them from where they are.
+pythonpath = ["tools"]
 addopts = "--strict-markers --strict-config"
 
 [tool.coverage.run]
-source = ["src/pykeepassgate"]
+source = ["src/pykeepassgate", "tools"]
 branch = true
 
 [tool.coverage.report]

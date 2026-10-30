@@ -8,8 +8,8 @@
     Tasks:
       KeePass  provide the pinned KeePass, which everything else needs
       Build    compile everything, in Debug and in Release
-      Lint     check the prose: markdown rules and spelling
-      Client   check and test PyKeePassGate, the Python reference client
+      Lint     check the prose, markdown rules and spelling, and the suppression comments
+      Client   check and test the Python: PyKeePassGate, the reference client, and the tools
       Unit     run the tests that never load KeePass
       Host     run the tests that drive the real KeePass types in this process
       Coverage run both test tiers and hold what they reach above a floor
@@ -352,6 +352,25 @@ function Invoke-Lint {
     # reads both.
     Invoke-Step 'doc comments' {
         & (Join-Path $root 'tools/DocComments.ps1')
+    }
+
+    # **A suppression is a comment CodeQL reads, and CodeQL reads more spellings than one**: some
+    # suppress more than they look like they do, and some nothing at all. `tools/suppressions.py`
+    # finds every C# and Python comment as the language's grammar does and refuses all but the one
+    # spelling. Python, because the grammars are its libraries, which `uv` provides from the
+    # lockfile the client already uses.
+    Invoke-Step 'suppression comments' {
+        if (-not (Get-Command uv -ErrorAction SilentlyContinue)) {
+            throw 'uv was not found. The suppression check is Python, managed with uv: https://docs.astral.sh/uv/'
+        }
+
+        Push-Location $root
+        try {
+            uv run --locked --quiet python (Join-Path 'tools' 'suppressions.py')
+        }
+        finally {
+            Pop-Location
+        }
     }
 
     # What markdownlint does not do: follow what a document points at. A broken image is invisible

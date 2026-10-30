@@ -8,7 +8,7 @@ fails in a way that names its own cause.
 | **Unit** | `tests/KeePassGate.Tests` | nothing but a compiler, and a loopback socket | under a minute | the logic, and the whole transport, against stand-ins shaped like KeePass |
 | **Host** | `tests/KeePassGate.Host.Tests` | a KeePass to reference | about a second | the same code against real KeePass types, dialogs and events |
 | **End to end** | the same project, category `Live` | a desktop, and the machine to itself | under a minute | the plugin loading into a KeePass a user could have started |
-| **Client** | `tests/pykeepassgate` | Python, and `uv` to arrange it | a few seconds | PyKeePassGate against stand-ins, its protocol code against vectors the plugin produced, and its resolver against vectors KeePass produced |
+| **Client** | `tests/pykeepassgate`, `tests/tools` | Python, and `uv` to arrange it | a few seconds | PyKeePassGate against stand-ins, its protocol code against vectors the plugin produced, and its resolver against vectors KeePass produced; and the suppression check against vectors CodeQL produced |
 
 ```powershell
 .\build.ps1                     # the prose, the client tier, then unit and host
@@ -301,6 +301,23 @@ the resolver follows has to come to what KeePass makes of the same value, what i
 raise, and the one thing it keeps that KeePass changes, an environment variable, has to stay as it
 was. Without that file the resolver would be a reading of KeePass's documentation checked against
 itself.
+
+**Against CodeQL itself.** `tests/tools/test_suppressions.py` holds `tools/suppressions.py`, which
+decides what a suppression comment covers, to `tests/tools/SuppressionVectors.json`: cases of
+comments over findings, each analyzed by the CodeQL the workflow pins, with every finding written
+down as suppressed or not. The tool has to reach the same answer for every finding, from the same
+source, and the cases in the file have to be the ones the generator writes, so a case edited
+without being analyzed again fails too. The file is regenerated from CodeQL and never from the
+tool, whenever the pinned version moves, with the bundle of that version, which
+`github/codeql-action` releases as `codeql-bundle-v<version>`:
+
+```powershell
+uv run python tools/suppression_vectors.py --codeql <bundle>\codeql\codeql.exe --python <python.exe>
+```
+
+`--python` names an interpreter for CodeQL's Python extractor, which otherwise asks for the `py`
+launcher, and on Windows a bundle extracted under a long path cannot read its own query packs: a
+drive made with `subst`, or a short folder, keeps every path inside it under 260 characters.
 
 **Against the document the plugin embeds.** `tests/pykeepassgate/test_reference.py` reads the
 same `openapi.yaml` the plugin ships and holds the client to it: a route the document declares

@@ -1,0 +1,1359 @@
+{
+  "codeql": "2.27.3",
+  "cases": [
+    {
+      "name": "codeql-above",
+      "language": "csharp",
+      "source": [
+        "using System;",
+        "",
+        "public static class CodeqlAbove",
+        "{",
+        "    private static bool Left() { return Environment.TickCount > 0; }",
+        "",
+        "    private static bool Right() { return Environment.ProcessorCount > 0; }",
+        "",
+        "    public static int Run()",
+        "    {",
+        "        var value = Left() ? 1 : 2;",
+        "        Console.WriteLine(value);",
+        "        // codeql[cs/useless-assignment-to-local] the reason",
+        "        value = 5;",
+        "        return 0;",
+        "    }",
+        "}"
+      ],
+      "results": [
+        {
+          "rule": "cs/useless-assignment-to-local",
+          "line": 14,
+          "suppressed": true
+        }
+      ]
+    },
+    {
+      "name": "two-markers",
+      "language": "csharp",
+      "source": [
+        "using System;",
+        "",
+        "public static class TwoMarkers",
+        "{",
+        "    private static bool Left() { return Environment.TickCount > 0; }",
+        "",
+        "    private static bool Right() { return Environment.ProcessorCount > 0; }",
+        "",
+        "    public static int Run()",
+        "    {",
+        "        try",
+        "        {",
+        "            Console.WriteLine(Left());",
+        "        }",
+        "        // codeql[cs/catch-of-all-exceptions] codeql[cs/empty-catch-block] one reason for both",
+        "        catch (Exception)",
+        "        {",
+        "        }",
+        "        return 0;",
+        "    }",
+        "}"
+      ],
+      "results": [
+        {
+          "rule": "cs/catch-of-all-exceptions",
+          "line": 16,
+          "suppressed": true
+        },
+        {
+          "rule": "cs/empty-catch-block",
+          "line": 16,
+          "suppressed": true
+        }
+      ]
+    },
+    {
+      "name": "reason-after-each",
+      "language": "csharp",
+      "source": [
+        "using System;",
+        "",
+        "public static class ReasonAfterEach",
+        "{",
+        "    private static bool Left() { return Environment.TickCount > 0; }",
+        "",
+        "    private static bool Right() { return Environment.ProcessorCount > 0; }",
+        "",
+        "    public static int Run()",
+        "    {",
+        "        try",
+        "        {",
+        "            Console.WriteLine(Left());",
+        "        }",
+        "        // codeql[cs/catch-of-all-exceptions] first; codeql[cs/empty-catch-block] second",
+        "        catch (Exception)",
+        "        {",
+        "        }",
+        "        return 0;",
+        "    }",
+        "}"
+      ],
+      "results": [
+        {
+          "rule": "cs/catch-of-all-exceptions",
+          "line": 16,
+          "suppressed": true
+        },
+        {
+          "rule": "cs/empty-catch-block",
+          "line": 16,
+          "suppressed": true
+        }
+      ]
+    },
+    {
+      "name": "list",
+      "language": "csharp",
+      "source": [
+        "using System;",
+        "",
+        "public static class List",
+        "{",
+        "    private static bool Left() { return Environment.TickCount > 0; }",
+        "",
+        "    private static bool Right() { return Environment.ProcessorCount > 0; }",
+        "",
+        "    public static int Run()",
+        "    {",
+        "        try",
+        "        {",
+        "            Console.WriteLine(Left());",
+        "        }",
+        "        // codeql[cs/catch-of-all-exceptions, cs/empty-catch-block] a list",
+        "        catch (Exception)",
+        "        {",
+        "        }",
+        "        return 0;",
+        "    }",
+        "}"
+      ],
+      "results": [
+        {
+          "rule": "cs/catch-of-all-exceptions",
+          "line": 16,
+          "suppressed": false
+        },
+        {
+          "rule": "cs/empty-catch-block",
+          "line": 16,
+          "suppressed": false
+        }
+      ]
+    },
+    {
+      "name": "stacked",
+      "language": "csharp",
+      "source": [
+        "using System;",
+        "",
+        "public static class Stacked",
+        "{",
+        "    private static bool Left() { return Environment.TickCount > 0; }",
+        "",
+        "    private static bool Right() { return Environment.ProcessorCount > 0; }",
+        "",
+        "    public static int Run()",
+        "    {",
+        "        try",
+        "        {",
+        "            Console.WriteLine(Left());",
+        "        }",
+        "        // codeql[cs/catch-of-all-exceptions] the upper one",
+        "        // codeql[cs/empty-catch-block] the lower one",
+        "        catch (Exception)",
+        "        {",
+        "        }",
+        "        return 0;",
+        "    }",
+        "}"
+      ],
+      "results": [
+        {
+          "rule": "cs/catch-of-all-exceptions",
+          "line": 17,
+          "suppressed": false
+        },
+        {
+          "rule": "cs/empty-catch-block",
+          "line": 17,
+          "suppressed": true
+        }
+      ]
+    },
+    {
+      "name": "blank-between",
+      "language": "csharp",
+      "source": [
+        "using System;",
+        "",
+        "public static class BlankBetween",
+        "{",
+        "    private static bool Left() { return Environment.TickCount > 0; }",
+        "",
+        "    private static bool Right() { return Environment.ProcessorCount > 0; }",
+        "",
+        "    public static int Run()",
+        "    {",
+        "        var value = Left() ? 1 : 2;",
+        "        Console.WriteLine(value);",
+        "        // codeql[cs/useless-assignment-to-local] a blank line under it",
+        "",
+        "        value = 5;",
+        "        return 0;",
+        "    }",
+        "}"
+      ],
+      "results": [
+        {
+          "rule": "cs/useless-assignment-to-local",
+          "line": 15,
+          "suppressed": false
+        }
+      ]
+    },
+    {
+      "name": "trailing-before",
+      "language": "csharp",
+      "source": [
+        "using System;",
+        "",
+        "public static class TrailingBefore",
+        "{",
+        "    private static bool Left() { return Environment.TickCount > 0; }",
+        "",
+        "    private static bool Right() { return Environment.ProcessorCount > 0; }",
+        "",
+        "    public static int Run()",
+        "    {",
+        "        var value = Left() ? 1 : 2;",
+        "        Console.WriteLine(value); // codeql[cs/useless-assignment-to-local] after code on the line before",
+        "        value = 5;",
+        "        return 0;",
+        "    }",
+        "}"
+      ],
+      "results": [
+        {
+          "rule": "cs/useless-assignment-to-local",
+          "line": 13,
+          "suppressed": false
+        }
+      ]
+    },
+    {
+      "name": "trailing-same-line",
+      "language": "csharp",
+      "source": [
+        "using System;",
+        "",
+        "public static class TrailingSameLine",
+        "{",
+        "    private static bool Left() { return Environment.TickCount > 0; }",
+        "",
+        "    private static bool Right() { return Environment.ProcessorCount > 0; }",
+        "",
+        "    public static int Run()",
+        "    {",
+        "        var value = Left() ? 1 : 2;",
+        "        Console.WriteLine(value);",
+        "        value = 5; // codeql[cs/useless-assignment-to-local] on the line itself",
+        "        return 0;",
+        "    }",
+        "}"
+      ],
+      "results": [
+        {
+          "rule": "cs/useless-assignment-to-local",
+          "line": 13,
+          "suppressed": false
+        }
+      ]
+    },
+    {
+      "name": "lgtm-same-line",
+      "language": "csharp",
+      "source": [
+        "using System;",
+        "",
+        "public static class LgtmSameLine",
+        "{",
+        "    private static bool Left() { return Environment.TickCount > 0; }",
+        "",
+        "    private static bool Right() { return Environment.ProcessorCount > 0; }",
+        "",
+        "    public static int Run()",
+        "    {",
+        "        var value = Left() ? 1 : 2;",
+        "        Console.WriteLine(value);",
+        "        value = 5; // lgtm[cs/useless-assignment-to-local] on the line itself",
+        "        return 0;",
+        "    }",
+        "}"
+      ],
+      "results": [
+        {
+          "rule": "cs/useless-assignment-to-local",
+          "line": 13,
+          "suppressed": true
+        }
+      ]
+    },
+    {
+      "name": "lgtm-alone-above",
+      "language": "csharp",
+      "source": [
+        "using System;",
+        "",
+        "public static class LgtmAloneAbove",
+        "{",
+        "    private static bool Left() { return Environment.TickCount > 0; }",
+        "",
+        "    private static bool Right() { return Environment.ProcessorCount > 0; }",
+        "",
+        "    public static int Run()",
+        "    {",
+        "        var value = Left() ? 1 : 2;",
+        "        Console.WriteLine(value);",
+        "        // lgtm[cs/useless-assignment-to-local] alone on the line above",
+        "        value = 5;",
+        "        return 0;",
+        "    }",
+        "}"
+      ],
+      "results": [
+        {
+          "rule": "cs/useless-assignment-to-local",
+          "line": 14,
+          "suppressed": true
+        }
+      ]
+    },
+    {
+      "name": "lgtm-bare-above",
+      "language": "csharp",
+      "source": [
+        "using System;",
+        "",
+        "public static class LgtmBareAbove",
+        "{",
+        "    private static bool Left() { return Environment.TickCount > 0; }",
+        "",
+        "    private static bool Right() { return Environment.ProcessorCount > 0; }",
+        "",
+        "    public static int Run()",
+        "    {",
+        "        var value = Left() ? 1 : 2;",
+        "        Console.WriteLine(value);",
+        "        // lgtm",
+        "        value = 5;",
+        "        return 0;",
+        "    }",
+        "}"
+      ],
+      "results": [
+        {
+          "rule": "cs/useless-assignment-to-local",
+          "line": 14,
+          "suppressed": true
+        }
+      ]
+    },
+    {
+      "name": "lgtm-after-semicolon",
+      "language": "csharp",
+      "source": [
+        "using System;",
+        "",
+        "public static class LgtmAfterSemicolon",
+        "{",
+        "    private static bool Left() { return Environment.TickCount > 0; }",
+        "",
+        "    private static bool Right() { return Environment.ProcessorCount > 0; }",
+        "",
+        "    public static int Run()",
+        "    {",
+        "        var value = Left() ? 1 : 2;",
+        "        Console.WriteLine(value);",
+        "        // checked by hand; lgtm",
+        "        value = 5;",
+        "        return 0;",
+        "    }",
+        "}"
+      ],
+      "results": [
+        {
+          "rule": "cs/useless-assignment-to-local",
+          "line": 14,
+          "suppressed": true
+        }
+      ]
+    },
+    {
+      "name": "lgtm-in-prose",
+      "language": "csharp",
+      "source": [
+        "using System;",
+        "",
+        "public static class LgtmInProse",
+        "{",
+        "    private static bool Left() { return Environment.TickCount > 0; }",
+        "",
+        "    private static bool Right() { return Environment.ProcessorCount > 0; }",
+        "",
+        "    public static int Run()",
+        "    {",
+        "        var value = Left() ? 1 : 2;",
+        "        Console.WriteLine(value);",
+        "        // nobody would call this lgtm",
+        "        value = 5;",
+        "        return 0;",
+        "    }",
+        "}"
+      ],
+      "results": [
+        {
+          "rule": "cs/useless-assignment-to-local",
+          "line": 14,
+          "suppressed": false
+        }
+      ]
+    },
+    {
+      "name": "documentation-comment",
+      "language": "csharp",
+      "source": [
+        "using System;",
+        "",
+        "public static class DocumentationComment",
+        "{",
+        "    private static bool Left() { return Environment.TickCount > 0; }",
+        "",
+        "    private static bool Right() { return Environment.ProcessorCount > 0; }",
+        "",
+        "    public static int Run()",
+        "    {",
+        "        var value = Left() ? 1 : 2;",
+        "        Console.WriteLine(value);",
+        "        /// codeql[cs/useless-assignment-to-local] documentation",
+        "        value = 5;",
+        "        return 0;",
+        "    }",
+        "}"
+      ],
+      "results": [
+        {
+          "rule": "cs/useless-assignment-to-local",
+          "line": 14,
+          "suppressed": true
+        }
+      ]
+    },
+    {
+      "name": "block-one-line",
+      "language": "csharp",
+      "source": [
+        "using System;",
+        "",
+        "public static class BlockOneLine",
+        "{",
+        "    private static bool Left() { return Environment.TickCount > 0; }",
+        "",
+        "    private static bool Right() { return Environment.ProcessorCount > 0; }",
+        "",
+        "    public static int Run()",
+        "    {",
+        "        var value = Left() ? 1 : 2;",
+        "        Console.WriteLine(value);",
+        "        /* codeql[cs/useless-assignment-to-local] a block on one line */",
+        "        value = 5;",
+        "        return 0;",
+        "    }",
+        "}"
+      ],
+      "results": [
+        {
+          "rule": "cs/useless-assignment-to-local",
+          "line": 14,
+          "suppressed": true
+        }
+      ]
+    },
+    {
+      "name": "block-lines",
+      "language": "csharp",
+      "source": [
+        "using System;",
+        "",
+        "public static class BlockLines",
+        "{",
+        "    private static bool Left() { return Environment.TickCount > 0; }",
+        "",
+        "    private static bool Right() { return Environment.ProcessorCount > 0; }",
+        "",
+        "    public static int Run()",
+        "    {",
+        "        var value = Left() ? 1 : 2;",
+        "        Console.WriteLine(value);",
+        "        /* a block comment of three lines,",
+        "           codeql[cs/useless-assignment-to-local] on the middle one",
+        "        */",
+        "        value = 5;",
+        "        return 0;",
+        "    }",
+        "}"
+      ],
+      "results": [
+        {
+          "rule": "cs/useless-assignment-to-local",
+          "line": 16,
+          "suppressed": false
+        }
+      ]
+    },
+    {
+      "name": "verbatim-string",
+      "language": "csharp",
+      "source": [
+        "using System;",
+        "",
+        "public static class VerbatimString",
+        "{",
+        "    private static bool Left() { return Environment.TickCount > 0; }",
+        "",
+        "    private static bool Right() { return Environment.ProcessorCount > 0; }",
+        "",
+        "    public static int Run()",
+        "    {",
+        "        var value = Left() ? 1 : 2;",
+        "        Console.WriteLine(value);",
+        "        var text = @\"a verbatim string, whose second line is no comment",
+        "// codeql[cs/useless-assignment-to-local] inside the string\";",
+        "        value = 5;",
+        "        Console.WriteLine(text);",
+        "        return 0;",
+        "    }",
+        "}"
+      ],
+      "results": [
+        {
+          "rule": "cs/useless-assignment-to-local",
+          "line": 15,
+          "suppressed": false
+        }
+      ]
+    },
+    {
+      "name": "raw-string",
+      "language": "csharp",
+      "source": [
+        "using System;",
+        "",
+        "public static class RawString",
+        "{",
+        "    private static bool Left() { return Environment.TickCount > 0; }",
+        "",
+        "    private static bool Right() { return Environment.ProcessorCount > 0; }",
+        "",
+        "    public static int Run()",
+        "    {",
+        "        var value = Left() ? 1 : 2;",
+        "        Console.WriteLine(value);",
+        "        var text = \"\"\"",
+        "            a raw string, with \"quotes\" and // slashes in it",
+        "            \"\"\";",
+        "        // codeql[cs/useless-assignment-to-local] after the raw string",
+        "        value = 5;",
+        "        Console.WriteLine(text);",
+        "        return 0;",
+        "    }",
+        "}"
+      ],
+      "results": [
+        {
+          "rule": "cs/useless-assignment-to-local",
+          "line": 17,
+          "suppressed": true
+        }
+      ]
+    },
+    {
+      "name": "interpolation",
+      "language": "csharp",
+      "source": [
+        "using System;",
+        "",
+        "public static class Interpolation",
+        "{",
+        "    private static bool Left() { return Environment.TickCount > 0; }",
+        "",
+        "    private static bool Right() { return Environment.ProcessorCount > 0; }",
+        "",
+        "    public static int Run()",
+        "    {",
+        "        var value = Left() ? 1 : 2;",
+        "        Console.WriteLine(value);",
+        "        var text = $\"{(Left() ? \"a // b\" : \"c\")} and // more of the string\";",
+        "        // codeql[cs/useless-assignment-to-local] after an interpolated string",
+        "        value = 5;",
+        "        Console.WriteLine(text);",
+        "        return 0;",
+        "    }",
+        "}"
+      ],
+      "results": [
+        {
+          "rule": "cs/useless-assignment-to-local",
+          "line": 15,
+          "suppressed": true
+        }
+      ]
+    },
+    {
+      "name": "character-quote",
+      "language": "csharp",
+      "source": [
+        "using System;",
+        "",
+        "public static class CharacterQuote",
+        "{",
+        "    private static bool Left() { return Environment.TickCount > 0; }",
+        "",
+        "    private static bool Right() { return Environment.ProcessorCount > 0; }",
+        "",
+        "    public static int Run()",
+        "    {",
+        "        var value = Left() ? 1 : 2;",
+        "        Console.WriteLine(value);",
+        "        var quote = '\"'; // a quote in a character, then a comment",
+        "        // codeql[cs/useless-assignment-to-local] after a character holding a quote",
+        "        value = 5;",
+        "        Console.WriteLine(quote);",
+        "        return 0;",
+        "    }",
+        "}"
+      ],
+      "results": [
+        {
+          "rule": "cs/useless-assignment-to-local",
+          "line": 15,
+          "suppressed": true
+        }
+      ]
+    },
+    {
+      "name": "active-branch",
+      "language": "csharp",
+      "source": [
+        "using System;",
+        "",
+        "public static class ActiveBranch",
+        "{",
+        "    private static bool Left() { return Environment.TickCount > 0; }",
+        "",
+        "    private static bool Right() { return Environment.ProcessorCount > 0; }",
+        "",
+        "    public static int Run()",
+        "    {",
+        "        var value = Left() ? 1 : 2;",
+        "        Console.WriteLine(value);",
+        "#if !NEVER",
+        "        // codeql[cs/useless-assignment-to-local] in a branch the compiler keeps",
+        "        value = 5;",
+        "#endif",
+        "        return 0;",
+        "    }",
+        "}"
+      ],
+      "results": [
+        {
+          "rule": "cs/useless-assignment-to-local",
+          "line": 15,
+          "suppressed": true
+        }
+      ]
+    },
+    {
+      "name": "upper-case",
+      "language": "csharp",
+      "source": [
+        "using System;",
+        "",
+        "public static class UpperCase",
+        "{",
+        "    private static bool Left() { return Environment.TickCount > 0; }",
+        "",
+        "    private static bool Right() { return Environment.ProcessorCount > 0; }",
+        "",
+        "    public static int Run()",
+        "    {",
+        "        var value = Left() ? 1 : 2;",
+        "        Console.WriteLine(value);",
+        "        // codeql[CS/USELESS-ASSIGNMENT-TO-LOCAL] the rule in upper case",
+        "        value = 5;",
+        "        return 0;",
+        "    }",
+        "}"
+      ],
+      "results": [
+        {
+          "rule": "cs/useless-assignment-to-local",
+          "line": 14,
+          "suppressed": false
+        }
+      ]
+    },
+    {
+      "name": "upper-case-keyword",
+      "language": "csharp",
+      "source": [
+        "using System;",
+        "",
+        "public static class UpperCaseKeyword",
+        "{",
+        "    private static bool Left() { return Environment.TickCount > 0; }",
+        "",
+        "    private static bool Right() { return Environment.ProcessorCount > 0; }",
+        "",
+        "    public static int Run()",
+        "    {",
+        "        var value = Left() ? 1 : 2;",
+        "        Console.WriteLine(value);",
+        "        // CODEQL[cs/useless-assignment-to-local] the keyword in upper case",
+        "        value = 5;",
+        "        return 0;",
+        "    }",
+        "}"
+      ],
+      "results": [
+        {
+          "rule": "cs/useless-assignment-to-local",
+          "line": 14,
+          "suppressed": true
+        }
+      ]
+    },
+    {
+      "name": "spaces-inside",
+      "language": "csharp",
+      "source": [
+        "using System;",
+        "",
+        "public static class SpacesInside",
+        "{",
+        "    private static bool Left() { return Environment.TickCount > 0; }",
+        "",
+        "    private static bool Right() { return Environment.ProcessorCount > 0; }",
+        "",
+        "    public static int Run()",
+        "    {",
+        "        var value = Left() ? 1 : 2;",
+        "        Console.WriteLine(value);",
+        "        // codeql[ cs/useless-assignment-to-local ] with spaces inside",
+        "        value = 5;",
+        "        return 0;",
+        "    }",
+        "}"
+      ],
+      "results": [
+        {
+          "rule": "cs/useless-assignment-to-local",
+          "line": 14,
+          "suppressed": true
+        }
+      ]
+    },
+    {
+      "name": "space-before-bracket",
+      "language": "csharp",
+      "source": [
+        "using System;",
+        "",
+        "public static class SpaceBeforeBracket",
+        "{",
+        "    private static bool Left() { return Environment.TickCount > 0; }",
+        "",
+        "    private static bool Right() { return Environment.ProcessorCount > 0; }",
+        "",
+        "    public static int Run()",
+        "    {",
+        "        var value = Left() ? 1 : 2;",
+        "        Console.WriteLine(value);",
+        "        // codeql [cs/useless-assignment-to-local] with a space before",
+        "        value = 5;",
+        "        return 0;",
+        "    }",
+        "}"
+      ],
+      "results": [
+        {
+          "rule": "cs/useless-assignment-to-local",
+          "line": 14,
+          "suppressed": true
+        }
+      ]
+    },
+    {
+      "name": "wrong-rule",
+      "language": "csharp",
+      "source": [
+        "using System;",
+        "",
+        "public static class WrongRule",
+        "{",
+        "    private static bool Left() { return Environment.TickCount > 0; }",
+        "",
+        "    private static bool Right() { return Environment.ProcessorCount > 0; }",
+        "",
+        "    public static int Run()",
+        "    {",
+        "        var value = Left() ? 1 : 2;",
+        "        Console.WriteLine(value);",
+        "        // codeql[cs/non-short-circuit] another rule's name",
+        "        value = 5;",
+        "        return 0;",
+        "    }",
+        "}"
+      ],
+      "results": [
+        {
+          "rule": "cs/useless-assignment-to-local",
+          "line": 14,
+          "suppressed": false
+        }
+      ]
+    },
+    {
+      "name": "text-before",
+      "language": "csharp",
+      "source": [
+        "using System;",
+        "",
+        "public static class TextBefore",
+        "{",
+        "    private static bool Left() { return Environment.TickCount > 0; }",
+        "",
+        "    private static bool Right() { return Environment.ProcessorCount > 0; }",
+        "",
+        "    public static int Run()",
+        "    {",
+        "        var value = Left() ? 1 : 2;",
+        "        Console.WriteLine(value);",
+        "        // the reason first, then codeql[cs/useless-assignment-to-local]",
+        "        value = 5;",
+        "        return 0;",
+        "    }",
+        "}"
+      ],
+      "results": [
+        {
+          "rule": "cs/useless-assignment-to-local",
+          "line": 14,
+          "suppressed": true
+        }
+      ]
+    },
+    {
+      "name": "another-rule",
+      "language": "csharp",
+      "source": [
+        "using System;",
+        "",
+        "public static class AnotherRule",
+        "{",
+        "    private static bool Left() { return Environment.TickCount > 0; }",
+        "",
+        "    private static bool Right() { return Environment.ProcessorCount > 0; }",
+        "",
+        "    public static int Run()",
+        "    {",
+        "        var flag = Left();",
+        "        // codeql[cs/non-short-circuit] both sides have to run",
+        "        var both = flag & Right();",
+        "        Console.WriteLine(both);",
+        "        return 0;",
+        "    }",
+        "}"
+      ],
+      "results": [
+        {
+          "rule": "cs/non-short-circuit",
+          "line": 13,
+          "suppressed": true
+        }
+      ]
+    },
+    {
+      "name": "py-codeql-above",
+      "language": "python",
+      "source": [
+        "\"\"\"One case of the suppression vectors.\"\"\"",
+        "",
+        "",
+        "def work() -> None:",
+        "    print(\"work\")",
+        "",
+        "",
+        "def run() -> None:",
+        "    # codeql[py/unused-local-variable] the reason",
+        "    value = 1"
+      ],
+      "results": [
+        {
+          "rule": "py/unused-local-variable",
+          "line": 10,
+          "suppressed": true
+        }
+      ]
+    },
+    {
+      "name": "py-two-markers",
+      "language": "python",
+      "source": [
+        "\"\"\"One case of the suppression vectors.\"\"\"",
+        "",
+        "",
+        "def work() -> None:",
+        "    print(\"work\")",
+        "",
+        "",
+        "def run() -> None:",
+        "    try:",
+        "        work()",
+        "    # codeql[py/catch-base-exception] codeql[py/empty-except] one reason for both",
+        "    except BaseException:",
+        "        pass"
+      ],
+      "results": [
+        {
+          "rule": "py/catch-base-exception",
+          "line": 12,
+          "suppressed": true
+        },
+        {
+          "rule": "py/empty-except",
+          "line": 12,
+          "suppressed": true
+        }
+      ]
+    },
+    {
+      "name": "py-list",
+      "language": "python",
+      "source": [
+        "\"\"\"One case of the suppression vectors.\"\"\"",
+        "",
+        "",
+        "def work() -> None:",
+        "    print(\"work\")",
+        "",
+        "",
+        "def run() -> None:",
+        "    try:",
+        "        work()",
+        "    # codeql[py/catch-base-exception, py/empty-except] a list",
+        "    except BaseException:",
+        "        pass"
+      ],
+      "results": [
+        {
+          "rule": "py/catch-base-exception",
+          "line": 12,
+          "suppressed": false
+        },
+        {
+          "rule": "py/empty-except",
+          "line": 12,
+          "suppressed": false
+        }
+      ]
+    },
+    {
+      "name": "py-stacked",
+      "language": "python",
+      "source": [
+        "\"\"\"One case of the suppression vectors.\"\"\"",
+        "",
+        "",
+        "def work() -> None:",
+        "    print(\"work\")",
+        "",
+        "",
+        "def run() -> None:",
+        "    try:",
+        "        work()",
+        "    # codeql[py/catch-base-exception] the upper one",
+        "    # codeql[py/empty-except] the lower one",
+        "    except BaseException:",
+        "        pass"
+      ],
+      "results": [
+        {
+          "rule": "py/catch-base-exception",
+          "line": 13,
+          "suppressed": false
+        },
+        {
+          "rule": "py/empty-except",
+          "line": 13,
+          "suppressed": true
+        }
+      ]
+    },
+    {
+      "name": "py-blank-between",
+      "language": "python",
+      "source": [
+        "\"\"\"One case of the suppression vectors.\"\"\"",
+        "",
+        "",
+        "def work() -> None:",
+        "    print(\"work\")",
+        "",
+        "",
+        "def run() -> None:",
+        "    # codeql[py/unused-local-variable] a blank line under it",
+        "",
+        "    value = 1"
+      ],
+      "results": [
+        {
+          "rule": "py/unused-local-variable",
+          "line": 11,
+          "suppressed": false
+        }
+      ]
+    },
+    {
+      "name": "py-trailing-same-line",
+      "language": "python",
+      "source": [
+        "\"\"\"One case of the suppression vectors.\"\"\"",
+        "",
+        "",
+        "def work() -> None:",
+        "    print(\"work\")",
+        "",
+        "",
+        "def run() -> None:",
+        "    value = 1  # codeql[py/unused-local-variable] on the line itself"
+      ],
+      "results": [
+        {
+          "rule": "py/unused-local-variable",
+          "line": 9,
+          "suppressed": false
+        }
+      ]
+    },
+    {
+      "name": "py-lgtm-same-line",
+      "language": "python",
+      "source": [
+        "\"\"\"One case of the suppression vectors.\"\"\"",
+        "",
+        "",
+        "def work() -> None:",
+        "    print(\"work\")",
+        "",
+        "",
+        "def run() -> None:",
+        "    value = 1  # lgtm[py/unused-local-variable] on the line itself"
+      ],
+      "results": [
+        {
+          "rule": "py/unused-local-variable",
+          "line": 9,
+          "suppressed": true
+        }
+      ]
+    },
+    {
+      "name": "py-lgtm-alone-above",
+      "language": "python",
+      "source": [
+        "\"\"\"One case of the suppression vectors.\"\"\"",
+        "",
+        "",
+        "def work() -> None:",
+        "    print(\"work\")",
+        "",
+        "",
+        "def run() -> None:",
+        "    # lgtm[py/unused-local-variable] alone on the line above",
+        "    value = 1"
+      ],
+      "results": [
+        {
+          "rule": "py/unused-local-variable",
+          "line": 10,
+          "suppressed": true
+        }
+      ]
+    },
+    {
+      "name": "py-lgtm-bare-above",
+      "language": "python",
+      "source": [
+        "\"\"\"One case of the suppression vectors.\"\"\"",
+        "",
+        "",
+        "def work() -> None:",
+        "    print(\"work\")",
+        "",
+        "",
+        "def run() -> None:",
+        "    # lgtm",
+        "    value = 1"
+      ],
+      "results": [
+        {
+          "rule": "py/unused-local-variable",
+          "line": 10,
+          "suppressed": true
+        }
+      ]
+    },
+    {
+      "name": "py-lgtm-after-semicolon",
+      "language": "python",
+      "source": [
+        "\"\"\"One case of the suppression vectors.\"\"\"",
+        "",
+        "",
+        "def work() -> None:",
+        "    print(\"work\")",
+        "",
+        "",
+        "def run() -> None:",
+        "    # checked by hand; lgtm",
+        "    value = 1"
+      ],
+      "results": [
+        {
+          "rule": "py/unused-local-variable",
+          "line": 10,
+          "suppressed": true
+        }
+      ]
+    },
+    {
+      "name": "py-noqa-bare",
+      "language": "python",
+      "source": [
+        "\"\"\"One case of the suppression vectors.\"\"\"",
+        "",
+        "",
+        "def work() -> None:",
+        "    print(\"work\")",
+        "",
+        "",
+        "def run() -> None:",
+        "    value = 1  # noqa"
+      ],
+      "results": [
+        {
+          "rule": "py/unused-local-variable",
+          "line": 9,
+          "suppressed": true
+        }
+      ]
+    },
+    {
+      "name": "py-noqa-words",
+      "language": "python",
+      "source": [
+        "\"\"\"One case of the suppression vectors.\"\"\"",
+        "",
+        "",
+        "def work() -> None:",
+        "    print(\"work\")",
+        "",
+        "",
+        "def run() -> None:",
+        "    value = 1  # noqa because it is a case"
+      ],
+      "results": [
+        {
+          "rule": "py/unused-local-variable",
+          "line": 9,
+          "suppressed": true
+        }
+      ]
+    },
+    {
+      "name": "py-noqa-codes",
+      "language": "python",
+      "source": [
+        "\"\"\"One case of the suppression vectors.\"\"\"",
+        "",
+        "",
+        "def work() -> None:",
+        "    print(\"work\")",
+        "",
+        "",
+        "def run() -> None:",
+        "    value = 1  # noqa: F841"
+      ],
+      "results": [
+        {
+          "rule": "py/unused-local-variable",
+          "line": 9,
+          "suppressed": false
+        }
+      ]
+    },
+    {
+      "name": "py-noqa-alone-above",
+      "language": "python",
+      "source": [
+        "\"\"\"One case of the suppression vectors.\"\"\"",
+        "",
+        "",
+        "def work() -> None:",
+        "    print(\"work\")",
+        "",
+        "",
+        "def run() -> None:",
+        "    # noqa",
+        "    value = 1"
+      ],
+      "results": [
+        {
+          "rule": "py/unused-local-variable",
+          "line": 10,
+          "suppressed": false
+        }
+      ]
+    },
+    {
+      "name": "py-triple-quoted",
+      "language": "python",
+      "source": [
+        "\"\"\"One case of the suppression vectors.\"\"\"",
+        "",
+        "",
+        "def work() -> None:",
+        "    print(\"work\")",
+        "",
+        "",
+        "def run() -> None:",
+        "    text = \"\"\"a string, whose second line is no comment",
+        "# codeql[py/unused-local-variable] inside the string\"\"\"",
+        "    value = 1",
+        "    print(text)"
+      ],
+      "results": [
+        {
+          "rule": "py/unused-local-variable",
+          "line": 11,
+          "suppressed": false
+        }
+      ]
+    },
+    {
+      "name": "py-hash-in-strings",
+      "language": "python",
+      "source": [
+        "\"\"\"One case of the suppression vectors.\"\"\"",
+        "",
+        "",
+        "def work() -> None:",
+        "    print(\"work\")",
+        "",
+        "",
+        "def run() -> None:",
+        "    text = f\"{'#'} and # more of the string\" + '# and here'",
+        "    # codeql[py/unused-local-variable] after strings holding a hash",
+        "    value = 1",
+        "    print(text)"
+      ],
+      "results": [
+        {
+          "rule": "py/unused-local-variable",
+          "line": 11,
+          "suppressed": true
+        }
+      ]
+    },
+    {
+      "name": "py-upper-case",
+      "language": "python",
+      "source": [
+        "\"\"\"One case of the suppression vectors.\"\"\"",
+        "",
+        "",
+        "def work() -> None:",
+        "    print(\"work\")",
+        "",
+        "",
+        "def run() -> None:",
+        "    # codeql[PY/UNUSED-LOCAL-VARIABLE] the rule in upper case",
+        "    value = 1"
+      ],
+      "results": [
+        {
+          "rule": "py/unused-local-variable",
+          "line": 10,
+          "suppressed": false
+        }
+      ]
+    },
+    {
+      "name": "py-upper-case-keyword",
+      "language": "python",
+      "source": [
+        "\"\"\"One case of the suppression vectors.\"\"\"",
+        "",
+        "",
+        "def work() -> None:",
+        "    print(\"work\")",
+        "",
+        "",
+        "def run() -> None:",
+        "    # CODEQL[py/unused-local-variable] the keyword in upper case",
+        "    value = 1"
+      ],
+      "results": [
+        {
+          "rule": "py/unused-local-variable",
+          "line": 10,
+          "suppressed": true
+        }
+      ]
+    },
+    {
+      "name": "py-security",
+      "language": "python",
+      "source": [
+        "\"\"\"One case of the suppression vectors.\"\"\"",
+        "",
+        "",
+        "def work() -> None:",
+        "    print(\"work\")",
+        "",
+        "",
+        "def run() -> None:",
+        "    import ssl",
+        "",
+        "    # codeql[py/insecure-protocol] a security finding, suppressed as any other",
+        "    context = ssl.SSLContext(ssl.PROTOCOL_TLSv1)",
+        "    print(context)"
+      ],
+      "results": [
+        {
+          "rule": "py/insecure-protocol",
+          "line": 12,
+          "suppressed": true
+        }
+      ]
+    }
+  ]
+}

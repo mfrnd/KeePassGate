@@ -710,6 +710,13 @@ Run them from
   takes the other copy's strings at an equal time and leaves the time alone; and a move stamps only
   `LocationChanged`. `FINDINGS.md` has the table, `NodeTagsTests` drives the merge and the
   reload, and `spikes/entity-tags` holds the probes.
+- **CodeQL takes some comments for suppressions that do not look like one, and ignores some that
+  do.** A Python comment that is `noqa` with no codes after a colon suppresses every rule on its
+  line, and an `lgtm` at the start of a comment or after a `;` every rule on its line and the next.
+  A rule named in another case, a list of two in one bracket, a marker after code on its line, and
+  one in a `/* */` over several lines suppress nothing, while spaces inside the brackets are trimmed
+  and the keyword is read in any case. Measured against the pinned bundle by
+  `tools/suppression_vectors.py`, which `tests/tools/SuppressionVectors.json` records.
 - **`dotnet test` with a filter that matches nothing exits 0**, having run nothing, and its trx
   counts nothing. A gate that believes the exit code is green over an empty run, so `build.ps1`
   reads each tier's trx and refuses one in which nothing executed, `Assert-Executed`.
@@ -789,8 +796,8 @@ file.
 
 ```powershell
 .\build.ps1                # prose, the client, the build, and every test that does not need KeePass
-.\build.ps1 -Task Lint     # markdownlint and cspell on their own
-.\build.ps1 -Task Client   # PyKeePassGate on its own: ruff, mypy, pytest
+.\build.ps1 -Task Lint     # markdownlint, cspell and the suppression comments, on their own
+.\build.ps1 -Task Client   # the Python on its own, PyKeePassGate and the tools: ruff, mypy, pytest
 .\build.ps1 -Task All      # the default, then the end to end tests
 .\build.ps1 -Task Deploy   # copy the plugin into plugins\KeePassGate in the provided KeePass
 .\build.ps1 -Task Package  # the plugin as Release, zipped with a SHA256SUMS into dist\, from a clean clone
@@ -897,7 +904,8 @@ the tools this branch carries.
 - **Python is checked the way the C# is.** `ruff`, `mypy --strict` and `pytest` with a coverage
   floor, all configured in the root `pyproject.toml`, all run by `build.ps1 -Task Client`, which
   `Test` runs. `uv` owns the environment and `uv.lock` is committed, so every machine gets the same
-  versions.
+  versions. The tools written in Python are held to the same checks and the same floor, with their
+  tests in `tests/tools`, and imported by those as the scripts they are.
 
   **`ruff check` is the gate and `ruff format` is not**, which is a decision rather than an
   omission: thirteen files have never been through the formatter and running it would rewrite them
@@ -909,6 +917,21 @@ the tools this branch carries.
   nothing else, not letting it arrive a file at a time under other work.
 - **Docs stay with code.** A behavior or architecture change updates the design documents in the
   same pass, and reversals are recorded rather than edited away.
+- **A CodeQL finding is fixed, or suppressed where it is, with the reason.** The one spelling is a
+  comment of its own directly above the line the finding is on: `// codeql[cs/rule-id] why` in C#,
+  `# codeql[py/rule-id] why` in Python, with a marker for each rule when two are found on one line,
+  `// codeql[cs/one] codeql[cs/two] why`. `build.ps1 -Task Lint` refuses every other: a list in
+  one bracket, a rule in another case, a marker after code, above a blank line or above another
+  comment, all of which suppress nothing, and `lgtm` in every form and a Python `noqa` without
+  codes, which suppress more than they look like. `tools/suppressions.py` decides that as CodeQL
+  does: it finds the comments with tree-sitter's grammar of each language and applies CodeQL's own
+  patterns to them, and `tests/tools/SuppressionVectors.json` holds it to what the pinned CodeQL
+  made of 47 cases. **tree-sitter was chosen over each language's own parser**, Roslyn and
+  `tokenize`, once both had been built: they found the same comments in every file of the
+  repository and agreed with CodeQL on every vector, and this one is a third of the size, needs no
+  build, and reads every branch of an `#if`, which covers whatever CodeQL reads across the two
+  configurations it builds. A file holding a marker that does not parse cleanly is refused, so a
+  grammar older than the code fails loudly rather than being read with a guess.
 - **American English is checked, not only asked for.** cspell's own `en_US` dictionary accepts the
   British doubled L, the past tense of cancel or dial spelled with two, and its language
   dictionaries accept a British spelling or two in code, so `cspell.yaml` refuses about 250 British
