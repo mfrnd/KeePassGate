@@ -264,8 +264,8 @@ namespace KeePassGate.Host.Tests
             var field = typeof(MainForm).GetField(name, BindingFlags.NonPublic | BindingFlags.Instance);
             Assert.That(field, Is.Not.Null, "MainForm no longer raises " + name);
 
-            var handler = field.GetValue(_window) as Delegate;
-            Assert.That(handler, Is.Not.Null, "nothing subscribed to " + name);
+            var handler = field.GetValue(_window) as Delegate
+                ?? throw new InvalidOperationException("nothing subscribed to " + name);
 
             handler.DynamicInvoke(_window, args);
         }

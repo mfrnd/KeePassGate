@@ -284,9 +284,14 @@ namespace KeePassGate.Host.Tests.Live
 
         private static string Named(IdentityReference owner)
         {
+            if (owner == null)
+            {
+                return "nobody";
+            }
+
             try
             {
-                return owner == null ? "nobody" : owner.Translate(typeof(NTAccount)).Value;
+                return owner.Translate(typeof(NTAccount)).Value;
             }
             catch (IdentityNotMappedException)
             {

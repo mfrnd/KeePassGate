@@ -1090,8 +1090,8 @@ namespace KeePassGate.Host.Tests
                 return;
             }
 
-            var tabs = page.Parent as TabControl;
-            Assert.That(tabs, Is.Not.Null);
+            var tabs = page.Parent as TabControl
+                ?? throw new InvalidOperationException("the page this stack sits on is in no tab control");
 
             tabs.SelectedTab = page;
             page.PerformLayout();
