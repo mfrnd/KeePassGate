@@ -157,11 +157,11 @@ namespace KeePassGate.Host.Tests
         {
             _logWas = Environment.GetEnvironmentVariable(TraceGateLog.LogFileVariable);
             _auditWas = Environment.GetEnvironmentVariable(JsonLinesAudit.AuditFileVariable);
-            _logDirectory = Path.Combine(Path.GetTempPath(), "KeePassGateTests", Guid.NewGuid().ToString("N"));
+            _logDirectory = Paths.Join(Path.GetTempPath(), "KeePassGateTests", Guid.NewGuid().ToString("N"));
             Environment.SetEnvironmentVariable(
-                TraceGateLog.LogFileVariable, Path.Combine(_logDirectory, TraceGateLog.DefaultFileName));
+                TraceGateLog.LogFileVariable, Paths.Join(_logDirectory, TraceGateLog.DefaultFileName));
             Environment.SetEnvironmentVariable(
-                JsonLinesAudit.AuditFileVariable, Path.Combine(_logDirectory, JsonLinesAudit.DefaultFileName));
+                JsonLinesAudit.AuditFileVariable, Paths.Join(_logDirectory, JsonLinesAudit.DefaultFileName));
         }
 
         [OneTimeTearDown]

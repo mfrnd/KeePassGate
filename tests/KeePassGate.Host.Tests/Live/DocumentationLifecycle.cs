@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Windows.Automation;
+using KeePassGate.Diagnostics;
 using KeePassGate.Transport;
 using KeePassGate.Ui;
 using NUnit.Framework;
@@ -120,7 +121,7 @@ namespace KeePassGate.Host.Tests.Live
             // On the port nobody has to name, so the command typed is the one a reader types.
             keePass.UseTheDefaultPort();
 
-            var home = Path.Combine(Path.GetDirectoryName(keePass.DatabasePath), "home");
+            var home = Paths.Join(Path.GetDirectoryName(keePass.DatabasePath), "home");
             Directory.CreateDirectory(home);
             var environment = ClientEnvironment(home);
 
@@ -129,7 +130,7 @@ namespace KeePassGate.Host.Tests.Live
                 story.Invent(home, InventedHome);
                 FilmTheJourney(story, keePass, environment);
 
-                var path = Path.Combine(_directory, DocumentationImages.FileName(DocumentationImages.Lifecycle));
+                var path = Paths.Join(_directory, DocumentationImages.FileName(DocumentationImages.Lifecycle));
                 story.Write(path);
                 TestContext.Out.WriteLine("wrote " + path + " (" + new FileInfo(path).Length + " bytes)");
                 _written.Add(DocumentationImages.Lifecycle);
@@ -845,7 +846,7 @@ namespace KeePassGate.Host.Tests.Live
             var cache = Environment.GetEnvironmentVariable("UV_CACHE_DIR");
             if (string.IsNullOrEmpty(cache))
             {
-                cache = Path.Combine(
+                cache = Paths.Join(
                     Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "uv", "cache");
             }
 

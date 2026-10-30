@@ -5,6 +5,7 @@ using System.IO;
 using System.Threading;
 using System.Windows.Automation;
 using System.Windows.Forms;
+using KeePassGate.Diagnostics;
 using KeePassGate.Testing;
 using NUnit.Framework;
 
@@ -140,7 +141,7 @@ namespace KeePassGate.Host.Tests.Live
             AutomationElement parkFocusOn = null,
             ISteadyMoment moment = null)
         {
-            var path = Path.Combine(directory, name + ".png");
+            var path = Paths.Join(directory, name + ".png");
 
             Rectangle area;
             using (var picture = Take(window, name, parkFocusOn, moment, out area))

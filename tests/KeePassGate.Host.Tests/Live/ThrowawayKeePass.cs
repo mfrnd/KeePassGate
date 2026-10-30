@@ -93,12 +93,12 @@ namespace KeePassGate.Host.Tests.Live
 
         public string ExePath
         {
-            get { return Path.Combine(_root, "KeePass.exe"); }
+            get { return Paths.Join(_root, "KeePass.exe"); }
         }
 
         public string DatabasePath
         {
-            get { return Path.Combine(_root, "throwaway.kdbx"); }
+            get { return Paths.Join(_root, "throwaway.kdbx"); }
         }
 
         /// <summary>
@@ -114,12 +114,12 @@ namespace KeePassGate.Host.Tests.Live
         /// </remarks>
         public string AuditPath
         {
-            get { return Path.Combine(_root, "audit.jsonl"); }
+            get { return Paths.Join(_root, "audit.jsonl"); }
         }
 
         public string PluginLogPath
         {
-            get { return Path.Combine(_root, "keepassgate.log"); }
+            get { return Paths.Join(_root, "keepassgate.log"); }
         }
 
         /// <summary>
@@ -128,7 +128,7 @@ namespace KeePassGate.Host.Tests.Live
         /// </summary>
         public string EndedPath
         {
-            get { return Path.Combine(_root, "ended.txt"); }
+            get { return Paths.Join(_root, "ended.txt"); }
         }
 
         public Process Process
@@ -161,27 +161,27 @@ namespace KeePassGate.Host.Tests.Live
         public static ThrowawayKeePass Create(string workingDirectory, bool withAuthority, int lockAfterSeconds)
         {
             // No identifier here: the working directory this sits in is already one per session.
-            var root = Path.Combine(workingDirectory, "keepass");
+            var root = Paths.Join(workingDirectory, "keepass");
             Directory.CreateDirectory(root);
 
             var source = KeePassDev.Directory;
             foreach (var name in RequiredFiles)
             {
-                var from = Path.Combine(source, name);
+                var from = Paths.Join(source, name);
                 if (!File.Exists(from))
                 {
                     throw new FileNotFoundException("The test copy of KeePass is incomplete.", from);
                 }
 
-                File.Copy(from, Path.Combine(root, name));
+                File.Copy(from, Paths.Join(root, name));
             }
 
             foreach (var name in OptionalFiles)
             {
-                var from = Path.Combine(source, name);
+                var from = Paths.Join(source, name);
                 if (File.Exists(from))
                 {
-                    File.Copy(from, Path.Combine(root, name));
+                    File.Copy(from, Paths.Join(root, name));
                 }
             }
 
@@ -562,7 +562,7 @@ namespace KeePassGate.Host.Tests.Live
         private static void WriteConfiguration(string root, int lockAfterSeconds)
         {
             File.WriteAllText(
-                Path.Combine(root, "KeePass.config.xml"), ConfigurationLockingAfter(lockAfterSeconds), new UTF8Encoding(false));
+                Paths.Join(root, "KeePass.config.xml"), ConfigurationLockingAfter(lockAfterSeconds), new UTF8Encoding(false));
         }
 
         /// <summary>
@@ -620,9 +620,9 @@ namespace KeePassGate.Host.Tests.Live
             // In a directory of its own under `plugins`, which is where `build.ps1 -Task Deploy`
             // and the operator's documentation put it, so that the live tier loads the layout an
             // installation has rather than one nobody ships.
-            var plugins = Path.Combine(_root, "plugins", "KeePassGate");
+            var plugins = Paths.Join(_root, "plugins", "KeePassGate");
             Directory.CreateDirectory(plugins);
-            File.Copy(pluginPath, Path.Combine(plugins, Path.GetFileName(pluginPath)));
+            File.Copy(pluginPath, Paths.Join(plugins, Path.GetFileName(pluginPath)));
 
             // And what it needs, which is how the live test proves that a plugin with dependencies
             // actually loads: KeePass uses Assembly.LoadFrom, which probes the plugin's own
@@ -642,18 +642,18 @@ namespace KeePassGate.Host.Tests.Live
             var beside = Path.GetDirectoryName(pluginPath);
             foreach (var dependency in NeededBy(pluginAssembly, beside))
             {
-                File.Copy(dependency, Path.Combine(plugins, Path.GetFileName(dependency)), true);
+                File.Copy(dependency, Paths.Join(plugins, Path.GetFileName(dependency)), true);
             }
 
             // And their notices, which each of their licenses asks to go with every copy, and which
             // `build.ps1 -Task Deploy` puts beside them as well.
-            var notices = Path.Combine(Repository.Root, "THIRD-PARTY-NOTICES.md");
-            File.Copy(notices, Path.Combine(plugins, Path.GetFileName(notices)));
+            var notices = Paths.Join(Repository.Root, "THIRD-PARTY-NOTICES.md");
+            File.Copy(notices, Paths.Join(plugins, Path.GetFileName(notices)));
 
             var symbols = Path.ChangeExtension(pluginPath, ".pdb");
             if (File.Exists(symbols))
             {
-                File.Copy(symbols, Path.Combine(plugins, Path.GetFileName(symbols)));
+                File.Copy(symbols, Paths.Join(plugins, Path.GetFileName(symbols)));
             }
         }
 
@@ -683,7 +683,7 @@ namespace KeePassGate.Host.Tests.Live
                         continue;
                     }
 
-                    var path = Path.Combine(beside, referenced.Name + ".dll");
+                    var path = Paths.Join(beside, referenced.Name + ".dll");
                     if (!File.Exists(path))
                     {
                         continue;
@@ -745,7 +745,7 @@ namespace KeePassGate.Host.Tests.Live
         /// </remarks>
         public string CopyDatabase(string fileName)
         {
-            var path = Path.Combine(_root, fileName);
+            var path = Paths.Join(_root, fileName);
             File.Copy(DatabasePath, path);
             return path;
         }

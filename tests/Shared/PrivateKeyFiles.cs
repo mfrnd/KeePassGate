@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using KeePassGate.Diagnostics;
 
 namespace KeePassGate.Testing
 {
@@ -164,7 +165,7 @@ namespace KeePassGate.Testing
 
             foreach (var directory in new[] { @"Microsoft\Crypto\Keys", @"Microsoft\Crypto\RSA" })
             {
-                var path = Path.Combine(appData, directory);
+                var path = Paths.Join(appData, directory);
                 if (Directory.Exists(path))
                 {
                     yield return path;

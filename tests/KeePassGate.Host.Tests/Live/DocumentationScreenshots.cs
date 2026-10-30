@@ -6,6 +6,7 @@ using System.Windows.Automation;
 using System.Windows.Forms;
 using KeePassGate.Acl;
 using KeePassGate.Authority;
+using KeePassGate.Diagnostics;
 using KeePassGate.Pairing;
 using KeePassGate.Testing;
 using KeePassGate.Ui;
@@ -152,7 +153,7 @@ namespace KeePassGate.Host.Tests.Live
 
             foreach (var name in DocumentationImages.Expected)
             {
-                var path = Path.Combine(_directory, DocumentationImages.FileName(name));
+                var path = Paths.Join(_directory, DocumentationImages.FileName(name));
                 Assert.That(File.Exists(path), Is.True, path + " was not written.");
                 Assert.That(new FileInfo(path).Length, Is.GreaterThan(1024),
                     path + " is too small to be a picture of a dialog.");

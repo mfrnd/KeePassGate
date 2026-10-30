@@ -6,6 +6,7 @@ using System.Security.AccessControl;
 using System.Security.Principal;
 using System.Threading;
 using System.Windows.Automation;
+using KeePassGate.Diagnostics;
 using KeePassGate.Ui;
 using NUnit.Framework;
 using NUnit.Framework.Interfaces;
@@ -202,7 +203,7 @@ namespace KeePassGate.Host.Tests.Live
                 Assert.Ignore(reason);
             }
 
-            var directory = Path.Combine(Root(), SessionName());
+            var directory = Paths.Join(Root(), SessionName());
             EndOrphans();
             if (Directory.Exists(directory))
             {
@@ -330,7 +331,7 @@ namespace KeePassGate.Host.Tests.Live
         /// </remarks>
         private static string Root()
         {
-            return Path.Combine(
+            return Paths.Join(
                 Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
                 "KeePassGateLive");
         }

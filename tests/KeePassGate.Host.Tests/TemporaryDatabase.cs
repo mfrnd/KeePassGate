@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using KeePassGate.Diagnostics;
 using KeePassLib;
 using KeePassLib.Keys;
 using KeePassLib.Serialization;
@@ -33,7 +34,7 @@ namespace KeePassGate.Host.Tests
 
         public string Path
         {
-            get { return System.IO.Path.Combine(_directory, "test.kdbx"); }
+            get { return Paths.Join(_directory, "test.kdbx"); }
         }
 
         public PwGroup RootGroup
@@ -43,12 +44,12 @@ namespace KeePassGate.Host.Tests
 
         public static TemporaryDatabase New()
         {
-            var directory = System.IO.Path.Combine(
+            var directory = Paths.Join(
                 System.IO.Path.GetTempPath(), "KeePassGateTests", Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(directory);
 
             var database = new PwDatabase();
-            database.New(IOConnectionInfo.FromPath(System.IO.Path.Combine(directory, "test.kdbx")), KeyFor());
+            database.New(IOConnectionInfo.FromPath(Paths.Join(directory, "test.kdbx")), KeyFor());
             database.RootGroup.Name = "Invented";
 
             return new TemporaryDatabase(directory, database);

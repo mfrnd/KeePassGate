@@ -392,7 +392,7 @@ namespace KeePassGate.Host.Tests
             // save. With no connection between it and the lock, the entry still carried the old
             // path, the lock matched nothing and the locked database answered nothing at all.
             var databaseId = _targets.Current().Single().DatabaseId;
-            var moved = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(_database.Path), "moved.kdbx");
+            var moved = Paths.Join(System.IO.Path.GetDirectoryName(_database.Path), "moved.kdbx");
             _database.Database.SaveAs(IOConnectionInfo.FromPath(moved), true, null);
 
             _targets.Refresh();
@@ -412,7 +412,7 @@ namespace KeePassGate.Host.Tests
             // The close names the new path. Matched against the old one it dropped nothing, and the
             // next connection parked a responder and a gate key under the old path until exit.
             var original = _database.Path;
-            var moved = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(original), "moved.kdbx");
+            var moved = Paths.Join(System.IO.Path.GetDirectoryName(original), "moved.kdbx");
             _database.Database.SaveAs(IOConnectionInfo.FromPath(moved), true, null);
 
             _targets.Refresh();

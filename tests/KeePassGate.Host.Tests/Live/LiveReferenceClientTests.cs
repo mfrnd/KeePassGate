@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Windows.Automation;
+using KeePassGate.Diagnostics;
 using KeePassGate.Testing;
 using KeePassGate.Ui;
 using NUnit.Framework;
@@ -125,7 +126,7 @@ namespace KeePassGate.Host.Tests.Live
 
             _session = LiveSession.Begin(true);
             var keePass = _session.KeePass;
-            _identity = Path.Combine(Path.GetDirectoryName(keePass.DatabasePath), "client");
+            _identity = Paths.Join(Path.GetDirectoryName(keePass.DatabasePath), "client");
 
             keePass.Grant(Rules.Granting((Profile, "CRULAP")));
 
@@ -229,8 +230,8 @@ namespace KeePassGate.Host.Tests.Live
         {
             // The PKCS#12 half, which no other tier holds: written by .NET Framework's export and
             // read by `cryptography`, then converted to the PEM `ssl` loads.
-            Assert.That(File.Exists(Path.Combine(_identity, "identity.pem")), Is.True, _paired.ToString());
-            Assert.That(File.Exists(Path.Combine(_identity, "client.json")), Is.True, _paired.ToString());
+            Assert.That(File.Exists(Paths.Join(_identity, "identity.pem")), Is.True, _paired.ToString());
+            Assert.That(File.Exists(Paths.Join(_identity, "client.json")), Is.True, _paired.ToString());
         }
 
         [Test]
@@ -565,7 +566,7 @@ namespace KeePassGate.Host.Tests.Live
         /// </summary>
         private Run Calls(string arguments, TimeSpan timeout, string input = null)
         {
-            var program = Path.Combine("tests", "pykeepassgate", "live_calls.py");
+            var program = Paths.Join("tests", "pykeepassgate", "live_calls.py");
             return ReferenceClient.Execute(
                 "python \"" + program + "\" --directory \"" + _identity + "\" " + arguments, timeout, input);
         }

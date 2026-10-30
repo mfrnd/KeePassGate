@@ -967,6 +967,10 @@ the tools this branch carries.
   nothing managed does what these do, so both are suppressed there with the reason, and nowhere
   else. A new call into Windows is a new pair of them in that file. The tests' class is not
   `NativeMethods` too, because a test importing the plugin's `KeePassGate.Ui` would see both.
+- **A path is joined with `Paths.Join`, never `Path.Combine`**, which starts again at any rooted
+  part after the first and drops what came before it, silently. The helper refuses that part, and
+  one climbing out with `..`, and is the plugin's and the tests' alike; CodeQL reports every call
+  to `Path.Combine`, which is what keeps it so.
 - **American English is checked, not only asked for.** cspell's own `en_US` dictionary accepts the
   British doubled L, the past tense of cancel or dial spelled with two, and its language
   dictionaries accept a British spelling or two in code, so `cspell.yaml` refuses about 250 British

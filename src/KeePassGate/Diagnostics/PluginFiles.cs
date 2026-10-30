@@ -46,7 +46,7 @@ namespace KeePassGate.Diagnostics
                 var local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
                 return string.IsNullOrEmpty(local)
                     ? null
-                    : Path.Combine(Path.Combine(local, DirectoryName), fileName);
+                    : Paths.Join(local, DirectoryName, fileName);
             }
             catch (Exception error) when (Expected.OfStorage(error))
             {
