@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Windows.Forms;
 
 namespace KeePassGate.Ui
@@ -51,31 +52,14 @@ namespace KeePassGate.Ui
                 return null;
             }
 
-            foreach (var control in Descendants(root))
-            {
-                var typed = control as T;
-                if (typed != null && string.Equals(typed.Name, name, StringComparison.Ordinal))
-                {
-                    return typed;
-                }
-            }
-
-            return null;
+            return Descendants(root).OfType<T>().FirstOrDefault(
+                typed => string.Equals(typed.Name, name, StringComparison.Ordinal));
         }
 
         /// <summary>The first descendant of the requested type, whatever it is called.</summary>
         public static T FindFirst<T>(Control root) where T : Control
         {
-            foreach (var control in Descendants(root))
-            {
-                var typed = control as T;
-                if (typed != null)
-                {
-                    return typed;
-                }
-            }
-
-            return null;
+            return Descendants(root).OfType<T>().FirstOrDefault();
         }
     }
 }

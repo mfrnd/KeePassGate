@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Security.Cryptography;
@@ -265,12 +266,9 @@ namespace KeePassGate.Transport
             lock (_stateLock)
             {
                 var chosen = new List<TcpClient>();
-                foreach (var client in _live)
+                foreach (var client in _live.Where(client => !spareAwaiting || !_awaiting.Contains(client)))
                 {
-                    if (!spareAwaiting || !_awaiting.Contains(client))
-                    {
-                        chosen.Add(client);
-                    }
+                    chosen.Add(client);
                 }
 
                 closing = chosen.ToArray();

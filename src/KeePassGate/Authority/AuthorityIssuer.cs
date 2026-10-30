@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 
@@ -397,20 +398,10 @@ namespace KeePassGate.Authority
                 return false;
             }
 
-            foreach (var c in profile)
-            {
-                var allowed = (c >= 'a' && c <= 'z')
-                              || (c >= 'A' && c <= 'Z')
-                              || (c >= '0' && c <= '9')
-                              || c == '-' || c == '_';
-
-                if (!allowed)
-                {
-                    return false;
-                }
-            }
-
-            return true;
+            return profile.All(c => (c >= 'a' && c <= 'z')
+                                    || (c >= 'A' && c <= 'Z')
+                                    || (c >= '0' && c <= '9')
+                                    || c == '-' || c == '_');
         }
 
         public static bool IsUsableSubjectName(string subjectName)
@@ -429,20 +420,10 @@ namespace KeePassGate.Authority
                 return false;
             }
 
-            foreach (var c in subjectName)
-            {
-                var allowed = (c >= 'a' && c <= 'z')
-                              || (c >= 'A' && c <= 'Z')
-                              || (c >= '0' && c <= '9')
-                              || c == '-' || c == '_' || c == '.' || c == ' ';
-
-                if (!allowed)
-                {
-                    return false;
-                }
-            }
-
-            return true;
+            return subjectName.All(c => (c >= 'a' && c <= 'z')
+                                        || (c >= 'A' && c <= 'Z')
+                                        || (c >= '0' && c <= '9')
+                                        || c == '-' || c == '_' || c == '.' || c == ' ');
         }
 
         private static X509Extension ProfileClaims(IEnumerable<string> profiles)

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using KeePassGate.Transport;
 using Newtonsoft.Json;
 
@@ -162,9 +163,8 @@ namespace KeePassGate.Acl
                 }
 
                 var held = new HashSet<AclVerb>();
-                foreach (var written in verbs)
+                foreach (var verb in verbs.Select(AclVerbs.Read))
                 {
-                    var verb = AclVerbs.Read(written);
                     if (verb == null || !AclVerbs.IsGrantable(verb.Value))
                     {
                         return null;

@@ -121,14 +121,12 @@ namespace KeePassGate.Testing
 
             try
             {
-                foreach (var path in Directories())
+                foreach (var watcher in Directories().Select(path => new FileSystemWatcher(path)
+                         {
+                             IncludeSubdirectories = true,
+                             NotifyFilter = NotifyFilters.FileName,
+                         }))
                 {
-                    var watcher = new FileSystemWatcher(path)
-                    {
-                        IncludeSubdirectories = true,
-                        NotifyFilter = NotifyFilters.FileName,
-                    };
-
                     watcher.Created += (sender, e) =>
                     {
                         lock (created)
@@ -163,13 +161,11 @@ namespace KeePassGate.Testing
         {
             var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
 
-            foreach (var directory in new[] { @"Microsoft\Crypto\Keys", @"Microsoft\Crypto\RSA" })
+            foreach (var path in new[] { @"Microsoft\Crypto\Keys", @"Microsoft\Crypto\RSA" }
+                         .Select(directory => Paths.Join(appData, directory))
+                         .Where(Directory.Exists))
             {
-                var path = Paths.Join(appData, directory);
-                if (Directory.Exists(path))
-                {
-                    yield return path;
-                }
+                yield return path;
             }
         }
 

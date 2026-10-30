@@ -954,12 +954,11 @@ namespace KeePassGate.Host.Tests
             }
 
             var digit = '0';
-            foreach (var candidate in "0123456789abcdef")
+            foreach (var candidate in "0123456789abcdef".Where(
+                candidate => WidthOf(new string(candidate, length), font)
+                             > WidthOf(new string(digit, length), font)))
             {
-                if (WidthOf(new string(candidate, length), font) > WidthOf(new string(digit, length), font))
-                {
-                    digit = candidate;
-                }
+                digit = candidate;
             }
 
             var now = DateTimeOffset.UtcNow;
@@ -1061,16 +1060,12 @@ namespace KeePassGate.Host.Tests
         {
             var found = new List<FlowLayoutPanel>();
 
-            foreach (var control in ControlTree.Descendants(panel))
+            // The stacks, not the rows inside them. A row is as wide as its buttons and is
+            // measured by the stack that holds it.
+            foreach (var column in ControlTree.Descendants(panel).OfType<FlowLayoutPanel>()
+                         .Where(column => column.FlowDirection == FlowDirection.TopDown))
             {
-                var column = control as FlowLayoutPanel;
-
-                // The stacks, not the rows inside them. A row is as wide as its buttons and is
-                // measured by the stack that holds it.
-                if (column != null && column.FlowDirection == FlowDirection.TopDown)
-                {
-                    found.Add(column);
-                }
+                found.Add(column);
             }
 
             Assert.That(found.Count, Is.GreaterThanOrEqualTo(3),

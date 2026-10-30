@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Net;
@@ -976,9 +977,8 @@ namespace KeePassGate.Host.Tests.Live
                 // record, and a client holds only the names the database still lists: a record
                 // written without them would be a client reaching nothing.
                 var names = ProfileNames.Read(database.CustomData.Get(ProfileNames.CustomDataKey));
-                foreach (var profile in profiles)
+                foreach (var refused in profiles.Select(names.Add))
                 {
-                    var refused = names.Add(profile);
                     if (refused != null)
                     {
                         throw new ArgumentException(refused, nameof(profiles));
@@ -1087,13 +1087,12 @@ namespace KeePassGate.Host.Tests.Live
                 database.Open(IOConnectionInfo.FromPath(DatabasePath), NewKey(), null);
 
                 var profiles = ProfileNames.Read(null);
-                foreach (var name in names)
+                foreach (var refused in names.Select(profiles.Add))
                 {
                     // Answered rather than discarded. A name this plugin would refuse is a name the
                     // operator could not have typed, so a test seeding one is testing a state the
                     // product cannot reach. This used to do that silently, then hand `Write`'s
                     // null to `Set`, which throws about an argument instead.
-                    var refused = profiles.Add(name);
                     if (refused != null)
                     {
                         throw new ArgumentException(refused, nameof(names));
@@ -1351,9 +1350,9 @@ namespace KeePassGate.Host.Tests.Live
         /// </remarks>
         private static TcpListener Reserve(int preferred = Documented)
         {
-            foreach (var port in new[] { preferred, 0 })
+            foreach (var listener in new[] { preferred, 0 }
+                         .Select(port => new TcpListener(IPAddress.Loopback, port)))
             {
-                var listener = new TcpListener(IPAddress.Loopback, port);
                 try
                 {
                     listener.Start();

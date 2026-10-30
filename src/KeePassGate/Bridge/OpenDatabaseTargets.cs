@@ -105,12 +105,10 @@ namespace KeePassGate.Bridge
                 var databases = _openDatabases();
                 if (databases != null)
                 {
-                    foreach (var database in databases)
+                    foreach (var database in databases.Where(
+                        database => database != null && database.IsOpen && database.RootGroup != null))
                     {
-                        if (database != null && database.IsOpen && database.RootGroup != null)
-                        {
-                            open.Add(database);
-                        }
+                        open.Add(database);
                     }
                 }
             }
@@ -130,17 +128,13 @@ namespace KeePassGate.Bridge
 
                 try
                 {
-                    foreach (var database in open)
+                    foreach (var cached in open.Select(TargetFor).Where(cached => cached != null))
                     {
-                        var cached = TargetFor(database);
-                        if (cached != null)
-                        {
-                            // One reference per caller, taken while the cache still holds its own,
-                            // so that nothing can release the material between here and the
-                            // connection. A database holding several authorities hands out one
-                            // target per candidate, each answering that nothing is served.
-                            targets.AddRange(cached.Hand());
-                        }
+                        // One reference per caller, taken while the cache still holds its own,
+                        // so that nothing can release the material between here and the
+                        // connection. A database holding several authorities hands out one
+                        // target per candidate, each answering that nothing is served.
+                        targets.AddRange(cached.Hand());
                     }
 
                     handedOver = true;
@@ -647,12 +641,9 @@ namespace KeePassGate.Bridge
         private void DropClosed(List<PwDatabase> open)
         {
             var gone = new List<PwDatabase>();
-            foreach (var known in _cache.Keys)
+            foreach (var known in _cache.Keys.Where(known => !open.Contains(known)))
             {
-                if (!open.Contains(known))
-                {
-                    gone.Add(known);
-                }
+                gone.Add(known);
             }
 
             foreach (var database in gone)
@@ -1170,16 +1161,14 @@ namespace KeePassGate.Bridge
                     var holding = new List<AdmissionRecord>();
                     var now = DateTimeOffset.UtcNow;
 
-                    foreach (var record in new AdmissionStore(new CustomDataStore(database), _log).All().Records)
+                    // Not one whose certificate has expired: it regains nothing, being refused
+                    // before its record is read, and the pairing's own write prunes it.
+                    foreach (var record in new AdmissionStore(new CustomDataStore(database), _log).All().Records
+                                 .Where(record => record != null && record.Profiles != null
+                                                  && record.Profiles.Contains(profile, StringComparer.Ordinal)
+                                                  && !record.HasExpired(now)))
                     {
-                        // Not one whose certificate has expired: it regains nothing, being refused
-                        // before its record is read, and the pairing's own write prunes it.
-                        if (record != null && record.Profiles != null
-                            && record.Profiles.Contains(profile, StringComparer.Ordinal)
-                            && !record.HasExpired(now))
-                        {
-                            holding.Add(record);
-                        }
+                        holding.Add(record);
                     }
 
                     return holding;

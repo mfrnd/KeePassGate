@@ -170,12 +170,10 @@ namespace KeePassGate.Pipeline
                 return kept;
             }
 
-            foreach (var profile in held)
+            foreach (var profile in held.Where(
+                profile => profile != null && named.Contains(profile, StringComparer.Ordinal)))
             {
-                if (profile != null && named.Contains(profile, StringComparer.Ordinal))
-                {
-                    kept.Add(profile);
-                }
+                kept.Add(profile);
             }
 
             return kept;
@@ -200,12 +198,11 @@ namespace KeePassGate.Pipeline
                 return removed;
             }
 
-            foreach (var profile in held)
+            foreach (var profile in held.Where(
+                profile => profile != null
+                           && (named == null || !named.Contains(profile, StringComparer.Ordinal))))
             {
-                if (profile != null && (named == null || !named.Contains(profile, StringComparer.Ordinal)))
-                {
-                    removed.Add(profile);
-                }
+                removed.Add(profile);
             }
 
             return removed;

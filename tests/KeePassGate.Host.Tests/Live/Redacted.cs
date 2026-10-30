@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Linq;
 using System.Windows.Automation;
 
 namespace KeePassGate.Host.Tests.Live
@@ -204,17 +205,14 @@ namespace KeePassGate.Host.Tests.Live
             {
                 foreach (var identifier in identifiers)
                 {
-                    foreach (var where in RectanglesOf(window, identifier))
+                    foreach (var inside in RectanglesOf(window, identifier)
+                                 .Select(where => Rectangle.Intersect(
+                                     new Rectangle(
+                                         where.X - area.X, where.Y - area.Y, where.Width, where.Height),
+                                     new Rectangle(Point.Empty, picture.Size)))
+                                 .Where(inside => inside.Width > 0 && inside.Height > 0))
                     {
-                        var inside = Rectangle.Intersect(
-                            new Rectangle(
-                                where.X - area.X, where.Y - area.Y, where.Width, where.Height),
-                            new Rectangle(Point.Empty, picture.Size));
-
-                        if (inside.Width > 0 && inside.Height > 0)
-                        {
-                            graphics.FillRectangle(brush, inside);
-                        }
+                        graphics.FillRectangle(brush, inside);
                     }
                 }
             }

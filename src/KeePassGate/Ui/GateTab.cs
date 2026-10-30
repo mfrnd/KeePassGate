@@ -1,3 +1,5 @@
+using System.Linq;
+
 namespace KeePassGate.Ui
 {
     /// <summary>
@@ -286,17 +288,8 @@ namespace KeePassGate.Ui
 
         private static string Longest(params string[] candidates)
         {
-            var longest = string.Empty;
-
-            foreach (var candidate in candidates)
-            {
-                if (candidate.Length > longest.Length)
-                {
-                    longest = candidate;
-                }
-            }
-
-            return longest;
+            return candidates.Aggregate(
+                string.Empty, (longest, candidate) => candidate.Length > longest.Length ? candidate : longest);
         }
 
         /// <summary>The dialog raised when somebody asks to pair.</summary>

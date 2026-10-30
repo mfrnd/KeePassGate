@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using KeePassGate.Diagnostics;
 using KeePassGate.Ui;
 
@@ -74,23 +75,17 @@ namespace KeePassGate.Gate
 
         public void Locked()
         {
-            foreach (var screen in _screens)
+            foreach (var screen in _screens.Where(screen => screen != null))
             {
-                if (screen != null)
-                {
-                    screen.Locked();
-                }
+                screen.Locked();
             }
         }
 
         public void Closed()
         {
-            foreach (var screen in _screens)
+            foreach (var screen in _screens.Where(screen => screen != null))
             {
-                if (screen != null)
-                {
-                    screen.Closed();
-                }
+                screen.Closed();
             }
         }
     }

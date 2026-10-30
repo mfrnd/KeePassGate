@@ -106,10 +106,7 @@ namespace KeePassGate.Ui
             var withdrawn = 0;
             foreach (var id in made)
             {
-                if (_book.Withdraw(id))
-                {
-                    withdrawn++;
-                }
+                withdrawn += _book.Withdraw(id) ? 1 : 0;
             }
 
             return withdrawn;
