@@ -217,11 +217,7 @@ namespace KeePassGate.Host.Tests.Live
                 }
             }
 
-            var bits = 1;
-            while ((1 << bits) < palette.Count + 1)
-            {
-                bits++;
-            }
+            var bits = BitsFor(palette.Count + 1);
 
             for (var y = 0; y < area.Height; y++)
             {
@@ -247,6 +243,20 @@ namespace KeePassGate.Host.Tests.Live
             }
 
             return new Pending(area, palette, indices, bits);
+        }
+
+        /// <summary>
+        /// How many bits an index takes to tell this many colors apart, and one at the least.
+        /// </summary>
+        private static int BitsFor(int colors)
+        {
+            var bits = 1;
+            while ((1 << bits) < colors)
+            {
+                bits++;
+            }
+
+            return bits;
         }
 
         private Rectangle Changed(int[] before, int[] after)
