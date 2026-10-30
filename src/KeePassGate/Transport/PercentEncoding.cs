@@ -194,9 +194,7 @@ namespace KeePassGate.Transport
         /// </remarks>
         private static bool StandsForItself(char c, bool inQuery)
         {
-            return (c >= 'a' && c <= 'z')
-                   || (c >= 'A' && c <= 'Z')
-                   || (c >= '0' && c <= '9')
+            return Ascii.IsLetterOrDigit(c)
                    || "-._~!$&'()*+,;=:@".IndexOf(c) >= 0
                    || (inQuery && (c == '/' || c == '?'));
         }

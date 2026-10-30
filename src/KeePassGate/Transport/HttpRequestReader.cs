@@ -563,10 +563,7 @@ namespace KeePassGate.Transport
                 return false;
             }
 
-            return text.All(c => (c >= 'a' && c <= 'z')
-                                 || (c >= 'A' && c <= 'Z')
-                                 || (c >= '0' && c <= '9')
-                                 || "!#$%&'*+-.^_`|~".IndexOf(c) >= 0);
+            return text.All(c => Ascii.IsLetterOrDigit(c) || "!#$%&'*+-.^_`|~".IndexOf(c) >= 0);
         }
 
         /// <summary>What came of reading a head, which is not the same as what to answer.</summary>
