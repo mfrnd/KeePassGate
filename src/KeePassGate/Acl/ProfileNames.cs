@@ -128,23 +128,24 @@ namespace KeePassGate.Acl
             // Written by `Json.NET`, the same one that reads it back. A profile name is a
             // string somebody typed into a dialog, and it travels into a certificate claim from
             // here, so nothing about what it looks like escaped is decided twice.
-            var text = new StringWriter(CultureInfo.InvariantCulture);
-            var json = new JsonTextWriter(text) { Formatting = Formatting.None };
-
-            json.WriteStartObject();
-            json.WritePropertyName(ProfilesKey);
-            json.WriteStartArray();
-
-            foreach (var name in Names)
+            using (var text = new StringWriter(CultureInfo.InvariantCulture))
+            using (var json = new JsonTextWriter(text) { Formatting = Formatting.None })
             {
-                json.WriteValue(name);
+                json.WriteStartObject();
+                json.WritePropertyName(ProfilesKey);
+                json.WriteStartArray();
+
+                foreach (var name in Names)
+                {
+                    json.WriteValue(name);
+                }
+
+                json.WriteEndArray();
+                json.WriteEndObject();
+                json.Flush();
+
+                return text.ToString();
             }
-
-            json.WriteEndArray();
-            json.WriteEndObject();
-            json.Flush();
-
-            return text.ToString();
         }
 
         /// <summary>Whether this set already holds a name, compared exactly.</summary>

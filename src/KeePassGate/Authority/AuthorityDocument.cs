@@ -129,22 +129,23 @@ namespace KeePassGate.Authority
         /// </remarks>
         public static string Save(string authority, string host, string sniKey)
         {
-            var text = new StringWriter(CultureInfo.InvariantCulture);
-            var json = new JsonTextWriter(text) { Formatting = Formatting.None };
+            using (var text = new StringWriter(CultureInfo.InvariantCulture))
+            using (var json = new JsonTextWriter(text) { Formatting = Formatting.None })
+            {
+                json.WriteStartObject();
+                json.WritePropertyName(VersionKey);
+                json.WriteValue(Version);
+                json.WritePropertyName(AuthorityPartKey);
+                json.WriteValue(authority);
+                json.WritePropertyName(HostPartKey);
+                json.WriteValue(host);
+                json.WritePropertyName(SniKeyPartKey);
+                json.WriteValue(sniKey);
+                json.WriteEndObject();
+                json.Flush();
 
-            json.WriteStartObject();
-            json.WritePropertyName(VersionKey);
-            json.WriteValue(Version);
-            json.WritePropertyName(AuthorityPartKey);
-            json.WriteValue(authority);
-            json.WritePropertyName(HostPartKey);
-            json.WriteValue(host);
-            json.WritePropertyName(SniKeyPartKey);
-            json.WriteValue(sniKey);
-            json.WriteEndObject();
-            json.Flush();
-
-            return text.ToString();
+                return text.ToString();
+            }
         }
 
         private static void Complain(ICollection<string> problems, string what)

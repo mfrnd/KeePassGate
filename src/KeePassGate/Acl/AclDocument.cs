@@ -249,44 +249,45 @@ namespace KeePassGate.Acl
             // Written by `Json.NET`, which is here for the request bodies. A profile name is a
             // string somebody typed into a dialog, so what it looks like escaped is a question
             // this file should not be answering a second time.
-            var text = new StringWriter(CultureInfo.InvariantCulture);
-            var json = new JsonTextWriter(text) { Formatting = Formatting.None };
-
-            json.WriteStartObject();
-
-            // The default first and always, so that a document read by a person says what it does
-            // with anything it does not mention before it lists what it does.
-            json.WritePropertyName(DefaultKey);
-            json.WriteValue(Default == AclDefault.Deny ? "deny" : "inherit");
-
-            var names = new List<string>(_grants.Keys);
-            names.Sort(StringComparer.Ordinal);
-
-            foreach (var name in names)
+            using (var text = new StringWriter(CultureInfo.InvariantCulture))
+            using (var json = new JsonTextWriter(text) { Formatting = Formatting.None })
             {
-                json.WritePropertyName(name);
-                json.WriteStartArray();
+                json.WriteStartObject();
 
-                var verbs = new List<AclVerb>(_grants[name]);
+                // The default first and always, so that a document read by a person states what it does
+                // with anything it does not mention before it lists what it does.
+                json.WritePropertyName(DefaultKey);
+                json.WriteValue(Default == AclDefault.Deny ? "deny" : "inherit");
 
-                // In the order `AclVerbs.Grantable` declares, which is the order the editor shows
-                // and the order a mask is read in. Sorting the enum values instead agreed with it
-                // only for as long as the array happened to be in enum order, and a rule written
-                // here is read by a person comparing it against what a tab showed them.
-                verbs.Sort((left, right) => AclVerbs.PositionOf(left).CompareTo(AclVerbs.PositionOf(right)));
+                var names = new List<string>(_grants.Keys);
+                names.Sort(StringComparer.Ordinal);
 
-                foreach (var verb in verbs)
+                foreach (var name in names)
                 {
-                    json.WriteValue(AclVerbs.Write(verb));
+                    json.WritePropertyName(name);
+                    json.WriteStartArray();
+
+                    var verbs = new List<AclVerb>(_grants[name]);
+
+                    // In the order `AclVerbs.Grantable` declares, which is the order the editor shows
+                    // and the order a mask is read in. Sorting the enum values instead agreed with it
+                    // only for as long as the array happened to be in enum order, and a rule written
+                    // here is read by a person comparing it against what a tab showed them.
+                    verbs.Sort((left, right) => AclVerbs.PositionOf(left).CompareTo(AclVerbs.PositionOf(right)));
+
+                    foreach (var verb in verbs)
+                    {
+                        json.WriteValue(AclVerbs.Write(verb));
+                    }
+
+                    json.WriteEndArray();
                 }
 
-                json.WriteEndArray();
+                json.WriteEndObject();
+                json.Flush();
+
+                return text.ToString();
             }
-
-            json.WriteEndObject();
-            json.Flush();
-
-            return text.ToString();
         }
     }
 }
