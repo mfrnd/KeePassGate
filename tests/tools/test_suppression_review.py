@@ -15,6 +15,7 @@ import json
 import subprocess
 import threading
 import urllib.error
+import urllib.parse
 from collections import Counter
 from collections.abc import Callable
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -233,7 +234,9 @@ class _Api(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:
         self._record()
-        if self.path.endswith("page=2"):
+        if "/code-scanning/alerts" in self.path:
+            self._answer(200, [{"number": 9}])
+        elif self.path.endswith("page=2"):
             self._answer(200, [{"id": 2, "body": "second"}])
         else:
             port = self.server.server_port  # type: ignore[attr-defined]
@@ -285,6 +288,19 @@ def test_the_client_writes_reviews_and_comments_where_github_takes_them(api: str
         ("POST", "/repos/o/r/issues/5/comments", {"body": "new"}),
         ("PATCH", "/repos/o/r/issues/comments/7", {"body": "over"}),
     ]
+
+
+def test_the_client_asks_for_alerts_by_ref_and_changes_one(api: str) -> None:
+    github = review.GitHub("o/r", "secret", api)
+    assert github.alerts("refs/heads/master", "open") == [{"number": 9}]
+    assert github.change_alert(9, {"state": "open"}) == {"id": 7}
+    asked = urllib.parse.urlsplit(_Api.calls[0][1])
+    assert (_Api.calls[0][0], asked.path) == ("GET", "/repos/o/r/code-scanning/alerts")
+    assert urllib.parse.parse_qs(asked.query) == {
+        "ref": ["refs/heads/master"], "state": ["open"], "tool_name": ["CodeQL"],
+        "per_page": ["100"]}
+    assert "%2F" in asked.query
+    assert _Api.calls[1][:3] == ("PATCH", "/repos/o/r/code-scanning/alerts/9", {"state": "open"})
 
 
 def test_a_refusal_reaches_the_caller(api: str) -> None:

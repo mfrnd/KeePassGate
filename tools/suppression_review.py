@@ -56,6 +56,7 @@ import subprocess
 import sys
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from collections import Counter
 from collections.abc import Callable
@@ -584,7 +585,7 @@ class GitHub:
 
     def _pages(self, path: str) -> list[dict[str, Any]]:
         every: list[dict[str, Any]] = []
-        url: str | None = f"{path}?per_page=100"
+        url: str | None = f"{path}{'&' if '?' in path else '?'}per_page=100"
         while url is not None:
             page, links = self._call("GET", url)
             every.extend(page)
@@ -620,6 +621,16 @@ class GitHub:
             self._call("POST", f"/issues/{number}/comments", {"body": body})
         else:
             self._call("PATCH", f"/issues/comments/{existing}", {"body": body})
+
+    def alerts(self, ref: str, state: str) -> list[dict[str, Any]]:
+        """Every CodeQL alert in one state on one ref."""
+        query = f"ref={urllib.parse.quote(ref, safe='')}&state={state}&tool_name=CodeQL"
+        return self._pages(f"/code-scanning/alerts?{query}")
+
+    def change_alert(self, number: int, fields: dict[str, Any]) -> dict[str, Any]:
+        """One alert dismissed or opened again, and what GitHub made of it."""
+        changed: dict[str, Any] = self._call("PATCH", f"/code-scanning/alerts/{number}", fields)[0]
+        return changed
 
 
 def post(github: Repository, number: int, commit: str, placed_notes: list[Note],

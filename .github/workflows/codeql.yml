@@ -19,7 +19,8 @@
 # comment above it that gives the reason, as `CLAUDE.md` describes under Conventions. Code scanning
 # ignores the mark CodeQL puts on a suppressed finding, so each analysis is kept as CodeQL wrote it,
 # and the last job uploads it: on a pull request without the findings the code suppresses, so that
-# none becomes an alert there, and on `master` and the weekly run with all of them. Every
+# none becomes an alert there, and on `master` and the weekly run with all of them, where each
+# suppressed one is dismissed with its reason, so the Security tab lists every suppression. Every
 # suppression a pull request adds, changes or removes is put to review there, in a thread the merge
 # waits for, beside one comment listing them and counting the rest. Then that job fails on any
 # finding nothing suppresses, anywhere in the code. The ruleset's own check does not do that much,
@@ -193,6 +194,17 @@ jobs:
             done
             echo "upload $id landed"
           done
+
+      # Where everything was uploaded: each suppressed finding's alert dismissed with the reason
+      # its comment gives, and every dismissal made here that the code no longer backs opened
+      # again, so the Security tab lists the suppressions in the code and nothing else.
+      - name: the Security tab, kept to the code
+        if: github.event_name != 'pull_request'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: >-
+          uv run --locked python tools/dismissals.py --analyzed analyzed
+          --repository "$GITHUB_REPOSITORY" --commit "$GITHUB_SHA" --ref "$GITHUB_REF"
 
       # Before the verdict, so that what it warns about is on the pull request whatever the
       # verdict is. It fails only when it cannot write there, a fork's pull request among them.

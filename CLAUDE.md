@@ -906,7 +906,11 @@ review thread on every suppression a pull request adds, changes or removes, whic
 for, keeps one comment on the pull request listing what it suppresses and counting the rest by
 rule, and warns about a suppression under which CodeQL found nothing and a finding CodeQL
 suppressed that no comment accounts for. It fails only when it cannot write to the pull request,
-which is what a fork's pull request is given. The PowerShell is left out, because CodeQL reads none.
+which is what a fork's pull request is given. **And the Security tab lists every suppression**: on
+`master` and the weekly run, `tools/dismissals.py` dismisses the alert of each finding the code
+suppresses, with the comment's reason, and opens again every one it dismissed that the code no
+longer suppresses, since GitHub leaves an alert dismissed after its finding is gone. The
+PowerShell is left out, because CodeQL reads none.
 
 ## Testing
 
