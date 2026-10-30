@@ -1,5 +1,5 @@
-# Analyzes the code with CodeQL: the C#, the Python and the workflows, each a job of its own, and
-# the findings go to the repository's Security tab rather than into this run's log.
+# Analyzes the code with CodeQL, the C#, the Python and the workflows, each in a job of its own, and
+# judges what they found in one job after them, `code scanning passed`, which the ruleset requires.
 #
 # **Built the way the gate builds it.** The C# is compiled by `build.ps1 -Task Build`, against the
 # KeePass the repository pins and verifies, because CodeQL analyzes a compiled language from the
@@ -8,11 +8,20 @@
 # is one the analysis would lose at the first call. The Python and the workflows are read as they
 # are, since there is nothing to build.
 #
-# **`security-and-quality`**: the security queries, and the reliability and maintainability ones
-# beside them. Where those overlap `ruff` or the compiler's warnings, all errors here, they find
-# what those already refused and so find nothing; the rest are new. One is known to disagree with a
-# decision: catching every exception, which the places `CLAUDE.md` names do on purpose, so those
-# findings are dismissed with the reason. A finding blocks nothing unless the ruleset is made to.
+# **What runs is in `.github/codeql/codeql-config.yml`**: the `security-and-quality` queries and the
+# alert-suppression query of each language that has one, with no rule left out.
+# **The CodeQL is the one the pinned action ships**, `tools: linked`. Left to itself the action asks
+# GitHub on every run which version to use, so a new one could arrive with no commit here and fail a
+# pull request over code it never touched; pinned, it moves when Dependabot moves the action, in a
+# pull request of its own that this judges like any other.
+#
+# **Every finding is answered where it is found**: fixed, or suppressed by a `codeql[rule-id]`
+# comment above it that gives the reason, as `CLAUDE.md` describes under Conventions. Code scanning
+# ignores the mark CodeQL puts on a suppressed finding, so each analysis is kept as CodeQL wrote it,
+# and the last job uploads it: on a pull request without the findings the code suppresses, so that
+# none becomes an alert there, and on `master` and the weekly run with all of them. Then that job
+# fails on any finding nothing suppresses, anywhere in the code. The ruleset's own check does not do
+# that much, since it reads only the lines a pull request changed.
 #
 # **Pull requests, pushes to `master`, and once a week.** The first two as the gate has them, a pull
 # request's run grouped by its number and a push's by its commit, so neither cancels the other. The
@@ -23,7 +32,7 @@
 # `gate.yml` gives, and `dependabot.yml` proposes each new one.
 #
 # **Writing findings is all this may do.** Every job reads the repository and writes security
-# events, which is what uploading a result is, and nothing else.
+# events: an analysis that fails uploads that it failed, and the last job uploads the rest.
 
 name: codeql
 
@@ -77,7 +86,8 @@ jobs:
         with:
           languages: ${{ matrix.language }}
           build-mode: ${{ matrix.build-mode }}
-          queries: security-and-quality
+          config-file: ./.github/codeql/codeql-config.yml
+          tools: linked
 
       # Windows PowerShell, which is what the gate is written for. Between `init` and `analyze`,
       # because CodeQL watches the compiler run rather than reading the project files.
@@ -86,6 +96,94 @@ jobs:
         shell: powershell
         run: ./build.ps1 -Task Build
 
+      # Kept rather than uploaded, since the last job decides what each upload holds.
       - uses: github/codeql-action/analyze@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
         with:
           category: /language:${{ matrix.language }}
+          output: analyzed
+          upload: failure-only
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: analyzed-${{ matrix.language }}
+          path: analyzed
+          if-no-files-found: error
+
+  verdict:
+    name: code scanning passed
+    needs: analyze
+    # Not `always()`, which would judge a run somebody canceled, and fail it. The function is
+    # GitHub's, spelled its way: cspell:ignore cancelled
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: every analysis finished
+        if: needs.analyze.result != 'success'
+        env:
+          RESULT: ${{ needs.analyze.result }}
+        run: |
+          echo "::error::the analyses ended as $RESULT, which leaves nothing whole to judge."
+          exit 1
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          enable-cache: true
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: analyzed-*
+          path: analyzed
+
+      - name: what each language uploads
+        env:
+          EVENT: ${{ github.event_name }}
+        run: uv run --locked python tools/code_scanning.py prepare --analyzed analyzed --upload upload --event "$EVENT"
+
+      - id: csharp
+        uses: github/codeql-action/upload-sarif@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
+        with:
+          sarif_file: upload/csharp.sarif
+          category: /language:csharp
+          wait-for-processing: true
+
+      - id: python
+        uses: github/codeql-action/upload-sarif@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
+        with:
+          sarif_file: upload/python.sarif
+          category: /language:python
+          wait-for-processing: true
+
+      - id: actions
+        uses: github/codeql-action/upload-sarif@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
+        with:
+          sarif_file: upload/actions.sarif
+          category: /language:actions
+          wait-for-processing: true
+
+      # An upload can end as an error while the step that made it succeeds, which happened once in
+      # what `spikes/codeql-suppressions` measured: an analysis recorded as "Unknown Error", with
+      # no results, under a green job.
+      - name: the uploads landed
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SARIF_IDS: ${{ steps.csharp.outputs.sarif-id }} ${{ steps.python.outputs.sarif-id }} ${{ steps.actions.outputs.sarif-id }}
+        run: |
+          for id in $SARIF_IDS; do
+            url="repos/$GITHUB_REPOSITORY/code-scanning/sarifs/$id"
+            status=$(gh api "$url" --jq .processing_status)
+            [ "$status" = complete ] || { echo "::error::upload $id ended as $status"; exit 1; }
+            for analyses in $(gh api "$url" --jq '.analyses_url // empty'); do
+              error=$(gh api "$analyses" --jq '[.[] | select(.error != "")] | .[0].error // empty')
+              [ -z "$error" ] || { echo "::error::an analysis of upload $id failed: $error"; exit 1; }
+            done
+            echo "upload $id landed"
+          done
+
+      - name: the verdict
+        run: uv run --locked python tools/code_scanning.py verdict --analyzed analyzed

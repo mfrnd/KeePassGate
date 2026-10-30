@@ -875,13 +875,18 @@ issue when it releases a newer version, and moving that pin stays a person's job
 `tools/KeePass.ps1` refuses a version until its hash is written down.
 
 **CodeQL reads what the gate does not.** `codeql.yml` analyzes the C#, the Python and the workflows
-on every pull request, every push to `master` and once a week, with the `security-and-quality`
-queries, and puts what it finds on the repository's Security tab. The C# is compiled by
-`build.ps1 -Task Build` against the pinned KeePass, because CodeQL analyzes a compiled language from
-what the compiler sees, and without the build every call into KeePass resolves to nothing. **A pull
-request's analysis reports only what its own lines introduce**, so a green one with nothing found
-judges the change and not the code, and the whole of it is judged by the run on `master` and the
-weekly one. The PowerShell is left out, because CodeQL reads none.
+on every pull request, every push to `master` and once a week, with what
+`.github/codeql/codeql-config.yml` names: the `security-and-quality` queries and each language's
+alert-suppression query, with no rule left out. The C# is compiled
+by `build.ps1 -Task Build` against the pinned KeePass, because CodeQL analyzes a compiled language
+from what the compiler sees, and without the build every call into KeePass resolves to nothing. The
+CodeQL is the one the pinned action ships, `tools: linked`, so a new version arrives in Dependabot's
+pull request rather than on a day nothing changed. **A pull request's own upload reports only what
+its lines introduce**, and code scanning ignores the mark CodeQL puts on a suppressed finding, so
+each analysis is kept as CodeQL wrote it and judged by the job `code scanning passed`, which
+`tools/code_scanning.py` does the work of: it uploads a pull request's findings without the ones
+the code suppresses and everything else as it is, and fails on any finding nothing suppresses,
+anywhere in the code. The PowerShell is left out, because CodeQL reads none.
 
 ## Testing
 
