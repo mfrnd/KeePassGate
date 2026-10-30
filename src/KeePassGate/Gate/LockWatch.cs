@@ -263,6 +263,7 @@ namespace KeePassGate.Gate
                     Close("a database was unlocked", false);
                 }
             }
+            // codeql[cs/catch-of-all-exceptions] a handler of KeePass's own events, one of the four catch-alls
             catch (Exception error)
             {
                 // One of the places that catches everything, and this is why: it runs on KeePass's
@@ -294,6 +295,7 @@ namespace KeePassGate.Gate
             {
                 _targets.Refresh();
             }
+            // codeql[cs/catch-of-all-exceptions] a handler of KeePass's own events, one of the four catch-alls
             catch (Exception error)
             {
                 // KeePass's thread and KeePass's event, as the two handlers either side of this.
@@ -346,6 +348,7 @@ namespace KeePassGate.Gate
                     Close("a database was closed", false);
                 }
             }
+            // codeql[cs/catch-of-all-exceptions] a handler of KeePass's own events, one of the four catch-alls
             catch (Exception error)
             {
                 // The same reason as the unlock above: KeePass's thread, KeePass's event, and

@@ -97,6 +97,7 @@ namespace KeePassGate.Diagnostics
             {
                 line = GateLogFormat.Line(_clock(), level, message, error);
             }
+            // codeql[cs/catch-of-all-exceptions] the log the catch-alls report to, which may not throw
             catch (Exception)
             {
                 // Deliberately everything, and the one rule this file lives by. A logger is called
@@ -110,6 +111,7 @@ namespace KeePassGate.Diagnostics
             {
                 Trace.WriteLine(line);
             }
+            // codeql[cs/catch-of-all-exceptions] a trace listener can throw anything, and the log may not
             catch (Exception)
             {
                 // A trace listener is somebody else's code, attached by somebody else, and it can
@@ -156,6 +158,7 @@ namespace KeePassGate.Diagnostics
                     Trace.WriteLine(GateLogFormat.Line(
                         _clock(), GateLogFormat.WarnLevel, "log file disabled after a failed write", error));
                 }
+                // codeql[cs/catch-of-all-exceptions] the log the catch-alls report to, which may not throw
                 catch (Exception)
                 {
                     // As above: there is nowhere left to report a logger that cannot report.
@@ -214,6 +217,7 @@ namespace KeePassGate.Diagnostics
                     Trace.WriteLine(GateLogFormat.Line(
                         _clock(), GateLogFormat.WarnLevel, "log file not set aside, so it grows past its bound", error));
                 }
+                // codeql[cs/catch-of-all-exceptions] the log the catch-alls report to, which may not throw
                 catch (Exception)
                 {
                     // As above: there is nowhere left to report a logger that cannot report.

@@ -716,6 +716,7 @@ namespace KeePassGate.Bridge
                     }
                 }
             }
+            // codeql[cs/catch-of-all-exceptions] a handler of KeePass's own events, one of the four catch-alls
             catch (Exception error)
             {
                 // One of the four catch-alls, and this is why: it runs on KeePass's own thread,
@@ -747,6 +748,7 @@ namespace KeePassGate.Bridge
                     _progress.Remove(form);
                 }
             }
+            // codeql[cs/catch-of-all-exceptions] a handler of KeePass's own events, one of the four catch-alls
             catch (Exception error)
             {
                 // As above: a KeePass event handler may not throw.

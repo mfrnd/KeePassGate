@@ -204,6 +204,7 @@ namespace KeePassGate
                     }
                 }
             }
+            // codeql[cs/catch-of-all-exceptions] a handler of KeePass's own events, one of the four catch-alls
             catch (Exception error)
             {
                 // One of the catch-alls: KeePass calls this from its own window event, on

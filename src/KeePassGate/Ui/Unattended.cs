@@ -65,12 +65,14 @@ namespace KeePassGate.Ui
                 {
                     work();
                 }
+                // codeql[cs/catch-of-all-exceptions] the entry point's catch-all, followed across the post
                 catch (Exception error)
                 {
                     try
                     {
                         failed(error);
                     }
+                    // codeql[cs/catch-of-all-exceptions] a reporter failing here has nowhere left to report to
                     catch (Exception)
                     {
                         // A reporter that fails while reporting has nowhere left to report to, and

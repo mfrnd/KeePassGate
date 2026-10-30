@@ -206,7 +206,15 @@ designing around them.
   that true. And two places catch everything without being a fifth, since each keeps what was
   thrown and throws it again where one of the four sees it: `GateTlsServer`'s callbacks, because
   Bouncy Castle turns whatever a callback throws into a fatal alert, and the call `ControlUiThread`
-  marshals, because WinForms would answer one escaping it with a dialog of its own.
+  marshals, because WinForms would answer one escaping it with a dialog of its own. **And three
+  reporters catch everything, since none may add an exception of its own**: the log,
+  `TraceGateLog`, which the catch-alls report through and whose formatting and trace listeners
+  run code nobody here wrote, `GateIncidents.Record`, which they report to, and the audit line
+  `JsonLinesAudit.Record` shapes, which may not fail the request it records. `Unattended.Post`
+  catches what its posted work throws, which is the entry point's catch-all followed across the
+  post to KeePass's message queue, and what its reporter throws, for the reason the log does.
+  CodeQL reports every one of these places, and each carries a suppression naming where it
+  stands in this account.
   **A line that has to outlive a defect is written before it rather than caught around it**: the
   audit line for a pairing, a renewal or a client's own revocation that landed is written by
   `DatabaseWriter` on its own landed path, before any listener runs, so no listener's defect can
