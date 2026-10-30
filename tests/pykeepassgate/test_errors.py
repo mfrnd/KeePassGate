@@ -9,7 +9,8 @@ from pathlib import Path
 import pytest
 
 import pykeepassgate
-from pykeepassgate import api, errors
+import pykeepassgate.api as api
+import pykeepassgate.errors as errors
 
 #: Where the repository is, if these tests are in one, as `test_reference.py` finds it.
 REPOSITORY = Path(__file__).resolve().parents[2]
