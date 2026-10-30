@@ -30,8 +30,7 @@ namespace KeePassGate.Tests
 
         private static readonly TimeSpan Patience = TimeSpan.FromMinutes(5);
 
-        [ThreadStatic]
-        private static Mutex _held;
+        private Mutex _held;
 
         public ActionTargets Targets
         {

@@ -70,8 +70,9 @@ dotnet_diagnostic.CA1707.severity = none
 dotnet_diagnostic.CA1861.severity = none
 
 # CA1001: a type with disposable fields should be disposable. A fixture's fields are released in
-# `TearDown`, which is the contract NUnit offers and calls, and adding `IDisposable` beside it would
-# give a fixture two teardown paths where the framework only ever uses one.
+# `TearDown`, and an action attribute's in `AfterTest`, which are the contracts NUnit offers and
+# calls, and adding `IDisposable` beside them would give either two teardown paths where the
+# framework only ever uses one.
 dotnet_diagnostic.CA1001.severity = none
 
 # CA5359: do not accept every server certificate. These callbacks are the point rather than an
