@@ -12,8 +12,8 @@ merged, and nothing here ships or is built by any gate.
 The plugin, its tests, its build script and its design documents are on the mainline branches. This
 branch deliberately has none of them, so the probe can be read without the project around it and the
 project can be read without the probe in it. The mainline keeps what was established, from step 32
-on: a measured fact in its `CLAUDE.md`, a code scanning workflow that cites this branch, and vectors
-that hold its reading of a suppression comment to the CodeQL it pins.
+on: a measured fact in its `CLAUDE.md`, a code scanning workflow and a review tool that cite this
+branch, and vectors that hold its reading of a suppression comment to the CodeQL it pins.
 
 ## Why one probe asks eight questions
 
@@ -54,6 +54,10 @@ If a **new** question needs measuring, it gets its own branch from `master`, nam
 - **Its history is not here**, only the tree it ended with, so `RESULTS.md` lists each pull request
   with what it changed. The comment above each case describes it as first written, and a later pull
   request may have changed the case since.
+- **`spikes/suppressions/measure` is not part of that tree.** It is what #9 added, from a branch of
+  its own that removed the other workflows, and #9 was never merged. Its scripts made what
+  `RESULTS.md` section 8 records about how many comments a review may carry, and `results-9.jsonl`
+  is every answer as it came back.
 - **Nobody else's source is here.** CodeQL's query library and `github/codeql-action` are GitHub's,
   so `RESULTS.md` cites each by path at the release it names instead of carrying it.
 

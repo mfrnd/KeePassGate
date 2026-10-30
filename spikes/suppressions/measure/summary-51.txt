@@ -1,0 +1,153 @@
+### Code scanning: suppressions
+
+**Newly suppressed in this pull request: 122**, 1 of them security findings
+
+| Rule | Severity | Where | Reason |
+| --- | --- | --- | --- |
+| `cs/catch-of-all-exceptions` | quality | `src/KeePassGate/Audit/JsonLinesAudit.cs:166` | the audit line, which may not fail the request it records |
+| `cs/catch-of-all-exceptions` | quality | `src/KeePassGate/Bridge/GroupDialogs.cs:720` | a handler of KeePass's own events, one of the four catch-alls |
+| `cs/catch-of-all-exceptions` | quality | `src/KeePassGate/Bridge/GroupDialogs.cs:752` | a handler of KeePass's own events, one of the four catch-alls |
+| `cs/complex-condition` | quality | `src/KeePassGate/Bridge/KdbxVault.cs:1520` | the five standard fields as a table, each beside its own switch |
+| `cs/missed-using-statement` | quality | `src/KeePassGate/Bridge/OpenDatabaseTargets.cs:152` | disposed only when it is not kept, which no `using` can do |
+| `cs/missed-using-statement` | quality | `src/KeePassGate/Bridge/OpenDatabaseTargets.cs:709` | disposed only when it is not kept, which no `using` can do |
+| `cs/catch-of-all-exceptions` | quality | `src/KeePassGate/Diagnostics/GateIncidents.cs:95` | the incident the catch-alls record, which may not throw |
+| `cs/catch-of-all-exceptions` | quality | `src/KeePassGate/Diagnostics/TraceGateLog.cs:101` | the log the catch-alls report to, which may not throw |
+| `cs/catch-of-all-exceptions` | quality | `src/KeePassGate/Diagnostics/TraceGateLog.cs:115` | a trace listener can throw anything, and the log may not |
+| `cs/catch-of-all-exceptions` | quality | `src/KeePassGate/Diagnostics/TraceGateLog.cs:162` | the log the catch-alls report to, which may not throw |
+| `cs/catch-of-all-exceptions` | quality | `src/KeePassGate/Diagnostics/TraceGateLog.cs:221` | the log the catch-alls report to, which may not throw |
+| `cs/missed-using-statement` | quality | `src/KeePassGate/Gate/GateResolver.cs:296` | all but the one handed back are disposed, which no `using` can do |
+| `cs/catch-of-all-exceptions` | quality | `src/KeePassGate/Gate/LockWatch.cs:265` | a handler of KeePass's own events, one of the four catch-alls |
+| `cs/catch-of-all-exceptions` | quality | `src/KeePassGate/Gate/LockWatch.cs:297` | a handler of KeePass's own events, one of the four catch-alls |
+| `cs/catch-of-all-exceptions` | quality | `src/KeePassGate/Gate/LockWatch.cs:350` | a handler of KeePass's own events, one of the four catch-alls |
+| `cs/catch-of-all-exceptions` | quality | `src/KeePassGate/GateHost.cs:208` | a handler of KeePass's own events, one of the four catch-alls |
+| `cs/catch-of-all-exceptions` | quality | `src/KeePassGate/KeePassGateExt.cs:284` | the Tools menu item, one of the four catch-alls |
+| `cs/non-short-circuit` | quality | `src/KeePassGate/KeePassGateExt.cs:524` | `&` on purpose, for the reason above |
+| `cs/catch-of-all-exceptions` | quality | `src/KeePassGate/KeePassGateExt.cs:537` | the plugin's entry point, one of the four catch-alls |
+| `cs/catch-of-all-exceptions` | quality | `src/KeePassGate/KeePassGateExt.cs:577` | the entry point's `Terminate`, one of the four catch-alls |
+| `cs/catch-of-all-exceptions` | quality | `src/KeePassGate/KeePassGateExt.cs:591` | the entry point's `Terminate`, one of the four catch-alls |
+| `cs/catch-of-all-exceptions` | quality | `src/KeePassGate/KeePassGateExt.cs:610` | the entry point's `Terminate`, one of the four catch-alls |
+| `cs/catch-of-all-exceptions` | quality | `src/KeePassGate/KeePassGateExt.cs:624` | the entry point's `Terminate`, one of the four catch-alls |
+| `cs/catch-of-all-exceptions` | quality | `src/KeePassGate/KeePassGateExt.cs:638` | the entry point's `Terminate`, one of the four catch-alls |
+| `cs/catch-of-all-exceptions` | quality | `src/KeePassGate/KeePassGateExt.cs:654` | the entry point's `Terminate`, one of the four catch-alls |
+| `cs/catch-of-all-exceptions` | quality | `src/KeePassGate/KeePassGateExt.cs:668` | the entry point's `Terminate`, one of the four catch-alls |
+| `cs/catch-of-all-exceptions` | quality | `src/KeePassGate/KeePassGateExt.cs:685` | the entry point's `Terminate`, one of the four catch-alls |
+| `cs/catch-of-all-exceptions` | quality | `src/KeePassGate/KeePassGateExt.cs:699` | the entry point's `Terminate`, one of the four catch-alls |
+| `cs/catch-of-all-exceptions` | quality | `src/KeePassGate/Transport/GateConversation.cs:238` | the connection thread's, kept here so the client is answered |
+| `cs/catch-of-all-exceptions` | quality | `src/KeePassGate/Transport/GateListener.cs:679` | the connection thread, one of the four catch-alls |
+| `cs/missed-using-statement` | quality | `src/KeePassGate/Ui/AuthorityPanel.cs:1382` | disposed only when it is not kept, which no `using` can do |
+| `cs/catch-of-all-exceptions` | quality | `src/KeePassGate/Ui/AuthorityPanelFactory.cs:230` | the settings dialog's close, one of the four catch-alls |
+| `cs/catch-of-all-exceptions` | quality | `src/KeePassGate/Ui/IUiThread.cs:182` | kept for `Rethrow` to throw where a catch-all sees it |
+| `cs/call-to-unmanaged-code` | quality | `src/KeePassGate/Ui/NativeMethods.cs:26` | the one call to it, for every caller in the plugin |
+| `cs/call-to-unmanaged-code` | quality | `src/KeePassGate/Ui/NativeMethods.cs:32` | the one call to it, for every caller in the plugin |
+| `cs/call-to-unmanaged-code` | quality | `src/KeePassGate/Ui/NativeMethods.cs:38` | the one call to it, for every caller in the plugin |
+| `cs/call-to-unmanaged-code` | quality | `src/KeePassGate/Ui/NativeMethods.cs:44` | the one call to it, for every caller in the plugin |
+| `cs/call-to-unmanaged-code` | quality | `src/KeePassGate/Ui/NativeMethods.cs:50` | the one call to it, for every caller in the plugin |
+| `cs/call-to-unmanaged-code` | quality | `src/KeePassGate/Ui/NativeMethods.cs:56` | the one call to it, for every caller in the plugin |
+| `cs/unmanaged-code` | quality | `src/KeePassGate/Ui/NativeMethods.cs:75` | a modal loop disables the window, which `Control.Enabled` never reads |
+| `cs/unmanaged-code` | quality | `src/KeePassGate/Ui/NativeMethods.cs:80` | `Control.Enabled` would move WinForms' flag as well as the window |
+| `cs/unmanaged-code` | quality | `src/KeePassGate/Ui/NativeMethods.cs:84` | `Form.Owner` stays empty when `ShowDialog` picks the owner itself |
+| `cs/unmanaged-code` | quality | `src/KeePassGate/Ui/NativeMethods.cs:88` | WinForms walks no chain of owners up to its root |
+| `cs/unmanaged-code` | quality | `src/KeePassGate/Ui/NativeMethods.cs:93` | .NET Framework has no way of its own to flash a taskbar entry |
+| `cs/unmanaged-code` | quality | `src/KeePassGate/Ui/NativeMethods.cs:98` | nothing managed sets display affinity, and KeePass makes this same call |
+| `cs/constant-condition` | quality | `src/KeePassGate/Ui/RenewalApprovalForm.cs:532` | the countdown can decide while the question's modal loop runs |
+| `cs/catch-of-all-exceptions` | quality | `src/KeePassGate/Ui/Unattended.cs:69` | the entry point's catch-all, followed across the post |
+| `cs/catch-of-all-exceptions` | quality | `src/KeePassGate/Ui/Unattended.cs:76` | a reporter failing here has nowhere left to report to |
+| `py/file-not-closed` | quality | `src/pykeepassgate/credentials.py:397` | held in `_handles` until `close` closes every one |
+| `py/file-not-closed` | quality | `src/pykeepassgate/credentials.py:401` | held in `_handles` until `close` closes every one |
+| `py/unexpected-raise-in-special-method` | quality | `src/pykeepassgate/model.py:256` | withheld is not missing, so it is no `KeyError` |
+| `py/equals-hash-mismatch` | quality | `src/pykeepassgate/model.py:740` | `@dataclass` makes its `__eq__`, over the grants `__hash__` reads |
+| `py/insecure-protocol` | security, 7.5 | `src/pykeepassgate/transport.py:804` | refused above unless it offers TLS 1.3 alone |
+| `cs/missed-using-statement` | quality | `tests/KeePassGate.Host.Tests/AnimatedGifTests.cs:66` | one of a list the `finally` disposes, which no `using` holds |
+| `cs/missed-using-statement` | quality | `tests/KeePassGate.Host.Tests/AnimatedGifTests.cs:97` | one of a list the `finally` disposes, which no `using` holds |
+| `cs/missed-using-statement` | quality | `tests/KeePassGate.Host.Tests/AnimatedGifTests.cs:115` | one of a list the `finally` disposes, which no `using` holds |
+| `cs/coupled-types` | quality | `tests/KeePassGate.Host.Tests/Live/Storyboard.cs:54` | `Layout` is a private part of it, nested inside it |
+| `cs/missed-using-statement` | quality | `tests/KeePassGate.Host.Tests/Live/Storyboard.cs:937` | disposed only when it is not kept, which no `using` can do |
+| `cs/missed-using-statement` | quality | `tests/KeePassGate.Host.Tests/Live/ThrowawayKeePass.cs:61` | a field, cleared as it is disposed so that nothing reads it disposed |
+| `cs/missed-using-statement` | quality | `tests/KeePassGate.Host.Tests/Live/ThrowawayKeePass.cs:196` | disposed only when it is not kept, which no `using` can do |
+| `cs/local-not-disposed` | quality | `tests/KeePassGate.Host.Tests/NodeTagsTests.cs:536` | `KdbxFile` disposes the stream it is handed, as KeePass 2.61.1 does |
+| `cs/local-not-disposed` | quality | `tests/KeePassGate.Host.Tests/NodeTagsTests.cs:541` | `KdbxFile` disposes the stream it is handed, as KeePass 2.61.1 does |
+| `cs/missed-using-statement` | quality | `tests/KeePassGate.Host.Tests/PairingInRealDatabaseTests.cs:1109` | opened in the save's callback and kept open for the assertions after it |
+| `cs/missed-using-statement` | quality | `tests/KeePassGate.Tests/DesktopAttribute.cs:44` | disposed only when it is not kept, which no `using` can do |
+| `cs/static-field-written-by-instance` | quality | `tests/KeePassGate.Tests/DesktopAttribute.cs:79` | the run's one mutex, held by the thread that took it |
+| `cs/static-field-written-by-instance` | quality | `tests/KeePassGate.Tests/DesktopAttribute.cs:91` | the run's one mutex, held by the thread that took it |
+| `cs/missed-using-statement` | quality | `tests/KeePassGate.Tests/PairingApprovalTests.cs:773` | one of a list the `finally` disposes, which no `using` holds |
+| `cs/missed-using-statement` | quality | `tests/Shared/PrivateKeyFiles.cs:54` | disposed only when it is not kept, which no `using` can do |
+| `cs/missed-using-statement` | quality | `tests/Shared/PrivateKeyFiles.cs:160` | one of a list the `finally` disposes, which no `using` holds |
+| `cs/catch-of-all-exceptions` | quality | `tests/Shared/Thrown.cs:34` | the tests' one catch-all, handing back what a test asserts on |
+| `cs/call-to-unmanaged-code` | quality | `tests/Shared/User32.cs:30` | the one call to it, for every caller in the tests |
+| `cs/call-to-unmanaged-code` | quality | `tests/Shared/User32.cs:36` | the one call to it, for every caller in the tests |
+| `cs/call-to-unmanaged-code` | quality | `tests/Shared/User32.cs:42` | the one call to it, for every caller in the tests |
+| `cs/call-to-unmanaged-code` | quality | `tests/Shared/User32.cs:48` | the one call to it, for every caller in the tests |
+| `cs/call-to-unmanaged-code` | quality | `tests/Shared/User32.cs:54` | the one call to it, for every caller in the tests |
+| `cs/call-to-unmanaged-code` | quality | `tests/Shared/User32.cs:60` | the one call to it, for every caller in the tests |
+| `cs/call-to-unmanaged-code` | quality | `tests/Shared/User32.cs:66` | the one call to it, for every caller in the tests |
+| `cs/call-to-unmanaged-code` | quality | `tests/Shared/User32.cs:72` | the one call to it, for every caller in the tests |
+| `cs/call-to-unmanaged-code` | quality | `tests/Shared/User32.cs:78` | the one call to it, for every caller in the tests |
+| `cs/call-to-unmanaged-code` | quality | `tests/Shared/User32.cs:84` | the one call to it, for every caller in the tests |
+| `cs/call-to-unmanaged-code` | quality | `tests/Shared/User32.cs:90` | the one call to it, for every caller in the tests |
+| `cs/call-to-unmanaged-code` | quality | `tests/Shared/User32.cs:96` | the one call to it, for every caller in the tests |
+| `cs/call-to-unmanaged-code` | quality | `tests/Shared/User32.cs:102` | the one call to it, for every caller in the tests |
+| `cs/call-to-unmanaged-code` | quality | `tests/Shared/User32.cs:108` | the one call to it, for every caller in the tests |
+| `cs/call-to-unmanaged-code` | quality | `tests/Shared/User32.cs:114` | the one call to it, for every caller in the tests |
+| `cs/call-to-unmanaged-code` | quality | `tests/Shared/User32.cs:120` | the one call to it, for every caller in the tests |
+| `cs/call-to-unmanaged-code` | quality | `tests/Shared/User32.cs:126` | the one call to it, for every caller in the tests |
+| `cs/call-to-unmanaged-code` | quality | `tests/Shared/User32.cs:132` | the one call to it, for every caller in the tests |
+| `cs/call-to-unmanaged-code` | quality | `tests/Shared/User32.cs:138` | the one call to it, for every caller in the tests |
+| `cs/call-to-unmanaged-code` | quality | `tests/Shared/User32.cs:144` | the one call to it, for every caller in the tests |
+| `cs/call-to-unmanaged-code` | quality | `tests/Shared/User32.cs:150` | the one call to it, for every caller in the tests |
+| `cs/call-to-unmanaged-code` | quality | `tests/Shared/User32.cs:156` | the one call to it, for every caller in the tests |
+| `cs/call-to-unmanaged-code` | quality | `tests/Shared/User32.cs:162` | the one call to it, for every caller in the tests |
+| `cs/call-to-unmanaged-code` | quality | `tests/Shared/User32.cs:177` | the one call to it, for every caller in the tests |
+| `cs/call-to-unmanaged-code` | quality | `tests/Shared/User32.cs:184` | the one call to it, for every caller in the tests |
+| `cs/call-to-unmanaged-code` | quality | `tests/Shared/User32.cs:190` | the one call to it, for every caller in the tests |
+| `cs/unmanaged-code` | quality | `tests/Shared/User32.cs:225` | nothing managed joins one thread's input to another's |
+| `cs/unmanaged-code` | quality | `tests/Shared/User32.cs:230` | nothing managed raises another process's window |
+| `cs/unmanaged-code` | quality | `tests/Shared/User32.cs:235` | the window manager's list, where UI automation is a second opinion |
+| `cs/unmanaged-code` | quality | `tests/Shared/User32.cs:239` | `Form.ActiveForm` answers for the foreground, not for this thread |
+| `cs/unmanaged-code` | quality | `tests/Shared/User32.cs:243` | the focus as Windows holds it, which `ActiveControl` only follows |
+| `cs/unmanaged-code` | quality | `tests/Shared/User32.cs:247` | nothing managed names the desktop's foreground window |
+| `cs/unmanaged-code` | quality | `tests/Shared/User32.cs:252` | display affinity has no managed reader |
+| `cs/unmanaged-code` | quality | `tests/Shared/User32.cs:256` | WinForms offers a window's style only as it is made, not as it is |
+| `cs/unmanaged-code` | quality | `tests/Shared/User32.cs:260` | nothing managed reads the title of another process's window |
+| `cs/unmanaged-code` | quality | `tests/Shared/User32.cs:264` | nothing managed names the thread or the process owning a window |
+| `cs/unmanaged-code` | quality | `tests/Shared/User32.cs:269` | a modal loop disables the window, which `Control.Enabled` never reads |
+| `cs/unmanaged-code` | quality | `tests/Shared/User32.cs:274` | nothing managed reads whether another process's window is visible |
+| `cs/unmanaged-code` | quality | `tests/Shared/User32.cs:278` | `SendKeys` needs a message loop, which a test runner does not have |
+| `cs/unmanaged-code` | quality | `tests/Shared/User32.cs:282` | nothing managed presses a real mouse button |
+| `cs/unmanaged-code` | quality | `tests/Shared/User32.cs:287` | a posted message meets the loop's own handling, as real input does |
+| `cs/unmanaged-code` | quality | `tests/Shared/User32.cs:292` | a window painted by Windows, where `DrawToBitmap` leaves holes |
+| `cs/unmanaged-code` | quality | `tests/Shared/User32.cs:296` | .NET Framework has no public way to send a window a message |
+| `cs/unmanaged-code` | quality | `tests/Shared/User32.cs:300` | .NET Framework has no public way to send a window a message |
+| `cs/unmanaged-code` | quality | `tests/Shared/User32.cs:304` | .NET Framework has no public way to send a window a message |
+| `cs/unmanaged-code` | quality | `tests/Shared/User32.cs:308` | .NET Framework has no public way to send a window a message |
+| `cs/unmanaged-code` | quality | `tests/Shared/User32.cs:312` | .NET Framework has no public way to send a window a message |
+| `cs/unmanaged-code` | quality | `tests/Shared/User32.cs:316` | `Form.Activate` takes the foreground as well, and this does not |
+| `cs/unmanaged-code` | quality | `tests/Shared/User32.cs:321` | nothing managed brings another process's window to the front |
+| `cs/unmanaged-code` | quality | `tests/Shared/User32.cs:326` | physical pixels, which `Cursor.Position` does not take |
+| `cs/unmanaged-code` | quality | `tests/Shared/User32.cs:331` | nothing managed puts a window directly behind another |
+| `cs/unmanaged-code` | quality | `tests/Shared/User32.cs:337` | nothing managed restores another process's window |
+
+**Suppressed in total: 122**
+
+| Rule | Count |
+| --- | --- |
+| `cs/call-to-unmanaged-code` | 32 (+32) |
+| `cs/unmanaged-code` | 32 (+32) |
+| `cs/catch-of-all-exceptions` | 30 (+30) |
+| `cs/missed-using-statement` | 15 (+15) |
+| `cs/local-not-disposed` | 2 (+2) |
+| `cs/static-field-written-by-instance` | 2 (+2) |
+| `py/file-not-closed` | 2 (+2) |
+| `cs/complex-condition` | 1 (+1) |
+| `cs/constant-condition` | 1 (+1) |
+| `cs/coupled-types` | 1 (+1) |
+| `cs/non-short-circuit` | 1 (+1) |
+| `py/equals-hash-mismatch` | 1 (+1) |
+| `py/insecure-protocol` | 1 (+1) |
+| `py/unexpected-raise-in-special-method` | 1 (+1) |
+
+**Suppressions that suppress nothing: 0**
+
+**Findings CodeQL suppressed that no comment accounts for: 0**
+
+<!-- code-scanning: summary -->

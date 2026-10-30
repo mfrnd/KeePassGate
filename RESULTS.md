@@ -19,7 +19,8 @@ were recorded here, and [`README.md`](README.md) describes how to make another.
 | What keeps a pull request free of them? | Uploading its SARIF less what the code suppresses, so that a suppressed finding makes no alert |
 | What keeps the default branch's list true? | Uploading everything, dismissing each alert the code suppresses with the comment's reason, and opening again every such dismissal the code no longer backs |
 | Which CodeQL runs? | The highest version GitHub enables by default on the day, unless the workflow pins one; `tools: linked` runs the bundle the pinned action ships |
-| Verdict | **Filter on a pull request, dismiss on the default branch, and fail on any finding nothing suppresses in the whole SARIF**, since a pull request's own upload holds only the lines it changed |
+| How many comments may one review carry? | **80.** A review of 81 is refused at once as a secondary rate limit and makes nothing. A review of 60 or more took GitHub past ten seconds, which it answered with 502 while making the review all the same. Eight reviews of 20, twenty seconds apart, all went through |
+| Verdict | **Filter on a pull request, dismiss on the default branch, and fail on any finding nothing suppresses in the whole SARIF**, since a pull request's own upload holds only the lines it changed, and put the suppressions to review twenty comments at a time |
 
 ## 1. What ran, in order
 
@@ -40,6 +41,7 @@ one.
 | #7, as first opened | took `C1`'s suppression away, put one above `C2`, whose finding `main` had open, and added `p7`, a suppressed security finding | the filter against each, section 6 |
 | #8 | had `main` upload the whole SARIF and run `tools/sync_dismissals.py`, and had the filter drop a security finding like any other | dismissing on `main`, section 7 |
 | #7, finished after #8 | changed `C14`'s flagged line; changed `C15`'s to one CodeQL does not report, its right operand being a local rather than a call, which leaves its comment over no finding; added `C16`, a new finding whose reason runs past 280 characters; then merged | dismissing on `main`, section 7, and fingerprints, section 4 |
+| #9, never merged | from a branch that removed the other workflows, posted the 122 comments KeePassGate's pull request #51 was refused as one review, then single reviews of 80, 40, 60 and 81 comments, and eight of 20 | how many comments a review may carry, section 8 |
 
 ## 2. Which comments suppress
 
@@ -288,6 +290,40 @@ comment in one `COMMENT` review.
 - **`lgtm` in a comment's prose is not a suppression, and the prototype took it for one.** It put
   `# p6: an lgtm suppression added by a pull request.`, the comment naming `p6`, to review as a
   suppression of its own line. CodeQL takes no `lgtm` in the middle of a sentence, section 2.
+
+### How many comments a review may carry
+
+Measured on #9, after KeePassGate's own review job was refused with 403 when it posted 122 comments
+in one review, on its pull request #51. `measure/measure.py` posts each review as that job does,
+with the workflow's token holding `pull-requests: write`, and prints every answer with its rate limit
+headers. `measure/generate.py` makes the 122 from the summary #51's job printed,
+`measure/summary-51.txt`, and fresh lines for the rest. Every step ran at least three minutes after
+the one before, and the pull request's review comments were counted around each with a token other
+than the workflow's. `measure/results-9.jsonl` is every answer as it came back.
+
+| Step | Reviews | Answer | Time each | Comments made |
+| --- | --- | --- | --- | --- |
+| A | one of 122, #51's | 403, secondary rate limit | 1.3 s | 0 |
+| B1 | one of 80 | 502 | 10.5 s | 80 |
+| B2 | one of 40 | 200 | 9.5 s | 40 |
+| B3 | one of 60 | 502 | 10.4 s | 60 |
+| C1 | one of 81 | 403, secondary rate limit | 1.1 s | 0 |
+| C2 | eight of 20, twenty seconds apart | 200 each | 4.8 to 7.2 s | 160 |
+
+- **A review of more than 80 comments is refused at once, and makes nothing.** The answer is 403,
+  "You have exceeded a secondary rate limit and have been temporarily blocked from content
+  creation", with no `retry-after` and the primary limit untouched. That is GitHub's documented 80
+  content-generating requests a minute, with each comment counted as one. Both times, the block had
+  lifted three and a half minutes later.
+- **A review GitHub takes past about ten seconds is answered 502, and made all the same.** It took a
+  quarter to a third of a second a comment, and both 502s left every comment of their review on the
+  pull request, so a 5xx answer to a review leaves open whether it was made.
+- **Eight reviews of 20, twenty seconds apart, all went through**: 160 comments at about 46 a minute,
+  the slowest review in 7.2 seconds.
+- **Not measured: several reviews adding up to more than 80 inside one minute.** C2 stayed at about
+  half of that.
+- **`measure/driver.py` ran A to B3 and took a 502 for a refusal**, so it was narrowing in on the ten
+  seconds rather than on the limit, and it was stopped there. `measure/sequence.py` ran C1 and C2.
 
 ## 9. Which CodeQL runs
 

@@ -45,6 +45,30 @@ ran, with what each changed, since the tree here is only the state the last one 
 built or analyzed on the machine that pushes: the runner builds the C#, and every result is read
 from GitHub's API or from the SARIF a run keeps.
 
+**#9 is the exception, and `spikes/suppressions/measure` is what it added.** It measured how many
+comments one review may carry, so it ran from a branch of its own that removed the three workflows
+and held `measure.yml` as its only one, at `.github/workflows/measure.yml`, and it was never merged.
+
+- `measure.py` posts the reviews `measure/plan.json` asks for, with the workflow's token, and prints
+  every answer GitHub gives with its rate limit headers.
+- `generate.py` writes the lines to comment on and the comments themselves, from `summary-51.txt`,
+  the summary KeePassGate's review job printed on its pull request #51.
+- `driver.py` and `sequence.py` pushed one plan at a time from the machine, waited for each run and
+  read its answers back, into what is now `results-9.jsonl`.
+
+To run it again, put `measure` at the root of a branch taken from `main`, with `measure.yml` moved to
+`.github/workflows` and the other three workflows deleted, write the files from the root with
+`python measure/generate.py measure/summary-51.txt .`, and commit `measure/plan.json` asking for the
+first step:
+
+```json
+{"step": "A", "set": "real", "offset": 0, "batches": [122], "pause": 1, "retry": false}
+```
+
+Open the pull request, which runs that step, and start
+`python measure/driver.py <checkout> <pull request> <results directory>` on the machine, then
+`measure/sequence.py` with the same arguments.
+
 ## Reading a re-run
 
 Pull request, alert and analysis numbers belong to the repository that made them, so a re-run is
