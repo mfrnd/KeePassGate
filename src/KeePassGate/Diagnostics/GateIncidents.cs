@@ -94,6 +94,7 @@ namespace KeePassGate.Diagnostics
             {
                 _log.Unexpected(where ?? "something failed unexpectedly", error);
             }
+            // codeql[cs/catch-of-all-exceptions] the incident the catch-alls record, which may not throw
             catch (Exception)
             {
                 // A log that throws while reporting an incident cannot be reported to the log.

@@ -219,7 +219,15 @@ designing around them.
   WinForms would answer one escaping it with that dialog, both keeping it for where one of the
   four sees it, and `Initialize`, which calls `Terminate` and throws it to KeePass, since KeePass
   warns the operator that the plugin cannot be loaded, with the exception's message, and undoes
-  nothing.
+  nothing. **And three reporters catch everything, since none may add an exception of its own**:
+  the log, `TraceGateLog`, which the catch-alls report through and whose formatting and trace
+  listeners run code nobody here wrote, `GateIncidents.Record`, which they report to, and the
+  audit line `JsonLinesAudit.Record` shapes, which may not fail the request it records.
+  `Unattended.Post` catches what its posted work throws, which is the catch-all of the handler
+  that posted it, followed across the post to KeePass's message queue, and what its reporter
+  throws, for the reason the log does. CodeQL reports each of these places but the ones that
+  throw again from inside the catch, which its query accepts, and each place it reports carries a
+  suppression naming where it stands in this account.
   **A line that has to outlive a defect is written before it rather than caught around it**: the
   audit line for a pairing, a renewal or a client's own revocation that landed is written by
   `DatabaseWriter` on its own landed path, before any listener runs, so no listener's defect can

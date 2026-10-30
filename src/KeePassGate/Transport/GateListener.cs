@@ -677,6 +677,7 @@ namespace KeePassGate.Transport
                 // also covers `ArgumentException` and would swallow a real one.
                 _log.Info("a connection ended early: " + error.Message);
             }
+            // codeql[cs/catch-of-all-exceptions] the connection thread, one of the four catch-alls
             catch (Exception error)
             {
                 // One of the four catch-alls. This runs on a thread pool thread, so an exception

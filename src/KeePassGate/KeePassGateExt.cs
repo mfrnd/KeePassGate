@@ -282,6 +282,7 @@ namespace KeePassGate
                     new MessageBoxPrompt().Tell(GateName.Full, said);
                 }
             }
+            // codeql[cs/catch-of-all-exceptions] the Tools menu item, one of the four catch-alls
             catch (Exception error)
             {
                 _incidents.Record("the status window could not be shown", error);
@@ -684,6 +685,7 @@ namespace KeePassGate
             {
                 step();
             }
+            // codeql[cs/catch-of-all-exceptions] each step of `Terminate`, one of the four catch-alls
             catch (Exception error)
             {
                 Report(failure, error);

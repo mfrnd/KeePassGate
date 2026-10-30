@@ -234,6 +234,7 @@ namespace KeePassGate.Transport
             {
                 handler.Handle(context);
             }
+            // codeql[cs/catch-of-all-exceptions] the connection thread's, kept here so the client is answered
             catch (Exception error)
             {
                 // Part of the connection catch-all, kept here rather than left to it so that the

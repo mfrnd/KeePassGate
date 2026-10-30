@@ -178,6 +178,7 @@ namespace KeePassGate.Ui
                 {
                     _work();
                 }
+                // codeql[cs/catch-of-all-exceptions] kept for `Rethrow` to throw where a catch-all sees it
                 catch (Exception error)
                 {
                     lock (_gate)

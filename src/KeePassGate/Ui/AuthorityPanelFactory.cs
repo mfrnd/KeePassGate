@@ -225,6 +225,7 @@ namespace KeePassGate.Ui
                     session.Discard();
                     database.Discard();
                 }
+                // codeql[cs/catch-of-all-exceptions] the settings dialog's close, one of the four catch-alls
                 catch (Exception error)
                 {
                     // A catch-all, because `FormClosed` is raised on KeePass's own thread as its
