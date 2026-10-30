@@ -1,8 +1,8 @@
 using System;
-using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Windows.Automation;
+using KeePassGate.Testing;
 using NUnit.Framework;
 
 namespace KeePassGate.Host.Tests.Live
@@ -29,34 +29,6 @@ namespace KeePassGate.Host.Tests.Live
     /// </remarks>
     internal static class Keyboard
     {
-        [DllImport("user32.dll")]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        private static extern bool SetForegroundWindow(IntPtr window);
-
-        [DllImport("user32.dll")]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        private static extern bool ShowWindow(IntPtr window, int command);
-
-        [DllImport("user32.dll")]
-        private static extern IntPtr GetForegroundWindow();
-
-        [DllImport("user32.dll")]
-        private static extern uint GetWindowThreadProcessId(IntPtr window, IntPtr processId);
-
-        [DllImport("user32.dll")]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        private static extern bool AttachThreadInput(uint attachTo, uint attachFrom, bool attach);
-
-        [DllImport("user32.dll")]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        private static extern bool BringWindowToTop(IntPtr window);
-
-        [DllImport("user32.dll")]
-        private static extern void keybd_event(byte key, byte scanCode, uint flags, UIntPtr extraInfo);
-
-        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
-        private static extern int GetWindowText(IntPtr window, StringBuilder text, int count);
-
         private const int RestoreWindow = 9;
         private const uint KeyUp = 0x0002;
         private const byte AltKey = 0x12;
@@ -123,27 +95,27 @@ namespace KeePassGate.Host.Tests.Live
                 return false;
             }
 
-            ShowWindow(handle, RestoreWindow);
+            User32.ShowWindow(handle, RestoreWindow);
 
-            var foreground = GetWindowThreadProcessId(GetForegroundWindow(), IntPtr.Zero);
-            var target = GetWindowThreadProcessId(handle, IntPtr.Zero);
-            var attached = foreground != target && AttachThreadInput(foreground, target, true);
+            var foreground = User32.GetWindowThreadProcessId(User32.GetForegroundWindow(), out _);
+            var target = User32.GetWindowThreadProcessId(handle, out _);
+            var attached = foreground != target && User32.AttachThreadInput(foreground, target, true);
 
             try
             {
-                BringWindowToTop(handle);
-                SetForegroundWindow(handle);
+                User32.BringWindowToTop(handle);
+                User32.SetForegroundWindow(handle);
             }
             finally
             {
                 if (attached)
                 {
-                    AttachThreadInput(foreground, target, false);
+                    User32.AttachThreadInput(foreground, target, false);
                 }
             }
 
             Thread.Sleep(300);
-            return GetForegroundWindow() == handle;
+            return User32.GetForegroundWindow() == handle;
         }
 
         /// <summary>
@@ -172,7 +144,7 @@ namespace KeePassGate.Host.Tests.Live
             }
 
             Assert.Fail("'" + NameOf(window) + "' could not be brought to the front, so nothing was typed. " +
-                        "In front instead: '" + TitleOf(GetForegroundWindow()) + "'.");
+                        "In front instead: '" + TitleOf(User32.GetForegroundWindow()) + "'.");
         }
 
         private static string NameOf(AutomationElement window)
@@ -190,7 +162,7 @@ namespace KeePassGate.Host.Tests.Live
         private static string TitleOf(IntPtr window)
         {
             var text = new StringBuilder(512);
-            return window == IntPtr.Zero || GetWindowText(window, text, text.Capacity) <= 0
+            return window == IntPtr.Zero || User32.GetWindowText(window, text, text.Capacity) <= 0
                 ? string.Empty
                 : text.ToString();
         }
@@ -201,15 +173,15 @@ namespace KeePassGate.Host.Tests.Live
 
             if (stroke.WithAlt)
             {
-                keybd_event(AltKey, 0, 0, UIntPtr.Zero);
+                User32.keybd_event(AltKey, 0, 0, UIntPtr.Zero);
             }
 
-            keybd_event(key, 0, 0, UIntPtr.Zero);
-            keybd_event(key, 0, KeyUp, UIntPtr.Zero);
+            User32.keybd_event(key, 0, 0, UIntPtr.Zero);
+            User32.keybd_event(key, 0, KeyUp, UIntPtr.Zero);
 
             if (stroke.WithAlt)
             {
-                keybd_event(AltKey, 0, KeyUp, UIntPtr.Zero);
+                User32.keybd_event(AltKey, 0, KeyUp, UIntPtr.Zero);
             }
 
             Thread.Sleep(400);
@@ -220,10 +192,10 @@ namespace KeePassGate.Host.Tests.Live
         {
             var code = (byte)char.ToUpperInvariant(key);
 
-            keybd_event(ControlKey, 0, 0, UIntPtr.Zero);
-            keybd_event(code, 0, 0, UIntPtr.Zero);
-            keybd_event(code, 0, KeyUp, UIntPtr.Zero);
-            keybd_event(ControlKey, 0, KeyUp, UIntPtr.Zero);
+            User32.keybd_event(ControlKey, 0, 0, UIntPtr.Zero);
+            User32.keybd_event(code, 0, 0, UIntPtr.Zero);
+            User32.keybd_event(code, 0, KeyUp, UIntPtr.Zero);
+            User32.keybd_event(ControlKey, 0, KeyUp, UIntPtr.Zero);
             Thread.Sleep(400);
         }
 
@@ -232,17 +204,17 @@ namespace KeePassGate.Host.Tests.Live
         /// </summary>
         public static void SendShiftF10()
         {
-            keybd_event(ShiftKey, 0, 0, UIntPtr.Zero);
-            keybd_event(F10Key, 0, 0, UIntPtr.Zero);
-            keybd_event(F10Key, 0, KeyUp, UIntPtr.Zero);
-            keybd_event(ShiftKey, 0, KeyUp, UIntPtr.Zero);
+            User32.keybd_event(ShiftKey, 0, 0, UIntPtr.Zero);
+            User32.keybd_event(F10Key, 0, 0, UIntPtr.Zero);
+            User32.keybd_event(F10Key, 0, KeyUp, UIntPtr.Zero);
+            User32.keybd_event(ShiftKey, 0, KeyUp, UIntPtr.Zero);
             Thread.Sleep(400);
         }
 
         public static void SendEscape()
         {
-            keybd_event(EscapeKey, 0, 0, UIntPtr.Zero);
-            keybd_event(EscapeKey, 0, KeyUp, UIntPtr.Zero);
+            User32.keybd_event(EscapeKey, 0, 0, UIntPtr.Zero);
+            User32.keybd_event(EscapeKey, 0, KeyUp, UIntPtr.Zero);
             Thread.Sleep(400);
         }
 
@@ -258,8 +230,8 @@ namespace KeePassGate.Host.Tests.Live
         /// </remarks>
         public static void SendEnter()
         {
-            keybd_event(EnterKey, 0, 0, UIntPtr.Zero);
-            keybd_event(EnterKey, 0, KeyUp, UIntPtr.Zero);
+            User32.keybd_event(EnterKey, 0, 0, UIntPtr.Zero);
+            User32.keybd_event(EnterKey, 0, KeyUp, UIntPtr.Zero);
             Thread.Sleep(400);
         }
     }

@@ -1,5 +1,4 @@
 using System;
-using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
 namespace KeePassGate.Ui
@@ -59,7 +58,7 @@ namespace KeePassGate.Ui
             }
 
             var handle = window.Handle;
-            var wasDisabled = !IsWindowEnabled(handle);
+            var wasDisabled = !NativeMethods.IsWindowEnabled(handle);
 
             try
             {
@@ -67,19 +66,11 @@ namespace KeePassGate.Ui
             }
             finally
             {
-                if (wasDisabled && IsWindowEnabled(handle))
+                if (wasDisabled && NativeMethods.IsWindowEnabled(handle))
                 {
-                    EnableWindow(handle, false);
+                    NativeMethods.EnableWindow(handle, false);
                 }
             }
         }
-
-        [DllImport("user32.dll")]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        private static extern bool IsWindowEnabled(IntPtr window);
-
-        [DllImport("user32.dll")]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        private static extern bool EnableWindow(IntPtr window, [MarshalAs(UnmanagedType.Bool)] bool enable);
     }
 }

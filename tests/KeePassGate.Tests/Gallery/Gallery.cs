@@ -2,8 +2,8 @@ using System;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
-using System.Runtime.InteropServices;
 using System.Windows.Forms;
+using KeePassGate.Testing;
 using NUnit.Framework;
 
 namespace KeePassGate.Tests.Gallery
@@ -212,7 +212,7 @@ namespace KeePassGate.Tests.Gallery
 
                 try
                 {
-                    printed = PrintWindow(window.Handle, hdc, PrintWholeWindow);
+                    printed = User32.PrintWindow(window.Handle, hdc, PrintWholeWindow);
                 }
                 finally
                 {
@@ -246,10 +246,6 @@ namespace KeePassGate.Tests.Gallery
         /// here is evidence about layout and wording, and is not evidence about a scroll bar.
         /// </remarks>
         private const uint PrintWholeWindow = 0;
-
-        [DllImport("user32.dll", SetLastError = true)]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        private static extern bool PrintWindow(IntPtr window, IntPtr canvas, uint flags);
 
         private static void Write(Bitmap bitmap, string name)
         {

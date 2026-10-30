@@ -2,10 +2,10 @@ using System;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
-using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows.Automation;
 using System.Windows.Forms;
+using KeePassGate.Testing;
 using NUnit.Framework;
 
 namespace KeePassGate.Host.Tests.Live
@@ -47,7 +47,7 @@ namespace KeePassGate.Host.Tests.Live
         private static readonly TimeSpan Repaint = TimeSpan.FromMilliseconds(250);
 
         /// <summary>`WM_CHANGEUISTATE`, which asks Windows to settle how a window indicates.</summary>
-        private const uint ChangeUiState = 0x0127;
+        private const int ChangeUiState = 0x0127;
 
         /// <summary>`UIS_SET`, meaning turn the named indicator off.</summary>
         private const int SetUiState = 1;
@@ -295,7 +295,7 @@ namespace KeePassGate.Host.Tests.Live
             }
 
             var wanted = new IntPtr((KeyboardCues << 16) | SetUiState);
-            SendMessage(handle, ChangeUiState, wanted, IntPtr.Zero);
+            User32.SendMessage(handle, ChangeUiState, wanted, IntPtr.Zero);
         }
 
         /// <summary>
@@ -400,15 +400,6 @@ namespace KeePassGate.Host.Tests.Live
             return value;
         }
 
-        [DllImport("user32.dll", SetLastError = true)]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        private static extern bool SetWindowPos(
-            IntPtr window, IntPtr after, int x, int y, int width, int height, uint flags);
-
-        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
-        private static extern IntPtr SendMessage(
-            IntPtr window, uint message, IntPtr wide, IntPtr low);
-
         /// <summary>
         /// A sheet of one color, put directly behind the window being captured.
         /// </summary>
@@ -470,7 +461,7 @@ namespace KeePassGate.Host.Tests.Live
                     Show();
                 }
 
-                SetWindowPos(Handle, window, 0, 0, 0, 0, NoMove | NoSize | NoActivate);
+                User32.SetWindowPos(Handle, window, 0, 0, 0, 0, NoMove | NoSize | NoActivate);
                 Refresh();
                 Application.DoEvents();
                 Thread.Sleep(Repaint);
@@ -483,7 +474,7 @@ namespace KeePassGate.Host.Tests.Live
 
                 // Behind it again, which costs almost nothing. Nothing should have come between the
                 // two of them, and a picture of whatever did would be worth less than this call.
-                SetWindowPos(Handle, window, 0, 0, 0, 0, NoMove | NoSize | NoActivate);
+                User32.SetWindowPos(Handle, window, 0, 0, 0, 0, NoMove | NoSize | NoActivate);
 
                 Refresh();
                 Application.DoEvents();

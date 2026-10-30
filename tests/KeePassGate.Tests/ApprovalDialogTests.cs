@@ -1,9 +1,9 @@
 using System;
 using System.Drawing;
-using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows.Forms;
 using KeePassGate.Pairing;
+using KeePassGate.Testing;
 using KeePassGate.Tests.Fakes;
 using KeePassGate.Ui;
 using NUnit.Framework;
@@ -55,10 +55,10 @@ namespace KeePassGate.Tests
                 owner.Controls.Add(box);
                 owner.Show();
                 OffScreenForm.Pump();
-                SetActiveWindow(owner.Handle);
+                User32.SetActiveWindow(owner.Handle);
                 box.Focus();
                 OffScreenForm.Pump();
-                Assume.That(GetActiveWindow(), Is.EqualTo(owner.Handle));
+                Assume.That(User32.GetActiveWindow(), Is.EqualTo(owner.Handle));
 
                 Place(dialog);
 
@@ -70,10 +70,10 @@ namespace KeePassGate.Tests
                 timer.Tick += delegate
                 {
                     timer.Stop();
-                    active = GetActiveWindow();
+                    active = User32.GetActiveWindow();
                     dialogHasFocus = dialog.ContainsFocus;
-                    boxHasFocus = GetFocus() == box.Handle;
-                    style = GetWindowLong(dialog.Handle, ExStyle);
+                    boxHasFocus = User32.GetFocus() == box.Handle;
+                    style = User32.GetWindowLong(dialog.Handle, ExStyle);
                     dialog.Close();
                 };
 
@@ -154,7 +154,7 @@ namespace KeePassGate.Tests
                 {
                     var button = Focus(ControlTree.FindByName<Button>(dialog, name));
 
-                    PostMessage(button.Handle, message, (IntPtr)'a', IntPtr.Zero);
+                    User32.PostMessage(button.Handle, message, (IntPtr)'a', IntPtr.Zero);
                     OffScreenForm.Pump();
 
                     Assert.That(Decision(dialog), Is.Not.EqualTo(PairingDecision.Approved),
@@ -232,7 +232,7 @@ namespace KeePassGate.Tests
                 var lifetime = Focus(ControlTree.FindByName<ComboBox>(dialog, GateTab.ApprovalLifetimeName));
                 var before = lifetime.SelectedIndex;
 
-                PostMessage(lifetime.Handle, WmChar, (IntPtr)typed, IntPtr.Zero);
+                User32.PostMessage(lifetime.Handle, WmChar, (IntPtr)typed, IntPtr.Zero);
                 OffScreenForm.Pump();
 
                 Assert.That(lifetime.SelectedIndex, Is.EqualTo(before));
@@ -251,12 +251,12 @@ namespace KeePassGate.Tests
                 OffScreenForm.Pump();
                 Assume.That(list.GetItemChecked(0), Is.True);
 
-                PostMessage(list.Handle, WmChar, (IntPtr)'o', IntPtr.Zero);
+                User32.PostMessage(list.Handle, WmChar, (IntPtr)'o', IntPtr.Zero);
                 OffScreenForm.Pump();
                 Assert.That(list.GetItemChecked(0), Is.True, "a letter unchecked a profile");
 
                 Press(list, Keys.Space);
-                PostMessage(list.Handle, WmChar, (IntPtr)' ', IntPtr.Zero);
+                User32.PostMessage(list.Handle, WmChar, (IntPtr)' ', IntPtr.Zero);
                 OffScreenForm.Pump();
                 Assert.That(list.GetItemChecked(0), Is.False, "Space still toggles");
             }
@@ -370,25 +370,9 @@ namespace KeePassGate.Tests
 
         private static void Press(Control control, Keys key)
         {
-            PostMessage(control.Handle, WmKeyDown, (IntPtr)(int)key, IntPtr.Zero);
-            PostMessage(control.Handle, WmKeyUp, (IntPtr)(int)key, IntPtr.Zero);
+            User32.PostMessage(control.Handle, WmKeyDown, (IntPtr)(int)key, IntPtr.Zero);
+            User32.PostMessage(control.Handle, WmKeyUp, (IntPtr)(int)key, IntPtr.Zero);
             OffScreenForm.Pump();
         }
-
-        [DllImport("user32.dll", SetLastError = true)]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        private static extern bool PostMessage(IntPtr window, int message, IntPtr key, IntPtr detail);
-
-        [DllImport("user32.dll")]
-        private static extern IntPtr SetActiveWindow(IntPtr window);
-
-        [DllImport("user32.dll")]
-        private static extern IntPtr GetActiveWindow();
-
-        [DllImport("user32.dll")]
-        private static extern IntPtr GetFocus();
-
-        [DllImport("user32.dll")]
-        private static extern int GetWindowLong(IntPtr window, int index);
     }
 }

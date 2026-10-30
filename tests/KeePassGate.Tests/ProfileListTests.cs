@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
-using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows.Forms;
+using KeePassGate.Testing;
 using KeePassGate.Tests.Fakes;
 using KeePassGate.Ui;
 using NUnit.Framework;
@@ -382,8 +382,8 @@ namespace KeePassGate.Tests
             /// </remarks>
             public void Press(Keys key)
             {
-                PostMessage(_box.Handle, KeyDown, (IntPtr)(int)key, IntPtr.Zero);
-                PostMessage(_box.Handle, KeyUp, (IntPtr)(int)key, IntPtr.Zero);
+                User32.PostMessage(_box.Handle, KeyDown, (IntPtr)(int)key, IntPtr.Zero);
+                User32.PostMessage(_box.Handle, KeyUp, (IntPtr)(int)key, IntPtr.Zero);
                 OffScreenForm.Pump();
             }
 
@@ -391,10 +391,6 @@ namespace KeePassGate.Tests
             {
                 _form.Dispose();
             }
-
-            [DllImport("user32.dll", SetLastError = true)]
-            [return: MarshalAs(UnmanagedType.Bool)]
-            private static extern bool PostMessage(IntPtr window, int message, IntPtr key, IntPtr detail);
         }
 
         /// <summary>The profiles of a database that is a list in a field.</summary>

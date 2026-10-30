@@ -961,6 +961,12 @@ the tools this branch carries.
   build, and reads every branch of an `#if`, which covers whatever CodeQL reads across the two
   configurations it builds. A file holding a marker that does not parse cleanly is refused, so a
   grammar older than the code fails loudly rather than being read with a guess.
+- **A call into Windows goes through one class on each side**: `Ui/NativeMethods` in the plugin and
+  `Shared/User32` in the tests, where each declaration is private and called once, by the method of
+  its name beside it. CodeQL reports every declaration of unmanaged code and every call to one, and
+  nothing managed does what these do, so both are suppressed there with the reason, and nowhere
+  else. A new call into Windows is a new pair of them in that file. The tests' class is not
+  `NativeMethods` too, because a test importing the plugin's `KeePassGate.Ui` would see both.
 - **American English is checked, not only asked for.** cspell's own `en_US` dictionary accepts the
   British doubled L, the past tense of cancel or dial spelled with two, and its language
   dictionaries accept a British spelling or two in code, so `cspell.yaml` refuses about 250 British

@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Globalization;
 using System.Linq;
-using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows.Forms;
 using KeePassGate.Authority;
+using KeePassGate.Testing;
 using KeePassGate.Tests.Fakes;
 using KeePassGate.Ui;
 using NUnit.Framework;
@@ -121,9 +121,6 @@ namespace KeePassGate.Tests
         /// <summary>`WS_VSCROLL`, the style a list carries while its vertical scroll bar is shown.</summary>
         private const int VerticalScrollBar = 0x00200000;
 
-        [DllImport("user32.dll")]
-        private static extern int GetWindowLong(IntPtr window, int index);
-
         public ListFit[] Measure(int authorities, int clients, float scaling)
         {
             Application.EnableVisualStyles();
@@ -171,7 +168,7 @@ namespace KeePassGate.Tests
             {
                 Name = name,
                 Rows = rows,
-                Scrolls = (GetWindowLong(list.Handle, StyleIndex) & VerticalScrollBar) != 0,
+                Scrolls = (User32.GetWindowLong(list.Handle, StyleIndex) & VerticalScrollBar) != 0,
                 LastRowBottom = rows == 0 ? 0 : list.GetItemRect(rows - 1).Bottom,
                 ClientHeight = list.ClientSize.Height
             };

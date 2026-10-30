@@ -1,5 +1,4 @@
 using System;
-using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
 namespace KeePassGate.Ui
@@ -38,12 +37,14 @@ namespace KeePassGate.Ui
             var wanted = Wanted;
             if (wanted != null && wanted())
             {
-                SetWindowDisplayAffinity(form.Handle, MonitorOnly);
+                // What it returns goes unread, as KeePass leaves it unread for its own windows. It
+                // fails only for a window that is not top level or not this process's, and these
+                // are both, while the one desktop it leaves unprotected, Windows 7 without
+                // composition, can answer success anyway, so reading it would catch nothing. Unlike
+                // KeePass this never sets a window back to no affinity, which errs toward keeping
+                // the window out.
+                NativeMethods.SetWindowDisplayAffinity(form.Handle, MonitorOnly);
             }
         }
-
-        [DllImport("user32.dll")]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        private static extern bool SetWindowDisplayAffinity(IntPtr window, uint affinity);
     }
 }

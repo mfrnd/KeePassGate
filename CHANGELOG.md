@@ -14,6 +14,9 @@ half, as `0.1.1, the plugin, unreleased`, and a minor version names none, since 
 - **The plugin is compiled at C# 13**, and the build needs the .NET SDK 9 or later. Nothing it does
   changes: the compiled plugin differs only in caching a delegate made from a static method rather
   than making one at every use, and in an attribute the compiler adds.
+- **The plugin's code answers every finding of CodeQL's `security-and-quality` queries**, each fixed
+  or suppressed with its reason where it is made, and nothing the plugin does changes. Its six calls
+  into Windows go through one class.
 
 ## 0.1.0, 2026-10-25
 

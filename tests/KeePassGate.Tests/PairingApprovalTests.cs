@@ -2,11 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
-using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows.Forms;
 using KeePassGate.Authority;
 using KeePassGate.Pairing;
+using KeePassGate.Testing;
 using KeePassGate.Tests.Fakes;
 using KeePassGate.Ui;
 using NUnit.Framework;
@@ -381,18 +381,14 @@ namespace KeePassGate.Tests
         /// <summary>Puts a key on the queue for the list, and lets the loop deliver it.</summary>
         private static void Press(Control control, Keys key)
         {
-            PostMessage(control.Handle, WmKeyDown, (IntPtr)(int)key, IntPtr.Zero);
-            PostMessage(control.Handle, WmKeyUp, (IntPtr)(int)key, IntPtr.Zero);
+            User32.PostMessage(control.Handle, WmKeyDown, (IntPtr)(int)key, IntPtr.Zero);
+            User32.PostMessage(control.Handle, WmKeyUp, (IntPtr)(int)key, IntPtr.Zero);
             OffScreenForm.Pump();
         }
 
         private const int WmKeyDown = 0x0100;
 
         private const int WmKeyUp = 0x0101;
-
-        [DllImport("user32.dll", SetLastError = true)]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        private static extern bool PostMessage(IntPtr window, int message, IntPtr key, IntPtr detail);
 
         [Test]
         public void Refusing_refuses()
@@ -440,7 +436,7 @@ namespace KeePassGate.Tests
             {
                 var window = Windowed(dialog);
 
-                SendMessage(window, message, (IntPtr)command, IntPtr.Zero);
+                User32.SendMessage(window, message, (IntPtr)command, IntPtr.Zero);
 
                 Assert.That(dialog.Answer().Decision, Is.EqualTo(PairingDecision.Refused),
                     "somebody was at the screen, and what they did with " + how + " was say no");
@@ -535,9 +531,6 @@ namespace KeePassGate.Tests
 
             return happened();
         }
-
-        [DllImport("user32.dll")]
-        private static extern IntPtr SendMessage(IntPtr window, int message, IntPtr first, IntPtr second);
 
         [Test]
         public void What_is_asked_for_arrives_checked_so_that_agreeing_is_still_a_decision()
