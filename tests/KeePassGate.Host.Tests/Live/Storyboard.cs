@@ -7,6 +7,7 @@ using System.Drawing.Text;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Text;
 
 namespace KeePassGate.Host.Tests.Live
 {
@@ -213,11 +214,12 @@ namespace KeePassGate.Host.Tests.Live
         /// <summary>A command typed at the prompt, a character at a time, and Enter.</summary>
         public void Type(string commandLine)
         {
-            _typing = string.Empty;
+            var typed = new StringBuilder();
             _blinking = 0;
             foreach (var character in commandLine)
             {
-                _typing += character;
+                typed.Append(character);
+                _typing = typed.ToString();
                 Emit(Keystroke);
             }
 

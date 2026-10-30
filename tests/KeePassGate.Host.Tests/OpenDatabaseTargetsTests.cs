@@ -202,7 +202,7 @@ namespace KeePassGate.Host.Tests
             held.Dispose();
 
             Assert.Throws<System.Security.Cryptography.CryptographicException>(
-                delegate { var unused = held.Authority.RawData; },
+                delegate { _ = held.Authority.RawData; },
                 "and the material goes as soon as it is given back");
         }
 
