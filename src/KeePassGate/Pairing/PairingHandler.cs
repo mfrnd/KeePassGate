@@ -109,6 +109,7 @@ namespace KeePassGate.Pairing
         private readonly IGateLog _log;
         private readonly ApprovalBook _held;
 
+        /// <summary>With the default options, an issuer of its own and the system clock.</summary>
         /// <param name="audit">
         /// Where each pairing the operator answers is written down, or null for nowhere.
         /// </param>
@@ -117,6 +118,7 @@ namespace KeePassGate.Pairing
         {
         }
 
+        /// <summary>The same, with the plugin's one book of approvals waiting to be written.</summary>
         /// <param name="held">
         /// The approvals held for a retry, which a lock, a close and an exit clear, or null for a
         /// book of this handler's own.

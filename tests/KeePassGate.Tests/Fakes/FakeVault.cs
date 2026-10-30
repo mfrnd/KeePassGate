@@ -1010,6 +1010,7 @@ namespace KeePassGate.Tests.Fakes
             /// <summary>When it expires, or null when it does not, as the real vault describes one.</summary>
             public DateTimeOffset? Expires { get; set; }
 
+            /// <summary>The entry as the real vault describes one.</summary>
             /// <param name="holdsProtected">
             /// Whether any of its strings is protected, which a single lookup says and a listing
             /// leaves null, as in the real vault.

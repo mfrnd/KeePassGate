@@ -67,6 +67,9 @@ namespace KeePassGate.Ui
         {
         }
 
+        /// <summary>
+        /// The same, and putting up no dialog for a database that has locked in the meantime.
+        /// </summary>
         /// <param name="serving">
         /// Whether the database a request is about is still served unlocked, asked on KeePass's
         /// thread just before a dialog would be shown, or null for always.
@@ -76,6 +79,10 @@ namespace KeePassGate.Ui
         {
         }
 
+        /// <summary>
+        /// The same, and keeping a dialog out of this plugin's own save and out of whatever KeePass
+        /// is part way through.
+        /// </summary>
         /// <param name="writes">
         /// The plugin's writes, asked about on KeePass's thread just before a dialog would be
         /// shown, and waited for on the connection's, or null where nothing writes.

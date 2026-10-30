@@ -32,6 +32,9 @@ namespace KeePassGate.Ui
 
         private readonly MonthCalendar _calendar;
 
+        /// <summary>
+        /// Builds the dialog, and throws when there is no day between the first and the last.
+        /// </summary>
         /// <param name="first">The earliest day that can be chosen: tomorrow.</param>
         /// <param name="last">The latest: the day the certificate the client holds now ends.</param>
         /// <param name="chosen">The day chosen as it opens.</param>

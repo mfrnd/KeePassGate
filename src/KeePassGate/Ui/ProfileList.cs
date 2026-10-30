@@ -118,6 +118,7 @@ namespace KeePassGate.Ui
 
         private bool _filling;
 
+        /// <summary>The Profiles page, over one database's list of names.</summary>
         /// <param name="prompt">
         /// Asks the operator before a name comes back that rules still name. Null answers no, so a
         /// page nobody can be asked on brings nothing back into force.

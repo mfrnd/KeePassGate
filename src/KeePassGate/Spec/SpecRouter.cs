@@ -126,6 +126,10 @@ namespace KeePassGate.Spec
         {
         }
 
+        /// <summary>
+        /// Binds each handler, guard and node to its operation, and throws at the first one that
+        /// does not fit the document, which is as the plugin loads.
+        /// </summary>
         /// <param name="nodes">
         /// Which node each operation is about, for the operations that touch the database. One is
         /// required for every operation declaring a grantable verb, and refused for one declaring

@@ -29,6 +29,7 @@ namespace KeePassGate.Pipeline
         {
         }
 
+        /// <summary>The database as a route reaches it: its vault, its records, or both.</summary>
         /// <param name="vault">
         /// What the API's routes read and change, or null where the database is served without one,
         /// which a test about the transport is.

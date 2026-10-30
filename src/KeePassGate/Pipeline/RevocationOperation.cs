@@ -35,6 +35,10 @@ namespace KeePassGate.Pipeline
     {
         private readonly AdmissionAudit _audit;
 
+        /// <summary>
+        /// One for every database the gate serves, since the one a revocation is about arrives with
+        /// its request.
+        /// </summary>
         /// <param name="audit">Where a revocation that took is written down, or null for nowhere.</param>
         public RevocationOperation(AdmissionAudit audit)
         {
