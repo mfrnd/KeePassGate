@@ -40,6 +40,8 @@ namespace KeePassGate.Host.Tests.Live
                 }
                 catch (ElementNotAvailableException)
                 {
+                    // An element the attempt was reading went away under it. That counts as no
+                    // answer yet, so it is tried again until the deadline.
                 }
 
                 if (DateTime.UtcNow >= deadline)

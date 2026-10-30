@@ -167,6 +167,8 @@ namespace KeePassGate.Host.Tests.Live
                 }
                 catch (ElementNotAvailableException)
                 {
+                    // Gone between being found and being measured. Another element with this
+                    // caption may still answer, and if none does, the caller throws for the column.
                 }
             }
 
@@ -262,6 +264,8 @@ namespace KeePassGate.Host.Tests.Live
                 }
                 catch (ElementNotAvailableException)
                 {
+                    // Gone between being found and being measured, so there is no rectangle left
+                    // to give for it.
                 }
             }
 

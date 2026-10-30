@@ -113,6 +113,8 @@ namespace KeePassGate.Tests
             }
             catch (IOException)
             {
+                // A log file still open somewhere as the test ends. The directory is named for
+                // this test alone, under the temporary folder, so a leftover is in no other test's way.
             }
         }
 

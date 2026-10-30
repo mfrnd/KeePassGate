@@ -171,9 +171,13 @@ namespace KeePassGate.Host.Tests
                 }
                 catch (IOException)
                 {
+                    // The race lost: a file is still held by whatever had it last, so this waits
+                    // and tries again.
                 }
                 catch (UnauthorizedAccessException)
                 {
+                    // What Windows answers instead for a file that is still being let go. Tried
+                    // again as well.
                 }
 
                 System.Threading.Thread.Sleep(100);

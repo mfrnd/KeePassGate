@@ -257,6 +257,8 @@ namespace KeePassGate.Host.Tests.Live
             }
             catch (SocketException)
             {
+                // Being given up either way: the listener is never used again, and a port that
+                // stayed taken is reported by the gate when it tries to listen on it.
             }
         }
 
@@ -532,9 +534,13 @@ namespace KeePassGate.Host.Tests.Live
             }
             catch (IOException)
             {
+                // A file still open in a KeePass that has not finished exiting. The next session
+                // of this fixture ends any such KeePass and deletes what is left before it begins.
             }
             catch (UnauthorizedAccessException)
             {
+                // The copied KeePass still running, whose program Windows will not delete. Left
+                // for that same next session.
             }
         }
 

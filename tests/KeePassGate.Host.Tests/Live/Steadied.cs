@@ -163,6 +163,8 @@ namespace KeePassGate.Host.Tests.Live
                 }
                 catch (ElementNotAvailableException)
                 {
+                    // Gone between being found and being read, so there is no window here to
+                    // settle: another element may still answer, or the caller passes the control by.
                 }
             }
 

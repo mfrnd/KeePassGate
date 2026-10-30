@@ -432,9 +432,12 @@ namespace KeePassGate.Tests
                 }
                 catch (ObjectDisposedException)
                 {
+                    // The same request to end, met by a socket `Stop` had already closed.
                 }
                 catch (InvalidOperationException)
                 {
+                    // And again, when `Stop` came between two accepts and the next one found the
+                    // listener stopped.
                 }
             }
         }
