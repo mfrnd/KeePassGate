@@ -35,29 +35,30 @@ namespace KeePassGate.Testing
         public static string ReadToEnd(Stream stream)
         {
             var buffer = new byte[ChunkBytes];
-            var bytes = new MemoryStream();
-
-            while (true)
+            using (var bytes = new MemoryStream())
             {
-                int read;
-                try
+                while (true)
                 {
-                    read = stream.Read(buffer, 0, buffer.Length);
-                }
-                catch (IOException)
-                {
-                    break;
+                    int read;
+                    try
+                    {
+                        read = stream.Read(buffer, 0, buffer.Length);
+                    }
+                    catch (IOException)
+                    {
+                        break;
+                    }
+
+                    if (read <= 0)
+                    {
+                        break;
+                    }
+
+                    bytes.Write(buffer, 0, read);
                 }
 
-                if (read <= 0)
-                {
-                    break;
-                }
-
-                bytes.Write(buffer, 0, read);
+                return Encoding.UTF8.GetString(bytes.GetBuffer(), 0, (int)bytes.Length);
             }
-
-            return Encoding.UTF8.GetString(bytes.GetBuffer(), 0, (int)bytes.Length);
         }
     }
 }

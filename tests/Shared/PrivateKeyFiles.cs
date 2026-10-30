@@ -50,6 +50,7 @@ namespace KeePassGate.Testing
         /// </remarks>
         public static IDisposable Lock()
         {
+            // codeql[cs/missed-using-statement] disposed only when it is not kept, which no `using` can do
             Mutex mutex;
             try
             {
@@ -60,17 +61,28 @@ namespace KeePassGate.Testing
                 return Unlocked.Instance;
             }
 
+            // Let go of on every way out that does not hold it, a throw from the wait among them.
+            var acquired = false;
             try
             {
-                if (!mutex.WaitOne(LockPatience))
-                {
-                    mutex.Dispose();
-                    return Unlocked.Instance;
-                }
+                acquired = mutex.WaitOne(LockPatience);
             }
             catch (AbandonedMutexException)
             {
                 // Its holder ended without letting go, and the wait was granted all the same.
+                acquired = true;
+            }
+            finally
+            {
+                if (!acquired)
+                {
+                    mutex.Dispose();
+                }
+            }
+
+            if (!acquired)
+            {
+                return Unlocked.Instance;
             }
 
             return new Held(mutex);
@@ -144,6 +156,7 @@ namespace KeePassGate.Testing
             }
             finally
             {
+                // codeql[cs/missed-using-statement] one of a list the `finally` disposes, which no `using` holds
                 foreach (var watcher in watchers)
                 {
                     watcher.Dispose();

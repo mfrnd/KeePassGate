@@ -358,9 +358,7 @@ namespace KeePassGate.Host.Tests
                     _database.Database.IOConnectionInfo.Path = "C:\\invented\\Ideas.kdbx";
                     other.Database.IOConnectionInfo.Path = "C:\\invented\\ideas.kdbx";
                     var open = new List<PwDatabase> { _database.Database, other.Database };
-                    var targets = new OpenDatabaseTargets(delegate { return open; }, _log);
-
-                    try
+                    using (var targets = new OpenDatabaseTargets(delegate { return open; }, _log))
                     {
                         Assume.That(targets.Current().Count, Is.EqualTo(2));
 
@@ -372,10 +370,6 @@ namespace KeePassGate.Host.Tests
                         var answering = targets.Current().Where(target => target.IsLocked).ToList();
                         Assert.That(answering, Has.Count.EqualTo(1), "and the lock of the first still answers");
                         Assert.That(answering[0].DatabaseId, Is.EqualTo(locked));
-                    }
-                    finally
-                    {
-                        targets.Dispose();
                     }
                 }
             }

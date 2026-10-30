@@ -34,22 +34,25 @@ namespace KeePassGate.Host.Tests
             using (var database = TemporaryDatabase.New())
             using (var icons = new ImageList())
             {
-                var settings = KeePassDialogs.NewDatabaseSettingsForm();
-                KeePassDialogs.InitializeFor(settings, database.Database);
-                Report("database settings", settings);
-                settings.Dispose();
+                using (var settings = KeePassDialogs.NewDatabaseSettingsForm())
+                {
+                    KeePassDialogs.InitializeFor(settings, database.Database);
+                    Report("database settings", settings);
+                }
 
-                var group = new GroupForm();
-                group.InitEx(database.RootGroup, false, null, database.Database);
-                Report("group dialog", group);
-                group.Dispose();
+                using (var group = new GroupForm())
+                {
+                    group.InitEx(database.RootGroup, false, null, database.Database);
+                    Report("group dialog", group);
+                }
 
-                var entry = new PwEntryForm();
-                var pw = new PwEntry(true, true);
-                database.RootGroup.AddEntry(pw, true);
-                entry.InitEx(pw, PwEditMode.EditExistingEntry, database.Database, icons, false, false);
-                Report("entry dialog", entry);
-                entry.Dispose();
+                using (var entry = new PwEntryForm())
+                {
+                    var pw = new PwEntry(true, true);
+                    database.RootGroup.AddEntry(pw, true);
+                    entry.InitEx(pw, PwEditMode.EditExistingEntry, database.Database, icons, false, false);
+                    Report("entry dialog", entry);
+                }
             }
         }
 

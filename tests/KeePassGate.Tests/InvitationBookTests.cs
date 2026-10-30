@@ -181,22 +181,23 @@ namespace KeePassGate.Tests
             {
                 var invitation = _book.Invite(Database);
                 var won = 0;
-                var start = new ManualResetEventSlim(false);
-
-                var threads = Enumerable.Range(0, 4).Select(_ => new Thread(() =>
+                using (var start = new ManualResetEventSlim(false))
                 {
-                    start.Wait();
-                    if (_book.Burn(invitation.Id))
+                    var threads = Enumerable.Range(0, 4).Select(_ => new Thread(() =>
                     {
-                        Interlocked.Increment(ref won);
-                    }
-                })).ToList();
+                        start.Wait();
+                        if (_book.Burn(invitation.Id))
+                        {
+                            Interlocked.Increment(ref won);
+                        }
+                    })).ToList();
 
-                threads.ForEach(t => t.Start());
-                start.Set();
-                threads.ForEach(t => t.Join());
+                    threads.ForEach(t => t.Start());
+                    start.Set();
+                    threads.ForEach(t => t.Join());
 
-                Assert.That(won, Is.EqualTo(1), "more than one caller spent the same invitation");
+                    Assert.That(won, Is.EqualTo(1), "more than one caller spent the same invitation");
+                }
             }
         }
 

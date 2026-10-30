@@ -66,20 +66,21 @@ namespace KeePassGate.Tests
                 bool dialogHasFocus = true;
                 bool boxHasFocus = false;
                 int style = 0;
-                var timer = new System.Windows.Forms.Timer { Interval = 200 };
-                timer.Tick += delegate
+                using (var timer = new System.Windows.Forms.Timer { Interval = 200 })
                 {
-                    timer.Stop();
-                    active = User32.GetActiveWindow();
-                    dialogHasFocus = dialog.ContainsFocus;
-                    boxHasFocus = User32.GetFocus() == box.Handle;
-                    style = User32.GetWindowLong(dialog.Handle, ExStyle);
-                    dialog.Close();
-                };
+                    timer.Tick += delegate
+                    {
+                        timer.Stop();
+                        active = User32.GetActiveWindow();
+                        dialogHasFocus = dialog.ContainsFocus;
+                        boxHasFocus = User32.GetFocus() == box.Handle;
+                        style = User32.GetWindowLong(dialog.Handle, ExStyle);
+                        dialog.Close();
+                    };
 
-                timer.Start();
-                dialog.ShowDialog();
-                timer.Dispose();
+                    timer.Start();
+                    dialog.ShowDialog();
+                }
 
                 Assert.That(active, Is.EqualTo(owner.Handle), "the window that was active stays active");
                 Assert.That(dialogHasFocus, Is.False, "the dialog took no focus");

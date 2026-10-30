@@ -57,6 +57,7 @@ namespace KeePassGate.Host.Tests.Live
         private readonly string _root;
         private int _port;
         private TcpListener _reservation;
+        // codeql[cs/missed-using-statement] a field, cleared as it is disposed so that nothing reads it disposed
         private Process _process;
 
         private ThrowawayKeePass(string root, TcpListener reservation)
@@ -191,6 +192,7 @@ namespace KeePassGate.Host.Tests.Live
             // Given back if anything below throws. Nothing else holds the instance until it is
             // returned, so a failure here left the reserved port bound until a collection found
             // the socket, and the next fixture in the same run quietly took another port.
+            // codeql[cs/missed-using-statement] disposed only when it is not kept, which no `using` can do
             var installation = new ThrowawayKeePass(root, Reserve());
             var built = false;
             try

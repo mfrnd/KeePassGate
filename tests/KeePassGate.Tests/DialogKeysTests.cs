@@ -81,14 +81,18 @@ namespace KeePassGate.Tests
                 form.Controls.Add(ok);
                 form.AcceptButton = ok;
 
-                var keys = DialogKeys.Suspend(ok);
-                keys.Dispose();
+                // Let go of by hand, twice, which is what this is about. The `using` only covers a
+                // failure on the way, since a token already let go of ignores being let go of again.
+                using (var keys = DialogKeys.Suspend(ok))
+                {
+                    keys.Dispose();
 
-                form.AcceptButton = null;
-                keys.Dispose();
+                    form.AcceptButton = null;
+                    keys.Dispose();
 
-                Assert.That(form.AcceptButton, Is.Null,
-                    "a second release must not put back what somebody has since changed");
+                    Assert.That(form.AcceptButton, Is.Null,
+                        "a second release must not put back what somebody has since changed");
+                }
             }
         }
 
@@ -108,18 +112,22 @@ namespace KeePassGate.Tests
                 form.AcceptButton = ok;
                 form.CancelButton = cancel;
 
-                var first = DialogKeys.Suspend(ok);
-                var second = DialogKeys.Suspend(ok);
+                // Let go of by hand, in the order this is about. The `using` statements only cover a
+                // failure on the way, since a token already let go of ignores being let go of again.
+                using (var first = DialogKeys.Suspend(ok))
+                using (var second = DialogKeys.Suspend(ok))
+                {
+                    first.Dispose();
 
-                first.Dispose();
+                    Assert.That(form.AcceptButton, Is.Null,
+                        "the keys came back while the second still held them");
+                    Assert.That(form.CancelButton, Is.Null);
 
-                Assert.That(form.AcceptButton, Is.Null, "the keys came back while the second still held them");
-                Assert.That(form.CancelButton, Is.Null);
+                    second.Dispose();
 
-                second.Dispose();
-
-                Assert.That(form.AcceptButton, Is.SameAs(ok));
-                Assert.That(form.CancelButton, Is.SameAs(cancel));
+                    Assert.That(form.AcceptButton, Is.SameAs(ok));
+                    Assert.That(form.CancelButton, Is.SameAs(cancel));
+                }
             }
         }
     }

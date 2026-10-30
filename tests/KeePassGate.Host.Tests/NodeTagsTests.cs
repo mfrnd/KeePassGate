@@ -532,10 +532,12 @@ namespace KeePassGate.Host.Tests
         /// <summary>A second copy of the database, as another machine's replica of the file is.</summary>
         private static PwDatabase Copied(PwDatabase database)
         {
+            // codeql[cs/local-not-disposed] `KdbxFile` disposes the stream it is handed, as KeePass 2.61.1 does
             var file = new MemoryStream();
             new KdbxFile(database).Save(file, null, KdbxFormat.Default, null);
 
             var copy = new PwDatabase { MasterKey = database.MasterKey, RootGroup = new PwGroup(true, true) };
+            // codeql[cs/local-not-disposed] `KdbxFile` disposes the stream it is handed, as KeePass 2.61.1 does
             new KdbxFile(copy).Load(new MemoryStream(file.ToArray()), KdbxFormat.Default, null);
             return copy;
         }

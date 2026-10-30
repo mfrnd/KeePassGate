@@ -32,7 +32,8 @@ namespace KeePassGate.Host.Tests
             var frames = Frames();
             try
             {
-                using (var decoded = Image.FromStream(new MemoryStream(Encode(frames))))
+                using (var encoded = new MemoryStream(Encode(frames)))
+                using (var decoded = Image.FromStream(encoded))
                 {
                     var dimension = new FrameDimension(decoded.FrameDimensionsList[0]);
 
@@ -61,6 +62,7 @@ namespace KeePassGate.Host.Tests
             }
             finally
             {
+                // codeql[cs/missed-using-statement] one of a list the `finally` disposes, which no `using` holds
                 foreach (var frame in frames)
                 {
                     frame.Dispose();
@@ -74,7 +76,8 @@ namespace KeePassGate.Host.Tests
             var frames = Frames();
             try
             {
-                using (var decoded = Image.FromStream(new MemoryStream(Encode(frames))))
+                using (var encoded = new MemoryStream(Encode(frames)))
+                using (var decoded = Image.FromStream(encoded))
                 {
                     // Hundredths of a second, four bytes a frame: the repeated frame's time is
                     // added to the one it repeats.
@@ -90,6 +93,7 @@ namespace KeePassGate.Host.Tests
             }
             finally
             {
+                // codeql[cs/missed-using-statement] one of a list the `finally` disposes, which no `using` holds
                 foreach (var frame in frames)
                 {
                     frame.Dispose();
@@ -107,6 +111,7 @@ namespace KeePassGate.Host.Tests
             }
             finally
             {
+                // codeql[cs/missed-using-statement] one of a list the `finally` disposes, which no `using` holds
                 foreach (var frame in frames)
                 {
                     frame.Dispose();

@@ -769,6 +769,7 @@ namespace KeePassGate.Tests
                 }
                 finally
                 {
+                    // codeql[cs/missed-using-statement] one of a list the `finally` disposes, which no `using` holds
                     holders.ForEach(certificate => certificate.Dispose());
                 }
             }
@@ -1210,16 +1211,18 @@ namespace KeePassGate.Tests
                     dialog.Location = new System.Drawing.Point(-4000, -4000);
                     dialog.ShowInTaskbar = false;
 
-                    var timer = new System.Windows.Forms.Timer { Interval = 100 };
-                    timer.Tick += delegate
+                    using (var timer = new System.Windows.Forms.Timer { Interval = 100 })
                     {
-                        timer.Stop();
-                        prompt.Locked();
-                    };
+                        timer.Tick += delegate
+                        {
+                            timer.Stop();
+                            prompt.Locked();
+                        };
 
-                    timer.Start();
-                    prompt.Show(dialog);
-                    timer.Dispose();
+                        timer.Start();
+                        prompt.Show(dialog);
+                    }
+
                     return dialog.Answer();
                 }
             };

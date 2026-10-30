@@ -84,19 +84,22 @@ namespace KeePassGate.Host.Tests
         [Test]
         public void The_entry_dialog_page_lays_out_as_it_does_left_to_right()
         {
-            AssertLaidOutAlike(
-                () =>
-                {
-                    var entry = new PwEntry(true, true);
-                    _database.RootGroup.AddEntry(entry, true);
+            using (var icons = new ImageList())
+            {
+                AssertLaidOutAlike(
+                    () =>
+                    {
+                        var entry = new PwEntry(true, true);
+                        _database.RootGroup.AddEntry(entry, true);
 
-                    var dialog = new PwEntryForm();
-                    dialog.InitEx(entry, PwEditMode.EditExistingEntry, _database.Database, new ImageList(), false, false);
-                    return dialog;
-                },
-                NodeInjector,
-                KeePassContract.NodeFormTabControlName,
-                GrantTab.PageControlName);
+                        var dialog = new PwEntryForm();
+                        dialog.InitEx(entry, PwEditMode.EditExistingEntry, _database.Database, icons, false, false);
+                        return dialog;
+                    },
+                    NodeInjector,
+                    KeePassContract.NodeFormTabControlName,
+                    GrantTab.PageControlName);
+            }
         }
 
         private static TabPageInjector NodeInjector()

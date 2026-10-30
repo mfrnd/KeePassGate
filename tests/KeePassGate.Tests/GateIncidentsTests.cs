@@ -119,22 +119,24 @@ namespace KeePassGate.Tests
         [Test]
         public void Recording_from_several_threads_at_once_counts_every_one()
         {
-            var start = new ManualResetEventSlim(false);
-            var threads = Enumerable.Range(0, 8).Select(_ => new Thread(() =>
+            using (var start = new ManualResetEventSlim(false))
             {
-                start.Wait();
-                for (var i = 0; i < 50; i++)
+                var threads = Enumerable.Range(0, 8).Select(_ => new Thread(() =>
                 {
-                    _incidents.Record("a connection failed", new InvalidOperationException());
-                }
-            })).ToList();
+                    start.Wait();
+                    for (var i = 0; i < 50; i++)
+                    {
+                        _incidents.Record("a connection failed", new InvalidOperationException());
+                    }
+                })).ToList();
 
-            threads.ForEach(t => t.Start());
-            start.Set();
-            threads.ForEach(t => t.Join());
+                threads.ForEach(t => t.Start());
+                start.Set();
+                threads.ForEach(t => t.Join());
 
-            Assert.That(_incidents.Count, Is.EqualTo(400));
-            Assert.That(_incidents.Recent.Count, Is.EqualTo(GateIncidents.Keep));
+                Assert.That(_incidents.Count, Is.EqualTo(400));
+                Assert.That(_incidents.Recent.Count, Is.EqualTo(GateIncidents.Keep));
+            }
         }
 
         [Test]

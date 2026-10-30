@@ -230,8 +230,6 @@ namespace KeePassGate.Host.Tests.Live
 
             using (var backdrop = new Backdrop(area))
             {
-                Bitmap overBlack = null;
-                Bitmap overWhite = null;
                 try
                 {
                     // Up and behind the window before the moment rather than inside it, so what has
@@ -243,28 +241,26 @@ namespace KeePassGate.Host.Tests.Live
                         moment.WaitForIt();
                     }
 
-                    overBlack = backdrop.Expose(handle, Color.Black, area);
-                    overWhite = backdrop.Expose(handle, Color.White, area);
-
-                    // The instant the second copy returns, before anything is taken down or solved:
-                    // what this reports on is the window those two exposures were of.
-                    if (moment != null)
+                    using (var overBlack = backdrop.Expose(handle, Color.Black, area))
+                    using (var overWhite = backdrop.Expose(handle, Color.White, area))
                     {
-                        moment.ConfirmItHeld();
+                        // The instant the second copy returns, before anything is taken down or solved:
+                        // what this reports on is the window those two exposures were of.
+                        if (moment != null)
+                        {
+                            moment.ConfirmItHeld();
+                        }
+
+                        var solved = Solve(overBlack, overWhite);
+
+                        // Last, and over as little as possible: two values that cannot be settled at
+                        // the source, covered where the controls holding them actually are.
+                        Redacted.Over(solved, area, window);
+                        return solved;
                     }
-
-                    var solved = Solve(overBlack, overWhite);
-
-                    // Last, and over as little as possible: two values that cannot be settled at
-                    // the source, covered where the controls holding them actually are.
-                    Redacted.Over(solved, area, window);
-                    return solved;
                 }
                 finally
                 {
-                    if (overBlack != null) { overBlack.Dispose(); }
-                    if (overWhite != null) { overWhite.Dispose(); }
-
                     // Put back before anything else looks: the flow reads the invitation out of the
                     // box it was just captured in, and pairs with it.
                     Steadied.Restore(steadied);
