@@ -60,7 +60,8 @@ namespace KeePassGate.Host.Tests
 
             if (create == null)
             {
-                Assert.Ignore("This KeePass build does not expose PluginManager.CreatePluginInstance.");
+                throw new IgnoreException(
+                    "This KeePass build does not expose PluginManager.CreatePluginInstance.");
             }
 
             var baseName = Path.GetFileNameWithoutExtension(Plugin.Location);
@@ -100,7 +101,7 @@ namespace KeePassGate.Host.Tests
 
             if (field == null)
             {
-                Assert.Ignore("This KeePass build does not expose AppDefs.PluginProductName.");
+                throw new IgnoreException("This KeePass build does not expose AppDefs.PluginProductName.");
             }
 
             return (string)field.GetValue(null);

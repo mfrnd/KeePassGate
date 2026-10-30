@@ -116,7 +116,7 @@ namespace KeePassGate.Tests
             var completed = CompletedElsewhere();
             if (completed == null)
             {
-                Assert.Inconclusive(
+                throw new InconclusiveException(
                     "this machine's stores hold no certificate the engine completes to a root of its own");
             }
 

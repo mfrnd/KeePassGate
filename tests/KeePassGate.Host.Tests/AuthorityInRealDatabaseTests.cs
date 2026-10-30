@@ -161,10 +161,10 @@ namespace KeePassGate.Host.Tests
                 "KeePass no longer stamps a key of a database's own custom data, which is what a merge orders by");
 
             var stamped = (DateTime?)accessor.Invoke(
-                _database.Database.CustomData, new object[] { AuthorityKey() });
+                _database.Database.CustomData, new object[] { AuthorityKey() })
+                ?? throw new InvalidOperationException("the authority was written without a modification time");
 
-            Assert.That(stamped, Is.Not.Null, "the authority was written without a modification time");
-            Assert.That(stamped.Value, Is.GreaterThan(DateTime.UtcNow.AddMinutes(-5)));
+            Assert.That(stamped, Is.GreaterThan(DateTime.UtcNow.AddMinutes(-5)));
 
             var onTheGroup = (DateTime?)accessor.Invoke(
                 _database.RootGroup.CustomData, new object[] { AuthorityKey() });
