@@ -520,6 +520,7 @@ namespace KeePassGate
 
                 // `&` rather than `&&`, so that both are started and a refusal by either still
                 // leaves the other for the teardown below to take down.
+                // codeql[cs/non-short-circuit] `&` on purpose, for the reason above
                 if (!(_host.Start() & _grants.Start()))
                 {
                     // Undone here rather than left to `Terminate`. A refused load has already

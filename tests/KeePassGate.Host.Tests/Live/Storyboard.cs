@@ -49,6 +49,7 @@ namespace KeePassGate.Host.Tests.Live
     /// **What cannot be settled at its source is replaced in the text**, by a value written down
     /// and patterned so that nobody takes it for a real one. See <see cref="Invent"/>.
     /// </remarks>
+    // codeql[cs/coupled-types] `Layout` is a private part of it, nested inside it
     internal sealed class Storyboard : IDisposable
     {
         /// <summary>Which side of the picture a step happens on.</summary>
