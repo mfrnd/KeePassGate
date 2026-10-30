@@ -1631,6 +1631,19 @@ Each step is refusable, and each ends with something that runs.
     version moves only with the action's own commit, and the ruleset requires the verdict and every
     conversation resolved. No rule is turned off in the configuration: a finding that cannot be
     fixed is suppressed where it is, like any other.
+    **Done.** Every finding the first full analysis made is fixed, or suppressed where it is made
+    with its reason, 108 suppressions in all and no rule turned off. What this settles is that a
+    suppression is CodeQL's own comment, read with CodeQL's own patterns and held by lint to one
+    spelling; that a pull request uploads its findings less the suppressed ones, because code
+    scanning makes an alert of a finding CodeQL marks suppressed; that the verdict is taken over the
+    whole analysis, because a pull request's own upload holds only the lines it changed; that
+    `master` dismisses each suppressed finding with its comment's reason and opens again a dismissal
+    the code no longer backs; that a push's threads go out as one review, built up while it is
+    pending a thread a second, because GitHub refuses a review of more than 80 comments, pending or
+    not; that a thread whose suppression is gone is deleted rather than resolved, because the
+    workflow's token may delete it and may not resolve it; and that the ruleset requires
+    `code scanning passed`, every conversation resolved and no new alert at any severity, because
+    the CodeQL check succeeds with a new warning and only the ruleset's threshold stops one.
 
 Steps 5 to 8 are the ones that prove the design. Step 5 is deliberately early, because the
 `CustomData` dialog hazard is the thing most likely to invalidate the storage decision, and finding

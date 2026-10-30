@@ -8,7 +8,7 @@ Guidance for anyone, human or AI assistant, working in this repository.
 mutual TLS, so that automation and AI agents can each be given a narrow, revocable, audited slice of
 a database.
 
-**Status: steps 1 to 31 of the build order are done and the API is served.** The plugin loads
+**Status: the whole build order is done and the API is served.** The plugin loads
 into KeePass, the KPG tab creates, recreates and deletes the database's own certificate authority,
 the gate listens on loopback and answers over mutual TLS 1.3, a client is served only if
 the database holds an admission record for its certificate, and **a stranger can now become one**:
@@ -54,13 +54,15 @@ serves, held to the routing table as the library is, and `-o json` on every one 
 **And a write can be made against what was read**: a read of one group or one entry carries an
 `ETag`, a keyed digest of what the node holds, to a client whose rule reads all of it, and a
 request carrying `If-Match` is answered `412` when the node has changed since, decided under the
-writer's lock. **And `master` takes a merge only once the gate has passed**: a ruleset requires the one
+writer's lock. **And `master` takes a merge only once the gate has passed**: a ruleset requires the
 check `gate passed`, which stands for every job the workflow runs. **And a `v` tag publishes a
 release**: the plugin's zip as a GitHub release and the client on PyPI, last, through Trusted
 Publishing, after a rehearsal against a draft and TestPyPI, as `RELEASING.md` describes. **And
 CodeQL reads what the gate does not**: the C#, the Python and the workflows, on every pull request,
-every push to `master` and once a week. **Step 32, a clean analysis, is being built**: what the
-build order plans for it is in `DESIGN.md` §132.
+every push to `master` and once a week. **And the analysis is clean**: every finding is fixed, or
+suppressed where it is made with its reason, and a merge waits for `code scanning passed`, which
+fails on any finding left, and for every suppression the pull request touches to be resolved in
+review.
 
 ## Read these before proposing anything
 
@@ -901,18 +903,18 @@ against the constant read out of KeePass itself. The entry point must likewise b
 `KeePassGate.KeePassGateExt` in `KeePassGate.dll`, namespace included.
 
 **There is CI, and `master` requires it.** The workflow runs every gate on every pull request and on
-every push to `master`, and a ruleset on `master` requires one check, `gate passed`, which passes
-only when every other job did, on a branch up to date with `master`. GitHub does not run a pull
-request's checks again when `master` moves, so a check that passed before another merge landed is no
-check of the two together; a branch that is behind is updated, which runs the gate again, before it
-merges, and rebased rather than merged, so its commits stay its own. So `master` changes through a
-pull request, merged with a merge commit, and is never force pushed or deleted. The ruleset asks for
-no approval, because a sole maintainer cannot approve their own pull request, and the repository's
-administrators may bypass it. It names `gate passed` rather than each gate, because the gates are
-what `build.ps1 -ListGates` answers, and a list written into a setting would go stale the first time
-a gate was added. This reverses "there is no branch protection", which held until the build order's
-pull requests had all been merged, since a required check on a stack being merged would have held
-every one of them.
+every push to `master`, and a ruleset on `master` requires `gate passed`, which passes only when
+every other job did, and `code scanning passed`, below, both on a branch up to date with `master`.
+GitHub does not run a pull request's checks again when `master` moves, so a check that passed before
+another merge landed is no check of the two together; a branch that is behind is updated, which
+runs the gate again, before it merges, and rebased rather than merged, so its commits stay its own.
+So `master` changes through a pull request, merged with a merge commit, and is never force pushed or
+deleted. The ruleset asks for no approval, because a sole maintainer cannot approve their own pull
+request, and the repository's administrators may bypass it. It names `gate passed` rather than each
+gate, because the gates are what `build.ps1 -ListGates` answers, and a list written into a setting
+would go stale the first time a gate was added. This reverses "there is no branch protection", which
+held until the build order's pull requests had all been merged, since a required check on a stack
+being merged would have held every one of them.
 
 **Pins move in pull requests of their own, proposed rather than noticed.** `.github/dependabot.yml`
 opens one grouped pull request a week for each kind: the actions' commits, `uv.lock`, the prose
@@ -946,7 +948,10 @@ cannot write to the pull request, which is what a fork's pull request is given. 
 tab lists every suppression**: on `master` and the weekly run, `tools/dismissals.py` dismisses the
 alert of each finding the code suppresses, with the comment's reason, and opens again every one it
 dismissed that the code no longer suppresses, since GitHub leaves an alert dismissed after its
-finding is gone. The PowerShell is left out, because CodeQL reads none.
+finding is gone. **And the ruleset holds a merge to all of it**: it requires `code scanning passed`,
+every conversation resolved, and no new CodeQL alert at any severity, the last because the CodeQL
+check succeeds with a new warning and only the ruleset's threshold stops one, as
+`spikes/codeql-suppressions` measured. The PowerShell is left out, because CodeQL reads none.
 
 ## Testing
 
@@ -1035,7 +1040,7 @@ here can hang or crash the password manager.
 
 ## Where to start
 
-[`DESIGN.md`](DESIGN.md) §132 ends with a multi-step build order. **Steps 1 to 31 are done.** The
+[`DESIGN.md`](DESIGN.md) §132 ends with a multi-step build order. **All of them are done.** The
 skeleton loads and shows a KPG tab, that tab creates, recreates and deletes the authority, the gate
 serves the document's routes over mutual TLS to a client the authority issued and the database holds
 a record for, a stranger can pair, a locked database answers `503 locked`, a grant means something
@@ -1052,10 +1057,11 @@ would publish, the README tells somebody arriving what this is, around a picture
 whole journey that moves and a diagram of the pieces, the command line reaches every route
 and prints JSON for a program, a write can be made against what was read, refused with `412`
 when the node has changed since, a merge into `master` waits for the whole gate to pass, a
-tag publishes both halves, and CodeQL analyzes every language it reads.
+tag publishes both halves, CodeQL analyzes every language it reads, and a merge waits until every
+finding is fixed or suppressed with its reason.
 
 **Start with [`docs/`](docs/README.md) if the question is what this does**, and with the documents
-below if the question is why it does it that way. What is left is step 32, a clean analysis.
+below if the question is why it does it that way.
 
 **The storage decision survived the thing most likely to invalidate it.** The `GroupForm` snapshot
 hazard is real and now measured rather than remembered: `SnapshotHazardTests` reads the mechanism off
