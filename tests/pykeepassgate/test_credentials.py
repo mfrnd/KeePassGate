@@ -577,10 +577,10 @@ def test_a_directory_that_refuses_a_file_is_refused_before_anything_is_spent(
     where = tmp_path / "kept"
     opening = os.open
 
-    def refuse(path: Any, flags: int, mode: int = 0o777) -> int:
+    def refuse(path: Any, flags: int, *rest: Any) -> int:
         if Path(path).name == credentials.AUTHORITY_FILE:
             raise PermissionError("denied")
-        return opening(path, flags, mode)
+        return opening(path, flags, *rest)
 
     monkeypatch.setattr(os, "open", refuse)
 
@@ -597,10 +597,10 @@ def test_a_file_already_there_is_left_where_one_beside_it_is_refused(
     stored.authority.unlink()
     opening = os.open
 
-    def refuse(path: Any, flags: int, mode: int = 0o777) -> int:
+    def refuse(path: Any, flags: int, *rest: Any) -> int:
         if Path(path).name == credentials.DETAILS_FILE:
             raise PermissionError("denied")
-        return opening(path, flags, mode)
+        return opening(path, flags, *rest)
 
     monkeypatch.setattr(os, "open", refuse)
 
