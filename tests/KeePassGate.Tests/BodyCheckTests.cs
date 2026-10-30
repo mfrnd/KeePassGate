@@ -458,10 +458,9 @@ namespace KeePassGate.Tests
                 "\"content\":{\"application/json\":{\"schema\":" + schema + "}}}," +
                 "\"responses\":{\"200\":{\"description\":\"o\"},\"415\":{\"description\":\"m\"}}}}}}");
 
-            var reached = new List<string>();
             var router = new SpecRouter(document, new Dictionary<string, OperationHandler>
             {
-                { "writeA", answering => { reached.Add("ran"); answering.Respond(200, "{}"); } },
+                { "writeA", answering => answering.Respond(200, "{}") },
             });
 
             var context = Context(body);
