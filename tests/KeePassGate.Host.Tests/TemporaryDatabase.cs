@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using KeePassGate.Diagnostics;
+using KeePassGate.Testing;
 using KeePassLib;
 using KeePassLib.Keys;
 using KeePassLib.Serialization;
@@ -136,16 +137,15 @@ namespace KeePassGate.Host.Tests
 
         public void Dispose()
         {
-            try
+            // Whatever closing throws, the directory still goes below, and a cleanup that threw
+            // would hide what the test itself found.
+            _ = Thrown.By(() =>
             {
                 if (_database != null && _database.IsOpen)
                 {
                     _database.Close();
                 }
-            }
-            catch (Exception)
-            {
-            }
+            });
 
             Delete(_directory);
         }

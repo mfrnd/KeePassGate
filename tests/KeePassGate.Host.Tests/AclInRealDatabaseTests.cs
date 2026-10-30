@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using KeePassGate.Acl;
 using KeePassGate.Bridge;
+using KeePassGate.Testing;
 using KeePassLib;
 using NUnit.Framework;
 
@@ -215,7 +216,7 @@ namespace KeePassGate.Host.Tests
 
             var churn = new Thread(() =>
             {
-                try
+                churnFailure = Thrown.By(() =>
                 {
                     var round = 0;
                     while (!Volatile.Read(ref stop))
@@ -242,11 +243,7 @@ namespace KeePassGate.Host.Tests
 
                         round++;
                     }
-                }
-                catch (Exception failure)
-                {
-                    churnFailure = failure;
-                }
+                });
             });
 
             churn.Start();
@@ -255,7 +252,7 @@ namespace KeePassGate.Host.Tests
             var quietRefusals = 0;
             var walks = 0;
 
-            try
+            escaped = Thrown.By(() =>
             {
                 for (; walks < 100000; walks++)
                 {
@@ -266,16 +263,10 @@ namespace KeePassGate.Host.Tests
                         quietRefusals++;
                     }
                 }
-            }
-            catch (Exception failure)
-            {
-                escaped = failure;
-            }
-            finally
-            {
-                Volatile.Write(ref stop, true);
-                churn.Join();
-            }
+            });
+
+            Volatile.Write(ref stop, true);
+            churn.Join();
 
             Assert.That(escaped, Is.Null,
                 "a walk over a tree in motion raises nothing, so nothing is left for a retry to take again");

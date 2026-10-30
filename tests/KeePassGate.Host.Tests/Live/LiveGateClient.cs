@@ -138,7 +138,7 @@ namespace KeePassGate.Host.Tests.Live
             Buffer.BlockCopy(prefix, 0, request, 0, prefix.Length);
             Buffer.BlockCopy(payload, 0, request, prefix.Length, payload.Length);
 
-            try
+            var thrown = Thrown.By(() =>
             {
                 using (var tcp = new TcpClient())
                 {
@@ -174,7 +174,7 @@ namespace KeePassGate.Host.Tests.Live
                         if (raw.Length == 0)
                         {
                             reply.Failure = "the connection was closed without an answer";
-                            return reply;
+                            return;
                         }
 
                         reply.Answered = true;
@@ -185,10 +185,11 @@ namespace KeePassGate.Host.Tests.Live
                         reply.Tag = Field(blank < 0 ? raw : raw.Substring(0, blank), "ETag");
                     }
                 }
-            }
-            catch (Exception error)
+            });
+
+            if (thrown != null)
             {
-                reply.Failure = error.GetType().Name + ": " + error.Message;
+                reply.Failure = thrown.GetType().Name + ": " + thrown.Message;
             }
 
             return reply;

@@ -128,18 +128,9 @@ namespace KeePassGate.Tests
 
                     dialog.Shown += delegate
                     {
-                        try
-                        {
-                            check(main, dialog);
-                        }
-                        catch (Exception error)
-                        {
-                            failure = error;
-                        }
-                        finally
-                        {
-                            dialog.Close();
-                        }
+                        failure = Thrown.By(() => check(main, dialog));
+
+                        dialog.Close();
                     };
 
                     dialog.ShowDialog(main);
