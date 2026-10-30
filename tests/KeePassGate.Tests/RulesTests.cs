@@ -47,7 +47,7 @@ namespace KeePassGate.Tests
         [TestCase("rl", TestName = "lower case")]
         [TestCase("X", TestName = "a letter that names no verb")]
         [TestCase(" R", TestName = "a space")]
-        [TestCase((string)null, TestName = "no mask at all")]
+        [TestCase(null, TestName = "no mask at all")]
         public void Anything_else_is_refused_as_the_test_sets_up(string mask)
         {
             Assert.That(() => Rules.Granting(("agent", mask)), Throws.ArgumentException);

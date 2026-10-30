@@ -391,7 +391,7 @@ namespace KeePassGate.Tests
         [Test]
         public void A_plugin_with_no_listener_still_locks()
         {
-            using (var watch = new LockWatch(_events, _targets, (IConnections)null, _log))
+            using (var watch = new LockWatch(_events, _targets, connections: null, _log))
             {
                 watch.Start();
                 _events.RaiseClosed("C:\\invented\\two.kdbx", true);

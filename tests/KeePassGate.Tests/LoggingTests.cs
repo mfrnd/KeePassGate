@@ -122,7 +122,7 @@ namespace KeePassGate.Tests
         public void Every_level_reaches_the_trace_listeners()
         {
             // No file, because the one a log with nothing named writes to is this account's own.
-            var log = new TraceGateLog((string)null);
+            var log = new TraceGateLog(filePath: null);
 
             log.Info("one");
             log.Warn("two");
@@ -191,7 +191,7 @@ namespace KeePassGate.Tests
         [Test]
         public void Without_a_file_nothing_is_written_to_disk()
         {
-            var log = new TraceGateLog((string)null);
+            var log = new TraceGateLog(filePath: null);
 
             log.Info("one");
 
