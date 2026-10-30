@@ -990,22 +990,21 @@ namespace KeePassGate.Ui
 
             Later(() =>
             {
-                try
+                using (drop)
                 {
-                    keys.Dispose();
-                    work();
-                }
-                catch (Exception error) when (Expected.OfUserInterface(error))
-                {
-                    // Named rather than swallowed whole, and reported on the tab, because this runs
-                    // on the message loop of a password manager and what escapes here closes the
-                    // dialog the operator is working in.
-                    _log.Error("a grant picker could not be closed cleanly", error);
-                    Warn("That choice could not be applied: " + Clipped.Message(error.Message));
-                }
-                finally
-                {
-                    drop.Dispose();
+                    try
+                    {
+                        keys.Dispose();
+                        work();
+                    }
+                    catch (Exception error) when (Expected.OfUserInterface(error))
+                    {
+                        // Named rather than swallowed whole, and reported on the tab, because this runs
+                        // on the message loop of a password manager and what escapes here closes the
+                        // dialog the operator is working in.
+                        _log.Error("a grant picker could not be closed cleanly", error);
+                        Warn("That choice could not be applied: " + Clipped.Message(error.Message));
+                    }
                 }
             });
         }

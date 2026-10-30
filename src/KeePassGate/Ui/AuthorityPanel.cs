@@ -1378,13 +1378,28 @@ namespace KeePassGate.Ui
         /// </remarks>
         private static Font CodeFont(float size)
         {
+            // codeql[cs/missed-using-statement] disposed only when it is not kept, which no `using` can do
             var font = new Font(CodeFamily, size, FontStyle.Regular);
-            if (string.Equals(font.Name, CodeFamily, StringComparison.OrdinalIgnoreCase))
+
+            // Let go of on every way out but the return, a throw while GDI+ is asked for the name
+            // among them.
+            var handedOver = false;
+            try
             {
-                return font;
+                if (string.Equals(font.Name, CodeFamily, StringComparison.OrdinalIgnoreCase))
+                {
+                    handedOver = true;
+                    return font;
+                }
+            }
+            finally
+            {
+                if (!handedOver)
+                {
+                    font.Dispose();
+                }
             }
 
-            font.Dispose();
             return new Font(FontFamily.GenericMonospace, size, FontStyle.Regular);
         }
 

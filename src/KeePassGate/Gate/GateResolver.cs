@@ -292,6 +292,7 @@ namespace KeePassGate.Gate
                 // Every candidate arrived holding a reference taken for this caller. The one being
                 // returned keeps its own, released when the resolution is disposed; the rest go back
                 // here, including a match on an ambiguous name, which is refused rather than served.
+                // codeql[cs/missed-using-statement] all but the one handed back are disposed, which no `using` can do
                 foreach (var candidate in candidates.Where(
                     candidate => candidate != null && !ReferenceEquals(candidate, kept)))
                 {
