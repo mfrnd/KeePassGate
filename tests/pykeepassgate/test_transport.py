@@ -281,6 +281,22 @@ class TestDialing:
 
         assert transport.dial_limit(transport.create_connection) is transport.create_connection
 
+    def test_a_context_offering_more_than_tls_13_is_refused_before_anything(self) -> None:
+        older = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+        older.minimum_version = ssl.TLSVersion.TLSv1_2
+        older.maximum_version = ssl.TLSVersion.TLSv1_3
+
+        def dial(host: str, port: int, timeout: float) -> socket.socket:  # pragma: no cover
+            raise AssertionError("nothing is dialed for a context that is refused")
+
+        with pytest.raises(ValueError, match="TLSv1_2 to TLSv1_3"), transport.connect(
+            45678, older, "x.y.kpg", dial=dial
+        ):
+            pass  # pragma: no cover, the context is what raises
+
+        unpaired = transport.unpaired_context()
+        assert transport.pinned_context(unpaired) is unpaired
+
 
 class TestPinning:
     def test_a_paired_client_reaches_a_gate_serving_under_its_own_authority(
