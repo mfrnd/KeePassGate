@@ -79,6 +79,13 @@ the pull request's opening runs, is the first four comments:
 {"step": "R1", "set": "first review", "offset": 0, "batches": [4], "pause": 1, "retry": false}
 ```
 
+**#11 measured where a thread may go in each kind of changed file**, from `measure/files`.
+`setup.py`, given a checkout of a branch taken from `main` and the folder holding `measure_each.py`
+and `measure.yml`, makes one change of each kind a pull request makes to a file and writes
+`measure/each.json`, a review for each place a thread might go; opening the pull request posts them.
+For the comments on whole files, `measure.yml` was then set to run `measure_file.py` instead, with
+`file.json` beside it, and pushed.
+
 ## Reading a re-run
 
 Pull request, alert and analysis numbers belong to the repository that made them, so a re-run is

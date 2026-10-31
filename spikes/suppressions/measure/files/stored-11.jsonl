@@ -1,0 +1,14 @@
+{"label":"renamed, its changed line","line":20,"original_line":20,"path":"probe_py/renamed_cases.py","side":"RIGHT","start_line":null,"start_side":null,"subject_type":"line","tail":"+# p4: a rule id that is not the one tha"}
+{"label":"renamed, a range in its hunk","line":23,"original_line":23,"path":"probe_py/renamed_cases.py","side":"RIGHT","start_line":17,"start_side":"RIGHT","subject_type":"line","tail":"     value = 1"}
+{"label":"renamed, the old side by its new name","line":20,"original_line":20,"path":"probe_py/renamed_cases.py","side":"LEFT","start_line":null,"start_side":null,"subject_type":"line","tail":"-# p4: a rule id that is not the one tha"}
+{"label":"renamed, the old side by its old name","line":20,"original_line":20,"path":"probe_py/cases.py","side":"LEFT","start_line":null,"start_side":null,"subject_type":"line","tail":"-# p4: a rule id that is not the one tha"}
+{"label":"copied","line":10,"original_line":10,"path":"src/Probe/Copy.cs","side":"RIGHT","start_line":null,"start_side":null,"subject_type":"line","tail":"+        // c1: suppressed by a codeql c"}
+{"label":"1000 lines, the last","line":1000,"original_line":1000,"path":"measure/lines-1000.txt","side":"RIGHT","start_line":null,"start_side":null,"subject_type":"line","tail":"+line 1000"}
+{"label":"5000 lines, the last","line":5000,"original_line":5000,"path":"measure/lines-5000.txt","side":"RIGHT","start_line":null,"start_side":null,"subject_type":"line","tail":"+line 5000"}
+{"label":"a space in the name","line":5,"original_line":5,"path":"measure/a b.cs","side":"RIGHT","start_line":null,"start_side":null,"subject_type":"line","tail":"+// line 5"}
+{"label":"an accent in the name","line":5,"original_line":5,"path":"measure/ü.cs","side":"RIGHT","start_line":null,"start_side":null,"subject_type":"line","tail":"+// line 5"}
+{"label":"a quote in the name","line":5,"original_line":5,"path":"measure/q\"t.cs","side":"RIGHT","start_line":null,"start_side":null,"subject_type":"line","tail":"+// line 5\r"}
+{"label":"deleted, the old side","line":10,"original_line":10,"path":"tools/filter_sarif.py","side":"LEFT","start_line":null,"start_side":null,"subject_type":"line","tail":"-source, target = sys.argv[1], sys.argv["}
+{"label":"no newline, the last line","line":6,"original_line":6,"path":"measure/noeol.cs","side":"RIGHT","start_line":null,"start_side":null,"subject_type":"line","tail":"+// line 6"}
+{"label":"two ranges that overlap, first","line":6,"original_line":6,"path":"measure/a b.cs","side":"RIGHT","start_line":1,"start_side":"RIGHT","subject_type":"line","tail":"+// line 6"}
+{"label":"two ranges that overlap, second","line":8,"original_line":8,"path":"measure/a b.cs","side":"RIGHT","start_line":3,"start_side":"RIGHT","subject_type":"line","tail":"+// line 8"}

@@ -21,6 +21,7 @@ were recorded here, and [`README.md`](README.md) describes how to make another.
 | Which CodeQL runs? | The highest version GitHub enables by default on the day, unless the workflow pins one; `tools: linked` runs the bundle the pinned action ships |
 | How many comments may one review carry? | **80.** A review of 81 is refused at once as a secondary rate limit and makes nothing. A review of 60 or more took GitHub past ten seconds, which it answered with 502 while making the review all the same. Eight reviews of 20, twenty seconds apart, all went through |
 | Can a thread cover the lines around a suppression? | **Yes, inside one hunk of GitHub's diff.** Three lines either side, cut to the file and to the hunk, were taken at a file's first and last lines and on the base side; a range two lines past its hunk was refused with 422. Deleting every comment of a review deletes the review |
+| Where does GitHub take a thread in a pull request's files? | **Only on a line its own diff shows.** A renamed file has its changed hunks alone, a rename with no change and a file of 25,000 new lines take none, and names git quotes come back plain. A comment on the whole file is taken where no line is, and is a thread like any other |
 | Verdict | **Filter on a pull request, dismiss on the default branch, and fail on any finding nothing suppresses in the whole SARIF**, since a pull request's own upload holds only the lines it changed, and put the suppressions to review twenty comments at a time |
 
 ## 1. What ran, in order
@@ -44,6 +45,7 @@ one.
 | #7, finished after #8 | changed `C14`'s flagged line; changed `C15`'s to one CodeQL does not report, its right operand being a local rather than a call, which leaves its comment over no finding; added `C16`, a new finding whose reason runs past 280 characters; then merged | dismissing on `main`, section 7, and fingerprints, section 4 |
 | #9, never merged | from a branch that removed the other workflows, posted the 122 comments KeePassGate's pull request #51 was refused as one review, then single reviews of 80, 40, 60 and 81 comments, and eight of 20 | how many comments a review may carry, section 8 |
 | #10, never merged | from a branch that removed the other workflows, added a line at the top of `Cases.cs`, one in its middle and one at its end, and removed one; then posted comments over three lines either side of each, one range past its hunk, and the first four again as a review whose comments were then deleted | threads over a range of lines, section 8 |
+| #11, never merged | from a branch that removed the other workflows, renamed one file with a line changed and one with none, copied one, added files of 1,000, 5,000 and 25,000 lines and three with a space, an accent and a quote in their names, deleted one, and ended one without a newline; then posted a review for each place a thread might go, and a comment on three whole files | where a thread may go, section 8 |
 
 ## 2. Which comments suppress
 
@@ -351,6 +353,36 @@ comment over each, three lines either side of its line, cut to the file and to t
 - **Deleting every comment of a review deletes the review.** With R3's four comments deleted by the
   maintainer's token, a second apart, the review answered 404 and the pull request listed R1's
   alone.
+
+### Where a thread may go
+
+Measured on #11, after KeePassGate's review was found to read a pull request's files from git with
+renames off and to mistake names git quotes. `measure/files/setup.py` makes one change of each kind
+a pull request makes to a file, and `measure/files/measure_each.py` posts a review for each place a
+thread might go, each its own review so that a refusal belongs to it alone; `measure_file.py` then
+posted a comment on three whole files. GitHub's list of the pull request's files is
+`files-11.jsonl`, and `results-11.jsonl`, `results-11-file.jsonl` and `stored-11.jsonl` are every
+answer and what GitHub stored.
+
+| File | How GitHub lists it | A thread on a line | A comment on the whole file |
+| --- | --- | --- | --- |
+| renamed, one line changed | `renamed`, its old name given, only that hunk in its diff | taken in the hunk, on either side and under either name; refused outside it | |
+| renamed, nothing changed | `renamed`, no diff | refused, "Line could not be resolved" | taken |
+| a copy of an unchanged file | `added`, the whole file in its diff | taken | |
+| 1,000 new lines | `added`, with its diff | taken | |
+| 5,000 new lines | `added`, no diff | taken | |
+| 25,000 new lines | `added`, no diff | refused, "Diff entry … diff is too large" | taken |
+| a space, an accent, a quote in the name | `added`, the name plain | taken, by the plain name | taken, for the space |
+| deleted | `removed` | taken on the old side | |
+| its last line with no newline | `added` | taken on that line | |
+
+- **GitHub's diff decides where a thread goes, and it detects renames itself**, so a renamed file's
+  unchanged lines are no part of it, under its old name or its new one.
+- **The list of files leaves a diff out of more than it refuses threads on**: the file of 5,000
+  lines had none in the list and took its threads.
+- **A comment on the whole file is a review thread**, its `subjectType` FILE and unresolved until
+  someone resolves it, and it is taken where no line is.
+- **Two ranges that overlap in one review were both taken.**
 
 ## 9. Which CodeQL runs
 

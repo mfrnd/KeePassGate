@@ -1,0 +1,17 @@
+{"additions":0,"changes":88,"deletions":88,"filename":".github/workflows/codeql.yml","has_patch":true,"hunks":"@@ -1,88 +0,0 @@","previous_filename":null,"status":"removed"}
+{"additions":33,"changes":33,"deletions":0,"filename":".github/workflows/measure.yml","has_patch":true,"hunks":"@@ -0,0 +1,33 @@","previous_filename":null,"status":"added"}
+{"additions":0,"changes":14,"deletions":14,"filename":".github/workflows/old.yml","has_patch":true,"hunks":"@@ -1,14 +0,0 @@","previous_filename":null,"status":"removed"}
+{"additions":0,"changes":56,"deletions":56,"filename":".github/workflows/suppressions.yml","has_patch":true,"hunks":"@@ -1,56 +0,0 @@","previous_filename":null,"status":"removed"}
+{"additions":0,"changes":0,"deletions":0,"filename":"README-renamed.md","has_patch":false,"hunks":"","previous_filename":"README.md","status":"renamed"}
+{"additions":10,"changes":10,"deletions":0,"filename":"measure/a b.cs","has_patch":true,"hunks":"@@ -0,0 +1,10 @@","previous_filename":null,"status":"added"}
+{"additions":201,"changes":201,"deletions":0,"filename":"measure/each.json","has_patch":true,"hunks":"@@ -0,0 +1,201 @@","previous_filename":null,"status":"added"}
+{"additions":1000,"changes":1000,"deletions":0,"filename":"measure/lines-1000.txt","has_patch":true,"hunks":"@@ -0,0 +1,1000 @@","previous_filename":null,"status":"added"}
+{"additions":25000,"changes":25000,"deletions":0,"filename":"measure/lines-25000.txt","has_patch":false,"hunks":"","previous_filename":null,"status":"added"}
+{"additions":5000,"changes":5000,"deletions":0,"filename":"measure/lines-5000.txt","has_patch":false,"hunks":"","previous_filename":null,"status":"added"}
+{"additions":57,"changes":57,"deletions":0,"filename":"measure/measure_each.py","has_patch":true,"hunks":"@@ -0,0 +1,57 @@","previous_filename":null,"status":"added"}
+{"additions":6,"changes":6,"deletions":0,"filename":"measure/noeol.cs","has_patch":true,"hunks":"@@ -0,0 +1,6 @@","previous_filename":null,"status":"added"}
+{"additions":10,"changes":10,"deletions":0,"filename":"measure/q\"t.cs","has_patch":true,"hunks":"@@ -0,0 +1,10 @@","previous_filename":null,"status":"added"}
+{"additions":10,"changes":10,"deletions":0,"filename":"measure/ü.cs","has_patch":true,"hunks":"@@ -0,0 +1,10 @@","previous_filename":null,"status":"added"}
+{"additions":1,"changes":2,"deletions":1,"filename":"probe_py/renamed_cases.py","has_patch":true,"hunks":"@@ -17,7 +17,7 @@","previous_filename":"probe_py/cases.py","status":"renamed"}
+{"additions":128,"changes":128,"deletions":0,"filename":"src/Probe/Copy.cs","has_patch":true,"hunks":"@@ -0,0 +1,128 @@","previous_filename":null,"status":"added"}
+{"additions":0,"changes":31,"deletions":31,"filename":"tools/filter_sarif.py","has_patch":true,"hunks":"@@ -1,31 +0,0 @@","previous_filename":null,"status":"removed"}
