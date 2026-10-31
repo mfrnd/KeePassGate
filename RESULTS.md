@@ -45,7 +45,7 @@ one.
 | #7, finished after #8 | changed `C14`'s flagged line; changed `C15`'s to one CodeQL does not report, its right operand being a local rather than a call, which leaves its comment over no finding; added `C16`, a new finding whose reason runs past 280 characters; then merged | dismissing on `main`, section 7, and fingerprints, section 4 |
 | #9, never merged | from a branch that removed the other workflows, posted the 122 comments KeePassGate's pull request #51 was refused as one review, then single reviews of 80, 40, 60 and 81 comments, and eight of 20 | how many comments a review may carry, section 8 |
 | #10, never merged | from a branch that removed the other workflows, added a line at the top of `Cases.cs`, one in its middle and one at its end, and removed one; then posted comments over three lines either side of each, one range past its hunk, and the first four again as a review whose comments were then deleted | threads over a range of lines, section 8 |
-| #11, never merged | from a branch that removed the other workflows, renamed one file with a line changed and one with none, copied one, added files of 1,000, 5,000 and 25,000 lines and three with a space, an accent and a quote in their names, deleted one, and ended one without a newline; then posted a review for each place a thread might go, and a comment on three whole files; later changed the line under one thread, resolved three threads with the review job's permissions, deleted one thread's only comment with them, and resolved the three with `contents: write` added | where a thread may go, and resolving and deleting one, section 8 |
+| #11, never merged | from a branch that removed the other workflows, renamed one file with a line changed and one with none, copied one, added files of 1,000, 5,000 and 25,000 lines and three with a space, an accent and a quote in their names, deleted one, and ended one without a newline; then posted a review for each place a thread might go, and a comment on three whole files; later changed the line under one thread, resolved three threads with the review job's permissions, deleted one thread's only comment with them, and resolved the three with `contents: write` added; last, built up a pending review three ways and submitted it | where a thread may go, resolving and deleting one, and one review built up while pending, section 8 |
 
 ## 2. Which comments suppress
 
@@ -403,6 +403,29 @@ answer and what was read back.
   comment and its thread are gone.
 - **A push leaves a thread whose line it changed outdated and unresolved**, and it marked outdated
   as well the thread on `src/Probe/Copy.cs`, a file it did not touch.
+
+### One review built up while pending
+
+Measured on #11, to learn whether KeePassGate's review could post all of a push's threads as one
+review rather than twenty to a review. `measure/files/measure_pending.py` does it three ways under
+the review job's permissions, four minutes apart, with comments of the lengths of the 112 notes on
+KeePassGate's pull request #51, `pending/lengths.json`, each over seven lines of
+`measure/lines-1000.txt`. `results-11-pending.jsonl` is every answer.
+
+- **A pending review is held to the same limit as a submitted one.** Created with all 112 comments
+  in one request, it was refused at once with 403, a secondary rate limit, "temporarily blocked
+  from content creation", and nothing was made.
+- **Threads added to a pending review one at a time are taken.** A pending review created with 20
+  comments, 200 in 4.9 seconds, then took 92 more through GraphQL's `addPullRequestReviewThread`, a
+  second apart, each answered 200 with its thread, in 0.6 seconds at the median and 3.3 at most,
+  with no refusal for rate. A thread on a whole file, `subjectType` FILE, is taken the same way.
+- **A line outside the diff is refused without an error**: `addPullRequestReviewThread` answers 200
+  with no error and no thread, and nothing is made, where REST answers 422.
+- **Submitting the 113 threads was answered 502 after 10.4 seconds, and the review was submitted
+  all the same**, `COMMENTED` with all 113, as a large review made at once is.
+- **One pending review per pull request is all a user may have.** A second asked for beside one
+  left behind is refused with 422, "User can only have one pending review per pull request". The
+  token finds its own pending review among the pull request's reviews and deletes it, with 200.
 
 ## 9. Which CodeQL runs
 

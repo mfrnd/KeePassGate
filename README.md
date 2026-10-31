@@ -88,6 +88,8 @@ For the comments on whole files, `measure.yml` was then set to run `measure_file
 branch: `measure.yml` was replaced by `measure-resolve.yml`, which runs `measure_resolve.py`, with
 the last line of `measure/noeol.cs` changed so that its thread is outdated, and pushed; then by
 `measure-delete.yml`, which runs `measure_delete.py` and `measure_resolve.py` again, and pushed.
+A review built up while pending came last: `measure-pending.yml`, which runs `measure_pending.py`
+with `pending/lengths.json` beside it, and pushed.
 
 ## Reading a re-run
 
