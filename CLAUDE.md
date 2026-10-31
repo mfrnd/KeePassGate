@@ -196,17 +196,29 @@ designing around them.
   .NET Framework exposes no server-side SNI hook. Which TLS stack terminates it is the bullet
   below.
 - **Handlers catch what they named.** `Diagnostics/Expected` holds the lists, used as exception
-  filters. Four places catch everything, because in those four an escaping exception ends KeePass:
-  the plugin entry point, the handlers of KeePass's window events, the settings dialog's close
-  among them, the Tools menu item, and the connection thread.
+  filters. Four places catch everything, each for what an escape would do there. **The handlers
+  of KeePass's own events**, the settings dialog's close among them, because KeePass raises its
+  events with nothing around them, so an escape stops KeePass's own work where it was: a lock of
+  every database stops at the one being closed and leaves the ones after it unlocked, and a lock
+  the inactivity timer began leaves that timer's critical section held, since KeePass releases it
+  outside a `finally`, so the timer locks nothing again that session, which is read off KeePass
+  2.61.1 and not driven. Then WinForms, which KeePass gives no handler for an unhandled exception,
+  puts its own error dialog over KeePass, whose Quit ends the process outside KeePass's own
+  shutdown. **The Tools menu item**, which would bring up that dialog. **The connection thread**,
+  where an escape ends the process. **And the plugin's entry point**, whose exceptions KeePass
+  catches itself but undoes nothing for: `Initialize`, of which KeePass would warn that the plugin
+  cannot be loaded while what was set up before the throw outlived it, and each step of
+  `Terminate`, whose exceptions KeePass throws away, so that an escape would cost the steps after
+  it, among them what lets go of KeePass's static window events, the socket and the keys, and
+  `Initialize` runs it too, with KeePass carrying on.
   Those report through `GateIncidents`, which counts on the plugin's window under Tools and
   logs at `UNEXPECTED`. Two more roots are kept safe another way: the accept thread and a
-  connection's deadline timer have nothing above them either, and rather than catching
-  everything, every call they make is total or filtered. `GateListener.Drop` says what keeps
-  that true. And two places catch everything without being a fifth, since each keeps what was
-  thrown and throws it again where one of the four sees it: `GateTlsServer`'s callbacks, because
-  Bouncy Castle turns whatever a callback throws into a fatal alert, and the call `ControlUiThread`
-  marshals, because WinForms would answer one escaping it with a dialog of its own.
+  connection's deadline timer have nothing above them, like the connection thread, and rather
+  than catching everything, every call they make is total or filtered. `GateListener.Drop`
+  explains what keeps that true. And two places catch everything without being a fifth, since
+  each keeps what was thrown and throws it again where one of the four sees it: `GateTlsServer`'s
+  callbacks, because Bouncy Castle turns whatever a callback throws into a fatal alert, and the
+  call `ControlUiThread` marshals, because WinForms would answer one escaping it with that dialog.
   **A line that has to outlive a defect is written before it rather than caught around it**: the
   audit line for a pairing, a renewal or a client's own revocation that landed is written by
   `DatabaseWriter` on its own landed path, before any listener runs, so no listener's defect can

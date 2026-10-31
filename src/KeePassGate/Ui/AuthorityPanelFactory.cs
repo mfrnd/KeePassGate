@@ -227,11 +227,14 @@ namespace KeePassGate.Ui
                 }
                 catch (Exception error)
                 {
-                    // A catch-all, because KeePass raises `FormClosed` itself and anything escaping
-                    // here ends the password manager. A narrow filter left every unpredicted type
-                    // to do just that: a null reference, or a `TypeLoadException` after a KeePass
-                    // upgrade. Counted as an incident, like every handler of KeePass's events that
-                    // catches everything, so the Tools window shows it and the log has it whole.
+                    // A catch-all, because `FormClosed` is raised on KeePass's own thread as its
+                    // settings dialog closes, with nothing of KeePass's around it. WinForms catches
+                    // what escapes there, sets the dialog's result back to none, so that the dialog
+                    // stays open, and puts its own error dialog over it, offering to quit KeePass.
+                    // A narrow filter left every unpredicted type to do just that: a null
+                    // reference, or a `TypeLoadException` after a KeePass upgrade. Counted as an
+                    // incident, like every handler of KeePass's events that catches everything, so
+                    // the Tools window shows it and the log has it whole.
                     _incidents.Record(
                         "what the " + GateName.Product + " tab was holding could not be written", error);
                 }

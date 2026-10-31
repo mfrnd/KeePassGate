@@ -100,8 +100,8 @@ namespace KeePassGate.Diagnostics
             catch (Exception)
             {
                 // Deliberately everything, and the one rule this file lives by. A logger is called
-                // from inside catch handlers, including the four that stand between a failure and
-                // the end of the password manager, so it may never add an exception of its own.
+                // from inside catch handlers, the four catch-alls among them, so it may never add
+                // an exception of its own, which would escape the very catch reporting through it.
                 // Formatting reaches Exception.ToString on an object this plugin did not write.
                 return;
             }

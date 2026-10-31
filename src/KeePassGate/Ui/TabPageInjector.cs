@@ -13,8 +13,8 @@ namespace KeePassGate.Ui
     /// Two properties matter more than the mechanics. It is idempotent, because a dialog can be
     /// announced more than once and a second KPG tab would be a defect a user sees. And it is
     /// total: every failure is logged and reported, never thrown, because this runs on the UI
-    /// thread while a KeePass dialog is being constructed, and an exception there takes the
-    /// password manager with it.
+    /// thread while a KeePass dialog is being constructed, and an exception there would stop that
+    /// dialog part way and put WinForms' own error dialog over KeePass.
     /// </remarks>
     public sealed class TabPageInjector : IFormDecorator
     {

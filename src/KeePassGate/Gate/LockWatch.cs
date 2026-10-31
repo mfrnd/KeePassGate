@@ -160,8 +160,13 @@ namespace KeePassGate.Gate
         /// </param>
         /// <param name="incidents">
         /// Where an unpredicted failure is reported. These handlers run on KeePass's own thread from
-        /// KeePass's own events, so each of the three is one of the places that catch everything:
-        /// what escapes here reaches the message loop and ends the password manager.
+        /// KeePass's own events, raised with nothing around them, so each of the three is one of
+        /// the places that catch everything. What escapes one stops KeePass's open, close or lock
+        /// where it was: a lock of every database stops at the one being closed and leaves the ones
+        /// after it unlocked, and a lock the inactivity timer began leaves the timer's critical
+        /// section held, since KeePass releases it outside a `finally`, so that timer locks nothing
+        /// again that session. That much is read off KeePass 2.61.1, not driven. The exception then
+        /// reaches WinForms, which puts its own error dialog over KeePass, offering to quit.
         /// </param>
         /// <param name="screen">
         /// The questions put to the operator, which a lock takes away, or null where there is no
@@ -269,7 +274,8 @@ namespace KeePassGate.Gate
                 // own thread from KeePass's own event. The work below it parses a PKCS#12, reads
                 // custom data, builds a chain and mints a certificate, and a null reference or a
                 // `TypeLoadException` after a KeePass upgrade matches no named filter; escaping
-                // here ends the password manager.
+                // here would stop KeePass's open or unlock part way, and then reach WinForms' own
+                // error dialog.
                 _incidents.Record("an unlock could not be handled", error);
             }
         }

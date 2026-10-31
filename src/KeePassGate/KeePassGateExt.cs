@@ -249,9 +249,11 @@ namespace KeePassGate
         /// Opens the status window.
         /// </summary>
         /// <remarks>
-        /// A catch-all, like the other places KeePass calls into this plugin: a menu item runs on
-        /// KeePass's own thread and an exception escaping it ends the password manager. A window
-        /// that would not open is worth a log line and an incident of its own, not a crash.
+        /// A catch-all, like the handlers of KeePass's own events: a menu item runs on KeePass's
+        /// own thread, and an exception escaping it reaches WinForms, which puts its own error
+        /// dialog over KeePass, with a Quit that ends the process outside KeePass's own shutdown. A
+        /// window that would not open is worth a log line and an incident of its own, not that
+        /// dialog.
         /// </remarks>
         private void ShowStatus()
         {
@@ -294,8 +296,9 @@ namespace KeePassGate
         /// the title bar stops claiming there is nothing to save. Nothing else is asked for, since
         /// this plugin changes no group, no entry and no selection.
         ///
-        /// Wrapped because it runs from a button on a dialog, and an exception escaping there ends
-        /// KeePass. A window that failed to repaint is worth a log line, not a crash.
+        /// Wrapped because it runs from a button on a dialog, and an exception escaping there
+        /// reaches WinForms' own error dialog, which offers to quit KeePass. A window that failed
+        /// to repaint is worth a log line, not that dialog.
         /// </remarks>
         private void Changed(IPluginHost host)
         {
@@ -811,8 +814,8 @@ namespace KeePassGate
             // construction order rather than about rebinding, which this commit takes away: the
             // port is bound once at startup, so the listener this hands back is the only one there
             // will be. The incidents are the plugin's own rather than a second
-            // tally: these handlers are two of the four places that catch everything, and the
-            // window under Tools is where the count is read.
+            // tally: these handlers catch everything, as every handler of KeePass's own events
+            // here does, and the window under Tools is where the count is read.
             // The prompt too, because a lock closes the question it has on the screen, and the
             // approvals held for a retry, because a lock or a close lets go of every one of them.
             _locks = new LockWatch(

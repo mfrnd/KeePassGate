@@ -719,8 +719,10 @@ namespace KeePassGate.Bridge
             catch (Exception error)
             {
                 // One of the four catch-alls, and this is why: it runs on KeePass's own thread,
-                // from KeePass's own event, and an exception that escapes here ends the password
-                // manager. What it caught is reported as an incident rather than as a log line.
+                // from KeePass's own event, raised with nothing around it from inside the dialog
+                // that is loading. An exception that escapes here stops that dialog part way and
+                // then reaches WinForms' own error dialog, which offers to quit KeePass. What it
+                // caught is reported as an incident rather than as a log line.
                 _incidents.Record("a group dialog opening could not be noted", error);
             }
         }
