@@ -556,8 +556,9 @@ namespace KeePassGate
             // Called by KeePass when it unloads a plugin that loaded, and by `Initialize` itself
             // when it refuses to load, which KeePass then never calls it for. Every step below
             // tolerates having nothing to do and being run twice, because `Dispose` calls it as
-            // well and nothing orders the two.
-            try
+            // well and nothing orders the two, and each one runs whatever the one before it threw,
+            // for the reason `Attempt` gives.
+            Attempt("failed to stop", () =>
             {
                 GateIcon.Return();
                 CaptureGuard.Wanted = () => false;
@@ -573,26 +574,18 @@ namespace KeePassGate
                     _host.Stop();
                     _host = null;
                 }
-            }
-            catch (Exception error)
-            {
-                Report("failed to stop", error);
-            }
+            });
 
-            try
+            Attempt("failed to stop listening", () =>
             {
                 if (_listener != null)
                 {
                     _listener.Dispose();
                     _listener = null;
                 }
-            }
-            catch (Exception error)
-            {
-                Report("failed to stop listening", error);
-            }
+            });
 
-            try
+            Attempt("failed to stop watching for locks", () =>
             {
                 if (_locks != null)
                 {
@@ -604,39 +597,27 @@ namespace KeePassGate
                 _approvals.Clear();
 
                 TellWhatIsStillOwed();
-            }
-            catch (Exception error)
-            {
-                Report("failed to stop watching for locks", error);
-            }
+            });
 
-            try
+            Attempt("failed to stop the authority chooser", () =>
             {
                 if (_chooser != null)
                 {
                     _chooser.Dispose();
                     _chooser = null;
                 }
-            }
-            catch (Exception error)
-            {
-                Report("failed to stop the authority chooser", error);
-            }
+            });
 
-            try
+            Attempt("failed to release the database events", () =>
             {
                 if (_databases != null)
                 {
                     _databases.Dispose();
                     _databases = null;
                 }
-            }
-            catch (Exception error)
-            {
-                Report("failed to release the database events", error);
-            }
+            });
 
-            try
+            Attempt("failed to drop the outstanding invitations", () =>
             {
                 if (_invitations != null)
                 {
@@ -645,26 +626,18 @@ namespace KeePassGate
                     _invitations.Dispose();
                     _invitations = null;
                 }
-            }
-            catch (Exception error)
-            {
-                Report("failed to drop the outstanding invitations", error);
-            }
+            });
 
-            try
+            Attempt("failed to stop watching the group dialogs", () =>
             {
                 if (_groupDialogs != null)
                 {
                     _groupDialogs.Dispose();
                     _groupDialogs = null;
                 }
-            }
-            catch (Exception error)
-            {
-                Report("failed to stop watching the group dialogs", error);
-            }
+            });
 
-            try
+            Attempt("failed to release the served databases", () =>
             {
                 if (_targets != null)
                 {
@@ -674,24 +647,16 @@ namespace KeePassGate
                     _targets.Dispose();
                     _targets = null;
                 }
-            }
-            catch (Exception error)
-            {
-                Report("failed to release the served databases", error);
-            }
+            });
 
-            try
+            Attempt("failed to release the window events", () =>
             {
                 if (_windows != null)
                 {
                     _windows.Dispose();
                     _windows = null;
                 }
-            }
-            catch (Exception error)
-            {
-                Report("failed to release the window events", error);
-            }
+            });
 
             _incidents = null;
             _log = null;
@@ -699,6 +664,30 @@ namespace KeePassGate
             // KeePass's own object, and holding it after an unload keeps this plugin's graph
             // reachable from it for as long as the process lives.
             _pluginHost = null;
+        }
+
+        /// <summary>
+        /// Runs one step of <see cref="Terminate"/>, and reports what it throws rather than
+        /// letting it past the steps after it.
+        /// </summary>
+        /// <remarks>
+        /// One of the four places that catch everything, and for a reason of its own. KeePass
+        /// catches whatever `Terminate` throws and throws it away, so what an exception let out of
+        /// one step costs is the steps after it, among them the ones that let go of KeePass's
+        /// static window events, the listening socket and the host keys. `Initialize` runs
+        /// `Terminate` as well, with KeePass carrying on, so what a skipped step left behind would
+        /// stay behind in a running KeePass.
+        /// </remarks>
+        private void Attempt(string failure, Action step)
+        {
+            try
+            {
+                step();
+            }
+            catch (Exception error)
+            {
+                Report(failure, error);
+            }
         }
 
         /// <summary>
