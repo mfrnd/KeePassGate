@@ -28,8 +28,14 @@ placed, so a branch behind the one it merges into gets its threads where GitHub 
 
 **Where GitHub takes no thread on a line, the whole file gets one**, as for a diff too large for it
 to show, and where it takes none at all, the summary names the suppression with GitHub's answer.
-A thread the review posted whose suppression is no longer in the pull request is listed there too,
-to be resolved once read. `spikes/codeql-suppressions` measured where GitHub takes a thread.
+`spikes/codeql-suppressions` measured where GitHub takes a thread.
+
+**A thread the review posted whose suppression is no longer in the pull request is deleted**, by
+deleting its only comment, since nothing is left in it to read and the merge would wait for it.
+Deleted rather than resolved, because the workflow's token may delete what it posted and may not
+resolve a thread without `contents: write`, which `spikes/codeql-suppressions` measured. One
+somebody answered in, or resolved, is kept, as what a person wrote or decided, and the summary
+lists every one with what became of it.
 
 **It fails only when it cannot warn**: a token that may not write to the pull request, which is
 what a pull request from a fork is given, or GitHub refusing a comment for good. A finding nothing
@@ -421,19 +427,30 @@ def _cell(text: str) -> str:
     return text.replace("|", "\\|").replace("\n", " ")
 
 
+def _fate(posted: Posted, comment: dict[str, Any]) -> str:
+    # What became of a thread whose suppression is gone, for the summary.
+    number = int(comment["id"])
+    if number in posted.deleted:
+        return "deleted"
+    return "kept: " + _cell(posted.kept.get(number, "not looked at"))
+
+
 @dataclass
 class Posted:
     """What the review put on the pull request, and what it could not.
 
     `files` are notes on a whole file, where GitHub took no thread on its lines, and `nowhere` are
     notes it took on neither, with what it answered. `gone` are threads the review posted whose
-    suppression is no longer in the pull request.
+    suppression is no longer in the pull request, by their first comment: `deleted` are the numbers
+    of the ones it deleted, and `kept` holds, for each of the others, why it stays.
     """
 
     lines: int = 0
     files: list[Note] = field(default_factory=list)
     nowhere: list[tuple[Note, str]] = field(default_factory=list)
     gone: list[dict[str, Any]] = field(default_factory=list)
+    deleted: list[int] = field(default_factory=list)
+    kept: dict[int, str] = field(default_factory=dict)
 
 
 def summary(review: Review, findings: list[code_scanning.Finding], pull_request: bool,
@@ -465,9 +482,9 @@ def summary(review: Review, findings: list[code_scanning.Finding], pull_request:
             parts.append("")
         if posted is not None and posted.gone:
             parts += [f"**Threads whose suppression is no longer in this pull request: "
-                      f"{len(posted.gone)}**, to resolve once read", ""]
-            parts += [f"- `{c.get('path')}:{c.get('line') or c.get('original_line')}`"
-                      for c in posted.gone]
+                      f"{len(posted.gone)}**", ""]
+            parts += [f"- `{c.get('path')}:{c.get('line') or c.get('original_line')}`, "
+                      f"{_fate(posted, c)}" for c in posted.gone]
             parts.append("")
     change = Counter(m.rule for m in review.added)
     change.subtract(Counter(m.rule for m in review.removed))
@@ -560,13 +577,34 @@ class Repository(Protocol):
     def write_comment(self, number: int, existing: int | None, body: str) -> None:
         """A comment on the conversation, written anew or over the one numbered `existing`."""
 
+    def resolved_threads(self, number: int) -> set[int]:
+        """The first comment of every resolved thread on the pull request, by its number."""
+
+    def delete_comment(self, comment: int) -> None:
+        """One review comment deleted, which takes a thread it is the only comment of with it."""
+
+
+THREADS = """
+query($owner: String!, $name: String!, $number: Int!, $after: String) {
+  repository(owner: $owner, name: $name) {
+    pullRequest(number: $number) {
+      reviewThreads(first: 100, after: $after) {
+        pageInfo { hasNextPage endCursor }
+        nodes { isResolved comments(first: 1) { nodes { databaseId } } }
+      }
+    }
+  }
+}"""
+
 
 class GitHub:
     """GitHub's REST API, as the workflow's token reaches it."""
 
     def __init__(self, repository: str, token: str, api: str = "https://api.github.com") -> None:
         """Talk to `repository` with `token`."""
+        self._repository = repository
         self._base = f"{api}/repos/{repository}"
+        self._graph = f"{api}/graphql"
         self._token = token
 
     def _call(self, method: str, path: str, body: Any = None) -> tuple[Any, str]:
@@ -632,6 +670,39 @@ class GitHub:
         changed: dict[str, Any] = self._call("PATCH", f"/code-scanning/alerts/{number}", fields)[0]
         return changed
 
+    def _graphql(self, query: str, variables: dict[str, Any]) -> dict[str, Any]:
+        # GraphQL answers a refusal with 200 and its errors, so those are raised as REST's would
+        # be, a refusal for rate among them, which `Refused.for_rate` reads from the message.
+        answer, _ = self._call("POST", self._graph, {"query": query, "variables": variables})
+        errors = answer.get("errors") if isinstance(answer, dict) else None
+        if errors or not isinstance(answer, dict):
+            kinds = {str(error.get("type", "")) for error in errors or []}
+            status = 403 if kinds & {"FORBIDDEN", "RATE_LIMITED"} else 422
+            raise Refused(status, "; ".join(str(error.get("message", "")) for error in errors or [])
+                          or "GitHub's GraphQL API answered with nothing")
+        data: dict[str, Any] = answer["data"]
+        return data
+
+    def resolved_threads(self, number: int) -> set[int]:
+        """The first comment of every resolved thread on the pull request, by its number."""
+        owner, name = self._repository.split("/", 1)
+        resolved: set[int] = set()
+        after: str | None = None
+        while True:
+            data = self._graphql(THREADS, {"owner": owner, "name": name, "number": number,
+                                           "after": after})
+            threads = data["repository"]["pullRequest"]["reviewThreads"]
+            resolved.update(int(thread["comments"]["nodes"][0]["databaseId"])
+                            for thread in threads["nodes"]
+                            if thread["isResolved"] and thread["comments"]["nodes"])
+            if not threads["pageInfo"]["hasNextPage"]:
+                return resolved
+            after = threads["pageInfo"]["endCursor"]
+
+    def delete_comment(self, comment: int) -> None:
+        """One review comment deleted, which takes a thread it is the only comment of with it."""
+        self._call("DELETE", f"/pulls/comments/{comment}")
+
 
 def post(github: Repository, number: int, commit: str, placed_notes: list[Note],
          text: str | Callable[[Posted], str]) -> int:
@@ -639,13 +710,60 @@ def post(github: Repository, number: int, commit: str, placed_notes: list[Note],
 
     Each note goes on its lines where GitHub takes a thread there, else on its whole file, which
     GitHub took where it took no line, else nowhere and into the summary, which `text` writes from
-    what became of them when it is not written already. Answers how many threads it opened.
+    what became of them when it is not written already. A thread of the review's own whose note it
+    makes no more is deleted, unless somebody answered in it or resolved it. Answers how many
+    threads it opened.
     """
-    comments = [c for c in github.review_comments(number) if c.get("in_reply_to_id") is None]
+    every = github.review_comments(number)
+    comments = [c for c in every if c.get("in_reply_to_id") is None]
     posted = Posted(gone=_gone(comments, placed_notes))
     _post_reviews(github, number, commit, _not_posted(comments, placed_notes), posted)
+    _delete_gone(github, number, every, posted)
     _write_summary(github, number, text if isinstance(text, str) else text(posted))
     return posted.lines + len(posted.files)
+
+
+def _delete_gone(github: Repository, number: int, every: list[dict[str, Any]],
+                 posted: Posted) -> None:
+    # A thread whose suppression is gone has nothing left in the pull request to read, and the
+    # merge would wait for it. The workflow's token may delete a comment the review posted and may
+    # not resolve a thread, which takes `contents: write`, as `spikes/codeql-suppressions`
+    # measured, so the review deletes its own, and the thread goes with its only comment. One
+    # somebody answered in or resolved is what a person wrote or decided, and stays; so does
+    # every one when which are resolved cannot be read, since that is the question.
+    if not posted.gone:
+        return
+    answered = {c.get("in_reply_to_id") for c in every if c.get("in_reply_to_id") is not None}
+    try:
+        resolved = github.resolved_threads(number)
+    except Refused as refusal:
+        reason = f"which threads are resolved could not be read: {refusal.message}"
+        posted.kept.update((int(c["id"]), reason) for c in posted.gone)
+        return
+    tried = False
+    for comment in posted.gone:
+        thread = int(comment["id"])
+        if thread in answered:
+            posted.kept[thread] = "somebody answered in it"
+        elif thread in resolved:
+            posted.kept[thread] = "resolved"
+        else:
+            if tried:
+                _wait(SINGLE_GAP)
+            tried = True
+            try:
+                _patiently(partial(github.delete_comment, thread),
+                           partial(_deleted, github, number, thread))
+            except Refused as refusal:
+                if refusal.status != 404:
+                    posted.kept[thread] = f"GitHub refused to delete it: {refusal.message}"
+                    continue
+            posted.deleted.append(thread)
+
+
+def _deleted(github: Repository, number: int, comment: int) -> bool:
+    # Whether a comment is gone from the pull request, which a 5xx leaves open.
+    return all(c.get("id") != comment for c in github.review_comments(number))
 
 
 def _gone(comments: list[dict[str, Any]], placed_notes: list[Note]) -> list[dict[str, Any]]:
@@ -1031,10 +1149,12 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     github = GitHub(arguments.repository, os.environ.get("GITHUB_TOKEN", ""))
     written: list[str] = []
+    deleted: list[int] = []
     placed_notes: list[Note] = []
 
     def compose(posted: Posted) -> str:
         written.append(summary(review, review.findings, True, posted))
+        deleted[:] = posted.deleted
         return written[-1]
 
     try:
@@ -1050,7 +1170,8 @@ def main(argv: list[str] | None = None) -> int:
               f"{len(placed_notes)} note(s).")
         return 1
     _report(written[-1])
-    print(f"  {count} new thread(s), the summary comment written.")
+    print(f"  {count} new thread(s), {len(deleted)} whose suppression is gone deleted, "
+          "the summary comment written.")
     return 0
 
 

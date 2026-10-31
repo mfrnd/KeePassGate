@@ -753,6 +753,15 @@ Run them from
   no line is, and is a thread the merge waits for like any other. So `tools/suppression_review.py`
   reads what a pull request changes from GitHub's list and puts a note on the whole file where no
   line takes it; `spikes/codeql-suppressions` measured all of it.
+- **The workflow's own token may delete a review thread it opened, and may not resolve one.** Under
+  the review job's permissions, GraphQL's `resolveReviewThread` answers 200 with a `FORBIDDEN`
+  error, "Resource not accessible by integration", and resolves nothing, whether the thread is
+  outdated, on a line nothing changed or on a whole file; with `contents: write` added it resolves
+  all three. Deleting a thread's only comment, `DELETE /pulls/comments/{id}`, is answered 204 under
+  the same permissions, and the thread goes with it. A push that takes a thread's lines away
+  leaves it outdated and unresolved, and the ruleset wants every comment resolved. So
+  `tools/suppression_review.py` deletes its own threads whose suppression is gone rather than ask
+  for a token that may write to the repository; `spikes/codeql-suppressions` measured it.
 - **`dotnet test` with a filter that matches nothing exits 0**, having run nothing, and its trx
   counts nothing. A gate that believes the exit code is green over an empty run, so `build.ps1`
   reads each tier's trx and refuses one in which nothing executed, `Assert-Executed`.
@@ -924,14 +933,15 @@ each analysis is kept as CodeQL wrote it and judged by the job `code scanning pa
 the code suppresses and everything else as it is, and fails on any finding nothing suppresses,
 anywhere in the code. **And no suppression merges unseen**: `tools/suppression_review.py` opens a
 review thread on every suppression a pull request adds, changes or removes, which the merge waits
-for, keeps one comment on the pull request listing what it suppresses and counting the rest by
-rule, and warns about a suppression under which CodeQL found nothing and a finding CodeQL
-suppressed that no comment accounts for. It fails only when it cannot write to the pull request,
-which is what a fork's pull request is given. **And the Security tab lists every suppression**: on
-`master` and the weekly run, `tools/dismissals.py` dismisses the alert of each finding the code
-suppresses, with the comment's reason, and opens again every one it dismissed that the code no
-longer suppresses, since GitHub leaves an alert dismissed after its finding is gone. The
-PowerShell is left out, because CodeQL reads none.
+for, and deletes its own thread again once that suppression is no longer in the pull request,
+unless somebody answered in it or resolved it. It keeps one comment on the pull request listing
+what it suppresses and counting the rest by rule, and warns about a suppression under which CodeQL
+found nothing and a finding CodeQL suppressed that no comment accounts for. It fails only when it
+cannot write to the pull request, which is what a fork's pull request is given. **And the Security
+tab lists every suppression**: on `master` and the weekly run, `tools/dismissals.py` dismisses the
+alert of each finding the code suppresses, with the comment's reason, and opens again every one it
+dismissed that the code no longer suppresses, since GitHub leaves an alert dismissed after its
+finding is gone. The PowerShell is left out, because CodeQL reads none.
 
 ## Testing
 

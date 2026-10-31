@@ -170,13 +170,16 @@ class FakeGitHub:
     """A pull request's comments and files, kept in memory."""
 
     def __init__(self, reviewed: list[str] | None = None, summary: str | None = None,
-                 files: list[dict[str, Any]] | None = None) -> None:
+                 files: list[dict[str, Any]] | None = None,
+                 resolved: set[int] | None = None) -> None:
         self.reviews: list[tuple[int, str, list[dict[str, Any]]]] = []
         self.reviewed: list[dict[str, Any]] = [{"body": body} for body in reviewed or []]
         self.conversation = [] if summary is None else [{"id": 7, "body": summary}]
         self.written: list[tuple[int, int | None, str]] = []
         self.files = files or []
         self.on_files: list[tuple[str, str]] = []
+        self.resolved = resolved or set()
+        self.deleted: list[int] = []
 
     def review_comments(self, number: int) -> list[dict[str, Any]]:
         return self.reviewed
@@ -195,6 +198,13 @@ class FakeGitHub:
 
     def write_comment(self, number: int, existing: int | None, body: str) -> None:
         self.written.append((number, existing, body))
+
+    def resolved_threads(self, number: int) -> set[int]:
+        return self.resolved
+
+    def delete_comment(self, comment: int) -> None:
+        self.deleted.append(comment)
+        self.reviewed = [c for c in self.reviewed if c.get("id") != comment]
 
 
 def test_a_note_already_on_the_pull_request_is_not_posted_again() -> None:
@@ -245,14 +255,44 @@ class _Api(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:
         self._record()
-        if "refuse" in self.path:
+        if self.path == "/graphql":
+            self._graph(self.calls[-1][2]["variables"])
+        elif "refuse" in self.path:
             self._answer(403, {"message": "Resource not accessible by integration"})
         else:
             self._answer(201, {"id": 3})
 
+    def _graph(self, asked: dict[str, Any]) -> None:
+        # Two pages of threads, or GraphQL's refusals, which come with 200, by the repository.
+        if asked["name"] == "refuse":
+            self._answer(200, {"errors": [{"type": "FORBIDDEN",
+                                           "message": "Resource not accessible by integration"}]})
+        elif asked["name"] == "odd":
+            self._answer(200, {"errors": [{"type": "NOT_FOUND", "message": "Could not resolve"}]})
+        elif asked["name"] == "empty":
+            self.send_response(200)
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+        else:
+            first = asked["after"] is None
+
+            def thread(resolved: bool, *numbers: int) -> dict[str, Any]:
+                nodes = [{"databaseId": number} for number in numbers]
+                return {"isResolved": resolved, "comments": {"nodes": nodes}}
+
+            threads = {"pageInfo": {"hasNextPage": first, "endCursor": "c1" if first else None},
+                       "nodes": [thread(True, 11), thread(False, 12)] if first
+                       else [thread(True, 13), thread(True)]}
+            self._answer(200, {"data": {"repository": {"pullRequest": {"reviewThreads": threads}}}})
+
     def do_PATCH(self) -> None:
         self._record()
         self._answer(200, {"id": 7})
+
+    def do_DELETE(self) -> None:
+        self._record()
+        self.send_response(204)
+        self.end_headers()
 
     def log_message(self, format: str, *args: Any) -> None:
         return
@@ -301,6 +341,29 @@ def test_the_client_asks_for_alerts_by_ref_and_changes_one(api: str) -> None:
         "per_page": ["100"]}
     assert "%2F" in asked.query
     assert _Api.calls[1][:3] == ("PATCH", "/repos/o/r/code-scanning/alerts/9", {"state": "open"})
+
+
+def test_the_client_reads_which_threads_are_resolved_page_by_page(api: str) -> None:
+    assert review.GitHub("o/r", "secret", api).resolved_threads(5) == {11, 13}
+    assert [(c[0], c[1], c[2]["variables"]) for c in _Api.calls] == [
+        ("POST", "/graphql", {"owner": "o", "name": "r", "number": 5, "after": None}),
+        ("POST", "/graphql", {"owner": "o", "name": "r", "number": 5, "after": "c1"})]
+    assert "reviewThreads(first: 100, after: $after)" in _Api.calls[0][2]["query"]
+
+
+def test_the_client_deletes_a_review_comment(api: str) -> None:
+    review.GitHub("o/r", "secret", api).delete_comment(11)
+    assert _Api.calls[0][:2] == ("DELETE", "/repos/o/r/pulls/comments/11")
+
+
+@pytest.mark.parametrize(("name", "refusal"), [
+    ("refuse", r"^403: Resource not accessible by integration$"),
+    ("odd", r"^422: Could not resolve$"),
+    ("empty", r"^422: GitHub's GraphQL API answered with nothing$"),
+])
+def test_a_graphql_refusal_reaches_the_caller(api: str, name: str, refusal: str) -> None:
+    with pytest.raises(review.Refused, match=refusal):
+        review.GitHub(f"o/{name}", "secret", api).resolved_threads(5)
 
 
 def test_a_refusal_reaches_the_caller(api: str) -> None:
@@ -863,12 +926,92 @@ def test_where_github_takes_no_thread_at_all_the_summary_has_its_answer(waits: l
     assert "`big.txt:1`, added: Diff entry big.txt diff is too large" in written[-1]
 
 
-def test_a_thread_whose_suppression_is_gone_is_listed_to_resolve() -> None:
+def _gone(number: int, line: int, **more: Any) -> dict[str, Any]:
+    """A thread the review posted, on `A.cs`, for a suppression no note is made for any more."""
+    return {"id": number, "path": "A.cs", "line": line,
+            "body": f"old\n\n<!-- code-scanning: gone{number} -->", **more}
+
+
+def test_a_thread_whose_suppression_is_gone_is_deleted_and_listed(waits: list[float]) -> None:
     github, written = FakeGitHub(), list[str]()
-    github.reviewed = [{"path": "A.cs", "line": 9, "body": "old\n\n<!-- code-scanning: gone -->"}]
+    github.reviewed = [_gone(11, 9), _gone(12, 12)]
     review.post(github, 5, "abc", _two()[:1], _summaries(written))
-    assert "**Threads whose suppression is no longer in this pull request: 1**" in written[-1]
-    assert "- `A.cs:9`" in written[-1]
+    assert github.deleted == [11, 12]
+    assert waits == [review.SINGLE_GAP]
+    assert "**Threads whose suppression is no longer in this pull request: 2**" in written[-1]
+    assert "- `A.cs:9`, deleted" in written[-1]
+    assert "- `A.cs:12`, deleted" in written[-1]
+
+
+def test_a_gone_thread_somebody_answered_in_or_resolved_is_kept() -> None:
+    github, written = FakeGitHub(resolved={12}), list[str]()
+    github.reviewed = [_gone(11, 9), _gone(12, 12),
+                       {"id": 13, "in_reply_to_id": 11, "path": "A.cs", "line": 9, "body": "why?"}]
+    review.post(github, 5, "abc", _two()[:1], _summaries(written))
+    assert github.deleted == []
+    assert "- `A.cs:9`, kept: somebody answered in it" in written[-1]
+    assert "- `A.cs:12`, kept: resolved" in written[-1]
+
+
+def test_a_thread_whose_suppression_remains_is_not_deleted() -> None:
+    github = FakeGitHub(reviewed=["a\n\n<!-- code-scanning: ka -->"])
+    assert review.post(github, 5, "abc", _two()[:1], "the summary") == 0
+    assert github.deleted == []
+
+
+def test_when_which_threads_are_resolved_cannot_be_read_none_is_deleted() -> None:
+    class Unreadable(FakeGitHub):
+        def resolved_threads(self, number: int) -> set[int]:
+            raise review.Refused(403, "Resource not accessible by integration")
+
+    github, written = Unreadable(), list[str]()
+    github.reviewed = [_gone(11, 9)]
+    review.post(github, 5, "abc", _two()[:1], _summaries(written))
+    assert github.deleted == []
+    assert ("- `A.cs:9`, kept: which threads are resolved could not be read: Resource not "
+            "accessible by integration") in written[-1]
+
+
+def test_a_refused_deletion_keeps_the_thread_and_the_review_goes_on(waits: list[float]) -> None:
+    class Stubborn(FakeGitHub):
+        def delete_comment(self, comment: int) -> None:
+            if comment == 11:
+                raise review.Refused(403, "Resource not accessible by integration")
+            super().delete_comment(comment)
+
+    github, written = Stubborn(), list[str]()
+    github.reviewed = [_gone(11, 9), _gone(12, 12)]
+    review.post(github, 5, "abc", _two()[:1], _summaries(written))
+    assert github.deleted == [12]
+    assert waits == [review.SINGLE_GAP]
+    assert ("- `A.cs:9`, kept: GitHub refused to delete it: Resource not accessible by "
+            "integration") in written[-1]
+    assert "- `A.cs:12`, deleted" in written[-1]
+
+
+def test_a_comment_already_gone_counts_as_deleted() -> None:
+    class Vanished(FakeGitHub):
+        def delete_comment(self, comment: int) -> None:
+            raise review.Refused(404, "Not Found")
+
+    github, written = Vanished(), list[str]()
+    github.reviewed = [_gone(11, 9)]
+    review.post(github, 5, "abc", _two()[:1], _summaries(written))
+    assert "- `A.cs:9`, deleted" in written[-1]
+
+
+def test_a_deletion_answered_502_is_read_back_rather_than_tried_again(waits: list[float]) -> None:
+    class Slow(FakeGitHub):
+        def delete_comment(self, comment: int) -> None:
+            super().delete_comment(comment)
+            raise review.Refused(502, "Bad Gateway")
+
+    github, written = Slow(), list[str]()
+    github.reviewed = [_gone(11, 9)]
+    review.post(github, 5, "abc", _two()[:1], _summaries(written))
+    assert github.deleted == [11]
+    assert waits == []
+    assert "- `A.cs:9`, deleted" in written[-1]
 
 
 def test_a_reply_quoting_a_mark_is_no_thread_and_nothing_gone() -> None:
