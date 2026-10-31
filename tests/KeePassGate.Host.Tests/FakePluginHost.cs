@@ -1,3 +1,4 @@
+using System;
 using System.Resources;
 using KeePass.App.Configuration;
 using KeePass.DataExchange;
@@ -20,9 +21,34 @@ namespace KeePassGate.Host.Tests
     /// </summary>
     internal sealed class FakePluginHost : IPluginHost
     {
+        private readonly InvalidOperationException _refusal;
+        private int _readsLeft;
+
+        public FakePluginHost()
+        {
+        }
+
+        /// <summary>
+        /// A host whose main window can be asked for <paramref name="reads"/> times and then
+        /// throws <paramref name="refusal"/>, which is how a test makes a start fail part way.
+        /// </summary>
+        public FakePluginHost(int reads, InvalidOperationException refusal)
+        {
+            _readsLeft = reads;
+            _refusal = refusal;
+        }
+
         public MainForm MainWindow
         {
-            get { return null; }
+            get
+            {
+                if (_refusal != null && _readsLeft-- <= 0)
+                {
+                    throw _refusal;
+                }
+
+                return null;
+            }
         }
 
         public PwDatabase Database

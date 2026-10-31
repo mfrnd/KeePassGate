@@ -14,8 +14,9 @@ namespace KeePassGate
     /// dependency removed or replaced after that is otherwise met wherever the plugin first reaches
     /// for it, with the plugin loaded and saying nothing is wrong. Loaded here, a missing one, or
     /// one of another version than the plugin was built against, throws `FileNotFoundException`
-    /// naming the assembly and the version, inside `Initialize`, which refuses the start and writes
-    /// why to the log.
+    /// naming the assembly and the version, inside `Initialize`, which writes why to the log and
+    /// hands the exception on to KeePass, whose warning that the plugin cannot be loaded names it
+    /// as well.
     ///
     /// **Each through a type the plugin already names in it**, so nothing is added to the
     /// references KeePass checks, and each through a type rather than by name: a type binds the

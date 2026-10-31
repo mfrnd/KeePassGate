@@ -536,17 +536,18 @@ namespace KeePassGate
             }
             catch (Exception error)
             {
-                // One of the catch-alls, and not because an exception would stop the password
-                // manager: KeePass 2.61.1 catches whatever `Initialize` throws, shows a warning
-                // naming the file and the exception, and goes on to the next plugin. It is here
-                // for what KeePass would not do, which is undo what was set up before the throw,
-                // since the window manager's events are static and outlive this object. A plugin
-                // that answers false is left out without a word and never has `Terminate` called,
-                // so this calls it, and the refusal is the one line `Report` writes to the log,
-                // a file beside the audit unless `KEEPASSGATE_LOG_FILE` names another.
+                // Not one of the catch-alls, since what it catches goes back to KeePass. KeePass
+                // 2.61.1 catches whatever `Initialize` throws, warns that the plugin cannot be
+                // loaded, naming the file and the exception, and goes on to the next plugin, so
+                // the operator learns at startup that the gate is not there. What
+                // KeePass does not do is undo what was set up before the throw, and the window
+                // manager's events are static and outlive this object, so this calls `Terminate`
+                // first, which KeePass never calls for a plugin that did not load. Answering false
+                // instead would leave the plugin out without a word, with the reason only in the
+                // log, where `Report` writes it here as well.
                 Report("initialization failed", error);
                 Terminate();
-                return false;
+                throw;
             }
         }
 

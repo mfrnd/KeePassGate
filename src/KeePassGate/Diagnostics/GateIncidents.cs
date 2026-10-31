@@ -13,9 +13,8 @@ namespace KeePassGate.Diagnostics
     /// handler of KeePass's own events, it would stop KeePass's own work part way, a lock of every
     /// database among it, and then put WinForms' own error dialog over KeePass, offering to quit.
     /// Escaping the Tools menu item, it would bring up that dialog. Escaping the thread serving one
-    /// connection, it would end the process. And escaping the plugin's entry point, it would reach
-    /// KeePass, which warns of what `Initialize` throws and throws away what `Terminate` throws but
-    /// undoes nothing, so whatever the plugin had set up and not yet taken down would stay.
+    /// connection, it would end the process. And escaping a step of `Terminate`, it would be thrown
+    /// away by KeePass with every step after it left undone.
     ///
     /// A catch-all that only writes a log line is how an unexpected failure becomes an unnoticed
     /// one, so those four record here instead. The count reaches the plugin's own window under the

@@ -202,6 +202,28 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void A_start_that_fails_part_way_is_undone_and_handed_to_KeePass()
+        {
+            // KeePass catches what `Initialize` throws and warns that the plugin cannot be loaded,
+            // with the exception's message, so the exception has to arrive as it was thrown.
+            // KeePass undoes nothing, though, and never calls `Terminate` for a plugin that
+            // did not load, so what the start subscribed to its window manager has to be gone by
+            // then. The host lets its main window be read once, which is as the start begins, and
+            // refuses the second read, which comes once the window events are being watched.
+            var thrown = new InvalidOperationException("the main window could not be read");
+            var watching = WindowManagerHandlers();
+
+            var arrived = Assert.Throws<InvalidOperationException>(
+                () => _plugin.Initialize(new FakePluginHost(1, thrown)));
+
+            Assert.That(arrived, Is.SameAs(thrown));
+            Assert.That(WindowManagerHandlers(), Is.EqualTo(watching),
+                "the failed start left a handler on KeePass's window manager");
+            Assert.That(File.ReadAllText(Paths.Join(_logDirectory, TraceGateLog.DefaultFileName)),
+                Does.Contain("initialization failed"));
+        }
+
+        [Test]
         public void Terminating_a_plugin_that_never_started_is_harmless()
         {
             Assert.DoesNotThrow(() => _plugin.Terminate());
@@ -323,6 +345,17 @@ namespace KeePassGate.Host.Tests
         private static TabPage GateTabOf(Form form)
         {
             return ControlTree.FindByName<TabPage>(form, GateTab.PageControlName);
+        }
+
+        /// <summary>How many handlers KeePass's window manager calls when a window opens.</summary>
+        private static int WindowManagerHandlers()
+        {
+            var field = typeof(GlobalWindowManager).GetField(
+                    "WindowAdded", BindingFlags.NonPublic | BindingFlags.Static)
+                ?? throw new InvalidOperationException(
+                    "KeePass's window manager no longer keeps the handlers of WindowAdded in a field of that name");
+            var handlers = (Delegate)field.GetValue(null);
+            return handlers == null ? 0 : handlers.GetInvocationList().Length;
         }
     }
 }

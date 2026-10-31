@@ -15,12 +15,12 @@ Copying only `KeePassGate.dll` is the mistake worth naming. KeePass loads a plug
 than beside `KeePass.exe`. Without one of the DLLs `KeePassGate.dll` refers to directly, KeePass
 refuses the plugin, in a box saying that the plugin cannot be loaded and naming the DLL it did not
 find, at every start until the DLL is there. Without `SharpYaml.dll`, which only one of those needs,
-the plugin gets far enough to refuse to start, and nothing is said on screen. And KeePass checks
-what a plugin needs once for each build of `KeePassGate.dll`, and remembers that the check passed,
-so a DLL beside it that is removed or replaced later is left to the plugin to find: it loads every
-one of them as it starts, and without one, or with one of another version than it was built
-against, it refuses to start and [its log](#the-plugins-log) names the DLL. Whichever it is,
-copying the whole set again mends it.
+the plugin gets far enough to refuse to start, and the same box names it. And KeePass checks what a
+plugin needs once for each build of `KeePassGate.dll`, and remembers that the check passed, so a
+DLL beside it that is removed or replaced later is left to the plugin to find: it loads every one
+of them as it starts, and without one, or with one of another version than it was built against,
+it refuses to start, the same box names the DLL, and so does [its log](#the-plugins-log).
+Whichever it is, copying the whole set again mends it.
 
 **A directory of its own is what keeps those DLLs this plugin's.** Other plugins ship some of
 the same ones, `Newtonsoft.Json.dll` most of all, and in `plugins` itself there is room for one
@@ -107,8 +107,9 @@ reason.
 If the item is not in the menu at all, the plugin did not load, for one of four reasons: the DLL is
 in the wrong place, KeePass is older than 2.61.1, a DLL it needs is missing, or the plugin refused
 to start. Where KeePass put up a box saying that the plugin cannot be loaded, the box names what it
-could not find. A plugin that refused to start says why in [its own log](#the-plugins-log) and
-nowhere on screen. **Tools**, **Plugins** is KeePass's own list and will not show it either.
+could not find or why the plugin refused to start, and [the plugin's own log](#the-plugins-log)
+has more. A refusal with no box is in that log alone. **Tools**, **Plugins** is KeePass's own list
+and will not show it either.
 
 ## The plugin's log
 

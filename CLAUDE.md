@@ -205,20 +205,21 @@ designing around them.
   2.61.1 and not driven. Then WinForms, which KeePass gives no handler for an unhandled exception,
   puts its own error dialog over KeePass, whose Quit ends the process outside KeePass's own
   shutdown. **The Tools menu item**, which would bring up that dialog. **The connection thread**,
-  where an escape ends the process. **And the plugin's entry point**, whose exceptions KeePass
-  catches itself but undoes nothing for: `Initialize`, of which KeePass would warn that the plugin
-  cannot be loaded while what was set up before the throw outlived it, and each step of
-  `Terminate`, whose exceptions KeePass throws away, so that an escape would cost the steps after
-  it, among them what lets go of KeePass's static window events, the socket and the keys, and
-  `Initialize` runs it too, with KeePass carrying on.
+  where an escape ends the process. **And each step of `Terminate`**: KeePass throws away whatever
+  `Terminate` throws, so an escape would cost the steps after it, among them what lets go of
+  KeePass's static window events, the socket and the keys, and `Initialize` runs it too, with
+  KeePass carrying on.
   Those report through `GateIncidents`, which counts on the plugin's window under Tools and
   logs at `UNEXPECTED`. Two more roots are kept safe another way: the accept thread and a
   connection's deadline timer have nothing above them, like the connection thread, and rather
   than catching everything, every call they make is total or filtered. `GateListener.Drop`
-  explains what keeps that true. And two places catch everything without being a fifth, since
-  each keeps what was thrown and throws it again where one of the four sees it: `GateTlsServer`'s
-  callbacks, because Bouncy Castle turns whatever a callback throws into a fatal alert, and the
-  call `ControlUiThread` marshals, because WinForms would answer one escaping it with that dialog.
+  explains what keeps that true. And three places catch everything without being a fifth, since
+  each throws what it caught again: `GateTlsServer`'s callbacks, because Bouncy Castle turns
+  whatever a callback throws into a fatal alert, and the call `ControlUiThread` marshals, because
+  WinForms would answer one escaping it with that dialog, both keeping it for where one of the
+  four sees it, and `Initialize`, which calls `Terminate` and throws it to KeePass, since KeePass
+  warns the operator that the plugin cannot be loaded, with the exception's message, and undoes
+  nothing.
   **A line that has to outlive a defect is written before it rather than caught around it**: the
   audit line for a pairing, a renewal or a client's own revocation that landed is written by
   `DatabaseWriter` on its own landed path, before any listener runs, so no listener's defect can
@@ -1221,4 +1222,4 @@ against different major versions, and whichever was there first stops binding.
 one dependency had none of its own, and stopped being enough the moment one did. A plugin missing a
 transitive dependency failed to load with nothing in the log to say why, which is what 34 of the 35
 end to end tests said the first time. It still fails to load, and now names what is missing in its
-log, which has a file by default.
+log, which has a file by default, and in KeePass's warning that the plugin cannot be loaded.
