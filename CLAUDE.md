@@ -738,13 +738,18 @@ Run them from
   one in a `/* */` over several lines suppress nothing, while spaces inside the brackets are trimmed
   and the keyword is read in any case. Measured against the pinned bundle by
   `tools/suppression_vectors.py`, which `tests/tools/SuppressionVectors.json` records.
-- **GitHub refuses a pull request review of more than 80 comments, and answers 502 to a large one
-  it goes on making.** A review of 81 is refused at once as a secondary rate limit, with no
-  `retry-after` and nothing made, which is the documented 80 content-generating requests a minute
-  with each comment counted as one. GitHub takes a quarter to a third of a second a comment, and a
-  review it is still making after about ten seconds is answered 502 and finished all the same, so
-  a 5xx leaves open whether a review landed. `tools/suppression_review.py` posts twenty to a review,
-  twenty seconds apart, and reads back what a 5xx left; `spikes/codeql-suppressions` measured it.
+- **GitHub refuses a pull request review of more than 80 comments, pending or not, and answers 502
+  to a large one it goes on making.** A review of 81 is refused at once as a secondary rate limit,
+  with no `retry-after` and nothing made, which is the documented 80 content-generating requests a
+  minute with each comment counted as one, and a pending review created with 112 is refused the
+  same way. GitHub takes a quarter to a third of a second a comment, and a review it is still
+  making after about ten seconds is answered 502 and finished all the same, so a 5xx leaves open
+  whether a review landed. Threads added to a pending review one at a time are taken, 92 of them a
+  second apart through GraphQL's `addPullRequestReviewThread`, which answers a line outside the
+  diff with no thread and no error, and submitting all 113 was answered 502 and done. A user has
+  one pending review a pull request. So `tools/suppression_review.py` opens one pending review a
+  push, adds the other threads a second apart and submits it once, reading back what a 5xx left;
+  `spikes/codeql-suppressions` measured it.
 - **GitHub takes a review thread only on a line its own diff shows, and that diff is GitHub's.** A
   renamed file is listed with its old name and only its changed hunks, a rename that changes
   nothing takes no thread on any line, and a name git quotes comes back plain. A file of 25,000 new

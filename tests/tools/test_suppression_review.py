@@ -166,13 +166,34 @@ def test_every_warning_is_annotated_wherever_it_is() -> None:
     ]
 
 
+def _shape(comment: dict[str, Any]) -> dict[str, Any]:
+    """A thread as the stand-in keeps it, from REST's comment or GraphQL's input alike."""
+    if "startLine" in comment:
+        return {"path": comment["path"], "start": comment["startLine"], "line": comment["line"],
+                "side": comment["side"], "file": comment["subjectType"] == "FILE",
+                "body": comment["body"]}
+    return {"path": comment["path"], "start": comment.get("start_line"), "line": comment["line"],
+            "side": comment["side"], "file": False, "body": comment["body"]}
+
+
+def _as_rest(thread: dict[str, Any]) -> dict[str, Any]:
+    """A thread as REST lists a review comment."""
+    return {"path": thread["path"], "line": thread["line"], "side": thread["side"],
+            "body": thread["body"], "subject_type": "file" if thread["file"] else "line"}
+
+
 class FakeGitHub:
-    """A pull request's comments and files, kept in memory."""
+    """A pull request's comments, files and reviews, kept in memory.
+
+    `reviews` are the ones the review opened, each with its threads in `_shape`'s form. GitHub
+    refuses a range on a path in `no_ranges`, a line on one in `no_lines` and a whole file in
+    `no_files`, and `left` are pending reviews a run before this one left behind.
+    """
 
     def __init__(self, reviewed: list[str] | None = None, summary: str | None = None,
                  files: list[dict[str, Any]] | None = None,
                  resolved: set[int] | None = None) -> None:
-        self.reviews: list[tuple[int, str, list[dict[str, Any]]]] = []
+        self.reviews: list[dict[str, Any]] = []
         self.reviewed: list[dict[str, Any]] = [{"body": body} for body in reviewed or []]
         self.conversation = [] if summary is None else [{"id": 7, "body": summary}]
         self.written: list[tuple[int, int | None, str]] = []
@@ -180,14 +201,61 @@ class FakeGitHub:
         self.on_files: list[tuple[str, str]] = []
         self.resolved = resolved or set()
         self.deleted: list[int] = []
+        self.no_ranges: set[str] = set()
+        self.no_lines: set[str] = set()
+        self.no_files: set[str] = set()
+        self.left: list[tuple[int, str]] = []
+        self.deleted_reviews: list[int] = []
 
     def review_comments(self, number: int) -> list[dict[str, Any]]:
         return self.reviewed
 
-    def create_review(self, number: int, commit: str, comments: list[dict[str, Any]]) -> None:
-        self.reviews.append((number, commit, comments))
+    def _takes(self, thread: dict[str, Any]) -> bool:
+        if thread["file"]:
+            return thread["path"] not in self.no_files
+        if thread["start"] is not None and thread["path"] in self.no_ranges:
+            return False
+        return thread["path"] not in self.no_lines
+
+    def _review(self, key: str, value: object) -> dict[str, Any]:
+        return next(r for r in self.reviews if r[key] == value)
+
+    def open_review(self, number: int, commit: str, comment: dict[str, Any]) -> tuple[int, str]:
+        if not self._takes(_shape(comment)):
+            raise review.Refused(422, "Line could not be resolved")
+        index = len(self.reviews)
+        self.reviews.append({"id": 100 + index, "node": f"R{index}", "commit": commit,
+                             "state": "PENDING", "threads": [_shape(comment)]})
+        return 100 + index, f"R{index}"
+
+    def add_thread(self, review: str, thread: dict[str, Any]) -> bool:
+        if not self._takes(_shape(thread)):
+            return False
+        self._review("node", review)["threads"].append(_shape(thread))
+        return True
+
+    def submit_review(self, review: str) -> None:
+        submitted = self._review("node", review)
+        submitted["state"] = "COMMENTED"
+        self.reviewed.extend(_as_rest(t) for t in submitted["threads"])
+
+    def review_state(self, number: int, review: int) -> str:
+        return str(self._review("id", review)["state"])
+
+    def pending_reviews(self, number: int) -> list[tuple[int, str]]:
+        return [*self.left, *((r["id"], r["node"]) for r in self.reviews
+                              if r["state"] == "PENDING")]
+
+    def delete_review(self, number: int, review: int) -> None:
+        self.deleted_reviews.append(review)
+        self.left = [p for p in self.left if p[0] != review]
+
+    def review_thread_comments(self, number: int, review: int) -> list[dict[str, Any]]:
+        return [_as_rest(t) for t in self._review("id", review)["threads"]]
 
     def comment_on_file(self, number: int, commit: str, path: str, body: str) -> None:
+        if path in self.no_files:
+            raise review.Refused(422, f"Diff entry {path} diff is too large")
         self.on_files.append((path, body))
 
     def pull_files(self, number: int) -> list[dict[str, Any]]:
@@ -207,13 +275,14 @@ class FakeGitHub:
         self.reviewed = [c for c in self.reviewed if c.get("id") != comment]
 
 
-def test_a_note_already_on_the_pull_request_is_not_posted_again() -> None:
+def test_a_note_already_on_the_pull_request_is_not_posted_again(waits: list[float]) -> None:
     old = review.Note("added", "A.cs", 3, "RIGHT", "old", "k1")
     new = review.Note("stale", "A.cs", 9, "RIGHT", "new", "k2")
     github = FakeGitHub(reviewed=["old\n\n<!-- code-scanning: k1 -->"])
     assert review.post(github, 5, "abc", [old, new], "the summary") == 1
-    assert github.reviews == [(5, "abc", [
-        {"path": "A.cs", "line": 9, "side": "RIGHT", "body": "new\n\n<!-- code-scanning: k2 -->"}])]
+    assert [(r["commit"], r["state"], r["threads"]) for r in github.reviews] == [
+        ("abc", "COMMENTED", [{"path": "A.cs", "start": None, "line": 9, "side": "RIGHT",
+                               "file": False, "body": "new\n\n<!-- code-scanning: k2 -->"}])]
     assert github.written == [(5, None, "the summary")]
 
 
@@ -246,6 +315,13 @@ class _Api(BaseHTTPRequestHandler):
         self._record()
         if "/code-scanning/alerts" in self.path:
             self._answer(200, [{"number": 9}])
+        elif "/pulls/5/reviews/9/comments" in self.path:
+            self._answer(200, [{"id": 21, "path": "A.cs", "line": 3, "body": "c"}])
+        elif self.path.endswith("/pulls/5/reviews/9"):
+            self._answer(200, {"id": 9, "state": "PENDING"})
+        elif "/pulls/5/reviews?" in self.path:
+            self._answer(200, [{"id": 9, "node_id": "N9", "state": "PENDING"},
+                               {"id": 8, "node_id": "N8", "state": "COMMENTED"}])
         elif self.path.endswith("page=2"):
             self._answer(200, [{"id": 2, "body": "second"}])
         else:
@@ -256,15 +332,22 @@ class _Api(BaseHTTPRequestHandler):
     def do_POST(self) -> None:
         self._record()
         if self.path == "/graphql":
-            self._graph(self.calls[-1][2]["variables"])
+            self._graph(self.calls[-1][2]["query"], self.calls[-1][2]["variables"])
         elif "refuse" in self.path:
             self._answer(403, {"message": "Resource not accessible by integration"})
         else:
-            self._answer(201, {"id": 3})
+            self._answer(201, {"id": 3, "node_id": "N3"})
 
-    def _graph(self, asked: dict[str, Any]) -> None:
-        # Two pages of threads, or GraphQL's refusals, which come with 200, by the repository.
-        if asked["name"] == "refuse":
+    def _graph(self, query: str, asked: dict[str, Any]) -> None:
+        # A thread made or not by its path, a submission, two pages of threads, or GraphQL's
+        # refusals, which come with 200, by the repository.
+        if "addPullRequestReviewThread" in query:
+            made = None if asked["path"] == "outside.cs" else {"id": "T1"}
+            self._answer(200, {"data": {"addPullRequestReviewThread": {"thread": made}}})
+        elif "submitPullRequestReview" in query:
+            self._answer(200, {"data": {"submitPullRequestReview": {
+                "pullRequestReview": {"id": asked["review"]}}}})
+        elif asked["name"] == "refuse":
             self._answer(200, {"errors": [{"type": "FORBIDDEN",
                                            "message": "Resource not accessible by integration"}]})
         elif asked["name"] == "odd":
@@ -318,16 +401,43 @@ def test_the_client_follows_every_page_and_sends_the_token(api: str) -> None:
 
 def test_the_client_writes_reviews_and_comments_where_github_takes_them(api: str) -> None:
     github = review.GitHub("o/r", "secret", api)
-    github.create_review(5, "abc", [{"path": "A.cs", "line": 3, "side": "RIGHT", "body": "b"}])
+    assert github.open_review(5, "abc", {"path": "A.cs", "line": 3, "side": "RIGHT",
+                                         "body": "b"}) == (3, "N3")
     github.write_comment(5, None, "new")
     github.write_comment(5, 7, "over")
     assert [(c[0], c[1], c[2]) for c in _Api.calls] == [
-        ("POST", "/repos/o/r/pulls/5/reviews", {"commit_id": "abc", "event": "COMMENT",
+        ("POST", "/repos/o/r/pulls/5/reviews", {"commit_id": "abc",
                                                 "comments": [{"path": "A.cs", "line": 3,
                                                               "side": "RIGHT", "body": "b"}]}),
         ("POST", "/repos/o/r/issues/5/comments", {"body": "new"}),
         ("PATCH", "/repos/o/r/issues/comments/7", {"body": "over"}),
     ]
+
+
+def test_the_client_adds_threads_to_a_pending_review_and_submits_it(api: str) -> None:
+    github = review.GitHub("o/r", "secret", api)
+    thread = {"path": "A.cs", "line": 9, "side": "RIGHT", "startLine": 3, "startSide": "RIGHT",
+              "subjectType": None, "body": "b"}
+    assert github.add_thread("N3", thread) is True
+    assert github.add_thread("N3", {**thread, "path": "outside.cs"}) is False
+    github.submit_review("N3")
+    assert [c[2]["variables"] for c in _Api.calls] == [
+        {"review": "N3", **thread}, {"review": "N3", **thread, "path": "outside.cs"},
+        {"review": "N3"}]
+    assert "addPullRequestReviewThread(input:" in _Api.calls[0][2]["query"]
+    assert "event: COMMENT" in _Api.calls[2][2]["query"]
+
+
+def test_the_client_finds_reads_and_deletes_its_pending_reviews(api: str) -> None:
+    github = review.GitHub("o/r", "secret", api)
+    assert github.pending_reviews(5) == [(9, "N9")]
+    assert github.review_state(5, 9) == "PENDING"
+    assert [c["id"] for c in github.review_thread_comments(5, 9)] == [21]
+    github.delete_review(5, 9)
+    assert [c[:2] for c in _Api.calls] == [
+        ("GET", "/repos/o/r/pulls/5/reviews?per_page=100"), ("GET", "/repos/o/r/pulls/5/reviews/9"),
+        ("GET", "/repos/o/r/pulls/5/reviews/9/comments?per_page=100"),
+        ("DELETE", "/repos/o/r/pulls/5/reviews/9")]
 
 
 def test_the_client_asks_for_alerts_by_ref_and_changes_one(api: str) -> None:
@@ -428,7 +538,7 @@ def test_on_master_the_review_writes_the_run_summary_and_passes(
 
 def test_on_a_pull_request_the_review_posts_its_notes(
         tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
-        capsys: pytest.CaptureFixture[str]) -> None:
+        capsys: pytest.CaptureFixture[str], waits: list[float]) -> None:
     root = _history(tmp_path / "repository")
     analyzed = _analysis(tmp_path / "analyzed", ("cs/b", 5, True))
     github = FakeGitHub(files=[{"filename": "A.cs", "status": "modified"}])
@@ -437,7 +547,7 @@ def test_on_a_pull_request_the_review_posts_its_notes(
     arguments = ["--analyzed", str(analyzed), "--root", str(root), "--repository", "o/r",
                  "--pull-request", "5", "--commit", "abc"]
     assert review.main(arguments) == 0
-    assert [(c.get("start_line"), c["line"], c["side"]) for c in github.reviews[0][2]] == [
+    assert [(t["start"], t["line"], t["side"]) for t in github.reviews[0]["threads"]] == [
         (1, 6, "RIGHT"), (1, 5, "LEFT")]
     assert "2 new thread(s)" in capsys.readouterr().out
     assert github.written[0][2] in (tmp_path / "summary.md").read_text(encoding="utf-8")
@@ -450,7 +560,8 @@ def test_a_pull_request_that_cannot_be_written_to_fails_the_review(
     analyzed = _analysis(tmp_path / "analyzed", ("cs/b", 5, True))
 
     class Refusing(FakeGitHub):
-        def create_review(self, number: int, commit: str, comments: list[dict[str, Any]]) -> None:
+        def open_review(self, number: int, commit: str,
+                        comment: dict[str, Any]) -> tuple[int, str]:
             raise review.Refused(403, "Resource not accessible by integration", "R1")
 
     refusing = Refusing(files=[{"filename": "A.cs", "status": "modified"}])
@@ -476,72 +587,131 @@ def waits(monkeypatch: pytest.MonkeyPatch) -> list[float]:
 
 
 class Fumbling(FakeGitHub):
-    """A pull request whose reviews GitHub answers with the refusals given, one a review."""
+    """A pull request on which GitHub answers the review's calls with the refusals given in turn.
 
-    def __init__(self, *answers: review.Refused | None, made: bool = False) -> None:
+    With `made`, a 5xx comes after the call was carried out, as GitHub answers a large review.
+    """
+
+    def __init__(self, *, opening: list[review.Refused | None] | None = None,
+                 adding: list[review.Refused | None] | None = None,
+                 submitting: list[review.Refused | None] | None = None,
+                 made: bool = False) -> None:
         super().__init__()
-        self.answers = list(answers)
+        self.answers = {"open": list(opening or []), "add": list(adding or []),
+                        "submit": list(submitting or [])}
         self.made = made
 
-    def create_review(self, number: int, commit: str, comments: list[dict[str, Any]]) -> None:
-        answer = self.answers.pop(0) if self.answers else None
-        if answer is None or (self.made and answer.status >= 500):
-            super().create_review(number, commit, comments)
-            self.reviewed.extend(comments)
+    def _next(self, call: str) -> tuple[review.Refused | None, bool]:
+        answer = self.answers[call].pop(0) if self.answers[call] else None
+        return answer, answer is None or (self.made and answer.status >= 500)
+
+    def open_review(self, number: int, commit: str, comment: dict[str, Any]) -> tuple[int, str]:
+        answer, carried = self._next("open")
+        opened = super().open_review(number, commit, comment) if carried else (0, "")
+        if answer is not None:
+            raise answer
+        return opened
+
+    def add_thread(self, review: str, thread: dict[str, Any]) -> bool:
+        answer, carried = self._next("add")
+        made = super().add_thread(review, thread) if carried else False
+        if answer is not None:
+            raise answer
+        return made
+
+    def submit_review(self, review: str) -> None:
+        answer, carried = self._next("submit")
+        if carried:
+            super().submit_review(review)
         if answer is not None:
             raise answer
 
 
 LIMITED = "You have exceeded a secondary rate limit and have been temporarily blocked"
+SERVER = review.Refused(502, "Server Error")
+GAP = review.THREAD_GAP
 
 
-def test_the_threads_go_out_twenty_to_a_review_twenty_seconds_apart(waits: list[float]) -> None:
+def test_a_push_s_threads_go_out_as_one_review_a_second_apart(waits: list[float]) -> None:
     github = FakeGitHub()
     assert review.post(github, 5, "abc", _notes(45), "the summary") == 45
-    assert [len(posted) for _, _, posted in github.reviews] == [20, 20, 5]
-    assert waits == [20.0, 20.0]
+    assert [(r["state"], len(r["threads"])) for r in github.reviews] == [("COMMENTED", 45)]
+    assert waits == [GAP] * 45
     assert github.written == [(5, None, "the summary")]
 
 
-def test_a_review_answered_502_is_read_back_and_not_posted_again(waits: list[float]) -> None:
-    github = Fumbling(review.Refused(502, "Server Error"), made=True)
-    assert review.post(github, 5, "abc", _notes(25), "s") == 25
-    assert [len(posted) for _, _, posted in github.reviews] == [20, 5]
-    assert waits == [20.0]
+def test_a_pending_review_an_earlier_run_left_is_deleted_before_the_new_one(
+        waits: list[float]) -> None:
+    github = FakeGitHub()
+    github.left = [(77, "R77")]
+    assert review.post(github, 5, "abc", _notes(2), "s") == 2
+    assert github.deleted_reviews == [77]
+    assert [r["state"] for r in github.reviews] == ["COMMENTED"]
+    assert waits == [GAP] * 3
 
 
-def test_a_5xx_that_made_nothing_is_posted_again_after_a_wait(waits: list[float]) -> None:
-    github = Fumbling(review.Refused(502, "Server Error"))
+def test_an_opening_answered_502_is_read_back_and_not_opened_again(waits: list[float]) -> None:
+    github = Fumbling(opening=[SERVER], made=True)
     assert review.post(github, 5, "abc", _notes(3), "s") == 3
-    assert [len(posted) for _, _, posted in github.reviews] == [3]
-    assert waits == [60.0, 20.0]
+    assert [len(r["threads"]) for r in github.reviews] == [3]
+    assert waits == [GAP] * 3
 
 
-def test_a_twin_posted_earlier_does_not_pass_for_one_a_5xx_left_unmade(waits: list[float]) -> None:
-    notes = _notes(25)
+def test_an_opening_5xx_that_opened_nothing_is_tried_again_after_a_wait(
+        waits: list[float]) -> None:
+    github = Fumbling(opening=[SERVER])
+    assert review.post(github, 5, "abc", _notes(2), "s") == 2
+    assert [len(r["threads"]) for r in github.reviews] == [2]
+    assert waits == [60.0, GAP, GAP]
+
+
+def test_a_thread_answered_502_is_read_back_and_not_added_again(waits: list[float]) -> None:
+    github = Fumbling(adding=[SERVER], made=True)
+    assert review.post(github, 5, "abc", _notes(3), "s") == 3
+    assert [len(r["threads"]) for r in github.reviews] == [3]
+    assert waits == [GAP] * 3
+
+
+def test_a_twin_in_the_review_does_not_pass_for_one_a_5xx_left_unmade(waits: list[float]) -> None:
     twin = review.Note("added", "A.cs", 99, "RIGHT", "n1", "k1")
-    github = Fumbling(None, review.Refused(502, "Server Error"))
-    assert review.post(github, 5, "abc", [*notes[:20], twin, *notes[20:]], "s") == 26
-    assert [len(posted) for _, _, posted in github.reviews] == [20, 6]
-    assert waits == [20.0, 60.0, 20.0]
+    github = Fumbling(adding=[None, SERVER])
+    assert review.post(github, 5, "abc", [*_notes(2), twin], "s") == 3
+    assert [t["line"] for t in github.reviews[0]["threads"]] == [1, 2, 99]
+    assert waits == [GAP, GAP, 60.0, GAP]
+
+
+def test_a_submission_answered_502_is_read_back_rather_than_sent_again(
+        waits: list[float]) -> None:
+    github = Fumbling(submitting=[SERVER], made=True)
+    assert review.post(github, 5, "abc", _notes(2), "s") == 2
+    assert [r["state"] for r in github.reviews] == ["COMMENTED"]
+    assert waits == [GAP, GAP]
+
+
+def test_a_submission_a_5xx_left_pending_is_sent_again_after_a_wait(waits: list[float]) -> None:
+    github = Fumbling(submitting=[SERVER])
+    assert review.post(github, 5, "abc", _notes(2), "s") == 2
+    assert [r["state"] for r in github.reviews] == ["COMMENTED"]
+    assert waits == [GAP, GAP, 60.0]
 
 
 def test_a_refusal_for_rate_is_waited_out_as_long_as_github_asks(waits: list[float]) -> None:
-    github = Fumbling(review.Refused(403, LIMITED), review.Refused(429, LIMITED, wait=7.0))
+    github = Fumbling(adding=[review.Refused(403, LIMITED),
+                              review.Refused(429, LIMITED, wait=7.0)])
     assert review.post(github, 5, "abc", _notes(3), "s") == 3
-    assert waits == [60.0, 20.0, 7.0, 20.0]
+    assert waits == [GAP, 60.0, 7.0, GAP, GAP]
 
 
 def test_a_refusal_for_rate_past_the_last_wait_stands(waits: list[float]) -> None:
-    github = Fumbling(*[review.Refused(403, LIMITED)] * 4)
+    github = Fumbling(opening=[review.Refused(403, LIMITED)] * 4)
     with pytest.raises(review.Refused, match="secondary rate limit"):
         review.post(github, 5, "abc", _notes(3), "s")
-    assert waits == [60.0, 20.0, 120.0, 20.0, 240.0, 20.0]
+    assert waits == [60.0, 120.0, 240.0]
     assert github.reviews == []
 
 
 def test_any_other_refusal_stands_at_once(waits: list[float]) -> None:
-    github = Fumbling(review.Refused(403, "Resource not accessible by integration"))
+    github = Fumbling(opening=[review.Refused(403, "Resource not accessible by integration")])
     with pytest.raises(review.Refused, match=r"^403: Resource not accessible"):
         review.post(github, 5, "abc", _notes(3), "s")
     assert waits == []
@@ -659,28 +829,51 @@ def test_a_removed_suppression_covers_the_lines_it_was_taken_from() -> None:
     assert (note.side, note.span) == ("LEFT", (5, 11))
 
 
-def test_a_thread_is_posted_over_its_span() -> None:
-    note = review.Note("added", "A.cs", 10, "RIGHT", "n", "k", (7, 13))
+def _spans() -> list[review.Note]:
+    return [review.Note("added", "A.cs", 10, "RIGHT", "n", "k", (7, 13)),
+            review.Note("added", "A.cs", 30, "RIGHT", "m", "j", (27, 33))]
+
+
+def test_a_thread_is_posted_over_its_span_as_the_review_opens_and_after(
+        waits: list[float]) -> None:
     github = FakeGitHub()
-    assert review.post(github, 5, "abc", [note], "s") == 1
-    assert github.reviews[0][2] == [{"path": "A.cs", "start_line": 7, "start_side": "RIGHT",
-                                     "line": 13, "side": "RIGHT",
-                                     "body": "n\n\n<!-- code-scanning: k -->"}]
+    assert review.post(github, 5, "abc", _spans(), "s") == 2
+    assert github.reviews[0]["threads"] == [
+        {"path": "A.cs", "start": 7, "line": 13, "side": "RIGHT", "file": False,
+         "body": "n\n\n<!-- code-scanning: k -->"},
+        {"path": "A.cs", "start": 27, "line": 33, "side": "RIGHT", "file": False,
+         "body": "m\n\n<!-- code-scanning: j -->"}]
 
 
-def test_a_range_github_refuses_goes_again_on_its_own_line(waits: list[float]) -> None:
-    note = review.Note("added", "A.cs", 10, "RIGHT", "n", "k", (7, 13))
-    github = Fumbling(review.Refused(422, "Unprocessable Entity"))
-    assert review.post(github, 5, "abc", [note], "s") == 1
-    assert [(c["line"], "start_line" in c) for c in github.reviews[0][2]] == [(10, False)]
-    assert waits == []
+def test_a_span_github_refuses_goes_again_on_its_own_line(waits: list[float]) -> None:
+    github = FakeGitHub()
+    github.no_ranges = {"A.cs"}
+    assert review.post(github, 5, "abc", _spans(), "s") == 2
+    assert [(t["start"], t["line"]) for t in github.reviews[0]["threads"]] == [
+        (None, 10), (None, 30)]
+    assert waits == [GAP] * 4
 
 
-def test_a_422_to_threads_on_their_own_lines_sends_them_out_one_by_one(waits: list[float]) -> None:
-    github = Fumbling(review.Refused(422, "Unprocessable Entity"))
-    assert review.post(github, 5, "abc", _notes(2), "s") == 2
-    assert [[c["line"] for c in posted] for _, _, posted in github.reviews] == [[1], [2]]
-    assert waits == [review.SINGLE_GAP]
+def test_a_thread_refused_with_an_error_goes_again_on_its_own_line(waits: list[float]) -> None:
+    github = Fumbling(adding=[review.Refused(422, "Line must be part of the diff")])
+    assert review.post(github, 5, "abc", _spans(), "s") == 2
+    assert [(t["start"], t["line"]) for t in github.reviews[0]["threads"]] == [
+        (7, 13), (None, 30)]
+    assert waits == [GAP] * 3
+
+
+def test_a_leftover_review_answered_502_as_it_is_deleted_is_read_back(
+        waits: list[float]) -> None:
+    class Slow(FakeGitHub):
+        def delete_review(self, number: int, review: int) -> None:
+            super().delete_review(number, review)
+            raise SERVER
+
+    github = Slow()
+    github.left = [(77, "R77")]
+    assert review.post(github, 5, "abc", _notes(1), "s") == 1
+    assert github.deleted_reviews == [77]
+    assert waits == [GAP, GAP]
 
 
 def test_a_line_moves_by_every_change_above_it_and_is_lost_to_one_over_it() -> None:
@@ -732,13 +925,13 @@ def test_a_branch_behind_the_one_it_merges_into_gets_its_threads_on_its_own_line
     assert "`A.cs:8`" in review.summary(found, findings, True)
 
 
-def test_a_twin_added_later_gets_a_thread_of_its_own_on_its_own_line() -> None:
+def test_a_twin_added_later_gets_a_thread_of_its_own_on_its_own_line(waits: list[float]) -> None:
     first = review.Note("added", "A.cs", 3, "RIGHT", "n", "k", (1, 6))
     twin = review.Note("added", "A.cs", 9, "RIGHT", "n", "k", (6, 12))
     github = FakeGitHub()
     github.reviewed = [{"path": "A.cs", "line": 6, "body": "n\n\n<!-- code-scanning: k -->"}]
     assert review.post(github, 5, "abc", [first, twin], "s") == 1
-    assert [(c["start_line"], c["line"]) for c in github.reviews[0][2]] == [(6, 12)]
+    assert [(t["start"], t["line"]) for t in github.reviews[0]["threads"]] == [(6, 12)]
     assert review.post(github, 5, "abc", [first], "s") == 0
 
 
@@ -880,24 +1073,6 @@ def test_a_file_the_branch_merged_into_renamed_keeps_its_findings(tmp_path: Path
     assert "(quality)" in placed[0].body
 
 
-class Narrow(FakeGitHub):
-    """A pull request on which GitHub takes no thread on the lines of one file, maybe none on it."""
-
-    def __init__(self, path: str, *, on_file: bool = True) -> None:
-        super().__init__()
-        self.path, self.on_file = path, on_file
-
-    def create_review(self, number: int, commit: str, comments: list[dict[str, Any]]) -> None:
-        if any(c["path"] == self.path for c in comments):
-            raise review.Refused(422, "Line could not be resolved")
-        super().create_review(number, commit, comments)
-
-    def comment_on_file(self, number: int, commit: str, path: str, body: str) -> None:
-        if not self.on_file:
-            raise review.Refused(422, f"Diff entry {path} diff is too large")
-        super().comment_on_file(number, commit, path, body)
-
-
 def _summaries(written: list[str]) -> Callable[[review.Posted], str]:
     def compose(posted: review.Posted) -> str:
         written.append(review.summary(review.Review(), [], True, posted))
@@ -910,19 +1085,51 @@ def _two() -> list[review.Note]:
             review.Note("added", "big.txt", 1, "RIGHT", "b", "kb")]
 
 
-def test_where_github_takes_no_thread_on_a_line_the_whole_file_gets_one(waits: list[float]) -> None:
-    github, written = Narrow("big.txt"), list[str]()
+def test_where_github_takes_no_thread_on_a_line_the_file_gets_one_in_the_review(
+        waits: list[float]) -> None:
+    github, written = FakeGitHub(), list[str]()
+    github.no_lines = {"big.txt"}
     assert review.post(github, 5, "abc", _two(), _summaries(written)) == 2
-    assert [[c["path"] for c in posted] for _, _, posted in github.reviews] == [["A.cs"]]
-    assert github.on_files == [("big.txt", "b\n\n<!-- code-scanning: kb -->")]
+    assert [(t["path"], t["file"]) for t in github.reviews[0]["threads"]] == [
+        ("A.cs", False), ("big.txt", True)]
+    assert github.on_files == []
     assert "**On their whole file, since GitHub took no thread on their lines: 1**" in written[-1]
-    assert waits == [review.SINGLE_GAP]
+    assert waits == [GAP, GAP, GAP]
 
 
-def test_where_github_takes_no_thread_at_all_the_summary_has_its_answer(waits: list[float]) -> None:
-    github, written = Narrow("big.txt", on_file=False), list[str]()
+def test_where_github_takes_no_thread_at_all_the_summary_names_it(waits: list[float]) -> None:
+    github, written = FakeGitHub(), list[str]()
+    github.no_lines = github.no_files = {"big.txt"}
     assert review.post(github, 5, "abc", _two(), _summaries(written)) == 1
     assert "**Where GitHub took no thread at all: 1**" in written[-1]
+    assert "`big.txt:1`, added: GitHub took no thread on its lines or its file" in written[-1]
+
+
+def test_a_first_note_no_line_takes_leaves_the_opening_to_the_next(waits: list[float]) -> None:
+    github = FakeGitHub()
+    github.no_lines = {"big.txt"}
+    assert review.post(github, 5, "abc", _two()[::-1], "s") == 2
+    assert [(t["path"], t["file"]) for t in github.reviews[0]["threads"]] == [
+        ("A.cs", False), ("big.txt", True)]
+
+
+def test_with_no_note_to_open_a_review_each_goes_on_its_file_alone(waits: list[float]) -> None:
+    notes = [review.Note("added", "big.txt", 1, "RIGHT", "b", "kb"),
+             review.Note("added", "big.txt", 5, "RIGHT", "c", "kc")]
+    github = FakeGitHub()
+    github.no_lines = {"big.txt"}
+    assert review.post(github, 5, "abc", notes, "s") == 2
+    assert github.reviews == []
+    assert github.on_files == [("big.txt", "b\n\n<!-- code-scanning: kb -->"),
+                               ("big.txt", "c\n\n<!-- code-scanning: kc -->")]
+    assert waits == [GAP] * 3
+
+
+def test_with_no_review_a_file_github_refuses_is_named_with_its_answer(
+        waits: list[float]) -> None:
+    github, written = FakeGitHub(), list[str]()
+    github.no_lines = github.no_files = {"big.txt"}
+    assert review.post(github, 5, "abc", _two()[1:], _summaries(written)) == 0
     assert "`big.txt:1`, added: Diff entry big.txt diff is too large" in written[-1]
 
 
@@ -937,13 +1144,13 @@ def test_a_thread_whose_suppression_is_gone_is_deleted_and_listed(waits: list[fl
     github.reviewed = [_gone(11, 9), _gone(12, 12)]
     review.post(github, 5, "abc", _two()[:1], _summaries(written))
     assert github.deleted == [11, 12]
-    assert waits == [review.SINGLE_GAP]
+    assert waits == [GAP] * 3
     assert "**Threads whose suppression is no longer in this pull request: 2**" in written[-1]
     assert "- `A.cs:9`, deleted" in written[-1]
     assert "- `A.cs:12`, deleted" in written[-1]
 
 
-def test_a_gone_thread_somebody_answered_in_or_resolved_is_kept() -> None:
+def test_a_gone_thread_somebody_answered_in_or_resolved_is_kept(waits: list[float]) -> None:
     github, written = FakeGitHub(resolved={12}), list[str]()
     github.reviewed = [_gone(11, 9), _gone(12, 12),
                        {"id": 13, "in_reply_to_id": 11, "path": "A.cs", "line": 9, "body": "why?"}]
@@ -959,7 +1166,8 @@ def test_a_thread_whose_suppression_remains_is_not_deleted() -> None:
     assert github.deleted == []
 
 
-def test_when_which_threads_are_resolved_cannot_be_read_none_is_deleted() -> None:
+def test_when_which_threads_are_resolved_cannot_be_read_none_is_deleted(
+        waits: list[float]) -> None:
     class Unreadable(FakeGitHub):
         def resolved_threads(self, number: int) -> set[int]:
             raise review.Refused(403, "Resource not accessible by integration")
@@ -983,13 +1191,13 @@ def test_a_refused_deletion_keeps_the_thread_and_the_review_goes_on(waits: list[
     github.reviewed = [_gone(11, 9), _gone(12, 12)]
     review.post(github, 5, "abc", _two()[:1], _summaries(written))
     assert github.deleted == [12]
-    assert waits == [review.SINGLE_GAP]
+    assert waits == [GAP] * 3
     assert ("- `A.cs:9`, kept: GitHub refused to delete it: Resource not accessible by "
             "integration") in written[-1]
     assert "- `A.cs:12`, deleted" in written[-1]
 
 
-def test_a_comment_already_gone_counts_as_deleted() -> None:
+def test_a_comment_already_gone_counts_as_deleted(waits: list[float]) -> None:
     class Vanished(FakeGitHub):
         def delete_comment(self, comment: int) -> None:
             raise review.Refused(404, "Not Found")
@@ -1010,11 +1218,11 @@ def test_a_deletion_answered_502_is_read_back_rather_than_tried_again(waits: lis
     github.reviewed = [_gone(11, 9)]
     review.post(github, 5, "abc", _two()[:1], _summaries(written))
     assert github.deleted == [11]
-    assert waits == []
+    assert waits == [GAP, GAP]
     assert "- `A.cs:9`, deleted" in written[-1]
 
 
-def test_a_reply_quoting_a_mark_is_no_thread_and_nothing_gone() -> None:
+def test_a_reply_quoting_a_mark_is_no_thread_and_nothing_gone(waits: list[float]) -> None:
     github, written = FakeGitHub(), list[str]()
     github.reviewed = [{"path": "A.cs", "line": 3, "in_reply_to_id": 1,
                         "body": "> a\n\n<!-- code-scanning: ka --> and <!-- code-scanning: x -->"}]

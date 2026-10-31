@@ -41,11 +41,14 @@ lists every one with what became of it.
 what a pull request from a fork is given, or GitHub refusing a comment for good. A finding nothing
 suppresses is the verdict's to fail on.
 
-**The threads go out twenty to a review, twenty seconds apart.** GitHub refuses a review of more
-than 80 comments outright, as a secondary rate limit, and answers 502 to a review it takes more
-than about ten seconds over while making it all the same, so a 5xx is read back rather than
-believed, and a refusal for rate is waited out as GitHub's documentation asks before it is taken
-for good. `spikes/codeql-suppressions` measured all three.
+**A push's threads go out as one review, built up while it is pending.** GitHub refuses a review
+of more than 80 comments outright, as a secondary rate limit, and holds a pending one to the same,
+so the review is opened with one thread and takes the others a second apart before it is submitted
+once. GitHub answers 502 to a submission it takes more than about ten seconds over while making it
+all the same, so a 5xx is read back rather than believed, and a refusal for rate is waited out as
+GitHub's documentation asks before it is taken for good. A pending review an earlier run left
+behind is deleted first, since GitHub keeps one a user. `spikes/codeql-suppressions` measured all
+of it.
 
 On `master` and on the weekly run there is no pull request, so the list and the warnings go to the
 run's summary instead, and the warnings are annotated.
@@ -77,11 +80,11 @@ import suppressions
 HUNK = re.compile(r"^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@")
 MARK = "<!-- code-scanning: {} -->"
 SUMMARY = MARK.format("summary")
-# How the threads go out: GitHub took a review of 80 comments and refused one of 81 at once,
-# answered 502 after ten seconds to reviews of 60 and 80 that it made all the same, and took eight
-# reviews of 20 this far apart, the slowest in 7.2 seconds.
-REVIEW_SIZE = 20
-REVIEW_GAP = 20.0
+# How far apart the threads of one review go in: GitHub refuses a review of more than 80 comments,
+# pending or not, as a secondary rate limit, and took the threads of a pending review added one at
+# a time this far apart, 112 of them, with no refusal. Every other write the review makes waits as
+# long, which GitHub's documentation asks of writes in a row.
+THREAD_GAP = 1.0
 # What a refusal worth another try is waited out with when GitHub names no wait: a minute, then
 # twice as long each time, which is what its documentation gives for a secondary rate limit. After
 # the last, the refusal stands.
@@ -95,9 +98,6 @@ EXCERPT = 15
 FENCES = {".cs": "csharp", ".py": "python"}
 LINK = re.compile(r"\[([^\]]*)\]\((\d+)\)")
 MARKED = re.compile(r"<!-- code-scanning: (.+?) -->")
-# Notes that go out one by one, after GitHub refused a review of them, go two seconds apart: thirty
-# a minute, well inside the eighty a minute GitHub takes.
-SINGLE_GAP = 2.0
 
 
 @dataclass(frozen=True)
@@ -562,8 +562,26 @@ class Repository(Protocol):
     def review_comments(self, number: int) -> list[dict[str, Any]]:
         """Every review comment on the pull request."""
 
-    def create_review(self, number: int, commit: str, comments: list[dict[str, Any]]) -> None:
-        """One review of comments on lines, as a comment and not an approval."""
+    def open_review(self, number: int, commit: str, comment: dict[str, Any]) -> tuple[int, str]:
+        """A pending review opened with one comment on lines, by its number and its node."""
+
+    def add_thread(self, review: str, thread: dict[str, Any]) -> bool:
+        """One thread more in the pending review `review`, and whether GitHub made it."""
+
+    def submit_review(self, review: str) -> None:
+        """The pending review `review` submitted, as a comment and not an approval."""
+
+    def review_state(self, number: int, review: int) -> str:
+        """Whether a review is still pending, or how it was submitted."""
+
+    def pending_reviews(self, number: int) -> list[tuple[int, str]]:
+        """The token's own pending reviews on the pull request, by number and node."""
+
+    def delete_review(self, number: int, review: int) -> None:
+        """A pending review deleted, with every thread in it."""
+
+    def review_thread_comments(self, number: int, review: int) -> list[dict[str, Any]]:
+        """Every comment in one review."""
 
     def comment_on_file(self, number: int, commit: str, path: str, body: str) -> None:
         """One comment on a whole file, which GitHub takes where it takes no thread on a line."""
@@ -593,6 +611,24 @@ query($owner: String!, $name: String!, $number: Int!, $after: String) {
         nodes { isResolved comments(first: 1) { nodes { databaseId } } }
       }
     }
+  }
+}"""
+
+
+ADD_THREAD = """
+mutation($review: ID!, $path: String!, $line: Int, $side: DiffSide, $startLine: Int,
+         $startSide: DiffSide, $subjectType: PullRequestReviewThreadSubjectType, $body: String!) {
+  addPullRequestReviewThread(input: {pullRequestReviewId: $review, path: $path, line: $line,
+      side: $side, startLine: $startLine, startSide: $startSide, subjectType: $subjectType,
+      body: $body}) {
+    thread { id }
+  }
+}"""
+
+SUBMIT = """
+mutation($review: ID!) {
+  submitPullRequestReview(input: {pullRequestReviewId: $review, event: COMMENT}) {
+    pullRequestReview { id }
   }
 }"""
 
@@ -635,10 +671,38 @@ class GitHub:
         """Every review comment on the pull request."""
         return self._pages(f"/pulls/{number}/comments")
 
-    def create_review(self, number: int, commit: str, comments: list[dict[str, Any]]) -> None:
-        """One review of comments on lines, as a comment and not an approval."""
-        self._call("POST", f"/pulls/{number}/reviews",
-                   {"commit_id": commit, "event": "COMMENT", "comments": comments})
+    def open_review(self, number: int, commit: str, comment: dict[str, Any]) -> tuple[int, str]:
+        """A pending review opened with one comment on lines, by its number and its node."""
+        opened, _ = self._call("POST", f"/pulls/{number}/reviews",
+                               {"commit_id": commit, "comments": [comment]})
+        return int(opened["id"]), str(opened["node_id"])
+
+    def add_thread(self, review: str, thread: dict[str, Any]) -> bool:
+        """One thread more in the pending review `review`, and whether GitHub made it."""
+        data = self._graphql(ADD_THREAD, {"review": review, **thread})
+        return bool((data.get("addPullRequestReviewThread") or {}).get("thread"))
+
+    def submit_review(self, review: str) -> None:
+        """The pending review `review` submitted, as a comment and not an approval."""
+        self._graphql(SUBMIT, {"review": review})
+
+    def review_state(self, number: int, review: int) -> str:
+        """Whether a review is still pending, or how it was submitted."""
+        answer, _ = self._call("GET", f"/pulls/{number}/reviews/{review}")
+        return str(answer["state"])
+
+    def pending_reviews(self, number: int) -> list[tuple[int, str]]:
+        """The token's own pending reviews on the pull request, by number and node."""
+        return [(int(r["id"]), str(r["node_id"])) for r in self._pages(f"/pulls/{number}/reviews")
+                if r.get("state") == "PENDING"]
+
+    def delete_review(self, number: int, review: int) -> None:
+        """A pending review deleted, with every thread in it."""
+        self._call("DELETE", f"/pulls/{number}/reviews/{review}")
+
+    def review_thread_comments(self, number: int, review: int) -> list[dict[str, Any]]:
+        """Every comment in one review."""
+        return self._pages(f"/pulls/{number}/reviews/{review}/comments")
 
     def comment_on_file(self, number: int, commit: str, path: str, body: str) -> None:
         """One comment on a whole file, which GitHub takes where it takes no thread on a line."""
@@ -717,14 +781,29 @@ def post(github: Repository, number: int, commit: str, placed_notes: list[Note],
     every = github.review_comments(number)
     comments = [c for c in every if c.get("in_reply_to_id") is None]
     posted = Posted(gone=_gone(comments, placed_notes))
-    _post_reviews(github, number, commit, _not_posted(comments, placed_notes), posted)
-    _delete_gone(github, number, every, posted)
+    turn = _Turns()
+    _post_reviews(github, number, commit, _not_posted(comments, placed_notes), posted, turn)
+    _delete_gone(github, number, every, posted, turn)
     _write_summary(github, number, text if isinstance(text, str) else text(posted))
     return posted.lines + len(posted.files)
 
 
+class _Turns:
+    """One write after another, each after the first `THREAD_GAP` after the one before it."""
+
+    def __init__(self) -> None:
+        """No write made yet."""
+        self._first = True
+
+    def __call__(self) -> None:
+        """Wait, unless this is the first write."""
+        if not self._first:
+            _wait(THREAD_GAP)
+        self._first = False
+
+
 def _delete_gone(github: Repository, number: int, every: list[dict[str, Any]],
-                 posted: Posted) -> None:
+                 posted: Posted, turn: _Turns) -> None:
     # A thread whose suppression is gone has nothing left in the pull request to read, and the
     # merge would wait for it. The workflow's token may delete a comment the review posted and may
     # not resolve a thread, which takes `contents: write`, as `spikes/codeql-suppressions`
@@ -740,7 +819,6 @@ def _delete_gone(github: Repository, number: int, every: list[dict[str, Any]],
         reason = f"which threads are resolved could not be read: {refusal.message}"
         posted.kept.update((int(c["id"]), reason) for c in posted.gone)
         return
-    tried = False
     for comment in posted.gone:
         thread = int(comment["id"])
         if thread in answered:
@@ -748,9 +826,7 @@ def _delete_gone(github: Repository, number: int, every: list[dict[str, Any]],
         elif thread in resolved:
             posted.kept[thread] = "resolved"
         else:
-            if tried:
-                _wait(SINGLE_GAP)
-            tried = True
+            turn()
             try:
                 _patiently(partial(github.delete_comment, thread),
                            partial(_deleted, github, number, thread))
@@ -799,69 +875,119 @@ def _comment(note: Note, ranged: bool) -> dict[str, Any]:
 
 
 def _post_reviews(github: Repository, number: int, commit: str, waiting: list[Note],
-                  posted: Posted) -> None:
-    # A 5xx is read back rather than believed, since GitHub answers 502 to a review it goes on
-    # making, and only what did not land is posted again. A 422 to a review whose threads cover
-    # ranges is GitHub not finding one in a hunk of its own diff, so that review goes again with
-    # each thread on its own line, and a 422 to that sends its notes out one by one.
-    setbacks = 0
-    ranged = True
-    while waiting:
-        batch = waiting[:REVIEW_SIZE]
-        try:
-            github.create_review(number, commit, [_comment(n, ranged) for n in batch])
-        except Refused as refusal:
-            if refusal.status == 422 and ranged and any(n.span is not None for n in batch):
-                ranged = False
-                continue
-            if refusal.status == 422:
-                _one_by_one(github, number, commit, batch, posted)
-                waiting, ranged = waiting[len(batch):], True
+                  posted: Posted, turn: _Turns) -> None:
+    # One review for what a push brings, built up while it is pending and submitted once. GitHub
+    # holds a pending review to the 80 comments a minute a submitted one is held to, so it is
+    # opened with one note and takes the others a thread at a time, each write `THREAD_GAP` after
+    # the one before it, a refused one among them, which `_Turns` keeps. A pending review an
+    # earlier run left behind is deleted first, since GitHub keeps one a user and refuses a second
+    # beside it, and nobody else ever saw it. A note GitHub takes on none of its lines goes on its
+    # whole file inside the review, and one it takes nowhere into the summary.
+    if not waiting:
+        return
+    for left, _ in github.pending_reviews(number):
+        turn()
+        _patiently(partial(github.delete_review, number, left),
+                   partial(_not_pending, github, number, left))
+    opened: tuple[int, str] | None = None
+    unplaced: list[Note] = []
+    for note in waiting:
+        if opened is None:
+            opened = _open(github, number, commit, note, turn)
+            if opened is None:
+                unplaced.append(note)
             else:
-                left = (_not_landed(github, number, batch, ranged) if refusal.status >= 500
-                        else batch)
-                if len(left) == len(batch):
-                    _setback(refusal, setbacks)
-                    setbacks += 1
-                posted.lines += len(batch) - len(left)
-                waiting = left + waiting[len(batch):]
-        else:
-            posted.lines += len(batch)
-            waiting, ranged = waiting[len(batch):], True
-        if waiting:
-            _wait(REVIEW_GAP)
-
-
-def _one_by_one(github: Repository, number: int, commit: str, batch: list[Note],
-                posted: Posted) -> None:
-    # A review is taken whole or refused whole, so after GitHub refused one, each of its notes goes
-    # alone: on its own line, else on its whole file, which GitHub took where it took no line, as
-    # for a diff too large to show or a rename that changes nothing, else into the summary.
-    for index, note in enumerate(batch):
-        if index:
-            _wait(SINGLE_GAP)
-        try:
-            _patiently(partial(github.create_review, number, commit, [_comment(note, False)]),
-                       partial(_landed, github, number, note))
+                posted.lines += 1
+        elif _add(github, number, opened, note, True, turn) or (
+                note.span is not None and _add(github, number, opened, note, False, turn)):
             posted.lines += 1
-            continue
-        except Refused as refusal:
-            if refusal.status != 422:
-                raise
-        try:
-            _patiently(partial(github.comment_on_file, number, commit, note.path,
-                               _comment(note, False)["body"]),
-                       partial(_landed, github, number, note, on_file=True))
+        else:
+            unplaced.append(note)
+    for note in unplaced:
+        if opened is None:
+            _on_its_own_file(github, number, commit, note, posted, turn)
+        elif _add(github, number, opened, note, None, turn):
             posted.files.append(note)
+        else:
+            posted.nowhere.append((note, "GitHub took no thread on its lines or its file"))
+    if opened is not None:
+        turn()
+        _patiently(partial(github.submit_review, opened[1]),
+                   partial(_submitted, github, number, opened[0]))
+
+
+def _open(github: Repository, number: int, commit: str, note: Note,
+          turn: _Turns) -> tuple[int, str] | None:
+    # The pending review, opened with this note over its span, or on its line alone where GitHub
+    # finds the span in no hunk of its diff; None where it takes neither, which leaves the opening
+    # to the next note. A 5xx is read back rather than believed, since GitHub may have opened it.
+    for ranged in (True, False) if note.span is not None else (False,):
+        turn()
+        setbacks = 0
+        while True:
+            try:
+                return github.open_review(number, commit, _comment(note, ranged))
+            except Refused as refusal:
+                if refusal.status == 422:
+                    break
+                if refusal.status >= 500 and (left := github.pending_reviews(number)):
+                    return left[0]
+                _setback(refusal, setbacks)
+                setbacks += 1
+    return None
+
+
+def _add(github: Repository, number: int, opened: tuple[int, str], note: Note,
+         ranged: bool | None, turn: _Turns) -> bool:
+    # One thread added to the pending review: over the note's span, on its line alone or, with
+    # `ranged` None, on its whole file. GitHub answers a thread it does not make, one outside its
+    # diff among them, with no thread and no error, which is False here as a 422 is.
+    thread = _thread(note, ranged)
+    turn()
+    setbacks = 0
+    while True:
+        try:
+            return github.add_thread(opened[1], thread)
         except Refused as refusal:
-            if refusal.status != 422:
-                raise
-            posted.nowhere.append((note, refusal.message))
+            if refusal.status == 422:
+                return False
+            if refusal.status >= 500 and _in_review(github, number, opened[0], note, ranged):
+                return True
+            _setback(refusal, setbacks)
+            setbacks += 1
+
+
+def _thread(note: Note, ranged: bool | None) -> dict[str, Any]:
+    # A note as GraphQL's `addPullRequestReviewThread` takes it.
+    body = f"{note.body}\n\n{MARK.format(note.key)}"
+    if ranged is None:
+        return {"path": note.path, "line": None, "side": None, "startLine": None,
+                "startSide": None, "subjectType": "FILE", "body": body}
+    comment = _comment(note, ranged)
+    first = comment.get("start_line")
+    return {"path": note.path, "line": comment["line"], "side": note.side, "startLine": first,
+            "startSide": None if first is None else note.side, "subjectType": None, "body": body}
+
+
+def _on_its_own_file(github: Repository, number: int, commit: str, note: Note,
+                     posted: Posted, turn: _Turns) -> None:
+    # Where no note opened a review, GitHub taking none on its lines, each goes on its whole file
+    # as a comment of its own, which GitHub takes where it takes no line, else into the summary.
+    turn()
+    try:
+        _patiently(partial(github.comment_on_file, number, commit, note.path,
+                           _comment(note, False)["body"]),
+                   partial(_on_file, github, number, note))
+        posted.files.append(note)
+    except Refused as refusal:
+        if refusal.status != 422:
+            raise
+        posted.nowhere.append((note, refusal.message))
 
 
 def _patiently(send: Callable[[], None], landed: Callable[[], bool]) -> None:
-    # One request, waited out through refusals for rate and 5xx answers as a review is, a 5xx read
-    # back first, since GitHub may have carried it out all the same.
+    # One request, waited out through refusals for rate and 5xx answers, a 5xx read back first,
+    # since GitHub may have carried it out all the same.
     for setbacks in range(len(RETRY_WAITS) + 1):
         try:
             send()
@@ -872,27 +998,35 @@ def _patiently(send: Callable[[], None], landed: Callable[[], bool]) -> None:
             _setback(refusal, setbacks)
 
 
-def _landed(github: Repository, number: int, note: Note, *, on_file: bool = False) -> bool:
-    # Whether one note is on the pull request, on its own line or on its whole file.
-    for comment in github.review_comments(number):
-        if MARK.format(note.key) not in str(comment.get("body", "")):
-            continue
-        if on_file and comment.get("subject_type") == "file" and comment.get("path") == note.path:
-            return True
-        if not on_file and (comment.get("path"), comment.get("line"), comment.get("side")) == (
-                note.path, note.line, note.side):
-            return True
-    return False
+def _in_review(github: Repository, number: int, review: int, note: Note,
+               ranged: bool | None) -> bool:
+    # Whether a note is in the pending review, which a 5xx leaves open, by its mark and its place:
+    # two suppressions with the same comment over the same code in one file share a mark.
+    try:
+        comments = github.review_thread_comments(number, review)
+    except Refused:
+        return False
+    mark = MARK.format(note.key)
+    line = None if ranged is None else _comment(note, ranged)["line"]
+    return any(mark in str(c.get("body", "")) and c.get("path") == note.path
+               and (c.get("subject_type") == "file" if line is None else c.get("line") == line)
+               for c in comments)
 
 
-def _not_landed(github: Repository, number: int, batch: list[Note], ranged: bool) -> list[Note]:
-    # By place as well as by mark: two suppressions with the same comment over the same code in one
-    # file share a mark, and a twin posted in an earlier review is not this one.
-    comments = github.review_comments(number)
-    return [n for n in batch
-            if not any((c.get("path"), c.get("line"), c.get("side"))
-                       == (n.path, _comment(n, ranged)["line"], n.side)
-                       and MARK.format(n.key) in str(c.get("body", "")) for c in comments)]
+def _on_file(github: Repository, number: int, note: Note) -> bool:
+    # Whether a note is on the pull request as a comment on its whole file.
+    return any(MARK.format(note.key) in str(c.get("body", "")) and c.get("path") == note.path
+               and c.get("subject_type") == "file" for c in github.review_comments(number))
+
+
+def _submitted(github: Repository, number: int, review: int) -> bool:
+    # Whether a review GitHub answered 502 to was submitted all the same, as it was when measured.
+    return github.review_state(number, review) != "PENDING"
+
+
+def _not_pending(github: Repository, number: int, review: int) -> bool:
+    # Whether a pending review is gone.
+    return all(left != review for left, _ in github.pending_reviews(number))
 
 
 def _write_summary(github: Repository, number: int, text: str) -> None:
