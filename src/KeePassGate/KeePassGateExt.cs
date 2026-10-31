@@ -520,10 +520,7 @@ namespace KeePassGate
                     _incidents,
                     _log);
 
-
-                // `&` rather than `&&`, so that both are started and a refusal by either still
-                // leaves the other for the teardown below to take down.
-                if (!(_host.Start() & _grants.Start()))
+                if (!(_host.Start() && _grants.Start()))
                 {
                     // Undone here rather than left to `Terminate`. A refused load has already
                     // subscribed to KeePass's window manager, which is static and outlives this
