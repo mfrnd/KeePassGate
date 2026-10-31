@@ -45,7 +45,7 @@ one.
 | #7, finished after #8 | changed `C14`'s flagged line; changed `C15`'s to one CodeQL does not report, its right operand being a local rather than a call, which leaves its comment over no finding; added `C16`, a new finding whose reason runs past 280 characters; then merged | dismissing on `main`, section 7, and fingerprints, section 4 |
 | #9, never merged | from a branch that removed the other workflows, posted the 122 comments KeePassGate's pull request #51 was refused as one review, then single reviews of 80, 40, 60 and 81 comments, and eight of 20 | how many comments a review may carry, section 8 |
 | #10, never merged | from a branch that removed the other workflows, added a line at the top of `Cases.cs`, one in its middle and one at its end, and removed one; then posted comments over three lines either side of each, one range past its hunk, and the first four again as a review whose comments were then deleted | threads over a range of lines, section 8 |
-| #11, never merged | from a branch that removed the other workflows, renamed one file with a line changed and one with none, copied one, added files of 1,000, 5,000 and 25,000 lines and three with a space, an accent and a quote in their names, deleted one, and ended one without a newline; then posted a review for each place a thread might go, and a comment on three whole files; later changed the line under one thread, resolved three threads with the review job's permissions, deleted one thread's only comment with them, and resolved the three with `contents: write` added; last, built up a pending review three ways and submitted it | where a thread may go, resolving and deleting one, and one review built up while pending, section 8 |
+| #11, never merged | from a branch that removed the other workflows, renamed one file with a line changed and one with none, copied one, added files of 1,000, 5,000 and 25,000 lines and three with a space, an accent and a quote in their names, deleted one, and ended one without a newline; then posted a review for each place a thread might go, and a comment on three whole files; later changed the line under one thread, resolved three threads with the review job's permissions, deleted one thread's only comment with them, and resolved the three with `contents: write` added; last, built up a pending review three ways and submitted it; and ran KeePassGate's own review built that way, twice | where a thread may go, resolving and deleting one, and one review built up while pending, section 8 |
 
 ## 2. Which comments suppress
 
@@ -426,6 +426,12 @@ KeePassGate's pull request #51, `pending/lengths.json`, each over seven lines of
 - **One pending review per pull request is all a user may have.** A second asked for beside one
   left behind is refused with 422, "User can only have one pending review per pull request". The
   token finds its own pending review among the pull request's reviews and deletes it, with 200.
+- **KeePassGate's review, built this way, works against a real pull request.** Its tools, copied
+  into `smoke` from the commit that builds a push's threads into one pending review and run twice
+  by `smoke/smoke.py` with the workflow's token, first deleted a pending review left behind as a
+  failed run would leave it, then put 30 threads over seven lines and one on a whole file into one
+  review, submitted, with the note on a file outside the diff named in the summary; the second run
+  posted nothing. `results-11-smoke.jsonl` is what each run reported.
 
 ## 9. Which CodeQL runs
 
