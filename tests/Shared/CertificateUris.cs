@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Security.Cryptography.X509Certificates;
 using Org.BouncyCastle.Asn1;
 using Org.BouncyCastle.Asn1.X509;
@@ -38,12 +39,10 @@ namespace KeePassGate.Testing
                 return uris.ToArray();
             }
 
-            foreach (var name in GeneralNames.GetInstance(Asn1Object.FromByteArray(extension.RawData)).GetNames())
+            foreach (var name in GeneralNames.GetInstance(Asn1Object.FromByteArray(extension.RawData)).GetNames()
+                         .Where(name => name.TagNo == GeneralName.UniformResourceIdentifier))
             {
-                if (name.TagNo == GeneralName.UniformResourceIdentifier)
-                {
-                    uris.Add(((IAsn1String)name.Name).GetString());
-                }
+                uris.Add(((IAsn1String)name.Name).GetString());
             }
 
             return uris.ToArray();

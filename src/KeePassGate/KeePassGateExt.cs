@@ -249,9 +249,11 @@ namespace KeePassGate
         /// Opens the status window.
         /// </summary>
         /// <remarks>
-        /// A catch-all, like the other places KeePass calls into this plugin: a menu item runs on
-        /// KeePass's own thread and an exception escaping it ends the password manager. A window
-        /// that would not open is worth a log line and an incident of its own, not a crash.
+        /// A catch-all, like the handlers of KeePass's own events: a menu item runs on KeePass's
+        /// own thread, and an exception escaping it reaches WinForms, which puts its own error
+        /// dialog over KeePass, with a Quit that ends the process outside KeePass's own shutdown. A
+        /// window that would not open is worth a log line and an incident of its own, not that
+        /// dialog.
         /// </remarks>
         private void ShowStatus()
         {
@@ -280,6 +282,7 @@ namespace KeePassGate
                     new MessageBoxPrompt().Tell(GateName.Full, said);
                 }
             }
+            // codeql[cs/catch-of-all-exceptions] the Tools menu item, one of the four catch-alls
             catch (Exception error)
             {
                 _incidents.Record("the status window could not be shown", error);
@@ -294,8 +297,9 @@ namespace KeePassGate
         /// the title bar stops claiming there is nothing to save. Nothing else is asked for, since
         /// this plugin changes no group, no entry and no selection.
         ///
-        /// Wrapped because it runs from a button on a dialog, and an exception escaping there ends
-        /// KeePass. A window that failed to repaint is worth a log line, not a crash.
+        /// Wrapped because it runs from a button on a dialog, and an exception escaping there
+        /// reaches WinForms' own error dialog, which offers to quit KeePass. A window that failed
+        /// to repaint is worth a log line, not that dialog.
         /// </remarks>
         private void Changed(IPluginHost host)
         {
@@ -516,10 +520,7 @@ namespace KeePassGate
                     _incidents,
                     _log);
 
-
-                // `&` rather than `&&`, so that both are started and a refusal by either still
-                // leaves the other for the teardown below to take down.
-                if (!(_host.Start() & _grants.Start()))
+                if (!(_host.Start() && _grants.Start()))
                 {
                     // Undone here rather than left to `Terminate`. A refused load has already
                     // subscribed to KeePass's window manager, which is static and outlives this
@@ -533,17 +534,18 @@ namespace KeePassGate
             }
             catch (Exception error)
             {
-                // One of the catch-alls, and not because an exception would stop the password
-                // manager: KeePass 2.61.1 catches whatever `Initialize` throws, shows a warning
-                // naming the file and the exception, and goes on to the next plugin. It is here
-                // for what KeePass would not do, which is undo what was set up before the throw,
-                // since the window manager's events are static and outlive this object. A plugin
-                // that answers false is left out without a word and never has `Terminate` called,
-                // so this calls it, and the refusal is the one line `Report` writes to the log,
-                // a file beside the audit unless `KEEPASSGATE_LOG_FILE` names another.
+                // Not one of the catch-alls, since what it catches goes back to KeePass. KeePass
+                // 2.61.1 catches whatever `Initialize` throws, warns that the plugin cannot be
+                // loaded, naming the file and the exception, and goes on to the next plugin, so
+                // the operator learns at startup that the gate is not there. What
+                // KeePass does not do is undo what was set up before the throw, and the window
+                // manager's events are static and outlive this object, so this calls `Terminate`
+                // first, which KeePass never calls for a plugin that did not load. Answering false
+                // instead would leave the plugin out without a word, with the reason only in the
+                // log, where `Report` writes it here as well.
                 Report("initialization failed", error);
                 Terminate();
-                return false;
+                throw;
             }
         }
 
@@ -552,8 +554,9 @@ namespace KeePassGate
             // Called by KeePass when it unloads a plugin that loaded, and by `Initialize` itself
             // when it refuses to load, which KeePass then never calls it for. Every step below
             // tolerates having nothing to do and being run twice, because `Dispose` calls it as
-            // well and nothing orders the two.
-            try
+            // well and nothing orders the two, and each one runs whatever the one before it threw,
+            // for the reason `Attempt` gives.
+            Attempt("failed to stop", () =>
             {
                 GateIcon.Return();
                 CaptureGuard.Wanted = () => false;
@@ -569,26 +572,18 @@ namespace KeePassGate
                     _host.Stop();
                     _host = null;
                 }
-            }
-            catch (Exception error)
-            {
-                Report("failed to stop", error);
-            }
+            });
 
-            try
+            Attempt("failed to stop listening", () =>
             {
                 if (_listener != null)
                 {
                     _listener.Dispose();
                     _listener = null;
                 }
-            }
-            catch (Exception error)
-            {
-                Report("failed to stop listening", error);
-            }
+            });
 
-            try
+            Attempt("failed to stop watching for locks", () =>
             {
                 if (_locks != null)
                 {
@@ -600,39 +595,27 @@ namespace KeePassGate
                 _approvals.Clear();
 
                 TellWhatIsStillOwed();
-            }
-            catch (Exception error)
-            {
-                Report("failed to stop watching for locks", error);
-            }
+            });
 
-            try
+            Attempt("failed to stop the authority chooser", () =>
             {
                 if (_chooser != null)
                 {
                     _chooser.Dispose();
                     _chooser = null;
                 }
-            }
-            catch (Exception error)
-            {
-                Report("failed to stop the authority chooser", error);
-            }
+            });
 
-            try
+            Attempt("failed to release the database events", () =>
             {
                 if (_databases != null)
                 {
                     _databases.Dispose();
                     _databases = null;
                 }
-            }
-            catch (Exception error)
-            {
-                Report("failed to release the database events", error);
-            }
+            });
 
-            try
+            Attempt("failed to drop the outstanding invitations", () =>
             {
                 if (_invitations != null)
                 {
@@ -641,26 +624,18 @@ namespace KeePassGate
                     _invitations.Dispose();
                     _invitations = null;
                 }
-            }
-            catch (Exception error)
-            {
-                Report("failed to drop the outstanding invitations", error);
-            }
+            });
 
-            try
+            Attempt("failed to stop watching the group dialogs", () =>
             {
                 if (_groupDialogs != null)
                 {
                     _groupDialogs.Dispose();
                     _groupDialogs = null;
                 }
-            }
-            catch (Exception error)
-            {
-                Report("failed to stop watching the group dialogs", error);
-            }
+            });
 
-            try
+            Attempt("failed to release the served databases", () =>
             {
                 if (_targets != null)
                 {
@@ -670,24 +645,16 @@ namespace KeePassGate
                     _targets.Dispose();
                     _targets = null;
                 }
-            }
-            catch (Exception error)
-            {
-                Report("failed to release the served databases", error);
-            }
+            });
 
-            try
+            Attempt("failed to release the window events", () =>
             {
                 if (_windows != null)
                 {
                     _windows.Dispose();
                     _windows = null;
                 }
-            }
-            catch (Exception error)
-            {
-                Report("failed to release the window events", error);
-            }
+            });
 
             _incidents = null;
             _log = null;
@@ -695,6 +662,31 @@ namespace KeePassGate
             // KeePass's own object, and holding it after an unload keeps this plugin's graph
             // reachable from it for as long as the process lives.
             _pluginHost = null;
+        }
+
+        /// <summary>
+        /// Runs one step of <see cref="Terminate"/>, and reports what it throws rather than
+        /// letting it past the steps after it.
+        /// </summary>
+        /// <remarks>
+        /// One of the four places that catch everything, and for a reason of its own. KeePass
+        /// catches whatever `Terminate` throws and throws it away, so what an exception let out of
+        /// one step costs is the steps after it, among them the ones that let go of KeePass's
+        /// static window events, the listening socket and the host keys. `Initialize` runs
+        /// `Terminate` as well, with KeePass carrying on, so what a skipped step left behind would
+        /// stay behind in a running KeePass.
+        /// </remarks>
+        private void Attempt(string failure, Action step)
+        {
+            try
+            {
+                step();
+            }
+            // codeql[cs/catch-of-all-exceptions] each step of `Terminate`, one of the four catch-alls
+            catch (Exception error)
+            {
+                Report(failure, error);
+            }
         }
 
         /// <summary>
@@ -811,8 +803,8 @@ namespace KeePassGate
             // construction order rather than about rebinding, which this commit takes away: the
             // port is bound once at startup, so the listener this hands back is the only one there
             // will be. The incidents are the plugin's own rather than a second
-            // tally: these handlers are two of the four places that catch everything, and the
-            // window under Tools is where the count is read.
+            // tally: these handlers catch everything, as every handler of KeePass's own events
+            // here does, and the window under Tools is where the count is read.
             // The prompt too, because a lock closes the question it has on the screen, and the
             // approvals held for a retry, because a lock or a close lets go of every one of them.
             _locks = new LockWatch(

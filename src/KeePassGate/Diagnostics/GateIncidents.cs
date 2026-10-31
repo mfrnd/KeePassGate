@@ -9,9 +9,12 @@ namespace KeePassGate.Diagnostics
     /// </summary>
     /// <remarks>
     /// Four places in this plugin catch every exception rather than a named one, because in those
-    /// four an exception that escapes ends the password manager: the plugin's entry point, the
-    /// KeePass window event handlers, the Tools menu item, and the thread serving one
-    /// connection.
+    /// four an exception that escapes would do more harm than the defect it carries. Escaping a
+    /// handler of KeePass's own events, it would stop KeePass's own work part way, a lock of every
+    /// database among it, and then put WinForms' own error dialog over KeePass, offering to quit.
+    /// Escaping the Tools menu item, it would bring up that dialog. Escaping the thread serving one
+    /// connection, it would end the process. And escaping a step of `Terminate`, it would be thrown
+    /// away by KeePass with every step after it left undone.
     ///
     /// A catch-all that only writes a log line is how an unexpected failure becomes an unnoticed
     /// one, so those four record here instead. The count reaches the plugin's own window under the
@@ -25,9 +28,9 @@ namespace KeePassGate.Diagnostics
     ///
     /// **Two more roots are kept safe another way**, and nothing reaches here from them: the
     /// accept thread and the timer that ends a connection at its deadline. Each runs with nothing
-    /// above it, as the four do, and rather than catching everything, every call either makes is
-    /// total or filtered. `GateListener.Drop` says what keeps that true, and what a change to
-    /// the accept loop has to do if it cannot.
+    /// above it, as the connection thread does, and rather than catching everything, every call
+    /// either makes is total or filtered. `GateListener.Drop` explains what keeps that true, and
+    /// what a change to the accept loop has to do if it cannot.
     /// </remarks>
     public sealed class GateIncidents
     {
@@ -91,6 +94,7 @@ namespace KeePassGate.Diagnostics
             {
                 _log.Unexpected(where ?? "something failed unexpectedly", error);
             }
+            // codeql[cs/catch-of-all-exceptions] the incident the catch-alls record, which may not throw
             catch (Exception)
             {
                 // A log that throws while reporting an incident cannot be reported to the log.

@@ -65,6 +65,10 @@ namespace KeePassGate.Pipeline
         {
         }
 
+        /// <summary>
+        /// The same, on a clock and a wait of the caller's, which is how a test stands in for time
+        /// passing.
+        /// </summary>
         /// <param name="elapsed">A clock that only goes forward, read for every decision.</param>
         /// <param name="wait">What a decision past the allowance does until its turn comes.</param>
         internal DecisionPace(Func<TimeSpan> elapsed, Action<TimeSpan> wait)

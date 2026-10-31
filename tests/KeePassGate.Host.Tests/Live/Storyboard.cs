@@ -7,6 +7,7 @@ using System.Drawing.Text;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Text;
 
 namespace KeePassGate.Host.Tests.Live
 {
@@ -83,20 +84,8 @@ namespace KeePassGate.Host.Tests.Live
         private const int KeyFades = 50;
         private const int FadeStep = 10;
 
-        private const int Margin = 16;
-        private const int TitleHeight = 22;
-        private const int PaneInset = 12;
-        private const int TerminalWidth = 600;
-
-        /// <summary>
-        /// The largest the picture is drawn, beyond which the KeePass side is shrunk to fit: wide
-        /// enough for a README, tall enough for a laptop's screen.
-        /// </summary>
-        private const int MostWidth = 1400;
-
-        private const int MostHeight = 820;
+        /// <summary>How far apart the terminal's lines are, in pixels.</summary>
         private const int LineHeight = 17;
-        private const int CaptionHeight = 46;
 
         /// <summary>How much of the canvas color is laid over the side that is not acting, out of 255.</summary>
         private const int Dimming = 150;
@@ -212,11 +201,12 @@ namespace KeePassGate.Host.Tests.Live
         /// <summary>A command typed at the prompt, a character at a time, and Enter.</summary>
         public void Type(string commandLine)
         {
-            _typing = string.Empty;
+            var typed = new StringBuilder();
             _blinking = 0;
             foreach (var character in commandLine)
             {
-                _typing += character;
+                typed.Append(character);
+                _typing = typed.ToString();
                 Emit(Keystroke);
             }
 
@@ -318,9 +308,8 @@ namespace KeePassGate.Host.Tests.Live
         private int UntilTheCapsChange()
         {
             var soonest = int.MaxValue;
-            foreach (var cap in _caps)
+            foreach (var until in _caps.Select(cap => cap.Left > KeyFades ? cap.Left - KeyFades : FadeStep))
             {
-                var until = cap.Left > KeyFades ? cap.Left - KeyFades : FadeStep;
                 soonest = Math.Min(soonest, Math.Max(1, until));
             }
 
@@ -373,7 +362,7 @@ namespace KeePassGate.Host.Tests.Live
                 }
             }
 
-            var layout = new Layout(screen);
+            var layout = new StoryboardLayout(screen);
             using (var file = new FileStream(path, FileMode.Create, FileAccess.Write))
             using (var gif = new AnimatedGif(file, layout.Width, layout.Height))
             using (var fonts = new Fonts())
@@ -467,7 +456,7 @@ namespace KeePassGate.Host.Tests.Live
             return text.Replace("\r\n", "\n").TrimEnd('\n').Split('\n');
         }
 
-        private Bitmap Draw(Frame frame, Layout layout, Fonts fonts)
+        private Bitmap Draw(Frame frame, StoryboardLayout layout, Fonts fonts)
         {
             var canvas = new Bitmap(layout.Width, layout.Height, PixelFormat.Format32bppArgb);
             using (var graphics = Graphics.FromImage(canvas))
@@ -477,8 +466,8 @@ namespace KeePassGate.Host.Tests.Live
                 graphics.PixelOffsetMode = PixelOffsetMode.Half;
                 graphics.Clear(Canvas);
 
-                Text(graphics, "The client, in a terminal", fonts.Title, Muted, layout.Terminal.X, Margin);
-                Text(graphics, "The operator, in KeePass", fonts.Title, Muted, layout.Desk.X, Margin);
+                Text(graphics, "The client, in a terminal", fonts.Title, Muted, layout.Terminal.X, layout.TitleTop);
+                Text(graphics, "The operator, in KeePass", fonts.Title, Muted, layout.Desk.X, layout.TitleTop);
 
                 DrawTerminal(graphics, frame, layout.Terminal, fonts.Mono);
                 DrawDesk(graphics, frame, layout);
@@ -493,20 +482,20 @@ namespace KeePassGate.Host.Tests.Live
                     DrawKeys(graphics, frame.Caps, frame.CapsOn == Side.Client ? layout.Terminal : layout.Desk, fonts.Title);
                 }
 
-                var line = layout.Desk.Bottom + 12;
+                var caption = layout.Caption;
                 var counted = frame.Step.ToString(CultureInfo.InvariantCulture) + ".";
-                Text(graphics, counted, fonts.Number, Accent, Margin, line);
+                Text(graphics, counted, fonts.Number, Accent, caption.X, caption.Y);
                 var after = (int)Math.Ceiling(Measure(graphics, counted + " ", fonts.Number));
-                Text(graphics, frame.Caption, fonts.Caption, Ink, Margin + after, line);
+                Text(graphics, frame.Caption, fonts.Caption, Ink, caption.X + after, caption.Y);
 
                 // How far through the story this step is, along the foot of the picture.
                 using (var track = new SolidBrush(Rail))
                 using (var done = new SolidBrush(Accent))
                 {
-                    var rail = new Rectangle(0, layout.Height - 4, layout.Width, 4);
+                    var rail = layout.Rail;
                     graphics.FillRectangle(track, rail);
                     graphics.FillRectangle(
-                        done, new Rectangle(0, rail.Y, layout.Width * frame.Step / Math.Max(1, _step), rail.Height));
+                        done, new Rectangle(rail.X, rail.Y, rail.Width * frame.Step / Math.Max(1, _step), rail.Height));
                 }
             }
 
@@ -517,7 +506,7 @@ namespace KeePassGate.Host.Tests.Live
         /// The windows on screen, the main window behind them, and the pointer over all of it, in
         /// a pane that shows one part of the screen.
         /// </summary>
-        private void DrawDesk(Graphics graphics, Frame frame, Layout layout)
+        private void DrawDesk(Graphics graphics, Frame frame, StoryboardLayout layout)
         {
             var state = graphics.Save();
             graphics.SetClip(layout.Desk);
@@ -561,7 +550,7 @@ namespace KeePassGate.Host.Tests.Live
             graphics.Restore(state);
         }
 
-        private static void Place(Graphics graphics, Shot shot, Layout layout)
+        private static void Place(Graphics graphics, Shot shot, StoryboardLayout layout)
         {
             // Both corners mapped, rather than one corner and a scaled size, so that two windows
             // whose edges met on the screen still meet in the picture.
@@ -593,8 +582,9 @@ namespace KeePassGate.Host.Tests.Live
             }
 
             var cell = Measure(graphics, new string('M', 20), mono) / 20f;
-            var columns = (int)Math.Floor((pane.Width - (2 * PaneInset)) / cell);
-            var fits = (pane.Height - (2 * PaneInset)) / LineHeight;
+            var inside = StoryboardLayout.Inside(pane);
+            var columns = (int)Math.Floor(inside.Width / cell);
+            var fits = inside.Height / LineHeight;
 
             var rows = new List<KeyValuePair<Kind, string>>();
             for (var i = 0; i < frame.Lines; i++)
@@ -620,8 +610,8 @@ namespace KeePassGate.Host.Tests.Live
             }
 
             var first = Math.Max(0, rows.Count - fits);
-            var y = pane.Y + PaneInset;
-            var x = pane.X + PaneInset;
+            var y = inside.Y;
+            var x = inside.X;
             for (var i = first; i < rows.Count; i++)
             {
                 var row = rows[i];
@@ -655,7 +645,8 @@ namespace KeePassGate.Host.Tests.Live
         {
             const int padding = 10;
             const int between = 8;
-            var right = pane.Right - PaneInset;
+            var inside = StoryboardLayout.Inside(pane);
+            var right = inside.Right;
 
             for (var i = caps.Length - 1; i >= 0; i--)
             {
@@ -664,7 +655,7 @@ namespace KeePassGate.Host.Tests.Live
                 var size = graphics.MeasureString(keys, font, PointF.Empty, StringFormat.GenericTypographic);
                 var cap = new Rectangle(
                     0, 0, (int)Math.Ceiling(size.Width) + (2 * padding), (int)Math.Ceiling(size.Height) + padding);
-                cap.Offset(right - cap.Width, pane.Bottom - PaneInset - cap.Height);
+                cap.Offset(right - cap.Width, inside.Bottom - cap.Height);
                 right = cap.X - between;
 
                 graphics.SmoothingMode = SmoothingMode.AntiAlias;
@@ -847,54 +838,6 @@ namespace KeePassGate.Host.Tests.Live
         }
 
         /// <summary>
-        /// Where everything goes: the terminal, the pane showing the part of the screen the
-        /// dialogs were on, and the caption under both.
-        /// </summary>
-        private sealed class Layout
-        {
-            private readonly Rectangle _screen;
-
-            public Layout(Rectangle screen)
-            {
-                _screen = screen;
-
-                // Shrunk to fit rather than cut to fit: the main window has to be seen whole, title
-                // and all, for a reader to know it for KeePass at a glance.
-                var room = new Size(
-                    MostWidth - TerminalWidth - (3 * Margin) - (2 * PaneInset),
-                    MostHeight - Margin - TitleHeight - CaptionHeight - (2 * PaneInset));
-                Scale = Math.Min(1.0, Math.Min((double)room.Width / screen.Width, (double)room.Height / screen.Height));
-
-                var shown = new Size(
-                    (int)Math.Ceiling(screen.Width * Scale), (int)Math.Ceiling(screen.Height * Scale));
-                var paneHeight = shown.Height + (2 * PaneInset);
-                Terminal = new Rectangle(Margin, Margin + TitleHeight, TerminalWidth, paneHeight);
-                Desk = new Rectangle(Terminal.Right + Margin, Terminal.Y, shown.Width + (2 * PaneInset), paneHeight);
-                Width = Desk.Right + Margin;
-                Height = Desk.Bottom + CaptionHeight;
-            }
-
-            /// <summary>How much smaller than on the screen the KeePass side is drawn, at most 1.</summary>
-            public double Scale { get; }
-
-            public Rectangle Terminal { get; }
-
-            public Rectangle Desk { get; }
-
-            public int Width { get; }
-
-            public int Height { get; }
-
-            /// <summary>Where a point on the screen falls in the picture.</summary>
-            public Point OnDesk(Point screen)
-            {
-                return new Point(
-                    Desk.X + PaneInset + (int)Math.Round((screen.X - _screen.X) * Scale),
-                    Desk.Y + PaneInset + (int)Math.Round((screen.Y - _screen.Y) * Scale));
-            }
-        }
-
-        /// <summary>
         /// The fonts every frame is drawn in, in pixels rather than points, so that the picture is
         /// the same size whatever the display's scaling.
         /// </summary>
@@ -931,13 +874,28 @@ namespace KeePassGate.Host.Tests.Live
             /// </remarks>
             private static Font Named(string name, float pixels, FontStyle style, FontFamily otherwise)
             {
+                // codeql[cs/missed-using-statement] disposed only when it is not kept, which no `using` can do
                 var font = new Font(name, pixels, style, GraphicsUnit.Pixel);
-                if (string.Equals(font.Name, name, StringComparison.OrdinalIgnoreCase))
+
+                // Let go of on every way out but the return, a throw while GDI+ is asked for the
+                // name among them.
+                var handedOver = false;
+                try
                 {
-                    return font;
+                    if (string.Equals(font.Name, name, StringComparison.OrdinalIgnoreCase))
+                    {
+                        handedOver = true;
+                        return font;
+                    }
+                }
+                finally
+                {
+                    if (!handedOver)
+                    {
+                        font.Dispose();
+                    }
                 }
 
-                font.Dispose();
                 return new Font(otherwise, pixels, style, GraphicsUnit.Pixel);
             }
         }

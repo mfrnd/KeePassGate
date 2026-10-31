@@ -393,9 +393,11 @@ class Prepared:
         flags = os.O_WRONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_BINARY", 0)
         try:
             try:
+                # codeql[py/file-not-closed] held in `_handles` until `close` closes every one
                 descriptor = os.open(path, flags | os.O_CREAT | os.O_EXCL, _OWNER_ONLY)
                 self._created.append(name)
             except FileExistsError:
+                # codeql[py/file-not-closed] held in `_handles` until `close` closes every one
                 descriptor = os.open(path, flags)
         except OSError as error:
             raise StorageError(f"{path} could not be opened for writing: {error}") from error

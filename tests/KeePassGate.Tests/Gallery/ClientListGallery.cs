@@ -29,13 +29,13 @@ namespace KeePassGate.Tests.Gallery
         private static TestAuthority _authority;
 
         [OneTimeSetUp]
-        public void IssueOne()
+        public static void IssueOne()
         {
             _authority = TestAuthority.New();
         }
 
         [OneTimeTearDown]
-        public void Done()
+        public static void Done()
         {
             // The authority, because it is what holds them. `Client` issues one per row and each
             // is a key container of its own under the user's profile; disposing the authority is

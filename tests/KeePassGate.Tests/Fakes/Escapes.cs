@@ -1,6 +1,7 @@
 using System;
 using System.Threading;
 using System.Windows.Forms;
+using KeePassGate.Testing;
 
 namespace KeePassGate.Tests.Fakes
 {
@@ -46,16 +47,13 @@ namespace KeePassGate.Tests.Fakes
                 var until = DateTime.UtcNow + patience;
                 while (!finished() && DateTime.UtcNow < until)
                 {
-                    try
-                    {
-                        Application.DoEvents();
-                    }
-                    catch (Exception error)
+                    var loose = Thrown.By(() => Application.DoEvents());
+                    if (loose != null)
                     {
                         // The other route out. WinForms leaves the exception in the window
                         // procedure where a debugger is attached, and then the pump is what raises
                         // it.
-                        escapes.Loose = error;
+                        escapes.Loose = loose;
                     }
                 }
             }

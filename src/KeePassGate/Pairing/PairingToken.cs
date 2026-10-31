@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -96,9 +97,8 @@ namespace KeePassGate.Pairing
             var block = 0;
             var bits = 0;
 
-            foreach (var c in text)
+            foreach (var value in text.Select(c => Alphabet.IndexOf(c)))
             {
-                var value = Alphabet.IndexOf(c);
                 if (value < 0)
                 {
                     return null;

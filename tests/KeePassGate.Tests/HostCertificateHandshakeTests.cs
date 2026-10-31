@@ -183,7 +183,7 @@ namespace KeePassGate.Tests
 
             var server = new Thread(delegate()
             {
-                try
+                var thrown = Thrown.By(() =>
                 {
                     using (var accepted = listener.AcceptTcpClient())
                     {
@@ -192,27 +192,27 @@ namespace KeePassGate.Tests
                         result = "ok";
                         protocol.Close();
                     }
-                }
-                catch (Exception error)
+                });
+
+                if (thrown != null)
                 {
-                    result = error.GetType().Name + ": " + error.Message;
+                    result = thrown.GetType().Name + ": " + thrown.Message;
                 }
             });
 
             server.IsBackground = true;
             server.Start();
 
-            try
+            // The client's half fails whenever the server's does, and what is measured is the
+            // server's.
+            _ = Thrown.By(() =>
             {
                 using (var client = new TcpClient("127.0.0.1", port))
                 using (var stream = new SslStream(client.GetStream(), false, delegate { return true; }))
                 {
                     stream.AuthenticateAsClient("host.kpg", null, clientProtocols, false);
                 }
-            }
-            catch (Exception)
-            {
-            }
+            });
 
             server.Join(10000);
             listener.Stop();
@@ -229,7 +229,7 @@ namespace KeePassGate.Tests
 
             var server = new Thread(delegate()
             {
-                try
+                var thrown = Thrown.By(() =>
                 {
                     using (var accepted = listener.AcceptTcpClient())
                     using (var stream = new SslStream(accepted.GetStream(), false))
@@ -237,27 +237,27 @@ namespace KeePassGate.Tests
                         stream.AuthenticateAsServer(serverCertificate, false, SslProtocols.Tls13, false);
                         result = "ok";
                     }
-                }
-                catch (Exception error)
+                });
+
+                if (thrown != null)
                 {
-                    result = error.GetType().Name + ": " + error.Message;
+                    result = thrown.GetType().Name + ": " + thrown.Message;
                 }
             });
 
             server.IsBackground = true;
             server.Start();
 
-            try
+            // The client's half fails whenever the server's does, and what is measured is the
+            // server's.
+            _ = Thrown.By(() =>
             {
                 using (var client = new TcpClient("127.0.0.1", port))
                 using (var stream = new SslStream(client.GetStream(), false, delegate { return true; }))
                 {
                     stream.AuthenticateAsClient("host.kpg", null, SslProtocols.Tls13, false);
                 }
-            }
-            catch (Exception)
-            {
-            }
+            });
 
             server.Join(10000);
             listener.Stop();

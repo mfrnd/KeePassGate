@@ -333,11 +333,14 @@ namespace KeePassGate.Tests
             // neither of these and cannot be erased at all, which is why the section says
             // dereferenced rather than zeroed and why this test does not claim otherwise.
             Write();
-            var reading = _store.Read();
-            Assume.That(reading.Material.HostPkcs12.Any(b => b != 0), Is.True);
-            Assume.That(reading.Material.SniKey.Any(b => b != 0), Is.True);
 
-            reading.Dispose();
+            // Declared outside the `using`, because what is asserted is what it leaves behind.
+            var reading = _store.Read();
+            using (reading)
+            {
+                Assume.That(reading.Material.HostPkcs12.Any(b => b != 0), Is.True);
+                Assume.That(reading.Material.SniKey.Any(b => b != 0), Is.True);
+            }
 
             Assert.That(reading.Material.SniKey.Any(b => b != 0), Is.False);
             Assert.That(reading.Material.HostPkcs12.Any(b => b != 0), Is.False);

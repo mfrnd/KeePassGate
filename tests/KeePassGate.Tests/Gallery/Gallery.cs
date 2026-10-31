@@ -2,8 +2,9 @@ using System;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
-using System.Runtime.InteropServices;
 using System.Windows.Forms;
+using KeePassGate.Diagnostics;
+using KeePassGate.Testing;
 using NUnit.Framework;
 
 namespace KeePassGate.Tests.Gallery
@@ -212,7 +213,7 @@ namespace KeePassGate.Tests.Gallery
 
                 try
                 {
-                    printed = PrintWindow(window.Handle, hdc, PrintWholeWindow);
+                    printed = User32.PrintWindow(window.Handle, hdc, PrintWholeWindow);
                 }
                 finally
                 {
@@ -247,13 +248,9 @@ namespace KeePassGate.Tests.Gallery
         /// </remarks>
         private const uint PrintWholeWindow = 0;
 
-        [DllImport("user32.dll", SetLastError = true)]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        private static extern bool PrintWindow(IntPtr window, IntPtr canvas, uint flags);
-
         private static void Write(Bitmap bitmap, string name)
         {
-            var path = Path.Combine(Directory, name + ".png");
+            var path = Paths.Join(Directory, name + ".png");
             bitmap.Save(path, ImageFormat.Png);
             TestContext.Out.WriteLine("gallery: " + path);
         }
@@ -303,7 +300,7 @@ namespace KeePassGate.Tests.Gallery
         private static string Prepare()
         {
             var chosen = Environment.GetEnvironmentVariable("KPG_GALLERY_DIR");
-            var where = string.IsNullOrEmpty(chosen) ? Path.Combine(Root(), ".gallery") : chosen;
+            var where = string.IsNullOrEmpty(chosen) ? Paths.Join(Root(), ".gallery") : chosen;
 
             if (System.IO.Directory.Exists(where))
             {
@@ -333,7 +330,7 @@ namespace KeePassGate.Tests.Gallery
 
             while (at != null)
             {
-                if (File.Exists(Path.Combine(at.FullName, "KeePassGate.sln")))
+                if (File.Exists(Paths.Join(at.FullName, "KeePassGate.sln")))
                 {
                     return at.FullName;
                 }

@@ -1220,8 +1220,8 @@ namespace KeePassGate.Tests
                 var label = table.GetControlFromPosition(0, row) as Label;
                 if (label != null && label.Text == name)
                 {
-                    var value = table.GetControlFromPosition(1, row) as Label;
-                    Assert.That(value, Is.Not.Null, "the row for " + name + " has no value");
+                    var value = table.GetControlFromPosition(1, row) as Label
+                        ?? throw new InvalidOperationException("the row for " + name + " has no value");
                     return value.Text;
                 }
             }

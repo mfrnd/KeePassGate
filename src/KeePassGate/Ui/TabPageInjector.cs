@@ -13,8 +13,8 @@ namespace KeePassGate.Ui
     /// Two properties matter more than the mechanics. It is idempotent, because a dialog can be
     /// announced more than once and a second KPG tab would be a defect a user sees. And it is
     /// total: every failure is logged and reported, never thrown, because this runs on the UI
-    /// thread while a KeePass dialog is being constructed, and an exception there takes the
-    /// password manager with it.
+    /// thread while a KeePass dialog is being constructed, and an exception there would stop that
+    /// dialog part way and put WinForms' own error dialog over KeePass.
     /// </remarks>
     public sealed class TabPageInjector : IFormDecorator
     {
@@ -38,6 +38,7 @@ namespace KeePassGate.Ui
         {
         }
 
+        /// <summary>The same, for a page captioned and named by the caller.</summary>
         /// <param name="pageText">
         /// The caption on the tab strip, which is `GateName.OnATab` for both of the pages this
         /// plugin builds. A parameter rather than a constant so that the two pages are built by one
@@ -50,6 +51,7 @@ namespace KeePassGate.Ui
         {
         }
 
+        /// <summary>The same, with the plugin's icon on the tab beside its caption.</summary>
         /// <param name="icon">
         /// Asked for a fresh picture to put on the tab, or null for none. A function rather than an
         /// image because the icons belong to KeePass's main window, which exists only inside a
@@ -218,16 +220,12 @@ namespace KeePassGate.Ui
 
         private static void RemovePage(TabControl tabControl, TabPage page)
         {
-            try
+            using (page)
             {
                 if (tabControl != null && tabControl.TabPages.Contains(page))
                 {
                     tabControl.TabPages.Remove(page);
                 }
-            }
-            finally
-            {
-                page.Dispose();
             }
         }
 

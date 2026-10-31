@@ -67,9 +67,9 @@ namespace KeePassGate.Ui
 
             try
             {
-                foreach (var node in _database.Nodes.All())
+                foreach (var stored in _database.Nodes.All().Select(
+                    node => node == null ? null : node.Read()))
                 {
-                    var stored = node == null ? null : node.Read();
                     if (string.IsNullOrEmpty(stored))
                     {
                         continue;
@@ -270,16 +270,15 @@ namespace KeePassGate.Ui
             try
             {
                 var now = DateTimeOffset.UtcNow;
-                foreach (var record in new AdmissionStore(_database.PluginCustomData, _log).All().Records)
+
+                // Not one whose certificate has expired, which regains nothing and goes with the
+                // plugin's next write.
+                foreach (var record in new AdmissionStore(_database.PluginCustomData, _log).All().Records
+                             .Where(record => record != null && record.Profiles != null
+                                              && record.Profiles.Contains(name, StringComparer.Ordinal)
+                                              && !record.HasExpired(now)))
                 {
-                    // Not one whose certificate has expired, which regains nothing and goes with
-                    // the plugin's next write.
-                    if (record != null && record.Profiles != null
-                        && record.Profiles.Contains(name, StringComparer.Ordinal)
-                        && !record.HasExpired(now))
-                    {
-                        found.Add(record);
-                    }
+                    found.Add(record);
                 }
             }
             catch (Exception error) when (Expected.OfCustomData(error))

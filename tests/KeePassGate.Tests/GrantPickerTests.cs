@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
-using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows.Forms;
 using KeePassGate.Acl;
@@ -562,7 +561,7 @@ namespace KeePassGate.Tests
                 Assert.That(grid.Rows[grid.Rows.Count - 1].Displayed, Is.False,
                     "the window is not short enough for this to be about anything");
 
-                PostMessage(grid.Handle, WheelMessage, (IntPtr)(-120 << 16), IntPtr.Zero);
+                User32.PostMessage(grid.Handle, WheelMessage, (IntPtr)(-120 << 16), IntPtr.Zero);
                 OffScreenForm.Pump();
 
                 Assert.That(grid.FirstDisplayedScrollingRowIndex, Is.GreaterThan(0),
@@ -749,18 +748,14 @@ namespace KeePassGate.Tests
         /// </remarks>
         private static void PressKey(Control control, Keys key)
         {
-            PostMessage(control.Handle, KeyDownMessage, (IntPtr)(int)key, IntPtr.Zero);
-            PostMessage(control.Handle, KeyUpMessage, (IntPtr)(int)key, IntPtr.Zero);
+            User32.PostMessage(control.Handle, KeyDownMessage, (IntPtr)(int)key, IntPtr.Zero);
+            User32.PostMessage(control.Handle, KeyUpMessage, (IntPtr)(int)key, IntPtr.Zero);
             OffScreenForm.Pump();
         }
 
         private const int KeyDownMessage = 0x0100;
         private const int KeyUpMessage = 0x0101;
         private const int WheelMessage = 0x020A;
-
-        [DllImport("user32.dll", SetLastError = true)]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        private static extern bool PostMessage(IntPtr window, int message, IntPtr key, IntPtr detail);
 
         private static void Using(Action<Form, GrantPanel, DataGridView> work)
         {
@@ -809,6 +804,7 @@ namespace KeePassGate.Tests
             Using(Rules.Numbered(MoreRulesThanFit, "RL"), null, TooShortForEveryRow, work);
         }
 
+        /// <summary>The same, at a size of the test's choosing.</summary>
         /// <param name="size">
         /// How big the window is, or an empty size for the ordinary one. A short window is the only
         /// way a row comes to be off the bottom of the table, and every other test here wants the

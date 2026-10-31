@@ -162,6 +162,7 @@ namespace KeePassGate.Audit
                 {
                     line = entry.Line();
                 }
+                // codeql[cs/catch-of-all-exceptions] the audit line, which may not fail the request it records
                 catch (Exception error)
                 {
                     // Deliberately everything, and for the reason the log gives about its own

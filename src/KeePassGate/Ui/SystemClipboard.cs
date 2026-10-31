@@ -37,6 +37,7 @@ namespace KeePassGate.Ui
         {
         }
 
+        /// <summary>Puts what <see cref="Excluded"/> makes of the text on the clipboard.</summary>
         /// <remarks>
         /// `SetDataObject` rather than `SetText`, for the two arguments it takes. `copy: true`
         /// renders the text onto the clipboard now instead of leaving a promise to produce it when

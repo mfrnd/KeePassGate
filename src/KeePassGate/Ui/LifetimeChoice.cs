@@ -44,6 +44,7 @@ namespace KeePassGate.Ui
         private readonly IReadOnlyList<TimeSpan> _offered;
         private readonly ComboBox _box;
 
+        /// <summary>The row, offering the presets and what the client asked for among them.</summary>
         /// <param name="asked">What the client asked for, or null for nothing.</param>
         /// <param name="font">The dialog's own, which every width here is measured in.</param>
         public LifetimeChoice(TimeSpan? asked, Font font)

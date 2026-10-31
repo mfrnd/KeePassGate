@@ -1,0 +1,21 @@
+# What CodeQL runs on this repository; `codeql.yml` decides where and when.
+#
+# **The `security-and-quality` queries**, the security ones and the reliability and maintainability
+# ones beside them, and the alert-suppression query of each language that has one, which is what
+# marks a finding a `codeql[...]` comment suppresses. GitHub Actions has none, so a finding in a
+# workflow can only be fixed.
+#
+# **No rule is left out.** Every finding is answered where it is found: fixed, or suppressed in the
+# code with the reason, as `CLAUDE.md` describes under Conventions. A rule turned off here would
+# answer for every finding it could ever make, in code nobody has read yet.
+
+name: KeePassGate
+
+queries:
+  - uses: security-and-quality
+
+packs:
+  csharp:
+    - codeql/csharp-queries:AlertSuppression.ql
+  python:
+    - codeql/python-queries:AlertSuppression.ql

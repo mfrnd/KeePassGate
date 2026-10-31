@@ -6,6 +6,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Windows.Forms;
+using KeePassGate.Testing;
 using KeePassGate.Ui;
 using NUnit.Framework;
 
@@ -162,13 +163,13 @@ namespace KeePassGate.Tests
                 .GetProperty("Handle", BindingFlags.Instance | BindingFlags.NonPublic)
                 .GetValue(tips, null);
 
-            Assert.That((int)SendMessage(handle, GetToolCount, IntPtr.Zero, IntPtr.Zero), Is.EqualTo(1));
+            Assert.That((int)User32.SendMessage(handle, GetToolCount, IntPtr.Zero, IntPtr.Zero), Is.EqualTo(1));
 
             var text = Marshal.AllocHGlobal(8192);
             try
             {
-                var tool = new ToolInfo { Size = Marshal.SizeOf<ToolInfo>(), Text = text };
-                Assert.That(SendMessage(handle, EnumerateTools, IntPtr.Zero, ref tool), Is.Not.EqualTo(IntPtr.Zero));
+                var tool = new User32.ToolInfo { Size = Marshal.SizeOf<User32.ToolInfo>(), Text = text };
+                Assert.That(User32.SendMessage(handle, EnumerateTools, IntPtr.Zero, ref tool), Is.Not.EqualTo(IntPtr.Zero));
 
                 return (tool.Flags & RightToLeftReadingFlag) != 0;
             }
@@ -181,27 +182,5 @@ namespace KeePassGate.Tests
         private const int GetToolCount = 0x0400 + 13;
         private const int EnumerateTools = 0x0400 + 58;
         private const int RightToLeftReadingFlag = 0x0004;
-
-        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
-        private struct ToolInfo
-        {
-            public int Size;
-            public int Flags;
-            public IntPtr Window;
-            public IntPtr Id;
-            public int Left;
-            public int Top;
-            public int Right;
-            public int Bottom;
-            public IntPtr Instance;
-            public IntPtr Text;
-            public IntPtr Parameter;
-        }
-
-        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
-        private static extern IntPtr SendMessage(IntPtr window, int message, IntPtr index, ref ToolInfo tool);
-
-        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
-        private static extern IntPtr SendMessage(IntPtr window, int message, IntPtr first, IntPtr second);
     }
 }

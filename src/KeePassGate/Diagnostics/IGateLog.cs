@@ -22,7 +22,7 @@ namespace KeePassGate.Diagnostics
         void Error(string message, Exception error);
 
         /// <summary>
-        /// Something nobody predicted, caught only because letting it escape would end KeePass.
+        /// Something nobody predicted, caught only where letting it escape would do KeePass harm.
         /// </summary>
         /// <remarks>
         /// Its own level rather than another error, because these are the only lines in the log

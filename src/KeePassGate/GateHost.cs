@@ -204,10 +204,13 @@ namespace KeePassGate
                     }
                 }
             }
+            // codeql[cs/catch-of-all-exceptions] a handler of KeePass's own events, one of the four catch-alls
             catch (Exception error)
             {
-                // One of the catch-alls: KeePass calls this from its own window event, on
-                // its own thread, and an exception that escapes ends the password manager.
+                // One of the catch-alls: KeePass raises its window events on its own thread, from
+                // inside a dialog that is loading or closing, with nothing around them. An
+                // exception that escapes stops that dialog's own code part way and then reaches
+                // WinForms, which puts its own error dialog over KeePass, offering to quit.
                 _incidents.Record(
                     opening ? "failed to handle an opening window" : "failed to handle a closing window", error);
             }

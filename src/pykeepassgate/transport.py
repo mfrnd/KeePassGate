@@ -288,6 +288,25 @@ def create_connection(host: str, port: int, timeout: float) -> socket.socket:
     return socket.create_connection((host, port), timeout=timeout)
 
 
+def pinned_context(context: ssl.SSLContext) -> ssl.SSLContext:
+    """Refuse a context offering anything but TLS 1.3, and hand back one that offers only that.
+
+    Every context this client makes is pinned so already. This is what keeps one made some other way
+    from reaching the socket, where it would offer a version the gate never speaks to whatever
+    answers on the port.
+    """
+    if (
+        context.minimum_version != ssl.TLSVersion.TLSv1_3
+        or context.maximum_version != ssl.TLSVersion.TLSv1_3
+    ):
+        raise ValueError(
+            "context offers TLS 1.3 alone, as the gate speaks no other version, and this "
+            f"one offers {context.minimum_version.name} to {context.maximum_version.name}"
+        )
+
+    return context
+
+
 def dial_limit(dial: Dial) -> Dial:
     """Refuse a `dial` that could not be called, where it is given, and hand back one that could."""
     if not callable(dial):
@@ -533,8 +552,7 @@ def unpaired_context() -> ssl.SSLContext:
     context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
     context.check_hostname = False
     context.verify_mode = ssl.CERT_NONE
-    _pin_to_tls13(context)
-    return context
+    return _pin_to_tls13(context)
 
 
 def paired_context(
@@ -605,8 +623,7 @@ def paired_context(
             f"{identity} will not load as this client's certificate and key: {error}"
         ) from error
 
-    _pin_to_tls13(context)
-    return context
+    return _pin_to_tls13(context)
 
 
 class Connection:
@@ -748,6 +765,7 @@ def connect(
     port_number(port)
     connection_limit(connection_timeout)
     dial_limit(dial)
+    pinned_context(context)
 
     try:
         # Read as anything at all, because a caller's `dial` can hand back anything at all.
@@ -832,15 +850,21 @@ def _responder(der: bytes) -> bool:
     return RESPONDER_CLAIM in names.value.get_values_for_type(x509.UniformResourceIdentifier)
 
 
-def _pin_to_tls13(context: ssl.SSLContext) -> None:
+def _pin_to_tls13(context: ssl.SSLContext) -> ssl.SSLContext:
     """Nothing older is offered, so nothing older can be negotiated.
 
     The gate serves TLS 1.3 only. Pinning both ends of the range rather than the minimum means a
     downgrade is a failed handshake here rather than a connection this client did not intend to
     make.
+
+    **The context pinned is handed back**, and each factory returns it from here, which is what
+    puts the pin where CodeQL follows a context from where it is made to the handshake. Set on a
+    parameter and handed back by nothing, the pin was out of its sight, and it reported the
+    handshake as one that may allow TLS 1.0 and 1.1.
     """
     context.minimum_version = ssl.TLSVersion.TLSv1_3
     context.maximum_version = ssl.TLSVersion.TLSv1_3
+    return context
 
 
 def _check(method: str, path: str) -> None:

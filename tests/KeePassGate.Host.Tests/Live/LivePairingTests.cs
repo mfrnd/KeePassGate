@@ -269,14 +269,7 @@ namespace KeePassGate.Host.Tests.Live
             // for a dialog and then blamed the dialog.
             var asking = new Thread(() =>
             {
-                try
-                {
-                    reply = client.Request(name, profiles);
-                }
-                catch (Exception error)
-                {
-                    failed = error;
-                }
+                failed = Thrown.By(() => reply = client.Request(name, profiles));
             }) { IsBackground = true };
             asking.Start();
 

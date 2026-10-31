@@ -233,8 +233,9 @@ namespace KeePassGate.Diagnostics
         /// and another program can be holding it, which is why `SetDataObject` takes a retry count
         /// and still gives up eventually. `ThreadStateException` would mean this ran off a
         /// single-threaded apartment, which is a defect here rather than bad luck, but it is a
-        /// defect that must not take KeePass down with it. Note that `Win32Exception` derives from
-        /// `ExternalException` and is therefore already covered.
+        /// defect that must not reach the message loop, where WinForms answers it with its own
+        /// error dialog over KeePass. Note that `Win32Exception` derives from `ExternalException`
+        /// and is therefore already covered.
         ///
         /// **`ArgumentException` is deliberately not here.** The only way `SetDataObject` raises one
         /// is being handed nothing to put on the clipboard, which is this plugin's own defect rather

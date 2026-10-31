@@ -111,7 +111,7 @@ namespace KeePassGate.Authority
                     "A renewal refused in this session is held in memory and never written to a database.");
             }
 
-            return IsForever ? ForeverValue : Moments.Wire(_notBefore.Value);
+            return _notBefore.HasValue ? Moments.Wire(_notBefore.Value) : ForeverValue;
         }
 
         /// <summary>A stored value read back, or null when it is not one this plugin writes.</summary>

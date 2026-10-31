@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Windows.Forms;
 using KeePassGate.Audit;
 using KeePassGate.Authority;
@@ -225,13 +226,17 @@ namespace KeePassGate.Ui
                     session.Discard();
                     database.Discard();
                 }
+                // codeql[cs/catch-of-all-exceptions] the settings dialog's close, one of the four catch-alls
                 catch (Exception error)
                 {
-                    // A catch-all, because KeePass raises `FormClosed` itself and anything escaping
-                    // here ends the password manager. A narrow filter left every unpredicted type
-                    // to do just that: a null reference, or a `TypeLoadException` after a KeePass
-                    // upgrade. Counted as an incident, like every handler of KeePass's events that
-                    // catches everything, so the Tools window shows it and the log has it whole.
+                    // A catch-all, because `FormClosed` is raised on KeePass's own thread as its
+                    // settings dialog closes, with nothing of KeePass's around it. WinForms catches
+                    // what escapes there, sets the dialog's result back to none, so that the dialog
+                    // stays open, and puts its own error dialog over it, offering to quit KeePass.
+                    // A narrow filter left every unpredicted type to do just that: a null
+                    // reference, or a `TypeLoadException` after a KeePass upgrade. Counted as an
+                    // incident, like every handler of KeePass's events that catches everything, so
+                    // the Tools window shows it and the log has it whole.
                     _incidents.Record(
                         "what the " + GateName.Product + " tab was holding could not be written", error);
                 }
@@ -273,12 +278,9 @@ namespace KeePassGate.Ui
         private void Revoked(PendingDatabase database, IDictionary<string, string> clients)
         {
             var revoked = new List<string>();
-            foreach (var key in database.Stored)
+            foreach (var key in database.Stored.Where(AuthorityKeys.IsRevocation))
             {
-                if (AuthorityKeys.IsRevocation(key))
-                {
-                    revoked.Add(AuthorityKeys.AdmissionKeyInRevocation(key));
-                }
+                revoked.Add(AuthorityKeys.AdmissionKeyInRevocation(key));
             }
 
             if (revoked.Count == 0)

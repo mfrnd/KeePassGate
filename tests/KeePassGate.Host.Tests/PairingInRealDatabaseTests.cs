@@ -1105,6 +1105,7 @@ namespace KeePassGate.Host.Tests
             // line called it damage.
             _database.Save();
             _database.Database.Modified = false;
+            // codeql[cs/missed-using-statement] opened in the save's callback and kept open for the assertions after it
             System.IO.FileStream held = null;
 
             var writer = new DatabaseWriter(
@@ -1252,13 +1253,9 @@ namespace KeePassGate.Host.Tests
         private static string Texts(System.Windows.Forms.Control form)
         {
             var text = new System.Text.StringBuilder();
-            foreach (var control in ControlTree.Descendants(form))
+            foreach (var label in ControlTree.Descendants(form).OfType<System.Windows.Forms.Label>())
             {
-                var label = control as System.Windows.Forms.Label;
-                if (label != null)
-                {
-                    text.AppendLine(label.Text);
-                }
+                text.AppendLine(label.Text);
             }
 
             return text.ToString();

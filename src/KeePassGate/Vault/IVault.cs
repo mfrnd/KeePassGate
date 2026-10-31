@@ -147,12 +147,14 @@ namespace KeePassGate.Vault
         /// </remarks>
         string WriteBlocked { get; }
 
+        /// <summary>Puts a new group inside another, answering with its identifier.</summary>
         /// <param name="name">
         /// Not empty. The routing table's lengths keep an empty one from every client, and a vault
         /// answers one as a failure on this side rather than make a group nobody can name.
         /// </param>
         VaultWrite CreateGroup(string parentUuid, string name, string notes);
 
+        /// <summary>Renames a group or changes its notes, leaving whichever is null as it is.</summary>
         /// <param name="tagging">
         /// Whether the change is made only while the group still holds what `If-Match` named, and
         /// whether its answer carries the tag it leaves. Every change taking one asks the
@@ -175,6 +177,10 @@ namespace KeePassGate.Vault
         /// </remarks>
         VaultWrite DeleteGroup(string uuid, VaultTagging tagging);
 
+        /// <summary>
+        /// Puts a new entry in a group, holding the five standard fields whether or not they are
+        /// named.
+        /// </summary>
         /// <param name="expiry">
         /// When the new entry expires, or null, as <see cref="VaultExpiry.Never"/>, for an entry
         /// that does not expire.
@@ -182,6 +188,9 @@ namespace KeePassGate.Vault
         VaultWrite CreateEntry(
             string groupUuid, IReadOnlyDictionary<string, string> fields, VaultExpiry expiry = null);
 
+        /// <summary>
+        /// Sets the strings named on an entry, and one it already holds keeps the protection it had.
+        /// </summary>
         /// <param name="expiry">
         /// When the entry expires from now on, or null to leave its expiry as it is.
         /// <see cref="VaultExpiry.Auto"/> is a create's, and a vault given it here answers a failure
@@ -194,6 +203,7 @@ namespace KeePassGate.Vault
             VaultTagging tagging,
             VaultExpiry expiry = null);
 
+        /// <summary>Removes an entry, to the recycle bin when the database keeps one.</summary>
         /// <param name="tagging">As <see cref="DeleteGroup"/> takes it, about the entry.</param>
         VaultWrite DeleteEntry(string uuid, VaultTagging tagging);
 
@@ -211,6 +221,7 @@ namespace KeePassGate.Vault
 
         VaultWrite DeleteField(string entryUuid, string name, VaultTagging tagging);
 
+        /// <summary>Adds an attachment that is not there, and refuses one that is.</summary>
         /// <param name="name">Not empty, for the reason <see cref="CreateGroup"/> gives.</param>
         VaultWrite CreateAttachment(string entryUuid, string name, byte[] content, VaultTagging tagging);
 

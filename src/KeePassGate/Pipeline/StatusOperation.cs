@@ -29,6 +29,7 @@ namespace KeePassGate.Pipeline
         private readonly string _version;
         private readonly string _revision;
 
+        /// <summary>Naming the build in every answer, by its version and by its revision.</summary>
         /// <param name="revision">The commit the build was made from, or empty for none.</param>
         public StatusOperation(string version, string revision)
         {

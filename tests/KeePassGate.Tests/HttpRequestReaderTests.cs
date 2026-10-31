@@ -85,12 +85,14 @@ namespace KeePassGate.Tests
             var all = new byte[Encoding.ASCII.GetByteCount(request) + bytes.Length];
             Buffer.BlockCopy(Encoding.ASCII.GetBytes(request), 0, all, 0, Encoding.ASCII.GetByteCount(request));
             Buffer.BlockCopy(bytes, 0, all, Encoding.ASCII.GetByteCount(request), bytes.Length);
-            var stream = new MemoryStream(all);
-            var head = HttpRequestReader.ReadHead(stream, _options);
+            using (var stream = new MemoryStream(all))
+            {
+                var head = HttpRequestReader.ReadHead(stream, _options);
 
-            string refusal;
-            Assert.That(HttpRequestReader.ReadBody(stream, head.Head, out refusal), Is.EqualTo(body));
-            Assert.That(refusal, Is.Null);
+                string refusal;
+                Assert.That(HttpRequestReader.ReadBody(stream, head.Head, out refusal), Is.EqualTo(body));
+                Assert.That(refusal, Is.Null);
+            }
         }
 
         [Test]
@@ -108,12 +110,14 @@ namespace KeePassGate.Tests
             all[all.Length - 2] = 0xC3;
             all[all.Length - 1] = 0x28;
 
-            var stream = new MemoryStream(all);
-            var head = HttpRequestReader.ReadHead(stream, _options);
+            using (var stream = new MemoryStream(all))
+            {
+                var head = HttpRequestReader.ReadHead(stream, _options);
 
-            string refusal;
-            Assert.That(HttpRequestReader.ReadBody(stream, head.Head, out refusal), Is.Null);
-            Assert.That(refusal, Is.EqualTo(HttpRequestReader.NotUtf8));
+                string refusal;
+                Assert.That(HttpRequestReader.ReadBody(stream, head.Head, out refusal), Is.Null);
+                Assert.That(refusal, Is.EqualTo(HttpRequestReader.NotUtf8));
+            }
         }
 
         [Test]
@@ -275,10 +279,14 @@ namespace KeePassGate.Tests
             request.Add(0x80);
             request.AddRange(Encoding.ASCII.GetBytes("xy HTTP/1.1\r\n\r\n"));
 
-            var result = HttpRequestReader.ReadHead(new MemoryStream(request.ToArray()), _options);
+            using (var stream = new MemoryStream(request.ToArray()))
+            {
+                var result = HttpRequestReader.ReadHead(stream, _options);
 
-            Assert.That(result.Ok, Is.False, "was read as " + (result.Head == null ? "nothing" : result.Head.Path));
-            Assert.That(result.Status, Is.EqualTo(400));
+                Assert.That(result.Ok, Is.False,
+                    "was read as " + (result.Head == null ? "nothing" : result.Head.Path));
+                Assert.That(result.Status, Is.EqualTo(400));
+            }
         }
 
         [Test]
@@ -405,10 +413,13 @@ namespace KeePassGate.Tests
         [Test]
         public void A_connection_that_says_nothing_is_answered_with_nothing()
         {
-            var result = HttpRequestReader.ReadHead(new MemoryStream(Array.Empty<byte>()), _options);
+            using (var stream = new MemoryStream(Array.Empty<byte>()))
+            {
+                var result = HttpRequestReader.ReadHead(stream, _options);
 
-            Assert.That(result.Ok, Is.False);
-            Assert.That(result.Silent, Is.True, "there is nobody to answer");
+                Assert.That(result.Ok, Is.False);
+                Assert.That(result.Silent, Is.True, "there is nobody to answer");
+            }
         }
 
         [Test]

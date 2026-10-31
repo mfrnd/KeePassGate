@@ -1,6 +1,7 @@
 using System;
 using System.CodeDom.Compiler;
 using System.IO;
+using KeePassGate.Diagnostics;
 using KeePassGate.Host.Tests.Live;
 using Microsoft.CSharp;
 using NUnit.Framework;
@@ -56,13 +57,13 @@ namespace KeePassGate.Host.Tests
         /// </summary>
         private static bool MatchesAt(Version version, out string reason)
         {
-            var directory = Path.Combine(Path.GetTempPath(), "kpg-release-" + Guid.NewGuid().ToString("N"));
+            var directory = Paths.Join(Path.GetTempPath(), "kpg-release-" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(directory);
             var was = Environment.GetEnvironmentVariable(KeePassDev.DirectoryVariable);
 
             try
             {
-                Compile(Path.Combine(directory, "KeePass.exe"), version);
+                Compile(Paths.Join(directory, "KeePass.exe"), version);
                 Environment.SetEnvironmentVariable(KeePassDev.DirectoryVariable, directory);
 
                 return KeePassDev.MatchesTheAssemblyUnderTest(out reason);

@@ -1,8 +1,8 @@
 using System;
-using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows.Forms;
 using KeePassGate.Pairing;
+using KeePassGate.Testing;
 using KeePassGate.Ui;
 using NUnit.Framework;
 
@@ -49,7 +49,7 @@ namespace KeePassGate.Tests
                 var handle = dialog.Handle;
 
                 uint read;
-                Assert.That(GetWindowDisplayAffinity(handle, out read), Is.True);
+                Assert.That(User32.GetWindowDisplayAffinity(handle, out read), Is.True);
                 Assert.That(read, Is.EqualTo(affinity));
             }
         }
@@ -64,7 +64,7 @@ namespace KeePassGate.Tests
                 window.CreateControl();
 
                 uint read;
-                Assert.That(GetWindowDisplayAffinity(window.Handle, out read), Is.True);
+                Assert.That(User32.GetWindowDisplayAffinity(window.Handle, out read), Is.True);
                 Assert.That(read, Is.EqualTo(MonitorOnly));
             }
         }
@@ -86,9 +86,5 @@ namespace KeePassGate.Tests
                 get { return null; }
             }
         }
-
-        [DllImport("user32.dll")]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        private static extern bool GetWindowDisplayAffinity(IntPtr window, out uint affinity);
     }
 }

@@ -32,8 +32,8 @@ namespace KeePassGate.Tests.Fakes
         /// <remarks>
         /// Several passes rather than one, because the panel defers its own teardown with
         /// `BeginInvoke` and that work can post more of its own: disposing a dropdown inside the
-        /// handler that closed it is what takes KeePass down, so it is deliberately not done in one
-        /// go and cannot be waited for in one either.
+        /// handler that closed it throws into the message loop, and KeePass answers by closing the
+        /// dialog, so it is deliberately not done in one go and cannot be waited for in one either.
         /// </remarks>
         public static void Pump()
         {

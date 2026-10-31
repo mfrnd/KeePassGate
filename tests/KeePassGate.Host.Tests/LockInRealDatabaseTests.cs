@@ -358,9 +358,7 @@ namespace KeePassGate.Host.Tests
                     _database.Database.IOConnectionInfo.Path = "C:\\invented\\Ideas.kdbx";
                     other.Database.IOConnectionInfo.Path = "C:\\invented\\ideas.kdbx";
                     var open = new List<PwDatabase> { _database.Database, other.Database };
-                    var targets = new OpenDatabaseTargets(delegate { return open; }, _log);
-
-                    try
+                    using (var targets = new OpenDatabaseTargets(delegate { return open; }, _log))
                     {
                         Assume.That(targets.Current().Count, Is.EqualTo(2));
 
@@ -372,10 +370,6 @@ namespace KeePassGate.Host.Tests
                         var answering = targets.Current().Where(target => target.IsLocked).ToList();
                         Assert.That(answering, Has.Count.EqualTo(1), "and the lock of the first still answers");
                         Assert.That(answering[0].DatabaseId, Is.EqualTo(locked));
-                    }
-                    finally
-                    {
-                        targets.Dispose();
                     }
                 }
             }
@@ -392,7 +386,7 @@ namespace KeePassGate.Host.Tests
             // save. With no connection between it and the lock, the entry still carried the old
             // path, the lock matched nothing and the locked database answered nothing at all.
             var databaseId = _targets.Current().Single().DatabaseId;
-            var moved = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(_database.Path), "moved.kdbx");
+            var moved = Paths.Join(System.IO.Path.GetDirectoryName(_database.Path), "moved.kdbx");
             _database.Database.SaveAs(IOConnectionInfo.FromPath(moved), true, null);
 
             _targets.Refresh();
@@ -412,7 +406,7 @@ namespace KeePassGate.Host.Tests
             // The close names the new path. Matched against the old one it dropped nothing, and the
             // next connection parked a responder and a gate key under the old path until exit.
             var original = _database.Path;
-            var moved = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(original), "moved.kdbx");
+            var moved = Paths.Join(System.IO.Path.GetDirectoryName(original), "moved.kdbx");
             _database.Database.SaveAs(IOConnectionInfo.FromPath(moved), true, null);
 
             _targets.Refresh();

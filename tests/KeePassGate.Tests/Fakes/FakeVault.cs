@@ -167,8 +167,8 @@ namespace KeePassGate.Tests.Fakes
         /// <summary>Writes a rule on a group or an entry, which is what a grant editor does.</summary>
         public FakeVault Granting(string uuid, string document)
         {
-            var node = NodeOf(uuid);
-            Assert(node != null, "there is nothing called " + uuid);
+            var node = NodeOf(uuid)
+                ?? throw new InvalidOperationException("there is nothing called " + uuid);
             node.Holding(document);
             return this;
         }
@@ -176,8 +176,8 @@ namespace KeePassGate.Tests.Fakes
         /// <summary>Adds a group, without going through the rules.</summary>
         public string Add(string parentUuid, string name)
         {
-            var parent = Find(parentUuid);
-            Assert(parent != null, "there is no group called " + parentUuid);
+            var parent = Find(parentUuid)
+                ?? throw new InvalidOperationException("there is no group called " + parentUuid);
 
             var group = new Node(Identifier(), name, string.Empty, parent.Uuid, parent.Rules.Child(name));
             _groups[group.Uuid] = group;
@@ -187,8 +187,8 @@ namespace KeePassGate.Tests.Fakes
         /// <summary>Adds an entry, without going through the rules.</summary>
         public string AddEntry(string groupUuid, string title)
         {
-            var group = Find(groupUuid);
-            Assert(group != null, "there is no group called " + groupUuid);
+            var group = Find(groupUuid)
+                ?? throw new InvalidOperationException("there is no group called " + groupUuid);
 
             var entry = new Held(Identifier(), group.Uuid, group.Rules.Child(title));
             entry.Fields["Title"] = title;
@@ -930,14 +930,6 @@ namespace KeePassGate.Tests.Fakes
             return _next.ToString("x32", System.Globalization.CultureInfo.InvariantCulture);
         }
 
-        private static void Assert(bool condition, string message)
-        {
-            if (!condition)
-            {
-                throw new InvalidOperationException(message);
-            }
-        }
-
         private sealed class Node
         {
             public Node(string uuid, string name, string notes, string parent, TestNode rules)
@@ -1010,6 +1002,7 @@ namespace KeePassGate.Tests.Fakes
             /// <summary>When it expires, or null when it does not, as the real vault describes one.</summary>
             public DateTimeOffset? Expires { get; set; }
 
+            /// <summary>The entry as the real vault describes one.</summary>
             /// <param name="holdsProtected">
             /// Whether any of its strings is protected, which a single lookup says and a listing
             /// leaves null, as in the real vault.
@@ -1041,9 +1034,8 @@ namespace KeePassGate.Tests.Fakes
             public static string Of(params string[] parts)
             {
                 var joined = new System.Text.StringBuilder();
-                foreach (var part in parts)
+                foreach (var text in parts.Select(part => part ?? string.Empty))
                 {
-                    var text = part ?? string.Empty;
                     joined.Append(text.Length).Append(':').Append(text);
                 }
 

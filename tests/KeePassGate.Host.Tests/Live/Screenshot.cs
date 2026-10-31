@@ -2,10 +2,11 @@ using System;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
-using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows.Automation;
 using System.Windows.Forms;
+using KeePassGate.Diagnostics;
+using KeePassGate.Testing;
 using NUnit.Framework;
 
 namespace KeePassGate.Host.Tests.Live
@@ -47,7 +48,7 @@ namespace KeePassGate.Host.Tests.Live
         private static readonly TimeSpan Repaint = TimeSpan.FromMilliseconds(250);
 
         /// <summary>`WM_CHANGEUISTATE`, which asks Windows to settle how a window indicates.</summary>
-        private const uint ChangeUiState = 0x0127;
+        private const int ChangeUiState = 0x0127;
 
         /// <summary>`UIS_SET`, meaning turn the named indicator off.</summary>
         private const int SetUiState = 1;
@@ -140,7 +141,7 @@ namespace KeePassGate.Host.Tests.Live
             AutomationElement parkFocusOn = null,
             ISteadyMoment moment = null)
         {
-            var path = Path.Combine(directory, name + ".png");
+            var path = Paths.Join(directory, name + ".png");
 
             Rectangle area;
             using (var picture = Take(window, name, parkFocusOn, moment, out area))
@@ -229,8 +230,6 @@ namespace KeePassGate.Host.Tests.Live
 
             using (var backdrop = new Backdrop(area))
             {
-                Bitmap overBlack = null;
-                Bitmap overWhite = null;
                 try
                 {
                     // Up and behind the window before the moment rather than inside it, so what has
@@ -242,28 +241,26 @@ namespace KeePassGate.Host.Tests.Live
                         moment.WaitForIt();
                     }
 
-                    overBlack = backdrop.Expose(handle, Color.Black, area);
-                    overWhite = backdrop.Expose(handle, Color.White, area);
-
-                    // The instant the second copy returns, before anything is taken down or solved:
-                    // what this reports on is the window those two exposures were of.
-                    if (moment != null)
+                    using (var overBlack = backdrop.Expose(handle, Color.Black, area))
+                    using (var overWhite = backdrop.Expose(handle, Color.White, area))
                     {
-                        moment.ConfirmItHeld();
+                        // The instant the second copy returns, before anything is taken down or solved:
+                        // what this reports on is the window those two exposures were of.
+                        if (moment != null)
+                        {
+                            moment.ConfirmItHeld();
+                        }
+
+                        var solved = Solve(overBlack, overWhite);
+
+                        // Last, and over as little as possible: two values that cannot be settled at
+                        // the source, covered where the controls holding them actually are.
+                        Redacted.Over(solved, area, window);
+                        return solved;
                     }
-
-                    var solved = Solve(overBlack, overWhite);
-
-                    // Last, and over as little as possible: two values that cannot be settled at
-                    // the source, covered where the controls holding them actually are.
-                    Redacted.Over(solved, area, window);
-                    return solved;
                 }
                 finally
                 {
-                    if (overBlack != null) { overBlack.Dispose(); }
-                    if (overWhite != null) { overWhite.Dispose(); }
-
                     // Put back before anything else looks: the flow reads the invitation out of the
                     // box it was just captured in, and pairs with it.
                     Steadied.Restore(steadied);
@@ -295,7 +292,7 @@ namespace KeePassGate.Host.Tests.Live
             }
 
             var wanted = new IntPtr((KeyboardCues << 16) | SetUiState);
-            SendMessage(handle, ChangeUiState, wanted, IntPtr.Zero);
+            User32.SendMessage(handle, ChangeUiState, wanted, IntPtr.Zero);
         }
 
         /// <summary>
@@ -400,15 +397,6 @@ namespace KeePassGate.Host.Tests.Live
             return value;
         }
 
-        [DllImport("user32.dll", SetLastError = true)]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        private static extern bool SetWindowPos(
-            IntPtr window, IntPtr after, int x, int y, int width, int height, uint flags);
-
-        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
-        private static extern IntPtr SendMessage(
-            IntPtr window, uint message, IntPtr wide, IntPtr low);
-
         /// <summary>
         /// A sheet of one color, put directly behind the window being captured.
         /// </summary>
@@ -470,7 +458,7 @@ namespace KeePassGate.Host.Tests.Live
                     Show();
                 }
 
-                SetWindowPos(Handle, window, 0, 0, 0, 0, NoMove | NoSize | NoActivate);
+                User32.SetWindowPos(Handle, window, 0, 0, 0, 0, NoMove | NoSize | NoActivate);
                 Refresh();
                 Application.DoEvents();
                 Thread.Sleep(Repaint);
@@ -483,7 +471,7 @@ namespace KeePassGate.Host.Tests.Live
 
                 // Behind it again, which costs almost nothing. Nothing should have come between the
                 // two of them, and a picture of whatever did would be worth less than this call.
-                SetWindowPos(Handle, window, 0, 0, 0, 0, NoMove | NoSize | NoActivate);
+                User32.SetWindowPos(Handle, window, 0, 0, 0, 0, NoMove | NoSize | NoActivate);
 
                 Refresh();
                 Application.DoEvents();

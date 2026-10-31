@@ -528,6 +528,7 @@ namespace KeePassGate.Ui
 
                 // Asked again, because the countdown can run out while the question is open and
                 // has already answered for an operator who was still choosing.
+                // codeql[cs/constant-condition] the countdown can decide while the question's modal loop runs
                 if (answer != DialogResult.OK || _decided)
                 {
                     return;

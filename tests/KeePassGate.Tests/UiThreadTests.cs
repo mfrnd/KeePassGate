@@ -1,6 +1,7 @@
 using System;
 using System.Threading;
 using System.Windows.Forms;
+using KeePassGate.Testing;
 using KeePassGate.Tests.Fakes;
 using KeePassGate.Ui;
 using NUnit.Framework;
@@ -121,15 +122,11 @@ namespace KeePassGate.Tests
 
                 var caller = new Thread(() =>
                 {
-                    try
+                    caught = Thrown.By(() =>
                     {
                         ui.Run(() => throw thrown, Patience);
                         Volatile.Write(ref answered, true);
-                    }
-                    catch (Exception error)
-                    {
-                        caught = error;
-                    }
+                    });
                 });
 
                 caller.IsBackground = true;
@@ -161,7 +158,7 @@ namespace KeePassGate.Tests
 
                 var caller = new Thread(() =>
                 {
-                    try
+                    caught = Thrown.By(() =>
                     {
                         // Long enough to be under way when the timeout expires, which is the path
                         // that cannot be withdrawn and is waited for instead. The timeout is a
@@ -174,11 +171,7 @@ namespace KeePassGate.Tests
                                 throw thrown;
                             },
                             TimeSpan.FromSeconds(1));
-                    }
-                    catch (Exception error)
-                    {
-                        caught = error;
-                    }
+                    });
                 });
 
                 caller.IsBackground = true;

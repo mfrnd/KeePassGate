@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using KeePassGate.Authority;
 using KeePassGate.Transport;
 using Newtonsoft.Json;
@@ -127,23 +128,24 @@ namespace KeePassGate.Acl
             // Written by `Json.NET`, the same one that reads it back. A profile name is a
             // string somebody typed into a dialog, and it travels into a certificate claim from
             // here, so nothing about what it looks like escaped is decided twice.
-            var text = new StringWriter(CultureInfo.InvariantCulture);
-            var json = new JsonTextWriter(text) { Formatting = Formatting.None };
-
-            json.WriteStartObject();
-            json.WritePropertyName(ProfilesKey);
-            json.WriteStartArray();
-
-            foreach (var name in Names)
+            using (var text = new StringWriter(CultureInfo.InvariantCulture))
+            using (var json = new JsonTextWriter(text) { Formatting = Formatting.None })
             {
-                json.WriteValue(name);
+                json.WriteStartObject();
+                json.WritePropertyName(ProfilesKey);
+                json.WriteStartArray();
+
+                foreach (var name in Names)
+                {
+                    json.WriteValue(name);
+                }
+
+                json.WriteEndArray();
+                json.WriteEndObject();
+                json.Flush();
+
+                return text.ToString();
             }
-
-            json.WriteEndArray();
-            json.WriteEndObject();
-            json.Flush();
-
-            return text.ToString();
         }
 
         /// <summary>Whether this set already holds a name, compared exactly.</summary>
@@ -229,17 +231,15 @@ namespace KeePassGate.Acl
             var left = new List<string>();
 
             // Removals first, so that a name the operator took out makes room for one they put in.
-            foreach (var name in before.Names)
+            foreach (var name in before.Names.Where(name => !mine.Holds(name)))
             {
-                if (!mine.Holds(name))
-                {
-                    merged.Remove(name);
-                }
+                merged.Remove(name);
             }
 
-            foreach (var name in mine.Names)
+            foreach (var name in mine.Names.Where(name => !before.Holds(name)))
             {
-                if (!before.Holds(name) && merged.Add(name) != null)
+                var refused = merged.Add(name);
+                if (refused != null)
                 {
                     left.Add(name);
                 }

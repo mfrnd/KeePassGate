@@ -120,6 +120,8 @@ def answered(
     context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
     context.load_verify_locations(cafile=str(authority.pem))
     context.check_hostname = False
+    context.minimum_version = ssl.TLSVersion.TLSv1_3
+    context.maximum_version = ssl.TLSVersion.TLSv1_3
     with socket.create_connection(("127.0.0.1", gate.port), timeout=10) as raw, context.wrap_socket(
         raw, server_hostname="abc.def.kpg"
     ) as wrapped:
@@ -272,6 +274,7 @@ def test_a_client_offering_only_tls_12_is_refused(gate: FakeGate, authority: Aut
     context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
     context.load_verify_locations(cafile=str(authority.pem))
     context.check_hostname = False
+    context.minimum_version = ssl.TLSVersion.TLSv1_2
     context.maximum_version = ssl.TLSVersion.TLSv1_2
 
     with socket.create_connection(("127.0.0.1", gate.port), timeout=10) as raw, pytest.raises(

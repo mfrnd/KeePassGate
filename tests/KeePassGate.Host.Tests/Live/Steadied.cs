@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
-using System.Runtime.InteropServices;
 using System.Windows.Automation;
+using KeePassGate.Testing;
 
 namespace KeePassGate.Host.Tests.Live
 {
@@ -53,19 +53,9 @@ namespace KeePassGate.Host.Tests.Live
             { KeePassGate.Ui.GateTab.InvitationBoxName, "DemoInvitationCode-DemoInvitationCode-Demo0" },
         };
 
-        private const uint SetText = 0x000C;
-        private const uint GetText = 0x000D;
-        private const uint GetTextLength = 0x000E;
-
-        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
-        private static extern IntPtr SendMessage(IntPtr window, uint message, IntPtr wide, string text);
-
-        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
-        private static extern IntPtr SendMessage(
-            IntPtr window, uint message, IntPtr wide, System.Text.StringBuilder text);
-
-        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
-        private static extern IntPtr SendMessage(IntPtr window, uint message, IntPtr wide, IntPtr low);
+        private const int SetText = 0x000C;
+        private const int GetText = 0x000D;
+        private const int GetTextLength = 0x000E;
 
         /// <summary>One control, and what it said before this touched it.</summary>
         internal sealed class Replaced
@@ -113,7 +103,7 @@ namespace KeePassGate.Host.Tests.Live
                 }
 
                 replaced.Add(new Replaced(handle, was));
-                SendMessage(handle, SetText, IntPtr.Zero, wanted.Value);
+                User32.SendMessage(handle, SetText, IntPtr.Zero, wanted.Value);
             }
 
             return replaced;
@@ -129,21 +119,21 @@ namespace KeePassGate.Host.Tests.Live
 
             foreach (var one in replaced)
             {
-                SendMessage(one.Handle, SetText, IntPtr.Zero, one.Was ?? string.Empty);
+                User32.SendMessage(one.Handle, SetText, IntPtr.Zero, one.Was ?? string.Empty);
             }
         }
 
         /// <summary>What a control says now.</summary>
         private static string TextOf(IntPtr handle)
         {
-            var length = SendMessage(handle, GetTextLength, IntPtr.Zero, IntPtr.Zero).ToInt32();
+            var length = User32.SendMessage(handle, GetTextLength, IntPtr.Zero, IntPtr.Zero).ToInt32();
             if (length <= 0)
             {
                 return string.Empty;
             }
 
             var built = new System.Text.StringBuilder(length + 1);
-            SendMessage(handle, GetText, new IntPtr(built.Capacity), built);
+            User32.SendMessage(handle, GetText, new IntPtr(built.Capacity), built);
             return built.ToString();
         }
 
@@ -173,6 +163,8 @@ namespace KeePassGate.Host.Tests.Live
                 }
                 catch (ElementNotAvailableException)
                 {
+                    // Gone between being found and being read, so there is no window here to
+                    // settle: another element may still answer, or the caller passes the control by.
                 }
             }
 

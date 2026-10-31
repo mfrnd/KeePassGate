@@ -1,11 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Windows.Automation;
 using System.Windows.Forms;
 using KeePassGate.Acl;
 using KeePassGate.Authority;
+using KeePassGate.Diagnostics;
 using KeePassGate.Pairing;
 using KeePassGate.Testing;
 using KeePassGate.Ui;
@@ -152,7 +154,7 @@ namespace KeePassGate.Host.Tests.Live
 
             foreach (var name in DocumentationImages.Expected)
             {
-                var path = Path.Combine(_directory, DocumentationImages.FileName(name));
+                var path = Paths.Join(_directory, DocumentationImages.FileName(name));
                 Assert.That(File.Exists(path), Is.True, path + " was not written.");
                 Assert.That(new FileInfo(path).Length, Is.GreaterThan(1024),
                     path + " is too small to be a picture of a dialog.");
@@ -283,13 +285,11 @@ namespace KeePassGate.Host.Tests.Live
             driver.ShutDown();
 
             _ruleOnTheRoot = _session.KeePass.ReadRootCustomData(AclDocument.CustomDataKey);
-            foreach (var stored in _session.KeePass.ReadEntries())
+            foreach (var found in _session.KeePass.ReadEntries()
+                         .Select(stored => stored.CustomData.Get(AclDocument.CustomDataKey))
+                         .Where(found => !string.IsNullOrEmpty(found)))
             {
-                var found = stored.CustomData.Get(AclDocument.CustomDataKey);
-                if (!string.IsNullOrEmpty(found))
-                {
-                    _ruleOnTheEntry = found;
-                }
+                _ruleOnTheEntry = found;
             }
 
             Assert.That(_ruleOnTheRoot, Does.Contain(Profile),
@@ -392,7 +392,7 @@ namespace KeePassGate.Host.Tests.Live
                 Exception failed = null;
                 var asking = new Thread(() =>
                 {
-                    try
+                    failed = Thrown.By(() =>
                     {
                         reply = LiveGateClient.Send(
                             keePass.Port,
@@ -402,11 +402,7 @@ namespace KeePassGate.Host.Tests.Live
                             KeePassGate.Pairing.RenewalHandler.Path,
                             "{\"lifetime\":\"P30D\"}",
                             LiveGateClient.OnTheOperator);
-                    }
-                    catch (Exception error)
-                    {
-                        failed = error;
-                    }
+                    });
                 }) { IsBackground = true };
                 asking.Start();
 

@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using KeePass.Util.Spr;
+using KeePassGate.Diagnostics;
 using KeePassGate.Host.Tests.Live;
 using KeePassLib;
 using KeePassLib.Keys;
@@ -61,7 +62,7 @@ namespace KeePassGate.Host.Tests
 
         private static string VectorsPath
         {
-            get { return Path.Combine(Repository.Root, "tests", "Shared", "ReferenceVectors.json"); }
+            get { return Paths.Join(Repository.Root, "tests", "Shared", "ReferenceVectors.json"); }
         }
 
         [Test]

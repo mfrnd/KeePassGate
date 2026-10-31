@@ -107,57 +107,60 @@ namespace KeePassGate.Host.Tests
             // the writer told its own save apart, renewals were turned away or their approvals
             // thrown away for saves that only had to be waited for.
             var renewing = new[] { Admit("agent-one"), Admit("agent-two"), Admit("agent-three"), Admit("agent-four") };
-            var writing = new CancellationTokenSource();
-            var written = 0;
-            var refused = new ConcurrentBag<string>();
-
-            var writers = Enumerable.Range(0, 2).Select(index => new Thread(() =>
+            using (var writing = new CancellationTokenSource())
             {
-                while (!writing.IsCancellationRequested)
-                {
-                    var outcome = _writer.Change(_database.Database, () =>
-                    {
-                        var group = new PwGroup(true, true, "invented-" + index + "-" + Interlocked.Increment(ref written), PwIcon.Folder);
-                        _database.Database.RootGroup.AddGroup(group, true);
-                        return new VaultChange(VaultWrite.Created(group.Uuid.ToHexString()),
-                            () => _database.Database.RootGroup.Groups.Remove(group));
-                    });
+                var written = 0;
+                var refused = new ConcurrentBag<string>();
 
-                    if (!outcome.Ok)
+                var writers = Enumerable.Range(0, 2).Select(index => new Thread(() =>
+                {
+                    while (!writing.IsCancellationRequested)
                     {
-                        refused.Add(outcome.Reason);
+                        var outcome = _writer.Change(_database.Database, () =>
+                        {
+                            var group = new PwGroup(
+                                true, true, "invented-" + index + "-" + Interlocked.Increment(ref written), PwIcon.Folder);
+                            _database.Database.RootGroup.AddGroup(group, true);
+                            return new VaultChange(VaultWrite.Created(group.Uuid.ToHexString()),
+                                () => _database.Database.RootGroup.Groups.Remove(group));
+                        });
+
+                        if (!outcome.Ok)
+                        {
+                            refused.Add(outcome.Reason);
+                        }
+                    }
+                }) { IsBackground = true }).ToList();
+
+                writers.ForEach(thread => thread.Start());
+
+                try
+                {
+                    var asking = renewing
+                        .Select(certificate => System.Threading.Tasks.Task.Run(() => Renew(certificate)))
+                        .ToList();
+                    var answers = asking.Select(task => task.Result).ToList();
+
+                    foreach (var answer in answers)
+                    {
+                        Assert.That(answer.Status, Is.EqualTo(200), answer.Json);
                     }
                 }
-            }) { IsBackground = true }).ToList();
-
-            writers.ForEach(thread => thread.Start());
-
-            try
-            {
-                var asking = renewing
-                    .Select(certificate => System.Threading.Tasks.Task.Run(() => Renew(certificate)))
-                    .ToList();
-                var answers = asking.Select(task => task.Result).ToList();
-
-                foreach (var answer in answers)
+                finally
                 {
-                    Assert.That(answer.Status, Is.EqualTo(200), answer.Json);
+                    writing.Cancel();
+                    writers.ForEach(thread => thread.Join(Patience));
+                    foreach (var certificate in renewing)
+                    {
+                        certificate.Reset();
+                    }
                 }
-            }
-            finally
-            {
-                writing.Cancel();
-                writers.ForEach(thread => thread.Join(Patience));
-                foreach (var certificate in renewing)
-                {
-                    certificate.Reset();
-                }
-            }
 
-            Assert.That(_shown, Is.EqualTo(4), "each renewal was put to the operator once");
-            Assert.That(_insideSave, Is.Zero, "and never inside a save");
-            Assert.That(written, Is.GreaterThan(0), "the other clients were writing all along");
-            Assert.That(refused, Is.Empty, "and none of their writes was turned away");
+                Assert.That(_shown, Is.EqualTo(4), "each renewal was put to the operator once");
+                Assert.That(_insideSave, Is.Zero, "and never inside a save");
+                Assert.That(written, Is.GreaterThan(0), "the other clients were writing all along");
+                Assert.That(refused, Is.Empty, "and none of their writes was turned away");
+            }
         }
 
         [Test]
@@ -168,9 +171,9 @@ namespace KeePassGate.Host.Tests
             for (var round = 0; round < 8; round++)
             {
                 using (var old = Admit("agent-racing-" + round))
+                using (var revoking = new ManualResetEventSlim())
                 {
                     var key = CertificateDigest.Of(old);
-                    var revoking = new ManualResetEventSlim();
                     _prompt.RenewalDialog = (request, timeout) =>
                     {
                         var shown = Show();
@@ -182,14 +185,9 @@ namespace KeePassGate.Host.Tests
                     {
                         revoking.Wait(Patience);
                         Thread.Sleep(round * 3);
-                        var target = _targets.Current().Single();
-                        try
+                        using (var target = _targets.Current().Single())
                         {
                             target.Revoke(key, () => _audit.Note("revoked " + key));
-                        }
-                        finally
-                        {
-                            target.Dispose();
                         }
                     }) { IsBackground = true };
 
@@ -305,8 +303,7 @@ namespace KeePassGate.Host.Tests
 
         private GateContext Renew(X509Certificate2 certificate)
         {
-            var target = _targets.Current().Single();
-            try
+            using (var target = _targets.Current().Single())
             {
                 var head = new HttpRequestHead(
                     "POST",
@@ -324,10 +321,6 @@ namespace KeePassGate.Host.Tests
                 new RenewalHandler(_prompt, new PairingOptions(), new AuthorityIssuer(), null, _session, audit, NullGateLog.Instance, _held)
                     .Renew(context);
                 return context;
-            }
-            finally
-            {
-                target.Dispose();
             }
         }
 
@@ -377,7 +370,10 @@ namespace KeePassGate.Host.Tests
                 Control.CreateControl();
                 GC.KeepAlive(Control.Handle);
                 _ready.Set();
-                Application.Run(new ApplicationContext());
+                using (var context = new ApplicationContext())
+                {
+                    Application.Run(context);
+                }
             }
         }
 

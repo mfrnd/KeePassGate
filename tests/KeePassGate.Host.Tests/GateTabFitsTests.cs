@@ -3,7 +3,6 @@ using System.Globalization;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
-using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
@@ -12,6 +11,7 @@ using KeePassGate.Authority;
 using KeePassGate.Bridge;
 using KeePassGate.Diagnostics;
 using KeePassGate.Pairing;
+using KeePassGate.Testing;
 using KeePassGate.Ui;
 using NUnit.Framework;
 
@@ -776,8 +776,8 @@ namespace KeePassGate.Host.Tests
                         box.Select(0, 0);
                         box.ScrollToCaret();
 
-                        var room = new EditRect();
-                        SendMessage(box.Handle, GetRect, IntPtr.Zero, ref room);
+                        var room = new User32.Rect();
+                        User32.SendMessage(box.Handle, GetRect, IntPtr.Zero, ref room);
 
                         var first = PositionOf(box, 0);
                         var last = PositionOf(box, box.TextLength - 1) + (PositionOf(box, 1) - first);
@@ -799,7 +799,7 @@ namespace KeePassGate.Host.Tests
         /// <summary>Where an edit control draws one of its characters, from its left edge.</summary>
         private static int PositionOf(TextBox box, int index)
         {
-            return (short)(SendMessage(box.Handle, PositionFromCharacter, new IntPtr(index), IntPtr.Zero).ToInt64() & 0xFFFF);
+            return (short)(User32.SendMessage(box.Handle, PositionFromCharacter, new IntPtr(index), IntPtr.Zero).ToInt64() & 0xFFFF);
         }
 
         /// <summary>The message asking an edit control for the rectangle it draws its text in.</summary>
@@ -807,21 +807,6 @@ namespace KeePassGate.Host.Tests
 
         /// <summary>The message asking it where it draws one character.</summary>
         private const int PositionFromCharacter = 0x00D6;
-
-        [StructLayout(LayoutKind.Sequential)]
-        private struct EditRect
-        {
-            public int Left;
-            public int Top;
-            public int Right;
-            public int Bottom;
-        }
-
-        [DllImport("user32.dll")]
-        private static extern IntPtr SendMessage(IntPtr window, int message, IntPtr wide, ref EditRect low);
-
-        [DllImport("user32.dll")]
-        private static extern IntPtr SendMessage(IntPtr window, int message, IntPtr wide, IntPtr low);
 
         /// <summary>
         /// Every state the tab has, because the tallest one is what has to fit. An authority makes
@@ -969,12 +954,11 @@ namespace KeePassGate.Host.Tests
             }
 
             var digit = '0';
-            foreach (var candidate in "0123456789abcdef")
+            foreach (var candidate in "0123456789abcdef".Where(
+                candidate => WidthOf(new string(candidate, length), font)
+                             > WidthOf(new string(digit, length), font)))
             {
-                if (WidthOf(new string(candidate, length), font) > WidthOf(new string(digit, length), font))
-                {
-                    digit = candidate;
-                }
+                digit = candidate;
             }
 
             var now = DateTimeOffset.UtcNow;
@@ -1076,16 +1060,12 @@ namespace KeePassGate.Host.Tests
         {
             var found = new List<FlowLayoutPanel>();
 
-            foreach (var control in ControlTree.Descendants(panel))
+            // The stacks, not the rows inside them. A row is as wide as its buttons and is
+            // measured by the stack that holds it.
+            foreach (var column in ControlTree.Descendants(panel).OfType<FlowLayoutPanel>()
+                         .Where(column => column.FlowDirection == FlowDirection.TopDown))
             {
-                var column = control as FlowLayoutPanel;
-
-                // The stacks, not the rows inside them. A row is as wide as its buttons and is
-                // measured by the stack that holds it.
-                if (column != null && column.FlowDirection == FlowDirection.TopDown)
-                {
-                    found.Add(column);
-                }
+                found.Add(column);
             }
 
             Assert.That(found.Count, Is.GreaterThanOrEqualTo(3),
@@ -1105,8 +1085,8 @@ namespace KeePassGate.Host.Tests
                 return;
             }
 
-            var tabs = page.Parent as TabControl;
-            Assert.That(tabs, Is.Not.Null);
+            var tabs = page.Parent as TabControl
+                ?? throw new InvalidOperationException("the page this stack sits on is in no tab control");
 
             tabs.SelectedTab = page;
             page.PerformLayout();

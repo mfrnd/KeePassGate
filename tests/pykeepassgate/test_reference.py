@@ -18,8 +18,7 @@ from typing import Any
 import pytest
 import yaml
 
-import pykeepassgate
-from pykeepassgate import api
+from pykeepassgate import __version__, api
 from pykeepassgate import client as client_module
 from pykeepassgate import model as model_module
 from pykeepassgate import pairing as pairing_module
@@ -146,7 +145,7 @@ def test_the_document_carries_the_version_this_client_is_installed_as(
     document is YAML and takes it from nowhere, so this is what holds the two to each other. The
     plugin's tests hold the same document to the plugin.
     """
-    assert str(document["info"]["version"]) == pykeepassgate.__version__
+    assert str(document["info"]["version"]) == __version__
 
 
 def test_every_operation_the_gate_declares_has_a_call_here(document: dict[str, Any]) -> None:

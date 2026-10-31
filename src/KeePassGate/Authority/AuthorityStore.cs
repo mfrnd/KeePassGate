@@ -29,6 +29,10 @@ namespace KeePassGate.Authority
         private readonly IKeyValueStore _store;
         private readonly AdmissionStore _admissions;
 
+        /// <summary>
+        /// Over one database's custom data, reaching its admission records through an
+        /// `AdmissionStore` of its own.
+        /// </summary>
         /// <remarks>
         /// The admission records are counted and removed through `AdmissionStore` rather than by a
         /// second copy of the same enumeration here. There were two, and only one of them was
@@ -340,13 +344,10 @@ namespace KeePassGate.Authority
         private HashSet<string> Retired()
         {
             var retired = new HashSet<string>(StringComparer.Ordinal);
-            foreach (var key in Keys())
+            foreach (var fingerprint in Keys().Select(AuthorityKeys.FingerprintInRetirement)
+                                              .Where(fingerprint => fingerprint != null))
             {
-                var fingerprint = AuthorityKeys.FingerprintInRetirement(key);
-                if (fingerprint != null)
-                {
-                    retired.Add(fingerprint);
-                }
+                retired.Add(fingerprint);
             }
 
             return retired;

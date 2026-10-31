@@ -537,10 +537,8 @@ namespace KeePassGate.Tests
             // already delivered, leaving a transport failure the caller cannot tell from a stopped
             // gate or a wrong port.
             var options = new GateOptions { Port = 0, MaxBodyBytes = 64 };
-            var listener = new GateListener(
-                options, new GateResolver(_targets, _log), GateOperations.Router("9.9.9"), _log);
-
-            try
+            using (var listener = new GateListener(
+                options, new GateResolver(_targets, _log), GateOperations.Router("9.9.9"), _log))
             {
                 Assert.That(listener.Start(), Is.True);
 
@@ -561,10 +559,6 @@ namespace KeePassGate.Tests
                     Assert.That(reply.Status, Is.EqualTo(413), reply.Raw);
                     Assert.That(reply.Body, Does.Contain("over 64 bytes"));
                 }
-            }
-            finally
-            {
-                listener.Dispose();
             }
         }
 
@@ -637,22 +631,16 @@ namespace KeePassGate.Tests
         [Test]
         public void A_port_already_taken_is_reported_rather_than_thrown()
         {
-            var second = new GateListener(
+            using (var second = new GateListener(
                 new GateOptions { Port = _listener.Port },
                 new GateResolver(_targets, _log),
                 GateOperations.Router("9.9.9"),
-                _log);
-
-            try
+                _log))
             {
                 // KeePass has to keep working when the port is busy, so this is a false rather than
                 // an exception on the way out of Initialize.
                 Assert.That(second.Start(), Is.False);
                 Assert.That(_log.Errors, Is.Not.Empty);
-            }
-            finally
-            {
-                second.Dispose();
             }
         }
 
@@ -690,9 +678,7 @@ namespace KeePassGate.Tests
             // served holds its slot for as long as a silent peer can, which is far longer than a
             // loaded machine takes to accept the others.
             var options = new GateOptions { Port = 0, MaxConnections = 1 };
-            var listener = new GateListener(options, new GateResolver(_targets, _log), GateOperations.Router("9.9.9"), _log);
-
-            try
+            using (var listener = new GateListener(options, new GateResolver(_targets, _log), GateOperations.Router("9.9.9"), _log))
             {
                 Assert.That(listener.Start(), Is.True);
 
@@ -734,10 +720,6 @@ namespace KeePassGate.Tests
                     }
                 }
             }
-            finally
-            {
-                listener.Dispose();
-            }
         }
 
         [Test]
@@ -749,10 +731,8 @@ namespace KeePassGate.Tests
             // itself, and it is the only thing that does. Five seconds, which is generous: the
             // handshake is inside it, and a loaded machine can take seconds over one.
             var options = new GateOptions { Port = 0, Budget = TimeSpan.FromSeconds(5) };
-            var listener = new GateListener(
-                options, new GateResolver(_targets, _log), GateOperations.Router("9.9.9"), _log);
-
-            try
+            using (var listener = new GateListener(
+                options, new GateResolver(_targets, _log), GateOperations.Router("9.9.9"), _log))
             {
                 Assert.That(listener.Start(), Is.True);
 
@@ -777,10 +757,6 @@ namespace KeePassGate.Tests
                     Waited(delegate { return _log.Warnings.Any(w => w.Message.Contains("the head ended early")); }),
                     Is.True, "closing the socket is what ends the read the peer was holding");
             }
-            finally
-            {
-                listener.Dispose();
-            }
         }
 
         [Test]
@@ -794,10 +770,8 @@ namespace KeePassGate.Tests
             // second, a minute of it, against a budget of five seconds that is generous because
             // the handshake is inside it.
             var options = new GateOptions { Port = 0, Budget = TimeSpan.FromSeconds(5) };
-            var listener = new GateListener(
-                options, new GateResolver(_targets, _log), GateOperations.Router("9.9.9"), _log);
-
-            try
+            using (var listener = new GateListener(
+                options, new GateResolver(_targets, _log), GateOperations.Router("9.9.9"), _log))
             {
                 Assert.That(listener.Start(), Is.True);
 
@@ -815,10 +789,6 @@ namespace KeePassGate.Tests
                     "the socket is closed at the budget, so there is nothing to answer with: " + reply.Raw);
                 Assert.That(spent.Elapsed, Is.LessThan(TimeSpan.FromSeconds(30)),
                     "cut at the budget rather than at the end of a body that takes a minute to arrive");
-            }
-            finally
-            {
-                listener.Dispose();
             }
         }
 
@@ -839,10 +809,8 @@ namespace KeePassGate.Tests
             // answering well inside the ten the client waits for a read.
             var options = new GateOptions { Port = 0, Budget = TimeSpan.FromSeconds(5) };
             var slow = new SleepingHandler(TimeSpan.FromSeconds(7));
-            var listener = new GateListener(
-                options, new GateResolver(_targets, _log), slow, _log);
-
-            try
+            using (var listener = new GateListener(
+                options, new GateResolver(_targets, _log), slow, _log))
             {
                 Assert.That(listener.Start(), Is.True);
 
@@ -856,10 +824,6 @@ namespace KeePassGate.Tests
                 Assert.That(reply.Status, Is.EqualTo(201));
                 Assert.That(spent.Elapsed, Is.GreaterThan(options.Budget),
                     "and it took longer than the budget, which is the whole point of the case");
-            }
-            finally
-            {
-                listener.Dispose();
             }
         }
 
@@ -878,10 +842,8 @@ namespace KeePassGate.Tests
                 Timeout = TimeSpan.FromSeconds(60),
                 Budget = TimeSpan.FromSeconds(2),
             };
-            var listener = new GateListener(
-                options, new GateResolver(_targets, _log), GateOperations.Router("9.9.9"), _log);
-
-            try
+            using (var listener = new GateListener(
+                options, new GateResolver(_targets, _log), GateOperations.Router("9.9.9"), _log))
             {
                 Assert.That(listener.Start(), Is.True);
 
@@ -905,10 +867,6 @@ namespace KeePassGate.Tests
                 Assert.That(_log.Errors, Is.Empty,
                     "a peer given up on is not a failure of the plugin's");
             }
-            finally
-            {
-                listener.Dispose();
-            }
         }
 
         [Test]
@@ -927,10 +885,8 @@ namespace KeePassGate.Tests
                 Budget = TimeSpan.FromSeconds(30),
             };
 
-            var listener = new GateListener(
-                options, new GateResolver(_targets, _log), GateOperations.Router("9.9.9"), _log);
-
-            try
+            using (var listener = new GateListener(
+                options, new GateResolver(_targets, _log), GateOperations.Router("9.9.9"), _log))
             {
                 Assert.That(listener.Start(), Is.True);
 
@@ -954,10 +910,6 @@ namespace KeePassGate.Tests
                 Assert.That(reply.Answered, Is.False);
                 Assert.That(spent.Elapsed, Is.LessThan(TimeSpan.FromSeconds(20)),
                     "a peer that named nothing held the slot for a budget it had not earned");
-            }
-            finally
-            {
-                listener.Dispose();
             }
         }
 

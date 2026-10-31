@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using KeePassGate.Diagnostics;
 
 namespace KeePassGate.Testing
 {
@@ -49,6 +50,7 @@ namespace KeePassGate.Testing
         /// </remarks>
         public static IDisposable Lock()
         {
+            // codeql[cs/missed-using-statement] disposed only when it is not kept, which no `using` can do
             Mutex mutex;
             try
             {
@@ -59,17 +61,28 @@ namespace KeePassGate.Testing
                 return Unlocked.Instance;
             }
 
+            // Let go of on every way out that does not hold it, a throw from the wait among them.
+            var acquired = false;
             try
             {
-                if (!mutex.WaitOne(LockPatience))
-                {
-                    mutex.Dispose();
-                    return Unlocked.Instance;
-                }
+                acquired = mutex.WaitOne(LockPatience);
             }
             catch (AbandonedMutexException)
             {
                 // Its holder ended without letting go, and the wait was granted all the same.
+                acquired = true;
+            }
+            finally
+            {
+                if (!acquired)
+                {
+                    mutex.Dispose();
+                }
+            }
+
+            if (!acquired)
+            {
+                return Unlocked.Instance;
             }
 
             return new Held(mutex);
@@ -120,14 +133,12 @@ namespace KeePassGate.Testing
 
             try
             {
-                foreach (var path in Directories())
+                foreach (var watcher in Directories().Select(path => new FileSystemWatcher(path)
+                         {
+                             IncludeSubdirectories = true,
+                             NotifyFilter = NotifyFilters.FileName,
+                         }))
                 {
-                    var watcher = new FileSystemWatcher(path)
-                    {
-                        IncludeSubdirectories = true,
-                        NotifyFilter = NotifyFilters.FileName,
-                    };
-
                     watcher.Created += (sender, e) =>
                     {
                         lock (created)
@@ -145,6 +156,7 @@ namespace KeePassGate.Testing
             }
             finally
             {
+                // codeql[cs/missed-using-statement] one of a list the `finally` disposes, which no `using` holds
                 foreach (var watcher in watchers)
                 {
                     watcher.Dispose();
@@ -162,13 +174,11 @@ namespace KeePassGate.Testing
         {
             var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
 
-            foreach (var directory in new[] { @"Microsoft\Crypto\Keys", @"Microsoft\Crypto\RSA" })
+            foreach (var path in new[] { @"Microsoft\Crypto\Keys", @"Microsoft\Crypto\RSA" }
+                         .Select(directory => Paths.Join(appData, directory))
+                         .Where(Directory.Exists))
             {
-                var path = Path.Combine(appData, directory);
-                if (Directory.Exists(path))
-                {
-                    yield return path;
-                }
+                yield return path;
             }
         }
 

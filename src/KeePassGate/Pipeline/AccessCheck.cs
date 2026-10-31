@@ -228,8 +228,7 @@ namespace KeePassGate.Pipeline
 
             foreach (var c in requested)
             {
-                var hex = (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
-                if (!hex)
+                if (!Ascii.IsHexDigit(c))
                 {
                     return null;
                 }
