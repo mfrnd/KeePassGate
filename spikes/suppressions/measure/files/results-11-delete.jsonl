@@ -1,0 +1,8 @@
+{"as": "answer", "label": "delete", "status": 204, "comment": 4431708724, "path": "measure/ü.cs", "message": null, "request": "C009:19C0AE:180883D:4ED18FB:6AE63752"}
+{"as": "read back", "label": "delete", "still there": false}
+{"as": "answer", "label": "outdated by this push", "status": 200, "before": {"id": "PRRT_kwDOVbH06M6yQybZ", "path": "measure/noeol.cs", "line": null, "subjectType": "LINE", "isOutdated": true, "isResolved": false}, "answer": {"resolveReviewThread": {"thread": {"id": "PRRT_kwDOVbH06M6yQybZ", "isResolved": true}}}, "errors": null, "message": null, "request": "0411:DF129:5EADAAC:14269C16:6AE6375B"}
+{"as": "answer", "label": "on a line nothing changed", "status": 200, "before": {"id": "PRRT_kwDOVbH06M6yQyO4", "path": "src/Probe/Copy.cs", "line": 10, "subjectType": "LINE", "isOutdated": true, "isResolved": false}, "answer": {"resolveReviewThread": {"thread": {"id": "PRRT_kwDOVbH06M6yQyO4", "isResolved": true}}}, "errors": null, "message": null, "request": "0412:A460:5A487C4:13392B59:6AE6375E"}
+{"as": "answer", "label": "on a whole file", "status": 200, "before": {"id": "PRRT_kwDOVbH06M6yQzDq", "path": "measure/lines-25000.txt", "line": 1, "subjectType": "FILE", "isOutdated": false, "isResolved": false}, "answer": {"resolveReviewThread": {"thread": {"id": "PRRT_kwDOVbH06M6yQzDq", "isResolved": true}}}, "errors": null, "message": null, "request": "0410:3FFB79:53FD104:11EB71F9:6AE63762"}
+{"as": "read back", "label": "outdated by this push", "isResolved": true, "isOutdated": true}
+{"as": "read back", "label": "on a line nothing changed", "isResolved": true, "isOutdated": true}
+{"as": "read back", "label": "on a whole file", "isResolved": true, "isOutdated": false}

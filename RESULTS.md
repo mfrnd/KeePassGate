@@ -45,7 +45,7 @@ one.
 | #7, finished after #8 | changed `C14`'s flagged line; changed `C15`'s to one CodeQL does not report, its right operand being a local rather than a call, which leaves its comment over no finding; added `C16`, a new finding whose reason runs past 280 characters; then merged | dismissing on `main`, section 7, and fingerprints, section 4 |
 | #9, never merged | from a branch that removed the other workflows, posted the 122 comments KeePassGate's pull request #51 was refused as one review, then single reviews of 80, 40, 60 and 81 comments, and eight of 20 | how many comments a review may carry, section 8 |
 | #10, never merged | from a branch that removed the other workflows, added a line at the top of `Cases.cs`, one in its middle and one at its end, and removed one; then posted comments over three lines either side of each, one range past its hunk, and the first four again as a review whose comments were then deleted | threads over a range of lines, section 8 |
-| #11, never merged | from a branch that removed the other workflows, renamed one file with a line changed and one with none, copied one, added files of 1,000, 5,000 and 25,000 lines and three with a space, an accent and a quote in their names, deleted one, and ended one without a newline; then posted a review for each place a thread might go, and a comment on three whole files | where a thread may go, section 8 |
+| #11, never merged | from a branch that removed the other workflows, renamed one file with a line changed and one with none, copied one, added files of 1,000, 5,000 and 25,000 lines and three with a space, an accent and a quote in their names, deleted one, and ended one without a newline; then posted a review for each place a thread might go, and a comment on three whole files; later changed the line under one thread, resolved three threads with the review job's permissions, deleted one thread's only comment with them, and resolved the three with `contents: write` added | where a thread may go, and resolving and deleting one, section 8 |
 
 ## 2. Which comments suppress
 
@@ -383,6 +383,26 @@ answer and what GitHub stored.
 - **A comment on the whole file is a review thread**, its `subjectType` FILE and unresolved until
   someone resolves it, and it is taken where no line is.
 - **Two ranges that overlap in one review were both taken.**
+
+### Resolving and deleting a thread
+
+Measured on #11, before KeePassGate's review was to clear its own threads whose suppression a later
+push takes away, since the merge waits for every thread. `measure/files/measure_resolve.py`
+resolves three threads `github-actions` opened, each with no reply, with GraphQL's
+`resolveReviewThread`: one whose line the push changed, one on a line it did not, and one on a
+whole file. `measure_delete.py` deletes the only comment of a fourth with
+`DELETE /pulls/comments/{id}`. `results-11-resolve.jsonl` and `results-11-delete.jsonl` are every
+answer and what was read back.
+
+- **Under the review job's permissions, no thread may be resolved.** With `contents: read`,
+  `security-events: write` and `pull-requests: write`, each mutation is answered 200 with
+  `resolveReviewThread` null and one error, `FORBIDDEN`, "Resource not accessible by integration",
+  and each thread reads back unresolved, outdated or not, on a line or on a whole file.
+- **With `contents: write` added, all three resolve**, each read back resolved.
+- **Deleting a thread's only comment is answered 204 under the review job's permissions**, and the
+  comment and its thread are gone.
+- **A push leaves a thread whose line it changed outdated and unresolved**, and it marked outdated
+  as well the thread on `src/Probe/Copy.cs`, a file it did not touch.
 
 ## 9. Which CodeQL runs
 

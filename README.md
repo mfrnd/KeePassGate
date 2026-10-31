@@ -84,7 +84,10 @@ the pull request's opening runs, is the first four comments:
 and `measure.yml`, makes one change of each kind a pull request makes to a file and writes
 `measure/each.json`, a review for each place a thread might go; opening the pull request posts them.
 For the comments on whole files, `measure.yml` was then set to run `measure_file.py` instead, with
-`file.json` beside it, and pushed.
+`file.json` beside it, and pushed. Resolving and deleting a thread came after, from the same
+branch: `measure.yml` was replaced by `measure-resolve.yml`, which runs `measure_resolve.py`, with
+the last line of `measure/noeol.cs` changed so that its thread is outdated, and pushed; then by
+`measure-delete.yml`, which runs `measure_delete.py` and `measure_resolve.py` again, and pushed.
 
 ## Reading a re-run
 
