@@ -125,6 +125,7 @@ namespace KeePassGate.Authority
             }
             catch (CryptographicException)
             {
+                // The host's key handle, gone already in the same way: there is nothing left to release.
             }
         }
     }

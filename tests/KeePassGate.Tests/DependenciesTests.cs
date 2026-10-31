@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using KeePassGate.Diagnostics;
 using NUnit.Framework;
 
 namespace KeePassGate.Tests
@@ -27,7 +28,7 @@ namespace KeePassGate.Tests
             var beside = Path.GetDirectoryName(new Uri(plugin.CodeBase).LocalPath);
 
             var shipped = plugin.GetReferencedAssemblies()
-                .Where(name => File.Exists(Path.Combine(beside, name.Name + ".dll")))
+                .Where(name => File.Exists(Paths.Join(beside, name.Name + ".dll")))
                 .Where(name => name.Name != CoverageShim)
                 .Select(name => name.FullName);
 

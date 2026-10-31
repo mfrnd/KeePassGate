@@ -1,11 +1,11 @@
 using System;
 using System.Drawing;
 using System.Linq;
-using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows.Forms;
 using KeePassGate.Authority;
 using KeePassGate.Pairing;
+using KeePassGate.Testing;
 using KeePassGate.Tests.Fakes;
 using KeePassGate.Ui;
 using NUnit.Framework;
@@ -620,7 +620,7 @@ namespace KeePassGate.Tests
             {
                 dialog.CreateControl();
 
-                SendMessage(dialog.Handle, 0x0010, IntPtr.Zero, IntPtr.Zero);
+                User32.SendMessage(dialog.Handle, 0x0010, IntPtr.Zero, IntPtr.Zero);
 
                 Assert.That(dialog.Answer().Decision, Is.EqualTo(PairingDecision.Refused));
                 Assert.That(dialog.Answer().Standing, Is.Null);
@@ -834,24 +834,17 @@ namespace KeePassGate.Tests
         private static void Click(Control control)
         {
             var where = (IntPtr)(((control.Height / 2) << 16) | ((control.Width / 2) & 0xFFFF));
-            PostMessage(control.Handle, 0x0201, (IntPtr)1, where);
+            User32.PostMessage(control.Handle, 0x0201, (IntPtr)1, where);
             OffScreenForm.Pump();
-            PostMessage(control.Handle, 0x0202, IntPtr.Zero, where);
+            User32.PostMessage(control.Handle, 0x0202, IntPtr.Zero, where);
             OffScreenForm.Pump();
         }
 
         private static void Press(Control control, Keys key)
         {
-            PostMessage(control.Handle, 0x0100, (IntPtr)(int)key, IntPtr.Zero);
-            PostMessage(control.Handle, 0x0101, (IntPtr)(int)key, IntPtr.Zero);
+            User32.PostMessage(control.Handle, 0x0100, (IntPtr)(int)key, IntPtr.Zero);
+            User32.PostMessage(control.Handle, 0x0101, (IntPtr)(int)key, IntPtr.Zero);
             OffScreenForm.Pump();
         }
-
-        [DllImport("user32.dll", SetLastError = true)]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        private static extern bool PostMessage(IntPtr window, int message, IntPtr key, IntPtr detail);
-
-        [DllImport("user32.dll")]
-        private static extern IntPtr SendMessage(IntPtr window, int message, IntPtr first, IntPtr second);
     }
 }

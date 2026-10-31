@@ -1,7 +1,7 @@
 using System;
-using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows.Automation;
+using KeePassGate.Testing;
 
 namespace KeePassGate.Host.Tests.Live
 {
@@ -20,26 +20,6 @@ namespace KeePassGate.Host.Tests.Live
     /// </remarks>
     internal static class Mouse
     {
-        [DllImport("user32.dll")]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        private static extern bool SetCursorPos(int x, int y);
-
-        /// <summary>
-        /// The pointer moved in physical pixels, whatever this process's DPI awareness, which is
-        /// what UI automation's bounding rectangles are in.
-        /// </summary>
-        /// <remarks>
-        /// `SetCursorPos` takes the logical coordinates of the calling thread's awareness, and the
-        /// test host declares none, so at any scaling but a hundred percent a press made with it at a
-        /// point read off the tree landed somewhere else.
-        /// </remarks>
-        [DllImport("user32.dll")]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        private static extern bool SetPhysicalCursorPos(int x, int y);
-
-        [DllImport("user32.dll")]
-        private static extern void mouse_event(uint flags, int x, int y, uint data, UIntPtr extraInfo);
-
         private const uint LeftDown = 0x0002;
         private const uint LeftUp = 0x0004;
         private const uint RightDown = 0x0008;
@@ -63,12 +43,12 @@ namespace KeePassGate.Host.Tests.Live
                     "The element occupies nothing on screen, so there is nowhere to press it.");
             }
 
-            SetPhysicalCursorPos((int)(box.Left + (box.Width / 2)), (int)(box.Top + (box.Height / 2)));
+            User32.SetPhysicalCursorPos((int)(box.Left + (box.Width / 2)), (int)(box.Top + (box.Height / 2)));
             Thread.Sleep(150);
 
-            mouse_event(RightDown, 0, 0, 0, UIntPtr.Zero);
+            User32.mouse_event(RightDown, 0, 0, 0, UIntPtr.Zero);
             Thread.Sleep(60);
-            mouse_event(RightUp, 0, 0, 0, UIntPtr.Zero);
+            User32.mouse_event(RightUp, 0, 0, 0, UIntPtr.Zero);
             Thread.Sleep(300);
         }
 
@@ -108,23 +88,23 @@ namespace KeePassGate.Host.Tests.Live
             var x = right + 40 < screen.Right ? right + 40 : (left - 40 > screen.Left ? left - 40 : screen.Left + 2);
             var y = bottom + 40 < screen.Bottom ? bottom + 40 : (top - 40 > screen.Top ? top - 40 : screen.Top + 2);
 
-            SetCursorPos(x, y);
+            System.Windows.Forms.Cursor.Position = new System.Drawing.Point(x, y);
             Thread.Sleep(500);
         }
 
         /// <summary>A press at a point in physical pixels, as the accessibility tree gives them.</summary>
         public static void Click(int x, int y)
         {
-            SetPhysicalCursorPos(x, y);
+            User32.SetPhysicalCursorPos(x, y);
 
             // The pause is not politeness. A window that has just been moved to the front is still
             // settling, and a press that lands in the same message as the move is a press some
             // controls never see.
             Thread.Sleep(150);
 
-            mouse_event(LeftDown, 0, 0, 0, UIntPtr.Zero);
+            User32.mouse_event(LeftDown, 0, 0, 0, UIntPtr.Zero);
             Thread.Sleep(60);
-            mouse_event(LeftUp, 0, 0, 0, UIntPtr.Zero);
+            User32.mouse_event(LeftUp, 0, 0, 0, UIntPtr.Zero);
             Thread.Sleep(300);
         }
     }

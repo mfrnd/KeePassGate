@@ -2,12 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
-using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Windows.Forms;
 using KeePassGate.Authority;
+using KeePassGate.Testing;
 using KeePassGate.Tests.Fakes;
 using KeePassGate.Ui;
 using NUnit.Framework;
@@ -250,7 +250,7 @@ namespace KeePassGate.Tests
         /// <summary>What Shift and F10 and the menu key send: a request with no position.</summary>
         private static void AskFromTheKeyboard(DataGridView grid)
         {
-            SendMessage(grid.Handle, ContextMenu, grid.Handle, (IntPtr)(-1));
+            User32.SendMessage(grid.Handle, ContextMenu, grid.Handle, (IntPtr)(-1));
             Pump();
         }
 
@@ -258,16 +258,16 @@ namespace KeePassGate.Tests
         private static void RightClick(DataGridView grid, Point at)
         {
             var where = (IntPtr)((at.Y << 16) | (at.X & 0xFFFF));
-            PostMessage(grid.Handle, RightDown, (IntPtr)2, where);
+            User32.PostMessage(grid.Handle, RightDown, (IntPtr)2, where);
             Pump();
-            PostMessage(grid.Handle, RightUp, IntPtr.Zero, where);
+            User32.PostMessage(grid.Handle, RightUp, IntPtr.Zero, where);
             Pump();
         }
 
         private static void Key(Control control, Keys key)
         {
-            PostMessage(control.Handle, KeyDown, (IntPtr)(int)key, IntPtr.Zero);
-            PostMessage(control.Handle, KeyUp, (IntPtr)(int)key, IntPtr.Zero);
+            User32.PostMessage(control.Handle, KeyDown, (IntPtr)(int)key, IntPtr.Zero);
+            User32.PostMessage(control.Handle, KeyUp, (IntPtr)(int)key, IntPtr.Zero);
             Pump();
         }
 
@@ -315,12 +315,5 @@ namespace KeePassGate.Tests
                 }
             }
         }
-
-        [DllImport("user32.dll", SetLastError = true)]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        private static extern bool PostMessage(IntPtr window, int message, IntPtr wide, IntPtr low);
-
-        [DllImport("user32.dll")]
-        private static extern IntPtr SendMessage(IntPtr window, int message, IntPtr wide, IntPtr low);
     }
 }

@@ -2,6 +2,7 @@ using System;
 using KeePassGate.Authority;
 using KeePassGate.Bridge;
 using KeePassGate.Diagnostics;
+using KeePassGate.Testing;
 using KeePassGate.Ui;
 using KeePassGate.Vault;
 using KeePassLib;
@@ -192,15 +193,9 @@ namespace KeePassGate.Host.Tests
 
             var writer = Writer(new RunsUiThread(), db =>
             {
-                try
-                {
-                    db.Save(new CancelsPartWay());
-                }
-                catch (Exception)
-                {
-                    // What `MainForm.SaveDatabase` does with it: a warning of its own, and a
-                    // return that tells its caller nothing.
-                }
+                // What `MainForm.SaveDatabase` does with it: a warning of its own, and a
+                // return that tells its caller nothing.
+                _ = Thrown.By(() => db.Save(new CancelsPartWay()));
             });
 
             var outcome = writer.Change(
@@ -694,24 +689,26 @@ namespace KeePassGate.Host.Tests
         [Test]
         public void A_connection_waits_for_the_write_in_flight_and_no_longer_than_it_is_told()
         {
-            var inside = new System.Threading.ManualResetEventSlim();
-            var release = new System.Threading.ManualResetEventSlim();
-            var writer = Writer(new RunsUiThread(), db =>
+            using (var inside = new System.Threading.ManualResetEventSlim())
+            using (var release = new System.Threading.ManualResetEventSlim())
             {
-                inside.Set();
-                release.Wait(TimeSpan.FromSeconds(10));
-                db.Modified = false;
-            });
+                var writer = Writer(new RunsUiThread(), db =>
+                {
+                    inside.Set();
+                    release.Wait(TimeSpan.FromSeconds(10));
+                    db.Modified = false;
+                });
 
-            var writing = System.Threading.Tasks.Task.Run(
-                () => writer.Change(_database.Database, () => VaultWrite.Created("abcd")));
-            Assert.That(inside.Wait(TimeSpan.FromSeconds(10)), Is.True);
+                var writing = System.Threading.Tasks.Task.Run(
+                    () => writer.Change(_database.Database, () => VaultWrite.Created("abcd")));
+                Assert.That(inside.Wait(TimeSpan.FromSeconds(10)), Is.True);
 
-            Assert.That(writer.Quiet(TimeSpan.FromMilliseconds(50)), Is.False, "the write is still saving");
+                Assert.That(writer.Quiet(TimeSpan.FromMilliseconds(50)), Is.False, "the write is still saving");
 
-            release.Set();
-            Assert.That(writer.Quiet(TimeSpan.FromSeconds(10)), Is.True, "and is waited for once it ends");
-            Assert.That(writing.Result.Ok, Is.True);
+                release.Set();
+                Assert.That(writer.Quiet(TimeSpan.FromSeconds(10)), Is.True, "and is waited for once it ends");
+                Assert.That(writing.Result.Ok, Is.True);
+            }
         }
 
         [Test]

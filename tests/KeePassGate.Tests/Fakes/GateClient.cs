@@ -6,6 +6,7 @@ using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading;
+using KeePassGate.Testing;
 
 namespace KeePassGate.Tests.Fakes
 {
@@ -84,13 +85,17 @@ namespace KeePassGate.Tests.Fakes
             return Send(port, serverName, certificate, request, gap, 0);
         }
 
+        /// <summary>
+        /// Connects over TLS 1.3, writes the request at the pace asked for, and reads what came
+        /// back, or why nothing did.
+        /// </summary>
         /// <param name="promptly">How many bytes from the start go at once, before the gap applies.</param>
         private static GateReply Send(
             int port, string serverName, X509Certificate2 certificate, byte[] request, TimeSpan gap, int promptly)
         {
             var reply = new GateReply();
 
-            try
+            var thrown = Thrown.By(() =>
             {
                 using (var tcp = new TcpClient())
                 {
@@ -137,10 +142,11 @@ namespace KeePassGate.Tests.Fakes
                         reply.Raw = ReadToEnd(tls);
                     }
                 }
-            }
-            catch (Exception error)
+            });
+
+            if (thrown != null)
             {
-                reply.Failure = error.GetType().Name + ": " + error.Message;
+                reply.Failure = thrown.GetType().Name + ": " + thrown.Message;
                 return reply;
             }
 
@@ -176,7 +182,7 @@ namespace KeePassGate.Tests.Fakes
         {
             var reply = new GateReply();
 
-            try
+            var thrown = Thrown.By(() =>
             {
                 using (var tcp = new TcpClient())
                 {
@@ -190,10 +196,11 @@ namespace KeePassGate.Tests.Fakes
                     reply.Raw = ReadToEnd(stream);
                     reply.Answered = !string.IsNullOrEmpty(reply.Raw);
                 }
-            }
-            catch (Exception error)
+            });
+
+            if (thrown != null)
             {
-                reply.Failure = error.GetType().Name + ": " + error.Message;
+                reply.Failure = thrown.GetType().Name + ": " + thrown.Message;
             }
 
             return reply;
@@ -233,29 +240,30 @@ namespace KeePassGate.Tests.Fakes
             // fault the body reader was fixed for and just as invisible until a name has an
             // accent in it.
             var buffer = new byte[4096];
-            var body = new MemoryStream();
-
-            while (true)
+            using (var body = new MemoryStream())
             {
-                int read;
-                try
+                while (true)
                 {
-                    read = stream.Read(buffer, 0, buffer.Length);
-                }
-                catch (IOException)
-                {
-                    break;
+                    int read;
+                    try
+                    {
+                        read = stream.Read(buffer, 0, buffer.Length);
+                    }
+                    catch (IOException)
+                    {
+                        break;
+                    }
+
+                    if (read <= 0)
+                    {
+                        break;
+                    }
+
+                    body.Write(buffer, 0, read);
                 }
 
-                if (read <= 0)
-                {
-                    break;
-                }
-
-                body.Write(buffer, 0, read);
+                return Encoding.UTF8.GetString(body.ToArray());
             }
-
-            return Encoding.UTF8.GetString(body.ToArray());
         }
 
         private static int StatusOf(string response)

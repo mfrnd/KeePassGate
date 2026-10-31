@@ -288,6 +288,25 @@ def create_connection(host: str, port: int, timeout: float) -> socket.socket:
     return socket.create_connection((host, port), timeout=timeout)
 
 
+def pinned_context(context: ssl.SSLContext) -> ssl.SSLContext:
+    """Refuse a context offering anything but TLS 1.3, and hand back one that offers only that.
+
+    Every context this client makes is pinned so already. This is what keeps one made some other way
+    from reaching the socket, where it would offer a version the gate never speaks to whatever
+    answers on the port.
+    """
+    if (
+        context.minimum_version != ssl.TLSVersion.TLSv1_3
+        or context.maximum_version != ssl.TLSVersion.TLSv1_3
+    ):
+        raise ValueError(
+            "context offers TLS 1.3 alone, as the gate speaks no other version, and this "
+            f"one offers {context.minimum_version.name} to {context.maximum_version.name}"
+        )
+
+    return context
+
+
 def dial_limit(dial: Dial) -> Dial:
     """Refuse a `dial` that could not be called, where it is given, and hand back one that could."""
     if not callable(dial):
@@ -748,6 +767,7 @@ def connect(
     port_number(port)
     connection_limit(connection_timeout)
     dial_limit(dial)
+    pinned_context(context)
 
     try:
         # Read as anything at all, because a caller's `dial` can hand back anything at all.
@@ -780,6 +800,7 @@ def connect(
         raise TransportError(f"the socket dial handed back could not be used: {error}") from error
 
     try:
+        # codeql[py/insecure-protocol] refused above unless it offers TLS 1.3 alone
         wrapped = context.wrap_socket(raw, server_hostname=server_name)
     except (OSError, ssl.SSLError) as error:
         raw.close()

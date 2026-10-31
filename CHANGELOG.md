@@ -6,14 +6,26 @@ moves: at 0.x, a minor version for anything added to or broken in either half, a
 fix that changes no interface.
 
 Newest first. A version is written here before it is released, under its own heading, and says
-**unreleased** until it is. A patch releases only the half it fixes, so its heading names that
-half, as `0.1.1, the plugin, unreleased`, and a minor version names none, since it releases both.
+**unreleased** until it is. A patch releases only what it fixes, so its heading names the halves
+it releases, as `0.1.1, the plugin and the client, unreleased` does, and a minor version names
+none, since it releases both.
 
-## 0.1.1, the plugin, unreleased
+## 0.1.1, the plugin and the client, unreleased
 
 - **The plugin is compiled at C# 13**, and the build needs the .NET SDK 9 or later. Nothing it does
   changes: the compiled plugin differs only in caching a delegate made from a static method rather
   than making one at every use, and in an attribute the compiler adds.
+- **The plugin's code answers every finding of CodeQL's `security-and-quality` queries**, each fixed
+  or suppressed with its reason where it is made, and nothing the plugin does changes. Its six calls
+  into Windows go through one class, and the path of a file it writes is joined by a helper that
+  refuses a part taking the place of those before it. A check the code before it had already
+  settled, and a loop that only asked whether there was anything, are gone. A loop that filters,
+  maps or tests a list is the query it is, and the ASCII letters, digits and hexadecimal digits the
+  wire's grammars allow are asked of one class. The writers it builds JSON with, and the stream
+  a request's body is read into, are disposed once they are read, and what it disposed by hand is
+  disposed by `using`, or on every way out where it is handed on.
+- **PyKeePassGate refuses to connect over a TLS context offering anything but TLS 1.3**, before it
+  dials, which every context it makes already did, so nothing a program built on it does changes.
 
 ## 0.1.0, 2026-10-25
 

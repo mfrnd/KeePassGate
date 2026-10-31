@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using KeePassGate.Acl;
 
 namespace KeePassGate.Testing
@@ -122,10 +123,9 @@ namespace KeePassGate.Testing
             var held = new List<AclVerb>();
             var from = 0;
 
-            foreach (var letter in mask)
+            // Searched for after the last one found, so a letter out of order is not found.
+            foreach (var at in mask.Select(letter => letters.IndexOf(letter, from)))
             {
-                // Searched for after the last one found, so a letter out of order is not found.
-                var at = letters.IndexOf(letter, from);
                 if (at < 0)
                 {
                     return null;

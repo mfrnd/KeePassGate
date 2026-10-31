@@ -1,4 +1,5 @@
 using System.IO;
+using KeePassGate.Diagnostics;
 using NUnit.Framework;
 
 namespace KeePassGate.Host.Tests.Live
@@ -21,7 +22,7 @@ namespace KeePassGate.Host.Tests.Live
                 var at = new DirectoryInfo(TestContext.CurrentContext.TestDirectory);
                 while (at != null)
                 {
-                    if (File.Exists(Path.Combine(at.FullName, "KeePassGate.sln")))
+                    if (File.Exists(Paths.Join(at.FullName, "KeePassGate.sln")))
                     {
                         return at.FullName;
                     }

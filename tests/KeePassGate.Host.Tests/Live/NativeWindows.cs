@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Runtime.InteropServices;
 using System.Text;
+using KeePassGate.Testing;
 
 namespace KeePassGate.Host.Tests.Live
 {
@@ -14,22 +14,6 @@ namespace KeePassGate.Host.Tests.Live
     /// </summary>
     internal static class NativeWindows
     {
-        private delegate bool EnumWindowsProc(IntPtr window, IntPtr parameter);
-
-        [DllImport("user32.dll")]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        private static extern bool EnumWindows(EnumWindowsProc callback, IntPtr parameter);
-
-        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
-        private static extern int GetWindowText(IntPtr window, StringBuilder text, int count);
-
-        [DllImport("user32.dll")]
-        private static extern uint GetWindowThreadProcessId(IntPtr window, out uint processId);
-
-        [DllImport("user32.dll")]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        private static extern bool IsWindowVisible(IntPtr window);
-
         public sealed class Window
         {
             public Window(IntPtr handle, string title)
@@ -67,20 +51,20 @@ namespace KeePassGate.Host.Tests.Live
             var found = new List<Window>();
             var wanted = (uint)process.Id;
 
-            EnumWindows((window, parameter) =>
+            User32.EnumWindows((window, parameter) =>
             {
                 uint owner;
 
                 // A window that went away between being enumerated and being asked about answers
                 // with a thread of zero, and belongs to nobody rather than to us.
-                if (GetWindowThreadProcessId(window, out owner) == 0 ||
-                    owner != wanted || !IsWindowVisible(window))
+                if (User32.GetWindowThreadProcessId(window, out owner) == 0 ||
+                    owner != wanted || !User32.IsWindowVisible(window))
                 {
                     return true;
                 }
 
                 var text = new StringBuilder(512);
-                var length = GetWindowText(window, text, text.Capacity);
+                var length = User32.GetWindowText(window, text, text.Capacity);
                 var title = length <= 0 ? string.Empty : text.ToString();
                 if (untitled || title.Length > 0)
                 {

@@ -38,6 +38,7 @@ namespace KeePassGate.Ui
         {
         }
 
+        /// <summary>The same, for a page captioned and named by the caller.</summary>
         /// <param name="pageText">
         /// The caption on the tab strip, which is `GateName.OnATab` for both of the pages this
         /// plugin builds. A parameter rather than a constant so that the two pages are built by one
@@ -50,6 +51,7 @@ namespace KeePassGate.Ui
         {
         }
 
+        /// <summary>The same, with the plugin's icon on the tab beside its caption.</summary>
         /// <param name="icon">
         /// Asked for a fresh picture to put on the tab, or null for none. A function rather than an
         /// image because the icons belong to KeePass's main window, which exists only inside a
@@ -218,16 +220,12 @@ namespace KeePassGate.Ui
 
         private static void RemovePage(TabControl tabControl, TabPage page)
         {
-            try
+            using (page)
             {
                 if (tabControl != null && tabControl.TabPages.Contains(page))
                 {
                     tabControl.TabPages.Remove(page);
                 }
-            }
-            finally
-            {
-                page.Dispose();
             }
         }
 

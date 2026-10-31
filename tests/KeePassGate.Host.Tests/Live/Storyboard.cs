@@ -7,6 +7,7 @@ using System.Drawing.Text;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Text;
 
 namespace KeePassGate.Host.Tests.Live
 {
@@ -49,6 +50,7 @@ namespace KeePassGate.Host.Tests.Live
     /// **What cannot be settled at its source is replaced in the text**, by a value written down
     /// and patterned so that nobody takes it for a real one. See <see cref="Invent"/>.
     /// </remarks>
+    // codeql[cs/coupled-types] `Layout` is a private part of it, nested inside it
     internal sealed class Storyboard : IDisposable
     {
         /// <summary>Which side of the picture a step happens on.</summary>
@@ -212,11 +214,12 @@ namespace KeePassGate.Host.Tests.Live
         /// <summary>A command typed at the prompt, a character at a time, and Enter.</summary>
         public void Type(string commandLine)
         {
-            _typing = string.Empty;
+            var typed = new StringBuilder();
             _blinking = 0;
             foreach (var character in commandLine)
             {
-                _typing += character;
+                typed.Append(character);
+                _typing = typed.ToString();
                 Emit(Keystroke);
             }
 
@@ -318,9 +321,8 @@ namespace KeePassGate.Host.Tests.Live
         private int UntilTheCapsChange()
         {
             var soonest = int.MaxValue;
-            foreach (var cap in _caps)
+            foreach (var until in _caps.Select(cap => cap.Left > KeyFades ? cap.Left - KeyFades : FadeStep))
             {
-                var until = cap.Left > KeyFades ? cap.Left - KeyFades : FadeStep;
                 soonest = Math.Min(soonest, Math.Max(1, until));
             }
 
@@ -931,13 +933,28 @@ namespace KeePassGate.Host.Tests.Live
             /// </remarks>
             private static Font Named(string name, float pixels, FontStyle style, FontFamily otherwise)
             {
+                // codeql[cs/missed-using-statement] disposed only when it is not kept, which no `using` can do
                 var font = new Font(name, pixels, style, GraphicsUnit.Pixel);
-                if (string.Equals(font.Name, name, StringComparison.OrdinalIgnoreCase))
+
+                // Let go of on every way out but the return, a throw while GDI+ is asked for the
+                // name among them.
+                var handedOver = false;
+                try
                 {
-                    return font;
+                    if (string.Equals(font.Name, name, StringComparison.OrdinalIgnoreCase))
+                    {
+                        handedOver = true;
+                        return font;
+                    }
+                }
+                finally
+                {
+                    if (!handedOver)
+                    {
+                        font.Dispose();
+                    }
                 }
 
-                font.Dispose();
                 return new Font(otherwise, pixels, style, GraphicsUnit.Pixel);
             }
         }

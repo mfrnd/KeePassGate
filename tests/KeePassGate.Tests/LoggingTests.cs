@@ -99,7 +99,7 @@ namespace KeePassGate.Tests
         {
             _listener = new CapturingListener();
             Trace.Listeners.Add(_listener);
-            _directory = Path.Combine(Path.GetTempPath(), "KeePassGateTests", Guid.NewGuid().ToString("N"));
+            _directory = Paths.Join(Path.GetTempPath(), "KeePassGateTests", Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(_directory);
         }
 
@@ -113,6 +113,8 @@ namespace KeePassGate.Tests
             }
             catch (IOException)
             {
+                // A log file still open somewhere as the test ends. The directory is named for
+                // this test alone, under the temporary folder, so a leftover is in no other test's way.
             }
         }
 
@@ -120,7 +122,7 @@ namespace KeePassGate.Tests
         public void Every_level_reaches_the_trace_listeners()
         {
             // No file, because the one a log with nothing named writes to is this account's own.
-            var log = new TraceGateLog((string)null);
+            var log = new TraceGateLog(filePath: null);
 
             log.Info("one");
             log.Warn("two");
@@ -134,7 +136,7 @@ namespace KeePassGate.Tests
         [Test]
         public void A_named_file_receives_one_line_per_event()
         {
-            var path = Path.Combine(_directory, "gate.log");
+            var path = Paths.Join(_directory, "gate.log");
             var log = new TraceGateLog(path);
 
             log.Info("one");
@@ -149,7 +151,7 @@ namespace KeePassGate.Tests
         [Test]
         public void A_second_log_appends_rather_than_truncates()
         {
-            var path = Path.Combine(_directory, "gate.log");
+            var path = Paths.Join(_directory, "gate.log");
             new TraceGateLog(path).Info("first run");
             new TraceGateLog(path).Info("second run");
 
@@ -159,7 +161,7 @@ namespace KeePassGate.Tests
         [Test]
         public void The_file_can_be_read_while_the_plugin_is_still_writing_it()
         {
-            var path = Path.Combine(_directory, "gate.log");
+            var path = Paths.Join(_directory, "gate.log");
             var log = new TraceGateLog(path);
             log.Info("first");
 
@@ -174,9 +176,9 @@ namespace KeePassGate.Tests
         public void A_file_that_cannot_be_written_does_not_stop_the_plugin()
         {
             // A file where the directory would have to be, which no write can get past.
-            var blocker = Path.Combine(_directory, "not-a-directory");
+            var blocker = Paths.Join(_directory, "not-a-directory");
             File.WriteAllText(blocker, string.Empty);
-            var log = new TraceGateLog(Path.Combine(blocker, "gate.log"));
+            var log = new TraceGateLog(Paths.Join(blocker, "gate.log"));
 
             Assert.DoesNotThrow(() => log.Info("one"));
             Assert.DoesNotThrow(() => log.Info("two"));
@@ -189,7 +191,7 @@ namespace KeePassGate.Tests
         [Test]
         public void Without_a_file_nothing_is_written_to_disk()
         {
-            var log = new TraceGateLog((string)null);
+            var log = new TraceGateLog(filePath: null);
 
             log.Info("one");
 
@@ -201,7 +203,7 @@ namespace KeePassGate.Tests
         {
             // The default is under this account's application data, in a directory nothing makes
             // until something is written there.
-            var path = Path.Combine(_directory, "not-yet", "gate.log");
+            var path = Paths.Join(_directory, "not-yet", "gate.log");
 
             new TraceGateLog(path).Info("one");
 
@@ -211,7 +213,7 @@ namespace KeePassGate.Tests
         [Test]
         public void The_file_rolls_rather_than_growing_without_end()
         {
-            var path = Path.Combine(_directory, "gate.log");
+            var path = Paths.Join(_directory, "gate.log");
             Grow(path, TraceGateLog.RollAt + 1);
 
             new TraceGateLog(path).Info("one");
@@ -223,7 +225,7 @@ namespace KeePassGate.Tests
         [Test]
         public void Rolling_twice_keeps_one_previous_file_and_no_more()
         {
-            var path = Path.Combine(_directory, "gate.log");
+            var path = Paths.Join(_directory, "gate.log");
             File.WriteAllText(path + ".1", "older");
             Grow(path, TraceGateLog.RollAt + 1);
 
@@ -237,7 +239,7 @@ namespace KeePassGate.Tests
         {
             // Setting the file aside bounds it and is no condition for writing to it. A viewer
             // holding the previous file stops it being deleted, and the log goes on regardless.
-            var path = Path.Combine(_directory, "gate.log");
+            var path = Paths.Join(_directory, "gate.log");
             Grow(path, TraceGateLog.RollAt + 1);
 
             using (new FileStream(path + ".1", FileMode.Create, FileAccess.Write, FileShare.ReadWrite))
@@ -256,7 +258,7 @@ namespace KeePassGate.Tests
         [Test]
         public void A_log_with_nothing_named_writes_where_the_environment_says()
         {
-            var path = Path.Combine(_directory, "named.log");
+            var path = Paths.Join(_directory, "named.log");
             var was = Environment.GetEnvironmentVariable(TraceGateLog.LogFileVariable);
             try
             {
@@ -286,7 +288,7 @@ namespace KeePassGate.Tests
                 var local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
                 var logPath = PluginFiles.Resolve(TraceGateLog.LogFileVariable, TraceGateLog.DefaultFileName);
 
-                Assert.That(logPath, Is.EqualTo(Path.Combine(local, "KeePassGate", "plugin.log")));
+                Assert.That(logPath, Is.EqualTo(Paths.Join(local, "KeePassGate", "plugin.log")));
                 Assert.That(Path.GetDirectoryName(JsonLinesAudit.DefaultPath()), Is.EqualTo(Path.GetDirectoryName(logPath)));
             }
             finally

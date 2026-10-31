@@ -9,6 +9,7 @@ using System.Text;
 using System.Threading;
 using KeePassGate.Authority;
 using KeePassGate.Gate;
+using KeePassGate.Testing;
 using KeePassGate.Tests.Fakes;
 using KeePassGate.Transport;
 using NUnit.Framework;
@@ -272,7 +273,7 @@ namespace KeePassGate.Tests
 
             var server = new Thread(delegate()
             {
-                try
+                var thrown = Thrown.By(() =>
                 {
                     using (var accepted = listener.AcceptTcpClient())
                     {
@@ -281,10 +282,11 @@ namespace KeePassGate.Tests
                         result = "ok";
                         protocol.Close();
                     }
-                }
-                catch (Exception error)
+                });
+
+                if (thrown != null)
                 {
-                    result = error.GetType().Name + ": " + error.Message;
+                    result = thrown.GetType().Name + ": " + thrown.Message;
                 }
             });
 

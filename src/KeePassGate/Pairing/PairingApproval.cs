@@ -29,6 +29,7 @@ namespace KeePassGate.Pairing
         {
         }
 
+        /// <summary>The same, with everything the dialog shows beside what was asked.</summary>
         /// <param name="databaseName">
         /// What KeePass calls this database. A dialog naming it only by its fingerprint asks the
         /// operator to recognize sixteen hexadecimal characters.
@@ -247,6 +248,7 @@ namespace KeePassGate.Pairing
             get { return _decision == PairingDecision.Approved; }
         }
 
+        /// <summary>The operator's yes, and the profiles the record is to carry.</summary>
         /// <param name="lifetime">How long the certificate lasts, or null for a year.</param>
         public static PairingApproval Approved(IReadOnlyList<string> profiles, TimeSpan? lifetime = null)
         {

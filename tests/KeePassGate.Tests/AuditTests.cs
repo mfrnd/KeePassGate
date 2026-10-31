@@ -4,6 +4,7 @@ using System.Security.AccessControl;
 using System.Security.Principal;
 using System.Text;
 using KeePassGate.Audit;
+using KeePassGate.Diagnostics;
 using KeePassGate.Transport;
 using NUnit.Framework;
 
@@ -211,7 +212,7 @@ namespace KeePassGate.Tests
         [SetUp]
         public void SetUp()
         {
-            _directory = Path.Combine(Path.GetTempPath(), "KeePassGateTests", Guid.NewGuid().ToString("N"));
+            _directory = Paths.Join(Path.GetTempPath(), "KeePassGateTests", Guid.NewGuid().ToString("N"));
         }
 
         [TearDown]
@@ -227,6 +228,8 @@ namespace KeePassGate.Tests
             }
             catch (IOException)
             {
+                // An audit file still open somewhere as the test ends. The directory is named for
+                // this test alone, under the temporary folder, so a leftover is in no other test's way.
             }
         }
 
@@ -241,7 +244,7 @@ namespace KeePassGate.Tests
             // right at once, so it is refused outright; a `FileStream` asking for
             // `FileSystemRights.AppendData` alone is let in, and adds to the end.
             Directory.CreateDirectory(_directory);
-            var path = Path.Combine(_directory, "audit.jsonl");
+            var path = Paths.Join(_directory, "audit.jsonl");
             File.WriteAllText(path, "first\n");
             Allow(path, AppendOnly);
 
@@ -267,7 +270,7 @@ namespace KeePassGate.Tests
             // What the measurement above is for. The audit used `File.AppendAllText`, so on a file
             // an administrator had made append only it recorded nothing at all, and said so once.
             Directory.CreateDirectory(_directory);
-            var path = Path.Combine(_directory, "audit.jsonl");
+            var path = Paths.Join(_directory, "audit.jsonl");
             File.WriteAllText(path, string.Empty);
             Allow(path, AppendOnly);
 
@@ -296,7 +299,7 @@ namespace KeePassGate.Tests
             // then fails, which the audit already survived: it goes on writing past its bound, and
             // says once that it is doing so.
             Directory.CreateDirectory(_directory);
-            var path = Path.Combine(_directory, "audit.jsonl");
+            var path = Paths.Join(_directory, "audit.jsonl");
             Grow(path, JsonLinesAudit.RollAt + 1);
             File.WriteAllText(path + ".1", "older\n");
             Allow(path, AppendOnly);
@@ -396,7 +399,7 @@ namespace KeePassGate.Tests
         [Test]
         public void Decisions_are_appended_one_to_a_line()
         {
-            var path = Path.Combine(_directory, "audit.jsonl");
+            var path = Paths.Join(_directory, "audit.jsonl");
             var audit = new JsonLinesAudit(path, null);
 
             audit.Record(Entry("readEntry", true));
@@ -413,7 +416,7 @@ namespace KeePassGate.Tests
         [Test]
         public void The_directory_is_made_rather_than_demanded()
         {
-            var path = Path.Combine(Path.Combine(_directory, "made", "up"), "audit.jsonl");
+            var path = Paths.Join(_directory, "made", "up", "audit.jsonl");
 
             new JsonLinesAudit(path, null).Record(Entry("readEntry", true));
 
@@ -426,7 +429,7 @@ namespace KeePassGate.Tests
             // The direction that matters. A full disk must not silently revoke every agent's
             // access, so a failed write is counted and reported and the gate carries on.
             Directory.CreateDirectory(_directory);
-            var path = Path.Combine(_directory, "taken");
+            var path = Paths.Join(_directory, "taken");
             Directory.CreateDirectory(path);
 
             var log = new Fakes.RecordingGateLog();
@@ -449,7 +452,7 @@ namespace KeePassGate.Tests
             // moment it let go, and spent the only report on it: a failure after that one, a full
             // disk or a directory taken away, went unsaid.
             Directory.CreateDirectory(_directory);
-            var path = Path.Combine(_directory, "audit.jsonl");
+            var path = Paths.Join(_directory, "audit.jsonl");
             var log = new Fakes.RecordingGateLog();
             var audit = new JsonLinesAudit(path, log);
 
@@ -485,7 +488,7 @@ namespace KeePassGate.Tests
             // them at once, and the lock around the append is what keeps them apart: without it a
             // probe lost about a third of 6400 lines to sharing violations. Each loss is counted
             // and only the first is reported, so nothing else would notice the lock going.
-            var path = Path.Combine(_directory, "audit.jsonl");
+            var path = Paths.Join(_directory, "audit.jsonl");
             var audit = new JsonLinesAudit(path, null);
             const int threads = 16;
             const int each = 40;
@@ -538,7 +541,7 @@ namespace KeePassGate.Tests
                 var path = JsonLinesAudit.DefaultPath();
 
                 Assert.That(Path.IsPathRooted(path), Is.True);
-                Assert.That(path, Is.EqualTo(Path.Combine(Environment.CurrentDirectory, "audit-invented.jsonl")));
+                Assert.That(path, Is.EqualTo(Paths.Join(Environment.CurrentDirectory, "audit-invented.jsonl")));
             }
             finally
             {
@@ -579,7 +582,7 @@ namespace KeePassGate.Tests
             // Nothing on a screen names this file and the operator's page can only give the
             // default, so a machine where the variable is set, or where the default resolved
             // somewhere unexpected, left the record of what an agent reached to be guessed at.
-            var path = Path.Combine(_directory, "audit.jsonl");
+            var path = Paths.Join(_directory, "audit.jsonl");
             var log = new Fakes.RecordingGateLog();
 
             var audit = new JsonLinesAudit(path, log);
@@ -595,7 +598,7 @@ namespace KeePassGate.Tests
         [Test]
         public void The_file_rolls_rather_than_growing_without_end()
         {
-            var path = Path.Combine(_directory, "audit.jsonl");
+            var path = Paths.Join(_directory, "audit.jsonl");
             Directory.CreateDirectory(_directory);
             Grow(path, JsonLinesAudit.RollAt + 1);
 
@@ -608,7 +611,7 @@ namespace KeePassGate.Tests
         [Test]
         public void Rolling_twice_keeps_one_previous_file_and_no_more()
         {
-            var path = Path.Combine(_directory, "audit.jsonl");
+            var path = Paths.Join(_directory, "audit.jsonl");
             Directory.CreateDirectory(_directory);
             File.WriteAllText(path + ".1", "older");
             Grow(path, JsonLinesAudit.RollAt + 1);
@@ -625,7 +628,7 @@ namespace KeePassGate.Tests
             // the append meant that a file past `RollAt` whose previous copy somebody was holding
             // recorded nothing from then on. The append it skipped would have worked.
             Directory.CreateDirectory(_directory);
-            var path = Path.Combine(_directory, "audit.jsonl");
+            var path = Paths.Join(_directory, "audit.jsonl");
             Grow(path, JsonLinesAudit.RollAt + 1);
 
             // Held the way anything reading a log holds it, which is how this plugin's own log
@@ -661,7 +664,7 @@ namespace KeePassGate.Tests
         {
             // The one reader of the file, for the authority chooser: the newest line for each
             // client asked about, whether it is in the file or in the one set aside before it.
-            var path = Path.Combine(_directory, "audit.jsonl");
+            var path = Paths.Join(_directory, "audit.jsonl");
             Directory.CreateDirectory(_directory);
             var older = new DateTimeOffset(2026, 9, 1, 8, 0, 0, TimeSpan.Zero);
             var newer = new DateTimeOffset(2026, 9, 20, 10, 30, 0, TimeSpan.Zero);
@@ -689,7 +692,7 @@ namespace KeePassGate.Tests
             // a request; the operator's revocation names its certificate under `admissionKey`,
             // which nothing asks about afterwards. The renewal here is of a certificate that came
             // of renewing `aaaa`, so its client key is `aaaa`, and that is no request by `aaaa`.
-            var path = Path.Combine(_directory, "audit.jsonl");
+            var path = Paths.Join(_directory, "audit.jsonl");
             Directory.CreateDirectory(_directory);
             var older = new DateTimeOffset(2026, 9, 1, 8, 0, 0, TimeSpan.Zero);
             var newer = new DateTimeOffset(2026, 9, 20, 10, 30, 0, TimeSpan.Zero);
@@ -715,13 +718,13 @@ namespace KeePassGate.Tests
         [Test]
         public void An_audit_with_no_file_at_all_is_no_answer_rather_than_nobody()
         {
-            Assert.That(JsonLinesAudit.LastSeen(Path.Combine(_directory, "nothing.jsonl"), new[] { "aaaa" }), Is.Null);
+            Assert.That(JsonLinesAudit.LastSeen(Paths.Join(_directory, "nothing.jsonl"), new[] { "aaaa" }), Is.Null);
         }
 
         [Test]
         public void A_line_that_is_not_one_of_ours_is_passed_over()
         {
-            var path = Path.Combine(_directory, "audit.jsonl");
+            var path = Paths.Join(_directory, "audit.jsonl");
             Directory.CreateDirectory(_directory);
             File.WriteAllText(path, "not json at all\n{\"at\":\"yesterday\",\"admissionKey\":\"aaaa\"}\n{\"at\":\"2026-09-01T08:00:00Z\"\n");
 

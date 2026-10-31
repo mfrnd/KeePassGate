@@ -1,6 +1,7 @@
 using System;
 using System.Globalization;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using KeePassGate.Acl;
 using KeePassGate.Spec;
@@ -429,12 +430,10 @@ namespace KeePassGate.Pipeline
             var fields = vault.Fields(uuid);
             if (fields != null)
             {
-                foreach (var field in fields)
+                foreach (var field in fields.Where(
+                    field => string.Equals(field.Name, name, StringComparison.Ordinal)))
                 {
-                    if (string.Equals(field.Name, name, StringComparison.Ordinal))
-                    {
-                        guarded = field.IsProtected;
-                    }
+                    guarded = field.IsProtected;
                 }
             }
 
@@ -519,7 +518,8 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            var made = body == null ? null : body.Text("value");
+            // There is a body here: without one there is no name, and a missing name was refused above.
+            var made = body.Text("value");
             if (Compiled(name, made))
             {
                 Resolved(context);

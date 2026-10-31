@@ -37,7 +37,7 @@ namespace KeePassGate.Tests
             new Dictionary<string, X509Certificate2>(StringComparer.Ordinal);
 
         [OneTimeSetUp]
-        public void Issue()
+        public static void Issue()
         {
             _authority = TestAuthority.New();
         }

@@ -1,7 +1,7 @@
 using System;
-using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows.Forms;
+using KeePassGate.Testing;
 using KeePassGate.Tests.Fakes;
 using KeePassGate.Ui;
 using NUnit.Framework;
@@ -37,7 +37,7 @@ namespace KeePassGate.Tests
                 (main, dialog) =>
                 {
                     WindowEnabling.Preserve(main, () => KeePassBlocksAndUnblocks(main));
-                    enabledAfterTheSave = IsWindowEnabled(main.Handle);
+                    enabledAfterTheSave = User32.IsWindowEnabled(main.Handle);
                 });
 
             Assert.That(enabledAfterTheSave, Is.False,
@@ -55,11 +55,11 @@ namespace KeePassGate.Tests
             InsideAModalDialogOver(
                 (main, dialog) =>
                 {
-                    Assert.That(IsWindowEnabled(main.Handle), Is.False, "the modal loop disabled it");
+                    Assert.That(User32.IsWindowEnabled(main.Handle), Is.False, "the modal loop disabled it");
                     Assert.That(main.Enabled, Is.True, "and did it without touching the property");
 
                     KeePassBlocksAndUnblocks(main);
-                    enabledAfterTheSave = IsWindowEnabled(main.Handle);
+                    enabledAfterTheSave = User32.IsWindowEnabled(main.Handle);
                 });
 
             Assert.That(enabledAfterTheSave, Is.True);
@@ -75,7 +75,7 @@ namespace KeePassGate.Tests
 
                 WindowEnabling.Preserve(main, () => KeePassBlocksAndUnblocks(main));
 
-                Assert.That(IsWindowEnabled(main.Handle), Is.True,
+                Assert.That(User32.IsWindowEnabled(main.Handle), Is.True,
                     "nothing disabled it, so nothing here may");
                 Assert.That(main.Enabled, Is.True);
             }
@@ -128,18 +128,9 @@ namespace KeePassGate.Tests
 
                     dialog.Shown += delegate
                     {
-                        try
-                        {
-                            check(main, dialog);
-                        }
-                        catch (Exception error)
-                        {
-                            failure = error;
-                        }
-                        finally
-                        {
-                            dialog.Close();
-                        }
+                        failure = Thrown.By(() => check(main, dialog));
+
+                        dialog.Close();
                     };
 
                     dialog.ShowDialog(main);
@@ -151,9 +142,5 @@ namespace KeePassGate.Tests
                 }
             }
         }
-
-        [DllImport("user32.dll")]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        private static extern bool IsWindowEnabled(IntPtr window);
     }
 }

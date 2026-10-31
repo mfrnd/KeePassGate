@@ -10,10 +10,11 @@
     <Deterministic>true</Deterministic>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <!-- On, because `tools/DocComments.ps1` leans on it: that tool refuses a block that
-         describes two members or none, and says in as many words that malformed XML is a
-         different fault caught here. It was off, so the fault it deferred to was caught by
-         nobody. CS1591 and CS1573 are the two that demand documentation rather than judge
-         what is written, and those stay off: this is a backstop, not a coverage rule. -->
+         describes two members or has no summary, and leaves two faults to be caught here,
+         malformed XML and a block with no member after it, which is CS1587. It was off, so
+         malformed XML was caught by nobody. CS1591 and CS1573 are the two that demand
+         documentation rather than judge what is written, and those stay off: this is a
+         backstop, not a coverage rule. -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);CS1591;CS1573</NoWarn>
     <NeutralLanguage>en-US</NeutralLanguage>

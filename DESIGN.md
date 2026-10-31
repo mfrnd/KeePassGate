@@ -1619,6 +1619,29 @@ Each step is refusable, and each ends with something that runs.
     on `master` and the weekly one; that the PowerShell is not covered, since CodeQL reads none; and
     that no finding blocks a merge until the ruleset is made to, once the first full analysis has
     been triaged.
+32. **A clean analysis**: every finding the first full analysis made is fixed or suppressed, and
+    from then on a pull request merges only with none left. A suppression is a `codeql[rule-id]`
+    comment on the line above the finding, the reason after it, which is how CodeQL itself reads
+    one, and lint holds every suppression to that one spelling. A pull request's suppressed findings
+    are left out of what it uploads, so none becomes an alert there; every suppression it adds,
+    changes or removes is put to review in a thread the merge waits for, beside one comment listing
+    what it suppresses and counting what the code does; and a finding left anywhere in the analysis
+    fails it, not only one on the lines it changed. `master` uploads everything and dismisses what
+    the code suppresses, with the reason, so the Security tab lists every suppression. The CodeQL
+    version moves only with the action's own commit, and the ruleset requires the verdict and every
+    conversation resolved. No rule is turned off in the configuration: a finding that cannot be
+    fixed is suppressed where it is, like any other.
+    **Done.** Every finding the first full analysis made is fixed, or suppressed where it is made
+    with its reason, 122 suppressions in all and no rule turned off. What this settles is that a
+    suppression is CodeQL's own comment, read with CodeQL's own patterns and held by lint to one
+    spelling; that a pull request uploads its findings less the suppressed ones, because code
+    scanning makes an alert of a finding CodeQL marks suppressed; that the verdict is taken over the
+    whole analysis, because a pull request's own upload holds only the lines it changed; that
+    `master` dismisses each suppressed finding with its comment's reason and opens again a dismissal
+    the code no longer backs; that the threads go out twenty to a review, because GitHub refuses a
+    review of more than 80 comments; and that the ruleset requires `code scanning passed`, every
+    conversation resolved and no new alert at any severity, because the CodeQL check succeeds with a
+    new warning and only the ruleset's threshold stops one.
 
 Steps 5 to 8 are the ones that prove the design. Step 5 is deliberately early, because the
 `CustomData` dialog hazard is the thing most likely to invalidate the storage decision, and finding

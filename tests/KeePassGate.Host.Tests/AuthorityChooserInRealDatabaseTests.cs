@@ -98,10 +98,11 @@ namespace KeePassGate.Host.Tests
             Assert.That(_database.Database.CustomData.Exists(AuthorityKeys.AuthorityKey(_candidates[1])), Is.False,
                 "the loser's document is pruned in the same write");
 
-            var served = _targets.Current().Single();
-            Assert.That(served.DatabaseId, Is.EqualTo(_candidates[0]));
-            Assert.That(served.Unavailable, Is.Null);
-            served.Dispose();
+            using (var served = _targets.Current().Single())
+            {
+                Assert.That(served.DatabaseId, Is.EqualTo(_candidates[0]));
+                Assert.That(served.Unavailable, Is.Null);
+            }
         }
 
         [Test]

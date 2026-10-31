@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Net;
@@ -56,6 +57,7 @@ namespace KeePassGate.Host.Tests.Live
         private readonly string _root;
         private int _port;
         private TcpListener _reservation;
+        // codeql[cs/missed-using-statement] a field, cleared as it is disposed so that nothing reads it disposed
         private Process _process;
 
         private ThrowawayKeePass(string root, TcpListener reservation)
@@ -93,12 +95,12 @@ namespace KeePassGate.Host.Tests.Live
 
         public string ExePath
         {
-            get { return Path.Combine(_root, "KeePass.exe"); }
+            get { return Paths.Join(_root, "KeePass.exe"); }
         }
 
         public string DatabasePath
         {
-            get { return Path.Combine(_root, "throwaway.kdbx"); }
+            get { return Paths.Join(_root, "throwaway.kdbx"); }
         }
 
         /// <summary>
@@ -114,12 +116,12 @@ namespace KeePassGate.Host.Tests.Live
         /// </remarks>
         public string AuditPath
         {
-            get { return Path.Combine(_root, "audit.jsonl"); }
+            get { return Paths.Join(_root, "audit.jsonl"); }
         }
 
         public string PluginLogPath
         {
-            get { return Path.Combine(_root, "keepassgate.log"); }
+            get { return Paths.Join(_root, "keepassgate.log"); }
         }
 
         /// <summary>
@@ -128,7 +130,7 @@ namespace KeePassGate.Host.Tests.Live
         /// </summary>
         public string EndedPath
         {
-            get { return Path.Combine(_root, "ended.txt"); }
+            get { return Paths.Join(_root, "ended.txt"); }
         }
 
         public Process Process
@@ -161,27 +163,27 @@ namespace KeePassGate.Host.Tests.Live
         public static ThrowawayKeePass Create(string workingDirectory, bool withAuthority, int lockAfterSeconds)
         {
             // No identifier here: the working directory this sits in is already one per session.
-            var root = Path.Combine(workingDirectory, "keepass");
+            var root = Paths.Join(workingDirectory, "keepass");
             Directory.CreateDirectory(root);
 
             var source = KeePassDev.Directory;
             foreach (var name in RequiredFiles)
             {
-                var from = Path.Combine(source, name);
+                var from = Paths.Join(source, name);
                 if (!File.Exists(from))
                 {
                     throw new FileNotFoundException("The test copy of KeePass is incomplete.", from);
                 }
 
-                File.Copy(from, Path.Combine(root, name));
+                File.Copy(from, Paths.Join(root, name));
             }
 
             foreach (var name in OptionalFiles)
             {
-                var from = Path.Combine(source, name);
+                var from = Paths.Join(source, name);
                 if (File.Exists(from))
                 {
-                    File.Copy(from, Path.Combine(root, name));
+                    File.Copy(from, Paths.Join(root, name));
                 }
             }
 
@@ -190,6 +192,7 @@ namespace KeePassGate.Host.Tests.Live
             // Given back if anything below throws. Nothing else holds the instance until it is
             // returned, so a failure here left the reserved port bound until a collection found
             // the socket, and the next fixture in the same run quietly took another port.
+            // codeql[cs/missed-using-statement] disposed only when it is not kept, which no `using` can do
             var installation = new ThrowawayKeePass(root, Reserve());
             var built = false;
             try
@@ -257,6 +260,8 @@ namespace KeePassGate.Host.Tests.Live
             }
             catch (SocketException)
             {
+                // Being given up either way: the listener is never used again, and a port that
+                // stayed taken is reported by the gate when it tries to listen on it.
             }
         }
 
@@ -532,9 +537,13 @@ namespace KeePassGate.Host.Tests.Live
             }
             catch (IOException)
             {
+                // A file still open in a KeePass that has not finished exiting. The next session
+                // of this fixture ends any such KeePass and deletes what is left before it begins.
             }
             catch (UnauthorizedAccessException)
             {
+                // The copied KeePass still running, whose program Windows will not delete. Left
+                // for that same next session.
             }
         }
 
@@ -562,7 +571,7 @@ namespace KeePassGate.Host.Tests.Live
         private static void WriteConfiguration(string root, int lockAfterSeconds)
         {
             File.WriteAllText(
-                Path.Combine(root, "KeePass.config.xml"), ConfigurationLockingAfter(lockAfterSeconds), new UTF8Encoding(false));
+                Paths.Join(root, "KeePass.config.xml"), ConfigurationLockingAfter(lockAfterSeconds), new UTF8Encoding(false));
         }
 
         /// <summary>
@@ -620,9 +629,9 @@ namespace KeePassGate.Host.Tests.Live
             // In a directory of its own under `plugins`, which is where `build.ps1 -Task Deploy`
             // and the operator's documentation put it, so that the live tier loads the layout an
             // installation has rather than one nobody ships.
-            var plugins = Path.Combine(_root, "plugins", "KeePassGate");
+            var plugins = Paths.Join(_root, "plugins", "KeePassGate");
             Directory.CreateDirectory(plugins);
-            File.Copy(pluginPath, Path.Combine(plugins, Path.GetFileName(pluginPath)));
+            File.Copy(pluginPath, Paths.Join(plugins, Path.GetFileName(pluginPath)));
 
             // And what it needs, which is how the live test proves that a plugin with dependencies
             // actually loads: KeePass uses Assembly.LoadFrom, which probes the plugin's own
@@ -642,18 +651,18 @@ namespace KeePassGate.Host.Tests.Live
             var beside = Path.GetDirectoryName(pluginPath);
             foreach (var dependency in NeededBy(pluginAssembly, beside))
             {
-                File.Copy(dependency, Path.Combine(plugins, Path.GetFileName(dependency)), true);
+                File.Copy(dependency, Paths.Join(plugins, Path.GetFileName(dependency)), true);
             }
 
             // And their notices, which each of their licenses asks to go with every copy, and which
             // `build.ps1 -Task Deploy` puts beside them as well.
-            var notices = Path.Combine(Repository.Root, "THIRD-PARTY-NOTICES.md");
-            File.Copy(notices, Path.Combine(plugins, Path.GetFileName(notices)));
+            var notices = Paths.Join(Repository.Root, "THIRD-PARTY-NOTICES.md");
+            File.Copy(notices, Paths.Join(plugins, Path.GetFileName(notices)));
 
             var symbols = Path.ChangeExtension(pluginPath, ".pdb");
             if (File.Exists(symbols))
             {
-                File.Copy(symbols, Path.Combine(plugins, Path.GetFileName(symbols)));
+                File.Copy(symbols, Paths.Join(plugins, Path.GetFileName(symbols)));
             }
         }
 
@@ -683,7 +692,7 @@ namespace KeePassGate.Host.Tests.Live
                         continue;
                     }
 
-                    var path = Path.Combine(beside, referenced.Name + ".dll");
+                    var path = Paths.Join(beside, referenced.Name + ".dll");
                     if (!File.Exists(path))
                     {
                         continue;
@@ -745,7 +754,7 @@ namespace KeePassGate.Host.Tests.Live
         /// </remarks>
         public string CopyDatabase(string fileName)
         {
-            var path = Path.Combine(_root, fileName);
+            var path = Paths.Join(_root, fileName);
             File.Copy(DatabasePath, path);
             return path;
         }
@@ -970,9 +979,8 @@ namespace KeePassGate.Host.Tests.Live
                 // record, and a client holds only the names the database still lists: a record
                 // written without them would be a client reaching nothing.
                 var names = ProfileNames.Read(database.CustomData.Get(ProfileNames.CustomDataKey));
-                foreach (var profile in profiles)
+                foreach (var refused in profiles.Select(names.Add))
                 {
-                    var refused = names.Add(profile);
                     if (refused != null)
                     {
                         throw new ArgumentException(refused, nameof(profiles));
@@ -1081,13 +1089,12 @@ namespace KeePassGate.Host.Tests.Live
                 database.Open(IOConnectionInfo.FromPath(DatabasePath), NewKey(), null);
 
                 var profiles = ProfileNames.Read(null);
-                foreach (var name in names)
+                foreach (var refused in names.Select(profiles.Add))
                 {
                     // Answered rather than discarded. A name this plugin would refuse is a name the
                     // operator could not have typed, so a test seeding one is testing a state the
                     // product cannot reach. This used to do that silently, then hand `Write`'s
                     // null to `Set`, which throws about an argument instead.
-                    var refused = profiles.Add(name);
                     if (refused != null)
                     {
                         throw new ArgumentException(refused, nameof(names));
@@ -1345,9 +1352,9 @@ namespace KeePassGate.Host.Tests.Live
         /// </remarks>
         private static TcpListener Reserve(int preferred = Documented)
         {
-            foreach (var port in new[] { preferred, 0 })
+            foreach (var listener in new[] { preferred, 0 }
+                         .Select(port => new TcpListener(IPAddress.Loopback, port)))
             {
-                var listener = new TcpListener(IPAddress.Loopback, port);
                 try
                 {
                     listener.Start();

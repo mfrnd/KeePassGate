@@ -670,6 +670,8 @@ namespace KeePassGate.Host.Tests.Live
                     }
                     catch (ElementNotAvailableException)
                     {
+                        // Closed between being listed and being described. The listing only
+                        // explains the missing menu, and a window that has gone explains nothing.
                     }
                 }
             }

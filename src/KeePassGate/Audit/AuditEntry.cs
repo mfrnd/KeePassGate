@@ -322,55 +322,56 @@ namespace KeePassGate.Audit
             // Written by `Json.NET`, which is here for the request bodies. A node's name comes
             // out of a database this plugin did not write, so what it looks like escaped is a
             // question with one answer in this repository and not two.
-            var text = new StringWriter(CultureInfo.InvariantCulture);
-            var json = new JsonTextWriter(text) { Formatting = Formatting.None };
-
-            json.WriteStartObject();
-
-            json.WritePropertyName("at");
-            json.WriteValue(Moments.Wire(At));
-
-            Member(json, "database", DatabaseId);
-            Member(json, "admissionKey", AdmissionKey);
-            Member(json, "clientKey", ClientKey);
-            Member(json, "operation", OperationId);
-            Member(json, "node", Node);
-            Member(json, "decidedAt", DecidedAt);
-
-            Member(json, "decision", Decision);
-            Member(json, "reason", Reason);
-
-            if (RemovedProfiles != null)
+            using (var text = new StringWriter(CultureInfo.InvariantCulture))
+            using (var json = new JsonTextWriter(text) { Formatting = Formatting.None })
             {
-                json.WritePropertyName("removedProfiles");
-                json.WriteStartArray();
-                foreach (var profile in RemovedProfiles)
+                json.WriteStartObject();
+
+                json.WritePropertyName("at");
+                json.WriteValue(Moments.Wire(At));
+
+                Member(json, "database", DatabaseId);
+                Member(json, "admissionKey", AdmissionKey);
+                Member(json, "clientKey", ClientKey);
+                Member(json, "operation", OperationId);
+                Member(json, "node", Node);
+                Member(json, "decidedAt", DecidedAt);
+
+                Member(json, "decision", Decision);
+                Member(json, "reason", Reason);
+
+                if (RemovedProfiles != null)
                 {
-                    json.WriteValue(profile);
+                    json.WritePropertyName("removedProfiles");
+                    json.WriteStartArray();
+                    foreach (var profile in RemovedProfiles)
+                    {
+                        json.WriteValue(profile);
+                    }
+
+                    json.WriteEndArray();
                 }
 
-                json.WriteEndArray();
+                if (Invitation != null)
+                {
+                    Member(json, "invitation", Invitation);
+                }
+
+                if (Issued != null)
+                {
+                    Member(json, "issued", Issued);
+                }
+
+                if (Requested != null)
+                {
+                    Member(json, "requested", Requested);
+                }
+
+                json.WriteEndObject();
+                json.Flush();
+
+                return text.ToString();
             }
-
-            if (Invitation != null)
-            {
-                Member(json, "invitation", Invitation);
-            }
-
-            if (Issued != null)
-            {
-                Member(json, "issued", Issued);
-            }
-
-            if (Requested != null)
-            {
-                Member(json, "requested", Requested);
-            }
-
-            json.WriteEndObject();
-            json.Flush();
-
-            return text.ToString();
         }
 
         public override string ToString()

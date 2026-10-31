@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Globalization;
+using System.Linq;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using KeePassGate.Diagnostics;
@@ -264,9 +265,8 @@ namespace KeePassGate.Authority
 
             var fields = new Dictionary<string, string>(StringComparer.Ordinal);
 
-            foreach (var line in stored.Split('\n'))
+            foreach (var trimmed in stored.Split('\n').Select(line => line.TrimEnd('\r')))
             {
-                var trimmed = line.TrimEnd('\r');
                 if (trimmed.Length == 0)
                 {
                     continue;

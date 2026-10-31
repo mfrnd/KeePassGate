@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Windows.Automation;
+using KeePassGate.Diagnostics;
 using KeePassGate.Transport;
 using KeePassGate.Ui;
 using NUnit.Framework;
@@ -107,7 +108,7 @@ namespace KeePassGate.Host.Tests.Live
         /// into the database until a client changes one, and this minute after it, so from then
         /// on every picture of the main window covers it.
         /// </summary>
-        private static bool _entryChangedNow;
+        private bool _entryChangedNow;
 
         private void FilmTheLifecycle()
         {
@@ -120,7 +121,7 @@ namespace KeePassGate.Host.Tests.Live
             // On the port nobody has to name, so the command typed is the one a reader types.
             keePass.UseTheDefaultPort();
 
-            var home = Path.Combine(Path.GetDirectoryName(keePass.DatabasePath), "home");
+            var home = Paths.Join(Path.GetDirectoryName(keePass.DatabasePath), "home");
             Directory.CreateDirectory(home);
             var environment = ClientEnvironment(home);
 
@@ -129,7 +130,7 @@ namespace KeePassGate.Host.Tests.Live
                 story.Invent(home, InventedHome);
                 FilmTheJourney(story, keePass, environment);
 
-                var path = Path.Combine(_directory, DocumentationImages.FileName(DocumentationImages.Lifecycle));
+                var path = Paths.Join(_directory, DocumentationImages.FileName(DocumentationImages.Lifecycle));
                 story.Write(path);
                 TestContext.Out.WriteLine("wrote " + path + " (" + new FileInfo(path).Length + " bytes)");
                 _written.Add(DocumentationImages.Lifecycle);
@@ -659,7 +660,7 @@ namespace KeePassGate.Host.Tests.Live
         /// do, at the size its main window opens at here. Asserted rather than assumed, because a
         /// menu cut off at the window's edge would be a picture of half a menu.
         /// </remarks>
-        private static Menu OpenMenu(Storyboard story, KeePassDriver driver, string menu, string item)
+        private Menu OpenMenu(Storyboard story, KeePassDriver driver, string menu, string item)
         {
             var open = new MenuOpen(driver, menu, item);
             var picture = Take(story, driver, driver.MainWindow, "the " + menu + " menu", open, null, EntryList(driver));
@@ -684,7 +685,7 @@ namespace KeePassGate.Host.Tests.Live
         /// A search for nothing, which KeePass answers with every entry in the database, and the
         /// main window photographed once it has.
         /// </summary>
-        private static Storyboard.Shot Search(Storyboard story, KeePassDriver driver, Rectangle box)
+        private Storyboard.Shot Search(Storyboard story, KeePassDriver driver, Rectangle box)
         {
             Keyboard.BringToFront(driver.MainWindow);
             Mouse.Click(box.X + (box.Width / 2), box.Y + (box.Height / 2));
@@ -696,7 +697,7 @@ namespace KeePassGate.Host.Tests.Live
         /// <summary>
         /// The main window, with the focus on the entry list, where no caret blinks.
         /// </summary>
-        private static Storyboard.Shot TakeMain(Storyboard story, KeePassDriver driver, string name)
+        private Storyboard.Shot TakeMain(Storyboard story, KeePassDriver driver, string name)
         {
             return Take(story, driver, driver.MainWindow, name, null, null, EntryList(driver));
         }
@@ -709,7 +710,7 @@ namespace KeePassGate.Host.Tests.Live
         /// caret blinks, and two runs caught it in two phases: measured, that was the whole of the
         /// difference between them. The tab strip is where the pointer goes next.
         /// </remarks>
-        private static Storyboard.Shot TakeOpened(
+        private Storyboard.Shot TakeOpened(
             Storyboard story, KeePassDriver driver, AutomationElement dialog, string name)
         {
             var strip = Uia.WaitFor(
@@ -845,7 +846,7 @@ namespace KeePassGate.Host.Tests.Live
             var cache = Environment.GetEnvironmentVariable("UV_CACHE_DIR");
             if (string.IsNullOrEmpty(cache))
             {
-                cache = Path.Combine(
+                cache = Paths.Join(
                     Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "uv", "cache");
             }
 
@@ -874,7 +875,7 @@ namespace KeePassGate.Host.Tests.Live
         /// <see cref="_entryChangedNow"/>, on every picture of that window from then on, a menu
         /// photographed over it included.
         /// </remarks>
-        private static Storyboard.Shot Take(
+        private Storyboard.Shot Take(
             Storyboard story,
             KeePassDriver driver,
             AutomationElement window,

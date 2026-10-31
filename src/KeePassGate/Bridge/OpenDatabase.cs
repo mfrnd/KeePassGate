@@ -19,6 +19,9 @@ namespace KeePassGate.Bridge
         {
         }
 
+        /// <summary>
+        /// The same, and able to tell the host that the database has changed.
+        /// </summary>
         /// <param name="changed">
         /// Run after the database is marked, to let the host say so on screen. Optional, because
         /// everything above this interface is testable without a window to repaint.
@@ -64,6 +67,7 @@ namespace KeePassGate.Bridge
             get { return new DatabaseNodes(_database); }
         }
 
+        /// <summary>The database's own custom data, as a store over `PwDatabase.CustomData`.</summary>
         /// <remarks>
         /// Built on each read rather than remembered, which costs nothing and keeps this honest
         /// about a database that is locked and opened again.
@@ -114,6 +118,9 @@ namespace KeePassGate.Bridge
         {
         }
 
+        /// <summary>
+        /// The same, and finding databases able to tell the host that they have changed.
+        /// </summary>
         /// <param name="changed">Handed to every database found, so a change shows on screen.</param>
         public DialogDatabases(IGateLog log, Action changed)
         {

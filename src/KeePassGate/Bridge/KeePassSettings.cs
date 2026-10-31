@@ -47,6 +47,7 @@ namespace KeePassGate.Bridge
         {
         }
 
+        /// <summary>The same, writing the configuration another way, for a test.</summary>
         /// <param name="log">Where a port that was set is recorded.</param>
         /// <param name="write">
         /// Writes KeePass's configuration to its file and answers whether it did. KeePass's own

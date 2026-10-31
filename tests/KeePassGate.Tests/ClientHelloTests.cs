@@ -196,56 +196,64 @@ namespace KeePassGate.Tests
         public void It_reads_one_record_and_keeps_every_byte_of_it()
         {
             var hello = ClientHelloBuilder.WithName(Name);
-            var stream = new MemoryStream(hello.Concat(new byte[] { 0xFF, 0xFE }).ToArray());
+            using (var stream = new MemoryStream(hello.Concat(new byte[] { 0xFF, 0xFE }).ToArray()))
+            {
+                var peek = ClientHelloReader.Read(stream);
 
-            var peek = ClientHelloReader.Read(stream);
-
-            Assert.That(peek, Is.Not.Null);
-            Assert.That(peek.ServerName, Is.EqualTo(Name));
-            Assert.That(peek.Bytes, Is.EqualTo(hello), "the bytes have to be replayable into the handshake");
-            Assert.That(stream.Position, Is.EqualTo(hello.Length), "and nothing beyond the record is taken");
+                Assert.That(peek, Is.Not.Null);
+                Assert.That(peek.ServerName, Is.EqualTo(Name));
+                Assert.That(peek.Bytes, Is.EqualTo(hello), "the bytes have to be replayable into the handshake");
+                Assert.That(stream.Position, Is.EqualTo(hello.Length), "and nothing beyond the record is taken");
+            }
         }
 
         [Test]
         public void A_record_that_stops_early_is_refused()
         {
             var hello = ClientHelloBuilder.WithName(Name);
-            var stream = new MemoryStream(hello.Take(hello.Length - 5).ToArray());
-
-            Assert.That(ClientHelloReader.Read(stream), Is.Null);
+            using (var stream = new MemoryStream(hello.Take(hello.Length - 5).ToArray()))
+            {
+                Assert.That(ClientHelloReader.Read(stream), Is.Null);
+            }
         }
 
         [Test]
         public void A_connection_that_says_nothing_is_refused()
         {
-            Assert.That(ClientHelloReader.Read(new MemoryStream(Array.Empty<byte>())), Is.Null);
+            using (var stream = new MemoryStream(Array.Empty<byte>()))
+            {
+                Assert.That(ClientHelloReader.Read(stream), Is.Null);
+            }
         }
 
         [Test]
         public void Something_that_is_not_TLS_is_refused_after_five_bytes()
         {
-            var stream = new MemoryStream(Encoding.ASCII.GetBytes("GET / HTTP/1.1\r\n\r\n"));
-
-            Assert.That(ClientHelloReader.Read(stream), Is.Null);
-            Assert.That(stream.Position, Is.EqualTo(ClientHelloReader.HeaderLength),
-                "A connection that is not TLS costs five bytes and no more.");
+            using (var stream = new MemoryStream(Encoding.ASCII.GetBytes("GET / HTTP/1.1\r\n\r\n")))
+            {
+                Assert.That(ClientHelloReader.Read(stream), Is.Null);
+                Assert.That(stream.Position, Is.EqualTo(ClientHelloReader.HeaderLength),
+                    "A connection that is not TLS costs five bytes and no more.");
+            }
         }
 
         [Test]
         public void A_record_claiming_to_be_larger_than_TLS_allows_is_refused_before_allocating()
         {
             var header = new byte[] { 0x16, 0x03, 0x01, 0xFF, 0xFF };
-            var stream = new MemoryStream(header);
-
-            Assert.That(ClientHelloReader.Read(stream), Is.Null);
+            using (var stream = new MemoryStream(header))
+            {
+                Assert.That(ClientHelloReader.Read(stream), Is.Null);
+            }
         }
 
         [Test]
         public void A_record_of_no_length_is_refused()
         {
-            var stream = new MemoryStream(new byte[] { 0x16, 0x03, 0x01, 0x00, 0x00 });
-
-            Assert.That(ClientHelloReader.Read(stream), Is.Null);
+            using (var stream = new MemoryStream(new byte[] { 0x16, 0x03, 0x01, 0x00, 0x00 }))
+            {
+                Assert.That(ClientHelloReader.Read(stream), Is.Null);
+            }
         }
 
         [Test]
@@ -253,11 +261,14 @@ namespace KeePassGate.Tests
         {
             var hello = new ClientHelloBuilder().Build();
 
-            var peek = ClientHelloReader.Read(new MemoryStream(hello));
+            using (var stream = new MemoryStream(hello))
+            {
+                var peek = ClientHelloReader.Read(stream);
 
-            Assert.That(peek, Is.Not.Null);
-            Assert.That(peek.HasName, Is.False);
-            Assert.That(peek.Bytes, Is.EqualTo(hello));
+                Assert.That(peek, Is.Not.Null);
+                Assert.That(peek.HasName, Is.False);
+                Assert.That(peek.Bytes, Is.EqualTo(hello));
+            }
         }
 
         [Test]

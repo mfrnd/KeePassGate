@@ -390,7 +390,9 @@ def test_opening_a_client_can_say_how_long_to_wait(
     # build one, and it used to take the default and offer no way past it.
     credentials_module.save(tmp_path / "kept", gate.port, bundle)
 
-    assert GateClient.open(tmp_path / "kept", connection_timeout=3.5)._connection_timeout == 3.5
+    opened = GateClient.open(tmp_path / "kept", connection_timeout=3.5)
+
+    assert opened._connection_timeout == 3.5
 
 
 def test_a_client_dials_loopback_unless_it_is_told_otherwise(

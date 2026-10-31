@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Globalization;
+using System.Linq;
 using System.Windows.Forms;
 using KeePassGate.Acl;
 using KeePassGate.Diagnostics;
@@ -839,17 +840,7 @@ namespace KeePassGate.Ui
 
         private static bool Any(IEnumerable<string> names)
         {
-            if (names == null)
-            {
-                return false;
-            }
-
-            foreach (var name in names)
-            {
-                return true;
-            }
-
-            return false;
+            return names != null && Enumerable.Any(names);
         }
 
         /// <summary>
@@ -999,22 +990,21 @@ namespace KeePassGate.Ui
 
             Later(() =>
             {
-                try
+                using (drop)
                 {
-                    keys.Dispose();
-                    work();
-                }
-                catch (Exception error) when (Expected.OfUserInterface(error))
-                {
-                    // Named rather than swallowed whole, and reported on the tab, because this runs
-                    // on the message loop of a password manager and what escapes here closes the
-                    // dialog the operator is working in.
-                    _log.Error("a grant picker could not be closed cleanly", error);
-                    Warn("That choice could not be applied: " + Clipped.Message(error.Message));
-                }
-                finally
-                {
-                    drop.Dispose();
+                    try
+                    {
+                        keys.Dispose();
+                        work();
+                    }
+                    catch (Exception error) when (Expected.OfUserInterface(error))
+                    {
+                        // Named rather than swallowed whole, and reported on the tab, because this runs
+                        // on the message loop of a password manager and what escapes here closes the
+                        // dialog the operator is working in.
+                        _log.Error("a grant picker could not be closed cleanly", error);
+                        Warn("That choice could not be applied: " + Clipped.Message(error.Message));
+                    }
                 }
             });
         }
@@ -1468,6 +1458,10 @@ namespace KeePassGate.Ui
             Save();
         }
 
+        /// <summary>
+        /// Rebuilds the table from the sheet, scrolled where it was, and brings the seal and the
+        /// warning beside it up to date.
+        /// </summary>
         /// <param name="settle">
         /// The profile an edit was about, whose rule the keyboard is on once the table is rebuilt,
         /// or null to leave it where it was.

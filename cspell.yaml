@@ -231,6 +231,12 @@ words:
   - mfrnd
   - notmatch
 
+  # keep the analysis clean: the comment ruff and CodeQL both read, the format CodeQL writes its
+  # findings in, and the option pytest finds the tools by
+  - noqa
+  - SARIF
+  - pythonpath
+
 # **The British spelling of a word, refused wherever it is written.** This repository writes American
 # English, and choosing the language catches only part of that: the American dictionary accepts
 # much of the British doubled L, and a language's own dictionary accepts more of the rest. These are

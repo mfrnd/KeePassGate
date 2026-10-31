@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using KeePassGate.Diagnostics;
 using KeePassGate.Ui;
 
@@ -74,23 +75,17 @@ namespace KeePassGate.Gate
 
         public void Locked()
         {
-            foreach (var screen in _screens)
+            foreach (var screen in _screens.Where(screen => screen != null))
             {
-                if (screen != null)
-                {
-                    screen.Locked();
-                }
+                screen.Locked();
             }
         }
 
         public void Closed()
         {
-            foreach (var screen in _screens)
+            foreach (var screen in _screens.Where(screen => screen != null))
             {
-                if (screen != null)
-                {
-                    screen.Closed();
-                }
+                screen.Closed();
             }
         }
     }
@@ -152,6 +147,9 @@ namespace KeePassGate.Gate
         {
         }
 
+        /// <summary>
+        /// A watch that subscribes to the database events only once <see cref="Start"/> is called.
+        /// </summary>
         /// <param name="connections">
         /// Asked for the connections each time rather than handed them once, so that a watch built
         /// before the listener exists still finds it. The listener is no longer replaced while the
@@ -263,6 +261,7 @@ namespace KeePassGate.Gate
                     Close("a database was unlocked", false);
                 }
             }
+            // codeql[cs/catch-of-all-exceptions] a handler of KeePass's own events, one of the four catch-alls
             catch (Exception error)
             {
                 // One of the places that catches everything, and this is why: it runs on KeePass's
@@ -294,6 +293,7 @@ namespace KeePassGate.Gate
             {
                 _targets.Refresh();
             }
+            // codeql[cs/catch-of-all-exceptions] a handler of KeePass's own events, one of the four catch-alls
             catch (Exception error)
             {
                 // KeePass's thread and KeePass's event, as the two handlers either side of this.
@@ -346,6 +346,7 @@ namespace KeePassGate.Gate
                     Close("a database was closed", false);
                 }
             }
+            // codeql[cs/catch-of-all-exceptions] a handler of KeePass's own events, one of the four catch-alls
             catch (Exception error)
             {
                 // The same reason as the unlock above: KeePass's thread, KeePass's event, and

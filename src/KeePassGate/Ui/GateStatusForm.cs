@@ -64,6 +64,9 @@ namespace KeePassGate.Ui
         {
         }
 
+        /// <summary>
+        /// The same, with the port box enabled when there is a way to remember what it holds.
+        /// </summary>
         /// <param name="apply">
         /// Remembers a port and answers with why it could not be remembered, or null when it was.
         /// **It does not open one.** The window does not own a socket, and neither does anything it

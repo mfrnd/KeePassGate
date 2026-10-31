@@ -2,9 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
-using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows.Forms;
+using KeePassGate.Testing;
 using KeePassGate.Tests.Fakes;
 using KeePassGate.Ui;
 using NUnit.Framework;
@@ -289,17 +289,17 @@ namespace KeePassGate.Tests
         private static void Click(Control control, Point at)
         {
             var where = (IntPtr)((at.Y << 16) | (at.X & 0xFFFF));
-            PostMessage(control.Handle, ButtonDown, (IntPtr)1, where);
+            User32.PostMessage(control.Handle, ButtonDown, (IntPtr)1, where);
             Pump();
-            PostMessage(control.Handle, ButtonUp, IntPtr.Zero, where);
+            User32.PostMessage(control.Handle, ButtonUp, IntPtr.Zero, where);
             Pump();
         }
 
         /// <summary>A key down and up on the control, through the loop.</summary>
         private static void Key(Control control, Keys key)
         {
-            PostMessage(control.Handle, KeyDown, (IntPtr)(int)key, IntPtr.Zero);
-            PostMessage(control.Handle, KeyUp, (IntPtr)(int)key, IntPtr.Zero);
+            User32.PostMessage(control.Handle, KeyDown, (IntPtr)(int)key, IntPtr.Zero);
+            User32.PostMessage(control.Handle, KeyUp, (IntPtr)(int)key, IntPtr.Zero);
             Pump();
         }
 
@@ -312,9 +312,5 @@ namespace KeePassGate.Tests
         {
             _loop.Add(e.Exception);
         }
-
-        [DllImport("user32.dll", SetLastError = true)]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        private static extern bool PostMessage(IntPtr window, int message, IntPtr wide, IntPtr low);
     }
 }

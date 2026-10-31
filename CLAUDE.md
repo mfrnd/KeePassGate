@@ -54,12 +54,15 @@ serves, held to the routing table as the library is, and `-o json` on every one 
 **And a write can be made against what was read**: a read of one group or one entry carries an
 `ETag`, a keyed digest of what the node holds, to a client whose rule reads all of it, and a
 request carrying `If-Match` is answered `412` when the node has changed since, decided under the
-writer's lock. **And `master` takes a merge only once the gate has passed**: a ruleset requires the one
+writer's lock. **And `master` takes a merge only once the gate has passed**: a ruleset requires the
 check `gate passed`, which stands for every job the workflow runs. **And a `v` tag publishes a
 release**: the plugin's zip as a GitHub release and the client on PyPI, last, through Trusted
 Publishing, after a rehearsal against a draft and TestPyPI, as `RELEASING.md` describes. **And
 CodeQL reads what the gate does not**: the C#, the Python and the workflows, on every pull request,
-every push to `master` and once a week.
+every push to `master` and once a week. **And the analysis is clean**: every finding is fixed, or
+suppressed where it is made with its reason, and a merge waits for `code scanning passed`, which
+fails on any finding left, and for every suppression the pull request touches to be resolved in
+review.
 
 ## Read these before proposing anything
 
@@ -205,7 +208,15 @@ designing around them.
   that true. And two places catch everything without being a fifth, since each keeps what was
   thrown and throws it again where one of the four sees it: `GateTlsServer`'s callbacks, because
   Bouncy Castle turns whatever a callback throws into a fatal alert, and the call `ControlUiThread`
-  marshals, because WinForms would answer one escaping it with a dialog of its own.
+  marshals, because WinForms would answer one escaping it with a dialog of its own. **And three
+  reporters catch everything, since none may add an exception of its own**: the log,
+  `TraceGateLog`, which the catch-alls report through and whose formatting and trace listeners
+  run code nobody here wrote, `GateIncidents.Record`, which they report to, and the audit line
+  `JsonLinesAudit.Record` shapes, which may not fail the request it records. `Unattended.Post`
+  catches what its posted work throws, which is the entry point's catch-all followed across the
+  post to KeePass's message queue, and what its reporter throws, for the reason the log does.
+  CodeQL reports every one of these places, and each carries a suppression naming where it
+  stands in this account.
   **A line that has to outlive a defect is written before it rather than caught around it**: the
   audit line for a pairing, a renewal or a client's own revocation that landed is written by
   `DatabaseWriter` on its own landed path, before any listener runs, so no listener's defect can
@@ -709,6 +720,28 @@ Run them from
   takes the other copy's strings at an equal time and leaves the time alone; and a move stamps only
   `LocationChanged`. `FINDINGS.md` has the table, `NodeTagsTests` drives the merge and the
   reload, and `spikes/entity-tags` holds the probes.
+- **CodeQL takes some comments for suppressions that do not look like one, and ignores some that
+  do.** A Python comment that is `noqa` with no codes after a colon suppresses every rule on its
+  line, and an `lgtm` at the start of a comment or after a `;` every rule on its line and the next.
+  A rule named in another case, a list of two in one bracket, a marker after code on its line, and
+  one in a `/* */` over several lines suppress nothing, while spaces inside the brackets are trimmed
+  and the keyword is read in any case. Measured against the pinned bundle by
+  `tools/suppression_vectors.py`, which `tests/tools/SuppressionVectors.json` records.
+- **GitHub refuses a pull request review of more than 80 comments, and answers 502 to a large one
+  it goes on making.** A review of 81 is refused at once as a secondary rate limit, with no
+  `retry-after` and nothing made, which is the documented 80 content-generating requests a minute
+  with each comment counted as one. GitHub takes a quarter to a third of a second a comment, and a
+  review it is still making after about ten seconds is answered 502 and finished all the same, so
+  a 5xx leaves open whether a review landed. `tools/suppression_review.py` posts twenty to a review,
+  twenty seconds apart, and reads back what a 5xx left; `spikes/codeql-suppressions` measured it.
+- **GitHub takes a review thread only on a line its own diff shows, and that diff is GitHub's.** A
+  renamed file is listed with its old name and only its changed hunks, a rename that changes
+  nothing takes no thread on any line, and a name git quotes comes back plain. A file of 25,000 new
+  lines refuses every line with 422, "diff is too large", while one of 5,000 takes its lines though
+  GitHub's list of the files gives it no diff either. A comment on the whole file is taken where
+  no line is, and is a thread the merge waits for like any other. So `tools/suppression_review.py`
+  reads what a pull request changes from GitHub's list and puts a note on the whole file where no
+  line takes it; `spikes/codeql-suppressions` measured all of it.
 - **`dotnet test` with a filter that matches nothing exits 0**, having run nothing, and its trx
   counts nothing. A gate that believes the exit code is green over an empty run, so `build.ps1`
   reads each tier's trx and refuses one in which nothing executed, `Assert-Executed`.
@@ -788,8 +821,8 @@ file.
 
 ```powershell
 .\build.ps1                # prose, the client, the build, and every test that does not need KeePass
-.\build.ps1 -Task Lint     # markdownlint and cspell on their own
-.\build.ps1 -Task Client   # PyKeePassGate on its own: ruff, mypy, pytest
+.\build.ps1 -Task Lint     # markdownlint, cspell and the suppression comments, on their own
+.\build.ps1 -Task Client   # the Python on its own, PyKeePassGate and the tools: ruff, mypy, pytest
 .\build.ps1 -Task All      # the default, then the end to end tests
 .\build.ps1 -Task Deploy   # copy the plugin into plugins\KeePassGate in the provided KeePass
 .\build.ps1 -Task Package  # the plugin as Release, zipped with a SHA256SUMS into dist\, from a clean clone
@@ -843,18 +876,18 @@ against the constant read out of KeePass itself. The entry point must likewise b
 `KeePassGate.KeePassGateExt` in `KeePassGate.dll`, namespace included.
 
 **There is CI, and `master` requires it.** The workflow runs every gate on every pull request and on
-every push to `master`, and a ruleset on `master` requires one check, `gate passed`, which passes
-only when every other job did, on a branch up to date with `master`. GitHub does not run a pull
-request's checks again when `master` moves, so a check that passed before another merge landed is no
-check of the two together; a branch that is behind is updated, which runs the gate again, before it
-merges, and rebased rather than merged, so its commits stay its own. So `master` changes through a
-pull request, merged with a merge commit, and is never force pushed or deleted. The ruleset asks for
-no approval, because a sole maintainer cannot approve their own pull request, and the repository's
-administrators may bypass it. It names `gate passed` rather than each gate, because the gates are
-what `build.ps1 -ListGates` answers, and a list written into a setting would go stale the first time
-a gate was added. This reverses "there is no branch protection", which held until the build order's
-pull requests had all been merged, since a required check on a stack being merged would have held
-every one of them.
+every push to `master`, and a ruleset on `master` requires `gate passed`, which passes only when
+every other job did, and `code scanning passed`, below, both on a branch up to date with `master`.
+GitHub does not run a pull request's checks again when `master` moves, so a check that passed before
+another merge landed is no check of the two together; a branch that is behind is updated, which
+runs the gate again, before it merges, and rebased rather than merged, so its commits stay its own.
+So `master` changes through a pull request, merged with a merge commit, and is never force pushed or
+deleted. The ruleset asks for no approval, because a sole maintainer cannot approve their own pull
+request, and the repository's administrators may bypass it. It names `gate passed` rather than each
+gate, because the gates are what `build.ps1 -ListGates` answers, and a list written into a setting
+would go stale the first time a gate was added. This reverses "there is no branch protection", which
+held until the build order's pull requests had all been merged, since a required check on a stack
+being merged would have held every one of them.
 
 **Pins move in pull requests of their own, proposed rather than noticed.** `.github/dependabot.yml`
 opens one grouped pull request a week for each kind: the actions' commits, `uv.lock`, the prose
@@ -867,13 +900,30 @@ issue when it releases a newer version, and moving that pin stays a person's job
 `tools/KeePass.ps1` refuses a version until its hash is written down.
 
 **CodeQL reads what the gate does not.** `codeql.yml` analyzes the C#, the Python and the workflows
-on every pull request, every push to `master` and once a week, with the `security-and-quality`
-queries, and puts what it finds on the repository's Security tab. The C# is compiled by
-`build.ps1 -Task Build` against the pinned KeePass, because CodeQL analyzes a compiled language from
-what the compiler sees, and without the build every call into KeePass resolves to nothing. **A pull
-request's analysis reports only what its own lines introduce**, so a green one with nothing found
-judges the change and not the code, and the whole of it is judged by the run on `master` and the
-weekly one. The PowerShell is left out, because CodeQL reads none.
+on every pull request, every push to `master` and once a week, with what
+`.github/codeql/codeql-config.yml` names: the `security-and-quality` queries and each language's
+alert-suppression query, with no rule left out. The C# is compiled
+by `build.ps1 -Task Build` against the pinned KeePass, because CodeQL analyzes a compiled language
+from what the compiler sees, and without the build every call into KeePass resolves to nothing. The
+CodeQL is the one the pinned action ships, `tools: linked`, so a new version arrives in Dependabot's
+pull request rather than on a day nothing changed. **A pull request's own upload reports only what
+its lines introduce**, and code scanning ignores the mark CodeQL puts on a suppressed finding, so
+each analysis is kept as CodeQL wrote it and judged by the job `code scanning passed`, which
+`tools/code_scanning.py` does the work of: it uploads a pull request's findings without the ones
+the code suppresses and everything else as it is, and fails on any finding nothing suppresses,
+anywhere in the code. **And no suppression merges unseen**: `tools/suppression_review.py` opens a
+review thread on every suppression a pull request adds, changes or removes, which the merge waits
+for, keeps one comment on the pull request listing what it suppresses and counting the rest by
+rule, and warns about a suppression under which CodeQL found nothing and a finding CodeQL
+suppressed that no comment accounts for. It fails only when it cannot write to the pull request,
+which is what a fork's pull request is given. **And the Security tab lists every suppression**: on
+`master` and the weekly run, `tools/dismissals.py` dismisses the alert of each finding the code
+suppresses, with the comment's reason, and opens again every one it dismissed that the code no
+longer suppresses, since GitHub leaves an alert dismissed after its finding is gone. **And the
+ruleset holds a merge to all of it**: it requires `code scanning passed`, every conversation
+resolved, and no new CodeQL alert at any severity, the last because the CodeQL check succeeds with a
+new warning and only the ruleset's threshold stops one, as `spikes/codeql-suppressions` measured.
+The PowerShell is left out, because CodeQL reads none.
 
 ## Testing
 
@@ -896,7 +946,8 @@ the tools this branch carries.
 - **Python is checked the way the C# is.** `ruff`, `mypy --strict` and `pytest` with a coverage
   floor, all configured in the root `pyproject.toml`, all run by `build.ps1 -Task Client`, which
   `Test` runs. `uv` owns the environment and `uv.lock` is committed, so every machine gets the same
-  versions.
+  versions. The tools written in Python are held to the same checks and the same floor, with their
+  tests in `tests/tools`, and imported by those as the scripts they are.
 
   **`ruff check` is the gate and `ruff format` is not**, which is a decision rather than an
   omission: thirteen files have never been through the formatter and running it would rewrite them
@@ -908,6 +959,31 @@ the tools this branch carries.
   nothing else, not letting it arrive a file at a time under other work.
 - **Docs stay with code.** A behavior or architecture change updates the design documents in the
   same pass, and reversals are recorded rather than edited away.
+- **A CodeQL finding is fixed, or suppressed where it is, with the reason.** The one spelling is a
+  comment of its own directly above the line the finding is on: `// codeql[cs/rule-id] why` in C#,
+  `# codeql[py/rule-id] why` in Python, with a marker for each rule when two are found on one line,
+  `// codeql[cs/one] codeql[cs/two] why`. `build.ps1 -Task Lint` refuses every other: a list in
+  one bracket, a rule in another case, a marker after code, above a blank line or above another
+  comment, all of which suppress nothing, and `lgtm` in every form and a Python `noqa` without
+  codes, which suppress more than they look like. `tools/suppressions.py` decides that as CodeQL
+  does: it finds the comments with tree-sitter's grammar of each language and applies CodeQL's own
+  patterns to them, and `tests/tools/SuppressionVectors.json` holds it to what the pinned CodeQL
+  made of 47 cases. **tree-sitter was chosen over each language's own parser**, Roslyn and
+  `tokenize`, once both had been built: they found the same comments in every file of the
+  repository and agreed with CodeQL on every vector, and this one is a third of the size, needs no
+  build, and reads every branch of an `#if`, which covers whatever CodeQL reads across the two
+  configurations it builds. A file holding a marker that does not parse cleanly is refused, so a
+  grammar older than the code fails loudly rather than being read with a guess.
+- **A call into Windows goes through one class on each side**: `Ui/NativeMethods` in the plugin and
+  `Shared/User32` in the tests, where each declaration is private and called once, by the method of
+  its name beside it. CodeQL reports every declaration of unmanaged code and every call to one, and
+  nothing managed does what these do, so both are suppressed there with the reason, and nowhere
+  else. A new call into Windows is a new pair of them in that file. The tests' class is not
+  `NativeMethods` too, because a test importing the plugin's `KeePassGate.Ui` would see both.
+- **A path is joined with `Paths.Join`, never `Path.Combine`**, which starts again at any rooted
+  part after the first and drops what came before it, silently. The helper refuses that part, and
+  one climbing out with `..`, and is the plugin's and the tests' alike; CodeQL reports every call
+  to `Path.Combine`, which is what keeps it so.
 - **American English is checked, not only asked for.** cspell's own `en_US` dictionary accepts the
   British doubled L, the past tense of cancel or dial spelled with two, and its language
   dictionaries accept a British spelling or two in code, so `cspell.yaml` refuses about 250 British
@@ -953,11 +1029,11 @@ would publish, the README tells somebody arriving what this is, around a picture
 whole journey that moves and a diagram of the pieces, the command line reaches every route
 and prints JSON for a program, a write can be made against what was read, refused with `412`
 when the node has changed since, a merge into `master` waits for the whole gate to pass, a
-tag publishes both halves, and CodeQL analyzes every language it reads.
+tag publishes both halves, CodeQL analyzes every language it reads, and a merge waits until every
+finding is fixed or suppressed with its reason.
 
 **Start with [`docs/`](docs/README.md) if the question is what this does**, and with the documents
-below if the question is why it does it that way. What is left is not a step: whether a code
-scanning alert stops a merge, decided once the first full analysis's findings are triaged.
+below if the question is why it does it that way.
 
 **The storage decision survived the thing most likely to invalidate it.** The `GroupForm` snapshot
 hazard is real and now measured rather than remembered: `SnapshotHazardTests` reads the mechanism off

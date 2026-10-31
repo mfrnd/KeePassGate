@@ -280,6 +280,7 @@ namespace KeePassGate
                     new MessageBoxPrompt().Tell(GateName.Full, said);
                 }
             }
+            // codeql[cs/catch-of-all-exceptions] the Tools menu item, one of the four catch-alls
             catch (Exception error)
             {
                 _incidents.Record("the status window could not be shown", error);
@@ -519,6 +520,7 @@ namespace KeePassGate
 
                 // `&` rather than `&&`, so that both are started and a refusal by either still
                 // leaves the other for the teardown below to take down.
+                // codeql[cs/non-short-circuit] `&` on purpose, for the reason above
                 if (!(_host.Start() & _grants.Start()))
                 {
                     // Undone here rather than left to `Terminate`. A refused load has already
@@ -531,6 +533,7 @@ namespace KeePassGate
 
                 return true;
             }
+            // codeql[cs/catch-of-all-exceptions] the plugin's entry point, one of the four catch-alls
             catch (Exception error)
             {
                 // One of the catch-alls, and not because an exception would stop the password
@@ -570,6 +573,7 @@ namespace KeePassGate
                     _host = null;
                 }
             }
+            // codeql[cs/catch-of-all-exceptions] the entry point's `Terminate`, one of the four catch-alls
             catch (Exception error)
             {
                 Report("failed to stop", error);
@@ -583,6 +587,7 @@ namespace KeePassGate
                     _listener = null;
                 }
             }
+            // codeql[cs/catch-of-all-exceptions] the entry point's `Terminate`, one of the four catch-alls
             catch (Exception error)
             {
                 Report("failed to stop listening", error);
@@ -601,6 +606,7 @@ namespace KeePassGate
 
                 TellWhatIsStillOwed();
             }
+            // codeql[cs/catch-of-all-exceptions] the entry point's `Terminate`, one of the four catch-alls
             catch (Exception error)
             {
                 Report("failed to stop watching for locks", error);
@@ -614,6 +620,7 @@ namespace KeePassGate
                     _chooser = null;
                 }
             }
+            // codeql[cs/catch-of-all-exceptions] the entry point's `Terminate`, one of the four catch-alls
             catch (Exception error)
             {
                 Report("failed to stop the authority chooser", error);
@@ -627,6 +634,7 @@ namespace KeePassGate
                     _databases = null;
                 }
             }
+            // codeql[cs/catch-of-all-exceptions] the entry point's `Terminate`, one of the four catch-alls
             catch (Exception error)
             {
                 Report("failed to release the database events", error);
@@ -642,6 +650,7 @@ namespace KeePassGate
                     _invitations = null;
                 }
             }
+            // codeql[cs/catch-of-all-exceptions] the entry point's `Terminate`, one of the four catch-alls
             catch (Exception error)
             {
                 Report("failed to drop the outstanding invitations", error);
@@ -655,6 +664,7 @@ namespace KeePassGate
                     _groupDialogs = null;
                 }
             }
+            // codeql[cs/catch-of-all-exceptions] the entry point's `Terminate`, one of the four catch-alls
             catch (Exception error)
             {
                 Report("failed to stop watching the group dialogs", error);
@@ -671,6 +681,7 @@ namespace KeePassGate
                     _targets = null;
                 }
             }
+            // codeql[cs/catch-of-all-exceptions] the entry point's `Terminate`, one of the four catch-alls
             catch (Exception error)
             {
                 Report("failed to release the served databases", error);
@@ -684,6 +695,7 @@ namespace KeePassGate
                     _windows = null;
                 }
             }
+            // codeql[cs/catch-of-all-exceptions] the entry point's `Terminate`, one of the four catch-alls
             catch (Exception error)
             {
                 Report("failed to release the window events", error);

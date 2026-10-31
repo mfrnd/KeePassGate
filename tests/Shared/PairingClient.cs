@@ -231,7 +231,7 @@ namespace KeePassGate.Testing
         {
             var reply = new PairingReply();
 
-            try
+            var thrown = Thrown.By(() =>
             {
                 using (var tcp = new TcpClient())
                 {
@@ -282,7 +282,7 @@ namespace KeePassGate.Testing
                         if (raw.Length == 0)
                         {
                             reply.Failure = "the connection was closed without an answer";
-                            return reply;
+                            return;
                         }
 
                         // Read before it is believed. A truncated answer, from the gate dying part
@@ -294,7 +294,7 @@ namespace KeePassGate.Testing
                         if (raw.Length < 12 || !raw.StartsWith("HTTP/1.", StringComparison.Ordinal))
                         {
                             reply.Failure = "the answer is not an HTTP response: " + Shorten(raw);
-                            return reply;
+                            return;
                         }
 
                         int status;
@@ -305,7 +305,7 @@ namespace KeePassGate.Testing
                                 out status))
                         {
                             reply.Failure = "the answer carries no status: " + Shorten(raw);
-                            return reply;
+                            return;
                         }
 
                         var blank = raw.IndexOf("\r\n\r\n", StringComparison.Ordinal);
@@ -318,10 +318,11 @@ namespace KeePassGate.Testing
                         reply.Answered = true;
                     }
                 }
-            }
-            catch (Exception error)
+            });
+
+            if (thrown != null)
             {
-                reply.Failure = error.GetType().Name + ": " + error.Message;
+                reply.Failure = thrown.GetType().Name + ": " + thrown.Message;
             }
 
             return reply;

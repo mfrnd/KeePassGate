@@ -233,9 +233,8 @@ namespace KeePassGate.Pairing
         private static string Of(IEnumerable<string> parts)
         {
             var text = new StringBuilder();
-            foreach (var part in parts)
+            foreach (var value in parts.Select(part => part ?? string.Empty))
             {
-                var value = part ?? string.Empty;
                 text.Append(value.Length.ToString(System.Globalization.CultureInfo.InvariantCulture))
                     .Append(':')
                     .Append(value)

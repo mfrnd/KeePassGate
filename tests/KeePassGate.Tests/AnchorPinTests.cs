@@ -116,7 +116,7 @@ namespace KeePassGate.Tests
             var completed = CompletedElsewhere();
             if (completed == null)
             {
-                Assert.Inconclusive(
+                throw new InconclusiveException(
                     "this machine's stores hold no certificate the engine completes to a root of its own");
             }
 
@@ -432,9 +432,12 @@ namespace KeePassGate.Tests
                 }
                 catch (ObjectDisposedException)
                 {
+                    // The same request to end, met by a socket `Stop` had already closed.
                 }
                 catch (InvalidOperationException)
                 {
+                    // And again, when `Stop` came between two accepts and the next one found the
+                    // listener stopped.
                 }
             }
         }

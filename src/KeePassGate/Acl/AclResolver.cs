@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace KeePassGate.Acl
 {
@@ -195,14 +196,11 @@ namespace KeePassGate.Acl
                     break;
                 }
 
-                foreach (var profile in document.Profiles)
+                // Nearest wins, so the first rule found for a profile is its answer and anything
+                // further up about that profile is already overruled.
+                foreach (var profile in document.Profiles.Where(profile => !grants.ContainsKey(profile)))
                 {
-                    if (!grants.ContainsKey(profile))
-                    {
-                        // Nearest wins, so the first rule found for a profile is its answer and
-                        // anything further up about that profile is already overruled.
-                        grants[profile] = document.Grant(profile);
-                    }
+                    grants[profile] = document.Grant(profile);
                 }
 
                 if (document.Default == AclDefault.Deny)
@@ -292,14 +290,12 @@ namespace KeePassGate.Acl
                 return new AclDecision(false, "there is nothing to decide about", null);
             }
 
+            // Once each, because each is a member of the answer, and named, as everywhere.
             var held = new List<string>();
-            foreach (var profile in profiles ?? Array.Empty<string>())
+            foreach (var profile in (profiles ?? Array.Empty<string>())
+                         .Where(profile => !string.IsNullOrEmpty(profile) && !held.Contains(profile)))
             {
-                // Once each, because each is a member of the answer, and named, as everywhere.
-                if (!string.IsNullOrEmpty(profile) && !held.Contains(profile))
-                {
-                    held.Add(profile);
-                }
+                held.Add(profile);
             }
 
             if (held.Count == 0)
@@ -386,15 +382,8 @@ namespace KeePassGate.Acl
                     continue;
                 }
 
-                var whole = true;
-                foreach (var reach in reaches ?? Array.Empty<AclReach>())
-                {
-                    if (!Decide(node, profile, AclVerb.Read, reach, read).Permitted)
-                    {
-                        whole = false;
-                        break;
-                    }
-                }
+                var whole = (reaches ?? Array.Empty<AclReach>())
+                    .All(reach => Decide(node, profile, AclVerb.Read, reach, read).Permitted);
 
                 if (whole)
                 {
@@ -446,12 +435,9 @@ namespace KeePassGate.Acl
             }
 
             var held = new List<string>();
-            foreach (var profile in profiles)
+            foreach (var profile in profiles.Where(profile => !string.IsNullOrEmpty(profile)))
             {
-                if (!string.IsNullOrEmpty(profile))
-                {
-                    held.Add(profile);
-                }
+                held.Add(profile);
             }
 
             if (held.Count == 0)
@@ -461,9 +447,8 @@ namespace KeePassGate.Acl
 
             AclDecision refusal = null;
 
-            foreach (var profile in held)
+            foreach (var decision in held.Select(profile => Decide(node, profile, verb, reach, read)))
             {
-                var decision = Decide(node, profile, verb, reach, read);
                 if (decision.Permitted)
                 {
                     return decision;

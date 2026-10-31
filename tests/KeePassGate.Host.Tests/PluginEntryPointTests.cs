@@ -60,7 +60,8 @@ namespace KeePassGate.Host.Tests
 
             if (create == null)
             {
-                Assert.Ignore("This KeePass build does not expose PluginManager.CreatePluginInstance.");
+                throw new IgnoreException(
+                    "This KeePass build does not expose PluginManager.CreatePluginInstance.");
             }
 
             var baseName = Path.GetFileNameWithoutExtension(Plugin.Location);
@@ -100,7 +101,7 @@ namespace KeePassGate.Host.Tests
 
             if (field == null)
             {
-                Assert.Ignore("This KeePass build does not expose AppDefs.PluginProductName.");
+                throw new IgnoreException("This KeePass build does not expose AppDefs.PluginProductName.");
             }
 
             return (string)field.GetValue(null);
@@ -157,11 +158,11 @@ namespace KeePassGate.Host.Tests
         {
             _logWas = Environment.GetEnvironmentVariable(TraceGateLog.LogFileVariable);
             _auditWas = Environment.GetEnvironmentVariable(JsonLinesAudit.AuditFileVariable);
-            _logDirectory = Path.Combine(Path.GetTempPath(), "KeePassGateTests", Guid.NewGuid().ToString("N"));
+            _logDirectory = Paths.Join(Path.GetTempPath(), "KeePassGateTests", Guid.NewGuid().ToString("N"));
             Environment.SetEnvironmentVariable(
-                TraceGateLog.LogFileVariable, Path.Combine(_logDirectory, TraceGateLog.DefaultFileName));
+                TraceGateLog.LogFileVariable, Paths.Join(_logDirectory, TraceGateLog.DefaultFileName));
             Environment.SetEnvironmentVariable(
-                JsonLinesAudit.AuditFileVariable, Path.Combine(_logDirectory, JsonLinesAudit.DefaultFileName));
+                JsonLinesAudit.AuditFileVariable, Paths.Join(_logDirectory, JsonLinesAudit.DefaultFileName));
         }
 
         [OneTimeTearDown]

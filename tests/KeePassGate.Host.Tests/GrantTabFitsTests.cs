@@ -34,16 +34,21 @@ namespace KeePassGate.Host.Tests
     public sealed class GrantTabFitsTests
     {
         private TemporaryDatabase _database;
+        private ImageList _icons;
 
         [SetUp]
         public void SetUp()
         {
             _database = TemporaryDatabase.New();
+
+            // The entry dialog refuses a null one, and what is in it is never looked at here.
+            _icons = new ImageList();
         }
 
         [TearDown]
         public void TearDown()
         {
+            _icons.Dispose();
             _database.Dispose();
         }
 
@@ -258,16 +263,16 @@ namespace KeePassGate.Host.Tests
 
         private Form NewEntryForm()
         {
-            return NewEntryForm(_database);
+            return NewEntryForm(_database, _icons);
         }
 
-        internal static Form NewEntryForm(TemporaryDatabase database)
+        internal static Form NewEntryForm(TemporaryDatabase database, ImageList icons)
         {
             var entry = new PwEntry(true, true);
             database.RootGroup.AddEntry(entry, true);
 
             var dialog = new PwEntryForm();
-            dialog.InitEx(entry, PwEditMode.EditExistingEntry, database.Database, new ImageList(), false, false);
+            dialog.InitEx(entry, PwEditMode.EditExistingEntry, database.Database, icons, false, false);
             return dialog;
         }
 
@@ -358,9 +363,10 @@ namespace KeePassGate.Host.Tests
 
             var fits = new List<GridFit>();
             using (var database = TemporaryDatabase.New())
+            using (var icons = new ImageList())
             {
                 Measure(() => GrantTabFitsTests.NewGroupForm(database), GrantTab.GroupScope, database, scaling, fits);
-                Measure(() => GrantTabFitsTests.NewEntryForm(database), GrantTab.EntryScope, database, scaling, fits);
+                Measure(() => GrantTabFitsTests.NewEntryForm(database, icons), GrantTab.EntryScope, database, scaling, fits);
             }
 
             return fits.ToArray();

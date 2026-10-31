@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using KeePassGate.Diagnostics;
 using KeePassLib;
 
 namespace KeePassGate.Host.Tests.Live
@@ -41,7 +42,7 @@ namespace KeePassGate.Host.Tests.Live
 
         public static string ExePath
         {
-            get { return Path.Combine(Directory, "KeePass.exe"); }
+            get { return Paths.Join(Directory, "KeePass.exe"); }
         }
 
         /// <summary>

@@ -251,6 +251,10 @@ namespace KeePassGate.Authority
             return key;
         }
 
+        /// <summary>
+        /// Mints an authority and its host certificate, writes them, and reads them back, which is
+        /// what creating and recreating have in common.
+        /// </summary>
         /// <param name="clearFirst">
         /// Runs after the new material is minted and before anything is written, or null when
         /// there is nothing to clear. `Recreate` removes the old authority here rather than

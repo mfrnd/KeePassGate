@@ -58,6 +58,10 @@ namespace KeePassGate.Bridge
         private readonly NodeTags _tags;
         private readonly IGateLog _log;
 
+        /// <summary>
+        /// Over one open database, changed through the plugin's single writer, or only read when
+        /// there is none.
+        /// </summary>
         /// <param name="tags">This database's tags, keyed as <see cref="NodeTags.KeyFrom"/> says.</param>
         public KdbxVault(PwDatabase database, DatabaseWriter writer, NodeTags tags, IGateLog log)
         {
@@ -1512,6 +1516,7 @@ namespace KeePassGate.Bridge
 
             var protection = _database.MemoryProtection;
 
+            // codeql[cs/complex-condition] the five standard fields as a table, each beside its own switch
             return (Names(field, PwDefs.TitleField) && protection.ProtectTitle)
                 || (Names(field, PwDefs.UserNameField) && protection.ProtectUserName)
                 || (Names(field, PwDefs.PasswordField) && protection.ProtectPassword)
@@ -1866,8 +1871,7 @@ namespace KeePassGate.Bridge
 
             foreach (var c in uuid)
             {
-                var hex = (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
-                if (!hex)
+                if (!Ascii.IsHexDigit(c))
                 {
                     return null;
                 }

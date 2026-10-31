@@ -57,13 +57,12 @@ namespace KeePassGate.Tests
         {
             var targets = new FakeGateTargets(_first, _second);
 
-            var resolution = new GateResolver(targets, _log).Resolve(_first.NewName());
-
-            Assert.That(resolution.IsResolved, Is.True);
-            Assert.That(_first.Holders, Is.EqualTo(2), "the connection is holding it");
-            Assert.That(_second.Holders, Is.EqualTo(1), "and nothing else is");
-
-            resolution.Dispose();
+            using (var resolution = new GateResolver(targets, _log).Resolve(_first.NewName()))
+            {
+                Assert.That(resolution.IsResolved, Is.True);
+                Assert.That(_first.Holders, Is.EqualTo(2), "the connection is holding it");
+                Assert.That(_second.Holders, Is.EqualTo(1), "and nothing else is");
+            }
 
             Assert.That(_first.Holders, Is.EqualTo(1));
         }
@@ -96,13 +95,12 @@ namespace KeePassGate.Tests
                 var invitation = book.Invite(_first.DatabaseId);
                 var targets = new FakeGateTargets(_first, _second);
 
-                var resolution = new GateResolver(targets, book, _log).Resolve(invitation.NewName());
-
-                Assert.That(resolution.IsPairing, Is.True);
-                Assert.That(_first.Holders, Is.EqualTo(2));
-                Assert.That(_second.Holders, Is.EqualTo(1));
-
-                resolution.Dispose();
+                using (var resolution = new GateResolver(targets, book, _log).Resolve(invitation.NewName()))
+                {
+                    Assert.That(resolution.IsPairing, Is.True);
+                    Assert.That(_first.Holders, Is.EqualTo(2));
+                    Assert.That(_second.Holders, Is.EqualTo(1));
+                }
 
                 Assert.That(_first.Holders, Is.EqualTo(1));
             }

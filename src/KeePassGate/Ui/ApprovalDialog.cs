@@ -108,8 +108,8 @@ namespace KeePassGate.Ui
             // is looking for on the taskbar: the root of whatever owns this, which `ShowDialog`
             // with no owner makes the window that was active. A dialog with no owner flashes its
             // own entry.
-            var owner = GetWindow(Handle, OwnerWindow);
-            var root = owner == IntPtr.Zero ? IntPtr.Zero : GetAncestor(owner, RootOwner);
+            var owner = NativeMethods.GetWindow(Handle, OwnerWindow);
+            var root = owner == IntPtr.Zero ? IntPtr.Zero : NativeMethods.GetAncestor(owner, RootOwner);
             Flash(root == IntPtr.Zero ? Handle : root);
         }
 
@@ -143,16 +143,16 @@ namespace KeePassGate.Ui
 
         private static void Send(IntPtr window, uint flags)
         {
-            var info = new FlashInfo
+            var info = new NativeMethods.FlashInfo
             {
-                Size = (uint)Marshal.SizeOf<FlashInfo>(),
+                Size = (uint)Marshal.SizeOf<NativeMethods.FlashInfo>(),
                 Window = window,
                 Flags = flags,
                 Count = 0,
                 Timeout = 0
             };
 
-            FlashWindowEx(ref info);
+            NativeMethods.FlashWindowEx(ref info);
         }
 
         private const uint FlashStop = 0;
@@ -160,25 +160,5 @@ namespace KeePassGate.Ui
         private const uint FlashUntilStopped = 4;
         private const uint OwnerWindow = 4;
         private const uint RootOwner = 3;
-
-        [StructLayout(LayoutKind.Sequential)]
-        private struct FlashInfo
-        {
-            public uint Size;
-            public IntPtr Window;
-            public uint Flags;
-            public uint Count;
-            public uint Timeout;
-        }
-
-        [DllImport("user32.dll")]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        private static extern bool FlashWindowEx(ref FlashInfo info);
-
-        [DllImport("user32.dll")]
-        private static extern IntPtr GetWindow(IntPtr window, uint relation);
-
-        [DllImport("user32.dll")]
-        private static extern IntPtr GetAncestor(IntPtr window, uint relation);
     }
 }
