@@ -1644,6 +1644,25 @@ Each step is refusable, and each ends with something that runs.
     workflow's token may delete it and may not resolve it; and that the ruleset requires
     `code scanning passed`, every conversation resolved and no new alert at any severity, because
     the CodeQL check succeeds with a new warning and only the ruleset's threshold stops one.
+33. **Tags**: an entry's and a group's tags, served and filtered on. Not opened yet, and the step's
+    own opening commit writes this entry.
+34. **Certificates through Bouncy Castle**: every certificate the plugin makes, every signature it
+    makes with a stored key and every check it makes of a certificate goes through Bouncy Castle,
+    which already terminates the TLS and reads the PKCS#12 the host certificate is stored as, and
+    `CertificateRequest`, `ECDsa` and `X509Chain` leave the plugin. The authority, its host
+    certificate, the responder and every client certificate are issued with the extensions, claims
+    and lifetimes they have now; `AnchorPin` verifies the leaf's signature with the anchor's public
+    key and compares the anchor's bytes, with no chain engine; and `X509Certificate2` stays only
+    where a certificate is read. What is stored keeps its shape, so a database written before
+    keeps its authority, its records and its revocations. On Windows this takes away both hazards
+    measured on `X509Chain`: the anchor it does not pin, and the `caIssuers` address a foreign
+    certificate names, which it contacts however short the timeout. On Mono it takes away the
+    first wall `spikes/mono-compatibility` met, where Mono 6.8 has no ECDSA, no `CertificateRequest`
+    a .NET Framework build can reach, and an `X509Chain` that throws for every EC certificate. The
+    tests make their certificates the same way, so both tiers can run there, and the tab's icon is
+    kept as long as the image list holding it, which Mono reads only when it first draws. The step
+    ends with that spike run again against it, recorded beside the first run, and what Mono needs
+    beyond this is decided from what that shows: the plugin stays Windows only until then.
 
 Steps 5 to 8 are the ones that prove the design. Step 5 is deliberately early, because the
 `CustomData` dialog hazard is the thing most likely to invalidate the storage decision, and finding

@@ -8,7 +8,7 @@ Guidance for anyone, human or AI assistant, working in this repository.
 mutual TLS, so that automation and AI agents can each be given a narrow, revocable, audited slice of
 a database.
 
-**Status: the whole build order is done and the API is served.** The plugin loads
+**Status: steps 1 to 32 of the build order are done and the API is served.** The plugin loads
 into KeePass, the KPG tab creates, recreates and deletes the database's own certificate authority,
 the gate listens on loopback and answers over mutual TLS 1.3, a client is served only if
 the database holds an admission record for its certificate, and **a stranger can now become one**:
@@ -62,7 +62,8 @@ CodeQL reads what the gate does not**: the C#, the Python and the workflows, on 
 every push to `master` and once a week. **And the analysis is clean**: every finding is fixed, or
 suppressed where it is made with its reason, and a merge waits for `code scanning passed`, which
 fails on any finding left, and for every suppression the pull request touches to be resolved in
-review.
+review. **Two steps are planned and not started**: step 33, tags, and step 34, certificates through
+Bouncy Castle, which `DESIGN.md` §132 describes.
 
 ## Read these before proposing anything
 
@@ -1040,7 +1041,7 @@ here can hang or crash the password manager.
 
 ## Where to start
 
-[`DESIGN.md`](DESIGN.md) §132 ends with a multi-step build order. **All of them are done.** The
+[`DESIGN.md`](DESIGN.md) §132 ends with a multi-step build order. **Steps 1 to 32 are done.** The
 skeleton loads and shows a KPG tab, that tab creates, recreates and deletes the authority, the gate
 serves the document's routes over mutual TLS to a client the authority issued and the database holds
 a record for, a stranger can pair, a locked database answers `503 locked`, a grant means something
@@ -1061,7 +1062,8 @@ tag publishes both halves, CodeQL analyzes every language it reads, and a merge 
 finding is fixed or suppressed with its reason.
 
 **Start with [`docs/`](docs/README.md) if the question is what this does**, and with the documents
-below if the question is why it does it that way.
+below if the question is why it does it that way. What is left is step 33, tags, and step 34,
+certificates through Bouncy Castle.
 
 **The storage decision survived the thing most likely to invalidate it.** The `GroupForm` snapshot
 hazard is real and now measured rather than remembered: `SnapshotHazardTests` reads the mechanism off
