@@ -1037,6 +1037,11 @@ here can hang or crash the password manager.
   legitimate client asking for more than it should.
 - **Local code execution as the user is conceded**, throughout. Do not add a control that only
   defends against it, and do not claim one does.
+- **A URL is stored as written, deliberately, and through it a client reaches past the ACL.**
+  KeePass's Open URL does more with a URL than any refusal written here kept up with, so
+  until one checker can judge a URL with the gate's context and KeePass's, the gate refuses none
+  and `docs/access-control.md` warns the operator. Do not add a refusal for one more case, and do
+  not claim a URL is checked. DESIGN.md §140 has the argument.
 
 ## Where to start
 

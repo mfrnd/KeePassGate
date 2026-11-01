@@ -1230,6 +1230,33 @@ What genuinely remains: an authority reachable from any process running as the u
 database is open. That is the conceded local-code-execution case, and no layering answered it before
 either.
 
+### C9. A write verb reaches whatever KeePass does with a URL §140
+
+**The objection stands, and is accepted until one checker can answer it.** The gate stores a value
+as written and KeePass decides later what it means, and opening an entry's URL is where KeePass does
+the most with it, on the operator's double-click:
+
+- it resolves a field reference against the whole open database, which knows nothing about these
+  rules, so a client holding `update` on one entry can store a URL that sends another entry's
+  password to the host it names;
+- it replaces `%NAME%` with the value of an environment variable;
+- it hands a path, a network share or any scheme Windows has a program for to that program;
+- an enabled URL override puts the URL into a command line, with the entry's user name or password
+  where its template names them.
+
+KeePass asks first only before it runs a command line, and that question can be switched off. An
+override that names a field needs no URL write at all: KeePass's built-in PuTTY template for `ssh`
+leaves `{USERNAME}` unquoted, so a user name a client wrote adds arguments to the program it starts.
+
+Two refusals were tried. The first refused `{` and `cmd://` and was a deny-list that every reading of
+KeePass found short. An allow-list of plain `http` and `https` addresses followed, reading KeePass's
+overrides and environment to decide, and it still left open the field an override names. Which URL
+is safe depends on what KeePass is set to do as much as on what the URL holds, and on which client
+wrote it, so what is to answer this is **one URL checker given the context of the gate and of
+KeePass**, applying different controls by it. Until that exists, every URL is stored as written,
+`docs/access-control.md` warns the operator against opening one a program may have written, and
+nothing here claims more. A refusal for one more case is not the fix: it is the shape this replaced.
+
 ## The objections that do not stand, and why §126
 
 ### C5. "Terminating TLS ourselves is riskier than letting a library do it" §127

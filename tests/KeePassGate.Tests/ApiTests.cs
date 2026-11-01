@@ -1639,66 +1639,23 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void A_URL_KeePass_would_resolve_is_refused_wherever_it_is_written()
+        public void A_URL_is_stored_as_written_whatever_KeePass_would_make_of_it()
         {
-            // The escalation a write verb carried on its own. The gate stores a value as it
-            // arrives and KeePass compiles the URL before opening it, so a reference planted here
-            // by a client holding `update` on one entry resolves against the whole database and
-            // leaves on the operator's own double-click, past every rule and past the audit.
+            // Every route that writes a URL stores it as it arrives. What KeePass's Open URL makes
+            // of a reference, a variable, a path or a command is the operator's to weigh, and
+            // docs/access-control.md is where the operator learns what that is.
             _vault.Granting(_group, AllButProtected);
-            var planted = "https://invented.example/?p={REF:P@I:0123456789ABCDEF}";
+            var planted = "https://invented.example/?p={REF:P@I:0123456789ABCDEF}&t=%TEMP%";
 
-            Assert.That(Send("PUT", "/entries/" + _entry, Bodies.Of(("URL", planted))).Status,
-                Is.EqualTo(400));
-            Assert.That(Send("POST", "/groups/" + _group + "/entries", Bodies.Of(("URL", planted))).Status,
-                Is.EqualTo(400));
-            Assert.That(Send("PUT", "/entries/" + _entry + "/fields/URL", Bodies.Of(("value", planted))).Status,
-                Is.EqualTo(400));
             Assert.That(Send("POST", "/entries/" + _entry + "/fields",
-                Bodies.Of(("name", "URL"), ("value", planted))).Status, Is.EqualTo(400));
-
-            Assert.That(_vault.Field(_entry, "URL"), Is.Null, "and none of them reached the database");
-        }
-
-        [Test]
-        public void A_command_KeePass_would_run_is_refused_the_same_way()
-        {
-            _vault.Granting(_group, AllButProtected);
-
+                Bodies.Of(("name", "URL"), ("value", "cmd://invented.example"))).Status, Is.EqualTo(201));
             Assert.That(Send("PUT", "/entries/" + _entry + "/fields/URL",
-                "{\"value\":\"cmd://invented.example\"}").Status, Is.EqualTo(400));
-            Assert.That(Send("PUT", "/entries/" + _entry + "/fields/URL",
-                "{\"value\":\"  CMD://invented.example\"}").Status, Is.EqualTo(400),
-                "the scheme is not case sensitive and leading space does not hide it");
-        }
+                Bodies.Of(("value", "\\\\invented.example\\share\\tool.exe"))).Status, Is.EqualTo(200));
+            Assert.That(Send("PUT", "/entries/" + _entry, Bodies.Of(("URL", planted))).Status, Is.EqualTo(200));
+            Assert.That(Send("POST", "/groups/" + _group + "/entries", Bodies.Of(("URL", planted))).Status,
+                Is.EqualTo(201));
 
-        [Test]
-        public void An_ordinary_URL_and_a_braced_note_are_both_still_written()
-        {
-            // The rule is the URL field and nothing else: a brace is ordinary in a note, and
-            // refusing one everywhere would be this API deciding what a database may hold.
-            _vault.CreateField(_entry, "URL", "https://invented.example/", false, VaultTagging.None);
-            _vault.Granting(_group, AllButProtected);
-
-            Assert.That(Send("PUT", "/entries/" + _entry + "/fields/URL",
-                "{\"value\":\"https://invented.example/a%7Bb\"}").Status, Is.EqualTo(200));
-            Assert.That(Send("PUT", "/entries/" + _entry, "{\"Notes\":\"an invented {note}\"}").Status,
-                Is.EqualTo(200));
-
-            Assert.That(_vault.Field(_entry, "URL"), Is.EqualTo("https://invented.example/a%7Bb"));
-            Assert.That(_vault.Field(_entry, "Notes"), Is.EqualTo("an invented {note}"));
-        }
-
-        [Test]
-        public void A_client_that_may_not_write_there_learns_nothing_about_the_URL_rule()
-        {
-            // Asked after the rules, so the refusal a rule gives is the one that comes back.
-            _vault.Granting(_group, Rules.Granting(("agent", "RL")));
-
-            var answer = Send("PUT", "/entries/" + _entry + "/fields/URL",
-                "{\"value\":\"https://invented.example/?p={REF:P@I:0123456789ABCDEF}\"}");
-
-            Assert.That(answer.Status, Is.EqualTo(404));
+            Assert.That(_vault.Field(_entry, "URL"), Is.EqualTo(planted));
         }
 
         [Test]

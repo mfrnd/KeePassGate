@@ -302,12 +302,6 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            if (Compiled(fields))
-            {
-                Resolved(context);
-                return;
-            }
-
             Answer(context, vault.CreateEntry(Captured(context, "uuid"), fields, expiry));
         }
 
@@ -335,12 +329,6 @@ namespace KeePassGate.Pipeline
                 && !ReachesProtected(context, entry.Node, AclVerb.Update))
             {
                 Withheld(context, entry.Node, AclVerb.Update);
-                return;
-            }
-
-            if (Compiled(fields))
-            {
-                Resolved(context);
                 return;
             }
 
@@ -520,11 +508,6 @@ namespace KeePassGate.Pipeline
 
             // There is a body here: without one there is no name, and a missing name was refused above.
             var made = body.Text("value");
-            if (Compiled(name, made))
-            {
-                Resolved(context);
-                return;
-            }
 
             // What the check above asked about, not half of it. Asking on `guarded || Protects`
             // and then storing only `guarded` meant a caller could re-create a standard field
@@ -559,12 +542,6 @@ namespace KeePassGate.Pipeline
             }
 
             var written = body == null ? null : body.Text("value");
-            if (Compiled(name, written))
-            {
-                Resolved(context);
-                return;
-            }
-
             Answer(context, vault, uuid, vault.UpdateField(uuid, name, written, Tagging(context, MayTag(context, entry), true)));
         }
 
@@ -1296,75 +1273,6 @@ namespace KeePassGate.Pipeline
             }
 
             return false;
-        }
-
-        /// <summary>
-        /// Whether a value written under this name is one KeePass would resolve or run rather than
-        /// open as it stands.
-        /// </summary>
-        /// <remarks>
-        /// **The one thing a write is refused for what it says rather than for where it goes.**
-        /// This gate stores a value verbatim and KeePass, not this gate, decides later what it
-        /// means. Its Open URL action compiles the entry's URL through `SprEngine` first, and that
-        /// resolves `{REF:P@I:&lt;uuid&gt;}` against the whole open database with no notion of
-        /// these rules. So a client holding nothing but `update` on one entry, possibly one it
-        /// made itself, could write a URL carrying a reference to the password of an entry it was
-        /// never granted, and the operator's own double-click would send that password to
-        /// whichever host the URL names. Nothing asks the operator first on that path. A `cmd://`
-        /// value is the other half: KeePass starts it as a command line, behind a confirmation the
-        /// operator is free to turn off.
-        ///
-        /// **Only the URL field.** Braces are ordinary in a note and refusing them everywhere
-        /// would be this API deciding what a database may hold. A brace is not a character a URL
-        /// may carry unencoded in the first place, so what a caller loses is a spelling that `%7B`
-        /// already has.
-        ///
-        /// **What this does not reach** is the rest of what KeePass compiles. A reference planted
-        /// in `UserName` or `Title` is resolved by a copy or an auto-type, into the operator's own
-        /// clipboard or window rather than out to a stranger, and one in `Password` asks the
-        /// `protected` switch already. `docs/access-control.md` says what that leaves, because a
-        /// write verb being as sensitive as a read verb is something an operator granting one has
-        /// to know rather than something this can enumerate.
-        ///
-        /// The name is compared the way the database compares one, so a spelling of `URL` its own
-        /// dictionary cannot tell from `URL` is the URL field here too. The name itself is the
-        /// document's, which is what the wire calls it.
-        /// </remarks>
-        private static bool Compiled(string name, string value)
-        {
-            if (value == null || Comparer<string>.Default.Compare(name, "URL") != 0)
-            {
-                return false;
-            }
-
-            return value.IndexOf('{') >= 0
-                || value.TrimStart().StartsWith("cmd://", StringComparison.OrdinalIgnoreCase);
-        }
-
-        /// <summary>The same question about a whole body, which the two entry routes take.</summary>
-        private static bool Compiled(IReadOnlyDictionary<string, string> fields)
-        {
-            foreach (var field in fields)
-            {
-                if (Compiled(field.Key, field.Value))
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        /// <summary>What a caller is told about a value this gate will not hand KeePass.</summary>
-        /// <remarks>
-        /// A sentence rather than one word, and it names the rule rather than the bytes: this is a
-        /// refusal a client is meant to act on, and there is one thing to change. It is asked
-        /// after the rules, so a client that may not write here learns nothing from it.
-        /// </remarks>
-        private static void Resolved(IGateContext context)
-        {
-            context.Respond(400, HttpResponse.ErrorBody(
-                "this gate does not store a URL that KeePass would resolve or run"));
         }
 
         /// <summary>

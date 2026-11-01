@@ -183,3 +183,10 @@ anything else that account can reach. Conceded throughout the design.
 is the threat this is actually built against: an automated client, including one driven by a model,
 can be talked into asking for more than it should, so what it may reach is decided here rather than
 there.
+
+**A URL a program wrote, opened by the operator.** The gate stores a URL as it is written, and
+KeePass's Open URL resolves references in it, replaces environment variables, starts programs and
+fills in override command lines. So a program allowed to change one entry can reach further through
+the operator's double-click than its rules let it reach through the gate. This is conceded until one
+check can judge a URL with what the gate and KeePass both know, and
+[access-control.md](access-control.md) describes what to watch for.

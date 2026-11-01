@@ -7,11 +7,19 @@ fix that changes no interface.
 
 Newest first. A version is written here before it is released, under its own heading, and says
 **unreleased** until it is. A patch releases only what it fixes, so its heading names the halves
-it releases, as `0.1.1, the plugin and the client, unreleased` does, and a minor version names
+it releases, as `0.1.1, the plugin and the client, unreleased` would, and a minor version names
 none, since it releases both.
 
-## 0.1.1, the plugin and the client, unreleased
+## 0.2.0, unreleased
 
+- **The plugin stores a URL as it is written**, as it stores every other value. It refused one
+  holding `{` or beginning `cmd://` with `400`, and accepts both now. KeePass's Open URL does more
+  with a URL than those two cases: it replaces an environment variable in it, hands a path or a
+  network share to whatever Windows starts for it, and with an override switched on puts the
+  entry's own values into a command line. Telling which URL is safe takes what KeePass is set to
+  do as well as what the URL holds, so one check given both is to take the place of a refusal
+  that covered two cases. Until then, [`docs/access-control.md`](docs/access-control.md) warns
+  against opening a URL a program may have written.
 - **The plugin is compiled at C# 13**, and the build needs the .NET SDK 9 or later. Nothing it does
   changes: the compiled plugin differs only in caching a delegate made from a static method rather
   than making one at every use, and in an attribute the compiler adds.
