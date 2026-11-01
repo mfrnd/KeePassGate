@@ -1851,22 +1851,17 @@ components:
         Password:
           type: string
           maxLength: 65536
-        # The one value refused for what it says. KeePass's Open URL action compiles the entry's URL
+        # Stored as written, as every value is. KeePass's Open URL action compiles the entry's URL
         # first, which resolves a field reference such as `{REF:P@I:...}` against the whole open
-        # database, knowing nothing about these rules, and starts a `cmd://` URL as a command line.
-        # Only this field, because braces are ordinary in a note and a brace is not a character a
-        # URL may carry unencoded anyway. What this does not reach is in docs/access-control.md,
-        # because a write verb being as sensitive as a read verb is something an operator granting
-        # one has to know.
+        # database, knowing nothing about these rules, and replaces `%NAME%` with an environment
+        # variable, and it starts a `cmd://` URL as a command line. What that means for an operator
+        # granting a write verb is in docs/access-control.md.
         URL:
           type: string
           maxLength: 8192
           description: |
-            Stored as written, except that a value KeePass would resolve or run, one holding `{`
-            or beginning `cmd://`, is refused with `400`: this gate stores no field reference or
-            placeholder in a URL and no command. The refusal is decided after the rules, so a
-            client that may not write there is answered `404`, as for anything else it may not
-            reach.
+            Stored as written. What KeePass makes of it when the operator opens it, a field
+            reference resolved or a command run, is not checked here.
         Notes:
           type: string
           maxLength: 65536
@@ -2019,14 +2014,13 @@ components:
         # A value is never compiled because KeePass resolves a reference against the whole open
         # database, which knows nothing about these rules, so compiling one on the way out would
         # hand a client the value of an entry its rules do not reach, through a field of one they
-        # do. `EntryFields` refuses that syntax in a URL for the same reason from the other side,
-        # because a URL is the value KeePass compiles by itself. A client compiles a value on its
-        # own side instead, as `pykeepassgate.refs` does: it follows a reference by identifier with
-        # a read of its own, which the rules decide and the audit records like any other, and the
-        # placeholders for the entry's own strings out of the entry it holds. It refuses a
-        # reference that searches, since a search here sees only what the client may list while
-        # KeePass takes the first match in the whole database, and every other placeholder KeePass
-        # replaces, from the parts of an entry's URL to a command KeePass would run. §512
+        # do. A client compiles a value on its own side instead, as `pykeepassgate.refs` does: it
+        # follows a reference by identifier with a read of its own, which the rules decide and the
+        # audit records like any other, and the placeholders for the entry's own strings out of the
+        # entry it holds. It refuses a reference that searches, since a search here sees only what
+        # the client may list while KeePass takes the first match in the whole database, and every
+        # other placeholder KeePass replaces, from the parts of an entry's URL to a command KeePass
+        # would run. §512
         fields:
           type: object
           additionalProperties:
@@ -2294,12 +2288,10 @@ components:
     Malformed:
       description: |
         The body, or the value of a query parameter, is not what the document declares, or it is
-        and asks for something this gate refuses to store: a URL KeePass would resolve or run,
-        holding `{` or beginning `cmd://`, on `createEntry`, `updateEntry`, `createField` and
-        `updateField`; or a string a `.kdbx` cannot hold, on every operation and in the name of a
-        field or an attachment as much as in a value, which is one holding a control character
-        other than tab, carriage return and line feed, `U+FFFE` or `U+FFFF`, or a surrogate
-        without its pair, and one of whitespace and nothing else. The body says which.
+        and carries a string a `.kdbx` cannot hold, on every operation and in the name of a field
+        or an attachment as much as in a value: one holding a control character other than tab,
+        carriage return and line feed, `U+FFFE` or `U+FFFF`, or a surrogate without its pair, and
+        one of whitespace and nothing else. The body names which.
       content:
         application/json:
           schema:

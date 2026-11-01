@@ -166,11 +166,18 @@ has taken the account, and nothing in a log of "an entry was updated" says which
 fields hold rather than using them as they stand: a URL it is told to open, a value being copied, an
 auto-type sequence. A reference to another entry is resolved against the whole open database, which
 knows nothing about these rules. So a program that may change one entry can put a reference to
-another entry's password where the operator's own click resolves it. The gate refuses that in the
-one place where nothing asks the operator first: a URL carrying a reference, or naming a command,
-is refused outright, and the program is told so. What it cannot refuse is the rest, because a brace
-is ordinary in a note. So give `U` and `C` as carefully as `R`, and treat a program holding a write
-verb on one entry as a program whose values are going to be read and acted on.
+another entry's password where the operator's own click resolves it. So give `U` and `C` as
+carefully as `R`, and treat a program holding a write verb on one entry as a program whose values
+are going to be read and acted on.
+
+**The gate stores a URL as it is written, whatever KeePass will make of it.** Opening an entry's
+URL is where KeePass does the most with what a program wrote. It resolves a reference in it, so the
+URL can carry another entry's password to the host it names. It replaces `%NAME%` with the value of
+an environment variable. It hands a path, a network share or any scheme Windows has a program for
+to that program. And with a URL override switched on, under **Tools**, **Options**,
+**Integration**, it puts the URL into a command line, with the entry's user name or password where
+the override names them. KeePass asks first only before it runs a command line, and that question
+can be switched off. So don't open a URL a program may have written.
 
 **A write verb can also push an entry's older versions out of its history.** Every change the gate
 makes to an entry first keeps the entry as it was, as an edit in KeePass does, and KeePass keeps
