@@ -34,6 +34,15 @@ namespace KeePassGate.Bridge
     /// replaces the whole dictionary with a deep clone, on a group and on an entry alike, so a
     /// reader holds one complete dictionary or the other.
     ///
+    /// **A tree standing still answers wrongly too, unless the walk runs in KeePass's culture.**
+    /// The descent compares by the default comparer, which collates in the culture of the thread
+    /// asking, and a node's dictionary was sorted on KeePass's thread in KeePass's. A key another
+    /// program keeps beside `KPG` that orders differently against it in the two cultures can lie
+    /// on the way down, and the walk then finds no rule where there is one and goes on to the
+    /// parent's: a seal on an entry under a Lithuanian KeePass on an English format let the
+    /// group's grant through. `GateListener` serves every connection in KeePass's culture, which
+    /// is what makes the descent the one KeePass would make.
+    ///
     /// **An entry's parent is its group, and a group's is the group above it.** So a rule written on
     /// an entry is nearest, then its group, then that group's parent, up to the root. That is the
     /// order the resolver walks, and it is the order a person reading the tree would expect.

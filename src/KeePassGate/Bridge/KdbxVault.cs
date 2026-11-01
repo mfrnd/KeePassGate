@@ -17,7 +17,10 @@ namespace KeePassGate.Bridge
     /// tested without a password manager.
     ///
     /// **Reads run on the connection's thread.** `DESIGN.md` §119 measured that KeePass's
-    /// object model answers from a background thread, and every read here is one.
+    /// object model answers from a background thread, and every read here is one. **And in
+    /// KeePass's culture**, which `GateListener` gives every connection: an entry's strings and
+    /// attachments are looked up by name in the culture of the thread asking, and a lookup in
+    /// another culture than the one KeePass's thread filled them in can miss a name that is there.
     ///
     /// **Writes go through the plugin's single writer**, which marshals them to the thread that
     /// owns the database, saves, and does not return until KeePass says there is nothing unsaved.
@@ -1530,7 +1533,9 @@ namespace KeePassGate.Bridge
         /// <remarks>
         /// The comparer by name, rather than a `StringComparison`, because the comparer is the
         /// point: it is the one KeePass's own string and binary dictionaries sort and look names
-        /// up by, so whatever this says is what `Strings.Get` would find.
+        /// up by, so whatever this answers is what `Strings.Get` would find. That comparer collates
+        /// in the culture of the thread asking, so this holds because a read runs in KeePass's
+        /// culture, which `GateListener` sees to.
         /// </remarks>
         private static bool Names(string field, string standard)
         {

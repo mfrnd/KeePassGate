@@ -727,8 +727,8 @@ What the platform actually requires, measured rather than assumed:
 
 | Operation | Thread | Why |
 | --- | --- | --- |
-| Read databases, entries, strings, binaries | **connection thread** | `DocumentManager.GetOpenDatabases()` answers from a background thread, which the end to end tests exercise from another process |
-| Mutate in memory | **UI thread**, with the save | nothing about the objects is thread-affine, and this row said connection thread until the writer was built: a change and the save that keeps it are one marshaled call, so that nothing can open a dialog on the node between them |
+| Read databases, entries, strings, binaries | **connection thread**, in KeePass's culture | `DocumentManager.GetOpenDatabases()` answers from a background thread, which the end to end tests exercise from another process; every dictionary in the tree is searched in the culture of the thread asking, as the second rule below explains |
+| Mutate in memory | **UI thread**, with the save | the objects belong to no thread, and this row read connection thread until the writer was built: a change and the save that keeps it are one marshaled call, so that nothing can open a dialog on the node between them |
 | **Persist** | UI thread | `MainForm.SaveDatabase` blocks interaction, shows warnings and touches the window; disassembling it is what settled that |
 | Ask the operator a question | UI thread | it puts a window on the screen |
 
@@ -737,8 +737,8 @@ So the rules here:
 - **Reads happen on the request thread.** This is what is proven, and marshaling them would buy a
   theoretical safety that KeePass's own object model does not document anyway, at the cost of
   making liveness depend on the UI thread. **An in-memory mutation travels with its save**, which
-  is a correction to an earlier draft of this list rather than a refinement of it: the objects are
-  as thread-agnostic as the reads are, but a change made on the request thread and saved on the UI
+  is a correction to an earlier draft of this list rather than a refinement of it: the objects
+  belong to no thread, as the reads show, but a change made on the request thread and saved on the UI
   thread has an instant between them for a dialog to open on the node, and the whole of the
   writer's argument is that there must not be one.
 
@@ -750,6 +750,19 @@ So the rules here:
   rather than locked against, because taking the writer's lock for a read is waiting on the user
   interface thread's save, which is what this rule exists to avoid; `openapi.yaml` §501 says it
   to the client.
+- **A read runs in KeePass's culture**, which corrects the first row rather than refining it: it
+  ran in whatever culture the pool thread had. Every dictionary KeePass keeps by name, custom data
+  and an entry's strings and attachments, is a sorted tree under the default comparer, which
+  collates in the culture of the thread asking. KeePass's thread runs in its translation's, which
+  `MainForm` sets from the language file, and a pool thread in the regional format's, because
+  KeePass.exe declares no target framework and .NET Framework then lets no culture flow to a new
+  thread or a pool item. Where the two collate differently, Danish and English among them, a tree
+  sorted in one is searched in the other's order and a key that is there is missed: an admitted
+  client was refused `401`, a listed field was served empty and a listed attachment answered `404`,
+  a seal was walked past to the grant above it, and two authorities were read as one. So
+  `GateListener` takes the culture of the thread that makes it, which is KeePass's, and serves
+  every connection in it, and a lookup is the one KeePass would make, whether it is KeePass's code
+  making it or this plugin's.
 - **Persistence marshals with `BeginInvoke` and then waits on the handle**, never `Control.Invoke`,
   which has no timeout. One writer owns every write, so a request thread does wait on the UI thread.
   What that buys is a wait that ends: a marshal that does not complete fails the request rather than

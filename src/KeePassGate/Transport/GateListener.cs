@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
@@ -56,6 +57,32 @@ namespace KeePassGate.Transport
         /// Monotonic, because the wall clock can go backwards and would take the warning with it.
         /// </summary>
         private readonly Stopwatch _clock = Stopwatch.StartNew();
+
+        /// <summary>
+        /// The culture every connection is served in: the culture of the thread that made this
+        /// listener, which in the plugin is KeePass's own.
+        /// </summary>
+        /// <remarks>
+        /// **KeePass's dictionaries look a key up in the culture of the thread asking.** Custom
+        /// data, an entry's strings and its attachments are each a `SortedDictionary` under the
+        /// default comparer, which collates in the calling thread's culture, and KeePass's thread
+        /// runs in its translation's, which `MainForm` sets from the language file. A connection
+        /// is served on a pool thread, and that thread keeps the culture of the regional format:
+        /// KeePass.exe declares no target framework, and .NET Framework then lets no culture flow
+        /// to a new thread or a pool item. Where the two collate differently, a tree KeePass's
+        /// thread built is searched in the other's order, and a key that is there is not found. A
+        /// KeePass translated to Danish on an English format answered an admitted client `401`
+        /// because its record's key began `aa`, and served an empty value for a field it listed;
+        /// one translated to Lithuanian walked past a node's own seal to the grant above it.
+        ///
+        /// **Taken once, when this is made, as `KeePassPaths` takes it**, because the plugin makes
+        /// the listener on KeePass's thread and KeePass takes a new language only at a restart.
+        /// Set for the whole of a conversation rather than around each lookup, because the lookups
+        /// are KeePass's own as often as this plugin's, inside any call that finds something by
+        /// name. The accept thread and a connection's deadline read nothing of a database, so they
+        /// keep the culture they started with.
+        /// </remarks>
+        private readonly CultureInfo _culture = CultureInfo.CurrentCulture;
 
         private TcpListener _listener;
         private Thread _accepting;
@@ -536,6 +563,12 @@ namespace KeePassGate.Transport
 
         private void Converse(TcpClient client)
         {
+            // In KeePass's culture, see `_culture`, and the pool thread's own given back at the
+            // end, since the pool lends the thread to whatever runs on it next.
+            var thread = Thread.CurrentThread;
+            var own = thread.CurrentCulture;
+            thread.CurrentCulture = _culture;
+
             try
             {
                 using (client)
@@ -687,6 +720,7 @@ namespace KeePassGate.Transport
             finally
             {
                 Interlocked.Decrement(ref _conversations);
+                thread.CurrentCulture = own;
             }
         }
 
