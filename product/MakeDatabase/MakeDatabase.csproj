@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Makes the throwaway database KeePass is opened on, with KeePassLib, as the end to end tier on
+    the mainline does: a group, an entry and a password everybody knows. Built against the pinned
+    KeePass, which `README.md` says how to provide.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>7.3</LangVersion>
+    <RootNamespace>MakeDatabase</RootNamespace>
+    <AssemblyName>MakeDatabase</AssemblyName>
+    <Deterministic>true</Deterministic>
+    <KeePassDir Condition="'$(KeePassDir)' == ''">$(MSBuildThisFileDirectory)..\..\.keepass\2.61.1\</KeePassDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+    <Reference Include="KeePass">
+      <HintPath>$(KeePassDir)KeePass.exe</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+</Project>

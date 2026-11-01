@@ -65,3 +65,5 @@ ignores:
   - "**/obj/**"
   # The scratch directory a session works in. Gitignored, and not prose anybody reads twice.
   - "scratchpad/**"
+  # What the probes and the scripts wrote, kept as they wrote it: a record rather than prose.
+  - "results/**"

@@ -1,0 +1,41 @@
+<Project>
+
+  <!--
+    An empty assembly carrying the identity of one of Windows' UI Automation assemblies, which Mono
+    does not have. The host tier shares its test assembly with the end to end tier, and the end to
+    end tier drives KeePass through UI Automation, so without these NUnit cannot build a single test
+    out of that assembly. With them it can, and the host tier runs; every end to end test is in the
+    `Live` category and filtered out before anything in it is compiled.
+
+    Delay signed with the public key the real assembly carries, read out of the reference assembly
+    at build time, so the name, version and public key token are the ones the tests were compiled
+    against. Mono does not verify strong name signatures, which is the only reason a delay signed
+    assembly loads at all. These are for the Mono run and for nothing else.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>7.3</LangVersion>
+    <AssemblyVersion>4.0.0.0</AssemblyVersion>
+    <FileVersion>4.0.0.0</FileVersion>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <SignAssembly>true</SignAssembly>
+    <DelaySign>true</DelaySign>
+    <AssemblyOriginatorKeyFile>$(MSBuildProjectDirectory)\obj\$(AssemblyName).publickey</AssemblyOriginatorKeyFile>
+    <OutputPath>$(MSBuildThisFileDirectory)bin\</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+  </ItemGroup>
+
+  <Target Name="WritePublicKey" BeforeTargets="CoreCompile">
+    <PropertyGroup>
+      <RealAssembly>$(TargetFrameworkRootPath).NETFramework\v4.8\$(AssemblyName).dll</RealAssembly>
+    </PropertyGroup>
+    <Error Condition="!Exists('$(RealAssembly)')" Text="No reference assembly at $(RealAssembly) to take the public key from." />
+    <MakeDir Directories="$(MSBuildProjectDirectory)\obj" />
+    <Exec Command="powershell -NoProfile -NonInteractive -Command &quot;[IO.File]::WriteAllBytes('$(AssemblyOriginatorKeyFile)', [Reflection.AssemblyName]::GetAssemblyName('$(RealAssembly)').GetPublicKey())&quot;" />
+  </Target>
+
+</Project>

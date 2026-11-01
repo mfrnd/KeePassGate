@@ -7,3 +7,17 @@
 
 # Per machine, and not everybody's business: the checked-in `.claude/settings.json` is.
 /.claude/settings.local.json
+
+# The probes' build output, beside each project.
+/probes/MonoProbe/bin/
+/probes/MonoProbe/obj/
+/product/NUnitOnMono/bin/
+/product/NUnitOnMono/obj/
+/product/MakeDatabase/bin/
+/product/MakeDatabase/obj/
+/product/AutomationStubs/bin/
+/product/AutomationStubs/UIAutomationClient/obj/
+/product/AutomationStubs/UIAutomationTypes/obj/
+
+# The pinned KeePass, provided rather than committed, as on the mainline.
+/.keepass/

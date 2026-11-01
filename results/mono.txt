@@ -1,0 +1,101 @@
+### runtime
+runtime.mono = true
+runtime.mono-version = 6.8.0.105 (Debian 6.8.0.105+dfsg-3.6ubuntu2 Sun Mar 31 02:55:28 UTC 2024)
+runtime.clr-version = 4.0.30319.42000
+runtime.os = Unix 6.18.54.1
+runtime.platform = Unix
+runtime.pointer-size = 8
+runtime.culture = 
+runtime.ui-culture = 
+runtime.directory-separator = /
+runtime.local-application-data = /home/probe/.local/share
+exit 0
+### issuance
+issuance.probe-defect = ! System.TypeLoadException: Could not load type of field 'MonoProbe.IssuanceProbe+<>c__DisplayClass1_0:request' (1) due to: Could not resolve type with token 0100002e from typeref (expected class 'System.Security.Cryptography.X509Certificates.CertificateRequest' in assembly 'System.Core, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089') assembly:System.Core, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089 type:System.Security.Cryptography.X509Certificates.CertificateRequest member:(null)
+exit 1
+### ecdsa
+ecdsa.type-certificate-request = absent
+ecdsa.type-certificate-request-in-system = present
+ecdsa.method-copy-with-private-key = true
+ecdsa.create-p256 = ! System.NotImplementedException: The method or operation is not implemented.
+ecdsa.create-default = ! System.NotImplementedException: The method or operation is not implemented.
+exit 0
+### bouncy
+bouncy.made = authority 360 bytes, host 370 bytes
+bouncy.x509-from-der = raw 370, key algorithm 1.2.840.10045.2.1
+bouncy.subject = CN=Mono probe host
+bouncy.public-key-object = ! System.NotSupportedException: Cannot decode public key from unknown OID '1.2.840.10045.2.1'.
+bouncy.get-ecdsa-public-key = ! System.NotImplementedException: The method or operation is not implemented.
+bouncy.pkcs12-made = 985 bytes
+bouncy.load-pkcs12-ephemeral = key True
+bouncy.load-pkcs12-exportable-only = key True
+bouncy.restored-sign-verify = ! System.NotImplementedException: The method or operation is not implemented.
+bouncy.pkcs12-read-by-bouncy = ECPrivateKeyParameters
+exit 0
+### chain
+chain.own-leaf = ! System.NotSupportedException: Cannot decode public key from unknown OID '1.2.840.10045.2.1'.
+chain.foreign-leaf = ! System.NotSupportedException: Cannot decode public key from unknown OID '1.2.840.10045.2.1'.
+chain.foreign-leaf-root-offered = ! System.NotSupportedException: Cannot decode public key from unknown OID '1.2.840.10045.2.1'.
+chain.expired-leaf = ! System.NotSupportedException: Cannot decode public key from unknown OID '1.2.840.10045.2.1'.
+chain.expired-leaf-ignoring-time = ! System.NotSupportedException: Cannot decode public key from unknown OID '1.2.840.10045.2.1'.
+chain.ca-issuers-leaf = ! System.NotSupportedException: Cannot decode public key from unknown OID '1.2.840.10045.2.1'.
+chain.ca-issuers-build-ms = 22
+chain.ca-issuers-connections = 0
+exit 0
+### tls
+tls.client-handshake = echo probe
+tls.server = version TLS 1.3, client certificate offered
+exit 0
+### audit
+audit.append-data-stream = ok
+audit.length-after-append = 11
+audit.append-data-stream-twice = ok
+audit.length-after-second = 22
+audit.roll-with-reader-open = moved, reader still reads {"line":1}
+audit.get-access-control = ! System.PlatformNotSupportedException: Operation is not supported on this platform.
+exit 0
+### native
+native.is-window-enabled = ! System.EntryPointNotFoundException: IsWindowEnabled assembly:<unknown assembly> type:<unknown type> member:(null)
+native.enable-window = ! System.EntryPointNotFoundException: EnableWindow assembly:<unknown assembly> type:<unknown type> member:(null)
+native.get-window = ! System.EntryPointNotFoundException: GetWindow assembly:<unknown assembly> type:<unknown type> member:(null)
+native.get-ancestor = ! System.EntryPointNotFoundException: GetAncestor assembly:<unknown assembly> type:<unknown type> member:(null)
+native.flash-window-ex = ! System.EntryPointNotFoundException: FlashWindowEx assembly:<unknown assembly> type:<unknown type> member:(null)
+native.set-window-display-affinity = ! System.EntryPointNotFoundException: SetWindowDisplayAffinity assembly:<unknown assembly> type:<unknown type> member:(null)
+exit 0
+### culture
+culture.en-US.lower-I = U+0069
+culture.en-US.upper-i = U+0049
+culture.en-US.path-equal = true
+culture.en-US.compare-KPG-kpg = 1
+culture.en-US.compare-dot-dash = -1
+culture.en-US.compare-profiles-revoked = -1
+culture.en-US.compare-ignorable = 1
+culture.tr-TR.lower-I = U+0131
+culture.tr-TR.upper-i = U+0130
+culture.tr-TR.path-equal = false
+culture.tr-TR.compare-KPG-kpg = 1
+culture.tr-TR.compare-dot-dash = -1
+culture.tr-TR.compare-profiles-revoked = -1
+culture.tr-TR.compare-ignorable = 1
+culture.de-DE.lower-I = U+0069
+culture.de-DE.upper-i = U+0049
+culture.de-DE.path-equal = true
+culture.de-DE.compare-KPG-kpg = 1
+culture.de-DE.compare-dot-dash = -1
+culture.de-DE.compare-profiles-revoked = -1
+culture.de-DE.compare-ignorable = 1
+culture.invariant-upper-dotless-i = U+0131
+culture.invariant-upper-long-s = U+017F
+culture.ordinal-ignore-case-TITLE-dotless = false
+culture.ordinal-ignore-case-u-umlaut = true
+exit 0
+### forms
+forms.font-consolas = DejaVu Sans Mono
+forms.font-microsoft-sans-serif = DejaVu Sans
+forms.font-generic-monospace = DejaVu Sans Mono
+forms.default-font = DejaVu Sans 8.25
+forms.message-box-font = DejaVu Sans 11
+Gtk not found (missing LD_LIBRARY_PATH to libgtk-x11-2.0.so.0?), using built-in colorscheme
+forms.auto-scale = current {Width=7, Height=14}, handle True
+forms.measure-text = {Width=122, Height=14}
+exit 0

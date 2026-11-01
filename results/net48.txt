@@ -1,0 +1,117 @@
+### runtime
+runtime.mono = false
+runtime.clr-version = 4.0.30319.42000
+runtime.os = Microsoft Windows NT 6.2.9200.0
+runtime.platform = Win32NT
+runtime.pointer-size = 8
+runtime.culture = de-DE
+runtime.ui-culture = en-US
+runtime.directory-separator = \
+runtime.local-application-data = C:\Users\kpg\AppData\Local
+exit 0
+### issuance
+issuance.ecdsa-create-p256 = System.Security.Cryptography.ECDsaCng
+issuance.ecdsa-create-default = System.Security.Cryptography.ECDsaCng
+issuance.certificate-request = made
+issuance.authority-self-signed = raw 384 bytes, key True, signature 1.2.840.10045.4.3.2
+issuance.authority-not-after-utc = 2126-11-01T13:12:46.0000000 kind Utc
+issuance.authority-not-after-exact = true
+issuance.never-expiring-not-after = 9999-12-31T23:59:59.9999999+01:00 / as UTC 9999-12-31T22:59:59.9999999Z
+issuance.host-issued = raw 403 bytes, key False
+issuance.copy-with-private-key = key True
+issuance.export-pkcs12 = 1019 bytes
+issuance.load-pkcs12-ephemeral = key True, same bytes True
+issuance.load-pkcs12-exportable-only = key True, same bytes True
+issuance.restored-sign-verify = true
+issuance.byte-constructor-takes-pkcs12 = key True, raw 403 of 1019
+issuance.sha256-of-raw = b571616ec4091eb4...
+issuance.thumbprint-length = 40
+exit 0
+### ecdsa
+ecdsa.type-certificate-request = present
+ecdsa.type-certificate-request-in-system = absent
+ecdsa.method-copy-with-private-key = true
+ecdsa.create-p256 = System.Security.Cryptography.ECDsaCng
+ecdsa.create-default = System.Security.Cryptography.ECDsaCng
+ecdsa.key-size = 256
+ecdsa.export-parameters = curve nistP256, x 32 bytes
+ecdsa.sign-verify = signature 64 bytes, verifies True
+exit 0
+### bouncy
+bouncy.made = authority 360 bytes, host 370 bytes
+bouncy.x509-from-der = raw 370, key algorithm 1.2.840.10045.2.1
+bouncy.subject = CN=Mono probe host
+bouncy.public-key-object = ! System.NotSupportedException: The certificate key algorithm is not supported.
+bouncy.get-ecdsa-public-key = System.Security.Cryptography.ECDsaCng
+bouncy.pkcs12-made = 985 bytes
+bouncy.load-pkcs12-ephemeral = key True
+bouncy.load-pkcs12-exportable-only = key True
+bouncy.restored-sign-verify = true
+bouncy.pkcs12-read-by-bouncy = ECPrivateKeyParameters
+exit 0
+### chain
+chain.own-leaf = built true, elements 2, last is anchor true, status [UntrustedRoot]
+chain.foreign-leaf = built true, elements 1, last is anchor false, status [PartialChain]
+chain.foreign-leaf-root-offered = built true, elements 2, last is anchor false, status [UntrustedRoot]
+chain.expired-leaf = built false, elements 2, last is anchor true, status [UntrustedRoot,NotTimeValid]
+chain.expired-leaf-ignoring-time = built true, elements 2, last is anchor true, status [UntrustedRoot,NotTimeValid]
+chain.ca-issuers-leaf = built true, elements 1, last is anchor false, status [PartialChain]
+chain.ca-issuers-build-ms = 14
+chain.ca-issuers-connections = 1
+exit 0
+### tls
+tls.client-handshake = echo probe
+tls.server = version TLS 1.3, client certificate offered
+exit 0
+### audit
+audit.append-data-stream = ok
+audit.length-after-append = 11
+audit.append-data-stream-twice = ok
+audit.length-after-second = 22
+audit.roll-with-reader-open = moved, reader still reads {"line":1}
+audit.get-access-control = System.Security.AccessControl.FileSecurity
+exit 0
+### native
+native.is-window-enabled = false
+native.enable-window = false
+native.get-window = 0
+native.get-ancestor = 0
+native.flash-window-ex = false
+native.set-window-display-affinity = false
+exit 0
+### culture
+culture.en-US.lower-I = U+0069
+culture.en-US.upper-i = U+0049
+culture.en-US.path-equal = true
+culture.en-US.compare-KPG-kpg = 1
+culture.en-US.compare-dot-dash = -1
+culture.en-US.compare-profiles-revoked = -1
+culture.en-US.compare-ignorable = 0
+culture.tr-TR.lower-I = U+0131
+culture.tr-TR.upper-i = U+0130
+culture.tr-TR.path-equal = false
+culture.tr-TR.compare-KPG-kpg = 1
+culture.tr-TR.compare-dot-dash = -1
+culture.tr-TR.compare-profiles-revoked = -1
+culture.tr-TR.compare-ignorable = 0
+culture.de-DE.lower-I = U+0069
+culture.de-DE.upper-i = U+0049
+culture.de-DE.path-equal = true
+culture.de-DE.compare-KPG-kpg = 1
+culture.de-DE.compare-dot-dash = -1
+culture.de-DE.compare-profiles-revoked = -1
+culture.de-DE.compare-ignorable = 0
+culture.invariant-upper-dotless-i = U+0131
+culture.invariant-upper-long-s = U+017F
+culture.ordinal-ignore-case-TITLE-dotless = false
+culture.ordinal-ignore-case-u-umlaut = true
+exit 0
+### forms
+forms.font-consolas = Consolas
+forms.font-microsoft-sans-serif = Microsoft Sans Serif
+forms.font-generic-monospace = Courier New
+forms.default-font = Microsoft Sans Serif 8.25
+forms.message-box-font = Segoe UI 9
+forms.auto-scale = current {Width=6, Height=13}, handle True
+forms.measure-text = {Width=98, Height=13}
+exit 0

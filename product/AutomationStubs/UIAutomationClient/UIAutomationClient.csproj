@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <AssemblyName>UIAutomationClient</AssemblyName>
+  </PropertyGroup>
+
+  <Import Project="..\Stub.props" />
+
+</Project>

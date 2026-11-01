@@ -1,0 +1,7 @@
+2026-11-01T13:22:16.127Z KPG INFO initializing version 0.1.0
+2026-11-01T13:22:16.169Z KPG INFO decisions are being recorded to /tmp/kpg-mono/home/.local/share/KeePassGate/audit.jsonl
+2026-11-01T13:22:16.467Z KPG INFO listening on 127.0.0.1:51776
+2026-11-01T13:22:16.475Z KPG INFO started, watching for KeePass.Forms.DatabaseSettingsForm
+2026-11-01T13:22:16.476Z KPG INFO started, watching for KeePass.Forms.GroupForm or KeePass.Forms.PwEntryForm
+2026-11-01T13:22:55.624Z KPG INFO dropped a connection: nomatch
+2026-11-01T13:23:35.203Z KPG INFO attached the KPG tab to KeePass.Forms.DatabaseSettingsForm

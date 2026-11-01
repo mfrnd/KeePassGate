@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    One executable, built once on Windows and run unchanged on two runtimes: .NET Framework 4.8,
+    where every fact the plugin rests on was measured, and Mono, where none was. Built against the
+    reference assemblies rather than an installed targeting pack, so the same build works wherever
+    the .NET SDK does.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>7.3</LangVersion>
+    <Nullable>disable</Nullable>
+    <RootNamespace>MonoProbe</RootNamespace>
+    <AssemblyName>MonoProbe</AssemblyName>
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+    <!-- The version the plugin ships, so the TLS answer is about the stack it uses. -->
+    <PackageReference Include="BouncyCastle.Cryptography" Version="2.7.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Drawing" />
+  </ItemGroup>
+
+</Project>
