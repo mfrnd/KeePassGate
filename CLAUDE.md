@@ -612,6 +612,19 @@ Run them from
   compared the same way, which is `KeePassPaths`, taking the culture of KeePass's own thread once;
   `OrdinalIgnoreCase` would join what KeePass keeps apart.
   `LockInRealDatabaseTests.Two_spellings_KeePass_keeps_apart_are_kept_apart_here_too`, under tr-TR.
+- **KeePass's dictionaries look a key up in the culture of the thread asking, and only KeePass's
+  thread runs in KeePass's.** Custom data, an entry's strings and its attachments are
+  `SortedDictionary` trees under the default comparer. `MainForm` sets its own thread's culture
+  from the language file, while a pool thread keeps the regional format's, because KeePass.exe
+  declares no target framework and .NET Framework then lets no culture flow to a new thread or a
+  pool item. So a tree KeePass's thread sorted is searched in another order, and a key that is
+  there is missed wherever the two cultures order something on the way to it differently: Danish
+  sorts `aa` after `z`. An untranslated KeePass sets no culture, which is why the end to end tier
+  never meets it. `GateListener` serves every connection in the culture of the thread that made
+  it. `KeePassContractTests.A_dictionary_still_finds_a_key_only_in_the_culture_it_was_sorted_in`
+  pins the miss, and
+  `GateListenerTests.A_connection_is_served_in_the_culture_of_the_thread_that_made_the_listener`
+  the listener.
 - **`MainForm.SaveDatabase(db, null)` saves a named database**; `UIFileSave` saves whichever document
   is active. Pairing names its database, so it uses the first. Neither reports anything, so a write
   is believed only after reading the record back and finding `PwDatabase.Modified` false. **And

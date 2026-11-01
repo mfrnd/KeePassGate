@@ -955,6 +955,64 @@ namespace KeePassGate.Tests
             Assert.That(_log.Errors, Is.Empty, string.Join("; ", _log.Errors.Select(e => e.Message)));
         }
 
+        [Test]
+        public void A_connection_is_served_in_the_culture_of_the_thread_that_made_the_listener()
+        {
+            // KeePass's dictionaries look a key up in the culture of the thread asking, and the
+            // plugin makes the listener on KeePass's thread, which runs in its translation's
+            // culture. A pool thread keeps the regional format's, and a tree sorted in one and
+            // searched in the other misses keys that are there: a Danish KeePass on an English
+            // format refused an admitted client whose record's key began `aa`. So a connection
+            // has to be served in the culture the listener was made in.
+            var made = CultureInfo.GetCultureInfo("da-DK");
+            Assume.That(CultureInfo.CurrentCulture.Name, Is.Not.EqualTo(made.Name),
+                "a machine whose own format is Danish cannot tell the two apart");
+
+            var handler = new CultureHandler();
+            var thread = Thread.CurrentThread;
+            var own = thread.CurrentCulture;
+            GateListener listener;
+
+            thread.CurrentCulture = made;
+            try
+            {
+                listener = new GateListener(
+                    new GateOptions { Port = 0 }, new GateResolver(_targets, _log), handler, _log);
+            }
+            finally
+            {
+                thread.CurrentCulture = own;
+            }
+
+            using (listener)
+            {
+                Assert.That(listener.Start(), Is.True);
+
+                var reply = GateClient.Get(listener.Port, _first.NewName(), null, GateOperations.StatusPath);
+
+                Assert.That(reply.Answered, Is.True, reply.Failure);
+                Assert.That(handler.Culture, Is.EqualTo(made.Name),
+                    "the request was served in the culture of the pool thread rather than KeePass's");
+            }
+        }
+
+        /// <summary>A handler that notes the culture it was called in.</summary>
+        private sealed class CultureHandler : IGateHandler
+        {
+            private string _culture;
+
+            public string Culture
+            {
+                get { return Volatile.Read(ref _culture); }
+            }
+
+            public void Handle(IGateContext context)
+            {
+                Volatile.Write(ref _culture, CultureInfo.CurrentCulture.Name);
+                context.Respond(200, "{}");
+            }
+        }
+
         /// <summary>
         /// A handler that takes longer than the connection budget, which is what a write to a
         /// large database on slow storage is.

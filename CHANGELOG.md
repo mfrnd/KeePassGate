@@ -20,6 +20,12 @@ none, since it releases both.
   do as well as what the URL holds, so one check given both is to take the place of a refusal
   that covered two cases. Until then, [`docs/access-control.md`](docs/access-control.md) warns
   against opening a URL a program may have written.
+- **A translated KeePass is read the way it reads itself.** Where KeePass's language and Windows'
+  regional format sort letters differently, Danish and English among them, the gate looked names up
+  in the wrong order and missed what was there: an admitted client was refused `401`, a field was
+  served empty and an attachment answered `404` though both were listed, a node's own seal was
+  passed over for the grant above it, and two authorities with no retirement were served as one.
+  Every connection is now served in KeePass's own culture.
 - **The plugin is compiled at C# 13**, and the build needs the .NET SDK 9 or later. Nothing it does
   changes: the compiled plugin differs only in caching a delegate made from a static method rather
   than making one at every use, and in an attribute the compiler adds.
