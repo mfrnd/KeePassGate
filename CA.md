@@ -3,6 +3,8 @@
 <!-- The recorded probe output below smuggles a newline as `%0A`, which runs into the
      `URL=` after it. Quoted verbatim, so the word is ignored here rather than corrected. -->
 <!-- cspell:ignore AURL -->
+<!-- RFC 8018's name for the password-based encryption scheme a PKCS#12 bag may name. -->
+<!-- cspell:ignore PBES -->
 
 Reference for how KeePassGate issues, presents, validates and withdraws identity.
 [`DESIGN.md`](DESIGN.md) says how it fits the rest, [`PAIRING.md`](PAIRING.md) covers the flow that
@@ -279,25 +281,32 @@ a passphrase here would be cryptography written by us over cryptography that alr
 key is base64 of the 32 raw bytes. Sizes are unremarkable: roughly 1.4 KB of base64 for the
 authority.
 
+**The algorithms are the ones Windows wrote**, measured rather than remembered: a SHA-1 MAC, and
+the key and the certificate each under `pbeWithSHAAnd3-KeyTripleDES-CBC`. The rest of the shape
+differs, and nothing reads the difference. Bouncy Castle iterates 1024 times where Windows did
+2000, writes the MAC's digest with NULL parameters where Windows wrote none, and names the key
+`KeePassGate` where Windows named its key storage provider. So an authority Windows wrote and one
+Bouncy Castle wrote differ in those three, and Windows, Bouncy Castle and the client's
+`cryptography` each read both. The certificate's algorithm is the one that had to be asked for,
+because Bouncy Castle's own is RC2 with a forty-bit key, which OpenSSL keeps in its legacy provider
+only. `cryptography`'s wheels load that provider unless `CRYPTOGRAPHY_OPENSSL_NO_LEGACY` is set,
+so with that variable set, or on an OpenSSL built without the provider, the client could not have
+read the identity a pairing hands it, where triple DES reads everywhere.
+
 **Nothing here is ever written to the disk, and that is what decided the transport.** Importing a
 PKCS#12 on .NET Framework writes a key file into `%APPDATA%\Microsoft\Crypto\Keys` for as long as
-the certificate is loaded, unless `EphemeralKeySet` is asked for. The plugin imports none at all:
-Bouncy Castle writes the stored form and reads it back, and Windows is handed the certificate inside
-without its key. While Windows did read these, everything asked for the flag.
+the certificate is loaded, unless `EphemeralKeySet` is asked for. The plugin imports none of its
+own: Bouncy Castle writes the stored form and reads it back, and Windows is handed the certificate
+inside without its key. While Windows read these, everything asked for the flag, and one read
+still does. An admission record's certificate, §223, is bytes a database chose, and Windows takes
+a PKCS#12 there as readily as a certificate, so it is read under `EphemeralKeySet`, and a key a
+crafted record carries is written nowhere before the record is refused.
 
-The shape is the one Windows wrote, measured rather than remembered, so a database keeps one kind
-of PKCS#12 whichever release wrote its authority: a SHA-1 MAC, and the key and the certificate each
-under `pbeWithSHAAnd3-KeyTripleDES-CBC`. The certificate's algorithm is the one that had to be
-asked for, because Bouncy Castle's own is RC2 with a forty-bit key, which OpenSSL 3 keeps in its
-legacy provider, and the client's `cryptography` would have refused the identity a pairing hands
-it. And a key is believed only when it is the private half of the certificate beside it, because
-a PKCS#12 pairs the two by a local identifier anybody can write.
-
-That is only possible because the TLS server is managed code. An ephemeral key **signs perfectly
-well and cannot be used with SChannel at all**, in either direction, so serving with the platform's
-own TLS would have meant putting the host key on the disk for as long as a database was open.
-`DESIGN.md` §133 records the reversal; `EphemeralKeyProbe.cs` and `ManagedTlsProbe.cs` are the two
-halves of the measurement.
+Keeping every key off the disk is only possible because the TLS server is managed code. An
+ephemeral key **signs perfectly well and cannot be used with SChannel at all**, in either
+direction, so serving with the platform's own TLS would have meant putting the host key on the disk
+for as long as a database was open. `DESIGN.md` §133 records the reversal; `EphemeralKeyProbe.cs`
+and `ManagedTlsProbe.cs` are the two halves of the measurement.
 
 So all three secrets live in the database and in memory, and nowhere else the plugin puts them: the
 authority that can mint identities, the host key that authenticates a server, and the gate key.
@@ -314,7 +323,21 @@ rather than absent, and the two are never conflated: an absent authority is crea
 has to be recreated, and only the operator can decide to do that. A host certificate that does not
 chain to the stored authority is damage too, checked with the anchor pin rather than by comparing
 names, because every authority this plugin issues carries the same subject and a name comparison
-therefore accepts somebody else's host.
+therefore accepts somebody else's host. And a key is believed only when it is the private half of
+the certificate beside it, because a PKCS#12 pairs the two by a local identifier anybody can write.
+
+**A crafted value costs what refusing it costs, not what it asks for.** A PKCS#12 names its own
+work: how many times its MAC and each bag's key are derived, and how many bags there are. So before
+Bouncy Castle's PKCS#12 store is handed anything, a value over 64 KiB is refused, and so is one
+asking for more than 10,000 iterations of the MAC or of any bag, where this plugin writes 1024 and
+Windows wrote 2000, and one holding more than four parts, four bags or one key bag. The bags inside
+an encrypted part are counted by opening it, once its own count has passed, since a key bag sealed
+in one is otherwise unseen until Bouncy Castle has done its work; and a key derivation whose count
+cannot be read without running it, PBES2, is refused. The MAC is checked first, both ways Bouncy
+Castle reads an empty password. The worst value still accepted costs about 44 ms here, where one
+crafted bag at 5,000,000 iterations cost three seconds. The certificate and its key both have to
+be on P-256, named by the curve's identifier rather than spelled out, and the certificate's point
+has to be uncompressed, which is what this plugin and Windows both wrote.
 
 **Pairing tokens are not here.** They live in plugin memory and expire on TTL or on KeePass exiting,
 whichever comes first. [`PAIRING.md`](PAIRING.md) says why that is more than a simplification.
