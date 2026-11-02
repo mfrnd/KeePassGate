@@ -270,6 +270,35 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void An_authority_whose_key_identifier_will_not_read_does_not_stop_the_others_being_served()
+        {
+            // A crafted authority whose subject key identifier is not ASN.1 at all, beside a host
+            // it did sign: the store reads the pair as whole, because nothing that reads an
+            // authority in decodes that identifier, and the issuer is the first thing that does.
+            // Its own reading threw an `IOException` out of the responder's mint, which nothing on
+            // the way up named, and the resolver answered nothing for the healthy database beside
+            // it either. Refused with the issuer's `ArgumentException`, each is served, the crafted
+            // one without a responder, and the log names why.
+            CreateAuthorityIn(_first);
+
+            var authority = Minted.Named("CN=KeePassGate authority")
+                .AsAuthority()
+                .WithKeyIdentifier(new byte[] { 0xFF, 0xFF, 0xFF })
+                .SelfSigned();
+            var host = Minted.Named("CN=KeePassGate host").ForUsage(AuthorityIssuer.ServerAuthOid).IssuedBy(authority);
+            var crafted = CertificateDigest.Of(authority.CertificateDer);
+            var sniKey = Convert.ToBase64String(Enumerable.Range(1, AuthorityMaterial.SniKeyLength).Select(i => (byte)i).ToArray());
+            _second.Database.CustomData.Set(
+                AuthorityKeys.AuthorityKey(crafted),
+                AuthorityDocument.Save(CertificateBlob.Save(authority), CertificateBlob.Save(host), sniKey));
+
+            var targets = _targets.Current();
+
+            Assert.That(targets.Select(target => target.DatabaseId), Is.EquivalentTo(new[] { DigestOf(_first), crafted }));
+            Assert.That(_log.Errors, Has.Some.Contains("a responder certificate could not be minted"));
+        }
+
+        [Test]
         public void A_source_that_throws_is_reported_and_serves_nothing()
         {
             var targets = new OpenDatabaseTargets(

@@ -743,11 +743,16 @@ namespace KeePassGate.Bridge
                 return Undecided(database, stored, reading);
             }
 
-            // The target takes the reading and lets go of it with its last holder. Every other way
-            // out lets go of it here, a throw from the log or from making the target among them,
-            // and in a `finally` rather than a `catch` for the reason `Current` gives.
-            MaterialTarget target;
-            var handedOver = false;
+            // The target takes the reading, and the cache takes the target, which lets go of it
+            // with its last holder. Every other way out lets go of whichever holds it here, a throw
+            // from the log, from making the target or from minting its responder among them, and in
+            // a `finally` rather than a `catch` for the reason `Current` gives. Up to the cache
+            // rather than up to the target, because what runs between the two is a mint from stored
+            // bytes, and a throw there used to leave the gate key and the host's stored bytes
+            // not wiped on every connection that read the database again.
+            // codeql[cs/missed-using-statement] disposed only when it is not cached, which no `using` can do
+            MaterialTarget target = null;
+            var kept = false;
             try
             {
                 if (!reading.IsPresent)
@@ -768,29 +773,36 @@ namespace KeePassGate.Bridge
                     return null;
                 }
 
-                target = new MaterialTarget(
-                    database, reading, reading.Material.HostKey, _writer, _hold, _log);
-                handedOver = true;
+                target = new MaterialTarget(database, reading, _writer, _hold, _log);
+
+                var path = PathOf(database);
+
+                // Open again, which is the other answer to what was kept when it went away. Without
+                // this a database that came back with no unlock being announced would leave a gate
+                // key held until KeePass exits.
+                Discard(path);
+
+                var entry = new CachedTarget(stored, path, Responder(reading), target, null);
+                _cache[database] = entry;
+                kept = true;
+
+                _log.Info("serving a database with authority " + CertificateDigest.Shorten(target.DatabaseId));
+                return entry;
             }
             finally
             {
-                if (!handedOver)
+                if (!kept)
                 {
-                    reading.Dispose();
+                    if (target != null)
+                    {
+                        target.Dispose();
+                    }
+                    else
+                    {
+                        reading.Dispose();
+                    }
                 }
             }
-
-            var path = PathOf(database);
-
-            // Open again, which is the other answer to what was kept when it went away. Without
-            // this a database that came back with no unlock being announced would leave a gate key
-            // held until KeePass exits.
-            Discard(path);
-
-            var entry = new CachedTarget(stored, path, Responder(reading), target, null);
-            _cache[database] = entry;
-            _log.Info("serving a database with authority " + CertificateDigest.Shorten(target.DatabaseId));
-            return entry;
         }
 
         /// <summary>
@@ -865,13 +877,13 @@ namespace KeePassGate.Bridge
             {
                 return new AuthorityIssuer().IssueResponder(reading.Material.AuthorityKey);
             }
-            catch (Exception error) when (
-                Expected.OfCryptography(error) || error is InvalidOperationException)
+            catch (Exception error) when (Expected.OfIssuance(error))
             {
-                // `InvalidOperationException` as well: that is what issuance raises for an authority
-                // whose own dates have passed, and `AuthorityStore.Read` ignores expiry, so one reaches
-                // here. Escaping left the target half built and made the resolver answer nothing for
-                // every open database, not only the expired one.
+                // `OfIssuance`, the list every site that mints from a stored authority shares, and
+                // `InvalidOperationException` among it: that is what issuance raises for an
+                // authority whose own dates have passed, and `AuthorityStore.Read` ignores expiry,
+                // so one reaches here. Escaping left the target half built and made the resolver
+                // answer nothing for every open database, not only the expired one.
                 _log.Error("a responder certificate could not be minted, so a lock will answer nothing", error);
                 return null;
             }
@@ -1002,7 +1014,6 @@ namespace KeePassGate.Bridge
         private sealed class MaterialTarget : IGateTarget
         {
             private readonly AuthorityReading _reading;
-            private readonly CertifiedKey _host;
             private readonly string _databaseId;
             private PwDatabase _database;
             private readonly DatabaseWriter _writer;
@@ -1016,14 +1027,12 @@ namespace KeePassGate.Bridge
             public MaterialTarget(
                 PwDatabase database,
                 AuthorityReading reading,
-                CertifiedKey host,
                 DatabaseWriter writer,
                 IReadHold hold,
                 IGateLog log)
             {
                 _database = database;
                 _reading = reading;
-                _host = host;
                 _hold = hold;
                 _log = log ?? NullGateLog.Instance;
 
@@ -1191,9 +1200,14 @@ namespace KeePassGate.Bridge
                 get { return _reading; }
             }
 
+            /// <summary>
+            /// The host the store read and checked against the authority, read off the reading as
+            /// the authority is, so that the certificate served is the one that was vouched for
+            /// and there is no second copy of it that could be anything else.
+            /// </summary>
             public CertifiedKey Host
             {
-                get { return _host; }
+                get { return _reading.Material.HostKey; }
             }
 
             public X509Certificate2 Authority

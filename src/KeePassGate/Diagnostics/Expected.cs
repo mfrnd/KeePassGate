@@ -58,7 +58,9 @@ namespace KeePassGate.Diagnostics
         /// <remarks>
         /// Everything <see cref="OfCryptography"/> names, since the authority arrives as stored
         /// bytes and a key it may not be able to sign with, plus `InvalidOperationException`, which
-        /// is what `AuthorityIssuer` refuses an authority whose own dates have passed with.
+        /// is what `AuthorityIssuer` refuses an authority whose own dates have passed with, and one
+        /// whose dates have not begun yet by this machine's clock, a replica behind the one that
+        /// created it.
         ///
         /// **That refusal is the state of a database that old, not a defect here.**
         /// `AuthorityStore.Read` ignores expiry deliberately, so an authority past its hundred years
@@ -259,6 +261,14 @@ namespace KeePassGate.Diagnostics
         /// it was built against. That is a broken installation and a defect to count: taken for a
         /// client that hung up, it would fail every connection with a line nobody reads as a
         /// failure.
+        ///
+        /// **What a connection does between its socket's reads has to throw nothing named here.**
+        /// Resolving the name a client asked for reads no stream, only what the open databases
+        /// hold, and an `IOException` out of it would be taken for a peer that left, with nothing
+        /// counted. Bouncy Castle reports bytes that will not parse as one, which is why each place
+        /// stored bytes reach it answers for its own, as `OfCryptography` sets out: the issuer's
+        /// reading of a stored authority's key identifier was one that did not, and every
+        /// connection to every open database ended as a client leaving.
         /// </remarks>
         public static bool OfConnection(Exception error)
         {

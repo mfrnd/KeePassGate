@@ -82,9 +82,11 @@ is given certificates to read and nothing else. The rest of the cryptography is 
 too: it terminates the TLS, `DESIGN.md` §133, and it is the fixed-time comparison every
 certificate's bytes go through, §214, which .NET Framework does not have.
 
-**Names are written as UTF8String**, which RFC 5280 section 4.1.2.4 asks of every certificate
-issued since 2004. A leaf's issuer is its authority's subject copied as it is stored, never written
-again, so an authority written while Windows issued these, whose names are PrintableString, goes on
+**Names are written as UTF8String**, which holds an underscore where PrintableString cannot:
+Windows wrote PrintableString, and fell back to BMPString for a name holding one. RFC 5280 section
+4.1.2.4 allows either of the two, where RFC 3280 required UTF8String of every certificate issued
+after 2003. A leaf's issuer is its authority's subject copied as it is stored, never written again,
+so an authority written while Windows issued these, whose names are PrintableString, goes on
 chaining everything it issues: section 7.1 compares names after normalizing them, and the anchor
 pin compares bytes, §214.
 
@@ -388,10 +390,14 @@ fail-open in a design that fails closed everywhere else.
 | Client | 1 to 365 days, as the operator picks | CA false | digitalSignature | clientAuth |
 
 Every certificate carries a **subject key identifier** and every leaf an **authority key
-identifier**, so the authority can be renewed later without invalidating what it signed. **`pathLen
-0`** so it cannot mint a subordinate. **No EKU on the authority**, because one there constrains
-everything beneath it and buys nothing. **A leaf's `notAfter` is clamped to the authority's**, so
-nothing outlives what vouches for it.
+identifier**, so the authority can be renewed later without invalidating what it signed. A leaf's
+authority key identifier is its authority's subject key identifier copied, so a stored authority
+whose subject key identifier is absent, empty or not DER cannot issue, and is refused as one that
+cannot. **`pathLen 0`** so it cannot mint a subordinate. **No EKU on the authority**, because one
+there constrains everything beneath it and buys nothing. **A leaf's `notAfter` is clamped to the
+authority's**, so nothing outlives what vouches for it, **and its `notBefore` is never earlier than
+the authority's**, so nothing starts before it either: a clock that reads earlier than the
+authority's start issues nothing.
 
 **A client proposes how long its certificate lasts, and the operator picks.** A pairing request may
 ask for whole days from one to 365, and the approval dialog offers 1, 7, 30 and 90 days and a year,

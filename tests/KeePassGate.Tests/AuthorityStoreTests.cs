@@ -704,7 +704,10 @@ namespace KeePassGate.Tests
                 Assert.That(reading.IsPresent, Is.True, string.Join("; ", reading.Problems));
                 Assert.That(reading.Material.AuthorityDigest, Is.EqualTo(digest));
 
-                using (var client = _issuer.IssueClient(reading.Material.AuthorityKey, "agent-fictitious", null).Read())
+                // At a moment inside the authority's life rather than at the real one, so that this
+                // tests what was written rather than the calendar.
+                var issuer = new AuthorityIssuer(() => SeededAuthority.During);
+                using (var client = issuer.IssueClient(reading.Material.AuthorityKey, "agent-fictitious", null).Read())
                 {
                     Assert.That(AnchorPin.Chains(client, reading.Material.Authority), Is.True);
                 }

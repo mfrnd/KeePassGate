@@ -1129,10 +1129,38 @@ namespace KeePassGate.Tests
         [TestCase("CN=", null)]
         [TestCase("O=somebody", null)]
         [TestCase("CN=a, O=b", null)]
+        [TestCase("CN=\" agent\"", null)]
         [TestCase(null, null)]
-        public void The_name_is_read_back_off_the_subject_the_issuer_wrote(string subject, string name)
+        public void A_name_is_read_back_off_a_subject_that_holds_one_and_off_nothing_else(string subject, string name)
         {
             Assert.That(RenewalHandler.NameIn(subject), Is.EqualTo(name));
+        }
+
+        /// <summary>Every shape the client alphabet allows, to its longest.</summary>
+        private static readonly string[] EveryShapeOfName =
+        {
+            "agent  one", "a  b  c", "1agent", "123", "2.5.4.3", ".a-b_c", "agent.", "-agent", "_agent", "._-", "a",
+            "a" + new string(' ', AuthorityIssuer.MaxSubjectLength - 2) + "b",
+            new string('x', 30) + "_" + new string('9', 16) + ".-" + new string('Z', 15)
+        };
+
+        [TestCaseSource(nameof(EveryShapeOfName))]
+        public void Every_shape_of_name_the_alphabet_allows_is_issued_and_read_back_as_itself(string name)
+        {
+            // The issuer writes the subject, Windows renders it, the record and the bundle carry
+            // the rendering, and a renewal reads the name back off it. A name that came back as
+            // anything else would be a client whose page shows another name than the dialog did,
+            // and whose every renewal is answered `500`.
+            Assume.That(AuthorityIssuer.IsUsableSubjectName(name), Is.True, "a name the alphabet allows");
+
+            var issued = new AuthorityIssuer().IssueClient(_authority.AuthorityKey, name, new[] { "reader" });
+            using (var certificate = issued.Read())
+            {
+                Assert.That(certificate.Subject, Is.EqualTo("CN=" + name));
+                Assert.That(AdmissionRecord.For(certificate, DateTimeOffset.UtcNow, new[] { "reader" }).Subject,
+                    Is.EqualTo("CN=" + name));
+                Assert.That(RenewalHandler.NameIn(certificate.Subject), Is.EqualTo(name));
+            }
         }
 
         private GateContext Renew(FakeRenewalApproval operatorAt, X509Certificate2 certificate, string body)

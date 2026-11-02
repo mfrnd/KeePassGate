@@ -545,8 +545,9 @@ paths:
                   maxLength: 64
                   description: |
                     What this client should be called. Letters, digits, space, dot, dash and
-                    underscore, neither beginning nor ending with a space, which the certificate's
-                    subject name would lose.
+                    underscore, neither beginning nor ending with a space: a subject name with a
+                    space at either end is rendered in quotes, so it would no longer read as the
+                    name, and a renewal could not read the name back off it.
                 profiles:
                   type: array
                   maxItems: 32

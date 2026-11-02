@@ -1,3 +1,5 @@
+using System;
+
 namespace KeePassGate.Testing
 {
     /// <summary>
@@ -67,6 +69,13 @@ namespace KeePassGate.Testing
 
         /// <summary>The key the rotating name is computed from.</summary>
         public const string SniKey = "1wPpU0rW182vOL1F0XbHxyKHQ59z5iakQs0UmjLfoqA=";
+
+        /// <summary>
+        /// A moment inside the authority's life, which runs from 2026-08-22 to 2036-08-21, for a
+        /// test that issues from it: at the real clock, such a test would stop passing the day the
+        /// authority ends, for a reason that has nothing to do with what it tests.
+        /// </summary>
+        public static readonly DateTimeOffset During = new DateTimeOffset(2030, 1, 1, 0, 0, 0, TimeSpan.Zero);
 
         /// <summary>The admission key that one client is recorded under.</summary>
         public const string ClientKey =

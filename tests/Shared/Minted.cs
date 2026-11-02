@@ -35,20 +35,24 @@ namespace KeePassGate.Testing
         private readonly X509V3CertificateGenerator _generator = new X509V3CertificateGenerator();
         private readonly X509Name _subject;
 
-        private Minted(string subject)
+        /// <summary>
+        /// The subject key identifier's contents as they are written, or null for none. Written
+        /// when the certificate is signed rather than when it is begun, so that a test can leave it
+        /// out or write it as bytes no issuer would.
+        /// </summary>
+        private byte[] _keyIdentifier;
+
+        private Minted(X509Name subject)
         {
             var keys = new ECKeyPairGenerator();
             keys.Init(new ECKeyGenerationParameters(X9ObjectIdentifiers.Prime256v1, _random));
             _key = keys.GenerateKeyPair();
-            _subject = new X509Name(subject);
+            _subject = subject;
 
             _generator.SetSerialNumber(new BigInteger(1, AuthorityIssuer.NewSerialNumber()));
             _generator.SetSubjectDN(_subject);
             _generator.SetPublicKey(_key.Public);
-            _generator.AddExtension(
-                X509Extensions.SubjectKeyIdentifier,
-                false,
-                X509ExtensionUtilities.CreateSubjectKeyIdentifier(_key.Public));
+            _keyIdentifier = X509ExtensionUtilities.CreateSubjectKeyIdentifier(_key.Public).GetEncoded();
 
             var now = DateTimeOffset.UtcNow;
             Lasting(now - AuthorityIssuer.Backdate, now.AddDays(30));
@@ -57,7 +61,27 @@ namespace KeePassGate.Testing
         /// <summary>A certificate for the distinguished name given, written the way `X509Name` parses it.</summary>
         public static Minted Named(string subject)
         {
+            return new Minted(new X509Name(subject));
+        }
+
+        /// <summary>A certificate for the name given, in exactly the string types it holds.</summary>
+        public static Minted Named(X509Name subject)
+        {
             return new Minted(subject);
+        }
+
+        /// <summary>With no subject key identifier at all, which nothing this plugin issues lacks.</summary>
+        public Minted WithoutKeyIdentifier()
+        {
+            _keyIdentifier = null;
+            return this;
+        }
+
+        /// <summary>With the subject key identifier's contents written as the bytes given, whatever they are.</summary>
+        public Minted WithKeyIdentifier(byte[] written)
+        {
+            _keyIdentifier = written;
+            return this;
         }
 
         /// <summary>Valid between the two moments, each kept to the second, which is all a certificate holds.</summary>
@@ -112,25 +136,33 @@ namespace KeePassGate.Testing
         /// The same, naming the authority as the issuer in the bytes the test gives rather than in
         /// the authority's own.
         /// </summary>
+        /// <remarks>
+        /// The pointer is computed from the authority's key, the first method of RFC 5280 section
+        /// 4.2.1.2, rather than copied out of the identifier it carries: that is the same value for
+        /// every authority anybody issues, and it keeps a leaf possible under an authority a test
+        /// wrote an identifier for that does not read.
+        /// </remarks>
         public CertifiedKey IssuedBy(CertifiedKey authority, X509Name naming)
         {
             _generator.SetIssuerDN(naming);
-
-            var stored = authority.Certificate.GetExtensionValue(X509Extensions.SubjectKeyIdentifier);
-            if (stored != null)
-            {
-                var identifier = SubjectKeyIdentifier.GetInstance(X509ExtensionUtilities.FromExtensionValue(stored));
-                _generator.AddExtension(
-                    X509Extensions.AuthorityKeyIdentifier,
-                    false,
-                    new AuthorityKeyIdentifier(identifier.GetKeyIdentifier()));
-            }
+            _generator.AddExtension(
+                X509Extensions.AuthorityKeyIdentifier,
+                false,
+                X509ExtensionUtilities.CreateAuthorityKeyIdentifier(authority.Certificate.GetPublicKey()));
 
             return Signed(authority.PrivateKey);
         }
 
         private CertifiedKey Signed(AsymmetricKeyParameter signer)
         {
+            if (_keyIdentifier != null)
+            {
+                // As the extension's value itself: the overload taking bytes wraps them in an
+                // octet string of its own, which would make any bytes a readable identifier.
+                _generator.AddExtension(
+                    X509Extensions.SubjectKeyIdentifier, new X509Extension(false, new DerOctetString(_keyIdentifier)));
+            }
+
             // cspell:ignore WITHECDSA
             var certificate = _generator.Generate(new Asn1SignatureFactory("SHA256WITHECDSA", signer, _random));
             return new CertifiedKey(certificate, _key.Private);

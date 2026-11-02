@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
+using Org.BouncyCastle.Asn1;
 using Org.BouncyCastle.Asn1.X509;
 using Org.BouncyCastle.Asn1.X9;
 using Org.BouncyCastle.Crypto;
@@ -10,6 +12,7 @@ using Org.BouncyCastle.Crypto.Operators;
 using Org.BouncyCastle.Crypto.Parameters;
 using Org.BouncyCastle.Math;
 using Org.BouncyCastle.Security;
+using Org.BouncyCastle.Utilities;
 using Org.BouncyCastle.X509;
 using Org.BouncyCastle.X509.Extension;
 
@@ -30,9 +33,10 @@ namespace KeePassGate.Authority
     /// written as one by the same library. .NET Framework could do all of this on Windows, through
     /// CNG, and Mono can do none of it, `spikes/mono-compatibility`.
     ///
-    /// **Names are written as UTF8String**, which RFC 5280 section 4.1.2.4 asks of every
-    /// certificate issued since 2004. Windows wrote PrintableString, and BMPString for a name
-    /// holding an underscore, which PrintableString cannot. A leaf's issuer is its authority's
+    /// **Names are written as UTF8String**, which holds an underscore where PrintableString
+    /// cannot: Windows wrote PrintableString, and fell back to BMPString for a name holding one.
+    /// RFC 5280 section 4.1.2.4 allows either of the two, where RFC 3280 required UTF8String of
+    /// every certificate issued after 2003. A leaf's issuer is its authority's
     /// subject copied as it is stored, never written again, because RFC 5280 section 7.1 compares
     /// names after normalizing them and `AnchorPin` compares bytes, so an authority written before
     /// keeps every certificate it issues afterwards in its chain.
@@ -200,7 +204,6 @@ namespace KeePassGate.Authority
             var random = new SecureRandom();
             var key = NewKeyPair(random);
             var now = _clock();
-            var notBefore = now - Backdate;
             var notAfter = EndOf(authority);
 
             // Against `now`, not `notBefore`. Comparing with the backdated start let an authority
@@ -212,6 +215,7 @@ namespace KeePassGate.Authority
                     "The authority has expired, so it can issue nothing that is valid.");
             }
 
+            var notBefore = StartOf(authority, now);
             var generator = Leaf(authority, Name(HostName), key.Public, notBefore, notAfter);
             generator.AddExtension(
                 X509Extensions.KeyUsage, true, new KeyUsage(KeyUsage.DigitalSignature | KeyUsage.KeyAgreement));
@@ -251,7 +255,6 @@ namespace KeePassGate.Authority
             var random = new SecureRandom();
             var key = NewKeyPair(random);
             var now = _clock();
-            var notBefore = now - Backdate;
             var notAfter = Clamp(now + ResponderLifetime, authority);
 
             // Against `now`, as in `IssueHost`. This method was written from that one before its
@@ -263,6 +266,7 @@ namespace KeePassGate.Authority
                     "The authority has expired, so it can issue nothing that is valid.");
             }
 
+            var notBefore = StartOf(authority, now);
             var generator = Leaf(authority, Name(ResponderName), key.Public, notBefore, notAfter);
             generator.AddExtension(X509Extensions.KeyUsage, true, new KeyUsage(KeyUsage.DigitalSignature));
             generator.AddExtension(
@@ -319,7 +323,6 @@ namespace KeePassGate.Authority
             var random = new SecureRandom();
             var key = NewKeyPair(random);
             var now = _clock();
-            var notBefore = now - Backdate;
             var notAfter = Clamp(now + lasts, authority);
 
             // Against `now`, not `notBefore`, for the reason `IssueHost` records: comparing
@@ -332,6 +335,7 @@ namespace KeePassGate.Authority
                     "The authority has expired, so it can issue nothing that is valid.");
             }
 
+            var notBefore = StartOf(authority, now);
             var generator = Leaf(authority, Name(subjectName), key.Public, notBefore, notAfter);
             generator.AddExtension(X509Extensions.KeyUsage, true, new KeyUsage(KeyUsage.DigitalSignature));
             generator.AddExtension(
@@ -372,12 +376,17 @@ namespace KeePassGate.Authority
                 return false;
             }
 
-            // Measured on `X500DistinguishedName`, which wrote these names before Bouncy Castle
-            // did: it strips the space either end, so `CN=agent`, `CN= agent` and `CN=agent `
-            // encoded to the same bytes, and a name of nothing but spaces to an empty common name.
-            // Two clients would then carry one identity in a log line and in an admission record,
-            // which is the one thing a name is for. Anything that trims a name still joins them,
-            // so the rule outlives the encoder that showed it was needed.
+            // **What the rule protects now is reading the name back.** Bouncy Castle writes a
+            // space at either end as it is given, and Windows renders such a common name in
+            // quotes, `CN=" agent"`, so the subject the record, the log, the bundle and the
+            // Clients page carry would no longer be `CN=` and the name, and
+            // `RenewalHandler.NameIn`, which finds a quote outside the alphabet, could not read the
+            // name back for a renewal: a client that paired could never renew.
+            //
+            // It was measured first on `X500DistinguishedName`, which wrote these names before
+            // Bouncy Castle did: it stripped the space either end, so `CN=agent`, `CN= agent` and
+            // `CN=agent ` encoded to the same bytes, and a name of nothing but spaces to an empty
+            // common name, and two clients would have carried one identity.
             if (subjectName[0] == ' ' || subjectName[subjectName.Length - 1] == ' ')
             {
                 return false;
@@ -440,10 +449,31 @@ namespace KeePassGate.Authority
             return generator.GenerateKeyPair();
         }
 
-        /// <summary>A name of one common name, which Bouncy Castle writes as UTF8String.</summary>
-        private static X509Name Name(string commonName)
+        /// <summary>
+        /// A name of one common name, written as a UTF8String holding exactly what it is given.
+        /// </summary>
+        /// <remarks>
+        /// **Through a converter of its own**, because Bouncy Castle's default one is not a
+        /// verbatim writer: it reads a value starting with `#` as the hex of whatever ASN.1 it
+        /// encodes, or throws a bare `Exception` when that does not decode, and drops a leading
+        /// backslash. The alphabet <see cref="IsUsableSubjectName"/> allows holds neither
+        /// character, so the default would write every name allowed today the same way, and this
+        /// keeps the name written the name asked for if that alphabet is ever widened.
+        /// </remarks>
+        internal static X509Name Name(string commonName)
         {
-            return new X509Name(new[] { X509Name.CN }, new[] { commonName });
+            return new X509Name(new[] { X509Name.CN }, new[] { commonName }, Utf8Names.Instance);
+        }
+
+        /// <summary>Every value in a name as a UTF8String, exactly as it is given.</summary>
+        private sealed class Utf8Names : X509NameEntryConverter
+        {
+            public static readonly Utf8Names Instance = new Utf8Names();
+
+            public override Asn1Object GetConvertedValue(DerObjectIdentifier oid, string value)
+            {
+                return new DerUtf8String(value);
+            }
         }
 
         private static X509V3CertificateGenerator Generator(
@@ -495,18 +525,88 @@ namespace KeePassGate.Authority
                 false,
                 X509ExtensionUtilities.CreateSubjectKeyIdentifier(publicKey));
 
-            var stored = authority.Certificate.GetExtensionValue(X509Extensions.SubjectKeyIdentifier);
-            if (stored == null)
-            {
-                throw new ArgumentException(
-                    "The issuer carries no subject key identifier to point at.", nameof(authority));
-            }
-
-            var identifier = SubjectKeyIdentifier.GetInstance(X509ExtensionUtilities.FromExtensionValue(stored));
             generator.AddExtension(
                 X509Extensions.AuthorityKeyIdentifier,
                 false,
-                new AuthorityKeyIdentifier(identifier.GetKeyIdentifier()));
+                new AuthorityKeyIdentifier(KeyIdentifierOf(authority)));
+        }
+
+        /// <summary>
+        /// The authority's own subject key identifier, which every leaf it issues points at, or an
+        /// `ArgumentException` naming it as unreadable.
+        /// </summary>
+        /// <remarks>
+        /// **Read totally, because these are stored bytes.** Nothing that reads an authority in
+        /// decodes this extension, so one a database somebody crafted holds arrives here as it was
+        /// written, and Bouncy Castle's own reading of it threw an `IOException` for bytes that
+        /// are not ASN.1 and a `NullReferenceException` for none at all, neither of which any
+        /// site that issues names: the resolver then answered nothing for every open database,
+        /// the healthy ones included. An identifier that is absent, empty or anything but one DER
+        /// octet string is the same answer, the type `Expected.OfIssuance` names, so a pairing is
+        /// answered `500` and a database is served without a responder, which is what Windows's
+        /// reading of the same extension made of it before Bouncy Castle read it.
+        /// </remarks>
+        private static byte[] KeyIdentifierOf(CertifiedKey authority)
+        {
+            var stored = authority.Certificate.GetExtensionValue(X509Extensions.SubjectKeyIdentifier);
+            var written = stored == null ? null : stored.GetOctets();
+
+            var identifier = written == null || written.Length == 0 ? null : OctetStringIn(written);
+            if (identifier == null || identifier.GetOctets().Length == 0
+                || !Arrays.AreEqual(identifier.GetDerEncoded(), written))
+            {
+                throw new ArgumentException(
+                    "The authority's subject key identifier cannot be read, so nothing it issues could point at it.",
+                    nameof(authority));
+            }
+
+            return identifier.GetOctets();
+        }
+
+        /// <summary>The one octet string the bytes encode, or null for anything else.</summary>
+        private static Asn1OctetString OctetStringIn(byte[] encoded)
+        {
+            try
+            {
+                return Asn1Object.FromByteArray(encoded) as Asn1OctetString;
+            }
+            catch (Exception error) when (error is IOException
+                                          || error is Asn1ParsingException
+                                          || error is ArgumentException)
+            {
+                // What Bouncy Castle's ASN.1 reader throws for bytes that will not parse, measured
+                // over some hundreds of thousands of them: an `IOException` for a length or a tag
+                // that runs out, an `Asn1ParsingException` for a tagged object that does, and an
+                // `ArgumentException` for a primitive whose contents its type cannot hold.
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// The start of a leaf: backdated, but never before its authority's own start, and refused
+        /// when the clock is before even that.
+        /// </summary>
+        /// <remarks>
+        /// **A leaf never starts before what vouches for it.** `CertificateRequest.Create` refused
+        /// one that would while it made these, and Bouncy Castle checks nothing of the kind, so on
+        /// a replica whose clock is behind the one that created the authority every leaf began
+        /// before its authority. Every reader measured accepted that; a reader that holds a chain's
+        /// dates to nest would not. So the backdate stops at the authority's start, which keeps a
+        /// replica a few minutes behind issuing where `CertificateRequest.Create` refused it, and a
+        /// clock before even that is refused, with the `InvalidOperationException` an expired
+        /// authority is refused with, because nothing issued then would be valid yet either.
+        /// </remarks>
+        private static DateTimeOffset StartOf(CertifiedKey authority, DateTimeOffset now)
+        {
+            var floor = new DateTimeOffset(DateTime.SpecifyKind(authority.Certificate.NotBefore, DateTimeKind.Utc));
+            if (now < floor)
+            {
+                throw new InvalidOperationException(
+                    "The authority is not valid yet by this clock, so it can issue nothing that is valid.");
+            }
+
+            var backdated = now - Backdate;
+            return backdated < floor ? floor : backdated;
         }
 
         /// <summary>

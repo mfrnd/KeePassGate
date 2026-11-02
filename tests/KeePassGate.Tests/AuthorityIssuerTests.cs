@@ -5,11 +5,14 @@ using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using KeePassGate.Authority;
+using KeePassGate.Diagnostics;
 using KeePassGate.Testing;
 using NUnit.Framework;
 using Org.BouncyCastle.Asn1;
 using Org.BouncyCastle.Asn1.X9;
 using Org.BouncyCastle.Crypto.Parameters;
+using Org.BouncyCastle.Security;
+using Org.BouncyCastle.X509.Extension;
 
 namespace KeePassGate.Tests
 {
@@ -54,14 +57,88 @@ namespace KeePassGate.Tests
         [Test]
         public void Every_name_is_written_as_UTF8String()
         {
-            // RFC 5280 section 4.1.2.4 since 2004. An underscore is the case that mattered: Windows
-            // wrote PrintableString, which cannot hold one, and switched to BMPString for it.
+            // UTF8String holds an underscore, which is the case that mattered: Windows wrote
+            // PrintableString, which cannot hold one, and switched to BMPString for it. RFC 5280
+            // section 4.1.2.4 allows either encoding.
             var host = _issuer.IssueHost(_authorityKey);
+            var responder = _issuer.IssueResponder(_authorityKey);
             var client = _issuer.IssueClient(_authorityKey, "agent_fictitious", null);
 
             Assert.That(CommonNameType(_authorityKey.Certificate.SubjectDN), Is.EqualTo(typeof(DerUtf8String)));
             Assert.That(CommonNameType(host.Certificate.SubjectDN), Is.EqualTo(typeof(DerUtf8String)));
+            Assert.That(CommonNameType(responder.Certificate.SubjectDN), Is.EqualTo(typeof(DerUtf8String)));
             Assert.That(CommonNameType(client.Certificate.SubjectDN), Is.EqualTo(typeof(DerUtf8String)));
+        }
+
+        [TestCase("#0c056167656e74")]
+        [TestCase("#1e04")]
+        [TestCase("\\agent")]
+        [TestCase("\\ agent")]
+        public void A_name_is_written_exactly_as_it_is_given(string commonName)
+        {
+            // Bouncy Castle's own converter reads a value starting with `#` as the hex of the ASN.1
+            // it encodes, or throws for hex that does not decode, and drops a leading backslash.
+            // The client alphabet holds neither character, so this is what keeps the name written
+            // the name asked for if that alphabet is ever widened.
+            var sequence = (Asn1Sequence)Asn1Object.FromByteArray(AuthorityIssuer.Name(commonName).GetEncoded());
+            var value = ((Asn1Sequence)((Asn1Set)sequence[0])[0])[1];
+
+            Assert.That(value, Is.TypeOf<DerUtf8String>());
+            Assert.That(((DerUtf8String)value).GetString(), Is.EqualTo(commonName));
+        }
+
+        [Test]
+        public void Every_certificate_is_signed_with_ECDSA_over_SHA256_and_no_parameters()
+        {
+            // `ecdsa-with-SHA256`, RFC 5758 section 3.2, whose parameters are absent rather than
+            // NULL, in the certificate and in the part of it that is signed. The issuer names the
+            // algorithm by a string Bouncy Castle maps, so this is what holds the mapping.
+            const string EcdsaWithSha256 = "1.2.840.10045.4.3.2";
+
+            foreach (var certificate in EveryCertificate())
+            {
+                Assert.That(certificate.SigAlgOid, Is.EqualTo(EcdsaWithSha256), certificate.SubjectDN.ToString());
+                Assert.That(certificate.GetSigAlgParams(), Is.Null, certificate.SubjectDN.ToString());
+
+                var signed = certificate.CertificateStructure.TbsCertificate.Signature;
+                Assert.That(signed.Algorithm.Id, Is.EqualTo(EcdsaWithSha256), certificate.SubjectDN.ToString());
+                Assert.That(signed.Parameters, Is.Null, certificate.SubjectDN.ToString());
+            }
+        }
+
+        [Test]
+        public void Every_certificate_names_its_own_key_by_the_SHA1_of_it()
+        {
+            // `CA.md` §207: every certificate carries a subject key identifier, the first method
+            // of RFC 5280 section 4.2.1.2, the SHA-1 of the key's bits as the certificate holds
+            // them, which is how Windows computed them.
+            foreach (var certificate in EveryCertificate())
+            {
+                var written = X509ExtensionUtilities.GetSubjectKeyIdentifier(certificate);
+                Assert.That(written, Is.Not.Null, certificate.SubjectDN.ToString());
+
+                var key = certificate.SubjectPublicKeyInfo.PublicKey.GetBytes();
+                Assert.That(written.GetKeyIdentifier(), Is.EqualTo(DigestUtilities.CalculateDigest("SHA-1", key)),
+                    certificate.SubjectDN.ToString());
+            }
+        }
+
+        [Test]
+        public void Every_leaf_points_back_at_its_authority_by_that_name_and_nothing_else()
+        {
+            // `CA.md` §207 again: every leaf an authority key identifier, holding the authority's
+            // subject key identifier and leaving out the issuer's name and serial, which are
+            // optional, as RFC 5280 section 4.2.1.1 allows.
+            var authority = X509ExtensionUtilities.GetSubjectKeyIdentifier(_authorityKey.Certificate).GetKeyIdentifier();
+
+            foreach (var leaf in EveryCertificate().Skip(1))
+            {
+                var pointer = X509ExtensionUtilities.GetAuthorityKeyIdentifier(leaf);
+                Assert.That(pointer, Is.Not.Null, leaf.SubjectDN.ToString());
+                Assert.That(pointer.KeyIdentifier.GetOctets(), Is.EqualTo(authority), leaf.SubjectDN.ToString());
+                Assert.That(pointer.AuthorityCertIssuer, Is.Null, leaf.SubjectDN.ToString());
+                Assert.That(pointer.AuthorityCertSerialNumber, Is.Null, leaf.SubjectDN.ToString());
+            }
         }
 
         [Test]
@@ -74,20 +151,104 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void An_authority_Windows_wrote_still_issues_certificates_that_chain_to_it()
+        public void An_authority_named_in_PrintableString_still_issues_certificates_that_chain_to_it()
         {
-            // Written by `CertificateRequest` before Bouncy Castle issued anything, so its subject is
-            // a PrintableString. A leaf whose issuer was written again as UTF8String would name a
-            // different sequence of bytes, which a chain engine comparing bytes does not match.
-            var written = CertificateBlob.Load(SeededAuthority.Authority);
+            // How Windows wrote this plugin's authority before Bouncy Castle issued anything. A
+            // leaf whose issuer was written again as UTF8String would name a different sequence of
+            // bytes, which the pin, comparing bytes, does not match. Minted here, so that this
+            // outlives the seeded authority below.
+            var printable = new Org.BouncyCastle.Asn1.X509.X509Name(
+                new[] { Org.BouncyCastle.Asn1.X509.X509Name.CN }, new[] { "KeePassGate authority" }, new PrintableNames());
+            var written = Minted.Named(printable).Lasting(Now - TimeSpan.FromDays(1), Now + TimeSpan.FromDays(400))
+                .AsAuthority()
+                .SelfSigned();
             Assert.That(CommonNameType(written.Certificate.SubjectDN), Is.EqualTo(typeof(DerPrintableString)));
 
-            var client = new AuthorityIssuer().IssueClient(written, "agent-fictitious", null);
+            var client = _issuer.IssueClient(written, "agent-fictitious", null);
             using (var leaf = client.Read())
             using (var authority = written.Read())
             {
                 Assert.That(client.Certificate.IssuerDN.GetEncoded(), Is.EqualTo(written.Certificate.SubjectDN.GetEncoded()));
                 Assert.That(AnchorPin.Chains(leaf, authority), Is.True);
+            }
+        }
+
+        [Test]
+        public void An_authority_Windows_wrote_still_issues_certificates_that_chain_to_it()
+        {
+            // The same, over the bytes Windows really wrote, for as long as they last: issued at a
+            // moment inside the seeded authority's life rather than at the real one, so that this
+            // tests what was written rather than the calendar.
+            var written = CertificateBlob.Load(SeededAuthority.Authority);
+            Assert.That(CommonNameType(written.Certificate.SubjectDN), Is.EqualTo(typeof(DerPrintableString)));
+
+            var client = new AuthorityIssuer(() => SeededAuthority.During).IssueClient(written, "agent-fictitious", null);
+            using (var leaf = client.Read())
+            using (var authority = written.Read())
+            {
+                Assert.That(client.Certificate.IssuerDN.GetEncoded(), Is.EqualTo(written.Certificate.SubjectDN.GetEncoded()));
+                Assert.That(AnchorPin.Chains(leaf, authority), Is.True);
+            }
+        }
+
+        [Test]
+        public void A_leaf_issued_by_a_clock_just_behind_its_authority_starts_when_the_authority_does()
+        {
+            // A replica whose clock is behind the one that made the authority, by less than the
+            // backdate. The backdated start would fall before the authority's own, which a reader
+            // holding a chain's dates to nest would refuse, so it stops there.
+            var behind = new AuthorityIssuer(() => Now - TimeSpan.FromMinutes(1));
+            var start = _authorityKey.Certificate.NotBefore;
+
+            Assert.That(behind.IssueHost(_authorityKey).Certificate.NotBefore, Is.EqualTo(start));
+            Assert.That(behind.IssueResponder(_authorityKey).Certificate.NotBefore, Is.EqualTo(start));
+            Assert.That(behind.IssueClient(_authorityKey, "agent-fictitious", null).Certificate.NotBefore, Is.EqualTo(start));
+        }
+
+        [Test]
+        public void A_clock_before_its_authority_began_issues_nothing()
+        {
+            // What `CertificateRequest.Create` refused while it made these, and with the type an
+            // expired authority is refused with, which every site that issues names.
+            var before = new AuthorityIssuer(() => _authorityKey.Certificate.NotBefore - TimeSpan.FromSeconds(1));
+
+            Assert.Throws<InvalidOperationException>(() => before.IssueHost(_authorityKey));
+            Assert.Throws<InvalidOperationException>(() => before.IssueResponder(_authorityKey));
+            Assert.Throws<InvalidOperationException>(() => before.IssueClient(_authorityKey, "agent-fictitious", null));
+        }
+
+        [TestCase(null, TestName = "An_authority_with_no_key_identifier_issues_nothing")]
+        [TestCase("", TestName = "An_authority_whose_key_identifier_is_no_bytes_at_all_issues_nothing")]
+        [TestCase("0400", TestName = "An_authority_whose_key_identifier_is_empty_issues_nothing")]
+        [TestCase("ffffff", TestName = "An_authority_whose_key_identifier_is_not_ASN1_issues_nothing")]
+        [TestCase("041401", TestName = "An_authority_whose_key_identifier_runs_out_issues_nothing")]
+        [TestCase("040101ff", TestName = "An_authority_whose_key_identifier_runs_on_issues_nothing")]
+        [TestCase("020105", TestName = "An_authority_whose_key_identifier_is_not_an_octet_string_issues_nothing")]
+        [TestCase("24800401010000", TestName = "An_authority_whose_key_identifier_is_not_DER_issues_nothing")]
+        public void An_authority_whose_key_identifier_cannot_be_read_issues_nothing(string written)
+        {
+            // Nothing that reads an authority in decodes this, so a crafted one arrives as it was
+            // written. Bouncy Castle's own reading threw an `IOException` and a
+            // `NullReferenceException` that no site that issues names, and the resolver then
+            // answered nothing for every open database; refused as one type, the one
+            // `Expected.OfIssuance` names, a pairing is answered and a database served without a
+            // responder.
+            var minted = Minted.Named("CN=KeePassGate authority")
+                .Lasting(Now - TimeSpan.FromDays(1), Now + TimeSpan.FromDays(400))
+                .AsAuthority();
+            var authority = (written == null ? minted.WithoutKeyIdentifier() : minted.WithKeyIdentifier(Bytes(written))).SelfSigned();
+
+            var issues = new Action[]
+            {
+                () => _issuer.IssueHost(authority),
+                () => _issuer.IssueResponder(authority),
+                () => _issuer.IssueClient(authority, "agent-fictitious", null)
+            };
+
+            foreach (var refused in issues.Select(issue => Assert.Throws<ArgumentException>(() => issue())))
+            {
+                Assert.That(refused.Message, Does.Contain("subject key identifier cannot be read"));
+                Assert.That(Expected.OfIssuance(refused), Is.True);
             }
         }
 
@@ -277,10 +438,11 @@ namespace KeePassGate.Tests
         [TestCase("   ")]
         public void A_client_name_with_a_space_at_either_end_is_refused(string subjectName)
         {
-            // Measured on `X500DistinguishedName`, which wrote these names before Bouncy Castle did:
-            // it strips it, so `CN=agent`, `CN= agent` and `CN=agent ` encoded to the same bytes and
-            // a name of nothing but spaces to an empty common name. Two clients would carry one
-            // identity in a log line and in an admission record.
+            // Windows renders a common name with a space at either end in quotes, `CN=" agent"`,
+            // so the subject the record, the log and the bundle carry would not be `CN=` and the
+            // name, and a renewal could not read the name back off it. Measured first on
+            // `X500DistinguishedName`, which wrote these names before Bouncy Castle did and
+            // stripped the spaces, so that two clients would have carried one identity.
             Assert.That(AuthorityIssuer.IsUsableSubjectName(subjectName), Is.False);
             Assert.Throws<ArgumentException>(() => _issuer.IssueClient(_authorityKey, subjectName, null));
         }
@@ -455,6 +617,34 @@ namespace KeePassGate.Tests
             Assert.That(first.Length, Is.EqualTo(16));
             Assert.That(first[0] & 0x80, Is.Zero, "A negative INTEGER is a certificate some parsers refuse.");
             Assert.That(first, Is.Not.EqualTo(second));
+        }
+
+        /// <summary>The four certificates the issuer makes, the authority first.</summary>
+        private Org.BouncyCastle.X509.X509Certificate[] EveryCertificate()
+        {
+            return new[]
+            {
+                _authorityKey.Certificate,
+                _issuer.IssueHost(_authorityKey).Certificate,
+                _issuer.IssueResponder(_authorityKey).Certificate,
+                _issuer.IssueClient(_authorityKey, "agent-fictitious", new[] { "ops" }).Certificate
+            };
+        }
+
+        private static byte[] Bytes(string hex)
+        {
+            return Enumerable.Range(0, hex.Length / 2)
+                .Select(i => Convert.ToByte(hex.Substring(i * 2, 2), 16))
+                .ToArray();
+        }
+
+        /// <summary>Every value in a name as a PrintableString, which is how Windows wrote this plugin's authority name.</summary>
+        private sealed class PrintableNames : Org.BouncyCastle.Asn1.X509.X509NameEntryConverter
+        {
+            public override Asn1Object GetConvertedValue(DerObjectIdentifier oid, string value)
+            {
+                return new DerPrintableString(value);
+            }
         }
 
         private static bool OnP256(CertifiedKey certified)
