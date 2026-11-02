@@ -657,7 +657,19 @@ namespace KeePassGate.Authority
             AsymmetricKeyParameter key)
         {
             var certificate = generator.Generate(new Asn1SignatureFactory(SignatureAlgorithm, signer, random));
-            var restored = CertifiedKey.From(new CertifiedKey(certificate, key).ToPkcs12());
+            var pkcs12 = new CertifiedKey(certificate, key).ToPkcs12();
+            CertifiedKey restored;
+            try
+            {
+                restored = CertifiedKey.From(pkcs12);
+            }
+            finally
+            {
+                // The new key in the clear, overwritten as every stored form is once read, `CA.md`
+                // §208.
+                Array.Clear(pkcs12, 0, pkcs12.Length);
+            }
+
             if (restored == null)
             {
                 throw new InvalidOperationException(

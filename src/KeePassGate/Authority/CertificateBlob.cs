@@ -29,7 +29,16 @@ namespace KeePassGate.Authority
                 throw new ArgumentNullException(nameof(certificate));
             }
 
-            return Convert.ToBase64String(certificate.ToPkcs12());
+            var pkcs12 = certificate.ToPkcs12();
+            try
+            {
+                return Convert.ToBase64String(pkcs12);
+            }
+            finally
+            {
+                // A private key in the clear, overwritten once the base64 is made, `CA.md` §208.
+                Array.Clear(pkcs12, 0, pkcs12.Length);
+            }
         }
 
         /// <summary>
@@ -38,10 +47,26 @@ namespace KeePassGate.Authority
         /// </summary>
         public static CertifiedKey Load(string blob)
         {
-            return CertifiedKey.From(Bytes(blob));
+            var pkcs12 = Bytes(blob);
+            try
+            {
+                return CertifiedKey.From(pkcs12);
+            }
+            finally
+            {
+                // Overwritten once Bouncy Castle has read them, since what it read is its own,
+                // `CA.md` §208.
+                if (pkcs12 != null)
+                {
+                    Array.Clear(pkcs12, 0, pkcs12.Length);
+                }
+            }
         }
 
-        /// <summary>The stored bytes, as they are stored. Null when unreadable.</summary>
+        /// <summary>
+        /// The stored bytes, as they are stored. Null when unreadable. They hold a private key, so
+        /// the caller overwrites them once it is done with them.
+        /// </summary>
         public static byte[] Bytes(string blob)
         {
             if (string.IsNullOrEmpty(blob))

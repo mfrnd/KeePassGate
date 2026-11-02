@@ -253,7 +253,13 @@ namespace KeePassGate.Authority
             using (var bytes = new MemoryStream())
             {
                 store.Save(bytes, Array.Empty<char>(), new SecureRandom());
-                return bytes.ToArray();
+                var written = bytes.ToArray();
+
+                // The stream's own buffer holds the same private key and outlives the copy handed
+                // back, so it is overwritten here; the caller overwrites the copy, `CA.md` §208.
+                var buffer = bytes.GetBuffer();
+                Array.Clear(buffer, 0, buffer.Length);
+                return written;
             }
         }
 
