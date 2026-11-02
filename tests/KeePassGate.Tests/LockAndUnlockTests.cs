@@ -94,6 +94,7 @@ namespace KeePassGate.Tests
             // The privilege drop, and the reason every caller is a stranger by construction rather
             // than by a check somebody has to remember to write.
             Assert.That(_locked.Authority, Is.Null);
+            Assert.That(_locked.AuthorityKey, Is.Null, "nothing can be issued while there is no authority");
         }
 
         [Test]

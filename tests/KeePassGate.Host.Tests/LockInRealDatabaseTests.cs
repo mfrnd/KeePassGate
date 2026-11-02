@@ -131,7 +131,8 @@ namespace KeePassGate.Host.Tests
 
                 var after = _targets.Current().Single();
 
-                Assert.That(after.Authority, Is.Null, "the key that signs is what a lock exists to drop");
+                Assert.That(after.Authority, Is.Null, "nothing is left to judge a certificate with");
+                Assert.That(after.AuthorityKey, Is.Null, "the key that signs is what a lock exists to drop");
                 Assert.That(after.Admission(key), Is.Null);
                 Assert.That(after.AdmissionBlocked, Is.Not.Null);
             }
