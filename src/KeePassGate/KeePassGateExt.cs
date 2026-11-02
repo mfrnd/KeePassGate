@@ -454,8 +454,9 @@ namespace KeePassGate
                 _incidents = new GateIncidents(_log);
                 _log.Info("initializing version " + GateVersion.Current);
                 // Before anything reaches for one, so that a dependency missing from beside the
-                // plugin, or replaced by another version, refuses the start here, named in the
-                // log, rather than failing wherever the plugin first uses it.
+                // plugin, replaced by another assembly version, or loaded first by another plugin
+                // at an older file version than the copy here, refuses the start here, named in
+                // the log, rather than failing wherever the plugin first uses it.
                 Dependencies.Load();
 
                 // The window events come first, because the gate refuses to write while a dialog

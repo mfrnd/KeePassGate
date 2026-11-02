@@ -1313,6 +1313,12 @@ plugins with `Assembly.LoadFrom`, which probes the plugin's own directory rather
 and a flat install shares every dependency by file name with every other plugin installed flat.
 Only KeePass has a binding redirect, so one `Newtonsoft.Json.dll` cannot serve two plugins built
 against different major versions, and whichever was there first stops binding.
+**And a directory of its own keeps file names apart and nothing more.** The runtime binds a
+reference to an assembly of the same identity already loaded, from whichever directory it came,
+and every Bouncy Castle 2.x is `2.0.0.0`, so a copy another plugin loaded first is the one this
+plugin is given, measured with a copy loaded from a second directory. So as it starts the plugin
+compares the file version of the Bouncy Castle it was given with the one beside it, and refuses to
+start, naming both, when the one it was given is older.
 **The whole closure, not the direct references**: copying what the plugin names was enough while its
 one dependency had none of its own, and stopped being enough the moment one did. A plugin missing a
 transitive dependency failed to load with nothing in the log to say why, which is what 34 of the 35
