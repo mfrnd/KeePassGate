@@ -304,14 +304,18 @@ designing around them.
 - **The plugin's own name carries KeePass's icon 29, `TerminalEncrypted`**, on the Tools menu item
   and on all three tabs. Read off `MainWindow.ClientIcons` rather than shipped as a resource, so it
   matches the window it is in and follows a KeePass that restyles its icons, and copied every time
-  because each copy is handed to a menu or an image list that disposes it. **A tab strip shows
+  because each copy is kept by what it is handed to: a menu keeps its copy for the process, and a
+  tab's is disposed with the tab, after its image list. **A tab strip shows
   pictures only if the whole control has an `ImageList`**, and none of the three dialogs brings one,
   so `TabPageInjector` gives it one and takes it away again on detach: that makes every tab on
   those dialogs a little taller, which WinForms offers no way around. **The tab's copy lives as long
-  as that list** and is disposed after it, because Mono's list reads the picture only when the tab
-  is first drawn, where Windows copies it at `Images.Add`. `GateIconTests` pins both the
-  icon's identity and the fact that KeePass brings no list of its own, because a KeePass that
-  started putting icons on its own tabs would have us appending to somebody else's list.
+  as that list** and is disposed after it, because neither platform has read the picture when
+  `Images.Add` returns: Windows copies it into the native list when the list's handle is made, at
+  the `TabControl.ImageList` setter or when the control gets its window, and Mono reads it when the
+  tab is first drawn, so a picture disposed straight after `Add` is lost on either. `GateIconTests`
+  pins both the icon's identity and the fact that KeePass brings no list of its own, because a
+  KeePass that started putting icons on its own tabs would have us appending to somebody else's
+  list.
 
 - **What is about the plugin is not on the KPG tab.** The listening socket and the port live
   on the window `Plugin.GetMenuItem` puts under Tools, because that answer is the same whichever

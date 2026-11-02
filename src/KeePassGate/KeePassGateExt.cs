@@ -221,11 +221,12 @@ namespace KeePassGate
         /// A fresh copy of the picture this plugin puts beside its own name, or null.
         /// </summary>
         /// <remarks>
-        /// Fresh every time, because each one is handed somewhere that copies it rather than
-        /// borrows it: an `ImageList` copies into its own handle, and a menu item keeps the
-        /// reference it was given. **Neither disposes what it was handed**, which is why
-        /// `TabPageInjector.Decorate` disposes its copy itself and says so; the one this hands to
-        /// the Tools menu is 16 by 16 and lives as long as the menu does, which is the process.
+        /// Fresh every time, because each one is handed somewhere that keeps it: an `ImageList`
+        /// reads it when its handle is made, which is after it was added, and a menu item keeps
+        /// the reference it was given. **Neither disposes what it was handed**, which is why
+        /// `TabPageInjector` disposes the tab's copy itself, after the list, when the tab goes; the
+        /// one this hands to the Tools menu is 16 by 16 and lives as long as the menu does, which
+        /// is the process.
         /// KeePass's own icons are read rather than a picture of ours shipped, so the plugin looks
         /// like the window it is in and follows a KeePass that restyles them.
         /// </remarks>

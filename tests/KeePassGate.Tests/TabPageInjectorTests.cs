@@ -402,9 +402,10 @@ namespace KeePassGate.Tests
         [Test]
         public void The_picture_lives_as_long_as_the_list_that_shows_it()
         {
-            // Mono's image list keeps the picture and reads it when the tab is first drawn, which
-            // Windows' never needed, so a picture disposed as soon as the list had it was one Mono
-            // could not draw. A disposed GDI+ image answers its size with `ArgumentException`.
+            // Neither platform has read the picture when `Images.Add` returns: Windows reads it when
+            // the list's handle is made, and Mono when the tab is first drawn, so a picture disposed
+            // as soon as the list had it was one neither could be relied on to draw. A disposed
+            // GDI+ image answers its size with `ArgumentException`.
             using (var form = Dialogs.WithNestedTabControl("General"))
             {
                 System.Drawing.Image made = null;
@@ -423,6 +424,103 @@ namespace KeePassGate.Tests
                 injector.DetachAll();
 
                 Assert.That(() => made.Width, Throws.ArgumentException, "and let go with the list");
+            }
+        }
+
+        [Test]
+        public void The_list_goes_before_the_picture_it_shows()
+        {
+            // Mono reads the picture whenever its list draws, so the list goes first: a picture
+            // disposed under a list that can still draw it is one that list cannot draw. Windows has
+            // its own copy by then, which is why this asks about the order rather than about
+            // anything drawn.
+            using (var form = Dialogs.WithNestedTabControl("General"))
+            {
+                System.Drawing.Image made = null;
+                var injector = new TabPageInjector(
+                    _panels,
+                    _log,
+                    KeePassContract.DatabaseSettingsTabControlName,
+                    GateTab.Text,
+                    GateTab.PageControlName,
+                    () => made = new System.Drawing.Bitmap(16, 16));
+
+                Assert.That(injector.Attach(form), Is.True);
+
+                bool? aliveAsTheListWent = null;
+                Dialogs.TabsOf(form).ImageList.Disposed += (sender, e) => aliveAsTheListWent = Alive(made);
+
+                injector.DetachAll();
+
+                Assert.That(aliveAsTheListWent, Is.True, "the picture was still there when its list went");
+                Assert.That(Alive(made), Is.False, "and went after it");
+            }
+        }
+
+        [Test]
+        public void A_picture_the_list_will_not_take_is_still_let_go_with_the_tab()
+        {
+            // An image list holds pictures of 1 to 256 pixels a side and refuses anything larger
+            // as its size is set, so this list never reaches the control and the tab is a tab
+            // without a picture. The picture was recorded before that, and goes when the tab does.
+            // So does the list, recorded before its size was set, which nothing outside can see:
+            // nothing else ever held it.
+            using (var form = Dialogs.WithNestedTabControl("General"))
+            {
+                System.Drawing.Image made = null;
+                var injector = new TabPageInjector(
+                    _panels,
+                    _log,
+                    KeePassContract.DatabaseSettingsTabControlName,
+                    GateTab.Text,
+                    GateTab.PageControlName,
+                    () => made = new System.Drawing.Bitmap(300, 300));
+
+                Assert.That(injector.Attach(form), Is.True);
+                Assert.That(Dialogs.TabsOf(form).ImageList, Is.Null);
+                Assert.That(_log.Warnings.Any(w => w.Message.Contains("could not be given an icon")), Is.True);
+                Assert.That(Alive(made), Is.True);
+
+                injector.DetachAll();
+
+                Assert.That(Alive(made), Is.False, "let go with the tab");
+            }
+        }
+
+        [Test]
+        public void A_panel_that_fails_in_a_way_no_page_expects_still_takes_its_page_with_it()
+        {
+            // The settings tab's panel threw `InvalidCastException` as it was built, for a record
+            // whose certificate named Ed25519, and the page made for it was disposed only for a
+            // failure of the user interface: `Attach` took the reflection failure for an attach that
+            // failed, and the page and everything on it were left to the garbage collector every
+            // time the dialog opened. This panel throws the same as the page takes it, which is the one
+            // moment the page can be seen from outside.
+            var panels = new HeldPanelFactory();
+            var injector = new TabPageInjector(panels, _log);
+
+            using (var form = Dialogs.WithNestedTabControl("General"))
+            {
+                Assert.That(injector.Attach(form), Is.False);
+                Assert.That(Dialogs.TabsOf(form).TabPages.Count, Is.EqualTo(1));
+
+                var panel = panels.Last;
+                Assert.That(panel.HeldBy, Is.Not.Null, "the panel never reached a page, so nothing was measured");
+                Assert.That(panel.HeldBy.IsDisposed, Is.True, "the page was left to live on");
+                Assert.That(panel.IsDisposed, Is.True, "and the panel on it");
+            }
+        }
+
+        /// <summary>Whether a GDI+ image has not been disposed, which its size is how to ask.</summary>
+        private static bool Alive(System.Drawing.Image image)
+        {
+            try
+            {
+                return image.Width > 0;
+            }
+            catch (System.ArgumentException)
+            {
+                return false;
             }
         }
 
@@ -504,6 +602,37 @@ namespace KeePassGate.Tests
             {
                 get { return base.Dock; }
                 set { throw new System.InvalidOperationException("this panel cannot be docked"); }
+            }
+        }
+
+        /// <summary>A factory whose panel throws a reflection failure as a page takes it.</summary>
+        private sealed class HeldPanelFactory : IGatePanelFactory
+        {
+            public PanelThatThrowsOnceHeld Last { get; private set; }
+
+            public Control CreatePanel(Form dialog)
+            {
+                Last = new PanelThatThrowsOnceHeld();
+                return Last;
+            }
+        }
+
+        /// <summary>
+        /// A panel that remembers what took it and then throws `InvalidCastException`, which is
+        /// what `Expected.OfReflection` names and `Expected.OfUserInterface` does not.
+        /// </summary>
+        private sealed class PanelThatThrowsOnceHeld : Panel
+        {
+            public Control HeldBy { get; private set; }
+
+            protected override void OnParentChanged(System.EventArgs e)
+            {
+                base.OnParentChanged(e);
+                if (Parent != null && HeldBy == null)
+                {
+                    HeldBy = Parent;
+                    throw new System.InvalidCastException("this panel would not be built");
+                }
             }
         }
 

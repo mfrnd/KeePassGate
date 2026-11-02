@@ -269,6 +269,7 @@ namespace KeePassGate.Ui
             // or '_', to the other end of a name: `2-ops` and `ops-2` draw alike, `-ops` and
             // `ops-` trade places, and whatever is chosen by what it reads is another name. The
             // tab strip is the dialog's and stays mirrored.
+            // codeql[cs/missed-using-statement] disposed only when it is not handed back, which no `using` can do
             var page = new TabPage(_pageText)
             {
                 Name = _pageName,
@@ -276,8 +277,14 @@ namespace KeePassGate.Ui
                 UseVisualStyleBackColor = true
             };
 
+            // Handed back only once it holds the panel, and disposed on every other way out: in a
+            // `finally` rather than under a filter, because `Attach` takes a failure of reflection
+            // for an attach that failed too, and a page made for one of those was left to the
+            // garbage collector every time the dialog opened.
+            var built = false;
             try
             {
+                // codeql[cs/missed-using-statement] disposed only when the page did not take it, which no `using` can do
                 var panel = _panels.CreatePanel(form);
                 if (panel == null)
                 {
@@ -298,7 +305,7 @@ namespace KeePassGate.Ui
                     panel.Dock = DockStyle.Fill;
                     page.Controls.Add(panel);
                 }
-                catch (Exception error) when (Expected.OfUserInterface(error))
+                finally
                 {
                     // Let go of here, because disposing the page below reaches only what the page
                     // holds, and a panel it refused is not in it. Left alone, a panel that took
@@ -309,14 +316,16 @@ namespace KeePassGate.Ui
                     {
                         panel.Dispose();
                     }
-
-                    throw;
                 }
+
+                built = true;
             }
-            catch (Exception error) when (Expected.OfUserInterface(error))
+            finally
             {
-                page.Dispose();
-                throw;
+                if (!built)
+                {
+                    page.Dispose();
+                }
             }
 
             return page;
@@ -359,14 +368,15 @@ namespace KeePassGate.Ui
                     return;
                 }
 
-                // Kept until `StripIcon`, which disposes it after the list, rather than disposed
-                // as soon as the list has it. Windows copies the picture into the native list at
-                // `Images.Add`, so there it could go at once, and it did: dropping the reference
+                // Kept until `StripIcon`, which disposes it after the list, because neither platform
+                // has read it when `Images.Add` returns. A list with no handle yet, which is the one
+                // made below, only keeps the picture there: Windows reads it into the native list
+                // when the list's handle is made, which the control's `ImageList` setter does, and
+                // Mono only when the tab is first drawn, which is after this returns,
+                // `spikes/mono-compatibility`. A picture let go before then is one that cannot be
+                // drawn, and on Windows one the handle cannot be made from. Dropping the reference
                 // instead had left one GDI+ bitmap and its handle for the garbage collector, every
-                // time the dialog opened, inside the password manager's own process. Mono's list
-                // keeps the picture itself and reads it only when the tab is first drawn, which is
-                // after this returns, so a picture disposed here is one Mono cannot draw,
-                // `spikes/mono-compatibility`.
+                // time the dialog opened, inside the password manager's own process.
                 var picture = _icon();
                 if (picture == null)
                 {
@@ -377,19 +387,18 @@ namespace KeePassGate.Ui
                 // disposes it whatever happens next.
                 attachment.Picture = picture;
 
-                var ours = new ImageList
-                {
-                    ColorDepth = ColorDepth.Depth32Bit,
-                    ImageSize = new Size(picture.Width, picture.Height)
-                };
-
                 // Recorded before anything that can fail, so that detaching disposes it whatever
-                // happens next. Handing it to the control is what can throw: the setter keeps the
-                // list and then makes its native handle, and recorded after that, a throw there
-                // left the list on KeePass's control with nothing that would ever take it off or
-                // let it go. `StripIcon` takes it off the control only when the control still
-                // holds it.
+                // happens next, and that includes its size: `ImageSize` refuses anything outside 1
+                // to 256 pixels, and set in an initializer it threw from a list that already
+                // existed and that nothing held. Handing it to the control can throw as well: the
+                // setter keeps the list and then makes its native handle, and recorded after that,
+                // a throw there left the list on KeePass's control with nothing that would ever
+                // take it off or let it go. `StripIcon` takes it off the control only when the
+                // control still holds it.
+                var ours = new ImageList();
                 attachment.Icons = ours;
+                ours.ColorDepth = ColorDepth.Depth32Bit;
+                ours.ImageSize = new Size(picture.Width, picture.Height);
                 ours.Images.Add(picture);
                 attachment.TabControl.ImageList = ours;
                 attachment.Page.ImageIndex = 0;
@@ -415,7 +424,7 @@ namespace KeePassGate.Ui
                 {
                     // Only if the control is still holding ours. Something else may have put its
                     // own list there since the attach, and taking that away would be this plugin
-                    // doing to another plugin exactly what the rule above says it must not do.
+                    // doing to another plugin exactly what the rule above forbids.
                     if (ReferenceEquals(attachment.TabControl.ImageList, ours))
                     {
                         attachment.TabControl.ImageList = null;
@@ -489,7 +498,10 @@ namespace KeePassGate.Ui
             /// <summary>The image list this injector gave the control, or null if it had one.</summary>
             public ImageList Icons { get; set; }
 
-            /// <summary>The picture in that list, which lives exactly as long as the list.</summary>
+            /// <summary>
+            /// The picture in that list, which `StripIcon` disposes after the list rather than with
+            /// it, and disposes as well when no list ever reached the control.
+            /// </summary>
             public Image Picture { get; set; }
 
             public void Subscribe(FormClosedEventHandler handler)

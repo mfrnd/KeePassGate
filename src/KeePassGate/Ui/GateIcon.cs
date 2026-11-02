@@ -138,9 +138,9 @@ namespace KeePassGate.Ui
         /// Takes a copy of one of KeePass's client icons, or null when there are none to take.
         /// </summary>
         /// <remarks>
-        /// A copy, because what this hands back is put into an `ImageList` that belongs to a dialog
-        /// and is disposed with it. Handing out the main window's own image would mean a disposed
-        /// dialog taking KeePass's icon list with it.
+        /// A copy, because what this hands back is put into an `ImageList` on a dialog and let go
+        /// with the tab when the dialog closes. Handing out the main window's own image would mean
+        /// a closed dialog taking KeePass's icon with it.
         /// </remarks>
         public static Image From(ImageList icons, int index)
         {
