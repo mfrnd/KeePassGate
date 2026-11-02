@@ -506,6 +506,34 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_key_naming_no_digest_beside_an_authority_is_a_candidate_that_will_not_read()
+        {
+            // `KPG.Authority.` alone names an authority by the empty digest, which nothing this
+            // plugin writes and a crafted `.kdbx` can hold. It threw out of every read, and with it
+            // out of reading every open database at once; read as the candidate it is, it holds up
+            // this database alone, and is retired as any candidate that will not read is.
+            var whole = Write();
+            _values.Plant(AuthorityKeys.AuthorityPrefix, _values.Get(AuthorityKeys.AuthorityKey(whole.Fingerprint)));
+
+            using (var reading = _store.Read())
+            {
+                Assert.That(reading.Presence, Is.EqualTo(AuthorityPresence.Undecided));
+                var nameless = reading.Candidates.Single(c => c.Fingerprint.Length == 0);
+                Assert.That(nameless.IsWhole, Is.False);
+                Assert.That(nameless.Problems, Does.Contain("The authority is filed under a digest that is not its own."));
+            }
+
+            _store.Keep(whole.Fingerprint);
+            Assert.That(_values.Get(AuthorityKeys.RetiredPrefix), Is.EqualTo(AuthorityKeys.RetiredValue));
+            Assert.That(_values.Get(AuthorityKeys.AuthorityPrefix), Is.Null);
+
+            using (var reading = _store.Read())
+            {
+                Assert.That(reading.Presence, Is.EqualTo(AuthorityPresence.Present));
+            }
+        }
+
+        [Test]
         public void An_authority_filed_under_somebody_else_s_digest_is_damage()
         {
             // The key is what a retirement names, so a document under the wrong one is an

@@ -59,6 +59,16 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_candidate_naming_no_digest_is_shown_as_one()
+        {
+            // A row and a log line carry the short digest, and an empty one would show nothing.
+            var digest = new string('d', 64);
+
+            Assert.That(AuthorityOption.Unreadable(string.Empty, "unreadable").ShortFingerprint, Is.EqualTo(AuthorityKeys.NoDigest));
+            Assert.That(AuthorityKeys.Shown(digest), Is.EqualTo(CertificateDigest.Shorten(digest)));
+        }
+
+        [Test]
         public void The_last_request_comes_from_the_audit_and_says_so_when_there_is_none()
         {
             var choice = Choice(keys => new Dictionary<string, DateTimeOffset> { { _clientKey, Requested } });

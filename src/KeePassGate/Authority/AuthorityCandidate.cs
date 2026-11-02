@@ -11,7 +11,11 @@ namespace KeePassGate.Authority
     /// **Named by the digest its key is filed under**, which is what a choice retires the others
     /// by. A document that will not read is still a candidate, because it is still an authority
     /// nobody has retired: it carries its problems rather than its material, and it can be retired
-    /// by keeping another but never kept itself.
+    /// by keeping another but never kept itself. **The name is whatever follows the prefix**, the
+    /// empty one of a bare `KPG.Authority.` among them, which nothing this plugin writes and a
+    /// crafted `.kdbx` can hold: refused here, it threw out of reading the database, where it is a
+    /// candidate filed under a digest not its own, retired under `KPG.RetiredAuthority.` like any
+    /// other.
     /// </remarks>
     public sealed class AuthorityCandidate : IDisposable
     {
@@ -21,9 +25,9 @@ namespace KeePassGate.Authority
 
         private AuthorityCandidate(string fingerprint, AuthorityMaterial material, IEnumerable<string> problems)
         {
-            if (string.IsNullOrEmpty(fingerprint))
+            if (fingerprint == null)
             {
-                throw new ArgumentException("A candidate is named by its digest.", nameof(fingerprint));
+                throw new ArgumentNullException(nameof(fingerprint), "A candidate is named by its digest.");
             }
 
             _fingerprint = fingerprint;
@@ -31,7 +35,10 @@ namespace KeePassGate.Authority
             _problems = problems == null ? new List<string>() : new List<string>(problems);
         }
 
-        /// <summary>The digest its key is filed under, lowercase hex.</summary>
+        /// <summary>
+        /// The digest its key is filed under: lowercase hex for every authority this plugin wrote,
+        /// and whatever a key holds otherwise, empty included.
+        /// </summary>
         public string Fingerprint
         {
             get { return _fingerprint; }

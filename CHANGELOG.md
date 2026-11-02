@@ -12,6 +12,11 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **A database holding a crafted authority key stops only itself being served.** A key named
+  `KPG.Authority.` with no digest, beside the database's own authority, made the gate drop every
+  connection to every open database for as long as that one was open. That database now waits for
+  the operator to choose between its authorities, as one synchronized from two copies does, and
+  every other open database is served.
 - **The plugin stores a URL as it is written**, as it stores every other value. It refused one
   holding `{` or beginning `cmd://` with `400`, and accepts both now. KeePass's Open URL does more
   with a URL than those two cases: it replaces an environment variable in it, hands a path or a

@@ -873,7 +873,7 @@ namespace KeePassGate.Bridge
                 var shorts = new List<string>();
                 foreach (var candidate in reading.Candidates)
                 {
-                    shorts.Add(CertificateDigest.Shorten(candidate.Fingerprint));
+                    shorts.Add(AuthorityKeys.Shown(candidate.Fingerprint));
                 }
 
                 _log.Warn("not serving a database that holds " + reading.Candidates.Count +
