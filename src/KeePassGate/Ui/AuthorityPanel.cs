@@ -90,8 +90,11 @@ namespace KeePassGate.Ui
         /// under the authority named by <see cref="_judgedBy"/>.
         /// </summary>
         /// <remarks>
-        /// Kept, because asking checks two signatures per record, and building a chain for each
-        /// was most of a redraw with a few hundred clients while a chain engine answered it, and
+        /// Kept, because asking is not cheap: the pin reads the anchor again and checks its own
+        /// signature as well as the record's, measured at 0.35 ms a record, half of it the anchor's
+        /// half, where the chain engine it replaced took 0.31 ms. A redraw with a few hundred
+        /// clients would spend a tenth of a second on KeePass's thread asking it again, and
+        /// building a chain for each was most of such a redraw before anything was kept. And kept
         /// because nothing changes the answer but the two certificates: the admission key is the
         /// digest of the certificate its record holds, which loading the record checks, and the
         /// authority is named by its own digest. Emptied whenever that digest changes. The dates
@@ -1555,18 +1558,20 @@ namespace KeePassGate.Ui
         /// back to counting the stored records, which says at least how many keys go.
         ///
         /// This reads every record to get one integer, and the whole authority when they cannot be
-        /// listed, which imports two PKCS#12 blobs and builds the host's chain for certificates
-        /// nothing here looks at. Caching it from the last
-        /// `Describe` was tried and reverted: a panel can be asked to confirm before it has ever
-        /// described itself, and the number would then be zero in a sentence telling the operator
-        /// what they are about to lose. A wrong count there is worse than a slow one.
+        /// listed, which parses both stored PKCS#12 blobs, reads both certificates into Windows
+        /// without their keys and asks the anchor pin about the host, for certificates nothing here
+        /// looks at. Caching it from the last `Describe` was tried and reverted: a panel can be
+        /// asked to confirm before it has ever described itself, and the number would then be zero
+        /// in a sentence telling the operator what they are about to lose. A wrong count there is
+        /// worse than a slow one.
         ///
         /// **It is not cheap, and this remark used to say it was**: a quarter of a millisecond,
-        /// counting the two imports alone. Measured whole, a read of the authority is about 44
-        /// milliseconds on the machine the review ran on. That is still the right price for one
+        /// counting the two imports alone, while Windows imported the blobs. Measured whole, a
+        /// read of the authority was about 44 milliseconds then on the machine the review ran on,
+        /// and is about 4 now that Bouncy Castle parses them. Either is the right price for one
         /// press of Recreate or Delete, which is when this runs. What was not affordable was the
-        /// redraw reading the authority three times and building a chain for every record, and
-        /// `Describe` reads it once and keeps what the chains answered.
+        /// redraw reading the authority three times and asking about every record each time, and
+        /// `Describe` reads it once and keeps what the pin answered.
         /// </remarks>
         private int CountRecords()
         {
@@ -1871,50 +1876,65 @@ namespace KeePassGate.Ui
                 _judgedBy = digest;
             }
 
-            try
+            foreach (var record in listing.Records)
             {
-                foreach (var record in listing.Records)
+                if (record == null)
                 {
-                    if (record == null)
-                    {
-                        continue;
-                    }
-
-                    reaches[record.AdmissionKey] = Reach(record, authority, now);
+                    continue;
                 }
-            }
-            catch (Exception error) when (Expected.OfCryptography(error) || Expected.OfCustomData(error))
-            {
-                _log.Error("the admitted clients could not be checked against this authority", error);
+
+                reaches[record.AdmissionKey] = Reach(record, authority, now);
             }
 
             return reaches;
         }
 
         /// <summary>What the gate asks of one record's certificate before the record, in its order.</summary>
+        /// <remarks>
+        /// **A record that cannot be asked about is answered for itself**, as the stranger the gate
+        /// answers the same certificate with, since `ClientCredentials.For` refuses whatever it
+        /// cannot check. It used to end the whole list: one try around every record, so the one
+        /// that threw and every record after it had no answer, and the page shows a record with no
+        /// answer as a client admitted until its date. A certificate whose extended key usage will
+        /// not decode passes the pin, which reads no usage, and throws from the usage check, and
+        /// behind it this authority's own host certificate and a foreign authority's client were
+        /// listed as clients that worked. The answer is kept with the rest, being as much a matter
+        /// of the two certificates, so the log names the record once for each authority rather
+        /// than at every redraw.
+        /// </remarks>
         private ClientReach Reach(AdmissionRecord record, X509Certificate2 authority, DateTimeOffset now)
         {
-            using (var certificate = record.Certificate())
+            try
             {
-                ClientReach judged;
-                if (!_judged.TryGetValue(record.AdmissionKey, out judged))
+                using (var certificate = record.Certificate())
                 {
-                    judged = !AnchorPin.Chains(certificate, authority)
-                        ? ClientReach.Stranger
-                        : ClientCredentials.IsForClientAuthentication(certificate)
-                            ? ClientReach.Reaches
-                            : ClientReach.NotForClients;
-                    _judged[record.AdmissionKey] = judged;
-                }
+                    ClientReach judged;
+                    if (!_judged.TryGetValue(record.AdmissionKey, out judged))
+                    {
+                        judged = !AnchorPin.Chains(certificate, authority)
+                            ? ClientReach.Stranger
+                            : ClientCredentials.IsForClientAuthentication(certificate)
+                                ? ClientReach.Reaches
+                                : ClientReach.NotForClients;
+                        _judged[record.AdmissionKey] = judged;
+                    }
 
-                if (judged != ClientReach.Reaches)
-                {
-                    return judged;
-                }
+                    if (judged != ClientReach.Reaches)
+                    {
+                        return judged;
+                    }
 
-                return !CertificateValidity.IsCurrent(certificate, now) && !CertificateValidity.HasExpired(certificate, now)
-                    ? ClientReach.NotYetValid
-                    : ClientReach.Reaches;
+                    return !CertificateValidity.IsCurrent(certificate, now) && !CertificateValidity.HasExpired(certificate, now)
+                        ? ClientReach.NotYetValid
+                        : ClientReach.Reaches;
+                }
+            }
+            catch (Exception error) when (Expected.OfCryptography(error) || Expected.OfCustomData(error))
+            {
+                _log.Error("an admitted client could not be checked against this authority: " +
+                           CertificateDigest.Shorten(record.AdmissionKey), error);
+                _judged[record.AdmissionKey] = ClientReach.Stranger;
+                return ClientReach.Stranger;
             }
         }
 
