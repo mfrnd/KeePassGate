@@ -79,3 +79,18 @@ words:
   # More of the platform, and of the wire
   - Ecas
 
+
+  # This branch: the names the probes repeat, from Win32, IL and the compiler
+  - ALLPOSTMESSAGE
+  - doevents
+  - Ldflda
+  - margs
+  - MOUSEBUTTON
+  - MOUSEINPUT
+  - MOUSEMOVE
+  - nologo
+  - RAWINPUT
+  - SENDMESSAGE
+  - Stfld
+  - targs
+  - WINDIR
