@@ -28,15 +28,8 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.serialization import pkcs12
 
+from pykeepassgate import transport
 from pykeepassgate.testing import Authority, FakeGate, Handler, Issued
-
-#: What the plugin writes into a responder certificate, copied from `AuthorityIssuer.ResponderClaim`
-#: rather than read from the client, so that the client's own constant is compared with something.
-#: `CA.md` §208 is what the marker is for. It has a path because the plugin once wrote it through
-#: `System.Uri`, which normalizes `kpg://responder` to `kpg://responder/`, so a client read back
-#: something else than was written. Bouncy Castle writes it as given, and the path stays, being the
-#: shape `kpg://profile/<name>` has too.
-RESPONDER_CLAIM = "kpg://host/responder"
 
 
 @pytest.fixture
@@ -58,7 +51,7 @@ def responder(authority: Authority) -> Issued:
         "KeePassGate responder",
         x509.oid.ExtendedKeyUsageOID.SERVER_AUTH,
         "responder.pem",
-        uri=RESPONDER_CLAIM,
+        uri=transport.RESPONDER_CLAIM,
     )
 
 

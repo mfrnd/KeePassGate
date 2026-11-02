@@ -305,12 +305,13 @@ that is offered is verified in the handshake, since `ssl` cannot ask for one wit
 not yet valid or foreign one ends the handshake with an alert where the plugin completes it and
 answers `401`.
 
-**Against the plugin's own output.** `tests/pykeepassgate/test_protocol.py` pins the token
-encoding, the name construction and all three proofs against vectors produced by `PairingToken`,
-`SniName` and `PairingProof`. Without those, the two halves could agree on something neither
-document describes, because both halves would be code somebody wrote here. `ProtocolVectorsTests`
-holds the plugin to the same values over the same inputs, so a change to either half fails in that
-half's own tier rather than at the first real pairing.
+**Against the plugin's own output.** `tests/pykeepassgate/test_protocol.py` pins the token encoding,
+the name construction, all three proofs and the responder marker against vectors produced by
+`PairingToken`, `SniName` and `PairingProof`, and read off a responder `AuthorityIssuer` issued.
+Without those, the two halves could agree on something neither document describes, because both
+halves would be code somebody wrote here. `ProtocolVectorsTests` holds the plugin to the same values
+over the same inputs, so a change to either half fails in that half's own tier rather than at the
+first real pairing.
 
 **Against KeePass's own compiler.** `tests/pykeepassgate/test_refs.py` holds `pykeepassgate.refs`
 to `tests/Shared/ReferenceVectors.json`, which the host tier made with KeePass's `SprEngine`: what

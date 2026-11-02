@@ -497,10 +497,11 @@ designing around them.
   repository root because there is one Python project.
 - **The client's protocol code is pinned against the plugin's own output.**
   `tests/pykeepassgate/test_protocol.py` holds vectors produced by `PairingToken`, `SniName` and
-  `PairingProof` over inputs written down beside them. Without those, both halves could agree on
-  something neither document describes, because both halves are code written here. Regenerate them
-  from the plugin rather than from the client if they ever have to change. `ProtocolVectorsTests`
-  holds the plugin to the same values, so a change to either half fails in that half's own tier.
+  `PairingProof` over inputs written down beside them, and the responder marker read off a responder
+  the plugin issued. Without those, both halves could agree on something neither document describes,
+  because both halves are code written here. Regenerate them from the plugin rather than from the
+  client if they ever have to change. `ProtocolVectorsTests` holds the plugin to the same values, so
+  a change to either half fails in that half's own tier.
   **The resolver is pinned against KeePass's own compiler the same way**:
   `tests/Shared/ReferenceVectors.json` is what `SprEngine` makes of every case, written by
   `ReferenceVectorsTests` in the host tier and read by `test_refs.py`, and it is regenerated from

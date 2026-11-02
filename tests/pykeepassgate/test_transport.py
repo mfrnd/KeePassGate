@@ -19,7 +19,6 @@ from typing import Any, cast
 import pytest
 from cryptography import x509
 
-from conftest import RESPONDER_CLAIM
 from pykeepassgate import transport
 from pykeepassgate.errors import (
     AuthorityUndecided,
@@ -423,12 +422,6 @@ class TestPinning:
 
 class TestTheResponder:
     """The identity a locked database answers with, and what this client will do with it."""
-
-    def test_the_marker_is_the_one_the_plugin_writes(self) -> None:
-        # Written down on both sides rather than shared, because a client reading a different
-        # string reads no marker at all and finds every certificate innocent. The value comes
-        # from `AuthorityIssuer.ResponderClaim`; regenerate it from there and never from here.
-        assert transport.RESPONDER_CLAIM == RESPONDER_CLAIM
 
     def test_a_marked_certificate_is_recognized(self, responder: Issued) -> None:
         assert transport._responder(responder.der)

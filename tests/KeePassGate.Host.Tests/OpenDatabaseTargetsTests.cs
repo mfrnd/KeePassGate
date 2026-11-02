@@ -164,6 +164,26 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void A_node_s_tag_is_keyed_by_the_stored_host_certificate_and_never_by_the_gate_key()
+        {
+            // The gate key would make the tag the same across a restart and new with a new
+            // authority as well, which is all the test above can see, and every paired client holds
+            // it: keyed by it, any client could compute any node's tag for a guess offline.
+            CreateAuthorityIn(_first);
+            var vault = _targets.Current()[0].Vault;
+            var served = vault.GroupTag(vault.RootAlias);
+            var root = _first.Database.RootGroup;
+
+            using (var reading = ServiceFor(_first).Read())
+            {
+                var material = reading.Material;
+                Assert.That(served, Is.EqualTo(new NodeTags(NodeTags.KeyFrom(material.HostPkcs12)).Of(root)));
+                Assert.That(served, Is.Not.EqualTo(new NodeTags(NodeTags.KeyFrom(material.SniKey)).Of(root)),
+                    "the gate key is the one every paired client holds");
+            }
+        }
+
+        [Test]
         public void Recreating_the_authority_gives_a_new_target()
         {
             CreateAuthorityIn(_first);

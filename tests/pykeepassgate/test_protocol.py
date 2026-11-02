@@ -1,11 +1,12 @@
-"""The three pieces of the protocol that are pure functions, against the plugin's own output.
+"""The pieces of the protocol both halves have to agree on, against the plugin's own output.
 
 **The vectors are the point of this file.** Everything here could pass while the client and the
 plugin agreed on something neither document describes, because both halves would be this code. So
 the expected values were produced by the plugin itself, from `PairingToken`, `SniName` and
-`PairingProof`, over inputs written down beside them. These hold the client to them, and so fail
-here if the client's construction changes; `ProtocolVectorsTests` holds the plugin to the same
-values, so a change to the plugin's fails in its own tier. Neither waits for the first real pairing.
+`PairingProof`, over inputs written down beside them, and the responder marker was read off a
+responder certificate `AuthorityIssuer` issued. These hold the client to them, and so fail here if
+the client's construction changes; `ProtocolVectorsTests` holds the plugin to the same values, so a
+change to the plugin's fails in its own tier. Neither waits for the first real pairing.
 
 The inputs are deliberately boring: 0 to 31 for a token, 100 to 115 for a nonce, 200 to 231 for a
 challenge, 1 to 32 for a binding. Nothing about them is secret and nothing about them is realistic,
@@ -18,7 +19,7 @@ import base64
 
 import pytest
 
-from pykeepassgate import proofs, sni
+from pykeepassgate import proofs, sni, transport
 from pykeepassgate import token as token_module
 from pykeepassgate.errors import MalformedToken
 
@@ -37,6 +38,7 @@ PROOF_ASKED = "YWdlbnQtaW52ZW50ZWQKcmVhZGVyLHdyaXRlcgpQMzBE"
 PROOF_ASKED_NO_LIFETIME = "YWdlbnQtaW52ZW50ZWQKcmVhZGVyLHdyaXRlcgo="
 PROOF_REQUEST = "BdArJ130P+Sjp+VtBYmmfWXD1+lMQV5xsAiNUz6JabY="
 BINDING_OF_TEN = "yEjhAT+fBKnWP6Q85/1K8DUVLHxmmkpAS2cQfO5fLk4="
+RESPONDER_CLAIM = "kpg://host/responder"
 
 
 def unb64(text: str) -> bytes:
@@ -183,3 +185,10 @@ class TestProofs:
         one = proofs.client(TOKEN, BINDING, NONCE)
         assert proofs.matches(one, one)
         assert not proofs.matches(one, bytes(proofs.LENGTH))
+
+
+class TestResponder:
+    def test_the_marker_is_the_one_the_plugin_writes(self) -> None:
+        # A client reading another string finds no marker, takes every responder for a host, and
+        # sends it the request a locked database is there to refuse, `CA.md` §208.
+        assert transport.RESPONDER_CLAIM == RESPONDER_CLAIM

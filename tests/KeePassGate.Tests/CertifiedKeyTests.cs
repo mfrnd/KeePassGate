@@ -74,6 +74,19 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void What_is_read_stays_whole_when_the_bytes_it_was_read_from_are_overwritten()
+        {
+            // Every reader overwrites a stored PKCS#12 once Bouncy Castle has read it, `CA.md`
+            // §208, which is safe only because nothing read keeps a reference into those bytes.
+            var stored = (byte[])_stored.Clone();
+            var read = CertifiedKey.From(stored);
+            Array.Clear(stored, 0, stored.Length);
+
+            Assert.That(read.CertificateDer, Is.EqualTo(_host.CertificateDer));
+            Assert.That(CertifiedKey.From(read.ToPkcs12()), Is.Not.Null, "the key still certifies");
+        }
+
+        [Test]
         public void The_shape_built_here_reads_so_each_refusal_below_is_its_one_change()
         {
             var read = CertifiedKey.From(Stored());

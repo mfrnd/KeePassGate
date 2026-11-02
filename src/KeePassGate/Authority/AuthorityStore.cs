@@ -394,6 +394,7 @@ namespace KeePassGate.Authority
             // codeql[cs/missed-using-statement] disposed only when it is not handed back, which no `using` can do
             AuthorityMaterial material = null;
             byte[] sniKey = null;
+            byte[] hostPkcs12 = null;
 
             try
             {
@@ -403,7 +404,10 @@ namespace KeePassGate.Authority
                     problems.Add("The authority certificate cannot be read.");
                 }
 
-                var host = CertificateBlob.Load(document.Host);
+                // Decoded once, for the host to be read from and for the material to keep a copy
+                // of, and overwritten below with the gate key, `CA.md` §208.
+                hostPkcs12 = CertificateBlob.Bytes(document.Host);
+                var host = CertifiedKey.From(hostPkcs12);
                 if (host == null)
                 {
                     problems.Add("The host certificate cannot be read.");
@@ -427,7 +431,7 @@ namespace KeePassGate.Authority
                     return null;
                 }
 
-                material = new AuthorityMaterial(authority, host, sniKey, CertificateBlob.Bytes(document.Host));
+                material = new AuthorityMaterial(authority, host, sniKey, hostPkcs12);
 
                 if (!IssuedBy(material.Host, material.Authority))
                 {
@@ -453,6 +457,11 @@ namespace KeePassGate.Authority
                 if (sniKey != null)
                 {
                     Array.Clear(sniKey, 0, sniKey.Length);
+                }
+
+                if (hostPkcs12 != null)
+                {
+                    Array.Clear(hostPkcs12, 0, hostPkcs12.Length);
                 }
 
                 if (material != null)

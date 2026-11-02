@@ -282,10 +282,20 @@ namespace KeePassGate.Tests
         [Test]
         public void The_authority_lasts_a_hundred_years_and_starts_slightly_in_the_past()
         {
+            // A hundred years counted on the calendar rather than read from the issuer's own
+            // `AuthorityLifetime`, which a test comparing with it follows wherever it goes: ten
+            // years again, the outage `CA.md` §207 records, would leave such a test green.
+            var hundredYears = Now.AddYears(100).UtcDateTime;
+
             Assert.That(_authority.NotBefore.ToUniversalTime(),
                 Is.EqualTo((Now - AuthorityIssuer.Backdate).UtcDateTime).Within(TimeSpan.FromSeconds(1)));
-            Assert.That(_authority.NotAfter.ToUniversalTime(),
-                Is.EqualTo((Now + AuthorityIssuer.AuthorityLifetime).UtcDateTime).Within(TimeSpan.FromSeconds(1)));
+            Assert.That(_authority.NotAfter.ToUniversalTime(), Is.EqualTo(hundredYears).Within(TimeSpan.FromSeconds(1)));
+
+            using (var host = _issuer.IssueHost(_authorityKey).Read())
+            {
+                Assert.That(host.NotAfter.ToUniversalTime(), Is.EqualTo(hundredYears).Within(TimeSpan.FromSeconds(1)),
+                    "and its host as long, being issued with it");
+            }
         }
 
         [Test]
