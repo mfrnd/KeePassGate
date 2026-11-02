@@ -426,3 +426,16 @@ attachments are hashed once per object**, because `ProtectedBinary` offers nothi
 bytes and KeePass keeps the object's own hash code inside it; `KeePassContractTests` pins that, and
 two readers asking at once wait on one digest rather than taking two. The probes that measured all
 of this are on `spikes/entity-tags`.
+
+## 21. Taking a turn on KeePass's thread
+
+**A call posted to KeePass's thread was believed to wait its turn, and it went ahead of everything.**
+Review 4 measured which way of taking a turn on that thread leaves the operator's input and
+KeePass's timers alone, and where in KeePass's own work a turn can start. The probes are on
+`spikes/keepass-thread`.
+
+| Fact | How it was established |
+| --- | --- |
+| **A posted turn goes ahead of the operator's input and of every timer.** Thirty-two threads each taking the window's thread for 17 ms at a time through `BeginInvoke` let one of sixty mouse moves through in three seconds. Asking `GetQueueStatus` for input first let input through and still held a 100 ms timer off for 600 ms whenever no input came, because `QS_TIMER` never showed: Windows makes a timer's message only once nothing else is queued | mouse moves sent with `SendInput` to a window on this machine's desktop, and a timer on the same window |
+| **Started on `Application.Idle`, turns give way to everything.** Input waited 8 to 11 ms at the median, at most the rest of the turn it arrived during, and the 100 ms timer ticked no more than 125 ms apart, against 112 with nothing queued, at 95% of the thread spent in turns. Inside a WinForms `ShowDialog` the same | the same window, in each loop |
+| **`Application.Idle` is never raised inside `Application.DoEvents`**: none of 37 turns started inside a `DoEvents` loop came from it. And KeePass pumps through `DoEvents` in every long operation: `SaveDatabase` through its status bar logger and `UIBlockInteraction`, the merges through their status loggers, `StatusProgressForm`, which XML Replace uses, and `ExportUtil.Export` | the same probe, and the callers of `DoEvents` in KeePass 2.61.1's IL |

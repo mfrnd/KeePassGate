@@ -202,14 +202,14 @@ first removal makes one, and while the Database Settings dialog is open it holds
 choice: making the bin underneath it would be undone by its OK. So the removal is refused until that
 dialog is closed, which is worth retrying rather than an error.
 
-**And so can any change, while KeePass is busy with something of its own.** A change and the save
-that keeps it happen together on KeePass's own thread, and the things KeePass takes a moment over,
-saving, importing, synchronizing, exporting, any window it is waiting for an answer to, and
-anything it shows its progress window for, such as **XML Replace**, all use
-that thread while they run. A change made in the middle of one of them would be made against a
-database that is being written, which ends with half of somebody's import on the disk or a change a
-program was told had been saved not being there. So it is refused until KeePass has finished, and
-every refusal of this kind tells the program to come back in two seconds.
+**A change waits while KeePass is busy with something of its own.** A change and the save that keeps
+it happen together on KeePass's own thread, and the things KeePass takes a moment over, saving,
+importing, synchronizing, exporting, and anything it shows its progress window for, such as **XML
+Replace**, all use that thread while they run. A change made in the middle of one of them would be
+made against a database that is being written, which ends with half of somebody's import on the disk
+or a change a program was told had been saved not being there. So a change waits for KeePass to
+finish, for up to half a minute, and answers "busy" when KeePass is still at it after that. Every
+refusal of this kind tells the program to come back in two seconds.
 
 **Neither switch applies to `S` or `D`.** Removing something shows nobody anything, and a rule
 that may remove an entry already takes everything in it. So `...S....` removes an attachment on its

@@ -783,6 +783,19 @@ Run them from
   leaves it outdated and unresolved, and the ruleset wants every comment resolved. So
   `tools/suppression_review.py` deletes its own threads whose suppression is gone rather than ask
   for a token that may write to the repository; `spikes/codeql-suppressions` measured it.
+- **A posted message goes ahead of the operator's input and of every timer.** Windows hands out a
+  posted message before input and makes a timer's message only once nothing else is queued, and
+  WinForms runs every queued `BeginInvoke` callback in one go. Thirty-two threads each posting a
+  turn delivered one of sixty mouse moves in three seconds, and turns that let input through by
+  asking first still held a timer off for six hundred milliseconds, which is what KeePass's
+  inactivity lock runs on. Started on `Application.Idle`, which comes after all of them, the same
+  turns left every timer on time. `UiThreadTests.KeePass_s_timers_keep_their_time_under_a_stream_of_work`.
+- **`Application.Idle` is never raised inside `Application.DoEvents`**, and KeePass's save, its
+  merges, XML Replace and its export all pump through `DoEvents`, read off its IL. So a turn that
+  starts only on Idle never starts inside one of KeePass's own operations, where a posted write was
+  delivered and had to be refused. A loop that is not WinForms', a message box's, never raises Idle
+  either.
+  `UiThreadTests.Work_waits_for_KeePass_s_thread_to_be_idle_and_never_starts_inside_DoEvents`.
 - **`dotnet test` with a filter that matches nothing exits 0**, having run nothing, and its trx
   counts nothing. A gate that believes the exit code is green over an empty run, so `build.ps1`
   reads each tier's trx and refuses one in which nothing executed, `Assert-Executed`.
@@ -840,9 +853,9 @@ Equally load bearing: **KeePass's save reports nothing to its caller.** `MainFor
 `void`, shows its own warnings, and leaves the caller no way to ask whether anything reached the
 disk. What it does say is `PwDatabase.Modified`, which a successful save clears, so that is what a
 write is believed on. Every write waits for its save on KeePass's thread and reads back what it
-wrote, pairing's among them rather than pairing's alone as this once said, and it waits through
-`BeginInvoke` and a bounded wait, never `Invoke`, which has none. `DESIGN.md` §119 says why that
-wait is safe.
+wrote, pairing's among them rather than pairing's alone as this once said, and it waits for a turn
+from the one queue on that thread, with a bounded wait, never `Invoke`, which has none. `DESIGN.md`
+§119 says why that wait is safe.
 
 **`Modified` alone turned out to be too generous, and a write is now believed on two things.**
 KeePass clears the flag from what it did in memory, so a save that wrote the file and then failed

@@ -1,6 +1,10 @@
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.Runtime.ExceptionServices;
+using System.Threading;
 using System.Windows.Forms;
+using KeePassGate.Diagnostics;
 
 namespace KeePassGate.Ui
 {
@@ -17,8 +21,7 @@ namespace KeePassGate.Ui
     /// **The wait is bounded, and that is what keeps the deadlock case closed.** A connection thread
     /// that cannot get the user interface's attention fails its pairing rather than holding a socket
     /// and a lock until somebody notices. `Control.Invoke` offers no timeout at all, which is why
-    /// the implementation uses `BeginInvoke` and waits on the handle it returns.
-    /// https://learn.microsoft.com/dotnet/api/system.windows.forms.control.begininvoke
+    /// the implementation queues the work and waits on it with a clock.
     /// </remarks>
     public interface IUiThread
     {
@@ -50,10 +53,43 @@ namespace KeePassGate.Ui
         bool Run(Action work, TimeSpan timeout);
     }
 
-    /// <summary>The real one, over any control whose handle belongs to the user interface thread.</summary>
-    public sealed class ControlUiThread : IUiThread
+    /// <summary>
+    /// The real one, over any control whose handle belongs to the user interface thread: one queue
+    /// of turns on that thread, for the work this plugin runs there.
+    /// </summary>
+    /// <remarks>
+    /// **A turn starts only once KeePass has nothing else to do**, which is `Application.Idle`:
+    /// WinForms raises it when everything in the thread's queue has been handled, posted work,
+    /// input, repaints and timers alike. Posted with `BeginInvoke`, as every write was before, a
+    /// turn went ahead of all of them, because Windows hands out a posted message before input and
+    /// makes a timer's message only once nothing else is queued. Thirty-two threads taking turns
+    /// that way delivered one of sixty mouse moves to the window in three seconds, and turns posted
+    /// one after another held a timer off for six hundred milliseconds whenever no input came,
+    /// which is what KeePass's inactivity lock and its clipboard clearing run on. Started on Idle,
+    /// the same load left input waiting at most for the turn it arrived during, and every timer on
+    /// time. `UiPriority.cs` on `spikes/keepass-thread` measured all four.
+    ///
+    /// **Work starts on Idle and nowhere else, and that keeps it out of KeePass's own
+    /// operations.** A save, an import, a synchronize, an export and XML Replace all pump through
+    /// `Application.DoEvents`, read off the IL of KeePass 2.61.1, and WinForms never raises Idle
+    /// inside it. Posted work was delivered inside each of them and had to be refused there by the
+    /// writer; queued work waits for the operation to end. The writer still asks, because a dialog
+    /// shown inside one of them is a WinForms loop and does raise Idle. The queue is served in the
+    /// order it was joined.
+    ///
+    /// **Re-entered rather than serialized.** Work that shows a dialog runs a loop of its own,
+    /// which raises Idle, and the turns behind it are served from inside that loop, as posted work
+    /// was.
+    /// </remarks>
+    public sealed class ControlUiThread : IUiThread, IDisposable
     {
         private readonly Control _control;
+        private readonly object _gate = new object();
+        private readonly List<Turn> _turns = new List<Turn>();
+        private bool _disposed;
+
+        // Made on the user interface thread, and only ever touched there.
+        private bool _listening;
 
         public ControlUiThread(Control control)
         {
@@ -84,24 +120,27 @@ namespace KeePassGate.Ui
                 return true;
             }
 
-            var marshaled = new Marshaled(work);
-            var pending = _control.BeginInvoke((MethodInvoker)marshaled.Run);
-
-            if (pending.AsyncWaitHandle.WaitOne(timeout))
+            var turn = new Turn(work);
+            if (!Join(turn))
             {
-                // `EndInvoke` is what ends the call. What the work threw is not carried by it and
-                // is rethrown separately, for the reason on `Marshaled.Run`.
-                _control.EndInvoke(pending);
-                marshaled.Rethrow();
+                return false;
+            }
+
+            if (turn.AwaitReady(timeout))
+            {
+                if (turn.Withdrawn)
+                {
+                    // Turned away by the plugin stopping, before it began.
+                    return false;
+                }
+
+                turn.Rethrow();
                 return true;
             }
 
-            if (marshaled.Abandon())
+            if (turn.Withdraw())
             {
-                // Queued and never started, so nothing happened and nothing will. `EndInvoke` is
-                // deliberately not called: it would block this thread until the user interface
-                // drains its queue, which is the wait this timeout exists to escape. What is left
-                // behind is one queued no-op.
+                // Queued and never started, so nothing happened and nothing will.
                 return false;
             }
 
@@ -115,32 +154,150 @@ namespace KeePassGate.Ui
             // own: the operator's triggers and other plugins' save handlers take as long as they
             // take. `DatabaseWriter.Asking` forestalls the three questions that can be seen coming,
             // and `DESIGN.md` §119 says why the rest are left as they are.
-            pending.AsyncWaitHandle.WaitOne();
-            _control.EndInvoke(pending);
-            marshaled.Rethrow();
+            turn.AwaitReady(Timeout.InfiniteTimeSpan);
+            turn.Rethrow();
             return false;
         }
 
         /// <summary>
-        /// Work that can still be called off, up to the instant it starts, and that never lets an
-        /// exception out on the user interface thread.
+        /// Turns away every turn still waiting, and stops listening for Idle. On the user interface
+        /// thread, where `Application.Idle` was subscribed.
+        /// </summary>
+        public void Dispose()
+        {
+            List<Turn> waiting;
+            lock (_gate)
+            {
+                if (_disposed)
+                {
+                    return;
+                }
+
+                _disposed = true;
+                waiting = new List<Turn>(_turns);
+                _turns.Clear();
+            }
+
+            foreach (var turn in waiting)
+            {
+                turn.Refuse();
+            }
+
+            if (_listening)
+            {
+                Application.Idle -= OnIdle;
+                _listening = false;
+            }
+        }
+
+        /// <summary>Puts a turn in the queue, and false when nothing will ever serve it.</summary>
+        private bool Join(Turn turn)
+        {
+            lock (_gate)
+            {
+                if (_disposed)
+                {
+                    return false;
+                }
+
+                _turns.Add(turn);
+            }
+
+            // A turn whose wake could not be posted is withdrawn, so that another turn's wake
+            // cannot serve it after its caller was told no. Unless one already has.
+            return Wake() || !turn.Withdraw();
+        }
+
+        /// <summary>
+        /// Posts the message that brings a round of Idle: it is handled, and Idle follows once
+        /// nothing else is waiting.
+        /// </summary>
+        private bool Wake()
+        {
+            try
+            {
+                _control.BeginInvoke((MethodInvoker)Listen);
+                return true;
+            }
+            catch (Exception error) when (Expected.OfUserInterface(error))
+            {
+                // The window went between the check and the post, which is KeePass closing. What
+                // is queued is turned away by `Dispose`, or waits out its own clock.
+                return false;
+            }
+        }
+
+        /// <summary>On the user interface thread: listens for Idle, from the first turn on.</summary>
+        private void Listen()
+        {
+            lock (_gate)
+            {
+                if (_disposed)
+                {
+                    return;
+                }
+            }
+
+            if (!_listening)
+            {
+                Application.Idle += OnIdle;
+                _listening = true;
+            }
+        }
+
+        private void OnIdle(object sender, EventArgs e)
+        {
+            Serve();
+        }
+
+        /// <summary>On the user interface thread: one turn, the first in the queue.</summary>
+        private void Serve()
+        {
+            Turn next;
+            lock (_gate)
+            {
+                _turns.RemoveAll(turn => turn.Withdrawn);
+
+                if (_turns.Count == 0)
+                {
+                    return;
+                }
+
+                next = _turns[0];
+                _turns.RemoveAt(0);
+            }
+
+            next.Take();
+
+            bool more;
+            lock (_gate)
+            {
+                more = _turns.Count > 0 && !_disposed;
+            }
+
+            if (more)
+            {
+                Wake();
+            }
+        }
+
+        /// <summary>
+        /// One turn: work to run on the user interface thread.
         /// </summary>
         /// <remarks>
-        /// `BeginInvoke` offers no way to take something back out of the queue, and the queue is
-        /// exactly where work sits while a user interface is too busy to answer. The latch is what
-        /// makes the timeout mean "this did not happen" rather than "this has not happened yet".
+        /// **It can be called off up to the instant it starts.** A caller whose clock ran out has
+        /// given its answer already, so a turn it withdrew must never run afterwards. The lock is
+        /// what makes the timeout mean "this did not happen" rather than "this has not happened yet".
         ///
-        /// **The catch is total, and it is not a fifth catch-all.** A marshaled callback that lets
-        /// an exception out of it does not simply fail the `EndInvoke`: `Control` hands the
-        /// exception to `Application.OnThreadException` on the user interface thread as well,
-        /// because `BeginInvoke` is an asynchronous entry, and KeePass registers no
-        /// `Application.ThreadException` handler and sets no unhandled exception mode. WinForms
-        /// therefore shows its own "Unhandled exception has occurred in your application" dialog
-        /// inside the password manager, whose Quit ends the process outside KeePass's own shutdown,
-        /// while the connection thread separately turns the same exception into a refusal. Measured
-        /// on .NET Framework 4.8 with a form on one thread and a throwing `BeginInvoke` from
-        /// another: with a handler registered it fired on the user interface thread before
-        /// `EndInvoke` was ever called, and with none registered WinForms went modal instead.
+        /// **The catch around the work is total, and it is not a fifth catch-all.** Work that lets
+        /// an exception out on the user interface thread does not simply fail the caller: WinForms
+        /// hands it to `Application.OnThreadException`, and KeePass registers no handler and sets
+        /// no unhandled exception mode, so WinForms shows its own "Unhandled exception has occurred
+        /// in your application" dialog inside the password manager, whose Quit ends the process
+        /// outside KeePass's own shutdown. Measured on .NET Framework 4.8 with a form on one thread
+        /// and a throwing `BeginInvoke` from another: with a handler registered it fired on the
+        /// user interface thread before `EndInvoke` was ever called, and with none registered
+        /// WinForms went modal instead.
         ///
         /// Nothing is absorbed here, which is what separates this from the four places that catch
         /// everything: the exception is carried to the thread that asked for the work and thrown
@@ -148,25 +305,97 @@ namespace KeePassGate.Ui
         /// Recording it here instead would take a `GateFailure` a caller names away from the caller
         /// and report a defect twice.
         /// </remarks>
-        private sealed class Marshaled
+        private sealed class Turn
         {
-            private readonly object _gate = new object();
+            private readonly object _lock = new object();
             private readonly Action _work;
 
             private bool _started;
-            private bool _abandoned;
+            private bool _withdrawn;
+            private bool _ready;
             private Exception _failure;
 
-            public Marshaled(Action work)
+            /// <summary>A turn for this work.</summary>
+            public Turn(Action work)
             {
                 _work = work;
             }
 
-            public void Run()
+            public bool Withdrawn
             {
-                lock (_gate)
+                get
                 {
-                    if (_abandoned)
+                    lock (_lock)
+                    {
+                        return _withdrawn;
+                    }
+                }
+            }
+
+            /// <summary>Calls it off. False when it had already begun and cannot be.</summary>
+            public bool Withdraw()
+            {
+                lock (_lock)
+                {
+                    if (_started)
+                    {
+                        return false;
+                    }
+
+                    _withdrawn = true;
+                    return true;
+                }
+            }
+
+            /// <summary>Calls it off for the plugin stopping, and tells whoever is waiting.</summary>
+            public void Refuse()
+            {
+                lock (_lock)
+                {
+                    if (_started)
+                    {
+                        return;
+                    }
+
+                    _withdrawn = true;
+                    _ready = true;
+                    Monitor.PulseAll(_lock);
+                }
+            }
+
+            /// <summary>
+            /// Whether it is ready: the work has run, or it was refused.
+            /// </summary>
+            public bool AwaitReady(TimeSpan timeout)
+            {
+                var clock = Stopwatch.StartNew();
+                lock (_lock)
+                {
+                    while (!_ready)
+                    {
+                        if (timeout == Timeout.InfiniteTimeSpan)
+                        {
+                            Monitor.Wait(_lock);
+                            continue;
+                        }
+
+                        var left = timeout - clock.Elapsed;
+                        if (left <= TimeSpan.Zero || !Monitor.Wait(_lock, left))
+                        {
+                            return _ready;
+                        }
+                    }
+
+                    return true;
+                }
+            }
+
+            /// <summary>On the user interface thread: runs the work.</summary>
+            public void Take()
+            {
+                lock (_lock)
+                {
+                    if (_withdrawn)
                     {
                         return;
                     }
@@ -174,6 +403,7 @@ namespace KeePassGate.Ui
                     _started = true;
                 }
 
+                Exception failure = null;
                 try
                 {
                     _work();
@@ -181,25 +411,14 @@ namespace KeePassGate.Ui
                 // codeql[cs/catch-of-all-exceptions] kept for `Rethrow` to throw where a catch-all sees it
                 catch (Exception error)
                 {
-                    lock (_gate)
-                    {
-                        _failure = error;
-                    }
+                    failure = error;
                 }
-            }
 
-            /// <summary>Calls it off. False when it had already begun and cannot be.</summary>
-            public bool Abandon()
-            {
-                lock (_gate)
+                lock (_lock)
                 {
-                    if (_started)
-                    {
-                        return false;
-                    }
-
-                    _abandoned = true;
-                    return true;
+                    _failure = failure;
+                    _ready = true;
+                    Monitor.PulseAll(_lock);
                 }
             }
 
@@ -209,12 +428,12 @@ namespace KeePassGate.Ui
             /// <remarks>
             /// `ExceptionDispatchInfo` rather than `throw` so that the stack the work failed on
             /// survives the crossing, which is the whole value of the exception to whoever reads
-            /// the log. `Control.EndInvoke` rethrows the bare object and loses it.
+            /// the log.
             /// </remarks>
             public void Rethrow()
             {
                 Exception failure;
-                lock (_gate)
+                lock (_lock)
                 {
                     failure = _failure;
                 }

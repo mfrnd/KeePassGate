@@ -28,13 +28,16 @@ namespace KeePassGate.Bridge
     ///   cannot get in fails rather than queues.
     /// - **The write and the save happen together on the user interface thread**, in one marshaled
     ///   call, so nothing can open a dialog on the group between them.
-    /// - **And that call can itself be delivered inside something else.** Being on that thread is
-    ///   not being alone on it: the operations KeePass takes a while over all pump the message
-    ///   queue while they run, and a marshaled call is a message. A write dispatched inside one
-    ///   of them changes the tree that operation is walking, and saves underneath it. So there
-    ///   is a third question beside the dialogs and the save's own three, asked in the marshaled
-    ///   call because that is where the answer stops being able to change: is KeePass part way
-    ///   through something of its own. <see cref="Interrupting"/> is that question.
+    /// - **And that call waits for KeePass to be idle, which keeps it out of KeePass's own
+    ///   operations.** Being on that thread is not being alone on it: the operations KeePass takes
+    ///   a while over all pump the message queue while they run, and a write posted as a message
+    ///   was dispatched inside them, changing the tree they were walking and saving underneath
+    ///   them. A turn from `ControlUiThread` starts only on `Application.Idle`, which the
+    ///   `DoEvents` they pump with never raises, so a write waits for them instead. A dialog one
+    ///   of them shows is a loop of WinForms' own and does raise Idle, so the third question
+    ///   beside the dialogs and the save's own three stays, asked in the marshaled call because
+    ///   that is where the answer stops being able to change: is KeePass part way through
+    ///   something of its own. <see cref="Interrupting"/> is that question.
     /// - **A dialog open on what is being written refuses the write**, checked again inside the
     ///   marshaled call rather than only before it, because that is where the answer stops being
     ///   able to change. A dialog holds its own copy of what it shows and writes that copy back when
@@ -254,9 +257,9 @@ namespace KeePassGate.Bridge
         /// </summary>
         /// <remarks>
         /// The question every write asks inside its marshaled call, for the approval prompt to ask
-        /// inside its own: a dialog is a marshaled call like a write, and is delivered by whatever
-        /// is pumping just as a write is. Asked after <see cref="Saving"/>, since this writer's
-        /// own save blocks KeePass's interaction as KeePass's own does.
+        /// inside its own: a dialog is a turn on KeePass's thread like a write, and meets whatever
+        /// a write meets there. Asked after <see cref="Saving"/>, since this writer's own save
+        /// blocks KeePass's interaction as KeePass's own does.
         /// </remarks>
         string IWriterState.Interrupting()
         {
@@ -337,11 +340,16 @@ namespace KeePassGate.Bridge
         /// it would not.
         /// </summary>
         /// <remarks>
-        /// **A marshaled call is a message, and a message is delivered by whatever is pumping.**
-        /// The rest of this class was written as though running on the user interface thread meant
+        /// **A posted call is a message, and a message is delivered by whatever is pumping.** The
+        /// rest of this class was written as though running on the user interface thread meant
         /// KeePass was between operations, and it does not: everything KeePass takes a noticeable
         /// time over pumps that thread's queue while it runs, so a write handed to `BeginInvoke`
-        /// by a connection thread is dispatched in the middle of it.
+        /// by a connection thread was dispatched in the middle of it, with what follows. **Queued
+        /// rather than posted, a write no longer starts there**: a turn starts on
+        /// `Application.Idle`, and every one of these pumps through `Application.DoEvents`, which
+        /// never raises it, so the write waits for the operation to end. This is still asked,
+        /// and still refuses, for what can raise Idle part way through one of them: a dialog of
+        /// WinForms' own that one shows, whose loop raises it as KeePass's main loop does.
         ///
         /// - **Its own save.** `MainForm.SaveDatabase` pumps before the save, and its progress
         ///   logger pumps again for every percent of the serialization. A write delivered there

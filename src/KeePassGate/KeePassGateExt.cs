@@ -69,6 +69,12 @@ namespace KeePassGate
         /// </summary>
         private readonly ApprovalBook _approvals = new ApprovalBook();
         private JsonLinesAudit _audit;
+
+        /// <summary>
+        /// The one queue of turns on KeePass's thread, for every write and every dialog this plugin
+        /// puts in front of the operator, `DESIGN.md` §119.
+        /// </summary>
+        private ControlUiThread _ui;
         private OpenDatabaseTargets _targets;
         private GateListener _listener;
         // The seam rather than the class, because the seam is what the window is written
@@ -366,9 +372,11 @@ namespace KeePassGate
         /// Why KeePass is part way through an operation of its own, or null when it is not.
         /// </summary>
         /// <remarks>
-        /// `DatabaseWriter` says why this is asked at all: a write is a message, and every
-        /// operation KeePass takes a noticeable time over pumps the message queue while it runs,
-        /// so a write is delivered in the middle of one unless somebody asks first.
+        /// `DatabaseWriter` says why this is asked at all: every operation KeePass takes a
+        /// noticeable time over pumps the message queue while it runs, and a write posted as a
+        /// message was delivered in the middle of one. A write waits for KeePass to be idle now,
+        /// which keeps it out of every one that pumps through `DoEvents`, and this is asked for a
+        /// dialog of WinForms' own shown inside one, which is idle enough to start a turn.
         ///
         /// **Two answers rather than one, because the operations do not announce themselves the
         /// same way.** `UIIsInteractionBlocked` is what KeePass's own save raises, and what both
@@ -647,6 +655,17 @@ namespace KeePassGate
                 }
             });
 
+            Attempt("failed to stop the turns on KeePass's thread", () =>
+            {
+                // After the listener, so that nothing is left to ask for a turn: any still
+                // queued is turned away rather than left to wait out its clock.
+                if (_ui != null)
+                {
+                    _ui.Dispose();
+                    _ui = null;
+                }
+            });
+
             Attempt("failed to release the window events", () =>
             {
                 if (_windows != null)
@@ -723,7 +742,11 @@ namespace KeePassGate
                 return;
             }
 
+            // One queue for the writer's work and the approval dialogs, which take their turns on
+            // KeePass's thread from it, in order and behind whatever KeePass is doing, `DESIGN.md`
+            // §119. Made here, on that thread, which is where it listens.
             var ui = new ControlUiThread(mainWindow);
+            _ui = ui;
 
             // The one writer, shared by every database, because pairing is a single writer by
             // design rather than by luck. `SaveDatabase` rather than `UIFileSave`: the second
@@ -766,8 +789,8 @@ namespace KeePassGate
             // marshaled to. `Terminate` lets go of the listener, and letting go of the listener
             // has to be letting go of all of it.
             // One prompt for both, because a pairing and a renewal wait their turn for the same
-            // screen. The writer too, because a dialog is a marshaled call like a write and is
-            // delivered inside whatever is pumping: the prompt waits out the writer's own save and
+            // screen. The writer too, because a dialog is a turn on KeePass's thread like a write
+            // and meets what a write meets there: the prompt waits out the writer's own save and
             // refuses inside KeePass's, as the writer does.
             var prompt = new PairingApprovalPrompt(ui, _targets.Serving, writer, _log);
             var router = GateOperations.Router(

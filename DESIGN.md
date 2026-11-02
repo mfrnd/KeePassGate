@@ -763,12 +763,26 @@ So the rules here:
   `GateListener` takes the culture of the thread that makes it, which is KeePass's, and serves
   every connection in it, and a lookup is the one KeePass would make, whether it is KeePass's code
   making it or this plugin's.
-- **Persistence marshals with `BeginInvoke` and then waits on the handle**, never `Control.Invoke`,
-  which has no timeout. One writer owns every write, so a request thread does wait on the UI thread.
-  What that buys is a wait that ends: a marshal that does not complete fails the request rather than
-  deadlocking it. `DatabaseWriter` is that writer, and there is one of it rather than one per
-  subject: it was pairing's alone while pairing was the only thing writing, and the database API
-  took the same writer and the same rule rather than a second one.
+- **Persistence takes a turn on KeePass's thread and waits for it with a clock**, never
+  `Control.Invoke`, which has no timeout. One writer owns every write, so a request thread does
+  wait on the UI thread. What that buys is a wait that ends: a marshal that does not complete fails
+  the request rather than deadlocking it. `DatabaseWriter` is that writer, and there is one of it
+  rather than one per subject: it was pairing's alone while pairing was the only thing writing,
+  and the database API took the same writer and the same rule rather than a second one.
+
+  **Every turn on KeePass's thread comes from one queue, and starts only when KeePass is idle.**
+  `ControlUiThread` is the queue, served in the order it was joined, one turn at a time, and a turn
+  starts on `Application.Idle`, which WinForms raises once everything in the thread's queue has been
+  handled: posted work, input, repaints and timers. **Posted with `BeginInvoke`, as every write once
+  was, a turn goes ahead of all of them**, because Windows hands out a posted message before input
+  and makes a timer's message only once nothing else is queued. Measured with thirty-two threads
+  each taking the thread for seventeen milliseconds at a time: turns posted one by one delivered one
+  of sixty mouse moves to the window in three seconds; turns that first asked whether input was
+  waiting let input through and held a timer off for six hundred milliseconds whenever no input
+  came, which is what KeePass's inactivity lock and its clipboard clearing run on; turns started on
+  Idle left input waiting at most for the turn it arrived during, eight to eleven milliseconds at
+  the median, and a hundred-millisecond timer never more than 125 between ticks, against 112 with
+  nothing queued. `spikes/keepass-thread` holds the probes.
 
   **The bound has two halves, and only one of them is a timeout.** Work still sitting in the queue
   when the timeout expires is withdrawn, so the caller's "no" is true of the database as well: the
@@ -860,9 +874,17 @@ So the rules here:
   no asterisk in the title and no question on lock, close or exit. Inside an export, the list being
   enumerated moves and KeePass shows the operator a failed export over a truncated file.
 
-  So the writer asks a third question, beside the dialogs and the save's own three, inside the
-  marshaled call: **is KeePass part way through something of its own**, and a write that meets it
-  is refused `503 busy` before anything is touched. It takes two answers rather than one, because
+  **A turn that starts only on Idle keeps a write out of all of them.** Every one of these pumps
+  through `Application.DoEvents`, read off the IL of KeePass 2.61.1: the save through its status
+  bar logger and `UIBlockInteraction`, the merges through their status loggers, XML Replace
+  through its progress window, and the export through `ExportUtil` itself. WinForms never raises
+  Idle inside `DoEvents`, measured, so a queued write waits for the operation to end where a
+  posted one was delivered inside it.
+
+  So the writer still asks a third question, beside the dialogs and the save's own three, inside
+  the marshaled call, for what does raise Idle part way through one of these, a dialog of WinForms'
+  own that one shows: **is KeePass part way through something of its own**, and a write that meets
+  it is refused `503 busy` before anything is touched. It takes two answers rather than one, because
   the operations do not announce themselves the same way: `MainForm.UIIsInteractionBlocked` covers
   the save and both merges, and an export raises `MessageService.CurrentMessageCount` instead,
   which also covers every message box KeePass is waiting on. **A third operation raises neither**:
@@ -875,17 +897,18 @@ So the rules here:
   either**: an API write still saves what is in memory, the operator's own edits included, which is
   a documented consequence rather than something to guard against.
 
-  **An approval dialog is a marshaled call too**, and was delivered inside a save the same way: the
-  dialog then held the save, the writer's lock and KeePass's interaction block for as long as the
-  operator took, every other write was refused after its twenty seconds, and a workstation lock was
-  dropped rather than deferred, because KeePass does not lock while its interaction is blocked. So
-  the prompt asks the same question on KeePass's thread just before it shows anything, and answers
-  KeePass's own work `503 busy` at once. **This plugin's own save is not KeePass's work**, although
-  it raises the same block: a pairing or a renewal arriving while another client's write is saving
-  waits for that save, inside the wait for the screen it already had, and is shown once the save is
-  over. The writer's check made from a connection thread tells that save apart for the same reason,
-  where it used to turn pairings and renewals away for a write that would simply have taken its
-  turn.
+  **An approval dialog is a turn too**, and while it was posted it was delivered inside a save the
+  same way: the dialog then held the save, the writer's lock and KeePass's interaction block for as
+  long as the operator took, every other write was refused after its twenty seconds, and a
+  workstation lock was dropped rather than deferred, because KeePass does not lock while its
+  interaction is blocked. Queued, it waits for the save as a write does. The prompt still asks the
+  same question on KeePass's thread just before it shows anything, and answers KeePass's own work
+  `503 busy` at once. **This plugin's own
+  save is not KeePass's work**, although it raises the same block: a pairing or a renewal
+  arriving while another client's write is saving waits for that save, inside the wait for the
+  screen it already had, and is shown once the save is over. The writer's check made from a
+  connection thread tells that save apart for the same reason, where it used to turn pairings and
+  renewals away for a write that would simply have taken its turn.
 - **Every `503` this gate sends carries `Retry-After: 2`**, the new one and the ones that were
   always there: `busy`, `locked`, `undecided` and pairing's own. One number for all of them,
   written by the response writer rather than by the four places that answer, so a refusal added
@@ -1344,7 +1367,7 @@ Written down so that it is possible to be wrong about this on purpose rather tha
   replacing rather than adjusting. The wait is there because handing over a certificate before its
   record is saved would create a credential nobody can revoke. It is not the only place a request
   thread waits on the UI thread, which this bullet once said: every write waits there the same way,
-  through `BeginInvoke` and a bounded wait (§119). If that wait cannot be made reliable, the
+  for a turn and with a bounded wait (§119). If that wait cannot be made reliable, the
   alternative is to issue only from the UI thread outright and let the request poll.
 - **If our own request parser accumulates cases.** It is justified only while the HTTP subset stays
   trivial. If chunked bodies, keep-alive or upgrade become necessary, writing it here stops being the

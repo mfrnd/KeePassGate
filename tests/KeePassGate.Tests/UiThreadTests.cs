@@ -1,4 +1,7 @@
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
 using System.Threading;
 using System.Windows.Forms;
 using KeePassGate.Testing;
@@ -9,13 +12,12 @@ using NUnit.Framework;
 namespace KeePassGate.Tests
 {
     /// <summary>
-    /// What a timeout means when the work was posted onto somebody else's message queue, and where
-    /// the work's own failure ends up.
+    /// What a timeout means when the work was queued for somebody else's thread, and where the
+    /// work's own failure ends up.
     /// </summary>
     /// <remarks>
-    /// **The answer has to be "it did not happen", not "it has not happened yet".** `BeginInvoke`
-    /// offers no way to take something back out of the queue, and the queue is exactly where work
-    /// sits while a user interface is too busy to answer. Everything that marshals here has already
+    /// **The answer has to be "it did not happen", not "it has not happened yet".** The queue is
+    /// exactly where work sits while a user interface is too busy to answer. Everything that marshals here has already
     /// given its own answer by the time the timeout expires: pairing has refused the client and
     /// destroyed the certificate, so a write arriving afterwards saves an admission record for a
     /// certificate nobody holds, and an approval dialog arriving afterwards asks the operator about
@@ -39,10 +41,10 @@ namespace KeePassGate.Tests
         public void Work_the_user_interface_never_reached_is_called_off_rather_than_run_later()
         {
             using (var form = new Form())
+            using (var ui = new ControlUiThread(form))
             {
                 Handle(form);
 
-                var ui = new ControlUiThread(form);
                 var ran = 0;
                 var answered = false;
                 var answer = true;
@@ -74,10 +76,10 @@ namespace KeePassGate.Tests
         public void Work_that_gets_through_in_time_runs_once_and_is_reported_as_having_run()
         {
             using (var form = new Form())
+            using (var ui = new ControlUiThread(form))
             {
                 Handle(form);
 
-                var ui = new ControlUiThread(form);
                 var ran = 0;
                 var answer = false;
 
@@ -90,7 +92,7 @@ namespace KeePassGate.Tests
                 var until = DateTime.UtcNow + Patience;
                 while (!caller.Join(10) && DateTime.UtcNow < until)
                 {
-                    Application.DoEvents();
+                    Pump();
                 }
 
                 Assert.That(caller.Join(Patience), Is.True);
@@ -112,10 +114,10 @@ namespace KeePassGate.Tests
         public void Work_that_throws_fails_the_caller_rather_than_the_user_interface_thread()
         {
             using (var form = new Form())
+            using (var ui = new ControlUiThread(form))
             {
                 Handle(form);
 
-                var ui = new ControlUiThread(form);
                 var thrown = new NullReferenceException("a defect inside marshaled work");
                 Exception caught = null;
                 var answered = false;
@@ -149,10 +151,10 @@ namespace KeePassGate.Tests
         public void Work_that_throws_after_the_timeout_fails_the_caller_that_waited_for_it()
         {
             using (var form = new Form())
+            using (var ui = new ControlUiThread(form))
             {
                 Handle(form);
 
-                var ui = new ControlUiThread(form);
                 var thrown = new NullReferenceException("a defect in work that had already begun");
                 Exception caught = null;
 
@@ -186,6 +188,124 @@ namespace KeePassGate.Tests
             }
         }
 
+        [Test]
+        public void Work_waits_for_KeePass_s_thread_to_be_idle_and_never_starts_inside_DoEvents()
+        {
+            // How KeePass pumps while it saves, imports, synchronizes or exports: `DoEvents` in a
+            // loop, which never raises Idle. Work posted with `BeginInvoke` started there, inside
+            // the operation; queued, it waits for the operation to end.
+            using (var form = new Form())
+            using (var ui = new ControlUiThread(form))
+            {
+                Handle(form);
+
+                var ran = 0;
+                var answer = false;
+
+                var caller = Start(() => answer = ui.Run(() => Interlocked.Increment(ref ran), Patience));
+
+                var until = DateTime.UtcNow.AddMilliseconds(500);
+                while (DateTime.UtcNow < until)
+                {
+                    Application.DoEvents();
+                    Thread.Sleep(1);
+                }
+
+                var inside = Volatile.Read(ref ran);
+                PumpUntil(() => !caller.IsAlive);
+
+                Assert.That(inside, Is.Zero, "nothing started while KeePass was pumping for itself");
+                Assert.That(answer, Is.True);
+                Assert.That(Volatile.Read(ref ran), Is.EqualTo(1), "and it ran once KeePass was idle");
+            }
+        }
+
+        [Test]
+        public void KeePass_s_timers_keep_their_time_under_a_stream_of_work()
+        {
+            // What KeePass's inactivity lock and its clipboard clearing run on. Work posted one
+            // after another held a timer off for as long as the stream lasted, because Windows
+            // makes a timer's message only once nothing else is queued; started on Idle, it leaves
+            // every timer on time.
+            using (var loop = new UiLoop())
+            using (var ui = loop.Own(() => new ControlUiThread(loop.Control)))
+            using (var ticker = loop.Own(() => new System.Windows.Forms.Timer { Interval = 100 }))
+            {
+                var clock = Stopwatch.StartNew();
+                var gaps = new List<double>();
+                var last = 0.0;
+
+                loop.Invoke(() =>
+                {
+                    ticker.Value.Tick += delegate
+                    {
+                        var now = clock.Elapsed.TotalMilliseconds;
+                        if (last > 0)
+                        {
+                            gaps.Add(now - last);
+                        }
+
+                        last = now;
+                    };
+                    ticker.Value.Start();
+                });
+
+                var stop = 0;
+                var turns = 0;
+                var writers = Enumerable.Range(0, 8).Select(_ => Start(() =>
+                {
+                    while (Volatile.Read(ref stop) == 0)
+                    {
+                        ui.Value.Run(() => Spin(TimeSpan.FromMilliseconds(10)), Patience);
+                        Interlocked.Increment(ref turns);
+                    }
+                })).ToList();
+
+                Thread.Sleep(TimeSpan.FromSeconds(2));
+                Volatile.Write(ref stop, 1);
+                writers.ForEach(writer => writer.Join(Patience));
+
+                double longest = 0;
+                loop.Invoke(() =>
+                {
+                    ticker.Value.Stop();
+                    longest = gaps.Count == 0 ? double.MaxValue : gaps.Max();
+                });
+
+                Assume.That(Volatile.Read(ref turns), Is.GreaterThan(50), "the work really was holding the thread");
+                Assert.That(longest, Is.LessThan(400), "the longest gap between ticks, in milliseconds");
+            }
+        }
+
+        private static Thread Start(Action work)
+        {
+            var thread = new Thread(() => work()) { IsBackground = true };
+            thread.Start();
+            return thread;
+        }
+
+        private static void Spin(TimeSpan length)
+        {
+            var clock = Stopwatch.StartNew();
+            while (clock.Elapsed < length)
+            {
+                // Busy, as a turn doing real work is: a wait would give the thread back.
+            }
+        }
+
+        /// <summary>Pumps until the condition holds, as a loop that is not stuck does.</summary>
+        private static void PumpUntil(Func<bool> done)
+        {
+            var until = DateTime.UtcNow + Patience;
+            while (!done() && DateTime.UtcNow < until)
+            {
+                Pump();
+                Thread.Sleep(1);
+            }
+
+            Assert.That(done(), Is.True, "the caller never came back");
+        }
+
         /// <summary>
         /// Runs the message loop until the caller is finished, watching where a failure goes.
         /// </summary>
@@ -214,11 +334,21 @@ namespace KeePassGate.Tests
         {
             for (var i = 0; i < 20; i++)
             {
-                Application.DoEvents();
+                Pump();
                 Thread.Sleep(5);
             }
 
             GC.KeepAlive(control);
+        }
+
+        /// <summary>
+        /// One round of a message loop: the queue drained, then Idle, which a real loop raises once
+        /// nothing is left in it and `DoEvents` never does.
+        /// </summary>
+        private static void Pump()
+        {
+            Application.DoEvents();
+            Application.RaiseIdle(EventArgs.Empty);
         }
     }
 }

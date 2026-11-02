@@ -14,6 +14,7 @@ using KeePassGate.Gate;
 using KeePassGate.Pairing;
 using KeePassGate.Pipeline;
 using KeePassGate.Transport;
+using KeePassGate.Testing;
 using KeePassGate.Ui;
 using KeePassGate.Vault;
 using KeePassLib;
@@ -321,59 +322,6 @@ namespace KeePassGate.Host.Tests
                 new RenewalHandler(_prompt, new PairingOptions(), new AuthorityIssuer(), null, _session, audit, NullGateLog.Instance, _held)
                     .Renew(context);
                 return context;
-            }
-        }
-
-        /// <summary>KeePass's thread: a control with a handle, on a message loop of its own.</summary>
-        private sealed class UiLoop : IDisposable
-        {
-            private readonly Thread _thread;
-            private readonly ManualResetEventSlim _ready = new ManualResetEventSlim();
-
-            public UiLoop()
-            {
-                _thread = new Thread(Run) { IsBackground = true, Name = "KeePass's thread" };
-                _thread.SetApartmentState(ApartmentState.STA);
-                _thread.Start();
-                _ready.Wait(Patience);
-            }
-
-            public Control Control { get; private set; }
-
-            public void Invoke(Action action)
-            {
-                Control.Invoke(action);
-            }
-
-            public void Dispose()
-            {
-                try
-                {
-                    Control.BeginInvoke((MethodInvoker)(() =>
-                    {
-                        Control.Dispose();
-                        Application.ExitThread();
-                    }));
-                }
-                catch (InvalidOperationException)
-                {
-                    // Gone already.
-                }
-
-                _thread.Join(Patience);
-                _ready.Dispose();
-            }
-
-            private void Run()
-            {
-                Control = new Control();
-                Control.CreateControl();
-                GC.KeepAlive(Control.Handle);
-                _ready.Set();
-                using (var context = new ApplicationContext())
-                {
-                    Application.Run(context);
-                }
             }
         }
 

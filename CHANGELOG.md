@@ -26,6 +26,9 @@ none, since it releases both.
   served empty and an attachment answered `404` though both were listed, a node's own seal was
   passed over for the grant above it, and two authorities with no retirement were served as one.
   Every connection is now served in KeePass's own culture.
+- **A change waits for KeePass to finish what it is doing**, a save, an import, an export or XML
+  Replace, where it was answered `503 busy` straight away, and is answered so only if KeePass is
+  still at it half a minute later.
 - **The plugin is compiled at C# 13**, and the build needs the .NET SDK 9 or later. Nothing it does
   changes: the compiled plugin differs only in caching a delegate made from a static method rather
   than making one at every use, and in an attribute the compiler adds.

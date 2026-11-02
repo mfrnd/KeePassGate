@@ -116,7 +116,7 @@ sequenceDiagram
     KPG->>KPG: generate the key pair, issue from that database's authority
     KPG->>MEM: burn the token, under the plugin's own lock
     KPG->>DB: write the admission record
-    KPG->>DB: SaveDatabase, marshaled by BeginInvoke with a bounded wait, then read back to confirm
+    KPG->>DB: SaveDatabase, in a turn on KeePass's thread with a bounded wait, then read back to confirm
     KPG-->>CL: only now: certificate + key + authority + gate key
     CL->>CL: store, then discard the token
 ```
@@ -160,12 +160,13 @@ screen. Nothing is spent by that, so the invitee can simply ask again. The refer
 so by itself when it is given a budget for waiting, starting again from the hello rather than
 repeating the approval request alone.
 
-**Nor is a dialog put up inside a save.** Showing it is a call marshaled to KeePass's thread, and
-KeePass's save pumps that thread while it runs, so a dialog posted during one opened inside it and
-held the save, the writer and KeePass's interaction block for as long as the operator took, which
-also kept a workstation lock from locking KeePass. So the dialog is shown only once nothing is
-saving. **A save this plugin is making for another client is waited for**: the request waits for it
-within the same wait it has for the screen, and answers `503 busy` only if that wait runs out first.
+**Nor is a dialog put up inside a save.** Showing it is a turn on KeePass's thread, and KeePass's
+save pumps that thread while it runs, so a dialog posted during one, as it once was, opened inside
+it and held the save, the writer and KeePass's interaction block for as long as the operator took,
+which also kept a workstation lock from locking KeePass. A turn waits for KeePass to be idle, which
+a save never is, `DESIGN.md` §119, and the dialog is shown only once nothing is saving. **A save
+this plugin is making for another client is waited for**: the request waits for it within the
+same wait it has for the screen, and answers `503 busy` only if that wait runs out first.
 **KeePass's own work is not**: its own saves, an import, XML Replace, a message box of its own, its
 progress window, Database Maintenance and the dialogs that would take the record back are answered
 `503 busy` at once, before the dialog and again just before it would be shown.
