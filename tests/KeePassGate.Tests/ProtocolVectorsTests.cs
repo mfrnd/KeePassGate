@@ -1,20 +1,23 @@
 using System;
 using System.Linq;
+using KeePassGate.Authority;
 using KeePassGate.Gate;
 using KeePassGate.Pairing;
+using KeePassGate.Testing;
 using NUnit.Framework;
 
 namespace KeePassGate.Tests
 {
     /// <summary>
-    /// The nine values `tests/pykeepassgate/test_protocol.py` holds the client to, held to the
+    /// The ten values `tests/pykeepassgate/test_protocol.py` holds the client to, held to the
     /// plugin here over the same inputs.
     /// </summary>
     /// <remarks>
     /// The client's copy pins its own code against output this plugin produced once, which catches
     /// the client drifting and nothing else. A change to how the plugin writes a token, builds a
-    /// name or computes a proof passes every property test beside this one and would first fail at
-    /// a real pairing, where it would look like a fault in the client. These are the other half.
+    /// name, computes a proof or marks a responder passes every property test beside this one and
+    /// would first fail at a real pairing or a real lock, where it would look like a fault in the
+    /// client. These are the other half.
     /// A value that has to change changes in both files, and is taken from the plugin.
     ///
     /// The inputs are the Python file's and deliberately boring: 0 to 31 for a token, 100 to 115
@@ -100,6 +103,20 @@ namespace KeePassGate.Tests
             Assert.That(
                 PairingProof.Request(Token, Binding, Nonce, Challenge, asked),
                 Is.EqualTo(Convert.FromBase64String("BdArJ130P+Sjp+VtBYmmfWXD1+lMQV5xsAiNUz6JabY=")));
+        }
+
+        [Test]
+        public void A_responder_carries_the_marker_the_client_looks_for()
+        {
+            // Read off a responder the plugin issued and compared with the string written down,
+            // rather than with `AuthorityIssuer.ResponderClaim`, which a test would follow wherever
+            // it went. A client reading another string finds no marker, takes every responder for
+            // a host, and sends it the request a locked database is there to refuse, `CA.md` §208.
+            var issuer = new AuthorityIssuer();
+            using (var responder = issuer.IssueResponder(issuer.CreateAuthority()).Read())
+            {
+                Assert.That(CertificateUris.Of(responder), Is.EqualTo(new[] { "kpg://host/responder" }));
+            }
         }
 
         private static byte[] Run(int first, int count)
