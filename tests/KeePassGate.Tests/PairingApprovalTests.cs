@@ -1151,6 +1151,19 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_dialog_of_Windows_own_on_KeePass_s_thread_is_answered_before_anything_is_queued()
+        {
+            // A message box's loop never raises Idle, so the dialog would wait the whole of its
+            // timeout for a turn and could not be shown under it anyway. Told at once instead.
+            var ui = new FakeUiThread { Stalled = "a message box is open" };
+
+            var answer = new PairingApprovalPrompt(ui, _log).Ask(Request(), Timeout);
+
+            Assert.That(answer.Decision, Is.EqualTo(PairingDecision.Unavailable));
+            Assert.That(ui.Asked, Is.Zero, "nothing was queued for KeePass's thread");
+        }
+
+        [Test]
         public void A_user_interface_that_throws_is_reported_and_approves_nothing()
         {
             var ui = new FakeUiThread { Throws = new InvalidOperationException("no handle") };
@@ -1429,6 +1442,11 @@ namespace KeePassGate.Tests
                     _released = true;
                     Monitor.PulseAll(_gate);
                 }
+            }
+
+            public string Stalled
+            {
+                get { return null; }
             }
 
             public bool Run(Action work, TimeSpan timeout)

@@ -4,6 +4,7 @@ using System.Threading;
 using KeePassGate.Acl;
 using KeePassGate.Bridge;
 using KeePassGate.Testing;
+using KeePassGate.Ui;
 using KeePassLib;
 using NUnit.Framework;
 
@@ -188,18 +189,21 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
-        public void A_walk_taken_while_the_tree_and_the_rules_move_raises_nothing()
+        public void A_walk_held_still_finds_a_seal_while_KeePass_rewrites_the_keys_around_it()
         {
-            // Why the resolver's walk sits outside `KdbxVault.Reading` and loses nothing by it.
-            // The node is found through that retry, but `IAclNode.Document` and `IAclNode.Parent`
-            // are read as the walk reaches them, which is after it has returned. What the retry
-            // takes again is an enumerator or a copy that met a tree in motion, and a walk is
-            // neither: two field reads per level and one lookup in a sorted dictionary. An
-            // exception escaping here would reach the catch-all on the connection thread, which
-            // answers 500 and records a defect in this plugin for somebody typing in KeePass.
-            var churnedGroup = GroupUnderRoot("Fictitious");
-            var otherGroup = GroupUnderRoot("Also Fictitious");
-            var churned = EntryIn(churnedGroup);
+            // A walk reads each level's rule out of a sorted dictionary, and a lookup racing a
+            // rebalance on KeePass's thread misses a key rather than throwing: a seal missed that
+            // way sends the walk on to the grant above it, which the seal exists to stop. Held, the
+            // rewrite waits for the walk. Rewritten on a real message loop, as KeePass rewrites
+            // custom data, in bursts on a timer: keys either side of the rule put in and taken out
+            // until the dictionary turns over around it, and the entry moved between two groups
+            // that both grant what the seal refuses.
+            var granting = GroupUnderRoot("Fictitious");
+            var alsoGranting = GroupUnderRoot("Also Fictitious");
+            Grant(granting, AclDefault.Inherit, "reader", AclVerb.Read);
+            Grant(alsoGranting, AclDefault.Inherit, "reader", AclVerb.Read);
+            var sealedEntry = EntryIn(granting);
+            Grant(sealedEntry, AclDefault.Deny, "reader");
 
             // A second chain nothing writes to, walked on every pass beside the first one. It
             // says the walk really is climbing and really is parsing what it finds, which a run
@@ -208,71 +212,101 @@ namespace KeePassGate.Host.Tests
             Grant(quietGroup, AclDefault.Inherit, "reader", AclVerb.Read);
             var quiet = EntryIn(quietGroup);
 
-            // Read and written through `Volatile` rather than plainly, because a flag a loop only
-            // ever reads is a flag the jit may hoist out of it, and the failure that buys is a
-            // suite that hangs rather than one that reports.
-            var stop = false;
-            Exception churnFailure = null;
-
-            var churn = new Thread(() =>
+            using (var loop = new UiLoop())
+            using (var ui = loop.Own(() => new ControlUiThread(loop.Control)))
+            using (var churn = loop.Own(() => new System.Windows.Forms.Timer { Interval = 1 }))
             {
-                churnFailure = Thrown.By(() =>
+                var round = 0;
+                var changing = 0;
+                var watched = new Watched(ui.Value, () => Volatile.Read(ref changing) != 0);
+
+                loop.Invoke(() =>
                 {
-                    var round = 0;
-                    while (!Volatile.Read(ref stop))
+                    churn.Value.Tick += delegate
                     {
-                        Grant(churned, AclDefault.Inherit, "reader", AclVerb.Read);
-                        Grant(churnedGroup, AclDefault.Deny, "reader", AclVerb.Read);
-                        Grant(otherGroup, AclDefault.Inherit, "editor", AclVerb.Update);
+                        Volatile.Write(ref changing, 1);
+                        for (var i = 0; i < 64; i++)
+                        {
+                            sealedEntry.CustomData.Set("KPG.Fictitious." + i, "x");
+                        }
 
-                        // Enough keys either side of the rule to make the dictionary rebalance
-                        // around it, which is the moment a lookup would have to survive.
-                        churned.CustomData.Set("KPG.Fictitious." + (round % 64), "x");
-                        churnedGroup.CustomData.Set("KPG.Fictitious." + (round % 64), "x");
+                        for (var i = 0; i < 64; i++)
+                        {
+                            sealedEntry.CustomData.Remove("KPG.Fictitious." + i);
+                        }
 
-                        churned.CustomData.Remove(AclDocument.CustomDataKey);
-                        churnedGroup.CustomData.Remove(AclDocument.CustomDataKey);
-                        otherGroup.CustomData.Remove(AclDocument.CustomDataKey);
-                        churned.CustomData.Remove("KPG.Fictitious." + ((round + 9) % 64));
-                        churnedGroup.CustomData.Remove("KPG.Fictitious." + ((round + 9) % 64));
-
-                        // And the tree itself moving under the walk, so that the parent read is
-                        // as contended as the rule read.
-                        churned.ParentGroup.Entries.Remove(churned);
-                        ((round % 2) == 0 ? otherGroup : churnedGroup).AddEntry(churned, true);
-
+                        sealedEntry.ParentGroup.Entries.Remove(sealedEntry);
+                        ((round % 2) == 0 ? alsoGranting : granting).AddEntry(sealedEntry, true);
                         round++;
-                    }
+                        Volatile.Write(ref changing, 0);
+                    };
+                    churn.Value.Start();
                 });
-            });
 
-            churn.Start();
-
-            Exception escaped = null;
-            var quietRefusals = 0;
-            var walks = 0;
-
-            escaped = Thrown.By(() =>
-            {
-                for (; walks < 100000; walks++)
+                var walks = 0;
+                var passedTheSeal = 0;
+                var quietRefusals = 0;
+                var until = DateTime.UtcNow.AddSeconds(2);
+                while (DateTime.UtcNow < until)
                 {
-                    AclResolver.Permits(KdbxNodes.Of(churned), Reader, AclVerb.Read);
+                    // Anything leaving here fails the test by escaping, which is an assertion
+                    // too: it would reach the catch-all on the connection thread as a defect.
+                    if (AclResolver.Permits(KdbxNodes.Of(sealedEntry, watched), Reader, AclVerb.Read))
+                    {
+                        passedTheSeal++;
+                    }
 
-                    if (!AclResolver.Permits(KdbxNodes.Of(quiet), Reader, AclVerb.Read))
+                    if (!AclResolver.Permits(KdbxNodes.Of(quiet, watched), Reader, AclVerb.Read))
                     {
                         quietRefusals++;
                     }
+
+                    walks++;
                 }
-            });
 
-            Volatile.Write(ref stop, true);
-            churn.Join();
+                Assume.That(Volatile.Read(ref round), Is.GreaterThan(20), "KeePass's thread really was rewriting the rules");
+                Assume.That(walks, Is.GreaterThan(100), "and the walks really were being served beside it");
+                Assert.That(watched.Holds, Is.EqualTo(2 * walks), "each walk was one hold, however many levels it climbed");
+                Assert.That(watched.Overlapped, Is.Zero, "and no walk ran while KeePass's thread was rewriting the rules");
+                Assert.That(passedTheSeal, Is.Zero, "the seal was found on every one of " + walks + " walks");
+                Assert.That(quietRefusals, Is.Zero, "and the chain nobody touched answered the same way on every one");
+            }
+        }
 
-            Assert.That(escaped, Is.Null,
-                "a walk over a tree in motion raises nothing, so nothing is left for a retry to take again");
-            Assert.That(churnFailure, Is.Null, "and the thread doing the writing got through its own work");
-            Assert.That(quietRefusals, Is.Zero,
-                "the chain nobody touched answered the same way on all " + walks + " passes");
+        /// <summary>
+        /// The hold a walk asks for, counting how often it was asked and whether what it held ever
+        /// overlapped KeePass's thread changing the rules.
+        /// </summary>
+        private sealed class Watched : IReadHold
+        {
+            private readonly IReadHold _hold;
+            private readonly Func<bool> _changing;
+
+            public Watched(IReadHold hold, Func<bool> changing)
+            {
+                _hold = hold;
+                _changing = changing;
+            }
+
+            public int Holds { get; private set; }
+
+            public int Overlapped { get; private set; }
+
+            public T Hold<T>(Func<T> read)
+            {
+                return _hold.Hold(() =>
+                {
+                    Holds++;
+                    var before = _changing();
+                    var answer = read();
+                    if (before || _changing())
+                    {
+                        Overlapped++;
+                    }
+
+                    return answer;
+                });
+            }
         }
 
         private PwGroup GroupUnderRoot(string name)

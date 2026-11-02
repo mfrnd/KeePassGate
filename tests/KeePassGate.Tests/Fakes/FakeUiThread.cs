@@ -18,6 +18,9 @@ namespace KeePassGate.Tests.Fakes
         /// <summary>False for a user interface thread that is busy elsewhere.</summary>
         public bool Runs { get; set; }
 
+        /// <summary>What the writer and the prompt are told before they queue anything, null for nothing.</summary>
+        public string Stalled { get; set; }
+
         /// <summary>
         /// True for a thread that reached the work only after the wait was over: it runs the work
         /// to the end and answers false, as `ControlUiThread` does for work that began too late.

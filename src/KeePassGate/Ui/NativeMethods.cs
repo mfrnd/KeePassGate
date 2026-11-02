@@ -9,8 +9,8 @@ namespace KeePassGate.Ui
     /// </summary>
     /// <remarks>
     /// What WinForms leaves unanswered: whether a window is enabled as Windows sees it, which
-    /// window owns another, how a taskbar entry is flashed, and how a window is kept out of screen
-    /// captures.
+    /// window owns another, how a taskbar entry is flashed, how a window is kept out of screen
+    /// captures, and which windows a thread has open that no form stands for.
     ///
     /// **Each declaration is called once, by the method of its name in this class**, which is what
     /// the rest of the plugin calls. CodeQL reports every declaration of unmanaged code and every
@@ -56,6 +56,38 @@ namespace KeePassGate.Ui
             return User32.SetWindowDisplayAffinity(window, affinity);
         }
 
+        internal static uint GetWindowThreadProcessId(IntPtr window)
+        {
+            uint process;
+            // codeql[cs/call-to-unmanaged-code] the one call to it, for every caller in the plugin
+            return User32.GetWindowThreadProcessId(window, out process);
+        }
+
+        internal static bool EnumThreadWindows(uint thread, EnumWindowsProc visit)
+        {
+            // codeql[cs/call-to-unmanaged-code] the one call to it, for every caller in the plugin
+            return User32.EnumThreadWindows(thread, visit, IntPtr.Zero);
+        }
+
+        internal static bool IsWindowVisible(IntPtr window)
+        {
+            // codeql[cs/call-to-unmanaged-code] the one call to it, for every caller in the plugin
+            return User32.IsWindowVisible(window);
+        }
+
+        /// <summary>The window's class name, or null when it has none to give.</summary>
+        internal static string GetClassName(IntPtr window)
+        {
+            // Long enough for any class this plugin asks about, which is a native dialog's.
+            var name = new char[64];
+            // codeql[cs/call-to-unmanaged-code] the one call to it, for every caller in the plugin
+            var length = User32.GetClassName(window, name, name.Length);
+            return length > 0 ? new string(name, 0, length) : null;
+        }
+
+        /// <summary>What <see cref="EnumThreadWindows"/> calls for each window, false to stop.</summary>
+        internal delegate bool EnumWindowsProc(IntPtr window, IntPtr parameter);
+
         /// <summary>What <see cref="FlashWindowEx"/> is told: which window, how, and how long.</summary>
         [StructLayout(LayoutKind.Sequential)]
         internal struct FlashInfo
@@ -96,6 +128,24 @@ namespace KeePassGate.Ui
             [return: MarshalAs(UnmanagedType.Bool)]
             // codeql[cs/unmanaged-code] nothing managed sets display affinity, and KeePass makes this same call
             internal static extern bool SetWindowDisplayAffinity(IntPtr window, uint affinity);
+
+            [DllImport("user32.dll")]
+            // codeql[cs/unmanaged-code] WinForms answers which thread owns a window only for a caller already on it
+            internal static extern uint GetWindowThreadProcessId(IntPtr window, out uint process);
+
+            [DllImport("user32.dll")]
+            [return: MarshalAs(UnmanagedType.Bool)]
+            // codeql[cs/unmanaged-code] a native dialog's window belongs to no form, so nothing managed lists it
+            internal static extern bool EnumThreadWindows(uint thread, EnumWindowsProc visit, IntPtr parameter);
+
+            [DllImport("user32.dll")]
+            [return: MarshalAs(UnmanagedType.Bool)]
+            // codeql[cs/unmanaged-code] asked of a window no `Control` stands for
+            internal static extern bool IsWindowVisible(IntPtr window);
+
+            [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+            // codeql[cs/unmanaged-code] a window's class is what tells a native dialog from a form
+            internal static extern int GetClassName(IntPtr window, [Out] char[] name, int capacity);
         }
     }
 }

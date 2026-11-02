@@ -412,10 +412,10 @@ namespace KeePassGate.Tests
             }
         }
 
-        /// <summary>What a read raises once its three attempts are spent.</summary>
+        /// <summary>What a read raises when KeePass's thread could not be held still for it.</summary>
         private static VaultUnsettled Unsettled()
         {
-            return new VaultUnsettled("the database kept changing while it was being read");
+            return new VaultUnsettled("KeePass's thread could not be held still for a read");
         }
 
         /// <summary>

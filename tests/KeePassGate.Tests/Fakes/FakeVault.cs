@@ -21,7 +21,7 @@ namespace KeePassGate.Tests.Fakes
     internal sealed class FakeVault : IVault
     {
         private readonly Dictionary<string, Node> _groups = new Dictionary<string, Node>(StringComparer.Ordinal);
-        private readonly Dictionary<string, Held> _entries = new Dictionary<string, Held>(StringComparer.Ordinal);
+        private readonly Dictionary<string, Kept> _entries = new Dictionary<string, Kept>(StringComparer.Ordinal);
         private readonly Node _root;
 
         private int _next;
@@ -80,6 +80,16 @@ namespace KeePassGate.Tests.Fakes
             get { return "root"; }
         }
 
+        /// <summary>How many reads have been held as one, by <see cref="Held"/>.</summary>
+        public int HeldReads { get; private set; }
+
+        /// <summary>Reads where it is, since a database in a dictionary has no thread to hold.</summary>
+        public T Held<T>(Func<T> read)
+        {
+            HeldReads++;
+            return read();
+        }
+
         public string RootUuid
         {
             get { return _root.Uuid; }
@@ -102,7 +112,7 @@ namespace KeePassGate.Tests.Fakes
         /// The real vault asks both halves, so this does: a string is protected because of what it
         /// is called, which the database decides, or because somebody marked that one.
         /// </remarks>
-        private bool Guards(Held entry, string name)
+        private bool Guards(Kept entry, string name)
         {
             return Protects(name) || entry.Protected.Contains(name);
         }
@@ -190,7 +200,7 @@ namespace KeePassGate.Tests.Fakes
             var group = Find(groupUuid)
                 ?? throw new InvalidOperationException("there is no group called " + groupUuid);
 
-            var entry = new Held(Identifier(), group.Uuid, group.Rules.Child(title));
+            var entry = new Kept(Identifier(), group.Uuid, group.Rules.Child(title));
             entry.Fields["Title"] = title;
             _entries[entry.Uuid] = entry;
             return entry.Uuid;
@@ -262,7 +272,7 @@ namespace KeePassGate.Tests.Fakes
         /// database decides it, and an attachment's bytes only up to the largest the gate serves,
         /// each one counted as a read, since the real vault decrypts it to hash it.
         /// </summary>
-        private string Tag(Held entry)
+        private string Tag(Kept entry)
         {
             TagsTaken++;
 
@@ -299,7 +309,7 @@ namespace KeePassGate.Tests.Fakes
         }
 
         /// <summary>The entry as one lookup describes it, saying whether it holds a protected value.</summary>
-        private VaultEntry Single(Held entry)
+        private VaultEntry Single(Kept entry)
         {
             return entry.Describe(entry.Fields.Keys.Any(n => Guards(entry, n)));
         }
@@ -865,7 +875,7 @@ namespace KeePassGate.Tests.Fakes
                 : null;
         }
 
-        private string Left(VaultTagging tagging, Held entry)
+        private string Left(VaultTagging tagging, Kept entry)
         {
             return tagging.Answers ? Tag(entry) : null;
         }
@@ -918,9 +928,9 @@ namespace KeePassGate.Tests.Fakes
             return _groups.TryGetValue(uuid, out group) ? group : null;
         }
 
-        private Held FindEntry(string uuid)
+        private Kept FindEntry(string uuid)
         {
-            Held entry;
+            Kept entry;
             return uuid != null && IsOpen && _entries.TryGetValue(uuid, out entry) ? entry : null;
         }
 
@@ -964,9 +974,9 @@ namespace KeePassGate.Tests.Fakes
             }
         }
 
-        private sealed class Held
+        private sealed class Kept
         {
-            public Held(string uuid, string group, TestNode node)
+            public Kept(string uuid, string group, TestNode node)
             {
                 Uuid = uuid;
                 Group = group;

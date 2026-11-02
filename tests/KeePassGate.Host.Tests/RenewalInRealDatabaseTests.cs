@@ -432,6 +432,11 @@ namespace KeePassGate.Host.Tests
                     _renewal = renewal;
                 }
 
+                public string Stalled
+                {
+                    get { return null; }
+                }
+
                 public bool Run(Action work, TimeSpan timeout)
                 {
                     var before = _renewal.BeforeTheWrite;

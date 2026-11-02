@@ -174,6 +174,14 @@ namespace KeePassGate.Gate
             {
                 candidates = _targets.Current();
             }
+            catch (VaultUnsettled error)
+            {
+                // KeePass's thread could not be held still to read which databases are open, which
+                // is KeePass being busy rather than anything being wrong. Nothing can be answered
+                // before the handshake, so the connection goes as one naming nothing served.
+                _log.Info("the open databases could not be read just now: " + error.Message);
+                return GateResolution.NoMatch();
+            }
             catch (Exception error) when (Expected.OfCustomData(error))
             {
                 _log.Error("the open databases could not be listed", error);

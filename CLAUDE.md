@@ -62,7 +62,9 @@ CodeQL reads what the gate does not**: the C#, the Python and the workflows, on 
 every push to `master` and once a week. **And the analysis is clean**: every finding is fixed, or
 suppressed where it is made with its reason, and a merge waits for `code scanning passed`, which
 fails on any finding left, and for every suppression the pull request touches to be resolved in
-review.
+review. **And a read holds KeePass still**: every read a connection makes holds KeePass's
+thread for its whole length, in a turn taken from the one queue every write takes its turn from as
+well, and only once KeePass has nothing else to do.
 
 ## Read these before proposing anything
 
@@ -102,6 +104,12 @@ claim about somebody else's code that a later release could make false. What the
 drives a desktop GUI on `windows-latest` and answers yes: the end to end tier runs on a hosted
 runner, with no self-hosted machine and no container. It is a claim about somebody else's runner
 image, so it is kept runnable too.
+
+**How a read holds KeePass's thread still was measured on another.** `spikes/keepass-thread` holds
+the probes behind `DESIGN.md` §119's reads: what a read meets while KeePass changes the tree, what
+holding the thread costs, and which way of taking a turn leaves the operator's input and KeePass's
+timers alone. Each is a claim about KeePass or WinForms that a later release could make false, so
+they are kept runnable as well.
 
 ## Visibility
 
@@ -782,6 +790,32 @@ Run them from
   leaves it outdated and unresolved, and the ruleset wants every comment resolved. So
   `tools/suppression_review.py` deletes its own threads whose suppression is gone rather than ask
   for a token that may write to the repository; `spikes/codeql-suppressions` measured it.
+- **A read on a connection thread misses what KeePass's thread is moving, and cannot tell.** A
+  lookup of the last group in its list missed it 20,762 times in two million while the list was
+  changed on KeePass's thread, a sweep met a slot a removal had emptied and threw inside
+  KeePassLib, and asking `List<T>` for its version caught almost none of it, because the version
+  moves after the size. Holding KeePass's thread still for the read, in a turn of its own, missed
+  nothing. `KdbxVaultTests.A_read_meets_a_tree_standing_still_while_KeePass_changes_it`, and
+  `AclInRealDatabaseTests.A_walk_held_still_finds_a_seal_while_KeePass_rewrites_the_keys_around_it`
+  for the rules.
+- **A posted message goes ahead of the operator's input and of every timer.** Windows hands out a
+  posted message before input and makes a timer's message only once nothing else is queued, and
+  WinForms runs every queued `BeginInvoke` callback in one go. Thirty-two threads each posting a
+  turn delivered one of sixty mouse moves in three seconds, and turns that let input through by
+  asking first still held a timer off for six hundred milliseconds, which is what KeePass's
+  inactivity lock runs on. Started on `Application.Idle`, which comes after all of them, the same
+  turns left every timer on time. `UiThreadTests.KeePass_s_timers_keep_their_time_under_a_stream_of_work`.
+- **`Application.Idle` is never raised inside `Application.DoEvents`**, and KeePass's save, its
+  merges, XML Replace and its export all pump through `DoEvents`, read off its IL. So a turn that
+  starts only on Idle never starts inside one of KeePass's own operations, where a posted write was
+  delivered and had to be refused. A loop that is not WinForms', a message box's, never raises Idle
+  either, which is why a read also starts on a fallback timer and a write does not.
+  `UiThreadTests.Work_waits_for_KeePass_s_thread_to_be_idle_and_never_starts_inside_DoEvents`.
+- **A native dialog on a thread is a visible window of class `#32770`**, a message box, a task
+  dialog or a file dialog alike, and a WinForms form never is. Any thread can find one with
+  `EnumThreadWindows` in about twenty microseconds without asking the thread anything, which is
+  how a write under one is refused at once rather than after its timeout.
+  `UiThreadTests.A_message_box_on_KeePass_s_thread_is_said_before_anything_is_queued`.
 - **`dotnet test` with a filter that matches nothing exits 0**, having run nothing, and its trx
   counts nothing. A gate that believes the exit code is green over an empty run, so `build.ps1`
   reads each tier's trx and refuses one in which nothing executed, `Assert-Executed`.
@@ -839,9 +873,9 @@ Equally load bearing: **KeePass's save reports nothing to its caller.** `MainFor
 `void`, shows its own warnings, and leaves the caller no way to ask whether anything reached the
 disk. What it does say is `PwDatabase.Modified`, which a successful save clears, so that is what a
 write is believed on. Every write waits for its save on KeePass's thread and reads back what it
-wrote, pairing's among them rather than pairing's alone as this once said, and it waits through
-`BeginInvoke` and a bounded wait, never `Invoke`, which has none. `DESIGN.md` §119 says why that
-wait is safe.
+wrote, pairing's among them rather than pairing's alone as this once said, and it waits for a turn
+from the one queue on that thread, with a bounded wait, never `Invoke`, which has none. `DESIGN.md`
+§119 says why that wait is safe.
 
 **`Modified` alone turned out to be too generous, and a write is now believed on two things.**
 KeePass clears the flag from what it did in memory, so a save that wrote the file and then failed
@@ -1075,8 +1109,9 @@ would publish, the README tells somebody arriving what this is, around a picture
 whole journey that moves and a diagram of the pieces, the command line reaches every route
 and prints JSON for a program, a write can be made against what was read, refused with `412`
 when the node has changed since, a merge into `master` waits for the whole gate to pass, a
-tag publishes both halves, CodeQL analyzes every language it reads, and a merge waits until every
-finding is fixed or suppressed with its reason.
+tag publishes both halves, CodeQL analyzes every language it reads, a merge waits until every
+finding is fixed or suppressed with its reason, and a read holds KeePass's thread still for as long
+as it reads, in a turn that gives way to the operator first.
 
 **Start with [`docs/`](docs/README.md) if the question is what this does**, and with the documents
 below if the question is why it does it that way.

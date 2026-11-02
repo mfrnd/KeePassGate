@@ -50,6 +50,7 @@
     <Compile Include="..\Shared\Bodies.cs" Link="Shared\Bodies.cs" />
     <Compile Include="..\Shared\User32.cs" Link="Shared\User32.cs" />
     <Compile Include="..\Shared\Thrown.cs" Link="Shared\Thrown.cs" />
+    <Compile Include="..\Shared\UiLoop.cs" Link="Shared\UiLoop.cs" />
   </ItemGroup>
 
   <ItemGroup>

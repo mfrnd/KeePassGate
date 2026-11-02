@@ -8,8 +8,8 @@ namespace KeePassGate.Ui
     /// so that it cannot fail there.
     /// </summary>
     /// <remarks>
-    /// **`ControlUiThread.Marshaled` is deliberately not reused, and the difference is the
-    /// caller.** That type catches everything the work throws and holds it for `Rethrow`, so the
+    /// **`ControlUiThread`'s turns are deliberately not reused, and the difference is the
+    /// caller.** A turn catches everything its work throws and holds it for `Rethrow`, so the
     /// failure lands on the thread that asked for the work and can be named or counted there.
     /// Here there is no such thread. The post is made from the user interface thread itself, in a
     /// handler of one of KeePass's own events, and it returns before the queue is pumped: a stored

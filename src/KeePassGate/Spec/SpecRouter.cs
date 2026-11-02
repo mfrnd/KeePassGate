@@ -40,10 +40,10 @@ namespace KeePassGate.Spec
     /// route added later would then be a route with no rules on it and nothing to say so. This way
     /// an operation with a verb and no selector stops the plugin loading.
     ///
-    /// It runs on the connection's thread, reading the database directly, like everything else that
-    /// only reads. So it meets a tree that moves under it exactly as a handler does, and
-    /// `VaultUnsettled` out of one is answered `503 busy` by the same catch: the selector runs
-    /// inside it rather than a hop ahead of it.
+    /// It runs on the connection's thread, reading the database through the vault, like everything
+    /// else that only reads, with KeePass's thread held still for the read. So it meets a thread
+    /// that cannot be held exactly as a handler does, and `VaultUnsettled` out of one is answered
+    /// `503 busy` by the same catch: the selector runs inside it rather than a hop ahead of it.
     /// </remarks>
     public delegate IAclNode NodeSelector(IGateContext context);
 
@@ -542,10 +542,10 @@ namespace KeePassGate.Spec
             }
             catch (VaultUnsettled)
             {
-                // The database kept changing while it was being read. That is somebody using
-                // KeePass, not a fault here, and letting it travel makes it one: the catch-all
-                // around this counts anything escaping the router as a defect in this plugin,
-                // answers 500, and puts an incident on the plugin's own window for it.
+                // KeePass's thread could not be held still for a read, or not for long enough.
+                // That is KeePass busy, not a fault here, and letting it travel makes it one: the
+                // catch-all around this counts anything escaping the router as a defect in this
+                // plugin, answers 500, and puts an incident on the plugin's own window for it.
                 context.Respond(503, HttpResponse.ErrorBody("busy"));
             }
         }

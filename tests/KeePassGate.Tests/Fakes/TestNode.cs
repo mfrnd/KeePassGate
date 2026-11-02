@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using KeePassGate.Acl;
 
@@ -25,6 +26,16 @@ namespace KeePassGate.Tests.Fakes
         public IAclNode Parent { get; private set; }
 
         public string Name { get; private set; }
+
+        /// <summary>How many walks have been run from this node.</summary>
+        public int Walks { get; private set; }
+
+        /// <summary>Walks where it is, since a tree that is not a database has no thread to hold.</summary>
+        public T Held<T>(Func<T> walk)
+        {
+            Walks++;
+            return walk();
+        }
 
         /// <summary>The top of a tree, which is what a database's root group is.</summary>
         public static TestNode Root(string name)

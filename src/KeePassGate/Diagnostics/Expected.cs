@@ -68,32 +68,13 @@ namespace KeePassGate.Diagnostics
         }
 
         /// <summary>
-        /// Reading a KeePass collection while something else is changing it.
-        /// </summary>
-        /// <remarks>
-        /// Two types, and they are not interchangeable. A list whose version moved under an
-        /// enumerator throws `InvalidOperationException`. A copy whose source grew while it was
-        /// being made throws `ArgumentException` out of `Array.Copy`. That copy is `GetEntries`,
-        /// building a new list out of a tree that is still changing. A filter naming only the
-        /// first misses every flat sweep, which is the busiest route there is.
-        ///
-        /// **`GateFailure` is deliberately not here.** This filter guards a retry, and the thing a
-        /// spent retry throws is a `GateFailure`; catching it would turn giving up into an infinite
-        /// loop. `OfCustomData` includes it because nothing it guards retries.
-        /// </remarks>
-        public static bool OfMovingTree(Exception error)
-        {
-            return error is InvalidOperationException
-                   || error is ArgumentException;
-        }
-
-        /// <summary>
         /// Reading or writing custom data: the database's own, a group's or an entry's.
         /// </summary>
         /// <remarks>
-        /// `InvalidOperationException` is the one that matters and it is not hypothetical: the gate
-        /// reads custom data on a connection thread while the user interface thread can be writing
-        /// to the same dictionary, and that is what an invalidated enumeration throws.
+        /// `InvalidOperationException` is what an enumeration throws when its dictionary changes
+        /// underneath. A read holds KeePass's thread still now, so KeePass is no longer what
+        /// changes one; the type stays named because a read that fails is a read to answer as
+        /// failed rather than a defect to count, whatever made it fail.
         /// </remarks>
         public static bool OfCustomData(Exception error)
         {

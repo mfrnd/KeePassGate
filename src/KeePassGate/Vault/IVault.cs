@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace KeePassGate.Vault
@@ -62,6 +63,19 @@ namespace KeePassGate.Vault
         /// before a write, so that setting a password needs the same scope as reading one.
         /// </remarks>
         bool Protects(string field);
+
+        /// <summary>
+        /// What <paramref name="read"/> returned, with the database held still for the whole of it.
+        /// </summary>
+        /// <remarks>
+        /// For a read step made of several of the reads here, such as a listing and the rules asked
+        /// of everything in it: each read inside it is part of the one hold rather than a hold of
+        /// its own, so the listing is judged against the tree it was taken from, and a thousand
+        /// entries wait for one turn rather than a thousand. Throws `VaultUnsettled` as they do.
+        /// **Nothing that waits belongs inside it**, the audit and the writer least of all, since
+        /// the operator's window waits with it.
+        /// </remarks>
+        T Held<T>(Func<T> read);
 
         /// <summary>A group by identifier or by the root alias, or null when there is none.</summary>
         VaultGroup Group(string uuid);

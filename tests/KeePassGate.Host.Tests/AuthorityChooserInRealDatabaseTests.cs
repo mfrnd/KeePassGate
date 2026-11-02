@@ -300,6 +300,11 @@ namespace KeePassGate.Host.Tests
 
             public Thread Holding { get; set; }
 
+            public string Stalled
+            {
+                get { return null; }
+            }
+
             public bool Run(Action work, TimeSpan timeout)
             {
                 if (Thread.CurrentThread == Holding)

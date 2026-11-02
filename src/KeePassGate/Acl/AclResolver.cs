@@ -22,6 +22,17 @@ namespace KeePassGate.Acl
 
         /// <summary>What a log or a refusal calls this, never a title and never a value.</summary>
         string Name { get; }
+
+        /// <summary>
+        /// What <paramref name="walk"/> returned, with whatever this node lives in held still while
+        /// it read this node and those above it.
+        /// </summary>
+        /// <remarks>
+        /// One walk is one read: a node in KeePass's tree is read on a connection thread while
+        /// KeePass's own thread may be moving it, so the resolver asks for the whole climb at once
+        /// rather than level by level. A node with nothing to hold runs the walk where it is.
+        /// </remarks>
+        T Held<T>(Func<T> walk);
     }
 
     /// <summary>How far into an entry an operation reaches, which a rule answers separately.</summary>
@@ -160,6 +171,11 @@ namespace KeePassGate.Acl
         /// <param name="node">The parent of the node being edited, which is where its walk goes next.</param>
         public static AclInheritance Above(IAclNode node)
         {
+            return node == null ? AclInheritance.None : node.Held(() => Inherited(node));
+        }
+
+        private static AclInheritance Inherited(IAclNode node)
+        {
             var grants = new Dictionary<string, AclGrant>(StringComparer.Ordinal);
             var readable = true;
 
@@ -290,6 +306,11 @@ namespace KeePassGate.Acl
                 return new AclDecision(false, "there is nothing to decide about", null);
             }
 
+            return node.Held(() => Every(node, profiles));
+        }
+
+        private static AclDecision Every(IAclNode node, IEnumerable<string> profiles)
+        {
             // Once each, because each is a member of the answer, and named, as everywhere.
             var held = new List<string>();
             foreach (var profile in (profiles ?? Array.Empty<string>())
@@ -372,6 +393,11 @@ namespace KeePassGate.Acl
                 return false;
             }
 
+            return node.Held(() => Whole(node, profiles, reaches));
+        }
+
+        private static bool Whole(IAclNode node, IEnumerable<string> profiles, AclReach[] reaches)
+        {
             var read = new AclDocuments();
 
             foreach (var profile in profiles)
@@ -445,6 +471,12 @@ namespace KeePassGate.Acl
                 return new AclDecision(false, "the client holds no profiles", null);
             }
 
+            return node.Held(() => First(node, held, verb, reach, read));
+        }
+
+        private static AclDecision First(
+            IAclNode node, IEnumerable<string> held, AclVerb verb, AclReach reach, AclDocuments read)
+        {
             AclDecision refusal = null;
 
             foreach (var decision in held.Select(profile => Decide(node, profile, verb, reach, read)))

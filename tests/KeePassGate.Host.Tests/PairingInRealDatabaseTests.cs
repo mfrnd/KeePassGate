@@ -1282,6 +1282,11 @@ namespace KeePassGate.Host.Tests
                 _closing = closing;
             }
 
+            public string Stalled
+            {
+                get { return null; }
+            }
+
             public bool Run(Action work, TimeSpan timeout)
             {
                 _closing.Close();
@@ -1293,6 +1298,11 @@ namespace KeePassGate.Host.Tests
         /// <summary>A user interface thread that is busy elsewhere and never gets to the work.</summary>
         private sealed class NeverRuns : IUiThread
         {
+            public string Stalled
+            {
+                get { return null; }
+            }
+
             public bool Run(Action work, TimeSpan timeout)
             {
                 return false;

@@ -10,6 +10,7 @@ using KeePassGate.Authority;
 using KeePassGate.Diagnostics;
 using KeePassGate.Vault;
 using KeePassGate.Gate;
+using KeePassGate.Ui;
 
 namespace KeePassGate.Bridge
 {
@@ -17,10 +18,10 @@ namespace KeePassGate.Bridge
     /// The open KeePass databases that carry an authority, as the gate needs them.
     /// </summary>
     /// <remarks>
-    /// Read on the connection's own thread, without marshaling, which is what `DESIGN.md` §119
-    ///  sanctions: KeePass's object model documents no thread affinity for reads, and marshaling
-    /// them would make liveness depend on the user interface thread. Nothing here mutates a
-    /// database.
+    /// Read on the connection's own thread, with KeePass's thread held still for each read, which
+    /// is what `DESIGN.md` §119 sets out: KeePass's object model documents no thread affinity for
+    /// reads, and what it does not answer for is its own thread changing the tree underneath one.
+    /// Nothing here mutates a database.
     ///
     /// The certificates are cached per database and rebuilt only when what is stored changes,
     /// compared by the stored text rather than by parsing it. Nothing is written anywhere by a
@@ -31,6 +32,7 @@ namespace KeePassGate.Bridge
     {
         private readonly Func<IEnumerable<PwDatabase>> _openDatabases;
         private readonly DatabaseWriter _writer;
+        private readonly IReadHold _hold;
         private readonly IGateLog _log;
         private readonly object _cacheLock = new object();
         private readonly Dictionary<PwDatabase, CachedTarget> _cache =
@@ -84,20 +86,49 @@ namespace KeePassGate.Bridge
         /// </summary>
         public OpenDatabaseTargets(
             Func<IEnumerable<PwDatabase>> openDatabases, DatabaseWriter writer, IGateLog log)
+            : this(openDatabases, writer, CurrentThread.Instance, log)
+        {
+        }
+
+        /// <summary>
+        /// The same, holding KeePass's thread still for every read a connection makes of these
+        /// databases, which is how the plugin builds it.
+        /// </summary>
+        public OpenDatabaseTargets(
+            Func<IEnumerable<PwDatabase>> openDatabases, DatabaseWriter writer, IReadHold hold, IGateLog log)
         {
             if (openDatabases == null)
             {
                 throw new ArgumentNullException(nameof(openDatabases));
             }
 
+            if (hold == null)
+            {
+                throw new ArgumentNullException(nameof(hold));
+            }
+
             _openDatabases = openDatabases;
             _writer = writer;
+            _hold = hold;
             _log = log ?? NullGateLog.Instance;
             _locked = new Dictionary<string, LockedTarget>(_paths);
             _closing = new Dictionary<string, LockedTarget>(_paths);
         }
 
+        /// <summary>The databases being served now, one target for each, read as one step.</summary>
+        /// <remarks>
+        /// **Held before the cache lock is taken, and never asked for inside it.** KeePass's thread
+        /// takes that lock too, at a lock, an unlock and a close, so a connection holding it while
+        /// it waited its turn on that thread would be waiting on a thread that is waiting on it.
+        /// Held this way round, KeePass's thread cannot be inside the lock when the hold begins,
+        /// since it is handed out only when that thread is idle.
+        /// </remarks>
         public IReadOnlyList<IGateTarget> Current()
+        {
+            return _hold.Hold(OpenNow);
+        }
+
+        private IReadOnlyList<IGateTarget> OpenNow()
         {
             var open = new List<PwDatabase>();
             try
@@ -744,7 +775,7 @@ namespace KeePassGate.Bridge
                 }
 
                 target = new MaterialTarget(
-                    database, reading, host, _writer, _log);
+                    database, reading, host, _writer, _hold, _log);
                 handedOver = true;
             }
             finally
@@ -1031,6 +1062,7 @@ namespace KeePassGate.Bridge
             private readonly string _databaseId;
             private PwDatabase _database;
             private readonly DatabaseWriter _writer;
+            private readonly IReadHold _hold;
             private readonly IGateLog _log;
             private readonly KdbxVault _vault;
 
@@ -1042,11 +1074,13 @@ namespace KeePassGate.Bridge
                 AuthorityReading reading,
                 HostKeyMaterial host,
                 DatabaseWriter writer,
+                IReadHold hold,
                 IGateLog log)
             {
                 _database = database;
                 _reading = reading;
                 _host = host;
+                _hold = hold;
                 _log = log ?? NullGateLog.Instance;
 
                 // Taken once. It is a digest over bytes that cannot change while this target lives,
@@ -1054,7 +1088,7 @@ namespace KeePassGate.Bridge
                 // a certificate export for an answer that was already known.
                 _databaseId = reading.Material.AuthorityDigest;
                 _writer = writer;
-                _vault = new KdbxVault(database, writer, new NodeTags(TagKey(reading.Material)), log);
+                _vault = new KdbxVault(database, writer, new NodeTags(TagKey(reading.Material)), hold, log);
             }
 
             /// <summary>The database's tag key, with the copy of the host key it came from wiped.</summary>
@@ -1102,28 +1136,29 @@ namespace KeePassGate.Bridge
             /// </summary>
             public IReadOnlyList<string> KnownProfiles
             {
-                get
-                {
-                    // Read into a local first, for the reason `DatabaseName` below gives: this is
-                    // asked from a connection thread, and both the field and the root group go away
-                    // underneath it. The field goes when the last holder lets go, the root group
-                    // when KeePass locks. A `NullReferenceException` is in no filter here and would
-                    // be answered as a fault in this plugin rather than as a database that is shut.
-                    var root = _database == null ? null : _database.RootGroup;
-                    if (root == null)
-                    {
-                        return Array.Empty<string>();
-                    }
+                get { return _hold.Hold(ProfilesNow); }
+            }
 
-                    try
-                    {
-                        return ProfileNames.Read(
-                            _database.CustomData.Get(ProfileNames.CustomDataKey)).Names;
-                    }
-                    catch (Exception error) when (Expected.OfCustomData(error))
-                    {
-                        return Array.Empty<string>();
-                    }
+            private IReadOnlyList<string> ProfilesNow()
+            {
+                // Read into a local first, for the reason `DatabaseName` below gives: this is asked
+                // from a connection thread, and the field goes away underneath it when the last
+                // holder lets go. Holding KeePass's thread keeps the tree still, not this object's
+                // own fields. A `NullReferenceException` is in no filter here and would be answered
+                // as a fault in this plugin rather than as a database that is shut.
+                var database = _database;
+                if (database == null || database.RootGroup == null)
+                {
+                    return Array.Empty<string>();
+                }
+
+                try
+                {
+                    return ProfileNames.Read(database.CustomData.Get(ProfileNames.CustomDataKey)).Names;
+                }
+                catch (Exception error) when (Expected.OfCustomData(error))
+                {
+                    return Array.Empty<string>();
                 }
             }
 
@@ -1133,25 +1168,27 @@ namespace KeePassGate.Bridge
             /// </summary>
             public string ProfilesUnreadable
             {
-                get
-                {
-                    // Into a local first, for the reason `KnownProfiles` gives.
-                    var database = _database;
-                    if (database == null || database.RootGroup == null)
-                    {
-                        return null;
-                    }
+                get { return _hold.Hold(UnreadableNow); }
+            }
 
-                    try
-                    {
-                        return ProfileNames.Readable(database.CustomData.Get(ProfileNames.CustomDataKey))
-                            ? null
-                            : "the profiles this database names will not read";
-                    }
-                    catch (Exception error) when (Expected.OfCustomData(error))
-                    {
-                        return "the profiles this database names could not be read: " + error.Message;
-                    }
+            private string UnreadableNow()
+            {
+                // Into a local first, for the reason `KnownProfiles` gives.
+                var database = _database;
+                if (database == null || database.RootGroup == null)
+                {
+                    return null;
+                }
+
+                try
+                {
+                    return ProfileNames.Readable(database.CustomData.Get(ProfileNames.CustomDataKey))
+                        ? null
+                        : "the profiles this database names will not read";
+                }
+                catch (Exception error) when (Expected.OfCustomData(error))
+                {
+                    return "the profiles this database names could not be read: " + error.Message;
                 }
             }
 
@@ -1161,6 +1198,11 @@ namespace KeePassGate.Bridge
             /// with no warning to give rather than a wrong one.
             /// </summary>
             public IReadOnlyList<AdmissionRecord> Holding(string profile)
+            {
+                return _hold.Hold(() => HoldingNow(profile));
+            }
+
+            private IReadOnlyList<AdmissionRecord> HoldingNow(string profile)
             {
                 // Into a local first, for the reason `KnownProfiles` gives.
                 var database = _database;
@@ -1326,14 +1368,17 @@ namespace KeePassGate.Bridge
             /// </remarks>
             public RenewalRefusal StandingRefusal(string admissionKey)
             {
-                // Into a local first, for the reason `KnownProfiles` gives.
-                var database = _database;
-                if (database == null || database.RootGroup == null)
+                return _hold.Hold(() =>
                 {
-                    return null;
-                }
+                    // Into a local first, for the reason `KnownProfiles` gives.
+                    var database = _database;
+                    if (database == null || database.RootGroup == null)
+                    {
+                        return null;
+                    }
 
-                return new AdmissionStore(new CustomDataStore(database), _log).StandingRefusal(admissionKey);
+                    return new AdmissionStore(new CustomDataStore(database), _log).StandingRefusal(admissionKey);
+                });
             }
 
             public VaultWrite RefuseRenewal(string admissionKey, RenewalRefusal refusal)
@@ -1417,8 +1462,18 @@ namespace KeePassGate.Bridge
             /// merge or by a pairing that landed while the authority went, chains to an authority
             /// that is retired. Answered as no record, so a renewal asking again after its dialog
             /// issues nothing under an authority the database has let go of.
+            ///
+            /// **One read step, so the authority, its retirement and the record are read from one
+            /// tree.** Read with nothing held, a lookup on a connection thread racing KeePass's
+            /// thread could miss a key that was there: a missed authority refused an admitted
+            /// client `401`, and a missed retirement served an authority the database had retired.
             /// </remarks>
             public AdmissionRecord Admission(string admissionKey)
+            {
+                return _hold.Hold(() => AdmissionNow(admissionKey));
+            }
+
+            private AdmissionRecord AdmissionNow(string admissionKey)
             {
                 // Into a local first, for the reason `KnownProfiles` gives.
                 var database = _database;
@@ -1438,8 +1493,9 @@ namespace KeePassGate.Bridge
                 }
 
                 // A listing that failed is not an answer, because the one it would give is that
-                // this client was never admitted: a write on KeePass's thread changing the
-                // dictionary while this enumerates it is all that takes.
+                // this client was never admitted. KeePass's thread changing the dictionary
+                // underneath was what made one fail, and the hold rules that out; whatever else
+                // stops a listing is answered the same way.
                 bool listed;
                 var found = new AdmissionStore(store, _log).Find(admissionKey, out listed);
                 if (!listed)

@@ -675,8 +675,9 @@ namespace KeePassGate.Authority
             }
             catch (Exception error) when (Expected.OfCustomData(error))
             {
-                // Guarded the way the listing is, and for the same race: the gate reads custom data
-                // on a connection thread while the user interface thread can be writing it.
+                // Guarded the way the listing is: a read that fails is answered as one. KeePass's
+                // thread writing the dictionary underneath was what made one fail, until every
+                // read off that thread held it still.
                 _log.Error("an admission record could not be read", error);
                 return null;
             }
@@ -700,9 +701,9 @@ namespace KeePassGate.Authority
 
         /// <summary>
         /// The records, revocations and standing answers stored, with their values, and whether they
-        /// could be listed at all. The enumeration itself is what throws in the race this guards, so
-        /// `listed` is set from inside the `try` rather than before it, and the values are read
-        /// inside it too.
+        /// could be listed at all. The enumeration itself is what throws when its dictionary changes
+        /// underneath, so `listed` is set from inside the `try` rather than before it, and the
+        /// values are read inside it too.
         /// </summary>
         private List<KeyValuePair<string, string>> Stored(out bool listed)
         {

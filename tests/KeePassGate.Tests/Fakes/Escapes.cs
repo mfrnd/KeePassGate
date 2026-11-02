@@ -47,7 +47,13 @@ namespace KeePassGate.Tests.Fakes
                 var until = DateTime.UtcNow + patience;
                 while (!finished() && DateTime.UtcNow < until)
                 {
-                    var loose = Thrown.By(() => Application.DoEvents());
+                    // Idle after the queue is drained, as a real loop raises it: work queued on
+                    // KeePass's thread starts there and nowhere else, for the reason `ControlUiThread` gives.
+                    var loose = Thrown.By(() =>
+                    {
+                        Application.DoEvents();
+                        Application.RaiseIdle(EventArgs.Empty);
+                    });
                     if (loose != null)
                     {
                         // The other route out. WinForms leaves the exception in the window

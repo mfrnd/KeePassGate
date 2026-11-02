@@ -718,33 +718,61 @@ that may not reach a route never learns whether what it sent would have been acc
 
 The part with the most ways to go wrong, because a plugin shares the password manager's process.
 
-**Reads happen on the connection's thread and only writes marshal.** An earlier draft of this
-section proposed the opposite, marshaling every database read onto the UI thread, which bought a
-safety KeePass's object model does not document anyway and created the deadlock risk it then had to
-mitigate.
+**Reads happen on the connection's thread, with KeePass's thread held still, and writes run on
+KeePass's thread.** That is the third answer this section has given, and it reverses the second.
+An earlier draft marshaled every database read onto the UI thread, which bought a safety KeePass's
+object model does not document anyway and created the deadlock risk it then had to mitigate. The
+rule that replaced it let reads run beside KeePass's thread with nothing between them, and review 4
+measured what that cost: lookups that missed nodes that were there, sweeps that met slots a removal
+had emptied, and nothing on the reading side able to tell. A read still runs on the connection's
+thread, and KeePass's thread now waits for it, in a turn of its own.
 
 What the platform actually requires, measured rather than assumed:
 
 | Operation | Thread | Why |
 | --- | --- | --- |
-| Read databases, entries, strings, binaries | **connection thread**, in KeePass's culture | `DocumentManager.GetOpenDatabases()` answers from a background thread, which the end to end tests exercise from another process; every dictionary in the tree is searched in the culture of the thread asking, as the second rule below explains |
+| Read databases, entries, strings, binaries | **connection thread**, in KeePass's culture, with **KeePass's thread held still** | `DocumentManager.GetOpenDatabases()` answers from a background thread, which the end to end tests exercise from another process; KeePass's own thread changes the tree with no sign of it, as the first rule below explains; every dictionary in the tree is searched in the culture of the thread asking, as the second rule explains |
 | Mutate in memory | **UI thread**, with the save | the objects belong to no thread, and this row read connection thread until the writer was built: a change and the save that keeps it are one marshaled call, so that nothing can open a dialog on the node between them |
 | **Persist** | UI thread | `MainForm.SaveDatabase` blocks interaction, shows warnings and touches the window; disassembling it is what settled that |
 | Ask the operator a question | UI thread | it puts a window on the screen |
 
 So the rules here:
 
-- **Reads happen on the request thread.** This is what is proven, and marshaling them would buy a
-  theoretical safety that KeePass's own object model does not document anyway, at the cost of
-  making liveness depend on the UI thread. **An in-memory mutation travels with its save**, which
-  is a correction to an earlier draft of this list rather than a refinement of it: the objects
-  belong to no thread, as the reads show, but a change made on the request thread and saved on the UI
-  thread has an instant between them for a dialog to open on the node, and the whole of the
-  writer's argument is that there must not be one.
+- **Reads happen on the request thread, and hold KeePass's thread still while they do.** Running
+  them there is what is proven: KeePass's objects answer a background thread. What is not proven,
+  and turned out false, is that they can be read while KeePass's own thread changes them, which it
+  does with no sign of it, for an operator's edit, a merge or this plugin's writer. Measured: a
+  lookup of the last group in its list missed it 20,762 times in two million while the list was
+  being changed, a sweep met a slot a removal had emptied and threw inside KeePassLib, and asking
+  `List<T>` for its version caught five to twenty-seven of twelve thousand misses, because the
+  version moves after the size. Taken again, as the reads once were, a read answers only what
+  threw.
 
-  **So a read sees a change before its save does.** Reads take no lock against the writer, so a
-  change is in the tree for every other connection from the moment it is made, and a save that
-  fails takes it back out: a read in between can be handed a node, and with `read` its values,
+  **So each read step waits for a turn on KeePass's thread, which waits in the turn until the read
+  is over.** A step is one call: a sweep, a lookup, a walk up the rules, an admission record, the
+  databases the gate is serving. Measured over the same churn, holding KeePass's thread missed
+  nothing and threw nothing, and a sweep of ten thousand entries holds it for about seventeen
+  milliseconds. **One hold per step, and not one per request**, which is a ruling: between the
+  steps of one request the tree can move as it always could, so a node can still move between the
+  router's decision and the handler's read. **Nothing that waits runs inside a hold**, since the
+  operator's window waits with it: not the writer, which waits on that thread itself and is
+  refused as a defect, not the audit's pacing or its file, not a dialog and not the network.
+
+  **Liveness now depends on KeePass's thread, which is the cost the earlier rule existed to
+  avoid**, and it is bounded rather than denied: a read whose turn has not come in ten seconds,
+  and one that outlasts five, is answered `503 busy` rather than trusted. A turn is normally under
+  a millisecond away, and half a second with every connection the gate allows reading at once.
+
+  **An in-memory mutation travels with its save**, which is a correction to an earlier draft of
+  this list rather than a refinement of it: the objects belong to no thread, as the reads show,
+  but a change made on the request thread and saved on the UI thread has an instant between them
+  for a dialog to open on the node, and the whole of the writer's argument is that there must not
+  be one.
+
+  **So a read sees a change before its save does.** Reads take no lock against the writer, and
+  the writer's save pumps, so a read can be served in the middle of a write's turn: a change is
+  in the tree for every other connection from the moment it is made, and a save that fails takes
+  it back out: a read in between can be handed a node, and with `read` its values,
   that is then withdrawn and answered `404` like anything absent. It shows nothing the rules
   would not, and it is what the read would have returned had the save landed. That is accepted
   rather than locked against, because taking the writer's lock for a read is waiting on the user
@@ -763,12 +791,32 @@ So the rules here:
   `GateListener` takes the culture of the thread that makes it, which is KeePass's, and serves
   every connection in it, and a lookup is the one KeePass would make, whether it is KeePass's code
   making it or this plugin's.
-- **Persistence marshals with `BeginInvoke` and then waits on the handle**, never `Control.Invoke`,
-  which has no timeout. One writer owns every write, so a request thread does wait on the UI thread.
-  What that buys is a wait that ends: a marshal that does not complete fails the request rather than
-  deadlocking it. `DatabaseWriter` is that writer, and there is one of it rather than one per
-  subject: it was pairing's alone while pairing was the only thing writing, and the database API
-  took the same writer and the same rule rather than a second one.
+- **Persistence takes a turn on KeePass's thread and waits for it with a clock**, never
+  `Control.Invoke`, which has no timeout. One writer owns every write, so a request thread does
+  wait on the UI thread. What that buys is a wait that ends: a marshal that does not complete fails
+  the request rather than deadlocking it. `DatabaseWriter` is that writer, and there is one of it
+  rather than one per subject: it was pairing's alone while pairing was the only thing writing,
+  and the database API took the same writer and the same rule rather than a second one.
+
+  **Every turn on KeePass's thread comes from one queue, and starts only when KeePass is idle.**
+  `ControlUiThread` is the queue, served in the order it was joined, one turn at a time, and a turn
+  starts on `Application.Idle`, which WinForms raises once everything in the thread's queue has been
+  handled: posted work, input, repaints and timers. **Posted with `BeginInvoke`, as every write once
+  was, a turn goes ahead of all of them**, because Windows hands out a posted message before input
+  and makes a timer's message only once nothing else is queued. Measured with thirty-two threads
+  each taking the thread for seventeen milliseconds at a time: turns posted one by one delivered one
+  of sixty mouse moves to the window in three seconds; turns that first asked whether input was
+  waiting let input through and held a timer off for six hundred milliseconds whenever no input
+  came, which is what KeePass's inactivity lock and its clipboard clearing run on; turns started on
+  Idle left input waiting at most for the turn it arrived during, eight to eleven milliseconds at
+  the median, and a hundred-millisecond timer never more than 125 between ticks, against 112 with
+  nothing queued. **A read also starts on a slow fallback timer**, because a loop that is not
+  WinForms' never raises Idle, a message box's or `DoEvents` itself, and a read inside one is
+  harmless; a write never does, which the rule about KeePass's own operations below depends on. **A
+  dialog of Windows' own is answered before a write is queued**, since no turn comes round under
+  one: a message box, a task dialog or a file dialog is a window of class `#32770` on the thread,
+  which a form never is, and any thread can see one there in about twenty microseconds without
+  asking the thread anything. `spikes/keepass-thread` holds the probes.
 
   **The bound has two halves, and only one of them is a timeout.** Work still sitting in the queue
   when the timeout expires is withdrawn, so the caller's "no" is true of the database as well: the
@@ -860,9 +908,17 @@ So the rules here:
   no asterisk in the title and no question on lock, close or exit. Inside an export, the list being
   enumerated moves and KeePass shows the operator a failed export over a truncated file.
 
-  So the writer asks a third question, beside the dialogs and the save's own three, inside the
-  marshaled call: **is KeePass part way through something of its own**, and a write that meets it
-  is refused `503 busy` before anything is touched. It takes two answers rather than one, because
+  **A turn that starts only on Idle keeps a write out of all of them.** Every one of these pumps
+  through `Application.DoEvents`, read off the IL of KeePass 2.61.1: the save through its status
+  bar logger and `UIBlockInteraction`, the merges through their status loggers, XML Replace
+  through its progress window, and the export through `ExportUtil` itself. WinForms never raises
+  Idle inside `DoEvents`, measured, so a queued write waits for the operation to end where a
+  posted one was delivered inside it.
+
+  So the writer still asks a third question, beside the dialogs and the save's own three, inside
+  the marshaled call, for what does raise Idle part way through one of these, a dialog of WinForms'
+  own that one shows: **is KeePass part way through something of its own**, and a write that meets
+  it is refused `503 busy` before anything is touched. It takes two answers rather than one, because
   the operations do not announce themselves the same way: `MainForm.UIIsInteractionBlocked` covers
   the save and both merges, and an export raises `MessageService.CurrentMessageCount` instead,
   which also covers every message box KeePass is waiting on. **A third operation raises neither**:
@@ -875,17 +931,18 @@ So the rules here:
   either**: an API write still saves what is in memory, the operator's own edits included, which is
   a documented consequence rather than something to guard against.
 
-  **An approval dialog is a marshaled call too**, and was delivered inside a save the same way: the
-  dialog then held the save, the writer's lock and KeePass's interaction block for as long as the
-  operator took, every other write was refused after its twenty seconds, and a workstation lock was
-  dropped rather than deferred, because KeePass does not lock while its interaction is blocked. So
-  the prompt asks the same question on KeePass's thread just before it shows anything, and answers
-  KeePass's own work `503 busy` at once. **This plugin's own save is not KeePass's work**, although
-  it raises the same block: a pairing or a renewal arriving while another client's write is saving
-  waits for that save, inside the wait for the screen it already had, and is shown once the save is
-  over. The writer's check made from a connection thread tells that save apart for the same reason,
-  where it used to turn pairings and renewals away for a write that would simply have taken its
-  turn.
+  **An approval dialog is a turn too**, and while it was posted it was delivered inside a save the
+  same way: the dialog then held the save, the writer's lock and KeePass's interaction block for as
+  long as the operator took, every other write was refused after its twenty seconds, and a
+  workstation lock was dropped rather than deferred, because KeePass does not lock while its
+  interaction is blocked. Queued, it waits for the save as a write does. The prompt still asks the
+  same question on KeePass's thread just before it shows anything, and answers KeePass's own work
+  `503 busy` at once, and a message box before the dialog is queued at all. **This plugin's own
+  save is not KeePass's work**, although it raises the same block: a pairing or a renewal
+  arriving while another client's write is saving waits for that save, inside the wait for the
+  screen it already had, and is shown once the save is over. The writer's check made from a
+  connection thread tells that save apart for the same reason, where it used to turn pairings and
+  renewals away for a write that would simply have taken its turn.
 - **Every `503` this gate sends carries `Retry-After: 2`**, the new one and the ones that were
   always there: `busy`, `locked`, `undecided` and pairing's own. One number for all of them,
   written by the response writer rather than by the four places that answer, so a refusal added
@@ -1201,13 +1258,20 @@ mitigating it. The first draft marshaled every read onto the UI thread and then 
 the bottleneck and the deadlock that created. Neither cost turned out to be necessary: reads answer
 from a background thread, and only the save has to marshal.
 
-What remains is the real objection, and it is smaller. KeePass documents no thread safety for
-`PwDatabase`, so a request reading an entry while the user edits that entry in KeePass's own dialog
-is a race in principle.
+What remained was the real objection, and it looked smaller. KeePass documents no thread safety
+for `PwDatabase`, so a request reading an entry while the user edits that entry in KeePass's own
+dialog is a race in principle.
 
-**Accepted, for two reasons.** KeePass's dialogs work on a copy and write back on OK, so the
-window is narrow. And the alternative, marshaling everything, trades a rare race for a permanent
-bottleneck and a deadlock class that would then have to be defended against.
+**It was accepted, for two reasons, and review 4 measured both away.** KeePass's dialogs work on a
+copy and write back on OK, so the window looked narrow; but the race is not with the dialogs, it is
+with every change KeePass's thread makes to a list, an edit accepted, a merge, this plugin's own
+writer, and a read on the connection thread met it as a missed node, an empty slot or an exception
+in KeePassLib, without any sign it could check for. And the alternative weighed against it,
+marshaling everything, was not the only one. **So the race is closed now, by holding rather than
+marshaling**, §119: a read still runs on the connection's thread, and KeePass's thread waits in a
+turn of its own until the read is over. What that costs is a turn a read, started only when
+KeePass is idle so that the operator's input and KeePass's timers go first, and a read whose turn
+does not come is answered `503 busy`.
 
 **What is added** is the one race that can be closed cheaply: a plugin-wide write lock, so two
 requests cannot interleave mutations of the same entry.
@@ -1344,7 +1408,7 @@ Written down so that it is possible to be wrong about this on purpose rather tha
   replacing rather than adjusting. The wait is there because handing over a certificate before its
   record is saved would create a credential nobody can revoke. It is not the only place a request
   thread waits on the UI thread, which this bullet once said: every write waits there the same way,
-  through `BeginInvoke` and a bounded wait (§119). If that wait cannot be made reliable, the
+  for a turn and with a bounded wait (§119), and so does every read now. If that wait cannot be made reliable, the
   alternative is to issue only from the UI thread outright and let the request poll.
 - **If our own request parser accumulates cases.** It is justified only while the HTTP subset stays
   trivial. If chunked bodies, keep-alive or upgrade become necessary, writing it here stops being the
@@ -1684,6 +1748,27 @@ Each step is refusable, and each ends with something that runs.
     workflow's token may delete it and may not resolve it; and that the ruleset requires
     `code scanning passed`, every conversation resolved and no new alert at any severity, because
     the CodeQL check succeeds with a new warning and only the ruleset's threshold stops one.
+33. **Reads that hold KeePass still**: every read a connection makes of KeePass's objects holds
+    KeePass's thread still for the read's whole length, in a turn of its own, so that nothing
+    KeePass does can change the tree underneath it, and every write and every approval dialog takes
+    its turn from the same queue. A turn starts only once KeePass has nothing else to do, so the
+    operator's input and KeePass's own timers go first, and a write never starts inside one of
+    KeePass's own operations. A read whose turn does not come within ten seconds, or that outlasts
+    five, is answered `503 busy`, and so is a write under a message box, at once. One hold for each
+    read step rather than one for each request, which is a ruling, and no retry: the read that was
+    taken again when it threw goes, with the misses nothing could detect.
+    **Done.** Every read the gate makes of KeePass's objects off KeePass's thread holds that thread
+    still: the databases the gate serves, an admission record, each walk up the rules, and each of
+    the vault's reads, with a listing and the rules asked of everything in it as one hold. What
+    this settles is that the race is closed by holding rather than by marshaling, since a read
+    still runs on its own thread; that a turn starts on `Application.Idle` and never from a posted
+    message, because a posted hold goes ahead of input and timers and starved both under load; that
+    a read also starts on a slow fallback timer, because a loop that is not WinForms' never raises
+    Idle, while a write does not, which is what keeps it out of KeePass's own operations, every one
+    of which pumps through `DoEvents`; that a dialog of Windows' own is seen before a write is
+    queued, as a visible `#32770` window on KeePass's thread; and that work asked of KeePass's thread
+    by a thread holding it is a defect thrown at once, rather than a wait that would freeze the
+    window. The probes are on `spikes/keepass-thread`.
 
 Steps 5 to 8 are the ones that prove the design. Step 5 is deliberately early, because the
 `CustomData` dialog hazard is the thing most likely to invalidate the storage decision, and finding

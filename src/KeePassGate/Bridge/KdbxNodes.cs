@@ -1,5 +1,6 @@
 using System;
 using KeePassGate.Acl;
+using KeePassGate.Ui;
 using KeePassLib;
 
 namespace KeePassGate.Bridge
@@ -12,27 +13,15 @@ namespace KeePassGate.Bridge
     /// plugin's key, and what is above it. Everything else about a `PwGroup` or a `PwEntry` stays on
     /// the other side of the seam, which is why the rules can be tested without a password manager.
     ///
-    /// **Read on the connection's own thread, without marshaling**, like everything else that only
-    /// reads. `CustomData` is a string dictionary and nothing here mutates one.
-    ///
-    /// **And read as the resolver walks, outside `KdbxVault.Reading`, which costs nothing.** Both
-    /// properties below are evaluated by `AclResolver` rather than when the node is made, so the
-    /// walk runs after the retry that found the node has already returned. That reads like a gap
-    /// and is not one, because the walk raises nothing a retry could take again.
-    /// `Expected.OfMovingTree` names two failures: the `InvalidOperationException` an invalidated
-    /// enumerator throws, and the `ArgumentException` out of copying a tree that is still growing.
-    /// A walk does neither. Per level it reads `ParentGroup` and `CustomData`, which compile to
-    /// plain field reads, and calls `StringDictionaryEx.Get`, which on KeePass 2.61.1 is one
-    /// `TryGetValue` against a `SortedDictionary`: a descent with no version check and no array
-    /// indexing. `AclInRealDatabaseTests` measures it against a tree and a set of rules that are
-    /// being rewritten by another thread throughout.
-    ///
-    /// **What a tree in motion costs a walk is a stale answer, and no retry addresses that.** A
-    /// lookup racing a rebalance misses a key rather than throwing, and a retry only ever runs
-    /// again something that threw. `DESIGN.md` §124 accepts that race and says what the
-    /// alternative costs. KeePass's own dialogs are not where it comes from: `AssignProperties`
-    /// replaces the whole dictionary with a deep clone, on a group and on an entry alike, so a
-    /// reader holds one complete dictionary or the other.
+    /// **Read on the connection's own thread, with KeePass's thread held still for the whole
+    /// walk.** A node made by `KdbxVault` carries the vault's hold, and `AclResolver` runs each walk
+    /// inside <see cref="IAclNode.Held"/>, so a walk is one read step however many levels it
+    /// climbs. It used to run with nothing held, on the argument that it raises nothing a retry
+    /// could take again, and that was true and beside the point: a lookup racing a rebalance
+    /// misses a key rather than throwing, so a tree in motion cost a walk a wrong answer that
+    /// nothing saw.
+    /// A node made on KeePass's own thread, for the editor, has nothing to hold and walks where it
+    /// is.
     ///
     /// **A tree standing still answers wrongly too, unless the walk runs in KeePass's culture.**
     /// The descent compares by the default comparer, which collates in the culture of the thread
@@ -49,16 +38,28 @@ namespace KeePassGate.Bridge
     /// </remarks>
     public static class KdbxNodes
     {
-        /// <summary>The resolver's view of an entry.</summary>
+        /// <summary>The resolver's view of an entry, walked where it is asked.</summary>
         public static IAclNode Of(PwEntry entry)
         {
-            return entry == null ? null : new EntryNode(entry);
+            return Of(entry, CurrentThread.Instance);
         }
 
-        /// <summary>The resolver's view of a group.</summary>
+        /// <summary>The resolver's view of a group, walked where it is asked.</summary>
         public static IAclNode Of(PwGroup group)
         {
-            return group == null ? null : new GroupNode(group);
+            return Of(group, CurrentThread.Instance);
+        }
+
+        /// <summary>The resolver's view of an entry, walked with KeePass's thread held still.</summary>
+        public static IAclNode Of(PwEntry entry, IReadHold hold)
+        {
+            return entry == null ? null : new EntryNode(entry, hold);
+        }
+
+        /// <summary>The resolver's view of a group, walked with KeePass's thread held still.</summary>
+        public static IAclNode Of(PwGroup group, IReadHold hold)
+        {
+            return group == null ? null : new GroupNode(group, hold);
         }
 
         private static string DocumentOf(PwEntry entry)
@@ -87,10 +88,12 @@ namespace KeePassGate.Bridge
         private sealed class EntryNode : IAclNode
         {
             private readonly PwEntry _entry;
+            private readonly IReadHold _hold;
 
-            public EntryNode(PwEntry entry)
+            public EntryNode(PwEntry entry, IReadHold hold)
             {
                 _entry = entry;
+                _hold = hold;
             }
 
             public string Document
@@ -100,22 +103,29 @@ namespace KeePassGate.Bridge
 
             public IAclNode Parent
             {
-                get { return Of(_entry.ParentGroup); }
+                get { return Of(_entry.ParentGroup, _hold); }
             }
 
             public string Name
             {
                 get { return NameOf(_entry.Uuid); }
             }
+
+            public T Held<T>(Func<T> walk)
+            {
+                return _hold.Hold(walk);
+            }
         }
 
         private sealed class GroupNode : IAclNode
         {
             private readonly PwGroup _group;
+            private readonly IReadHold _hold;
 
-            public GroupNode(PwGroup group)
+            public GroupNode(PwGroup group, IReadHold hold)
             {
                 _group = group;
+                _hold = hold;
             }
 
             public string Document
@@ -125,12 +135,17 @@ namespace KeePassGate.Bridge
 
             public IAclNode Parent
             {
-                get { return Of(_group.ParentGroup); }
+                get { return Of(_group.ParentGroup, _hold); }
             }
 
             public string Name
             {
                 get { return NameOf(_group.Uuid); }
+            }
+
+            public T Held<T>(Func<T> walk)
+            {
+                return _hold.Hold(walk);
             }
         }
     }

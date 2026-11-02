@@ -211,9 +211,9 @@ namespace KeePassGate.Ui
                 {
                     // **The plugin's own save is waited out, and KeePass's own work is not.** A
                     // save this plugin makes for another client is a few waits from over, and the
-                    // request it would turn away is one the operator has not seen yet; KeePass's
-                    // own work, a save of its own, an import, a message box, is answered `503 busy`
-                    // inside the call below, as a write is.
+                    // request it would turn away is one the operator has not seen yet. KeePass's
+                    // own work is answered `503 busy` as a write is: a message box before the call
+                    // below is queued, and anything else inside it.
                     if (!Quiet(timeout - waiting.Elapsed))
                     {
                         _log.Warn("this plugin's own save was still running when the wait for the screen " +
@@ -221,13 +221,23 @@ namespace KeePassGate.Ui
                         return unavailable("the plugin's own save outlasted the wait for the screen");
                     }
 
+                    // Asked before the dialog is queued, as a write asks it: under a dialog of
+                    // Windows' own the dialog could not be shown until that one closed.
+                    var stalled = _ui.Stalled;
+                    if (stalled != null)
+                    {
+                        _log.Warn("the " + what + " dialog was not shown, because " + stalled);
+                        return unavailable(stalled);
+                    }
+
                     var underneath = false;
                     try
                     {
                         // Asked on KeePass's thread, as the lock is: a request that waited here while
                         // KeePass locked is answered as locked without a dialog being put up at all.
-                        // And asked there for the second reason a write asks there: this call is a
-                        // message, delivered by whatever is pumping, and a save pumps.
+                        // And asked there for the second reason a write asks there: the turn waits
+                        // for KeePass to be idle, and a dialog of WinForms' own shown inside a save
+                        // is idle enough to start one.
                         shown = _ui.Run(
                             () =>
                             {
@@ -240,8 +250,9 @@ namespace KeePassGate.Ui
 
                                 if (_writes != null && _writes.Saving)
                                 {
-                                    // Delivered inside this plugin's own save, which began after
-                                    // the wait above: put back, and posted again once it ends.
+                                    // Started inside this plugin's own save, which began after the
+                                    // wait above, through a dialog shown inside it: put back, and
+                                    // queued again once it ends.
                                     underneath = true;
                                     return;
                                 }
