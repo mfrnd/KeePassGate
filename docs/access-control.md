@@ -208,8 +208,10 @@ importing, synchronizing, exporting, and anything it shows its progress window f
 Replace**, all use that thread while they run. A change made in the middle of one of them would be
 made against a database that is being written, which ends with half of somebody's import on the disk
 or a change a program was told had been saved not being there. So a change waits for KeePass to
-finish, for up to half a minute, and answers "busy" when KeePass is still at it after that. Every
-refusal of this kind tells the program to come back in two seconds.
+finish, for up to half a minute, and answers "busy" when KeePass is still at it after that. While
+KeePass is waiting for an answer to a message box, a change answers "busy" at once, since nothing
+happens on that thread until the box is closed. Every refusal of this kind tells the program to come
+back in two seconds.
 
 **Neither switch applies to `S` or `D`.** Removing something shows nobody anything, and a rule
 that may remove an entry already takes everything in it. So `...S....` removes an attachment on its

@@ -51,6 +51,17 @@ namespace KeePassGate.Ui
         /// over a `Control` says why it has to carry it rather than let it travel.
         /// </remarks>
         bool Run(Action work, TimeSpan timeout);
+
+        /// <summary>
+        /// Why work could not start on that thread now, or null when nothing is known to stop it.
+        /// </summary>
+        /// <remarks>
+        /// Asked before work is queued, so that a caller is told at once what it would otherwise
+        /// learn from its timeout: work waits for the thread to be idle, and a thread inside a loop
+        /// that never raises Idle does not come round until the loop ends. Null is no promise about
+        /// how long the work will wait.
+        /// </remarks>
+        string Stalled { get; }
     }
 
     /// <summary>
@@ -82,6 +93,14 @@ namespace KeePassGate.Ui
     /// are served during a long save, and the first read waiting may go ahead of work that cannot
     /// start yet. Otherwise the queue is served in the order it was joined.
     ///
+    /// **A native dialog is answered at once rather than waited out.** A message box, a task dialog
+    /// and a file dialog run a loop of Windows' own, which never raises Idle, so work queued under
+    /// one waits for it to close or for its own timeout. Each is a window of class `#32770` on the
+    /// thread, which a form never is, and any thread can see one there without asking the thread
+    /// anything: measured, under a message box and a file dialog and not under a WinForms dialog,
+    /// in about twenty microseconds. `Stalled` is that question, for a caller to ask before it
+    /// queues. `NativeLoop.cs` on `spikes/keepass-thread` measured it.
+    ///
     /// **Re-entered rather than serialized.** Work that shows a dialog runs a loop of its own,
     /// which raises Idle, and the turns behind it are served from inside that loop, as posted work
     /// was. A read holding the thread runs no loop, so nothing is served inside one.
@@ -109,6 +128,9 @@ namespace KeePassGate.Ui
         /// <summary>How often a read is offered a turn inside a loop that never raises Idle.</summary>
         private const int FallbackMilliseconds = 20;
 
+        /// <summary>The class Windows gives a message box, a task dialog and a file dialog.</summary>
+        private const string NativeDialog = "#32770";
+
         /// <summary>How many holds the current thread is inside.</summary>
         [ThreadStatic]
         private static int t_holds;
@@ -119,6 +141,12 @@ namespace KeePassGate.Ui
         private readonly object _gate = new object();
         private readonly List<Turn> _turns = new List<Turn>();
         private bool _disposed;
+
+        /// <summary>
+        /// The thread the control's window belongs to, as Windows numbers it, or zero until it has
+        /// been read on that thread.
+        /// </summary>
+        private uint _thread;
 
         // Made, started and stopped on the user interface thread, and only ever touched there.
         private System.Windows.Forms.Timer _fallback;
@@ -139,12 +167,41 @@ namespace KeePassGate.Ui
             _control = control;
             _holdWait = holdWait;
             _holdLimit = holdLimit;
+
+            if (control.IsHandleCreated && !control.InvokeRequired)
+            {
+                // Made on the thread, as the plugin makes it, so the window can be asked now.
+                // Otherwise the first turn asks, on the thread.
+                _thread = NativeMethods.GetWindowThreadProcessId(control.Handle);
+            }
         }
 
         /// <summary>Whether the calling thread is inside a hold.</summary>
         internal static bool Holding
         {
             get { return t_holds > 0; }
+        }
+
+        public string Stalled
+        {
+            get
+            {
+                var thread = Volatile.Read(ref _thread);
+                if (thread == 0)
+                {
+                    return null;
+                }
+
+                var stalled = false;
+                NativeMethods.EnumThreadWindows(thread, (window, parameter) =>
+                {
+                    stalled = NativeMethods.IsWindowVisible(window)
+                              && string.Equals(NativeMethods.GetClassName(window), NativeDialog, StringComparison.Ordinal);
+                    return !stalled;
+                });
+
+                return stalled ? "KeePass is showing a dialog of Windows' own, such as a message box" : null;
+            }
         }
 
         public bool Run(Action work, TimeSpan timeout)
@@ -373,6 +430,11 @@ namespace KeePassGate.Ui
 
             if (!_listening)
             {
+                if (Volatile.Read(ref _thread) == 0)
+                {
+                    Volatile.Write(ref _thread, NativeMethods.GetWindowThreadProcessId(_control.Handle));
+                }
+
                 Application.Idle += OnIdle;
                 _fallback = new System.Windows.Forms.Timer { Interval = FallbackMilliseconds };
                 _fallback.Tick += OnFallback;
@@ -677,6 +739,11 @@ namespace KeePassGate.Ui
     public sealed class CurrentThread : IUiThread, IReadHold
     {
         public static readonly CurrentThread Instance = new CurrentThread();
+
+        public string Stalled
+        {
+            get { return null; }
+        }
 
         public bool Run(Action work, TimeSpan timeout)
         {

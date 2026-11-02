@@ -79,6 +79,27 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void A_change_under_a_dialog_of_Windows_own_is_refused_before_anything_is_queued()
+        {
+            // A message box's loop never raises Idle, so the change would wait the whole of
+            // `WriteTimeout` for a turn and then be refused anyway. Told at once instead.
+            var ui = new StalledUiThread();
+            var writer = Writer(ui, db => { });
+            var changed = 0;
+
+            var outcome = writer.Change(_database.Database, () =>
+            {
+                changed++;
+                return VaultWrite.Created("abcd");
+            });
+
+            Assert.That(outcome.IsBusy, Is.True, outcome.Reason);
+            Assert.That(outcome.Reason, Is.EqualTo(StalledUiThread.Why));
+            Assert.That(ui.Asked, Is.Zero, "nothing was queued for KeePass's thread");
+            Assert.That(changed, Is.Zero, "and nothing was changed");
+        }
+
+        [Test]
         public void A_save_that_throws_says_the_same_thing()
         {
             var writer = Writer(new RunsUiThread(), db => { throw new System.IO.IOException("the share went away"); });
@@ -824,6 +845,11 @@ namespace KeePassGate.Host.Tests
         /// </remarks>
         private sealed class LateUiThread : IUiThread
         {
+            public string Stalled
+            {
+                get { return null; }
+            }
+
             public bool Run(Action work, TimeSpan timeout)
             {
                 work();
@@ -831,8 +857,32 @@ namespace KeePassGate.Host.Tests
             }
         }
 
+        /// <summary>A thread inside a dialog of Windows' own, which reports it and is never asked anything.</summary>
+        private sealed class StalledUiThread : IUiThread
+        {
+            public const string Why = "a message box is open";
+
+            public int Asked { get; private set; }
+
+            public string Stalled
+            {
+                get { return Why; }
+            }
+
+            public bool Run(Action work, TimeSpan timeout)
+            {
+                Asked++;
+                return false;
+            }
+        }
+
         private sealed class RunsUiThread : IUiThread
         {
+            public string Stalled
+            {
+                get { return null; }
+            }
+
             public bool Run(Action work, TimeSpan timeout)
             {
                 work();
@@ -851,6 +901,11 @@ namespace KeePassGate.Host.Tests
             public ClosesFirst(PwDatabase closing)
             {
                 _closing = closing;
+            }
+
+            public string Stalled
+            {
+                get { return null; }
             }
 
             public bool Run(Action work, TimeSpan timeout)

@@ -212,12 +212,22 @@ namespace KeePassGate.Ui
                     // **The plugin's own save is waited out, and KeePass's own work is not.** A
                     // save this plugin makes for another client is a few waits from over, and the
                     // request it would turn away is one the operator has not seen yet. KeePass's
-                    // own work is answered `503 busy` inside the call below, as a write is.
+                    // own work is answered `503 busy` as a write is: a message box before the call
+                    // below is queued, and anything else inside it.
                     if (!Quiet(timeout - waiting.Elapsed))
                     {
                         _log.Warn("this plugin's own save was still running when the wait for the screen " +
                                   "ran out, so this " + what + " was never shown");
                         return unavailable("the plugin's own save outlasted the wait for the screen");
+                    }
+
+                    // Asked before the dialog is queued, as a write asks it: under a dialog of
+                    // Windows' own the dialog could not be shown until that one closed.
+                    var stalled = _ui.Stalled;
+                    if (stalled != null)
+                    {
+                        _log.Warn("the " + what + " dialog was not shown, because " + stalled);
+                        return unavailable(stalled);
                     }
 
                     var underneath = false;

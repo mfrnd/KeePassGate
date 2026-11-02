@@ -277,6 +277,44 @@ namespace KeePassGate.Tests
             }
         }
 
+        [Test]
+        public void A_message_box_on_KeePass_s_thread_is_said_before_anything_is_queued()
+        {
+            // A native dialog's loop never raises Idle, so work queued under one waits for it to
+            // close. Said at once instead, so that the writer and the prompt can answer at once.
+            using (var loop = new UiLoop())
+            using (var ui = loop.Own(() => new ControlUiThread(loop.Control)))
+            {
+                uint thread = 0;
+                loop.Invoke(() => thread = NativeMethods.GetWindowThreadProcessId(loop.Control.Handle));
+
+                Assert.That(ui.Value.Stalled, Is.Null, "nothing is open yet");
+
+                loop.Control.BeginInvoke((MethodInvoker)(() => MessageBox.Show("an invented question", "KeePassGate test")));
+                var reported = Eventually(() => ui.Value.Stalled != null);
+
+                var box = IntPtr.Zero;
+                NativeMethods.EnumThreadWindows(thread, (window, parameter) =>
+                {
+                    if (NativeMethods.IsWindowVisible(window) && NativeMethods.GetClassName(window) == "#32770")
+                    {
+                        box = window;
+                        return false;
+                    }
+
+                    return true;
+                });
+
+                // WM_CLOSE, which answers a message box with only an OK as its OK.
+                User32.PostMessage(box, 0x0010, IntPtr.Zero, IntPtr.Zero);
+                var cleared = Eventually(() => ui.Value.Stalled == null);
+
+                Assert.That(reported, Is.True, "a message box open on KeePass's thread is reported");
+                Assert.That(box, Is.Not.EqualTo(IntPtr.Zero), "and it is the window Windows calls a dialog");
+                Assert.That(cleared, Is.True, "and once it closes, nothing is");
+            }
+        }
+
         private static Thread Start(Action work)
         {
             var thread = new Thread(() => work()) { IsBackground = true };
@@ -291,6 +329,22 @@ namespace KeePassGate.Tests
             {
                 // Busy, as a turn doing real work is: a wait would give the thread back.
             }
+        }
+
+        private static bool Eventually(Func<bool> condition)
+        {
+            var until = DateTime.UtcNow + Patience;
+            while (DateTime.UtcNow < until)
+            {
+                if (condition())
+                {
+                    return true;
+                }
+
+                Thread.Sleep(20);
+            }
+
+            return condition();
         }
 
         /// <summary>Pumps until the condition holds, as a loop that is not stuck does.</summary>

@@ -167,9 +167,9 @@ which also kept a workstation lock from locking KeePass. A turn waits for KeePas
 a save never is, `DESIGN.md` §119, and the dialog is shown only once nothing is saving. **A save
 this plugin is making for another client is waited for**: the request waits for it within the
 same wait it has for the screen, and answers `503 busy` only if that wait runs out first.
-**KeePass's own work is not**: its own saves, an import, XML Replace, a message box of its own, its
-progress window, Database Maintenance and the dialogs that would take the record back are answered
-`503 busy` at once, before the dialog and again just before it would be shown.
+**KeePass's own work is not**: its own saves, an import, XML Replace, a message box of its own or of
+Windows', its progress window, Database Maintenance and the dialogs that would take the record back
+are answered `503 busy` at once, before the dialog and again just before it would be shown.
 
 **The dialog does not take the focus, and no key approves it.** A client chooses when it comes up,
 and the operator may be typing into KeePass at that moment, so a dialog that took the focus would

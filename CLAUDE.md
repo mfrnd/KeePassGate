@@ -810,6 +810,11 @@ Run them from
   delivered and had to be refused. A loop that is not WinForms', a message box's, never raises Idle
   either, which is why a read also starts on a fallback timer and a write does not.
   `UiThreadTests.Work_waits_for_KeePass_s_thread_to_be_idle_and_never_starts_inside_DoEvents`.
+- **A native dialog on a thread is a visible window of class `#32770`**, a message box, a task
+  dialog or a file dialog alike, and a WinForms form never is. Any thread can find one with
+  `EnumThreadWindows` in about twenty microseconds without asking the thread anything, which is
+  how a write under one is refused at once rather than after its timeout.
+  `UiThreadTests.A_message_box_on_KeePass_s_thread_is_said_before_anything_is_queued`.
 - **`dotnet test` with a filter that matches nothing exits 0**, having run nothing, and its trx
   counts nothing. A gate that believes the exit code is green over an empty run, so `build.ps1`
   reads each tier's trx and refuses one in which nothing executed, `Assert-Executed`.

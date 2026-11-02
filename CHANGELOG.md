@@ -34,7 +34,8 @@ none, since it releases both.
   make room for within ten seconds is answered `503 busy`.
 - **A change waits for KeePass to finish what it is doing**, a save, an import, an export or XML
   Replace, where it was answered `503 busy` straight away, and is answered so only if KeePass is
-  still at it half a minute later.
+  still at it half a minute later. Under a message box in KeePass it is answered `503 busy` at
+  once, since nothing happens in KeePass until the box is closed.
 - **The plugin is compiled at C# 13**, and the build needs the .NET SDK 9 or later. Nothing it does
   changes: the compiled plugin differs only in caching a delegate made from a static method rather
   than making one at every use, and in an attribute the compiler adds.

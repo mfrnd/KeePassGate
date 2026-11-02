@@ -592,6 +592,11 @@ namespace KeePassGate.Host.Tests
 
             public bool Ran { get; private set; }
 
+            public string Stalled
+            {
+                get { return null; }
+            }
+
             public bool Run(Action work, TimeSpan timeout)
             {
                 if (!Ran)

@@ -812,8 +812,11 @@ So the rules here:
   the median, and a hundred-millisecond timer never more than 125 between ticks, against 112 with
   nothing queued. **A read also starts on a slow fallback timer**, because a loop that is not
   WinForms' never raises Idle, a message box's or `DoEvents` itself, and a read inside one is
-  harmless; a write never does, which the rule about KeePass's own operations below depends on.
-  `spikes/keepass-thread` holds the probes.
+  harmless; a write never does, which the rule about KeePass's own operations below depends on. **A
+  dialog of Windows' own is answered before a write is queued**, since no turn comes round under
+  one: a message box, a task dialog or a file dialog is a window of class `#32770` on the thread,
+  which a form never is, and any thread can see one there in about twenty microseconds without
+  asking the thread anything. `spikes/keepass-thread` holds the probes.
 
   **The bound has two halves, and only one of them is a timeout.** Work still sitting in the queue
   when the timeout expires is withdrawn, so the caller's "no" is true of the database as well: the
@@ -934,7 +937,7 @@ So the rules here:
   workstation lock was dropped rather than deferred, because KeePass does not lock while its
   interaction is blocked. Queued, it waits for the save as a write does. The prompt still asks the
   same question on KeePass's thread just before it shows anything, and answers KeePass's own work
-  `503 busy` at once. **This plugin's own
+  `503 busy` at once, and a message box before the dialog is queued at all. **This plugin's own
   save is not KeePass's work**, although it raises the same block: a pairing or a renewal
   arriving while another client's write is saving waits for that save, inside the wait for the
   screen it already had, and is shown once the save is over. The writer's check made from a

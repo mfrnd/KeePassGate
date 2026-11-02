@@ -37,7 +37,10 @@ namespace KeePassGate.Bridge
     ///   of them shows is a loop of WinForms' own and does raise Idle, so the third question
     ///   beside the dialogs and the save's own three stays, asked in the marshaled call because
     ///   that is where the answer stops being able to change: is KeePass part way through
-    ///   something of its own. <see cref="Interrupting"/> is that question.
+    ///   something of its own. <see cref="Interrupting"/> is that question. **And a dialog of
+    ///   Windows' own is asked about before the call is queued**, through `IUiThread.Stalled`,
+    ///   since a turn never comes round under one and the write would only find that out from
+    ///   its timeout.
     /// - **A dialog open on what is being written refuses the write**, checked again inside the
     ///   marshaled call rather than only before it, because that is where the answer stops being
     ///   able to change. A dialog holds its own copy of what it shows and writes that copy back when
@@ -365,6 +368,9 @@ namespace KeePassGate.Bridge
         ///   on the operator's screen and a truncated file.
         /// - **A message box.** A modal loop pumps by definition, and a question KeePass is
         ///   waiting on an answer to is the clearest case of it being part way through something.
+        ///   A message box's loop is Windows' own and raises no Idle either, so a turn never starts
+        ///   under one; the write asks `IUiThread.Stalled` before it is queued and is refused at
+        ///   once rather than at the end of `WriteTimeout`.
         ///
         /// **What can be asked is not one question**, which is why this is a seam rather than a
         /// call. KeePass blocks its own interaction for the save and for the merges, and does not
@@ -650,6 +656,14 @@ namespace KeePassGate.Bridge
                 return AdmissionWrite.Failed("there is no database to write to");
             }
 
+            // Before the lock, so that the answer is immediate: a write cannot start under a dialog
+            // of Windows' own, and queued it would wait the whole of `WriteTimeout` to be told so.
+            var stalled = _ui.Stalled;
+            if (stalled != null)
+            {
+                return AdmissionWrite.Busy(stalled);
+            }
+
             if (!Monitor.TryEnter(_writing, LockTimeout))
             {
                 return AdmissionWrite.Busy("another admission record is already being written");
@@ -915,6 +929,13 @@ namespace KeePassGate.Bridge
             if (database == null || !database.IsOpen)
             {
                 return VaultWrite.Failed("there is no database to write to");
+            }
+
+            // Before the lock, as `WriteAdmission` asks it and for its reason.
+            var stalled = _ui.Stalled;
+            if (stalled != null)
+            {
+                return VaultWrite.Busy(stalled);
             }
 
             if (!Monitor.TryEnter(_writing, LockTimeout))
