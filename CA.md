@@ -579,7 +579,8 @@ Order matters, and every failure is a refusal.
    `false` makes the server send no `CertificateRequest` under TLS 1.3, so a client holding a good
    certificate never offers one; and `true` requires nothing, since a certificate-less client
    completes the handshake anyway. Enforcement is the route table's job.
-4. **The anchor is pinned** against the resolved database's authority. See below.
+4. **The anchor is pinned** against the resolved database's authority, and a certificate that
+   fails it is taken as no certificate. See below.
 5. **The EKU is checked explicitly**: `clientAuth` for a client, `serverAuth` for a host.
 6. **Validity dates**, with five minutes of skew allowed on `notBefore` only.
 7. **The admission record is looked up** by SHA-256 over the certificate DER. Absent means refused.
@@ -618,20 +619,33 @@ through a door nobody opened.
 the leaves it signs, §207, which makes the whole question small:
 
 ```text
+both are of the one shape    canonical DER, so that encoded again each is the bytes that arrived,
+                             and signed ecdsa-with-SHA256 with its parameters absent
 the anchor is an authority   CA:TRUE, keyCertSign if it has a key usage,
-                             named as its own issuer and signed by its own key
-the leaf is not the anchor   their bytes differ
+                             its key EC on P-256, named by the curve's identifier,
+                             named as its own issuer in its own bytes and signed by its own key
+the leaf is no authority     CA:TRUE on a leaf is refused, so the anchor cannot be its own leaf
 the leaf names the anchor    its issuer is the anchor's subject, byte for byte
 the anchor signed the leaf   its signature checks against the anchor's key
 nothing critical is unread   every critical extension is one this plugin writes
 ```
 
-Bouncy Castle checks the two signatures, and that is all it is asked. With the pin: our client
-`True`, foreign client `False`, and a foreign authority named exactly as ours, which every
-authority this plugin makes is, refused by its signature. Nothing the leaf names is fetched, and
-nothing a machine store holds can change the answer, so there is no case left in which the pin
-cannot answer at all. Dates are not asked: §213 checks them on the connection, and everywhere else
-an expired certificate still belongs to its authority.
+Basic constraints are read for `CA:TRUE` and nothing more: a path length is never consulted,
+since nothing stands between the leaf and the anchor for one to count. Bouncy Castle checks the two
+signatures, and that is all it is asked. With the pin: our client `True`, foreign client `False`,
+and a foreign authority named exactly as ours, which every authority this plugin makes is, refused
+by its signature. Nothing the leaf names is fetched, and nothing a machine store holds can change
+the answer, so there is no case left in which the pin cannot answer at all. **Anything of another
+shape is an answer, and the answer is no**: a certificate that will not parse, an anchor whose key
+is RSA or whose curve is spelled out, a signature of another algorithm or an encoding that is not
+the canonical one is refused as the foreign client is, and nothing a peer sends makes the pin
+throw. Dates are not asked: §213 checks them on the connection, and everywhere else an expired
+certificate still belongs to its authority.
+
+**A refusal here is not a refused connection.** The certificate is taken as no certificate, so the
+handshake completes and every request on the connection is answered `401 unpaired`, as a caller
+presenting nothing is, except that a connection that arrived on an invitation still reaches the
+pairing routes.
 
 **The comparisons go through one door.** `FixedTime.Equals` is what does them, because every
 comparison of certificate bytes in this plugin goes through that one door and one that did not
@@ -854,6 +868,7 @@ Recorded because a reader seeing only this version will not know which parts wer
 | A local authoritative registry | records in the kdbx, checked on every connection | replication returns, and a lost record now fails closed |
 | Thumbprint as the admission key | SHA-256 over `RawData` | `Thumbprint` is SHA-1, measured |
 | "The chain is built to the authority" | an explicit DER anchor pin | the natural code accepts a foreign authority, measured |
+| Pinned by building an `X509Chain` and comparing its last element's DER with the authority's | no chain engine: the anchor is judged an authority signed by itself, the leaf has to name it in its bytes and carry its signature, and both have to be of the one shape this plugin writes | the engine fetched whatever `caIssuers` address a foreign leaf named, 15.0 s measured; Mono's `X509Chain` throws for every EC certificate, `spikes/mono-compatibility`; and a machine could leave the engine unable to judge a chain at all, which the store had to report apart from a foreign host so as not to send the operator to Recreate |
 | Hostname verification | the anchor pin plus an explicit EKU check | the SNI rotates and can never be in a SAN |
 | `kpg://<uuid>/<profile>` | `kpg://profile/<name>` | the issuing authority already identifies the database |
 | Profiles read from the SAN | read from the admission record | a lost record must make a certificate inert, not invisible |

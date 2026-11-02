@@ -537,10 +537,11 @@ Run them from
 
 - **`X509Chain` does not pin an anchor.** `ExtraStore` plus `AllowUnknownCertificateAuthority`
   accepts a certificate from a completely foreign authority. `X509ChainTrustMode.CustomRootTrust`
-  would fix it and is .NET 5 and later. **Byte-compare the chain's last element** and require exactly
-  two elements. `ChainProbe`. **`AnchorPin` builds no chain now**: the anchor has to be an authority
-  signed by itself, and the leaf has to name it in its very bytes and carry its signature, `CA.md`
-  §214.
+  would fix it and is .NET 5 and later. A pin built on it has to byte-compare the chain's last
+  element and require exactly two elements, which is what this plugin's pin did, `ChainProbe`.
+  **`AnchorPin` builds no chain now**: the anchor has to be an authority signed by itself, the leaf
+  has to name it in its very bytes and carry its signature, and both have to be of the one shape
+  this plugin writes, anything else answered no rather than thrown, `CA.md` §214.
 - **`X509Chain` goes out on the network for a certificate somebody else chose.** When the issuer is
   not in `ExtraStore`, CryptoAPI follows the `caIssuers` URLs written into the leaf before `Build`
   returns, so a peer names the address and the process fetches it. Measured at 15.0 seconds for one

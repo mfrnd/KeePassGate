@@ -95,6 +95,36 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_record_naming_an_algorithm_no_candidate_can_check_belongs_to_none_rather_than_throwing()
+        {
+            // Issued under the first candidate and then named as signed with Ed25519. The pin threw
+            // `InvalidCastException` for it past the filter here, so the choice was never made: the
+            // tab's Choose failed before the dialog opened, and the chooser that asks unprompted
+            // left every undecided database behind this one unasked.
+            var named = new Org.BouncyCastle.Asn1.X509.AlgorithmIdentifier(
+                new Org.BouncyCastle.Asn1.DerObjectIdentifier("1.3.101.112"));
+            var authority = CertificateBlob.Load(
+                AuthorityDocument.Read(_values.Get(AuthorityKeys.AuthorityKey(_candidates[0])), null).Authority);
+            var issued = new AuthorityIssuer().IssueClient(authority, "agent-crafted", new[] { "ops" }).CertificateDer;
+
+            string crafted;
+            using (var certificate = new System.Security.Cryptography.X509Certificates.X509Certificate2(
+                       Reshaped.Naming(issued, named, named, authority)))
+            {
+                var record = AdmissionRecord.For(certificate, Admitted, new[] { "ops" });
+                new AdmissionStore(_values, null).Write(record);
+                crafted = record.ClientKey;
+            }
+
+            AuthorityChoice choice = null;
+            Assert.That(() => choice = Choice(null), Throws.Nothing);
+
+            Assert.That(choice.Options.SelectMany(o => o.Clients).Select(c => c.ClientKey), Does.Not.Contain(crafted));
+            Assert.That(choice.Options.Single(o => o.Fingerprint == _candidates[0]).Clients.Single().ClientKey,
+                Is.EqualTo(_clientKey), "and the client the first candidate did issue is still its own");
+        }
+
+        [Test]
         public void The_dialog_says_what_happened_and_what_choosing_does()
         {
             using (var dialog = new AuthorityChooserForm(Choice(null), "Invented Vault"))

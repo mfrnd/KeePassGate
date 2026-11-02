@@ -317,8 +317,10 @@ this is what the rest of the design depends on.
   certificate signed by a completely different authority, because `ExtraStore` supplies candidates
   without constraining the anchor and `CustomRootTrust` is .NET 5 and later. So the pin builds
   no chain at all: the leaf has to name the resolved database's authority in its very bytes and
-  carry its signature, and that authority has to be one, signed by itself, or the connection is
-  refused, `CA.md` §214.
+  carry its signature, that authority has to be one, signed by itself, and both have to be of the
+  one shape this plugin writes, `CA.md` §214. A certificate that fails it is taken as none: the
+  handshake completes, and every request is answered as one from a caller that presented nothing,
+  which is `401 unpaired`.
 - **The EKU is checked explicitly**, because the same authority signs both hosts and clients, and
   hostname verification is deliberately abandoned. The SNI rotates per connection and can therefore
   never appear in a SAN.
