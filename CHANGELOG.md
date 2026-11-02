@@ -36,6 +36,17 @@ none, since it releases both.
   Replace, where it was answered `503 busy` straight away, and is answered so only if KeePass is
   still at it half a minute later. Under a message box in KeePass it is answered `503 busy` at
   once, since nothing happens in KeePass until the box is closed.
+- **The plugin issues its certificates through Bouncy Castle, with names in UTF8String**, where
+  Windows issued them with names in PrintableString, and no key of the plugin's passes through
+  Windows any more. A database whose authority Windows issued keeps working as it was: the
+  authority goes on issuing, the clients it admitted go on being served, and a certificate it
+  issues now names it exactly as it names itself.
+- **A stored authority somebody crafted costs the time of refusing it**, not the time it asks for.
+  One over 64 KiB, asking for more than 10,000 iterations of its key derivation or holding more
+  parts than a stored pair has is refused before any of that work is begun.
+- **Another plugin's older Bouncy Castle stops the plugin starting**, naming both copies. Every 2.x
+  release of Bouncy Castle is one assembly to .NET, so a copy another plugin loaded first was the
+  one this plugin ran on, whatever it lacked.
 - **The plugin is compiled at C# 13**, and the build needs the .NET SDK 9 or later. Nothing it does
   changes: the compiled plugin differs only in caching a delegate made from a static method rather
   than making one at every use, and in an attribute the compiler adds.

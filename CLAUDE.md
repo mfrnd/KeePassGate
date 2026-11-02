@@ -8,7 +8,7 @@ Guidance for anyone, human or AI assistant, working in this repository.
 mutual TLS, so that automation and AI agents can each be given a narrow, revocable, audited slice of
 a database.
 
-**Status: steps 1 to 33 of the build order are done and the API is served.** The plugin loads
+**Status: all but step 34 of the build order are done, and the API is served.** The plugin loads
 into KeePass, the KPG tab creates, recreates and deletes the database's own certificate authority,
 the gate listens on loopback and answers over mutual TLS 1.3, a client is served only if
 the database holds an admission record for its certificate, and **a stranger can now become one**:
@@ -64,9 +64,10 @@ suppressed where it is made with its reason, and a merge waits for `code scannin
 fails on any finding left, and for every suppression the pull request touches to be resolved in
 review. **And a read holds KeePass still**: every read a connection makes holds KeePass's
 thread for its whole length, in a turn taken from the one queue every write takes its turn from as
-well, and only once KeePass has nothing else to do. **Step 35, certificates through Bouncy Castle,
-is being built**, ahead of step 34, tags, which is planned and not started: what the build order plans
-for both is in `DESIGN.md` §132.
+well, and only once KeePass has nothing else to do. **And the certificates are Bouncy Castle's**:
+it issues every one, signs with every stored key and judges every anchor, so no key the plugin holds
+is handed to Windows and nothing builds a chain. **Step 34, tags, is planned and not started**: what
+the build order plans for it is in `DESIGN.md` §132.
 
 ## Read these before proposing anything
 
@@ -1112,7 +1113,7 @@ here can hang or crash the password manager.
 
 ## Where to start
 
-[`DESIGN.md`](DESIGN.md) §132 ends with a multi-step build order. **Steps 1 to 33 are done.** The
+[`DESIGN.md`](DESIGN.md) §132 ends with a multi-step build order. **All but step 34 are done.** The
 skeleton loads and shows a KPG tab, that tab creates, recreates and deletes the authority, the gate
 serves the document's routes over mutual TLS to a client the authority issued and the database holds
 a record for, a stranger can pair, a locked database answers `503 locked`, a grant means something
@@ -1130,12 +1131,12 @@ whole journey that moves and a diagram of the pieces, the command line reaches e
 and prints JSON for a program, a write can be made against what was read, refused with `412`
 when the node has changed since, a merge into `master` waits for the whole gate to pass, a
 tag publishes both halves, CodeQL analyzes every language it reads, a merge waits until every
-finding is fixed or suppressed with its reason, and a read holds KeePass's thread still for as long
-as it reads, in a turn that gives way to the operator first.
+finding is fixed or suppressed with its reason, a read holds KeePass's thread still for as long
+as it reads, in a turn that gives way to the operator first, and every certificate is made, and
+every anchor judged, through Bouncy Castle.
 
 **Start with [`docs/`](docs/README.md) if the question is what this does**, and with the documents
-below if the question is why it does it that way. What is left is step 35, certificates through
-Bouncy Castle, which is being built, and step 34, tags.
+below if the question is why it does it that way. What is left is step 34, tags.
 
 **The storage decision survived the thing most likely to invalidate it.** The `GroupForm` snapshot
 hazard is real and now measured rather than remembered: `SnapshotHazardTests` reads the mechanism off
