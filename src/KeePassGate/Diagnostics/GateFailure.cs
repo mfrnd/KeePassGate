@@ -65,13 +65,16 @@ namespace KeePassGate.Diagnostics
     }
 
     /// <summary>
-    /// A read gave up because the database would not hold still long enough to be read.
+    /// A read gave up because the database could not be held still for it.
     /// </summary>
     /// <remarks>
-    /// Its own type so that a handler can answer it as busy. Left as the `InvalidOperationException`
-    /// it started as, it reaches the catch-all that treats anything escaping a handler as a defect
-    /// in this plugin. That put a 500 and a false incident on the operator's window for the
-    /// ordinary case of an agent reading while somebody edits.
+    /// Its own type so that a handler can answer it as busy: KeePass's thread did not come round
+    /// for the read in time, or the read outlasted the hold and KeePass's thread was let go before
+    /// it finished, or a listing failed. It began as a read taken again until the tree it met
+    /// stopped moving, and before that as the `InvalidOperationException` the moving tree threw,
+    /// which reached the catch-all that treats anything escaping a handler as a defect in this
+    /// plugin: a 500 and a false incident on the operator's window, for the ordinary case of an
+    /// agent reading while somebody edits.
     /// </remarks>
     [Serializable]
     public sealed class VaultUnsettled : GateFailure

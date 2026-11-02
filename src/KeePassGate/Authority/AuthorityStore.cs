@@ -36,8 +36,9 @@ namespace KeePassGate.Authority
         /// <remarks>
         /// The admission records are counted and removed through `AdmissionStore` rather than by a
         /// second copy of the same enumeration here. There were two, and only one of them was
-        /// guarded against the race `Expected.OfCustomData` names, which is the asymmetry that made
-        /// a listing failure cost every open database its connection rather than one lookup.
+        /// guarded against a listing that throws, which `Expected.OfCustomData` names, and that is
+        /// the asymmetry that made a listing failure cost every open database its connection rather
+        /// than one lookup.
         /// </remarks>
         public AuthorityStore(IKeyValueStore store, IGateLog log)
         {

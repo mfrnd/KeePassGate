@@ -71,8 +71,8 @@ namespace KeePassGate
         private JsonLinesAudit _audit;
 
         /// <summary>
-        /// The one queue of turns on KeePass's thread, for every write and every dialog this plugin
-        /// puts in front of the operator, `DESIGN.md` §119.
+        /// The one queue of turns on KeePass's thread, for every write and every read a connection
+        /// makes, `DESIGN.md` §119.
         /// </summary>
         private ControlUiThread _ui;
         private OpenDatabaseTargets _targets;
@@ -742,9 +742,9 @@ namespace KeePassGate
                 return;
             }
 
-            // One queue for the writer's work and the approval dialogs, which take their turns on
-            // KeePass's thread from it, in order and behind whatever KeePass is doing, `DESIGN.md`
-            // §119. Made here, on that thread, which is where it listens.
+            // One queue for both: the writer's work and the reads every connection makes take
+            // their turns on KeePass's thread from it, in order and behind whatever KeePass is
+            // doing, `DESIGN.md` §119. Made here, on that thread, which is where it listens.
             var ui = new ControlUiThread(mainWindow);
             _ui = ui;
 
@@ -779,6 +779,7 @@ namespace KeePassGate
             _targets = new OpenDatabaseTargets(
                 delegate { return mainWindow.DocumentManager.GetOpenDatabases(); },
                 writer,
+                ui,
                 _log);
 
             _settings = new KeePassSettings(_log);

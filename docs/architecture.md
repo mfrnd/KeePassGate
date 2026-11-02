@@ -118,6 +118,13 @@ busy for as long as it writes. A trigger set on saving a database runs for these
 other, message boxes included. And each save counts as activity, so a program that writes
 regularly keeps KeePass from locking itself after a period of KeePass inactivity.
 
+**A read holds KeePass still for as long as it takes**, so that nothing KeePass does can change the
+database under it: well under a millisecond to look one entry up, and about seventeen to list ten
+thousand. A read waits for KeePass to have nothing else to do first, so what is typed or clicked in
+the window goes ahead of it, and so do KeePass's own timers, among them the one that locks it after
+a period of inactivity. A read that KeePass cannot make room for within ten seconds, because it is
+busy with something it does not pause in, answers "busy".
+
 **A program can ask not to write over what changed since it read.** Reading a group or an entry
 hands back a tag of what it holds, and a program that hands the tag back with its write is
 refused, with nothing changed, when that changed in between: for an entry anything in it, its

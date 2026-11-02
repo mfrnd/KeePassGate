@@ -55,7 +55,8 @@ namespace KeePassGate.Ui
 
     /// <summary>
     /// The real one, over any control whose handle belongs to the user interface thread: one queue
-    /// of turns on that thread, for the work this plugin runs there.
+    /// of turns on that thread, for the work this plugin runs there and for the reads it holds that
+    /// thread still for.
     /// </summary>
     /// <remarks>
     /// **A turn starts only once KeePass has nothing else to do**, which is `Application.Idle`:
@@ -74,24 +75,61 @@ namespace KeePassGate.Ui
     /// `Application.DoEvents`, read off the IL of KeePass 2.61.1, and WinForms never raises Idle
     /// inside it. Posted work was delivered inside each of them and had to be refused there by the
     /// writer; queued work waits for the operation to end. The writer still asks, because a dialog
-    /// shown inside one of them is a WinForms loop and does raise Idle. The queue is served in the
-    /// order it was joined.
+    /// shown inside one of them is a WinForms loop and does raise Idle.
+    ///
+    /// **A read also starts on a slow timer**, because a read inside a pump is harmless and a loop
+    /// that is not WinForms' never raises Idle: a message box's, or `DoEvents` itself. So reads
+    /// are served during a long save, and the first read waiting may go ahead of work that cannot
+    /// start yet. Otherwise the queue is served in the order it was joined.
     ///
     /// **Re-entered rather than serialized.** Work that shows a dialog runs a loop of its own,
     /// which raises Idle, and the turns behind it are served from inside that loop, as posted work
-    /// was.
+    /// was. A read holding the thread runs no loop, so nothing is served inside one.
     /// </remarks>
-    public sealed class ControlUiThread : IUiThread, IDisposable
+    public sealed class ControlUiThread : IUiThread, IReadHold, IDisposable
     {
+        /// <summary>How long a read waits for its turn before it is answered as busy.</summary>
+        /// <remarks>
+        /// A turn normally comes round in under a millisecond, and in about half a second with
+        /// every connection the gate allows reading at once. What holds one off longer is KeePass
+        /// working without pumping, such as deriving a key, and a read that has waited this long
+        /// is better told to come back.
+        /// </remarks>
+        public static readonly TimeSpan HoldWait = TimeSpan.FromSeconds(10);
+
+        /// <summary>How long KeePass's thread is held for one read before it is let go.</summary>
+        /// <remarks>
+        /// A bound on a defect rather than on a read: a sweep of ten thousand entries holds the
+        /// thread for about seventeen milliseconds. A read that is still going when this passes is
+        /// answered as busy rather than trusted, because the tree was free to move under the end of
+        /// it, and the operator's window was frozen for exactly this long.
+        /// </remarks>
+        public static readonly TimeSpan HoldLimit = TimeSpan.FromSeconds(5);
+
+        /// <summary>How often a read is offered a turn inside a loop that never raises Idle.</summary>
+        private const int FallbackMilliseconds = 20;
+
+        /// <summary>How many holds the current thread is inside.</summary>
+        [ThreadStatic]
+        private static int t_holds;
+
         private readonly Control _control;
+        private readonly TimeSpan _holdWait;
+        private readonly TimeSpan _holdLimit;
         private readonly object _gate = new object();
         private readonly List<Turn> _turns = new List<Turn>();
         private bool _disposed;
 
-        // Made on the user interface thread, and only ever touched there.
+        // Made, started and stopped on the user interface thread, and only ever touched there.
+        private System.Windows.Forms.Timer _fallback;
         private bool _listening;
 
         public ControlUiThread(Control control)
+            : this(control, HoldWait, HoldLimit)
+        {
+        }
+
+        internal ControlUiThread(Control control, TimeSpan holdWait, TimeSpan holdLimit)
         {
             if (control == null)
             {
@@ -99,6 +137,14 @@ namespace KeePassGate.Ui
             }
 
             _control = control;
+            _holdWait = holdWait;
+            _holdLimit = holdLimit;
+        }
+
+        /// <summary>Whether the calling thread is inside a hold.</summary>
+        internal static bool Holding
+        {
+            get { return t_holds > 0; }
         }
 
         public bool Run(Action work, TimeSpan timeout)
@@ -118,6 +164,13 @@ namespace KeePassGate.Ui
                 // Already there, which is what happens when a test drives this directly.
                 work();
                 return true;
+            }
+
+            if (Holding)
+            {
+                // Waited out, this would hold KeePass's window for the length of the hold's limit
+                // and then fail anyway, since the thread it asks is the one it is holding.
+                throw new HoldMisused("work was asked of KeePass's thread by a thread holding it still");
             }
 
             var turn = new Turn(work);
@@ -159,6 +212,69 @@ namespace KeePassGate.Ui
             return false;
         }
 
+        public T Hold<T>(Func<T> read)
+        {
+            if (read == null)
+            {
+                throw new ArgumentNullException(nameof(read));
+            }
+
+            if (Holding)
+            {
+                // Inside a hold already, so the tree is standing still.
+                return Inline(read);
+            }
+
+            if (_control.IsDisposed || !_control.IsHandleCreated)
+            {
+                // Before the window is made or after it has gone, which a connection does not
+                // meet: the listener starts after the one and stops before the other.
+                throw new VaultUnsettled("KeePass's window is not there to hold still");
+            }
+
+            if (!_control.InvokeRequired)
+            {
+                // KeePass's own thread, which cannot change the tree while it is running this.
+                return Inline(read);
+            }
+
+            var turn = new Turn(null);
+            if (!Join(turn))
+            {
+                throw new VaultUnsettled("KeePass's thread is no longer taking reads");
+            }
+
+            if (!turn.AwaitReady(_holdWait) && turn.Withdraw())
+            {
+                throw new VaultUnsettled("KeePass's thread could not be held still for a read");
+            }
+
+            // Ready by now, or about to be: a turn that has begun is parking, and parking waits on
+            // nothing.
+            turn.AwaitReady(Timeout.InfiniteTimeSpan);
+            if (turn.Withdrawn)
+            {
+                throw new VaultUnsettled("KeePass's thread is no longer taking reads");
+            }
+
+            T result;
+            try
+            {
+                result = Inline(read);
+            }
+            finally
+            {
+                turn.Release();
+            }
+
+            if (turn.Lapsed)
+            {
+                throw new VaultUnsettled("the read took longer than KeePass's thread could be held for");
+            }
+
+            return result;
+        }
+
         /// <summary>
         /// Turns away every turn still waiting, and stops listening for Idle. On the user interface
         /// thread, where `Application.Idle` was subscribed.
@@ -186,7 +302,21 @@ namespace KeePassGate.Ui
             if (_listening)
             {
                 Application.Idle -= OnIdle;
+                _fallback.Dispose();
                 _listening = false;
+            }
+        }
+
+        private static T Inline<T>(Func<T> read)
+        {
+            t_holds++;
+            try
+            {
+                return read();
+            }
+            finally
+            {
+                t_holds--;
             }
         }
 
@@ -227,7 +357,10 @@ namespace KeePassGate.Ui
             }
         }
 
-        /// <summary>On the user interface thread: listens for Idle, from the first turn on.</summary>
+        /// <summary>
+        /// On the user interface thread: listens for Idle, from the first turn on, and keeps the
+        /// fallback running while anything is waiting.
+        /// </summary>
         private void Listen()
         {
             lock (_gate)
@@ -241,33 +374,64 @@ namespace KeePassGate.Ui
             if (!_listening)
             {
                 Application.Idle += OnIdle;
+                _fallback = new System.Windows.Forms.Timer { Interval = FallbackMilliseconds };
+                _fallback.Tick += OnFallback;
                 _listening = true;
             }
+
+            _fallback.Start();
         }
 
         private void OnIdle(object sender, EventArgs e)
         {
-            Serve();
+            Serve(true);
         }
 
-        /// <summary>On the user interface thread: one turn, the first in the queue.</summary>
-        private void Serve()
+        private void OnFallback(object sender, EventArgs e)
         {
-            Turn next;
+            Serve(false);
+        }
+
+        /// <summary>
+        /// On the user interface thread: one turn, the first in the queue, or the first read when
+        /// this is not Idle.
+        /// </summary>
+        private void Serve(bool idle)
+        {
+            Turn next = null;
             lock (_gate)
             {
                 _turns.RemoveAll(turn => turn.Withdrawn);
 
                 if (_turns.Count == 0)
                 {
+                    if (_fallback != null)
+                    {
+                        _fallback.Stop();
+                    }
+
                     return;
                 }
 
-                next = _turns[0];
-                _turns.RemoveAt(0);
+                foreach (var turn in _turns)
+                {
+                    if (idle || turn.IsRead)
+                    {
+                        next = turn;
+                        break;
+                    }
+                }
+
+                if (next == null)
+                {
+                    // Only work is waiting, and work waits for Idle.
+                    return;
+                }
+
+                _turns.Remove(next);
             }
 
-            next.Take();
+            next.Take(_holdLimit);
 
             bool more;
             lock (_gate)
@@ -282,7 +446,7 @@ namespace KeePassGate.Ui
         }
 
         /// <summary>
-        /// One turn: work to run on the user interface thread.
+        /// One turn: work to run on the user interface thread, or a read to hold it still for.
         /// </summary>
         /// <remarks>
         /// **It can be called off up to the instant it starts.** A caller whose clock ran out has
@@ -313,12 +477,20 @@ namespace KeePassGate.Ui
             private bool _started;
             private bool _withdrawn;
             private bool _ready;
+            private bool _released;
+            private bool _lapsed;
             private Exception _failure;
 
-            /// <summary>A turn for this work.</summary>
+            /// <summary>A turn for this work, or for a read when there is none.</summary>
+            /// <param name="work">What to run, or null for a read.</param>
             public Turn(Action work)
             {
                 _work = work;
+            }
+
+            public bool IsRead
+            {
+                get { return _work == null; }
             }
 
             public bool Withdrawn
@@ -328,6 +500,18 @@ namespace KeePassGate.Ui
                     lock (_lock)
                     {
                         return _withdrawn;
+                    }
+                }
+            }
+
+            /// <summary>Whether a read outlasted its hold and the thread was let go before it ended.</summary>
+            public bool Lapsed
+            {
+                get
+                {
+                    lock (_lock)
+                    {
+                        return _lapsed;
                     }
                 }
             }
@@ -364,7 +548,7 @@ namespace KeePassGate.Ui
             }
 
             /// <summary>
-            /// Whether it is ready: the work has run, or it was refused.
+            /// Whether it is ready: the work has run, the read may begin, or it was refused.
             /// </summary>
             public bool AwaitReady(TimeSpan timeout)
             {
@@ -390,8 +574,11 @@ namespace KeePassGate.Ui
                 }
             }
 
-            /// <summary>On the user interface thread: runs the work.</summary>
-            public void Take()
+            /// <summary>
+            /// On the user interface thread: runs the work, or holds the thread until the read is
+            /// over or the limit has passed.
+            /// </summary>
+            public void Take(TimeSpan limit)
             {
                 lock (_lock)
                 {
@@ -401,6 +588,12 @@ namespace KeePassGate.Ui
                     }
 
                     _started = true;
+                }
+
+                if (_work == null)
+                {
+                    Hold(limit);
+                    return;
                 }
 
                 Exception failure = null;
@@ -418,6 +611,16 @@ namespace KeePassGate.Ui
                 {
                     _failure = failure;
                     _ready = true;
+                    Monitor.PulseAll(_lock);
+                }
+            }
+
+            /// <summary>Lets the user interface thread go, from the thread that read.</summary>
+            public void Release()
+            {
+                lock (_lock)
+                {
+                    _released = true;
                     Monitor.PulseAll(_lock);
                 }
             }
@@ -443,14 +646,35 @@ namespace KeePassGate.Ui
                     ExceptionDispatchInfo.Capture(failure).Throw();
                 }
             }
+
+            private void Hold(TimeSpan limit)
+            {
+                var clock = Stopwatch.StartNew();
+                lock (_lock)
+                {
+                    _ready = true;
+                    Monitor.PulseAll(_lock);
+
+                    while (!_released)
+                    {
+                        var left = limit - clock.Elapsed;
+                        if (left <= TimeSpan.Zero || !Monitor.Wait(_lock, left))
+                        {
+                            // Let go with the read still going, so it is not to be believed.
+                            _lapsed = !_released;
+                            return;
+                        }
+                    }
+                }
+            }
         }
     }
 
     /// <summary>
     /// Runs it here and now. For tests, and for anything assembled without a window, where there is
-    /// no other thread to be on.
+    /// no other thread to be on and so nothing to hold still.
     /// </summary>
-    public sealed class CurrentThread : IUiThread
+    public sealed class CurrentThread : IUiThread, IReadHold
     {
         public static readonly CurrentThread Instance = new CurrentThread();
 
@@ -463,6 +687,16 @@ namespace KeePassGate.Ui
 
             work();
             return true;
+        }
+
+        public T Hold<T>(Func<T> read)
+        {
+            if (read == null)
+            {
+                throw new ArgumentNullException(nameof(read));
+            }
+
+            return read();
         }
     }
 }

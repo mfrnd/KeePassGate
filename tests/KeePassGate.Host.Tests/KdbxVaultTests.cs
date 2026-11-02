@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading;
 using KeePassGate.Bridge;
 using KeePassGate.Diagnostics;
+using KeePassGate.Testing;
 using KeePassGate.Ui;
 using KeePassGate.Vault;
 using KeePassLib;
@@ -1041,61 +1042,78 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
-        public void A_read_taken_while_the_tree_moves_answers_or_says_it_could_not()
+        public void A_read_meets_a_tree_standing_still_while_KeePass_changes_it()
         {
             // KeePass's lists are not built to be read from another thread, and this plugin reads
-            // on a connection thread while the user interface thread changes them. What must never
-            // escape is one of KeePass's own collection exceptions: those reach the catch-all that
-            // reports a defect in this plugin, so an agent reading while somebody typed answered
-            // 500 and put a false incident on the operator's window.
-            var group = Created(_vault.CreateGroup(_vault.RootAlias, "Fictitious", null));
-            var behind = _database.Database.RootGroup.FindGroup(
-                new PwUuid(MemUtil.HexStringToByteArray(group)), true);
-
+            // on a connection thread while KeePass's own thread changes them. Read with nothing
+            // held, a sweep threw or handed back a slot a removal had emptied, and a lookup of the
+            // last group in its list missed it without any sign: review 4 measured 20,762 misses
+            // in two million.
+            // Held, a change waits for the read, so neither can happen. The changes run on a real
+            // message loop, as KeePass's do, in bursts on a timer: a group put in at the front
+            // and one taken off it, fifty times a tick.
+            var root = _database.Database.RootGroup;
             for (var i = 0; i < 200; i++)
             {
-                behind.AddEntry(new PwEntry(true, true), true);
+                root.AddGroup(new PwGroup(true, true, "Fictitious " + i, PwIcon.Folder), true);
             }
 
-            var stop = false;
-            var churn = new Thread(() =>
+            var last = new PwGroup(true, true, "Last in its list", PwIcon.Folder);
+            root.AddGroup(last, true);
+            var sought = last.Uuid.ToHexString();
+            var listed = _vault.Subgroups(_vault.RootAlias).Count;
+
+            using (var loop = new UiLoop())
+            using (var ui = loop.Own(() => new ControlUiThread(loop.Control)))
+            using (var churn = loop.Own(() => new System.Windows.Forms.Timer { Interval = 1 }))
             {
-                while (!stop)
+                var vault = new KdbxVault(_database.Database, Writer(), TestTags.Fixed, ui.Value, null);
+                var ticks = 0;
+
+                loop.Invoke(() =>
                 {
-                    behind.AddEntry(new PwEntry(true, true), true);
-                    if (behind.Entries.UCount > 400)
+                    churn.Value.Tick += delegate
                     {
-                        behind.Entries.Remove(behind.Entries.GetAt(0));
-                    }
-                }
-            });
+                        for (var i = 0; i < 50; i++)
+                        {
+                            root.Groups.Insert(0, new PwGroup(true, true, "Churned", PwIcon.Folder));
+                            root.Groups.Remove(root.Groups.GetAt(0));
+                            root.Groups.Insert(0, new PwGroup(true, true, "Churned", PwIcon.Folder));
+                            root.Groups.RemoveAt(0);
+                        }
 
-            churn.Start();
-            var unsettled = 0;
+                        Interlocked.Increment(ref ticks);
+                    };
+                    churn.Value.Start();
+                });
 
-            try
-            {
-                for (var i = 0; i < 200; i++)
+                var reads = 0;
+                var missed = 0;
+                var torn = 0;
+                var until = DateTime.UtcNow.AddSeconds(2);
+                while (DateTime.UtcNow < until)
                 {
-                    // Anything other than `VaultUnsettled` leaving here fails the test by escaping,
-                    // which is the assertion: those are the ones that used to become a 500.
-                    try
+                    // Anything leaving here fails the test by escaping, which is the first
+                    // assertion: the collection exceptions are the ones that answered 500.
+                    if (vault.Group(sought) == null)
                     {
-                        _vault.Entries();
+                        missed++;
                     }
-                    catch (VaultUnsettled)
-                    {
-                        unsettled++;
-                    }
-                }
-            }
-            finally
-            {
-                stop = true;
-                churn.Join();
-            }
 
-            Assert.That(unsettled, Is.LessThan(200), "a settled answer has to be reachable");
+                    var groups = vault.Subgroups(vault.RootAlias);
+                    if (groups.Count != listed || groups.Any(group => group == null))
+                    {
+                        torn++;
+                    }
+
+                    reads++;
+                }
+
+                Assume.That(Volatile.Read(ref ticks), Is.GreaterThan(20), "KeePass's thread really was changing the tree");
+                Assume.That(reads, Is.GreaterThan(100), "and the reads really were being served beside it");
+                Assert.That(missed, Is.Zero, "a group that was there was found every time, in " + reads + " reads");
+                Assert.That(torn, Is.Zero, "and every listing was one whole tree");
+            }
         }
 
         [Test]

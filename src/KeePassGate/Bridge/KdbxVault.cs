@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using KeePassGate.Diagnostics;
+using KeePassGate.Ui;
 using KeePassGate.Vault;
 using KeePassLib;
 using KeePassLib.Security;
@@ -16,11 +17,14 @@ namespace KeePassGate.Bridge
     /// Everything above it works against <see cref="IVault"/>, which is what lets the handlers be
     /// tested without a password manager.
     ///
-    /// **Reads run on the connection's thread.** `DESIGN.md` §119 measured that KeePass's
-    /// object model answers from a background thread, and every read here is one. **And in
-    /// KeePass's culture**, which `GateListener` gives every connection: an entry's strings and
-    /// attachments are looked up by name in the culture of the thread asking, and a lookup in
-    /// another culture than the one KeePass's thread filled them in can miss a name that is there.
+    /// **Reads run on the connection's thread, with KeePass's thread held still.** `DESIGN.md`
+    /// §119 measured that KeePass's object model answers from a background thread, and every read
+    /// here is one; what it did not answer for is a tree changing underneath, which KeePass's
+    /// thread does with no sign of it. So each read waits its turn on that thread and holds it
+    /// for the read's whole length, through <see cref="IReadHold"/>. **And in KeePass's culture**,
+    /// which `GateListener` gives every connection: an entry's strings and attachments are looked
+    /// up by name in the culture of the thread asking, and a lookup in another culture than the
+    /// one KeePass's thread filled them in can miss a name that is there.
     ///
     /// **Writes go through the plugin's single writer**, which marshals them to the thread that
     /// owns the database, saves, and does not return until KeePass says there is nothing unsaved.
@@ -59,14 +63,21 @@ namespace KeePassGate.Bridge
         private readonly PwDatabase _database;
         private readonly DatabaseWriter _writer;
         private readonly NodeTags _tags;
+        private readonly IReadHold _hold;
         private readonly IGateLog _log;
 
         /// <summary>
         /// Over one open database, changed through the plugin's single writer, or only read when
-        /// there is none.
+        /// there is none, and read where it is asked, with no other thread to hold still.
         /// </summary>
         /// <param name="tags">This database's tags, keyed as <see cref="NodeTags.KeyFrom"/> says.</param>
         public KdbxVault(PwDatabase database, DatabaseWriter writer, NodeTags tags, IGateLog log)
+            : this(database, writer, tags, CurrentThread.Instance, log)
+        {
+        }
+
+        /// <summary>The same, holding KeePass's thread still for every read.</summary>
+        public KdbxVault(PwDatabase database, DatabaseWriter writer, NodeTags tags, IReadHold hold, IGateLog log)
         {
             if (database == null)
             {
@@ -78,9 +89,15 @@ namespace KeePassGate.Bridge
                 throw new ArgumentNullException(nameof(tags));
             }
 
+            if (hold == null)
+            {
+                throw new ArgumentNullException(nameof(hold));
+            }
+
             _database = database;
             _writer = writer;
             _tags = tags;
+            _hold = hold;
             _log = log ?? NullGateLog.Instance;
         }
 
@@ -1065,54 +1082,31 @@ namespace KeePassGate.Bridge
             return Reading(() => AttachmentInside(entryUuid, name, most));
         }
 
-        /// <summary>How many times a read is taken before the tree is called unsettled.</summary>
-        /// <remarks>
-        /// Three, because the window is the width of one `Add` or `Remove` on the user interface
-        /// thread and a second attempt almost always lands outside it. More would be waiting on a
-        /// database somebody is editing continuously, which is a thing to answer rather than
-        /// outlast.
-        /// </remarks>
-        private const int ReadAttempts = 3;
+        public T Held<T>(Func<T> read)
+        {
+            return _hold.Hold(read);
+        }
 
-        /// <summary>A read, taken again if the tree moved while it was being read.</summary>
+        /// <summary>A read, with KeePass's thread held still for the whole of it.</summary>
         /// <remarks>
         /// **KeePass's collections are not built to be read from another thread**, and this plugin
         /// reads them on a connection thread while the user interface thread changes the same
-        /// lists. What changes them is the operator editing an entry, or this plugin's own writer.
-        /// An enumerator that sees that throws, and so does a copy being built out of a tree that
-        /// grows underneath it.
-        /// Neither is a defect here, and neither should reach the catch-all that reports one: an
-        /// agent reading while somebody types answered `500` and put a false incident on the
-        /// plugin's own window.
+        /// lists: the operator editing an entry, a merge, or this plugin's own writer. An enumerator
+        /// that saw it threw, a copy built out of a tree that grew underneath it threw, a list a
+        /// removal was shrinking handed back an empty slot, and a lookup racing a removal missed a
+        /// node that was there without any sign of it. The read used to be taken again when it
+        /// threw, which answered the first two, and nothing answers the last two from this side:
+        /// a list moves its version after its size, so a read that checks finds nothing wrong.
         ///
-        /// **Taken again rather than locked**, because the lock that would settle this is
-        /// KeePass's and there is not one to take. `Expected.OfCustomData` already names this race
-        /// for the single dictionary the gate read before there was an API; this is the same race
-        /// over the whole tree. A read that will not settle is answered as busy, which is
-        /// something a caller can act on.
+        /// **So the tree is held still instead.** The read waits for its turn on KeePass's thread,
+        /// which then waits for the read: measured, the empty slots and the misses went to none,
+        /// for a sweep of ten thousand entries holding the thread for about seventeen
+        /// milliseconds. A turn that does not come, or a read that outlasts the hold, is answered
+        /// as busy, which is something a caller can act on. `DESIGN.md` §119 has the rest.
         /// </remarks>
-        private static T Reading<T>(Func<T> read)
+        private T Reading<T>(Func<T> read)
         {
-            for (var attempt = 1; ; attempt++)
-            {
-                try
-                {
-                    return read();
-                }
-                catch (Exception error) when (Expected.OfMovingTree(error) && attempt < ReadAttempts)
-                {
-                    // Nothing logged. This is ordinary while a database is in use, and a line per
-                    // occurrence would be a line per keystroke somebody makes in KeePass.
-                }
-                catch (Exception error) when (Expected.OfMovingTree(error))
-                {
-                    // Named, so that a handler can answer this as busy. Left as it arrived it
-                    // reaches the catch-all that treats anything escaping a handler as a defect
-                    // here, which is neither true nor useful to whoever reads the incident.
-                    throw new VaultUnsettled(
-                        "the database kept changing while it was being read", error);
-                }
-            }
+            return _hold.Hold(read);
         }
 
         /// <summary>The timestamps `Touch` is about to move, and how to put them back.</summary>
@@ -1893,7 +1887,7 @@ namespace KeePassGate.Bridge
             }
         }
 
-        private static VaultGroup Describe(PwGroup group)
+        private VaultGroup Describe(PwGroup group)
         {
             if (group == null)
             {
@@ -1907,7 +1901,7 @@ namespace KeePassGate.Bridge
                 group.ParentGroup == null ? null : group.ParentGroup.Uuid.ToHexString(),
                 When(group.CreationTime),
                 When(group.LastModificationTime),
-                KdbxNodes.Of(group));
+                KdbxNodes.Of(group, _hold));
         }
 
         private VaultEntry Describe(PwEntry entry)
@@ -1959,7 +1953,7 @@ namespace KeePassGate.Bridge
                 entry.Strings.ReadSafe(PwDefs.UrlField),
                 When(entry.CreationTime),
                 When(entry.LastModificationTime),
-                KdbxNodes.Of(entry),
+                KdbxNodes.Of(entry, _hold),
                 Guards(entry, PwDefs.TitleField),
                 Guards(entry, PwDefs.UrlField),
                 entry.Expires ? When(entry.ExpiryTime) : (DateTimeOffset?)null,

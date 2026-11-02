@@ -58,14 +58,7 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            var groups = vault.Groups();
-            if (groups == null)
-            {
-                Gone(context);
-                return;
-            }
-
-            Groups(context, groups);
+            Listed(context, vault.Held(() => Groups(context, vault.Groups())));
         }
 
         public static void ListSubgroups(IGateContext context)
@@ -76,14 +69,8 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            var groups = vault.Subgroups(Captured(context, "uuid"));
-            if (groups == null)
-            {
-                Gone(context);
-                return;
-            }
-
-            Groups(context, groups);
+            var uuid = Captured(context, "uuid");
+            Listed(context, vault.Held(() => Groups(context, vault.Subgroups(uuid))));
         }
 
         public static void ReadGroup(IGateContext context)
@@ -173,14 +160,7 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            var entries = vault.Entries();
-            if (entries == null)
-            {
-                Gone(context);
-                return;
-            }
-
-            Entries(context, entries, withExpired);
+            Listed(context, vault.Held(() => Entries(context, vault.Entries(), withExpired)));
         }
 
         public static void ListGroupEntries(IGateContext context)
@@ -198,14 +178,8 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            var entries = vault.Entries(Captured(context, "uuid"));
-            if (entries == null)
-            {
-                Gone(context);
-                return;
-            }
-
-            Entries(context, entries, withExpired);
+            var uuid = Captured(context, "uuid");
+            Listed(context, vault.Held(() => Entries(context, vault.Entries(uuid), withExpired)));
         }
 
         public static void ReadEntry(IGateContext context)
@@ -1101,8 +1075,34 @@ namespace KeePassGate.Pipeline
             return true;
         }
 
-        private static void Groups(IGateContext context, IReadOnlyList<VaultGroup> groups)
+        /// <summary>
+        /// Answers a listing, or that the node it was taken from has gone.
+        /// </summary>
+        /// <remarks>
+        /// **A listing is one read step**, `IVault.Held` around the sweep and the rules asked of
+        /// everything in it, so it is judged against the tree it was taken from and waits for one
+        /// turn on KeePass's thread rather than one an entry. What it writes is a string by then,
+        /// and the answer goes out with the thread let go.
+        /// </remarks>
+        private static void Listed(IGateContext context, string listing)
         {
+            if (listing == null)
+            {
+                Gone(context);
+                return;
+            }
+
+            context.Respond(200, listing);
+        }
+
+        /// <summary>The listing of these groups the client may see, or null when there are none to list.</summary>
+        private static string Groups(IGateContext context, IReadOnlyList<VaultGroup> groups)
+        {
+            if (groups == null)
+            {
+                return null;
+            }
+
             var json = new JsonWriter();
             json.Array("groups");
             var shown = 0;
@@ -1124,11 +1124,17 @@ namespace KeePassGate.Pipeline
             json.End();
             json.Number("count", shown);
 
-            context.Respond(200, json.Done());
+            return json.Done();
         }
 
-        private static void Entries(IGateContext context, IReadOnlyList<VaultEntry> entries, bool withExpired)
+        /// <summary>The listing of these entries the client may see, or null when there are none to list.</summary>
+        private static string Entries(IGateContext context, IReadOnlyList<VaultEntry> entries, bool withExpired)
         {
+            if (entries == null)
+            {
+                return null;
+            }
+
             var json = new JsonWriter();
             json.Array("entries");
             var shown = 0;
@@ -1176,7 +1182,7 @@ namespace KeePassGate.Pipeline
             json.End();
             json.Number("count", shown);
 
-            context.Respond(200, json.Done());
+            return json.Done();
         }
 
         /// <summary>

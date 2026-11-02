@@ -104,6 +104,12 @@ drives a desktop GUI on `windows-latest` and answers yes: the end to end tier ru
 runner, with no self-hosted machine and no container. It is a claim about somebody else's runner
 image, so it is kept runnable too.
 
+**How a read holds KeePass's thread still was measured on another.** `spikes/keepass-thread` holds
+the probes behind `DESIGN.md` §119's reads: what a read meets while KeePass changes the tree, what
+holding the thread costs, and which way of taking a turn leaves the operator's input and KeePass's
+timers alone. Each is a claim about KeePass or WinForms that a later release could make false, so
+they are kept runnable as well.
+
 ## Visibility
 
 **The secrecy rule is in [`CONVENTIONS.md`](CONVENTIONS.md)** and holds on every branch: write every
@@ -783,6 +789,14 @@ Run them from
   leaves it outdated and unresolved, and the ruleset wants every comment resolved. So
   `tools/suppression_review.py` deletes its own threads whose suppression is gone rather than ask
   for a token that may write to the repository; `spikes/codeql-suppressions` measured it.
+- **A read on a connection thread misses what KeePass's thread is moving, and cannot tell.** A
+  lookup of the last group in its list missed it 20,762 times in two million while the list was
+  changed on KeePass's thread, a sweep met a slot a removal had emptied and threw inside
+  KeePassLib, and asking `List<T>` for its version caught almost none of it, because the version
+  moves after the size. Holding KeePass's thread still for the read, in a turn of its own, missed
+  nothing. `KdbxVaultTests.A_read_meets_a_tree_standing_still_while_KeePass_changes_it`, and
+  `AclInRealDatabaseTests.A_walk_held_still_finds_a_seal_while_KeePass_rewrites_the_keys_around_it`
+  for the rules.
 - **A posted message goes ahead of the operator's input and of every timer.** Windows hands out a
   posted message before input and makes a timer's message only once nothing else is queued, and
   WinForms runs every queued `BeginInvoke` callback in one go. Thirty-two threads each posting a
@@ -794,7 +808,7 @@ Run them from
   merges, XML Replace and its export all pump through `DoEvents`, read off its IL. So a turn that
   starts only on Idle never starts inside one of KeePass's own operations, where a posted write was
   delivered and had to be refused. A loop that is not WinForms', a message box's, never raises Idle
-  either.
+  either, which is why a read also starts on a fallback timer and a write does not.
   `UiThreadTests.Work_waits_for_KeePass_s_thread_to_be_idle_and_never_starts_inside_DoEvents`.
 - **`dotnet test` with a filter that matches nothing exits 0**, having run nothing, and its trx
   counts nothing. A gate that believes the exit code is green over an empty run, so `build.ps1`

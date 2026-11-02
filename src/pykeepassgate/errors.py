@@ -172,8 +172,9 @@ class GateBusy(GateUnavailable):
     A dialog open on the group or entry being written is the usual reason: the plugin refuses a
     write that the dialog would take straight back off again when it is accepted. KeePass still part
     way through a save or an import after the half minute a write waits for it, and a save that
-    would stop to ask the operator something, are the others, and a read meets it when the database
-    kept changing while it was being read.
+    would stop to ask the operator something, are the others, and a read meets it when KeePass's own
+    thread could not be held still for it, which is KeePass busy with something it does not pause
+    in.
     """
 
     #: The word the gate sends with this refusal.
