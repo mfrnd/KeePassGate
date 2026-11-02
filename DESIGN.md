@@ -1757,6 +1757,18 @@ Each step is refusable, and each ends with something that runs.
     five, is answered `503 busy`, and so is a write under a message box, at once. One hold for each
     read step rather than one for each request, which is a ruling, and no retry: the read that was
     taken again when it threw goes, with the misses nothing could detect.
+    **Done.** Every read the gate makes of KeePass's objects off KeePass's thread holds that thread
+    still: the databases the gate serves, an admission record, each walk up the rules, and each of
+    the vault's reads, with a listing and the rules asked of everything in it as one hold. What
+    this settles is that the race is closed by holding rather than by marshaling, since a read
+    still runs on its own thread; that a turn starts on `Application.Idle` and never from a posted
+    message, because a posted hold goes ahead of input and timers and starved both under load; that
+    a read also starts on a slow fallback timer, because a loop that is not WinForms' never raises
+    Idle, while a write does not, which is what keeps it out of KeePass's own operations, every one
+    of which pumps through `DoEvents`; that a dialog of Windows' own is seen before a write is
+    queued, as a visible `#32770` window on KeePass's thread; and that work asked of KeePass's thread
+    by a thread holding it is a defect thrown at once, rather than a wait that would freeze the
+    window. The probes are on `spikes/keepass-thread`.
 
 Steps 5 to 8 are the ones that prove the design. Step 5 is deliberately early, because the
 `CustomData` dialog hazard is the thing most likely to invalidate the storage decision, and finding
