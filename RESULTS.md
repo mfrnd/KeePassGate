@@ -9,6 +9,11 @@ that opening KeePass's database settings with the plugin installed took KeePass'
 down. The ruling that the plugin is Windows only (R9) stands on measurement now rather than on the
 absence of one.
 
+**Measured again at step 35**, which moved every certificate operation to Bouncy Castle: no test
+fails on the plugin's certificate code any more, and both tiers pass far more, but the plugin no
+longer loads in KeePass on Mono, because step 33 added a `user32` call it makes at startup. "Again,
+at step 35" below has it.
+
 What does work is most of what does not touch a certificate or a window: the plugin loads, listens,
 watches KeePass's dialogs, writes and saves through KeePass, reads KeePass's internals the way it
 does on Windows, follows a lock, and the TLS itself, Bouncy Castle's, completes a mutual TLS 1.3
@@ -224,6 +229,105 @@ In the order the failures fall, and none of it is planned:
    with the end to end tier.
 
 The first is the large one. The client is unaffected throughout: it runs on CPython, not on Mono.
+
+## Again, at step 35
+
+Build-order step 35 took the first item of the list above: every certificate the plugin makes, every
+signature it makes with a stored key and the anchor pin go through Bouncy Castle, `X509Chain` and
+`CertificateRequest` left the plugin, and the tab icon lives as long as the image list holding it.
+The extended key usage and the dates are still read through `X509Certificate2`. The step ends with
+this measurement taken again against it.
+
+| | |
+| --- | --- |
+| The plugin | step 35 as reviewed: its units 1 to 4 on top of `master` at `f2a36af2`, step 33, the tree of `4cd39164` on its branch, built with `build.ps1 -Task Build -Configuration Release` in a checkout of its own |
+| Everything else | as the first run: the same WSL distribution, Mono, Xvfb, KeePass and `NUnitOnMono` |
+
+Everything is in `results/step35/`. The first attempt at each tier is kept beside the one counted,
+because how each ended is part of the result.
+
+### The plugin's tests
+
+| | ran | passed | failed | other |
+| --- | ---: | ---: | ---: | --- |
+| unit, first run | 2381 | 1164 | 1216 | 1 inconclusive |
+| unit, step 35 | 2401 | 2089 | 306 | 6 inconclusive |
+| host, first run | 515 | 306 | 205 | 3 inconclusive, 1 explicit |
+| host, step 35 | 517 | 467 | 43 | 6 inconclusive, 1 explicit |
+
+**No failure is the plugin's certificate code any more.** The two causes that were 1187 of the first
+run's failures, no `CertificateRequest` and no EC public key in `X509Certificate2`, are gone: the
+issuer, the stored form, the anchor pin, pairing, renewal, the responder and the locked gate all run
+under Mono now, as far as a test reaches them without a window of the plugin's own.
+`results/step35/causes.md` puts every failure down to one cause and leaves nothing over:
+
+| cause | whose | unit | host |
+| --- | --- | ---: | ---: |
+| `user32` called by the plugin | runtime | 69 | 2 |
+| `DataGridView` column auto sizing | runtime | 69 | 16 |
+| `user32` in the queue of turns (step 33) | runtime | 10 | |
+| no `Control.LogicalToDeviceUnits` | runtime | 21 | |
+| libgdiplus refuses a drawing parameter | runtime | | 9 |
+| `ToolTip` ignores right to left | runtime | 5 | |
+| WinForms accessibility and list layout | runtime | 4 | |
+| `Control.Scale` leaves `Padding` alone | runtime | 1 | 3 |
+| libgdiplus GIF encoding | runtime | | 2 |
+| a static field read across assemblies | runtime | 2 | |
+| a soft hyphen is not ignorable | runtime | 1 | 1 |
+| an open file can be moved | platform | 1 | |
+| *the tests' own:* `SslStream` without TLS 1.3 | tests | 54 | 2 |
+| *the tests' own:* `user32` | tests | 31 | 4 |
+| *the tests' own:* `WindowsIdentity` | tests | 20 | |
+| *the tests' own:* Windows paths | tests | 11 | |
+| *the tests' own:* Windows loading a stored key | tests | 4 | |
+| *the tests' own:* the local time zone moved | tests | 3 | |
+| *the tests' own:* UI Automation | tests | | 2 |
+| *the tests' own:* run outside a checkout | tests | | 2 |
+
+**What got further met what was behind it.** Tests that used to stop at issuance now reach the
+grant table, the plugin's windows and the plugin's own `user32` calls, which is why those causes
+grew, and reach two that were never met before:
+
+- **The tests' own `SslStream` offers no TLS 1.3 on Mono**, so every test whose client is
+  `GateClient` or `PairingClient` is refused in the handshake by a gate that speaks nothing older,
+  and sees no answer at all. The gate's side is Bouncy Castle and is unaffected: the `tls` probe of
+  the first run is the same handshake over Bouncy Castle on both sides, and it worked.
+- **Step 33's queue of turns asks `user32`.** It reads KeePass's thread with
+  `GetWindowThreadProcessId` on its first turn and walks that thread's windows with
+  `EnumThreadWindows`, `IsWindowVisible` and `GetClassName` before a write is queued, so on Mono no
+  turn starts and its caller hears nothing: ten tests, read off the code.
+
+**Mono crashed twice, in WinForms.** The first attempt at the unit tier ended in a segmentation fault
+inside `RenewalApprovalFormTests`, and so did a second at another of its tests; the third ran the
+whole tier through, that fixture included, and is the one counted (`unit-3.tsv`; the attempts are
+`unit.tsv` and `unit-2.tsv`). The first attempt at the host tier ended when Mono's X11 driver threw
+`NullReferenceException` out of its `FrameExtents` on the thread `UiLoop` runs a second
+message loop on, in `PluginLifecycleTests`; the second left that one test out and is the one counted
+(`host-2.tsv`; the attempt is `host.tsv`).
+
+### KeePass on Mono, with the plugin installed
+
+**The plugin does not load any more.** KeePass shows "The plugin cannot be loaded" with
+`GetWindowThreadProcessId` (`step35/keepass/1-start.png`), and the plugin's log has
+`UNEXPECTED initialization failed` from `ControlUiThread`'s constructor, which asks that function
+for KeePass's thread when the plugin starts. Step 33 added it, after the first run, where the plugin
+loaded, listened and put its tab on the dialogs. KeePass itself carries on without the plugin
+(`2-after-ok.png`). So nothing after loading could be driven here, the authority this step made
+possible on Mono included: in KeePass on Mono, the first wall is now step 33's.
+
+### What running on Mono would take now
+
+1. **Done by step 35**: every certificate operation through Bouncy Castle, and the icon kept as long
+   as its list.
+2. **The `user32` calls kept to Windows**, which is ten now: the six the first run named, and step
+   33's four, the first of which stops the plugin loading.
+3. **The other WinForms differences worked around**: the grant table's columns,
+   `LogicalToDeviceUnits`, a page's padding scaled by hand, and the three met for the first time
+   here, a drawing parameter libgdiplus refuses, a row's accessible description and a list that
+   grows where it should scroll.
+4. **The tests' own clients moved off `SslStream`**, onto the Bouncy Castle client the tests already
+   have, for a test tier to mean anything on Mono.
+5. **A Mono tier to keep it so**, as before.
 
 ## What is not measured
 
