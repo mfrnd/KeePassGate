@@ -400,6 +400,33 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void The_picture_lives_as_long_as_the_list_that_shows_it()
+        {
+            // Mono's image list keeps the picture and reads it when the tab is first drawn, which
+            // Windows' never needed, so a picture disposed as soon as the list had it was one Mono
+            // could not draw. A disposed GDI+ image answers its size with `ArgumentException`.
+            using (var form = Dialogs.WithNestedTabControl("General"))
+            {
+                System.Drawing.Image made = null;
+                var injector = new TabPageInjector(
+                    _panels,
+                    _log,
+                    KeePassContract.DatabaseSettingsTabControlName,
+                    GateTab.Text,
+                    GateTab.PageControlName,
+                    () => made = new System.Drawing.Bitmap(16, 16));
+
+                Assert.That(injector.Attach(form), Is.True);
+                Assert.That(made, Is.Not.Null);
+                Assert.That(() => made.Width, Throws.Nothing, "still there while the tab can be drawn");
+
+                injector.DetachAll();
+
+                Assert.That(() => made.Width, Throws.ArgumentException, "and let go with the list");
+            }
+        }
+
+        [Test]
         public void A_dialog_with_no_icon_to_offer_still_gets_its_tab()
         {
             // Which is every test of this, and every KeePass with no main window to read icons off.

@@ -307,7 +307,9 @@ designing around them.
   because each copy is handed to a menu or an image list that disposes it. **A tab strip shows
   pictures only if the whole control has an `ImageList`**, and none of the three dialogs brings one,
   so `TabPageInjector` gives it one and takes it away again on detach: that makes every tab on
-  those dialogs a little taller, which WinForms offers no way around. `GateIconTests` pins both the
+  those dialogs a little taller, which WinForms offers no way around. **The tab's copy lives as long
+  as that list** and is disposed after it, because Mono's list reads the picture only when the tab
+  is first drawn, where Windows copies it at `Images.Add`. `GateIconTests` pins both the
   icon's identity and the fact that KeePass brings no list of its own, because a KeePass that
   started putting icons on its own tabs would have us appending to somebody else's list.
 

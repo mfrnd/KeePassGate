@@ -359,34 +359,40 @@ namespace KeePassGate.Ui
                     return;
                 }
 
-                // Disposed here, because `ImageList.Images.Add` copies the picture into the
-                // native list and leaves the original ours: dropping the reference instead left
-                // one GDI+ bitmap and its handle for the garbage collector to release, every
-                // time the user opened the dialog, inside the password manager's own process.
-                using (var picture = _icon())
+                // Kept until `StripIcon`, which disposes it after the list, rather than disposed
+                // as soon as the list has it. Windows copies the picture into the native list at
+                // `Images.Add`, so there it could go at once, and it did: dropping the reference
+                // instead had left one GDI+ bitmap and its handle for the garbage collector, every
+                // time the dialog opened, inside the password manager's own process. Mono's list
+                // keeps the picture itself and reads it only when the tab is first drawn, which is
+                // after this returns, so a picture disposed here is one Mono cannot draw,
+                // `spikes/mono-compatibility`.
+                var picture = _icon();
+                if (picture == null)
                 {
-                    if (picture == null)
-                    {
-                        return;
-                    }
-
-                    var ours = new ImageList
-                    {
-                        ColorDepth = ColorDepth.Depth32Bit,
-                        ImageSize = new Size(picture.Width, picture.Height)
-                    };
-
-                    // Recorded before anything that can fail, so that detaching disposes it
-                    // whatever happens next. Handing it to the control is what can throw: the
-                    // setter keeps the list and then makes its native handle, and recorded after
-                    // that, a throw there left the list on KeePass's control with nothing that
-                    // would ever take it off or let it go. `StripIcon` takes it off the control
-                    // only when the control still holds it.
-                    attachment.Icons = ours;
-                    ours.Images.Add(picture);
-                    attachment.TabControl.ImageList = ours;
-                    attachment.Page.ImageIndex = 0;
+                    return;
                 }
+
+                // Recorded before anything that can fail, as the list is below, so that detaching
+                // disposes it whatever happens next.
+                attachment.Picture = picture;
+
+                var ours = new ImageList
+                {
+                    ColorDepth = ColorDepth.Depth32Bit,
+                    ImageSize = new Size(picture.Width, picture.Height)
+                };
+
+                // Recorded before anything that can fail, so that detaching disposes it whatever
+                // happens next. Handing it to the control is what can throw: the setter keeps the
+                // list and then makes its native handle, and recorded after that, a throw there
+                // left the list on KeePass's control with nothing that would ever take it off or
+                // let it go. `StripIcon` takes it off the control only when the control still
+                // holds it.
+                attachment.Icons = ours;
+                ours.Images.Add(picture);
+                attachment.TabControl.ImageList = ours;
+                attachment.Page.ImageIndex = 0;
             }
             catch (Exception error) when (Expected.OfUserInterface(error))
             {
@@ -399,28 +405,35 @@ namespace KeePassGate.Ui
         private void StripIcon(Attachment attachment)
         {
             var ours = attachment.Icons;
-            if (ours == null)
-            {
-                return;
-            }
-
+            var picture = attachment.Picture;
             attachment.Icons = null;
-            try
+            attachment.Picture = null;
+
+            if (ours != null)
             {
-                // Only if the control is still holding ours. Something else may have put its
-                // own list there since the attach, and taking that away would be this plugin
-                // doing to another plugin exactly what the rule above says it must not do.
-                if (ReferenceEquals(attachment.TabControl.ImageList, ours))
+                try
                 {
-                    attachment.TabControl.ImageList = null;
+                    // Only if the control is still holding ours. Something else may have put its
+                    // own list there since the attach, and taking that away would be this plugin
+                    // doing to another plugin exactly what the rule above says it must not do.
+                    if (ReferenceEquals(attachment.TabControl.ImageList, ours))
+                    {
+                        attachment.TabControl.ImageList = null;
+                    }
                 }
-            }
-            catch (Exception error) when (Expected.OfUserInterface(error))
-            {
-                _log.Error("could not give the image list back on " + Describe(attachment.Form), error);
+                catch (Exception error) when (Expected.OfUserInterface(error))
+                {
+                    _log.Error("could not give the image list back on " + Describe(attachment.Form), error);
+                }
+
+                ours.Dispose();
             }
 
-            ours.Dispose();
+            // After the list, which is the last thing that could have drawn it.
+            if (picture != null)
+            {
+                picture.Dispose();
+            }
         }
 
         private void Release(Attachment attachment)
@@ -475,6 +488,9 @@ namespace KeePassGate.Ui
 
             /// <summary>The image list this injector gave the control, or null if it had one.</summary>
             public ImageList Icons { get; set; }
+
+            /// <summary>The picture in that list, which lives exactly as long as the list.</summary>
+            public Image Picture { get; set; }
 
             public void Subscribe(FormClosedEventHandler handler)
             {
