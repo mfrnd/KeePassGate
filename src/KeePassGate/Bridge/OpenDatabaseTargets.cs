@@ -159,7 +159,7 @@ namespace KeePassGate.Bridge
 
                 try
                 {
-                    foreach (var cached in open.Select(TargetFor).Where(cached => cached != null))
+                    foreach (var cached in open.Select(TargetOrNone).Where(cached => cached != null))
                     {
                         // One reference per caller, taken while the cache still holds its own,
                         // so that nothing can release the material between here and the
@@ -692,6 +692,32 @@ namespace KeePassGate.Bridge
                 cached.Dispose();
                 _cache.Remove(database);
                 _log.Info("stopped serving a database that is no longer open");
+            }
+        }
+
+        /// <summary>
+        /// <see cref="TargetFor"/>, with a failure to read one database's authorities logged and
+        /// that database left unserved, rather than ending the read of every other one.
+        /// </summary>
+        /// <remarks>
+        /// **What one database holds is that database's business.** A design in which a `.kdbx`
+        /// somebody crafted vouches only for itself is one in which it cannot stop the others
+        /// being served either, and a throw from here did: it left `Current` for every open
+        /// database at once, so the resolver answered nothing to anybody, an unlock never got as
+        /// far as closing its connections, and no responder was made for a healthy database. What
+        /// is named is what reading custom data and certificates raises, `Expected.OfCustomData`
+        /// and `OfCryptography`; anything else is a defect, and travels.
+        /// </remarks>
+        private CachedTarget TargetOrNone(PwDatabase database)
+        {
+            try
+            {
+                return TargetFor(database);
+            }
+            catch (Exception error) when (Expected.OfCustomData(error) || Expected.OfCryptography(error))
+            {
+                _log.Error("a database's authorities could not be read, so it is not served", error);
+                return null;
             }
         }
 
