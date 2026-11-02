@@ -1,4 +1,6 @@
 using System;
+using System.Globalization;
+using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Windows.Forms;
@@ -6,6 +8,8 @@ using KeePass.Forms;
 using KeePass.Plugins;
 using KeePass.UI;
 using KeePassGate.Ui;
+using KeePassLib.Collections;
+using KeePassLib.Security;
 using NUnit.Framework;
 
 namespace KeePassGate.Host.Tests
@@ -624,6 +628,60 @@ namespace KeePassGate.Host.Tests
             Assert.That(closing.PropertyType, Is.EqualTo(typeof(KeePassLib.Serialization.IOConnectionInfo)));
             Assert.That(flags, Is.Not.Null, "a lock and a close arrive on the same event and differ by this");
             Assert.That(flags.PropertyType, Is.EqualTo(typeof(FileEventFlags)));
+        }
+
+        [Test]
+        public void A_dictionary_still_finds_a_key_only_in_the_culture_it_was_sorted_in()
+        {
+            // Why `GateListener` serves every connection in KeePass's culture. Custom data, an
+            // entry's strings and its attachments are each sorted under the default comparer,
+            // which collates in the culture of the thread asking, so what KeePass's thread put in
+            // under its translation's culture is searched on a pool thread in the regional
+            // format's order. Danish sorts `aa` after `z` and English sorts it before `b`: three
+            // keys put in in Danish order leave the `aa` one to the right of the tree's root, and
+            // English goes left to look for it. Listing finds it either way, since a walk compares
+            // nothing. A KeePass whose dictionaries compared byte for byte would fail this, and the
+            // culture the listener carries would then be protecting nothing.
+            var danish = CultureInfo.GetCultureInfo("da-DK");
+            var english = CultureInfo.GetCultureInfo("en-US");
+            var thread = Thread.CurrentThread;
+            var own = thread.CurrentCulture;
+
+            try
+            {
+                thread.CurrentCulture = danish;
+                var data = new StringDictionaryEx();
+                var strings = new ProtectedStringDictionary();
+                var binaries = new ProtectedBinaryDictionary();
+
+                foreach (var key in new[] { "KPG.Client.b0", "KPG.Client.c0", "KPG.Client.aa0" })
+                {
+                    data.Set(key, "a record");
+                }
+
+                foreach (var name in new[] { "Bank", "Code", "Aa note" })
+                {
+                    strings.Set(name, new ProtectedString(false, "a value"));
+                    binaries.Set(name, new ProtectedBinary(false, new byte[] { 1 }));
+                }
+
+                thread.CurrentCulture = english;
+                Assert.That(data.Get("KPG.Client.aa0"), Is.Null, "custom data is looked up in the asker's culture");
+                Assert.That(strings.Get("Aa note"), Is.Null, "and so are an entry's strings");
+                Assert.That(binaries.Get("Aa note"), Is.Null, "and its attachments");
+                Assert.That(data.Select(pair => pair.Key), Does.Contain("KPG.Client.aa0"),
+                    "while a listing still finds the key the lookup missed");
+
+                thread.CurrentCulture = danish;
+                Assert.That(data.Get("KPG.Client.aa0"), Is.EqualTo("a record"),
+                    "and the culture the tree was sorted in finds it");
+                Assert.That(strings.Get("Aa note"), Is.Not.Null);
+                Assert.That(binaries.Get("Aa note"), Is.Not.Null);
+            }
+            finally
+            {
+                thread.CurrentCulture = own;
+            }
         }
 
         [Test]
