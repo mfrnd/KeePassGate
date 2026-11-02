@@ -475,6 +475,43 @@ namespace KeePassGate.Tests
             Assert.That(CertifiedKey.From(crafted), Is.Null);
         }
 
+        [TestCase(true, 1)]
+        [TestCase(true, 0)]
+        [TestCase(false, 1)]
+        [TestCase(false, 0)]
+        public void An_attribute_of_fewer_than_two_parts_is_nothing_rather_than_an_exception(bool onTheKey, int parts)
+        {
+            // Bouncy Castle's store indexes an attribute's values without counting its parts, and
+            // threw `IndexOutOfRangeException` for either, past every filter that reads a stored
+            // authority.
+            var attributes = new DerSet(parts == 1 ? new DerSequence(PkcsObjectIdentifiers.Pkcs9AtFriendlyName) : new DerSequence());
+            var key = KeyBag(_host.PrivateKey);
+            var certificate = CertificateBag(_host.Certificate);
+            if (onTheKey)
+            {
+                key = With(key, attributes);
+            }
+            else
+            {
+                certificate = With(certificate, attributes);
+            }
+
+            Assert.That(CertifiedKey.From(Pkcs12(Written, Plain(key), Sealed(Written, certificate))), Is.Null);
+        }
+
+        [Test]
+        public void An_attribute_this_plugin_never_writes_is_left_for_Bouncy_Castle_to_read()
+        {
+            // Windows named its key storage provider in an attribute of its own, so a stored blob
+            // may carry one, and holding attributes to their shape refuses none of those.
+            var provider = new DerSet(new DerSequence(
+                new DerObjectIdentifier("1.3.6.1.4.1.311.17.1"),
+                new DerSet(new DerBmpString("Microsoft Software Key Storage Provider"))));
+            var key = With(KeyBag(_host.PrivateKey), provider);
+
+            Assert.That(CertifiedKey.From(Pkcs12(Written, Plain(key), Sealed(Written, CertificateBag(_host.Certificate)))), Is.Not.Null);
+        }
+
         [Test]
         public void The_constructor_refuses_a_missing_certificate_or_key()
         {
@@ -605,6 +642,12 @@ namespace KeePassGate.Tests
         private static SafeBag Shrouded(AlgorithmIdentifier algorithm, byte[] contents)
         {
             return new SafeBag(PkcsObjectIdentifiers.Pkcs8ShroudedKeyBag, new EncryptedPrivateKeyInfo(algorithm, contents).ToAsn1Object());
+        }
+
+        /// <summary>The bag given, carrying the attributes given.</summary>
+        private static SafeBag With(SafeBag bag, Asn1Set attributes)
+        {
+            return new SafeBag(bag.BagID, bag.BagValue.ToAsn1Object(), attributes);
         }
 
         private static SafeBag CertificateBag(Org.BouncyCastle.X509.X509Certificate certificate)

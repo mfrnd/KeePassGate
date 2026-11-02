@@ -365,7 +365,7 @@ namespace KeePassGate.Authority
                 var contents = Asn1Sequence.GetInstance(Asn1Object.FromByteArray(inside));
                 foreach (var bag in contents.Select(element => SafeBag.GetInstance(element)))
                 {
-                    if (++bags > MostBags)
+                    if (++bags > MostBags || !HasAttributesOfTheirShape(bag))
                     {
                         return false;
                     }
@@ -389,6 +389,30 @@ namespace KeePassGate.Authority
             // One key bag and no more. Bouncy Castle keeps every key it reads, and two under one
             // name keep only the last, so a second key is refused here rather than counted after.
             return keys <= 1;
+        }
+
+        /// <summary>
+        /// Whether every attribute a bag carries is an identifier and a set of values, which is the
+        /// one shape RFC 7292 gives an attribute and the one this plugin and Windows both wrote.
+        /// </summary>
+        /// <remarks>
+        /// **Asked because Bouncy Castle's store indexes an attribute without counting it.** One of
+        /// a single element, or of none, threw `IndexOutOfRangeException` from inside `Load`, on a
+        /// key bag and a certificate bag alike, and no reader of a stored authority names that
+        /// type. Every other shape an attribute was measured in, a value of the wrong type, a set
+        /// left empty, an attribute written twice and an identifier this plugin never writes among
+        /// them, is answered by Bouncy Castle itself, as a refusal or as a reading.
+        /// </remarks>
+        private static bool HasAttributesOfTheirShape(SafeBag bag)
+        {
+            return bag.BagAttributes == null || bag.BagAttributes.All(IsAttribute);
+        }
+
+        private static bool IsAttribute(Asn1Encodable element)
+        {
+            var attribute = element as Asn1Sequence;
+            return attribute != null && attribute.Count == 2
+                   && attribute[0] is DerObjectIdentifier && attribute[1] is Asn1Set;
         }
 
         /// <summary>
