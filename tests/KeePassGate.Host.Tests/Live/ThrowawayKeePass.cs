@@ -875,8 +875,8 @@ namespace KeePassGate.Host.Tests.Live
             using (var reading = ReadAuthority(path))
             {
                 // With a key container, because the client in these tests is an SslStream and
-                // SChannel will not present an ephemeral key. The plugin itself never hands
-                // Windows a key at all.
+                // SChannel will not present an ephemeral key. No key the plugin itself holds is
+                // ever handed to Windows.
                 return new AuthorityIssuer().IssueClient(reading.Material.AuthorityKey, subject, null).WithKeyFile();
             }
         }

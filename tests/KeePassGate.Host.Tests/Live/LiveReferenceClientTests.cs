@@ -20,7 +20,7 @@ namespace KeePassGate.Host.Tests.Live
     /// **The only place the two halves meet.** Every other tier runs PyKeePassGate against a
     /// stand-in, a vector or the document, and the pairing test beside this one pairs with the C# client
     /// in `tests/Shared`. So three things are held here and nowhere else: the identity the plugin
-    /// exports with .NET Framework's PKCS#12 and the client reads with `cryptography`, the TLS 1.3
+    /// writes with Bouncy Castle's PKCS#12 and the client reads with `cryptography`, the TLS 1.3
     /// handshake between Bouncy Castle's server and Python's `ssl`, and the plugin's framing under
     /// the client's reader. And three of the client's answers are held against the plugin's own:
     /// the admission key it works out from its certificate is the one the gate names it by, a
@@ -228,7 +228,7 @@ namespace KeePassGate.Host.Tests.Live
         [Test]
         public void The_identity_the_plugin_exported_is_one_the_client_can_read()
         {
-            // The PKCS#12 half, which no other tier holds: written by .NET Framework's export and
+            // The PKCS#12 half, which no other tier holds: written by Bouncy Castle's writer and
             // read by `cryptography`, then converted to the PEM `ssl` loads.
             Assert.That(File.Exists(Paths.Join(_identity, "identity.pem")), Is.True, _paired.ToString());
             Assert.That(File.Exists(Paths.Join(_identity, "client.json")), Is.True, _paired.ToString());

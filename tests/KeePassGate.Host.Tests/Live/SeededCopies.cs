@@ -21,7 +21,9 @@ namespace KeePassGate.Host.Tests.Live
     /// clients, one of which the audit here saw last on the date below; the other copy recreated a
     /// week later and paired one client of its own. Minted by the plugin's own `AuthorityIssuer`
     /// with its clock fixed to those moments, which is why each certificate starts five minutes
-    /// before the moment it was issued, as every certificate the plugin issues does.
+    /// before the moment it was issued, as every certificate the plugin issues does. That was
+    /// while Windows issued for it, so these names are written as Windows wrote them, like
+    /// `SeededAuthority`'s.
     ///
     /// **Throwaway key material over a database of invented content**, like the rest of this
     /// fixture: it guards nothing and signs for nobody.

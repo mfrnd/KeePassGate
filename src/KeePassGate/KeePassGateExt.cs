@@ -651,7 +651,7 @@ namespace KeePassGate
                 {
                     // Disposing these is what drops the host certificates. Nothing comes off
                     // the disk, because nothing was put there: no key this plugin holds is ever
-                    // handed to Windows, and `CertifiedKey` says why.
+                    // handed to Windows, and `CertifiedKey` gives the reason.
                     _targets.Dispose();
                     _targets = null;
                 }

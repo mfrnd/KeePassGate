@@ -235,10 +235,10 @@ namespace KeePassGate.Bridge
         /// <remarks>
         /// The authority and the host certificate are inside the `AuthorityReading` this disposes,
         /// which overwrites the stored PKCS#12 and releases the handles of both certificates. Their
-        /// keys are not overwritten, and neither is the key the TLS server signs with, which is
-        /// the host's `CertifiedKey` on the target: each goes when the last reference to it does,
-        /// which is all that happens to it, because a BouncyCastle key is an immutable
-        /// `BigInteger`. `CA.md` §208 says what that is and is not worth. The
+        /// two keys, the authority's, which issues, and the host's, which the TLS server signs
+        /// with, are not overwritten: each goes when the last reference to it does, which is all
+        /// that happens to it, because a BouncyCastle key is an immutable `BigInteger`. `CA.md`
+        /// §208 is where what that is and is not worth is set down. The
         /// admission records were never here to drop: they are read from the live database on every
         /// connection, and locking cuts them off by closing the database rather than by clearing
         /// anything. The gate key is copied out before the material goes, because disposing it
@@ -479,8 +479,10 @@ namespace KeePassGate.Bridge
         /// KeePass that is merely locked, which is exactly the case the responder exists to remove.
         /// `PAIRING.md` §308 is where the mint at unlock is named, and it is this one.
         ///
-        /// It costs one key pair and one signature on the user interface thread, at a moment when
-        /// KeePass is already opening a database.
+        /// It costs one key pair, one signature, and a write and a read back of the stored form
+        /// with the key checked against the certificate, on the user interface thread, at a moment
+        /// when KeePass is already opening a database: a few milliseconds, and the first in a
+        /// process some tens of them.
         ///
         /// **It answers whether a lock was lifted, and nothing else.** A database being opened for
         /// the first time can have been read already, by a connection that got there before the

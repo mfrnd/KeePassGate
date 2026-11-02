@@ -313,9 +313,9 @@ class TestPinning:
     def test_a_certificate_from_a_foreign_authority_fails_the_handshake(
         self, gate: FakeGate, tmp_path: Path, client_certificate: Issued
     ) -> None:
-        # The plugin's side of this needed the chain's last element compared byte for byte, because
-        # the platform's chain builder accepts a foreign anchor from its extra store. Here the trust
-        # store holds one certificate and nothing else, so the handshake is where it ends.
+        # The plugin's side of this checks the anchor's bytes and its signature itself, `AnchorPin`,
+        # and answers a foreign client certificate `401` after the handshake. Here the trust store
+        # holds one certificate and nothing else, so the handshake is where it ends.
         stranger = Authority(tmp_path / "stranger")
         context = transport.paired_context(stranger.pem, client_certificate.pem)
 

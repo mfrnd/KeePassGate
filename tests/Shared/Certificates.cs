@@ -4,18 +4,19 @@ using KeePassGate.Authority;
 namespace KeePassGate.Testing
 {
     /// <summary>
-    /// A certificate the plugin issued, in the two forms Windows takes it in, for the tests that
-    /// hand one to something of Windows'.
+    /// A certificate the plugin issued, in the two forms most tests hand Windows: without its key,
+    /// to read, and with a key file, for an `SslStream` client.
     /// </summary>
     /// <remarks>
     /// In `tests/Shared` because both tiers do it, for the reason <see cref="PrivateKeyFiles"/>
-    /// gives.
+    /// gives. A test asking what Windows makes of the stored form itself loads the PKCS#12 under
+    /// `EphemeralKeySet` where it asks, rather than through here.
     /// </remarks>
     internal static class Certificates
     {
         /// <summary>
-        /// Windows's reading of the certificate, without its key, which is the only form the
-        /// plugin itself ever gives Windows. For the caller to dispose.
+        /// Windows's reading of the certificate, without its key, which is the only form in which
+        /// the plugin gives Windows a certificate whose key it holds. For the caller to dispose.
         /// </summary>
         public static X509Certificate2 Read(this CertifiedKey certified)
         {

@@ -533,11 +533,11 @@ namespace KeePassGate.Authority
         /// derive: a certificate that will not load stops every check that needs it, and an
         /// exception stops every check after it. So the gate key, at a length ten digits wide;
         /// then the digest the authority is filed under, which needs the authority; then one about
-        /// the host, which needs both certificates: its chain could not be judged, or judging it
-        /// threw. The second is the one given, because the tab cuts a problem at `Clipped.Limit`
-        /// and a thrown message long enough to be cut is never shorter than the sentence it stands
-        /// in for. A document with parts missing, or one that will not read at all, stops at
-        /// shorter sentences than these.
+        /// the pair, which needs both certificates: the host was not issued by this authority, or
+        /// reading the pair threw. The second is the one given, because the tab cuts a problem at
+        /// `Clipped.Limit` and a thrown message long enough to be cut is never shorter than the
+        /// sentence it stands in for. A document with parts missing, or one that will not read at
+        /// all, stops at shorter sentences than these, the host that will not load among them.
         /// </remarks>
         internal static IReadOnlyList<string> LongestProblems(string thrown)
         {

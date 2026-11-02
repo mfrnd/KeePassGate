@@ -44,7 +44,7 @@ namespace KeePassGate.Tests
         {
             // A SHA-1 MAC and both bags under three-key triple DES, which is what a database
             // already holds. The certificate's bag is the one that would have changed: Bouncy
-            // Castle's own choice is RC2 with a forty-bit key, which OpenSSL 3 reads only through
+            // Castle's own choice is RC2 with a forty-bit key, which OpenSSL reads only through
             // its legacy provider, so wherever that provider is not loaded the client's
             // `cryptography` would have refused the identity.
             //
@@ -164,7 +164,7 @@ namespace KeePassGate.Tests
         {
             // Measured: importing a PKCS#12 without EphemeralKeySet writes a key file into the
             // user's profile, which would put a key outside the database that is meant to be the
-            // only place it lives. Nothing the plugin loads hands Windows a key at all now, and
+            // only place it lives. No key this plugin holds is handed to Windows at all now, and
             // keeping one off the disk is what decided the transport, `CA.md` §222: an ephemeral
             // key cannot be used with SChannel at all, so the platform's own TLS would have meant a
             // host key on the disk.

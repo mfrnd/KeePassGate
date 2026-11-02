@@ -470,7 +470,7 @@ namespace KeePassGate.Tests
             using (var foreign = new AuthorityIssuer(() => Now).CreateAuthority().Read())
             {
                 Assert.That(AnchorPin.Chains(host, _authority), Is.True);
-                Assert.That(AnchorPin.Chains(host, foreign), Is.False, "The anchor is pinned by its bytes, not by trust.");
+                Assert.That(AnchorPin.Chains(host, foreign), Is.False, "Refused by its signature: every authority shares our name.");
             }
         }
 

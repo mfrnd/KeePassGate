@@ -794,7 +794,7 @@ namespace KeePassGate.Tests
             return new X509Certificate2(certificate.GetEncoded());
         }
 
-        /// <summary>Every value in a name as a PrintableString, which is how Windows wrote this plugin's names.</summary>
+        /// <summary>Every value in a name as a PrintableString, which is how Windows wrote this plugin's authority name.</summary>
         private sealed class PrintableNames : X509NameEntryConverter
         {
             public override Asn1Object GetConvertedValue(DerObjectIdentifier oid, string value)

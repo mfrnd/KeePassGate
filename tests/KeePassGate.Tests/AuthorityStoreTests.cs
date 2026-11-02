@@ -326,11 +326,12 @@ namespace KeePassGate.Tests
         [Test]
         public void Letting_the_material_go_overwrites_the_two_secrets_that_can_be_overwritten()
         {
-            // What `CA.md` §208 means by the normal host key being let go at lock. Two of the
-            // three really are erased, and this is the pair: the gate key and the stored PKCS#12
-            // the host certificate and its key travel in. The key the TLS server signs with is
-            // neither of these and cannot be erased at all, which is why the section says
-            // dereferenced rather than zeroed and why this test does not claim otherwise.
+            // What `CA.md` §208 means by the normal host key being let go at lock. Two of the parts
+            // really are erased, and this is the pair: the gate key and the stored PKCS#12 the
+            // host certificate and its key travel in. The keys are neither of those, the host's,
+            // which the TLS server signs with, and the authority's, which issues, and neither can
+            // be erased at all, which is why the section has them dereferenced rather than zeroed and
+            // why this test does not claim otherwise.
             Write();
 
             // Declared outside the `using`, because what is asserted is what it leaves behind.

@@ -9,7 +9,8 @@
 Reference for how KeePassGate issues, presents, validates and withdraws identity.
 [`DESIGN.md`](DESIGN.md) says how it fits the rest, [`PAIRING.md`](PAIRING.md) covers the flow that
 gets a stranger admitted, and `spikes/tls-and-certificates` holds the code behind every measurement
-quoted here.
+quoted here but one: the `caIssuers` download of §214, which a test of the pin measured while it
+built a chain.
 
 **The one sentence.** Every database carries its own certificate authority inside itself, so pairing
 a client means issuing it a certificate that only that database will ever honor.
@@ -72,14 +73,20 @@ the file already holds every secret the authority protects.
 | --- | --- |
 | Key | ECDSA P-256 |
 | Signature | SHA-256 with ECDSA |
-| Authority certificate | 394 bytes |
-| Leaf certificate | 436 bytes for the host, and a few dozen more for the responder's marker or a client's claims |
-| Serial | 16 random bytes, high bit cleared so the INTEGER encodes positive |
+| Authority certificate | about 393 bytes, and about 384 for one written while Windows issued these |
+| Leaf certificate | about 436 bytes for the host, and a few dozen more for the responder's marker or a client's claims |
+| Serial | 16 random bytes, high bit cleared so the INTEGER encodes positive; an authority written while Windows issued these carries the 8 that `CertificateRequest.CreateSelfSigned` chose |
+
+Each size moves by a few bytes from one certificate to the next, because an ECDSA signature is two
+integers and each is a byte longer when its top bit is set: over three hundred authorities the
+figure was 392, 393 or 394, and over three hundred hosts 434 to 437.
 
 **Bouncy Castle issues every certificate here**, and signs with the authority's key as it reads that
-key out of the stored PKCS#12 itself, so no key this plugin holds is ever handed to Windows. Windows
-is given certificates to read and nothing else. The rest of the cryptography is Bouncy Castle's
-too: it terminates the TLS, `DESIGN.md` §133, and it is the fixed-time comparison every
+key out of the stored PKCS#12 itself, so no key this plugin holds is ever handed to Windows. Of
+what the plugin holds, Windows is given certificates to read and nothing else. The one thing
+Windows parses that could hold a key is an admission record's certificate, bytes a database chose,
+and those it is handed under `EphemeralKeySet`, §222. The rest of the cryptography is Bouncy
+Castle's too: it terminates the TLS, `DESIGN.md` §133, and it is the fixed-time comparison every
 certificate's bytes go through, §214, which .NET Framework does not have.
 
 **Names are written as UTF8String**, which holds an underscore where PrintableString cannot:
@@ -283,17 +290,20 @@ a passphrase here would be cryptography written by us over cryptography that alr
 key is base64 of the 32 raw bytes. Sizes are unremarkable: roughly 1.4 KB of base64 for the
 authority.
 
-**The algorithms are the ones Windows wrote**, measured rather than remembered: a SHA-1 MAC, and
-the key and the certificate each under `pbeWithSHAAnd3-KeyTripleDES-CBC`. The rest of the shape
-differs, and nothing reads the difference. Bouncy Castle iterates 1024 times where Windows did
-2000, writes the MAC's digest with NULL parameters where Windows wrote none, and names the key
-`KeePassGate` where Windows named its key storage provider. So an authority Windows wrote and one
-Bouncy Castle wrote differ in those three, and Windows, Bouncy Castle and the client's
-`cryptography` each read both. The certificate's algorithm is the one that had to be asked for,
+**The algorithms are the ones Windows wrote**, measured rather than remembered: a SHA-1 MAC, and the
+key and the certificate each under `pbeWithSHAAnd3-KeyTripleDES-CBC`. The rest of the shape differs,
+and nothing reads the difference. Bouncy Castle iterates 1024 times where Windows did 2000, writes
+the MAC's digest with NULL parameters where Windows wrote none, and names the key `KeePassGate`
+where Windows named its key storage provider. So an authority Windows wrote and one Bouncy Castle
+wrote differ in those three, and Windows, Bouncy Castle and the client's `cryptography` each read
+both. So does a replica still running 0.1.0, which loads what this release writes through Windows
+with its key, as it loaded its own, and signs with it, `CertificateBlobTests`. It is written as DER,
+because Bouncy Castle's own is BER with lengths left open, which `cryptography` reads only through a
+fallback it warns is deprecated. The certificate's algorithm is the one that had to be asked for,
 because Bouncy Castle's own is RC2 with a forty-bit key, which OpenSSL keeps in its legacy provider
-only. `cryptography`'s wheels load that provider unless `CRYPTOGRAPHY_OPENSSL_NO_LEGACY` is set,
-so with that variable set, or on an OpenSSL built without the provider, the client could not have
-read the identity a pairing hands it, where triple DES reads everywhere.
+only. `cryptography`'s wheels load that provider unless `CRYPTOGRAPHY_OPENSSL_NO_LEGACY` is set, so
+with that variable set, or on an OpenSSL built without the provider, the client could not have read
+the identity a pairing hands it, where triple DES reads everywhere.
 
 **Nothing here is ever written to the disk, and that is what decided the transport.** Importing a
 PKCS#12 on .NET Framework writes a key file into `%APPDATA%\Microsoft\Crypto\Keys` for as long as
@@ -412,10 +422,10 @@ without anybody having to remember to revoke it.
 
 **A hundred years for the authority and its host certificate, and nothing counts down to it.** What
 was asked for was no expiry at all, RFC 5280's `99991231235959Z`, with a hundred years if that
-turned out not to be fully supported, and it is not: the issuer writes the end of year 9999 as
-the RFC asks, and `X509Certificate2.NotAfter` reads it back as an earlier moment in any time
-zone ahead of UTC, without saying so. A hundred years is read exactly everywhere it is read,
-`LongLivedCertificateTests`. The two are issued together and end together, because a host
+turned out not to be fully supported, and it is not: Bouncy Castle writes the end of year 9999 as
+the RFC asks when asked to, and `X509Certificate2.NotAfter` reads it back as an earlier moment in
+any time zone ahead of UTC, with nothing to show it. A hundred years is read exactly everywhere it
+is read, `LongLivedCertificateTests`. The two are issued together and end together, because a host
 certificate that ran out first, five years into an authority's ten, was an outage every client met
 at once with nothing to reissue it. A shorter life protects nothing here: the host key is kept in
 the same document as the authority's and cannot leak without it, and a client pins the authority
@@ -876,9 +886,10 @@ Recorded because a reader seeing only this version will not know which parts wer
 | Signing requests accepted | the issuer generates the key and every extension | a request carries extensions, and copying them lets a client choose its own claims |
 | No `keyUsage`, SKI, AKI or `pathLen` | all specified, and `notAfter` clamped | |
 | The stored form was unspecified | base64 PKCS#12, no password | the database's own encryption is what guards it |
-| Everything loaded with `EphemeralKeySet`, on SChannel | still everything, on a managed TLS stack | measured: SChannel cannot use an ephemeral key, so keeping the platform's TLS would have meant writing the host key to the disk |
+| Everything loaded with `EphemeralKeySet`, on SChannel | still everything, on a managed TLS stack, until the row below took the stored keys away from Windows; an admission record's certificate is still read with it | measured: SChannel cannot use an ephemeral key, so keeping the platform's TLS would have meant writing the host key to the disk |
 | Issued through `CertificateRequest`, signing with a key Windows held | issued by Bouncy Castle, signing with the key it reads out of the stored PKCS#12, and Windows handed certificates without their keys | Mono has neither ECDSA nor a `CertificateRequest` a .NET Framework build can reach, `spikes/mono-compatibility`, and no key needs to pass through Windows at all |
-| Names written as PrintableString, and BMPString for a name holding an underscore | UTF8String, with a leaf's issuer copied from its authority's subject as stored | RFC 5280 section 4.1.2.4; copied rather than written again, so an authority written before still chains what it issues |
+| An authority serial of the 8 random bytes `CertificateRequest.CreateSelfSigned` chose | 16, as every leaf's always was | one generator writes all four certificates; an authority written before still reads and issues |
+| Names written as PrintableString, and BMPString for a name holding an underscore | UTF8String, with a leaf's issuer copied from its authority's subject as stored | UTF8String holds an underscore, which PrintableString cannot, and RFC 5280 section 4.1.2.4 allows either; copied rather than written again, so an authority written before still chains what it issues |
 | A stored key believed because it was stored beside its certificate | believed only when it is the certificate's own | a local identifier anybody can write is all that pairs them, and an authority holding a key not its own issues certificates that chain to nothing |
 | A stored pair was to be checked by issuer name | checked with the anchor pin | every authority shares one subject, so names match where bytes do not |
 | SAN read loosely | ASN.1 tags, reject rather than repair | measured three ways to smuggle a claim past a renderer |

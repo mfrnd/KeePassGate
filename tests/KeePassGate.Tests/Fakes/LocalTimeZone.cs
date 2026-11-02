@@ -12,9 +12,12 @@ namespace KeePassGate.Tests.Fakes
     /// **Two caches, and both have to move.** Every conversion `DateTime` makes reads
     /// `TimeZoneInfo.Local`, while `DateTime.Now` reads a second cache filled from the operating
     /// system's own zone. Replacing the first alone left the two disagreeing by the difference
-    /// between the zones, and a chain build, which judges dates against `Now`, then refused a
-    /// certificate issued five minutes earlier. Measured on .NET Framework 4.8, where both are
-    /// private fields of `TimeZoneInfo.CachedData`.
+    /// between the zones, and a chain build, which judged dates against `Now` while the anchor pin
+    /// built one, then refused a certificate issued five minutes earlier. Measured on .NET
+    /// Framework 4.8, where both are private fields of `TimeZoneInfo.CachedData`. Nothing under
+    /// one of these reads `Now` since the pin stopped building chains: what is asked is how
+    /// `NotAfter` and `NotBefore` convert, which reads the first. The second still moves with it,
+    /// so that a test reading the clock under a zone of its own reads one that agrees.
     ///
     /// Reflection into the framework's own fields is a dependency nothing in the plugin takes. It
     /// is taken here because the framework is frozen, and because the alternative is changing the

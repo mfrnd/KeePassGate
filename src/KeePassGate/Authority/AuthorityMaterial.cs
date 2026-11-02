@@ -70,6 +70,9 @@ namespace KeePassGate.Authority
             }
             catch (CryptographicException)
             {
+                // Defensive, and reached by nothing measured: these are bytes Bouncy Castle parsed
+                // and wrote again, and Windows has read every such certificate tried. It is here so
+                // that a refusal would not leave the authority's handle open behind the throw.
                 _authority.Reset();
                 throw;
             }

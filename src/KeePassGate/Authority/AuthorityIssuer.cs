@@ -48,6 +48,11 @@ namespace KeePassGate.Authority
     /// </remarks>
     public sealed class AuthorityIssuer
     {
+        /// <summary>
+        /// The three names the issuer writes, as Windows renders a subject. Nothing here reads
+        /// them: they are what a certificate read through `X509Certificate2` is compared with,
+        /// derived from the names written so that the two cannot drift apart.
+        /// </summary>
         public const string AuthoritySubject = "CN=" + AuthorityName;
         public const string HostSubject = "CN=" + HostName;
         public const string ResponderSubject = "CN=" + ResponderName;
@@ -75,11 +80,14 @@ namespace KeePassGate.Authority
         /// It is not a claim and grants nothing. Claims are read from admission records, and only
         /// client certificates have them at all.
         ///
-        /// The shape is deliberate and was measured: `kpg://responder` is a URI with an authority
-        /// and no path, and `System.Uri` normalizes that to `kpg://responder/` on the way into the
-        /// certificate, so what a client reads back is not what was written. A form with a path,
-        /// like the profile claims, survives unchanged. The first label after the scheme says what
-        /// kind of thing this is, which is the same convention <c>kpg://profile/{name}</c> uses.
+        /// The shape is deliberate and was measured while `SubjectAlternativeNameBuilder` wrote
+        /// these: `kpg://responder` is a URI with an authority and no path, and `System.Uri`
+        /// normalized that to `kpg://responder/` on the way into the certificate, so what a client
+        /// read back was not what was written. A form with a path, like the profile claims,
+        /// survived unchanged. Bouncy Castle writes the string exactly as it is given, and the form
+        /// stays, because a client recognizes the marker by this exact string, so it outlives the
+        /// encoder that showed it was needed. The first label after the scheme names what kind of
+        /// thing this is, which is the same convention <c>kpg://profile/{name}</c> uses.
         /// </remarks>
         public const string ResponderClaim = "kpg://host/responder";
 

@@ -177,7 +177,7 @@ underneath it.
 **The reference client**, in `LiveReferenceClientTests`: PyKeePassGate itself, run through `uv` from
 the repository as the client tier runs it, pairs with a real KeePass through an invitation read off
 the real tab and approved on the real dialog, then asks for the status, creates an entry, lists it
-and reads it back. It is the one test in which the plugin's own PKCS#12 export meets `cryptography`,
+and reads it back. It is the one test in which the PKCS#12 the plugin writes meets `cryptography`,
 Bouncy Castle's TLS meets Python's `ssl`, and the plugin's framing meets the client's reader. Without
 `uv` it is ignored, as the tier is without a KeePass.
 
@@ -227,13 +227,22 @@ The client half of pairing lives in `tests/Shared/PairingClient.cs` and is compi
 test assemblies. That is deliberate: if the loopback tests and the end to end test each had their
 own client, either could pass against a protocol only it knew.
 
-**Every certificate a test makes for itself is made through Bouncy Castle**, as the plugin makes
+**Every certificate a C# test makes for itself is made through Bouncy Castle**, as the plugin makes
 its own. `tests/Shared/Minted.cs` builds one of whatever shape a test needs, another name, dates of
-its own or an extension a stranger is free to write, and `tests/Shared/Certificates.cs` hands one to
-Windows: without its key, to read, or with a key file, for a test whose client is `SslStream`. No
-test signs through `CertificateRequest`, `ECDsa` or RSA, asks Windows to export a key, or builds a
-chain with `X509Chain`. The one authority Windows did write, `tests/Shared/SeededAuthority.cs`, is
-kept for what that makes it: a database written before, which both tiers hold to what it keeps.
+its own or an extension a stranger is free to write, and `AnchorPinTests` makes what `Minted`
+cannot, an RSA authority among them, with Bouncy Castle directly. `tests/Shared/Certificates.cs`
+hands a certificate the plugin issued to Windows: without its key, to read, or with a key file, for
+a test whose client is `SslStream`. A test that asks what Windows makes of a PKCS#12, one the plugin
+wrote, one Windows wrote or one crafted for it, loads it itself under `EphemeralKeySet`, and
+`PairingClient` loads the identity a pairing hands over with a key file, under the lock
+`Certificates` takes. No test signs through `CertificateRequest` or `RSA`, asks Windows to export a
+key, or builds a chain with `X509Chain`, and one signs through `ECDsa`: `CertificateBlobTests` holds
+a replica still running 0.1.0 to signing with the key Windows loads from what this release stores.
+The authorities Windows did write are kept for what that makes them, a database written before,
+which both tiers hold to what it keeps: `tests/Shared/SeededAuthority.cs`, and the two in
+`tests/KeePassGate.Host.Tests/Live/SeededCopies.cs` that the authority chooser's picture is taken
+of. The client tier makes none of these: it mints its own through `cryptography`, in
+`pykeepassgate.testing`, so none of its certificates is one the plugin wrote.
 
 It builds a **throwaway KeePass** under `%ProgramData%\KeePassGateLive` rather than the temporary
 directory, whose path names the account that ran it: a copy of the program, a local
@@ -336,12 +345,14 @@ what stops "the reference client" being a claim rather than a check.
 **Against the plugin itself, in the end to end tier rather than here.** Every tier above runs
 PyKeePassGate against a stand-in, a vector or the document, so three things are held only by
 `LiveReferenceClientTests`, which pairs this client with a real KeePass and reads through the gate:
-the pairing identity, which the plugin writes with .NET Framework's PKCS#12 export and this client
-reads with `cryptography`, since the stand-in's identity is one `cryptography` wrote; the TLS 1.3
-handshake between Bouncy Castle's server and Python's `ssl`; and the plugin's framing under the
-client's reader. A `cryptography` release that stopped reading what .NET Framework exports would
-break every pairing, and that test is the one that would say so. It runs where the end to end tier
-does, so a green client tier says nothing about any of the three.
+the pairing identity, a PKCS#12 Bouncy Castle writes for the plugin, `CertifiedKey.ToPkcs12`, with
+a SHA-1 MAC and both bags under triple DES, which this client reads with `cryptography`, since the
+stand-in's identity is one `cryptography` wrote with its own defaults and cannot write in that
+shape, having no way to encrypt under an empty password; the TLS 1.3 handshake between Bouncy
+Castle's server and Python's `ssl`; and the plugin's framing under the client's reader. A
+`cryptography` release that stopped reading that shape would break every pairing, and that test is
+the one that would show it. It runs where the end to end tier does, so a green client tier
+answers for none of the three.
 
 **Seven of them do not run on Windows, and run on Linux in CI.** The client narrows the
 directory and the files it keeps a paired identity in, refuses a directory other accounts may
@@ -389,10 +400,12 @@ is shared by the whole process or the whole account:
   screen, and no mark reaches it, so such a fixture carries `[Desktop]` as well, which holds the
   screen against every other test process for each of its tests;
 - a static the plugin lends out for a while and takes back;
-- the account's key directories: a certificate loaded without `EphemeralKeySet` writes its key
-  there, which every fixture issuing a client does, so a test asserting that none appeared is
-  marked and the writers are not. Another test process writes there too, and no mark reaches it,
-  so `PrivateKeyFiles.Lock` is held by a test while it watches and by a helper while it loads;
+- the account's key directories: a certificate loaded with its key and without `EphemeralKeySet`
+  writes that key there, which `Certificates.WithKeyFile` does for a test whose client is
+  `SslStream`, and `PairingClient` does with the identity a pairing hands over, so a test asserting
+  that none appeared is marked and the writers are not. Another test process writes there too, and
+  no mark reaches it, so `PrivateKeyFiles.Lock` is held by a test while it watches and by a helper
+  while it loads;
 - a timing written tight enough that a loaded machine misses it, which is better widened than
   marked.
 

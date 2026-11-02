@@ -37,8 +37,9 @@ namespace KeePassGate
     ///
     /// **Each through a type the plugin already names in it**, so nothing is added to the
     /// references KeePass checks, and each through a type rather than by name: a type binds the
-    /// way the plugin's own references do, in the plugin's own directory and at the version it
-    /// was built against, where an assembly asked for by name is looked for beside `KeePass.exe`.
+    /// way the plugin's own references do, to a copy of the identity it was built against already
+    /// loaded or else to the one in the plugin's own directory, where an assembly asked for by
+    /// name is looked for beside `KeePass.exe`.
     ///
     /// **Never inlined**, because the runtime resolves these types as it compiles the method that
     /// names them. Written into `Initialize`, a missing assembly would fail the call before the

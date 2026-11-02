@@ -26,9 +26,9 @@ namespace KeePassGate.Host.Tests
     /// So the date is asserted here, with enough warning to act on. This test failing is not a bug:
     /// it is the fixture asking to be regenerated, along with the pictures that show its fingerprint.
     ///
-    /// Read out of the stored line rather than through `AdmissionRecord`, which does not exist yet
-    /// at the step `SeededAuthority` arrives in and would put a parser between the assertion and the
-    /// bytes it is about.
+    /// The dates are read out of the stored line rather than through `AdmissionRecord`, which would
+    /// put a parser between the assertion and the bytes it is about; the record is read through it
+    /// to ask whether it reads as the client it was paired as.
     /// </remarks>
     [TestFixture]
     public sealed class SeededAuthorityTests

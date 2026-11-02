@@ -20,9 +20,12 @@ namespace KeePassGate.Testing
     /// </summary>
     /// <remarks>
     /// Through Bouncy Castle, as the plugin makes its own, so that a test pins what is done with a
-    /// certificate rather than which library happened to make it, and so that no test needs a key
-    /// Windows holds. ECDSA on P-256 over SHA-256, a fresh serial, a subject key identifier, and
-    /// valid from five minutes ago for thirty days unless the test says otherwise; nothing else
+    /// certificate rather than which library happened to make it. Minting one needs no key Windows
+    /// holds. The tests that write a key file are the ones whose client is `SslStream`, through
+    /// <see cref="Certificates.WithKeyFile"/>, and `PairingClient` with the identity a pairing
+    /// hands over, and a test asking what Windows makes of a PKCS#12 loads it under
+    /// `EphemeralKeySet`. ECDSA on P-256 over SHA-256, a fresh serial, a subject key identifier,
+    /// and valid from five minutes ago for thirty days unless the test asks otherwise; nothing else
     /// unless the test asks for it.
     ///
     /// In `tests/Shared` because both tiers make certificates, for the reason

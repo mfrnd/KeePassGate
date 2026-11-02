@@ -36,8 +36,7 @@ submodule rather than an assembled copy is what keeps those headers intact.
 Taken for `Org.BouncyCastle.Tls`, which terminates the transport's TLS 1.3 in managed code so that
 no private key this plugin holds is ever written to disk, and for the certificates the plugin
 issues and the PKCS#12 it stores them in, so that no such key is handed to Windows at all.
-Redistributed as
-`BouncyCastle.Cryptography.dll` beside the plugin.
+Redistributed as `BouncyCastle.Cryptography.dll` beside the plugin.
 
 > MIT License (<https://opensource.org/licenses/MIT>)
 >

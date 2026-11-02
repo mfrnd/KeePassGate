@@ -349,9 +349,10 @@ namespace KeePassGate.Host.Tests
             // **A guard rather than a test with a live mutant, and the difference matters to
             // whoever reads a green run here.** The serving path is BouncyCastle, which parses the
             // stored PKCS#12 itself and never asks CryptoAPI for anything, so no key file can
-            // appear on it however anything is loaded. Handing Windows a key on the way to the
-            // stored form fails `CertificateBlobTests` in the unit tier and leaves this one green,
-            // because that is a path this one does not use. What this catches is
+            // appear on it however anything is loaded. Handing Windows a key without
+            // `EphemeralKeySet` on the way to the stored form, which writes it to the profile,
+            // fails `CertificateBlobTests` in the unit tier and leaves this one green, because that
+            // is a path this one does not use. What this catches is
             // a return to `SslStream` and SChannel for the server, which would put the host key in
             // the user profile for as long as a database was open, and which `DESIGN.md` 133 says
             // was measured and rejected. It is worth its three handshakes for that alone.

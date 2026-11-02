@@ -25,8 +25,10 @@ namespace KeePassGate.Authority
     /// serve with a key that has not been written to the user's profile, which contradicts
     /// `CA.md` §202. Bouncy Castle parses the PKCS#12 itself, so the key is an object on the heap
     /// and nothing else. The issuer signs the same way, so no key of this plugin's is ever handed
-    /// to Windows, and `X509Certificate2` is made from <see cref="CertificateDer"/> by whoever
-    /// wants to read a certificate, never holding a key.
+    /// to Windows: whoever wants to read a certificate makes an `X509Certificate2` from
+    /// <see cref="CertificateDer"/>, the certificate alone. The one certificate Windows parses
+    /// that could carry a key is an admission record's, bytes a database chose, which
+    /// `AdmissionRecord` reads under `EphemeralKeySet`.
     ///
     /// Nothing here is disposable, because there is nothing to release: no handle, no container, no
     /// file. The bytes go when the object does.
@@ -224,17 +226,18 @@ namespace KeePassGate.Authority
         /// each under three-key triple DES, and DER throughout.
         /// </summary>
         /// <remarks>
-        /// The shape Windows wrote while it exported these, measured rather than remembered: a
-        /// SHA-1 MAC and both bags under `pbeWithSHAAnd3-KeyTripleDES-CBC`, so a database keeps one
-        /// kind of PKCS#12 whichever release wrote its authority. **The certificate's algorithm is
-        /// set because Bouncy Castle's own is RC2 with a forty-bit key**, which OpenSSL 3 keeps in
-        /// its legacy provider only, so the client's `cryptography` would refuse the identity a
-        /// pairing hands it unless that provider is loaded. **DER because Bouncy Castle's own is
-        /// BER**, with lengths left open, which the client's `cryptography` reads only through a
-        /// fallback it warns is deprecated and promises to turn into an error, on every pairing and
-        /// every renewal. The iteration count is Bouncy Castle's, 1024 where Windows wrote 2000,
-        /// and it protects nothing either way, since the password is empty: the database's own
-        /// encryption is what protects these, `CA.md` §202.
+        /// The algorithms Windows wrote while it exported these, measured rather than remembered: a
+        /// SHA-1 MAC and both bags under `pbeWithSHAAnd3-KeyTripleDES-CBC`. **The certificate's
+        /// algorithm is set because Bouncy Castle's own is RC2 with a forty-bit key**, which
+        /// OpenSSL keeps in its legacy provider only, so the client's `cryptography` would refuse
+        /// the identity a pairing hands it unless that provider is loaded. **DER because Bouncy
+        /// Castle's own is BER**, with lengths left open, which the client's `cryptography` reads
+        /// only through a fallback it warns is deprecated and promises to turn into an error, on
+        /// every pairing and every renewal. The rest is Bouncy Castle's and differs from what
+        /// Windows wrote where nothing reads the difference, `CA.md` §222: 1024 iterations where
+        /// Windows wrote 2000, NULL parameters on the MAC's digest, and the key named
+        /// `KeePassGate`. The count protects nothing either way, since the password is empty: the
+        /// database's own encryption is what protects these, `CA.md` §202.
         /// </remarks>
         public byte[] ToPkcs12()
         {

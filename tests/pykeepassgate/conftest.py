@@ -32,8 +32,10 @@ from pykeepassgate.testing import Authority, FakeGate, Handler, Issued
 
 #: What the plugin writes into a responder certificate, copied from `AuthorityIssuer.ResponderClaim`
 #: rather than read from the client, so that the client's own constant is compared with something.
-#: `CA.md` 208 is why the marker is a URI with a path: `System.Uri` normalizes `kpg://responder` to
-#: `kpg://responder/` on the way in, and a client then reads back something else than was written.
+#: `CA.md` §208 is what the marker is for. It has a path because the plugin once wrote it through
+#: `System.Uri`, which normalizes `kpg://responder` to `kpg://responder/`, so a client read back
+#: something else than was written. Bouncy Castle writes it as given, and the path stays, being the
+#: shape `kpg://profile/<name>` has too.
 RESPONDER_CLAIM = "kpg://host/responder"
 
 
@@ -81,8 +83,11 @@ def bundle(authority: Authority, client_certificate: Issued, host: Issued) -> di
 
     The identity is a PKCS#12 with no password, which is what the gate sends: what protects it in
     the database is the database, and what protects it on this side is the file. It is one
-    `cryptography` serialized itself, though, not one .NET Framework's export wrote, so reading it
-    says nothing about reading the plugin's.
+    `cryptography` serialized itself with its own defaults, though, not the one Bouncy Castle writes
+    for the plugin, `CertifiedKey.ToPkcs12`, with a SHA-1 MAC and both bags under triple DES, which
+    `cryptography` cannot write under an empty password. So reading this proves nothing about
+    reading the plugin's, and `LiveReferenceClientTests` is where that is held, as `TESTING.md`
+    explains.
     """
     loaded = serialization.load_pem_private_key(client_certificate.pem.read_bytes(), password=None)
     # The authority issues P-256 and nothing else, which is what makes this cast safe.

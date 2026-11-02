@@ -177,10 +177,11 @@ namespace KeePassGate.Authority
         /// <remarks>
         /// **Stricter than the chain engine was.** It refused an anchor marked `CA:FALSE`, one
         /// without `keyCertSign`, one carrying a critical extension it did not know and one whose
-        /// own signature did not check. It tolerated, as a partial chain, an anchor with no basic
-        /// constraints at all, one naming another issuer, and a subordinate whose issuer it could
-        /// not find, and this refuses those too. A certificate that is not an authority vouches for
-        /// nothing, and one signed by somebody else is the subordinate `pathLen 0` forbids.
+        /// own signature did not check. It tolerated an anchor with no basic constraints at all, as
+        /// an untrusted root, and one naming another issuer and a subordinate whose issuer it could
+        /// not find, as a partial chain, and this refuses all three. A certificate that is not an
+        /// authority vouches for nothing, and one signed by somebody else is the subordinate
+        /// `pathLen 0` forbids.
         ///
         /// The key is asked about before it is read, because reading it is where Bouncy Castle
         /// decides what kind of key it is: an anchor naming no curve, which X9.62 calls implicitly

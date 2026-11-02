@@ -380,7 +380,9 @@ designing around them.
   parses the stored PKCS#12 itself. Do not re-propose `SslStream` for the server without measuring
   `EphemeralKeyProbe.cs` on `spikes/tls-and-certificates` again first. **And it issues every
   certificate**, signing with the authority's key as it reads that key out of the stored PKCS#12,
-  so Windows is handed certificates to read and never a key. Names are UTF8String, and a leaf's
+  so no key of the plugin's own is handed to Windows, which is given certificates to read. The one
+  thing Windows parses that could hold a key is an admission record's certificate, bytes a
+  database chose, read under `EphemeralKeySet`, `CA.md` §222. Names are UTF8String, and a leaf's
   issuer is its authority's subject copied as stored, so an authority Windows wrote, in
   PrintableString, still chains what it issues. `CA.md` §203.
 - **Spec-first routing.** The OpenAPI document at `src/KeePassGate/Spec/openapi.yaml` is the
@@ -553,7 +555,8 @@ Run them from
   `X509ChainPolicy.DisableCertificateDownloads` would forbid it and is .NET 5 and later, so on this
   framework `UrlRetrievalTimeout` is the whole of the vocabulary: zero means the platform's fifteen
   seconds, and a millisecond takes away the wait and the answer rather than the first packet.
-  The pin fetches nothing now, since it builds no chain:
+  Measured by `AnchorPinTests` while the pin built a chain, rather than on a spike branch; the pin
+  fetches nothing now, since it builds no chain:
   `AnchorPinTests.A_leaf_that_names_a_download_is_answered_without_anything_reaching_the_address`.
 - **`ClientCertificateRequired = false` is what breaks optional client certificates.** Under TLS 1.3
   the server then sends no `CertificateRequest` at all, so a client holding a good certificate never
@@ -574,14 +577,14 @@ Run them from
   the byte constructor on .NET Framework 4.8 and printing all three numbers.
 - **`X509Certificate2.NotAfter` cannot hold a certificate that never expires.** RFC 5280 writes
   "no well-defined expiration" as `99991231235959Z`, and Bouncy Castle encodes it exactly so, as
-  `CertificateRequest` did. Read back, `NotAfter` converts to local time, and ahead of UTC that moment falls in the year
-  10000, which no `DateTime` holds: what comes back is `DateTime.MaxValue`, which converted back to
-  UTC is up to fourteen hours early, and nothing throws. Measured in this machine's own zone as
-  well as in simulated ones. The client's half is the same fact: `cryptography` reads the value
-  exactly, and moving that `datetime` into a zone ahead of UTC raises `OverflowError`. A hundred
-  years, the fallback the operator named, is read exactly by every reader on the path in every
-  zone tried. `LongLivedCertificateTests` on this side, and
-  `test_an_authority_and_a_host_good_for_a_hundred_years_are_accepted` on the client's.
+  `CertificateRequest` did. Read back, `NotAfter` converts to local time, and ahead of UTC that
+  moment falls in the year 10000, which no `DateTime` holds: what comes back is
+  `DateTime.MaxValue`, which converted back to UTC is up to fourteen hours early, and nothing
+  throws. Measured in this machine's own zone as well as in simulated ones. The client's half is
+  the same fact: `cryptography` reads the value exactly, and moving that `datetime` into a zone
+  ahead of UTC raises `OverflowError`. A hundred years, the fallback the operator named, is read
+  exactly by every reader on the path in every zone tried. `LongLivedCertificateTests` on this
+  side, and `test_an_authority_and_a_host_good_for_a_hundred_years_are_accepted` on the client's.
 - **A KeePass merge of `PwDatabase.CustomData` visits the source's keys and no others, and never
   reads a value.** `PwDatabase.MergeInDbProperties` is the whole of it, run at the end of every
   `MergeIn`, which is File then Synchronize and File then Import alike. So no method removes a key
@@ -600,7 +603,7 @@ Run them from
   ASN.1 tags: `0x86` URI, `0x82` dNSName, `0x81` rfc822Name. `SanProbe`. **The plugin reads
   none**: it writes the profile claims and the responder marker, and the marker is for the peer to
   read, `CA.md` §208. Its tests read what the authority wrote through Bouncy Castle's
-  `GeneralNames`, which is here for the keys and the TLS.
+  `GeneralNames`, which is what wrote it.
 - **There is no RFC 5705 exporter** on .NET Framework, but
   `TransportContext.GetChannelBinding(ChannelBindingKind.Endpoint)` works on both sides under TLS 1.3
   and both agree. Take the application-data portion by its documented offsets, not the whole blob.
@@ -1307,9 +1310,12 @@ rather than through the file.
 
 **One thing to know before touching the transport.** An `EphemeralKeySet` certificate signs happily
 and SChannel will not do TLS with it in either direction. That is why `Org.BouncyCastle.Tls`
-terminates the transport, and why no key the plugin holds is handed to Windows at all.
+terminates the transport, so that every key the plugin loads can stay off the disk.
 `HostCertificateHandshakeTests` pins both halves, including the SChannel refusal, so a tidy-up that
-goes back to `SslStream` fails loudly rather than quietly writing keys to somebody's profile.
+goes back to `SslStream` fails loudly rather than quietly writing keys to somebody's profile. That
+no key of the plugin's own is handed to Windows at all is a later decision with another reason: the
+issuer moved to Bouncy Castle because Mono has no ECDSA and no `CertificateRequest` a .NET Framework
+build can reach, `CA.md` §203 and its row in §221.
 
 **A dependency ships beside the plugin, and so does everything it drags in.** `build.ps1 -Task
 Deploy` copies every DLL from the build output into `plugins\KeePassGate`, because KeePass loads
