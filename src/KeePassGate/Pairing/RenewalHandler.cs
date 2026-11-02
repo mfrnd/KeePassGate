@@ -679,7 +679,7 @@ namespace KeePassGate.Pairing
                           CertificateDigest.Shorten(target.DatabaseId));
                 _audit.TakeTurn(clientKey);
 
-                context.Respond(200, PairingHandler.Bundle(target, identity, certificate, profiles));
+                context.Respond(200, PairingHandler.Bundle(target, identity, profiles));
             }
         }
 
