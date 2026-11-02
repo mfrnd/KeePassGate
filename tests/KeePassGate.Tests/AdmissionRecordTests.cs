@@ -18,18 +18,21 @@ namespace KeePassGate.Tests
         private static readonly DateTimeOffset Admitted = new DateTimeOffset(2026, 3, 4, 5, 6, 7, TimeSpan.Zero);
 
         private TestAuthority _authority;
+        private CertifiedKey _issued;
         private X509Certificate2 _certificate;
 
         [SetUp]
         public void SetUp()
         {
             _authority = TestAuthority.New();
-            _certificate = _authority.IssueClient("agent-fictitious", "ops");
+            _issued = _authority.IssueClientKey("agent-fictitious", "ops");
+            _certificate = _issued.Read();
         }
 
         [TearDown]
         public void TearDown()
         {
+            _certificate.Reset();
             _authority.Dispose();
         }
 
@@ -73,7 +76,7 @@ namespace KeePassGate.Tests
             // `X509Certificate2(byte[])` sniffs the blob, so a password-less PFX loads and reports
             // a `RawData` of the certificate inside it. A record keyed on the digest of the PFX
             // therefore used to construct, store, and read back as nothing for ever after.
-            var pfx = _certificate.Export(X509ContentType.Pfx);
+            var pfx = _issued.ToPkcs12();
 
             Assert.That(pfx, Is.Not.EqualTo(_certificate.RawData));
             Assert.Throws<ArgumentException>(() => new AdmissionRecord(
@@ -313,7 +316,7 @@ namespace KeePassGate.Tests
             // through it and comes back as the leaf inside. A record carrying one would be keyed on
             // the digest of the container while describing something else, and reading it would
             // import a private key from bytes a `.kdbx` chose.
-            var pkcs12 = _certificate.Export(X509ContentType.Pkcs12);
+            var pkcs12 = _issued.ToPkcs12();
             var key = CertificateDigest.Of(pkcs12);
             var stored = Carrying(pkcs12);
 
@@ -353,7 +356,7 @@ namespace KeePassGate.Tests
             // key writes one every time, so one attempt that sees nothing acquits it, and only
             // every attempt seeing something accuses it. A quiet moment afterwards then tells a
             // machine writing keys throughout from the parse, and says so rather than guessing.
-            var pkcs12 = _certificate.Export(X509ContentType.Pkcs12);
+            var pkcs12 = _issued.ToPkcs12();
             var stored = Carrying(pkcs12);
             var seen = new System.Collections.Generic.List<string>();
 

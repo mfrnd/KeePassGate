@@ -4,8 +4,9 @@ using System.Security.Cryptography.X509Certificates;
 namespace KeePassGate.Authority
 {
     /// <summary>
-    /// Whether a certificate is inside its own dates, checked here rather than left to a chain
-    /// build so that the allowance for a wrong clock is exactly the one `CA.md` §213 specifies.
+    /// Whether a certificate is inside its own dates, checked here, since the anchor pin asks
+    /// nothing of them, so that the allowance for a wrong clock is exactly the one `CA.md` §213
+    /// specifies.
     /// </summary>
     /// <remarks>
     /// One place, because the gate and the tab have to agree about it. They did not: the tab called

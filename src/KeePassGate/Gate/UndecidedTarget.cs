@@ -37,13 +37,13 @@ namespace KeePassGate.Gate
 
         private readonly string _databaseId;
         private readonly byte[] _gateKey;
-        private readonly HostKeyMaterial _host;
+        private readonly CertifiedKey _host;
 
         // The cache holds the first of these; every caller `Current` hands it to takes one more,
         // exactly as `LockedTarget` counts them.
         private int _holders = 1;
 
-        public UndecidedTarget(string databaseId, byte[] gateKey, HostKeyMaterial host)
+        public UndecidedTarget(string databaseId, byte[] gateKey, CertifiedKey host)
         {
             if (string.IsNullOrEmpty(databaseId))
             {
@@ -100,13 +100,19 @@ namespace KeePassGate.Gate
             get { return (byte[])_gateKey.Clone(); }
         }
 
-        public HostKeyMaterial Host
+        public CertifiedKey Host
         {
             get { return _host; }
         }
 
         /// <summary>Null, so that no client certificate can be judged against a candidate.</summary>
         public X509Certificate2 Authority
+        {
+            get { return null; }
+        }
+
+        /// <summary>Null, so that nothing is issued from a candidate either.</summary>
+        public CertifiedKey AuthorityKey
         {
             get { return null; }
         }

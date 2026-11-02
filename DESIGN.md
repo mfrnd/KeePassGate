@@ -315,8 +315,12 @@ this is what the rest of the design depends on.
   choose its own claims.
 - **The anchor must be pinned explicitly.** Measured: the natural chain validation accepts a
   certificate signed by a completely different authority, because `ExtraStore` supplies candidates
-  without constraining the anchor and `CustomRootTrust` is .NET 5 and later. The root's DER is
-  compared against the resolved database's authority or the connection is refused.
+  without constraining the anchor and `CustomRootTrust` is .NET 5 and later. So the pin builds
+  no chain at all: the leaf has to name the resolved database's authority in its very bytes and
+  carry its signature, that authority has to be one, signed by itself, and both have to be of the
+  one shape this plugin writes, `CA.md` §214. A certificate that fails it is taken as none: the
+  handshake completes, and every request is answered as one from a caller that presented nothing,
+  which is `401 unpaired`.
 - **The EKU is checked explicitly**, because the same authority signs both hosts and clients, and
   hostname verification is deliberately abandoned. The SNI rotates per connection and can therefore
   never appear in a SAN.
@@ -1769,6 +1773,48 @@ Each step is refusable, and each ends with something that runs.
     queued, as a visible `#32770` window on KeePass's thread; and that work asked of KeePass's thread
     by a thread holding it is a defect thrown at once, rather than a wait that would freeze the
     window. The probes are on `spikes/keepass-thread`.
+34. **Tags**: an entry's and a group's tags, served and filtered on. Not opened yet, and the step's
+    own opening commit writes this entry.
+35. **Certificates through Bouncy Castle**: every certificate the plugin makes, every signature it
+    makes with a stored key and the anchor pin go through Bouncy Castle, which already terminates
+    the TLS and reads the PKCS#12 the host certificate is stored as, and `CertificateRequest`,
+    `ECDsa` and `X509Chain` leave the plugin. The authority, its host certificate, the responder
+    and every client certificate are issued with the extensions, claims and lifetimes they have
+    now; `AnchorPin` verifies the leaf's signature with the anchor's public key, the leaf naming
+    the anchor in its own bytes and both of the one shape the plugin writes, with no chain engine;
+    and `X509Certificate2` stays only where a certificate is read, which the extended key usage
+    and the dates of `CA.md` §213 still are. What is stored keeps its shape, so a database written
+    before keeps its authority, its records and its revocations. On Windows this takes away both
+    hazards measured on `X509Chain`: the anchor it does not pin, and the `caIssuers` address a
+    foreign certificate names, which it contacts however short the timeout. On Mono it takes away
+    the first wall `spikes/mono-compatibility` met, where Mono 6.8 has no ECDSA, no
+    `CertificateRequest` a .NET Framework build can reach, and an `X509Chain` that throws for every
+    EC certificate. The tests make their certificates the same way, so no test needs Windows to
+    make or sign one; what they do with one afterwards is unchanged, most of their clients being
+    `SslStream`. The tab's icon is kept as long as the image list holding it, since neither
+    platform reads it when it is added. The step ends with that spike run again against it,
+    recorded beside the first run, and what Mono needs beyond this is decided from what that
+    shows: the plugin stays Windows only until then.
+    **Done.** Bouncy Castle issues all four certificates, with every name a UTF8String written as
+    it is given and a leaf's issuer copied from its authority's subject as stored, so an authority
+    Windows issued goes on issuing and the clients it admitted go on being served. The stored
+    PKCS#12 is written under the algorithms Windows wrote and read back by Bouncy Castle, with a
+    key believed only when the certificate beside it is its own. What this settles is that stored
+    bytes are held to the shape this plugin writes before anything is derived from them: a PKCS#12
+    is bounded in its size, its iterations, its parts and its bags, and its MAC checked, before
+    Bouncy Castle's store is handed it; an authority whose key identifier will not read issues
+    nothing and stops no other database being served; and a leaf never starts before its
+    authority. The pin holds both certificates to the one shape this plugin writes and takes
+    anything else as no certificate, so nothing a peer sends makes it throw. Every Bouncy Castle
+    2.x is one assembly version to .NET, so a copy another plugin loaded first at an older file
+    version refuses the start rather than being run on. Run again against the step's first four
+    units, the spike found no failure in the plugin's certificate code as far as a test reaches
+    it: the unit tier passed 2089 of 2401 tests and the host tier 467 of 517, where the first run
+    passed 1164 of 2381 and 306 of 515. Every failure left is put down to Mono's runtime, its
+    WinForms and the plugin's `user32` calls above all, to the platform once, or to the tests' own
+    Windows dependencies, their `SslStream` clients first, which offer no TLS 1.3 on Mono. In
+    KeePass on Mono the plugin no longer loads at all, because step 33's `ControlUiThread` asks
+    `user32` for KeePass's thread as the plugin starts, so the plugin stays Windows only.
 
 Steps 5 to 8 are the ones that prove the design. Step 5 is deliberately early, because the
 `CustomData` dialog hazard is the thing most likely to invalidate the storage decision, and finding

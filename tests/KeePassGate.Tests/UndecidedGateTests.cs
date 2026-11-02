@@ -101,6 +101,7 @@ namespace KeePassGate.Tests
         public void Nothing_can_be_admitted_while_it_waits()
         {
             Assert.That(_undecided.Authority, Is.Null);
+            Assert.That(_undecided.AuthorityKey, Is.Null, "nothing is issued from a candidate either");
             Assert.That(_undecided.Vault, Is.Null);
             Assert.That(_undecided.Admission(_authority.DatabaseId), Is.Null);
             Assert.That(_undecided.AdmissionBlocked, Is.EqualTo(UndecidedTarget.Reason));

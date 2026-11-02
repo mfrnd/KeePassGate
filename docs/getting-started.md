@@ -18,15 +18,24 @@ find, at every start until the DLL is there. Without `SharpYaml.dll`, which only
 the plugin gets far enough to refuse to start, and the same box names it. And KeePass checks what a
 plugin needs once for each build of `KeePassGate.dll`, and remembers that the check passed, so a
 DLL beside it that is removed or replaced later is left to the plugin to find: it loads every one
-of them as it starts, and without one, or with one of another version than it was built against,
-it refuses to start, the same box names the DLL, and so does [its log](#the-plugins-log).
-Whichever it is, copying the whole set again mends it.
+of them as it starts, and without one, or with one whose assembly version is not the one it was
+built against, it refuses to start, the same box names the DLL, and so does
+[its log](#the-plugins-log). Whichever it is, copying the whole set again mends it.
 
-**A directory of its own is what keeps those DLLs this plugin's.** Other plugins ship some of
+**A directory of its own keeps those DLLs this plugin's by file name.** Other plugins ship some of
 the same ones, `Newtonsoft.Json.dll` most of all, and in `plugins` itself there is room for one
 copy of each. A plugin built against a different version from the copy that is there stops
 working, and which plugin that is depends on nothing but the order they were installed in.
-Installed in its own directory, each plugin finds its own.
+Installed in its own directory, each plugin finds its own file.
+
+**What no directory keeps apart is a DLL another plugin has already loaded.** .NET hands a plugin
+a copy already loaded whenever its name and assembly version are the ones asked for, whichever
+directory it came from, and every 2.x release of Bouncy Castle, `BouncyCastle.Cryptography.dll`,
+carries the same assembly version. So when another plugin loaded its own Bouncy Castle first, that
+copy is the one KeePassGate is given, and an older one may lack something KeePassGate uses. The
+plugin compares the copy it was given with the one beside it as it starts, and when the one it was
+given is older it refuses to start and names both, where it would name a missing one. Updating the
+other plugin to a Bouncy Castle at least as new mends it, and so does removing that plugin.
 
 **From a release**, which is the way most installs go: each one on
 [the releases page](https://github.com/mfrnd/KeePassGate/releases) carries

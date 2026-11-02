@@ -1029,6 +1029,32 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_certificate_naming_an_algorithm_the_authority_cannot_check_is_a_stranger_rather_than_an_exception()
+        {
+            // Named as ours, admitted, and signed with Ed25519 by its own account. Bouncy Castle's
+            // TLS checks nothing of a lone client certificate's algorithm, so a stranger on loopback
+            // could present one, and the verifier built for it threw `InvalidCastException` past
+            // the filter here into the connection's catch-all, which counted every such connection
+            // as a defect of the plugin. Refused by the pin's shape now, as any stranger is.
+            var ed25519 = new Org.BouncyCastle.Asn1.X509.AlgorithmIdentifier(
+                new Org.BouncyCastle.Asn1.DerObjectIdentifier("1.3.101.112"));
+
+            using (var issued = _ours.IssueClient("agent-fictitious"))
+            using (var certificate = new X509Certificate2(Reshaped.Naming(issued.RawData, ed25519, ed25519, _ours.AuthorityKey)))
+            {
+                _ours.Admit(certificate, "ops");
+
+                ClientIdentity identity = null;
+                Assert.That(() => identity = ClientCredentials.For(certificate, _ours, _log), Throws.Nothing);
+
+                Assert.That(identity.IsPaired, Is.False);
+                Assert.That(identity.Refusal, Is.Null, "a stranger, not a certificate this authority issued");
+                Assert.That(_log.Warnings.Any(w => w.Message.Contains("does not chain")), Is.True);
+                Assert.That(_log.Errors, Is.Empty, "and nothing that could not be checked");
+            }
+        }
+
+        [Test]
         public void A_certificate_with_no_extended_key_usage_is_refused()
         {
             // Unconstrained is not the same as permitted. Asked of the check itself, because a
@@ -1070,23 +1096,9 @@ namespace KeePassGate.Tests
         /// </remarks>
         private static X509Certificate2 SelfSigned(string usageOid)
         {
-            using (var key = System.Security.Cryptography.RSA.Create(2048))
-            {
-                var request = new CertificateRequest(
-                    "CN=invented",
-                    key,
-                    System.Security.Cryptography.HashAlgorithmName.SHA256,
-                    System.Security.Cryptography.RSASignaturePadding.Pkcs1);
-
-                if (usageOid != null)
-                {
-                    request.CertificateExtensions.Add(new X509EnhancedKeyUsageExtension(
-                        new System.Security.Cryptography.OidCollection { new System.Security.Cryptography.Oid(usageOid) }, false));
-                }
-
-                return request.CreateSelfSigned(
-                    DateTimeOffset.UtcNow.AddMinutes(-5), DateTimeOffset.UtcNow.AddHours(1));
-            }
+            var minted = Minted.Named("CN=invented")
+                .Lasting(DateTimeOffset.UtcNow.AddMinutes(-5), DateTimeOffset.UtcNow.AddHours(1));
+            return (usageOid == null ? minted : minted.ForUsage(usageOid)).SelfSigned().Read();
         }
     }
 }

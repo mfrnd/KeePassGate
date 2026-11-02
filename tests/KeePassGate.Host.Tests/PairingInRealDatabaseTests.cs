@@ -923,13 +923,12 @@ namespace KeePassGate.Host.Tests
                 Assume.That(admissions.Remove(CertificateDigest.Of(revoked)), Is.True);
 
                 // And a holder whose certificate has expired, which regains nothing.
-                using (var key = ECDsa.Create())
+                using (var ended = Minted.Named("CN=agent-expired")
+                           .Lasting(DateTimeOffset.UtcNow.AddDays(-30), DateTimeOffset.UtcNow.AddDays(-1))
+                           .SelfSigned()
+                           .Read())
                 {
-                    var request = new CertificateRequest("CN=agent-expired", key, HashAlgorithmName.SHA256);
-                    using (var ended = request.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-30), DateTimeOffset.UtcNow.AddDays(-1)))
-                    {
-                        admissions.Write(AdmissionRecord.For(ended, DateTimeOffset.UtcNow.AddDays(-30), new[] { "ops" }));
-                    }
+                    admissions.Write(AdmissionRecord.For(ended, DateTimeOffset.UtcNow.AddDays(-30), new[] { "ops" }));
                 }
 
                 // "ops" taken off the list, as the Profiles page does, so that its holders would
@@ -1090,10 +1089,9 @@ namespace KeePassGate.Host.Tests
             var body = JsonBody.Read(context.Json);
             Assert.That(body, Is.Not.Null, context.Json);
 
-            return new X509Certificate2(
-                Convert.FromBase64String(body.Text("identity")),
-                (string)null,
-                CertificateBlob.SigningFlags);
+            var identity = CertificateBlob.Load(body.Text("identity"));
+            Assert.That(identity, Is.Not.Null, "the bundle carries a certificate with its own key");
+            return identity.Read();
         }
 
         [Test]
@@ -1147,7 +1145,7 @@ namespace KeePassGate.Host.Tests
             using (var reading = new AuthorityService(new CustomDataStore(_database.Database), null).Read())
             {
                 return new AuthorityIssuer().IssueClient(
-                    reading.Material.Authority, "agent-fictitious", new[] { "ops" });
+                    reading.Material.AuthorityKey, "agent-fictitious", new[] { "ops" }).Read();
             }
         }
 
@@ -1201,8 +1199,8 @@ namespace KeePassGate.Host.Tests
             var then = DateTimeOffset.UtcNow.AddDays(-7);
             var issuer = new AuthorityIssuer(() => then);
 
-            using (var authority = issuer.CreateAuthority())
-            using (var certificate = issuer.IssueClient(authority, "agent-nonexistent", new[] { "ops" }, TimeSpan.FromDays(1)))
+            var authorityKey = issuer.CreateAuthority();
+            using (var certificate = issuer.IssueClient(authorityKey, "agent-nonexistent", new[] { "ops" }, TimeSpan.FromDays(1)).Read())
             {
                 var record = AdmissionRecord.For(certificate, then, new[] { "ops" });
                 _database.Database.CustomData.Set(record.StorageKey, record.Save());
@@ -1265,7 +1263,7 @@ namespace KeePassGate.Host.Tests
         {
             using (var reading = new AuthorityService(new CustomDataStore(_database.Database), null).Read())
             {
-                return new AuthorityIssuer().IssueClient(reading.Material.Authority, name, profiles);
+                return new AuthorityIssuer().IssueClient(reading.Material.AuthorityKey, name, profiles).Read();
             }
         }
 

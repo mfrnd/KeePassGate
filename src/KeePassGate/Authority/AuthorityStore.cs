@@ -159,8 +159,8 @@ namespace KeePassGate.Authority
                 _store.Set(
                     key,
                     AuthorityDocument.Save(
-                        CertificateBlob.Save(material.Authority),
-                        CertificateBlob.Save(material.Host),
+                        CertificateBlob.Save(material.AuthorityKey),
+                        CertificateBlob.Save(material.HostKey),
                         Convert.ToBase64String(sniKey)));
             }
             finally
@@ -391,59 +391,57 @@ namespace KeePassGate.Authority
                 return null;
             }
 
-            X509Certificate2 authority = null;
-            X509Certificate2 host = null;
+            // codeql[cs/missed-using-statement] disposed only when it is not handed back, which no `using` can do
+            AuthorityMaterial material = null;
+            byte[] sniKey = null;
 
             try
             {
-                authority = CertificateBlob.Load(document.Authority);
+                var authority = CertificateBlob.Load(document.Authority);
                 if (authority == null)
                 {
                     problems.Add("The authority certificate cannot be read.");
                 }
 
-                host = CertificateBlob.Load(document.Host);
+                var host = CertificateBlob.Load(document.Host);
                 if (host == null)
                 {
                     problems.Add("The host certificate cannot be read.");
                 }
 
-                var sniKey = ReadSniKey(document.SniKey, problems);
+                sniKey = ReadSniKey(document.SniKey, problems);
 
+                // Asked of the authority alone, before anything needs the host as well, so that a
+                // misfiled document whose host will not read is reported as both: the misfiling is
+                // what points at a merge or an edit rather than at a damaged certificate.
                 if (authority != null && !string.Equals(
-                        CertificateDigest.Of(authority), fingerprint, StringComparison.Ordinal))
+                        CertificateDigest.Of(authority.CertificateDer), fingerprint, StringComparison.Ordinal))
                 {
                     // The key is what a retirement names, so an authority filed under some other
                     // digest is one that retiring could never reach.
                     problems.Add(MisfiledProblem);
                 }
 
-                if (authority != null && host != null)
+                if (authority == null || host == null)
                 {
-                    bool evaluated;
-                    if (!IssuedBy(host, authority, out evaluated))
-                    {
-                        // Two different faults, and only one of them is the database's. A chain the
-                        // engine could not evaluate says nothing about the authority, and reporting
-                        // it as a foreign certificate points the operator at Recreate, which would
-                        // throw away a healthy authority and every admission record with it.
-                        problems.Add(evaluated
-                            ? "The host certificate was not issued by this authority."
-                            : HostUncheckedProblem);
-                    }
+                    return null;
+                }
+
+                material = new AuthorityMaterial(authority, host, sniKey, CertificateBlob.Bytes(document.Host));
+
+                if (!IssuedBy(material.Host, material.Authority))
+                {
+                    problems.Add("The host certificate was not issued by this authority.");
                 }
 
                 if (problems.Count > 0)
                 {
-                    Array.Clear(sniKey, 0, sniKey.Length);
                     return null;
                 }
 
-                var material = new AuthorityMaterial(authority, host, sniKey, CertificateBlob.Bytes(document.Host));
-                Array.Clear(sniKey, 0, sniKey.Length);
-                authority = null;
-                host = null;
-                return material;
+                var read = material;
+                material = null;
+                return read;
             }
             catch (Exception error) when (Expected.OfCryptography(error) || Expected.OfCustomData(error))
             {
@@ -452,14 +450,14 @@ namespace KeePassGate.Authority
             }
             finally
             {
-                if (authority != null)
+                if (sniKey != null)
                 {
-                    authority.Reset();
+                    Array.Clear(sniKey, 0, sniKey.Length);
                 }
 
-                if (host != null)
+                if (material != null)
                 {
-                    host.Reset();
+                    material.Dispose();
                 }
             }
         }
@@ -470,12 +468,19 @@ namespace KeePassGate.Authority
         /// accepts a host from somebody else's authority: found by a test that was written to
         /// prove the opposite.
         ///
-        /// Expiry is ignored here on purpose. An expired pair is still a pair, and expiry is
-        /// reported on its own terms rather than as "this does not belong to you".
+        /// Expiry is not asked about here, and the pin never asks it. An expired pair is still a
+        /// pair, and expiry is reported on its own terms rather than as "this does not belong to
+        /// you".
+        ///
+        /// **Every answer is the database's.** While a chain engine answered this, it could fail to
+        /// answer at all, on a locked down machine store or a CryptoAPI service that was not
+        /// running, and that was reported apart, because the remedy offered for a foreign host
+        /// destroys a healthy authority. The pin asks nothing of the machine now, so there is no
+        /// such case left to report.
         /// </summary>
-        private static bool IssuedBy(X509Certificate2 leaf, X509Certificate2 authority, out bool evaluated)
+        private static bool IssuedBy(X509Certificate2 leaf, X509Certificate2 authority)
         {
-            return AnchorPin.Chains(leaf, authority, true, out evaluated);
+            return AnchorPin.Chains(leaf, authority);
         }
 
         private static byte[] ReadSniKey(string blob, ICollection<string> problems)
@@ -514,11 +519,6 @@ namespace KeePassGate.Authority
         /// <summary>What an authority filed under a digest that is not its own is reported as.</summary>
         internal const string MisfiledProblem = "The authority is filed under a digest that is not its own.";
 
-        /// <summary>What a host certificate the chain engine could not judge is reported as.</summary>
-        internal const string HostUncheckedProblem =
-            "The host certificate could not be checked against this authority on this machine. " +
-            "Nothing here says the authority is wrong; recreating it would not help.";
-
         /// <summary>What begins a problem that is an exception, before the exception's own message.</summary>
         internal const string CouldNotReadProblem = "The authority could not be read: ";
 
@@ -533,11 +533,11 @@ namespace KeePassGate.Authority
         /// derive: a certificate that will not load stops every check that needs it, and an
         /// exception stops every check after it. So the gate key, at a length ten digits wide;
         /// then the digest the authority is filed under, which needs the authority; then one about
-        /// the host, which needs both certificates: its chain could not be judged, or judging it
-        /// threw. The second is the one given, because the tab cuts a problem at `Clipped.Limit`
-        /// and a thrown message long enough to be cut is never shorter than the sentence it stands
-        /// in for. A document with parts missing, or one that will not read at all, stops at
-        /// shorter sentences than these.
+        /// the pair, which needs both certificates: the host was not issued by this authority, or
+        /// reading the pair threw. The second is the one given, because the tab cuts a problem at
+        /// `Clipped.Limit` and a thrown message long enough to be cut is never shorter than the
+        /// sentence it stands in for. A document with parts missing, or one that will not read at
+        /// all, stops at shorter sentences than these, the host that will not load among them.
         /// </remarks>
         internal static IReadOnlyList<string> LongestProblems(string thrown)
         {

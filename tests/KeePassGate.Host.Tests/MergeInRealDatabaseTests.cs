@@ -5,6 +5,7 @@ using System.Security.Cryptography.X509Certificates;
 using KeePassGate.Authority;
 using KeePassGate.Bridge;
 using KeePassGate.Diagnostics;
+using KeePassGate.Testing;
 using KeePassLib;
 using KeePassLib.Collections;
 using NUnit.Framework;
@@ -49,9 +50,9 @@ namespace KeePassGate.Host.Tests
             using (var reading = Authority(_here).Read())
             {
                 _first = new AuthorityIssuer()
-                    .IssueClient(reading.Material.Authority, "agent-first-fictitious", new[] { "ops" });
+                    .IssueClient(reading.Material.AuthorityKey, "agent-first-fictitious", new[] { "ops" }).Read();
                 _second = new AuthorityIssuer()
-                    .IssueClient(reading.Material.Authority, "agent-second-fictitious", new[] { "reader" });
+                    .IssueClient(reading.Material.AuthorityKey, "agent-second-fictitious", new[] { "reader" }).Read();
             }
         }
 
@@ -216,8 +217,8 @@ namespace KeePassGate.Host.Tests
 
             // An authority of its own made a week ago, since this database's was made today and
             // issues nothing that began before it.
-            using (var authority = issuer.CreateAuthority())
-            using (var ended = issuer.IssueClient(authority, "agent-ended-fictitious", new[] { "ops" }, TimeSpan.FromDays(1)))
+            var authorityKey = issuer.CreateAuthority();
+            using (var ended = issuer.IssueClient(authorityKey, "agent-ended-fictitious", new[] { "ops" }, TimeSpan.FromDays(1)).Read())
             {
                 var record = AdmissionRecord.For(ended, then, new[] { "ops" });
                 Records(_here).Write(record);

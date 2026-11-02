@@ -1,6 +1,13 @@
 using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
-using KeePassGate.Diagnostics;
+using Org.BouncyCastle.Asn1;
+using Org.BouncyCastle.Asn1.X509;
+using Org.BouncyCastle.Asn1.X9;
+using Org.BouncyCastle.Security;
+using BcCertificate = Org.BouncyCastle.X509.X509Certificate;
 
 namespace KeePassGate.Authority
 {
@@ -8,94 +15,87 @@ namespace KeePassGate.Authority
     /// Does this certificate chain to exactly this authority, by its bytes.
     /// </summary>
     /// <remarks>
-    /// Measured, and the reason this exists at all: the natural code accepts a certificate from a
-    /// completely foreign authority. `ExtraStore` supplies candidates without constraining the
+    /// **No chain engine, and that is two measurements.** `X509Chain` accepted a certificate from a
+    /// completely foreign authority: `ExtraStore` supplies candidates without constraining the
     /// anchor, and `AllowUnknownCertificateAuthority` tolerates an untrusted root without saying
-    /// which one, so the build succeeds against the machine's own root stores.
-    /// `X509ChainTrustMode.CustomRootTrust` would fix it and is .NET 5 and later, so the anchor is
-    /// pinned here by comparing the last element's DER.
+    /// which one, so a build succeeded against the machine's own root stores, and the anchor had
+    /// to be pinned by comparing the last element's DER. And before `Build` returned it downloaded
+    /// whatever a foreign leaf's authority information access extension named, RFC 5280 section
+    /// 4.2.2.1, so a stranger who reached this code made the KeePass process open a connection to
+    /// an address of their choosing, held for 15.0 s until a millisecond's timeout bounded the wait
+    /// without stopping the request. `spikes/tls-and-certificates` holds the first, `ChainProbe`.
+    /// The second was measured by a test of `AnchorPinTests` while a chain engine answered,
+    /// `A_foreign_leaf_that_names_a_download_is_refused_without_waiting_for_it`, which went with
+    /// the engine and is in the history under that name.
     ///
-    /// Comparing names would not do either: every authority this plugin issues carries the same
-    /// subject, so a foreign one matches by name and differs by every byte that matters.
+    /// The hierarchy is one authority and the leaves it signs, `CA.md` §207, so the whole question
+    /// is small enough to ask directly: the anchor is an authority that signed itself, the leaf
+    /// is not an authority, it names the anchor as its issuer in the very bytes the anchor is
+    /// named in, and the anchor's key signed it. Bouncy Castle checks the two signatures, which
+    /// is all it is asked. Nothing here reaches a network or a machine store, so nothing a
+    /// certificate names can make it, and nothing about the machine can change the answer.
+    ///
+    /// **Only the one shape this plugin writes is asked about at all**, `CA.md` §203: DER as
+    /// Bouncy Castle writes it back, signed with ecdsa-with-SHA256 and naming that in both places a
+    /// certificate names it, under an authority whose key is on P-256. Everything else is refused
+    /// before anything about it is believed. Bouncy Castle builds a verifier from whatever
+    /// algorithm the certificate names, so a certificate free to name one chose its own check:
+    /// SHA-224, SHA3 and plain ECDSA over SHA-1 verified against the anchor's key, and Ed25519,
+    /// Ed448, ML-DSA and SLH-DSA threw `InvalidCastException` out of the verifier's own cast. And
+    /// it verifies over the structure as it writes it rather than the bytes it was given, so a
+    /// certificate re-encoded with a length in long form was believed signed and named byte for
+    /// byte when neither was true of the bytes received. Written back the same, the bytes
+    /// compared and the bytes verified are the bytes that arrived.
+    ///
+    /// Comparing names alone would not do: every authority this plugin issues carries the same
+    /// subject, so a foreign one matches by name and differs by every byte that matters, and the
+    /// signature is what refuses it.
+    ///
+    /// **Dates are not asked about here.** The connection path checks them itself, so that the
+    /// clock skew allowed is this plugin's, and every other caller asks which authority a
+    /// certificate belongs to, which an expired one still does, and reports its expiry on its own
+    /// terms. `CertificateValidity` is where dates are judged.
     /// </remarks>
     public static class AnchorPin
     {
         /// <summary>
-        /// A chain of exactly two: the leaf, and the authority that signed it. `CA.md` §207
-        /// requires `pathLen 0` on the authority so it can never mint a subordinate, which means
-        /// any longer chain is either not ours or not one we would accept.
+        /// The extensions a certificate here may mark critical and still be understood, which are
+        /// the ones this plugin writes and the identifiers beside them. RFC 5280 section 4.2 refuses
+        /// a certificate with a critical extension its reader does not recognize, and the chain
+        /// engine did, so this does.
         /// </summary>
-        private const int LeafAndAnchor = 2;
+        private static readonly HashSet<DerObjectIdentifier> Understood = new HashSet<DerObjectIdentifier>
+        {
+            X509Extensions.BasicConstraints,
+            X509Extensions.KeyUsage,
+            X509Extensions.ExtendedKeyUsage,
+            X509Extensions.SubjectAlternativeName,
+            X509Extensions.SubjectKeyIdentifier,
+            X509Extensions.AuthorityKeyIdentifier,
+        };
 
         /// <summary>
-        /// The shortest time the chain engine may spend fetching, which is as close to forbidding
-        /// it as .NET Framework allows.
+        /// True when the leaf was issued by the anchor and the anchor by nobody but itself.
         /// </summary>
         /// <remarks>
-        /// Measured, and this too would have shipped. When the engine cannot find the issuer it
-        /// reads the leaf's authority information access extension and downloads what the leaf
-        /// says signed it, RFC 5280 section 4.2.2.1, before `Build` returns. The leaf here is the
-        /// peer's, so the address is the peer's: a stranger who reaches this code makes the
-        /// KeePass process fetch a URL of their choosing and holds the connection thread until the
-        /// engine gives up, measured at 15.0 s for one unreachable address. `CA.md` §217 rejects
-        /// CRL and OCSP as infrastructure a local plugin has no business needing, and this is the
-        /// same network arriving through a door nobody opened.
+        /// A leaf and the authority that signed it, and nothing between them: `CA.md` §207 requires
+        /// `pathLen 0` on the authority so that it can never mint a subordinate, so a certificate
+        /// whose issuer is anything but the anchor is either not ours or not one this would accept.
         ///
-        /// Nothing worth fetching exists. The hierarchy is a leaf and the authority that signed
-        /// it, `CA.md` §207, and that authority is handed in through `ExtraStore` a line above, so
-        /// a download can only ever be the engine looking for an issuer this pin is about to
-        /// refuse anyway.
+        /// **A leaf that is itself an authority is refused**, and that is what refuses the anchor
+        /// presented as its own leaf, in every encoding it has. Comparing the two certificates'
+        /// bytes refused only the one: an ECDSA signature `(r, s)` verifies as `(r, n - s)` as
+        /// well, so the anchor with its signature turned that way is other bytes its own key
+        /// signed, naming itself, and it was answered as a leaf of its own.
         ///
-        /// `X509ChainPolicy.DisableCertificateDownloads` says exactly that and is .NET 5 and
-        /// later, as `X509ChainTrustMode.CustomRootTrust` is above. What this framework offers is
-        /// the timeout, where zero is the default the policy already carries and means the
-        /// platform's fifteen seconds, so the smallest positive value is the whole of the
-        /// vocabulary. Measured: the same leaf is refused in 79 ms rather than 15.0 s, and this
-        /// plugin's own client still chains, because it never needed the network.
-        ///
-        /// What that leaves is a millisecond, and saying so is more use than claiming the door is
-        /// shut. The engine may still open the request before abandoning it, and against a
-        /// loopback address the connection sometimes lands, which the test reports rather than
-        /// asserts. Against anything further away a millisecond buys a packet and no answer. The
-        /// wait and the completed download are what the bound takes away, and they are what the
-        /// stall was made of.
+        /// Whatever will not parse or verify is an answer, and the answer is no: the leaf arrives
+        /// from whoever opened the connection, and a certificate Bouncy Castle cannot read is not
+        /// one this authority issued. That is a promise kept by the checks first: the filter below
+        /// names only what is still left to throw once they have refused everything of another
+        /// shape.
         /// </remarks>
-        private static readonly TimeSpan NoTimeToFetch = TimeSpan.FromMilliseconds(1);
-
-        /// <summary>
-        /// True when the leaf chains to the anchor and to nothing else.
-        /// </summary>
-        /// <param name="ignoreExpiry">
-        /// True when the chain build should not judge the dates. Every caller passes true. The
-        /// connection path checks expiry itself, so the clock skew it allows is this plugin's
-        /// rather than the platform's, and every other caller asks which authority a certificate
-        /// belongs to, which an expired one still does, and reports its expiry on its own terms.
-        /// </param>
-        public static bool Chains(X509Certificate2 leaf, X509Certificate2 anchor, bool ignoreExpiry)
+        public static bool Chains(X509Certificate2 leaf, X509Certificate2 anchor)
         {
-            bool evaluated;
-            return Chains(leaf, anchor, ignoreExpiry, out evaluated);
-        }
-
-        /// <summary>
-        /// The same, and whether the chain engine could answer the question at all.
-        /// </summary>
-        /// <param name="evaluated">
-        /// False only when the engine threw: a locked down machine store, a CryptoAPI service
-        /// that is not running, a provider that will not load. That is not the same as a
-        /// certificate from somewhere else, and the caller must not report it as one, because
-        /// the remedy offered for a foreign authority destroys a healthy one.
-        ///
-        /// A build that returns false is left as `true`: a host signed by another authority
-        /// produces a partial chain and fails exactly that way, so it is an answer.
-        /// </param>
-        public static bool Chains(
-            X509Certificate2 leaf, X509Certificate2 anchor, bool ignoreExpiry, out bool evaluated)
-        {
-            // The question was answered unless one of the paths below says otherwise. A wrong
-            // number of elements and a root that does not match are both answers.
-            evaluated = true;
-
             if (leaf == null || anchor == null)
             {
                 return false;
@@ -103,78 +103,159 @@ namespace KeePassGate.Authority
 
             try
             {
-                using (var chain = new X509Chain())
-                using (new ElementsOf(chain))
-                {
-                    chain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
-                    chain.ChainPolicy.VerificationFlags = X509VerificationFlags.AllowUnknownCertificateAuthority;
-                    if (ignoreExpiry)
-                    {
-                        chain.ChainPolicy.VerificationFlags |= X509VerificationFlags.IgnoreNotTimeValid;
-                    }
+                var issued = OfOurShape(leaf.RawData);
+                var authority = OfOurShape(anchor.RawData);
 
-                    chain.ChainPolicy.ExtraStore.Add(anchor);
-                    chain.ChainPolicy.UrlRetrievalTimeout = NoTimeToFetch;
-
-                    // A build that fails is an answer, not a refusal to answer: a host signed
-                    // by another authority gives a partial chain and lands here, which is the
-                    // ordinary way of being foreign.
-                    if (!chain.Build(leaf))
-                    {
-                        return false;
-                    }
-
-                    // This hierarchy has no intermediates, so anything longer is not ours.
-                    if (chain.ChainElements.Count != LeafAndAnchor)
-                    {
-                        return false;
-                    }
-
-                    // `FixedTime.Equals` rather than a comparison that stops at the first
-                    // difference, which is what `CA.md` §214 writes down. It defends nothing on
-                    // its own: an anchor is a public certificate and every client that can reach
-                    // this code was handed a copy of it at pairing. It is here because every
-                    // comparison of certificate bytes in this plugin goes through that one door,
-                    // and one that did not would be a question a reader has to answer again. The
-                    // load-bearing part is comparing the anchor's bytes at all.
-                    var root = chain.ChainElements[chain.ChainElements.Count - 1].Certificate;
-                    return FixedTime.Equals(root.RawData, anchor.RawData);
-                }
+                return issued != null
+                       && authority != null
+                       && IsAuthority(authority)
+                       && !IsCertificateAuthority(issued)
+                       && UnderstandsEverythingCritical(issued)
+                       && FixedTime.Equals(issued.IssuerDN.GetEncoded(), authority.SubjectDN.GetEncoded())
+                       && issued.IsSignatureValid(authority.GetPublicKey());
             }
-            catch (Exception error) when (Expected.OfCryptography(error))
+            catch (Exception error) when (error is CryptographicException
+                                          || error is GeneralSecurityException
+                                          || error is IOException
+                                          || error is ArgumentException
+                                          || error is FormatException)
             {
-                evaluated = false;
+                // What the checks cannot see coming, each fed to the pin by a test of
+                // `AnchorPinTests` that would throw without it. `CryptographicException` is Windows
+                // asked for the bytes of a certificate it no longer holds. `GeneralSecurityException`
+                // is Bouncy Castle refusing a basic constraints or key usage value it cannot parse,
+                // which it parses as it reads the certificate and Windows does not. `IOException` is
+                // a signature whose bit string does not end on a whole byte. `ArgumentException` and
+                // `FormatException` are an anchor's point that is not on its curve or not encoded as
+                // a point at all, which nothing reads until the key is asked for.
                 return false;
             }
         }
 
         /// <summary>
-        /// Releases the certificates a chain build made for its elements, when it is disposed.
+        /// The certificate as Bouncy Castle reads it, or null when it is not of the shape this
+        /// plugin writes: the very DER Bouncy Castle writes back, and ecdsa-with-SHA256 with its
+        /// parameters absent, `CA.md` §203, in the signature and in the signed part alike.
         /// </summary>
         /// <remarks>
-        /// Measured on .NET Framework: disposing an `X509Chain` releases the chain and leaves the
-        /// certificate of every element holding a duplicated context until the collector gets to
-        /// it, and the first element's is a second reference to the leaf's own context. Left that
-        /// way, every chain built here keeps a copy of the leaf and of the authority alive until
-        /// the next collection, however promptly the caller releases the leaf it passed in.
-        /// Disposed before the chain, which is what the second `using` above gives.
+        /// Both places, because Bouncy Castle compares them itself only after an absent parameter
+        /// and an explicit NULL have been made equal, and a certificate signed over one while it
+        /// names the other is not one this plugin writes. Asked before any signature is checked,
+        /// since the algorithm named is the one a verifier would be built for.
         /// </remarks>
-        private sealed class ElementsOf : IDisposable
+        private static BcCertificate OfOurShape(byte[] der)
         {
-            private readonly X509Chain _chain;
+            var certificate = new BcCertificate(der);
 
-            public ElementsOf(X509Chain chain)
+            // `FixedTime.Equals` rather than a comparison that stops at the first difference,
+            // which is what `CA.md` §214 writes down. It defends nothing on its own: an anchor is
+            // a public certificate and every client that can reach this code was handed a copy of
+            // it at pairing. It is here because every comparison of certificate bytes in this
+            // plugin goes through that one door, and one that did not would be a question a reader
+            // has to answer again.
+            if (!FixedTime.Equals(certificate.GetEncoded(), der))
             {
-                _chain = chain;
+                return null;
             }
 
-            public void Dispose()
+            return IsEcdsaWithSha256(certificate.SignatureAlgorithm)
+                   && IsEcdsaWithSha256(certificate.TbsCertificate.Signature)
+                ? certificate
+                : null;
+        }
+
+        private static bool IsEcdsaWithSha256(AlgorithmIdentifier algorithm)
+        {
+            return X9ObjectIdentifiers.ECDsaWithSha256.Equals(algorithm.Algorithm) && algorithm.Parameters == null;
+        }
+
+        /// <summary>
+        /// An authority as this plugin makes one: a key on P-256, `CA:TRUE`, allowed to sign
+        /// certificates, nothing critical it does not understand, named as its own issuer in its
+        /// own bytes, and signed by its own key.
+        /// </summary>
+        /// <remarks>
+        /// **Stricter than the chain engine was.** It refused an anchor marked `CA:FALSE`, one
+        /// without `keyCertSign`, one carrying a critical extension it did not know and one whose
+        /// own signature did not check. It tolerated an anchor with no basic constraints at all, as
+        /// an untrusted root, and one naming another issuer and a subordinate whose issuer it could
+        /// not find, as a partial chain, and this refuses all three. A certificate that is not an
+        /// authority vouches for nothing, and one signed by somebody else is the subordinate
+        /// `pathLen 0` forbids.
+        ///
+        /// The key is asked about before it is read, because reading it is where Bouncy Castle
+        /// decides what kind of key it is: an anchor naming no curve, which X9.62 calls implicitly
+        /// CA, threw `NotImplementedException` out of that read, and a key of another kind threw
+        /// out of the verifier's cast.
+        /// </remarks>
+        private static bool IsAuthority(BcCertificate authority)
+        {
+            var key = authority.SubjectPublicKeyInfo.Algorithm;
+            if (!X9ObjectIdentifiers.IdECPublicKey.Equals(key.Algorithm)
+                || !X9ObjectIdentifiers.Prime256v1.Equals(key.Parameters))
             {
-                foreach (var element in _chain.ChainElements)
+                return false;
+            }
+
+            if (!IsCertificateAuthority(authority))
+            {
+                return false;
+            }
+
+            // `GetKeyUsage` answers null when there is no key usage, which restricts nothing, and
+            // otherwise one flag per bit and never fewer than nine, `keyCertSign` the sixth: RFC 5280
+            // section 4.2.1.3.
+            var usage = authority.GetKeyUsage();
+            if (usage != null && !usage[KeyCertSign])
+            {
+                return false;
+            }
+
+            return UnderstandsEverythingCritical(authority)
+                   && FixedTime.Equals(authority.IssuerDN.GetEncoded(), authority.SubjectDN.GetEncoded())
+                   && authority.IsSignatureValid(authority.GetPublicKey());
+        }
+
+        /// <summary>The position of `keyCertSign` among the key usage bits.</summary>
+        private const int KeyCertSign = 5;
+
+        /// <summary>Whether the certificate's basic constraints mark it `CA:TRUE`.</summary>
+        /// <remarks>
+        /// Read as Bouncy Castle parses the extension, and asked `IsCA` and nothing else. Never
+        /// `GetBasicConstraints`, which answers -1 for an end entity, the path length for an
+        /// authority that sets one and `int.MaxValue` for one that does not, and throws
+        /// `ArithmeticException` for a path length past `int`, which a stored authority is free to
+        /// carry. A path length constrains what lies beneath a subordinate, and the pin accepts no
+        /// leaf that is one, so there is nothing here for it to constrain.
+        /// </remarks>
+        private static bool IsCertificateAuthority(BcCertificate certificate)
+        {
+            var constraints = BasicConstraints.FromExtensions(certificate.TbsCertificate.Extensions);
+            return constraints != null && constraints.IsCA();
+        }
+
+        /// <summary>
+        /// Whether every extension the certificate marks critical is one this plugin understands.
+        /// A certificate with no extensions at all marks nothing critical, and is answered by the
+        /// checks either side of this one.
+        /// </summary>
+        private static bool UnderstandsEverythingCritical(BcCertificate certificate)
+        {
+            var extensions = certificate.TbsCertificate.Extensions;
+            if (extensions == null)
+            {
+                return true;
+            }
+
+            foreach (var oid in extensions.GetCriticalExtensionOids())
+            {
+                if (!Understood.Contains(oid))
                 {
-                    element.Certificate.Reset();
+                    return false;
                 }
             }
+
+            return true;
         }
     }
 }

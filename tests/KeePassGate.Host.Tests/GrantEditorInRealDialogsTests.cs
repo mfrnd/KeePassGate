@@ -893,17 +893,11 @@ namespace KeePassGate.Host.Tests
 
             using (var reading = authority.Read())
             {
-                var client = new AuthorityIssuer().IssueClient(
-                    reading.Material.Authority, "agent-fictitious", profiles);
-
-                try
+                using (var client = new AuthorityIssuer().IssueClient(
+                    reading.Material.AuthorityKey, "agent-fictitious", profiles).Read())
                 {
                     new AdmissionStore(store, null).Write(
                         AdmissionRecord.For(client, System.DateTimeOffset.UtcNow, profiles));
-                }
-                finally
-                {
-                    client.Reset();
                 }
             }
         }

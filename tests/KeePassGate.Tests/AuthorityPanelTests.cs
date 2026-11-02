@@ -8,6 +8,7 @@ using KeePassGate.Tests.Fakes;
 using KeePassGate.Pairing;
 using KeePassGate.Acl;
 using KeePassGate.Ui;
+using KeePassGate.Testing;
 using NUnit.Framework;
 
 namespace KeePassGate.Tests
@@ -947,14 +948,14 @@ namespace KeePassGate.Tests
                 {
                     Assume.That(reading.IsPresent, Is.True);
 
-                    Assert.That(AnchorPin.Chains(certificate, reading.Material.Authority, true),
+                    Assert.That(AnchorPin.Chains(certificate, reading.Material.Authority),
                         Is.False,
                         "the gate refuses this certificate, which is what the page has to agree with");
 
                     // And one this authority did issue, so that the page is not simply calling
                     // everything a stranger.
                     using (var issued = new AuthorityIssuer().IssueClient(
-                        reading.Material.Authority, "agent-invented", new[] { "ops" }))
+                        reading.Material.AuthorityKey, "agent-invented", new[] { "ops" }).Read())
                     {
                         new AdmissionStore(_database.Store, null).Write(
                             AdmissionRecord.For(issued, DateTimeOffset.UtcNow, new[] { "ops" }));
@@ -990,17 +991,17 @@ namespace KeePassGate.Tests
                 using (var reading = new AuthorityService(_database.Store, null).Read())
                 {
                     Assume.That(reading.IsPresent, Is.True);
-                    var authority = reading.Material.Authority;
+                    var authority = reading.Material.AuthorityKey;
 
                     host = AdmissionRecord.For(reading.Material.Host, now, new[] { "ops" });
 
                     using (var issued = new AuthorityIssuer(() => now.AddDays(10)).IssueClient(
-                        authority, "agent-early", new[] { "ops" }))
+                        authority, "agent-early", new[] { "ops" }).Read())
                     {
                         early = AdmissionRecord.For(issued, now, new[] { "ops" });
                     }
 
-                    using (var issued = new AuthorityIssuer().IssueClient(authority, "agent-invented", new[] { "ops" }))
+                    using (var issued = new AuthorityIssuer().IssueClient(authority, "agent-invented", new[] { "ops" }).Read())
                     {
                         ordinary = AdmissionRecord.For(issued, now, new[] { "ops" });
                     }
@@ -1116,12 +1117,176 @@ namespace KeePassGate.Tests
         private AdmissionRecord IssuedAndAdmitted(string name)
         {
             using (var reading = new AuthorityService(_database.Store, null).Read())
-            using (var issued = new AuthorityIssuer().IssueClient(reading.Material.Authority, name, new[] { "ops" }))
+            using (var issued = new AuthorityIssuer().IssueClient(reading.Material.AuthorityKey, name, new[] { "ops" }).Read())
             {
                 var record = AdmissionRecord.For(issued, DateTimeOffset.UtcNow, new[] { "ops" });
                 new AdmissionStore(_database.Store, null).Write(record);
                 return record;
             }
+        }
+
+        [Test]
+        public void A_record_that_cannot_be_checked_is_its_own_answer_and_no_other_record_s()
+        {
+            // A certificate this authority signed, whose extended key usage will not decode, passes
+            // the pin, which reads no usage, and throws from the usage check. One try around the
+            // whole list ended it there, so every older record had no answer, and the page shows a
+            // record with no answer as a client admitted until its date: this authority's own host
+            // certificate and a foreign authority's client among them.
+            var service = new AuthorityService(_database.Store, null);
+            Assume.That(service.Create().Succeeded, Is.True);
+
+            var now = DateTimeOffset.UtcNow;
+            AdmissionRecord host, foreign, healthy, crafted;
+            using (var reading = service.Read())
+            {
+                var key = reading.Material.AuthorityKey;
+                host = Admitted(AdmissionRecord.For(reading.Material.Host, now.AddDays(-3), new[] { "ops" }));
+
+                using (var elsewhere = new AuthorityIssuer().IssueClient(new AuthorityIssuer().CreateAuthority(), "agent-elsewhere", new[] { "ops" }).Read())
+                {
+                    foreign = Admitted(AdmissionRecord.For(elsewhere, now.AddDays(-2), new[] { "ops" }));
+                }
+
+                using (var issued = new AuthorityIssuer().IssueClient(key, "agent-fictitious", new[] { "ops" }).Read())
+                {
+                    healthy = Admitted(AdmissionRecord.For(issued, now.AddDays(-1), new[] { "ops" }));
+                }
+
+                crafted = AdmitReshaped(key, now, der => Reshaped.SignedAgain(der, key, tbs => Reshaped.WithExtensionValue(
+                    tbs, Org.BouncyCastle.Asn1.X509.X509Extensions.ExtendedKeyUsage, new byte[] { 0x30, 0x05, 0x06, 0x01 })));
+            }
+
+            using (var certificate = crafted.Certificate())
+            {
+                Assume.That(() => KeePassGate.Pipeline.ClientCredentials.IsForClientAuthentication(certificate),
+                    Throws.InstanceOf<System.Security.Cryptography.CryptographicException>());
+            }
+
+            using (var panel = NewPanel(true))
+            {
+                var reaches = panel.Reaches(panel.AdmittedClients());
+
+                Assert.That(reaches[crafted.AdmissionKey], Is.EqualTo(ClientReach.Stranger), "the gate's answer for it");
+                Assert.That(reaches[host.AdmissionKey], Is.EqualTo(ClientReach.NotForClients));
+                Assert.That(reaches[foreign.AdmissionKey], Is.EqualTo(ClientReach.Stranger));
+                Assert.That(reaches[healthy.AdmissionKey], Is.EqualTo(ClientReach.Reaches));
+
+                panel.Reaches(panel.AdmittedClients());
+                Assert.That(_log.Errors.Count(e => e.Message.Contains(CertificateDigest.Shorten(crafted.AdmissionKey))), Is.EqualTo(1),
+                    "named once for the authority rather than at every redraw");
+            }
+        }
+
+        [Test]
+        public void A_record_naming_an_algorithm_no_authority_can_check_leaves_create_working()
+        {
+            // With no authority the tab is built whatever the records hold, since a page with no
+            // anchor asks the pin nothing. Create then drew the page against the authority it had
+            // just made, and the pin threw `InvalidCastException` for a record naming Ed25519 out
+            // of the button's handler, which has no catch, into WinForms' own dialog: the page went
+            // on reading as though there were no authority while the dialog held a new one, and
+            // every page switch threw the same.
+            var service = new AuthorityService(_database.Store, null);
+            Assume.That(service.Create().Succeeded, Is.True);
+
+            AdmissionRecord crafted;
+            using (var reading = service.Read())
+            {
+                var key = reading.Material.AuthorityKey;
+                crafted = AdmitReshaped(key, DateTimeOffset.UtcNow, der => NamingEd25519(der, key));
+            }
+
+            _database.Store.Remove(_database.Store.Keys.Single(k => AuthorityKeys.FingerprintInAuthority(k) != null));
+
+            using (var panel = NewPanel(true))
+            {
+                Assert.That(() => panel.CreateAuthority(), Throws.Nothing);
+
+                Assert.That(Button(panel, GateTab.CreateButtonName).Enabled, Is.False, "the page shows what Create did");
+                Assert.That(Button(panel, GateTab.RecreateButtonName).Enabled, Is.True);
+                Assert.That(() => panel.Describe(), Throws.Nothing, "which every page switch runs");
+                Assert.That(panel.Reaches(panel.AdmittedClients())[crafted.AdmissionKey], Is.EqualTo(ClientReach.Stranger));
+            }
+        }
+
+        [Test]
+        public void A_record_naming_an_algorithm_no_candidate_can_check_leaves_choose_working()
+        {
+            // The same record in a database holding two authorities, where Choose threw it out of
+            // the pin, past the filter `AuthorityChoice` carries, before the chooser opened.
+            var candidates = TwoAuthorities();
+            var key = CertificateBlob.Load(
+                AuthorityDocument.Read(_database.Store.Get(AuthorityKeys.AuthorityKey(candidates[0])), null).Authority);
+            var crafted = AdmitReshaped(key, DateTimeOffset.UtcNow, der => NamingEd25519(der, key));
+
+            using (var panel = NewPanel(true))
+            {
+                AuthorityChoice asked = null;
+                panel.AskWhichToKeep = (choice, name) =>
+                {
+                    asked = choice;
+                    return candidates[1];
+                };
+
+                Assert.That(() => panel.ChooseAuthority(), Throws.Nothing);
+
+                Assert.That(asked, Is.Not.Null, "the operator was asked");
+                Assert.That(asked.Options.SelectMany(o => o.Clients).Select(c => c.ClientKey), Does.Not.Contain(crafted.ClientKey),
+                    "and the record counted against neither candidate");
+                Assert.That(Label(panel, GateTab.StatusLabelName).Text, Is.EqualTo(AuthorityDescription.PresentHeadline));
+            }
+        }
+
+        [Test]
+        public void A_record_naming_an_algorithm_its_authority_cannot_check_does_not_stop_the_tab_being_built()
+        {
+            // The panel draws itself as it is built, and the pin threw `InvalidCastException` out
+            // of that for such a record, which the injector took for an attach that failed: the
+            // database's settings dialog had no tab, and nothing was counted anywhere.
+            var service = new AuthorityService(_database.Store, null);
+            Assume.That(service.Create().Succeeded, Is.True);
+
+            AdmissionRecord crafted;
+            using (var reading = service.Read())
+            {
+                var key = reading.Material.AuthorityKey;
+                crafted = AdmitReshaped(key, DateTimeOffset.UtcNow, der => NamingEd25519(der, key));
+            }
+
+            AuthorityPanel panel = null;
+            Assert.That(() => panel = NewPanel(true), Throws.Nothing);
+            using (panel)
+            {
+                Assert.That(panel.Reaches(panel.AdmittedClients())[crafted.AdmissionKey], Is.EqualTo(ClientReach.Stranger));
+            }
+        }
+
+        /// <summary>The record, written to the live store.</summary>
+        private AdmissionRecord Admitted(AdmissionRecord record)
+        {
+            new AdmissionStore(_database.Store, null).Write(record);
+            return record;
+        }
+
+        /// <summary>
+        /// A client of the authority given, admitted in the live store at the moment given, its
+        /// certificate put into a shape that authority would never write.
+        /// </summary>
+        private AdmissionRecord AdmitReshaped(CertifiedKey authority, DateTimeOffset when, Func<byte[], byte[]> reshape)
+        {
+            var issued = new AuthorityIssuer().IssueClient(authority, "agent-crafted", new[] { "ops" }).CertificateDer;
+            using (var certificate = new System.Security.Cryptography.X509Certificates.X509Certificate2(reshape(issued)))
+            {
+                return Admitted(AdmissionRecord.For(certificate, when, new[] { "ops" }));
+            }
+        }
+
+        /// <summary>The certificate naming Ed25519 in both places, which no elliptic curve key can check.</summary>
+        private static byte[] NamingEd25519(byte[] der, CertifiedKey signer)
+        {
+            var named = new Org.BouncyCastle.Asn1.X509.AlgorithmIdentifier(new Org.BouncyCastle.Asn1.DerObjectIdentifier("1.3.101.112"));
+            return Reshaped.Naming(der, named, named, signer);
         }
 
         [Test]
@@ -1242,17 +1407,10 @@ namespace KeePassGate.Tests
 
         private static System.Security.Cryptography.X509Certificates.X509Certificate2 SelfSigned(string name)
         {
-            using (var key = System.Security.Cryptography.RSA.Create(2048))
-            {
-                var request = new System.Security.Cryptography.X509Certificates.CertificateRequest(
-                    "CN=" + name,
-                    key,
-                    System.Security.Cryptography.HashAlgorithmName.SHA256,
-                    System.Security.Cryptography.RSASignaturePadding.Pkcs1);
-
-                return request.CreateSelfSigned(
-                    DateTimeOffset.UtcNow.AddDays(-25), DateTimeOffset.UtcNow.AddDays(5));
-            }
+            return Minted.Named("CN=" + name)
+                .Lasting(DateTimeOffset.UtcNow.AddDays(-25), DateTimeOffset.UtcNow.AddDays(5))
+                .SelfSigned()
+                .Read();
         }
 
         [Test]

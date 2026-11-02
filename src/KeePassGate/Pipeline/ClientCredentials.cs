@@ -25,8 +25,8 @@ namespace KeePassGate.Pipeline
     /// and hostname verification is deliberately abandoned here. Without it a host certificate
     /// could be presented as a client.
     ///
-    /// **The dates are checked here** rather than left to the chain build, so that the allowance
-    /// for a wrong clock is exactly five minutes and only on `notBefore`.
+    /// **The dates are checked here**, since the anchor pin asks nothing of them, so that the
+    /// allowance for a wrong clock is exactly five minutes and only on `notBefore`.
     ///
     /// **The admission record is looked up, and it is what grants.** A certificate that chains,
     /// carries the right usage and is inside its dates opens nothing without one. That is what
@@ -77,14 +77,16 @@ namespace KeePassGate.Pipeline
                 return ClientIdentity.Stranger(databaseId);
             }
 
-            // Every check below reads the certificate, and every read of one is a call into
-            // CryptoAPI that can fail on a context the client chose. One filter over all of them,
-            // so that the promise above holds for the last three the way `AnchorPin` already makes
-            // it hold for the first: a refusal, not an exception the transport has to catch.
+            // Every check below reads the certificate, and every read of one through Windows is a
+            // call into CryptoAPI that can fail on a context the client chose. One filter over all
+            // of them, so that the promise above holds for the last three the way `AnchorPin`
+            // already makes it hold for the first: a refusal, not an exception the transport has
+            // to catch.
             try
             {
-                // Expiry is ignored by the chain build and checked below, so that the skew is ours.
-                if (!AnchorPin.Chains(presented, target.Authority, true))
+                // The pin asks nothing of the dates, and they are checked below, so that the skew
+                // is ours.
+                if (!AnchorPin.Chains(presented, target.Authority))
                 {
                     logger.Warn("refused a certificate that does not chain to " + Short(databaseId));
                     return ClientIdentity.Stranger(databaseId);

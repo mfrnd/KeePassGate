@@ -2,15 +2,18 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Reflection;
 using System.Text;
 using System.Threading;
+using KeePassGate.Authority;
 using KeePassGate.Gate;
 using KeePassGate.Pipeline;
 using KeePassGate.Spec;
+using KeePassGate.Testing;
 using KeePassGate.Tests.Fakes;
 using KeePassGate.Transport;
 using NUnit.Framework;
@@ -231,35 +234,30 @@ namespace KeePassGate.Tests
         [Test]
         public void A_certificate_presented_without_its_key_is_refused_in_the_handshake()
         {
-            using (var certificate = _first.IssueAdmittedClient())
-            {
-                var material = HostKeyMaterial.From(
-                    KeePassGate.Authority.CertificateBlob.Bytes(KeePassGate.Authority.CertificateBlob.Save(certificate)));
-                Assert.That(material, Is.Not.Null);
+            var material = _first.IssueAdmittedClientKey();
 
-                var forged = BouncyCastleGateClient.Get(
-                    _listener.Port, _first.NewName(), material.CertificateDer, BouncyCastleGateClient.AnotherKey(),
-                    "/gate/status");
-                var genuine = BouncyCastleGateClient.Get(
-                    _listener.Port, _first.NewName(), material.CertificateDer, material.PrivateKey, "/gate/status");
+            var forged = BouncyCastleGateClient.Get(
+                _listener.Port, _first.NewName(), material.CertificateDer, BouncyCastleGateClient.AnotherKey(),
+                "/gate/status");
+            var genuine = BouncyCastleGateClient.Get(
+                _listener.Port, _first.NewName(), material.CertificateDer, material.PrivateKey, "/gate/status");
 
-                Assert.That(genuine.Status, Is.EqualTo(200), "the client itself works: " + genuine);
-                Assert.That(forged.Answered, Is.False, "a certificate without its key was answered: " + forged);
+            Assert.That(genuine.Status, Is.EqualTo(200), "the client itself works: " + genuine);
+            Assert.That(forged.Answered, Is.False, "a certificate without its key was answered: " + forged);
 
-                // Why it was refused is asked of the gate's log rather than of the client. The gate
-                // closes a refused connection with the client's request still unread, Windows answers
-                // that with a reset, and a reset that reaches the client before its first read takes
-                // the alert with it: a client made to wait half a second before reading never saw
-                // `decrypt_error` at all. And waited for rather than read at once, because the line
-                // is written by the connection's own thread once the alert has gone, so a client
-                // can be told before the log is.
-                Assert.That(
-                    Waited(() => _log.Entries.Any(entry =>
-                        entry.Message.StartsWith("a handshake failed", StringComparison.Ordinal)
-                        && entry.Message.Contains("decrypt_error"))),
-                    Is.True,
-                    "refused in the handshake for its signature, which ends before the anchor or the record is asked");
-            }
+            // Why it was refused is asked of the gate's log rather than of the client. The gate
+            // closes a refused connection with the client's request still unread, Windows answers
+            // that with a reset, and a reset that reaches the client before its first read takes
+            // the alert with it: a client made to wait half a second before reading never saw
+            // `decrypt_error` at all. And waited for rather than read at once, because the line
+            // is written by the connection's own thread once the alert has gone, so a client
+            // can be told before the log is.
+            Assert.That(
+                Waited(() => _log.Entries.Any(entry =>
+                    entry.Message.StartsWith("a handshake failed", StringComparison.Ordinal)
+                    && entry.Message.Contains("decrypt_error"))),
+                Is.True,
+                "refused in the handshake for its signature, which ends before the anchor or the record is asked");
         }
 
         [Test]
@@ -392,13 +390,10 @@ namespace KeePassGate.Tests
             // will not parse makes the credentials callback throw, as a defect there would.
             using (var broken = TestAuthority.New())
             {
-                var unreadable = (HostKeyMaterial)typeof(HostKeyMaterial)
-                    .GetConstructor(
-                        BindingFlags.Instance | BindingFlags.NonPublic,
-                        null,
-                        new[] { typeof(byte[]), typeof(Org.BouncyCastle.Crypto.AsymmetricKeyParameter) },
-                        null)
-                    .Invoke(new object[] { new byte[] { 1, 2, 3 }, broken.Host.PrivateKey });
+                var unreadable = new CertifiedKey(broken.Host.Certificate, broken.Host.PrivateKey);
+                typeof(CertifiedKey)
+                    .GetField("_certificateDer", BindingFlags.Instance | BindingFlags.NonPublic)
+                    .SetValue(unreadable, new byte[] { 1, 2, 3 });
                 typeof(TestAuthority)
                     .GetField("_hostKey", BindingFlags.Instance | BindingFlags.NonPublic)
                     .SetValue(broken, unreadable);
@@ -435,6 +430,37 @@ namespace KeePassGate.Tests
                     Assert.That(reply.Answered, Is.False, "there is no certificate to answer with");
                     Assert.That(Waited(() => incidents.Count == 1), Is.True, string.Join("\n", log.Lines));
                     Assert.That(incidents.Recent.Single(), Does.Contain("the handshake failed on this side"));
+                }
+            }
+        }
+
+        [Test]
+        public void An_IO_failure_resolving_a_name_is_counted_rather_than_put_down_to_the_peer()
+        {
+            // Resolving reads no stream, so an `IOException` out of it is this side's: Bouncy
+            // Castle raises one for stored bytes that will not parse, and the connection's catch
+            // read it as a client that hung up, at Info, with nothing counted.
+            using (var authority = TestAuthority.New())
+            {
+                var log = new QueueLog();
+                var incidents = new KeePassGate.Diagnostics.GateIncidents(log);
+                var targets = new FakeGateTargets(authority) { Throws = new IOException("unknown tag 13 encountered") };
+                using (var listener = new GateListener(
+                    new GateOptions { Port = 0 },
+                    new GateResolver(targets, log),
+                    GateOperations.Router("9.9.9"),
+                    incidents,
+                    log))
+                {
+                    Assert.That(listener.Start(), Is.True);
+
+                    var reply = GateClient.Get(listener.Port, authority.NewName(), null, GateOperations.StatusPath);
+
+                    Assert.That(reply.Answered, Is.False, "nothing is served under a name that did not resolve");
+                    Assert.That(Waited(() => incidents.Count == 1), Is.True, string.Join("\n", log.Lines));
+                    Assert.That(incidents.Recent.Single(), Does.Contain("a name could not be resolved"));
+                    Assert.That(log.Lines.Any(line => line.Contains("a connection ended early")), Is.False,
+                        string.Join("\n", log.Lines));
                 }
             }
         }

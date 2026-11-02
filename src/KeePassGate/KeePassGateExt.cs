@@ -221,11 +221,12 @@ namespace KeePassGate
         /// A fresh copy of the picture this plugin puts beside its own name, or null.
         /// </summary>
         /// <remarks>
-        /// Fresh every time, because each one is handed somewhere that copies it rather than
-        /// borrows it: an `ImageList` copies into its own handle, and a menu item keeps the
-        /// reference it was given. **Neither disposes what it was handed**, which is why
-        /// `TabPageInjector.Decorate` disposes its copy itself and says so; the one this hands to
-        /// the Tools menu is 16 by 16 and lives as long as the menu does, which is the process.
+        /// Fresh every time, because each one is handed somewhere that keeps it: an `ImageList`
+        /// reads it when its handle is made, which is after it was added, and a menu item keeps
+        /// the reference it was given. **Neither disposes what it was handed**, which is why
+        /// `TabPageInjector` disposes the tab's copy itself, after the list, when the tab goes; the
+        /// one this hands to the Tools menu is 16 by 16 and lives as long as the menu does, which
+        /// is the process.
         /// KeePass's own icons are read rather than a picture of ours shipped, so the plugin looks
         /// like the window it is in and follows a KeePass that restyles them.
         /// </remarks>
@@ -454,8 +455,9 @@ namespace KeePassGate
                 _incidents = new GateIncidents(_log);
                 _log.Info("initializing version " + GateVersion.Current);
                 // Before anything reaches for one, so that a dependency missing from beside the
-                // plugin, or replaced by another version, refuses the start here, named in the
-                // log, rather than failing wherever the plugin first uses it.
+                // plugin, replaced by another assembly version, or loaded first by another plugin
+                // at an older file version than the copy here, refuses the start here, named in
+                // the log, rather than failing wherever the plugin first uses it.
                 Dependencies.Load();
 
                 // The window events come first, because the gate refuses to write while a dialog
@@ -648,8 +650,8 @@ namespace KeePassGate
                 if (_targets != null)
                 {
                     // Disposing these is what drops the host certificates. Nothing comes off
-                    // the disk, because nothing was put there: every key this plugin loads is
-                    // loaded with `EphemeralKeySet`, which is what `CertificateBlob` is for.
+                    // the disk, because nothing was put there: no key this plugin holds is ever
+                    // handed to Windows, and `CertifiedKey` gives the reason.
                     _targets.Dispose();
                     _targets = null;
                 }

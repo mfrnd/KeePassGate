@@ -621,10 +621,12 @@ namespace KeePassGate.Pairing
                     nameof(held), "The approval carried a lifetime no dialog offers.");
             }
 
+            CertifiedKey identity;
             X509Certificate2 certificate;
             try
             {
-                certificate = _issuer.IssueClient(target.Authority, name, profiles, lifetime);
+                identity = _issuer.IssueClient(target.AuthorityKey, name, profiles, lifetime);
+                certificate = new X509Certificate2(identity.CertificateDer);
             }
             catch (Exception error) when (Expected.OfIssuance(error))
             {
@@ -639,7 +641,7 @@ namespace KeePassGate.Pairing
                 return;
             }
 
-            try
+            using (certificate)
             {
                 // A profile the operator approved that this database had never named is created by
                 // their approval, and the writer does that inside the same marshaled write as the
@@ -734,11 +736,7 @@ namespace KeePassGate.Pairing
                 _log.Info("paired " + certificate.Subject + " with " +
                           CertificateDigest.Shorten(target.DatabaseId));
 
-                context.Respond(200, Bundle(target, certificate, profiles));
-            }
-            finally
-            {
-                certificate.Reset();
+                context.Respond(200, Bundle(target, identity, profiles));
             }
         }
 
@@ -803,55 +801,68 @@ namespace KeePassGate.Pairing
         /// and the gate key every connection after this one is named from. A renewal answers with
         /// the same, so that a client stores either the same way.
         /// </summary>
-        internal static string Bundle(
-            IGateTarget target, X509Certificate2 certificate, IReadOnlyList<string> profiles)
+        /// <param name="target">The database the client is admitted to.</param>
+        /// <param name="identity">The certificate and key handed over, as they are stored.</param>
+        /// <param name="profiles">The profiles the record holds.</param>
+        /// <remarks>
+        /// **The name and the dates are read off the identity itself**, so that what a client
+        /// stores beside its identity can only ever describe that identity. They used to arrive as
+        /// a second argument, Windows's reading of the same certificate, and nothing held the two
+        /// to one certificate but both callers happening to build the second from the first.
+        /// Windows's reading still, rather than Bouncy Castle's, because the subject is the one the
+        /// record and the log carry, in the form Windows renders it.
+        /// </remarks>
+        internal static string Bundle(IGateTarget target, CertifiedKey identity, IReadOnlyList<string> profiles)
         {
-            var gateKey = target.GateKey;
-
-            try
+            using (var certificate = new X509Certificate2(identity.CertificateDer))
             {
-                // Written by `Json.NET`, which is here for the request bodies, rather than
-                // assembled out of punctuation and an escaper of our own. What goes into this
-                // is a certificate subject and a list of profile names, neither of which this
-                // side chose, so the one thing it must not do is depend on a second answer to
-                // what a JSON string looks like.
-                var text = new StringWriter(CultureInfo.InvariantCulture);
-                using (var json = new JsonTextWriter(text) { Formatting = Formatting.None })
+                var gateKey = target.GateKey;
+
+                try
                 {
-                    json.WriteStartObject();
-
-                    json.WritePropertyName("identity");
-                    json.WriteValue(CertificateBlob.Save(certificate));
-                    json.WritePropertyName("authority");
-                    json.WriteValue(Convert.ToBase64String(target.Authority.RawData));
-                    json.WritePropertyName("gateKey");
-                    json.WriteValue(Convert.ToBase64String(gateKey));
-                    json.WritePropertyName("subject");
-                    json.WriteValue(certificate.Subject);
-                    json.WritePropertyName("database");
-                    json.WriteValue(CertificateDigest.Shorten(target.DatabaseId));
-                    json.WritePropertyName("expires");
-                    json.WriteValue(
-                        Moment(new DateTimeOffset(certificate.NotAfter.ToUniversalTime(), TimeSpan.Zero)));
-
-                    json.WritePropertyName("profiles");
-                    json.WriteStartArray();
-                    foreach (var profile in profiles)
+                    // Written by `Json.NET`, which is here for the request bodies, rather than
+                    // assembled out of punctuation and an escaper of our own. What goes into this
+                    // is a certificate subject and a list of profile names, neither of which this
+                    // side chose, so the one thing it must not do is depend on a second answer to
+                    // what a JSON string looks like.
+                    var text = new StringWriter(CultureInfo.InvariantCulture);
+                    using (var json = new JsonTextWriter(text) { Formatting = Formatting.None })
                     {
-                        json.WriteValue(profile);
+                        json.WriteStartObject();
+
+                        json.WritePropertyName("identity");
+                        json.WriteValue(CertificateBlob.Save(identity));
+                        json.WritePropertyName("authority");
+                        json.WriteValue(Convert.ToBase64String(target.Authority.RawData));
+                        json.WritePropertyName("gateKey");
+                        json.WriteValue(Convert.ToBase64String(gateKey));
+                        json.WritePropertyName("subject");
+                        json.WriteValue(certificate.Subject);
+                        json.WritePropertyName("database");
+                        json.WriteValue(CertificateDigest.Shorten(target.DatabaseId));
+                        json.WritePropertyName("expires");
+                        json.WriteValue(
+                            Moment(new DateTimeOffset(certificate.NotAfter.ToUniversalTime(), TimeSpan.Zero)));
+
+                        json.WritePropertyName("profiles");
+                        json.WriteStartArray();
+                        foreach (var profile in profiles)
+                        {
+                            json.WriteValue(profile);
+                        }
+
+                        json.WriteEndArray();
+                        json.WriteEndObject();
                     }
 
-                    json.WriteEndArray();
-                    json.WriteEndObject();
+                    return text.ToString();
                 }
-
-                return text.ToString();
-            }
-            finally
-            {
-                if (gateKey != null)
+                finally
                 {
-                    Array.Clear(gateKey, 0, gateKey.Length);
+                    if (gateKey != null)
+                    {
+                        Array.Clear(gateKey, 0, gateKey.Length);
+                    }
                 }
             }
         }

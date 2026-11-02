@@ -154,10 +154,9 @@ namespace KeePassGate.Authority
         /// The certificate, for reading dates and names off. The caller disposes it.
         /// </summary>
         /// <remarks>
-        /// `EphemeralKeySet`, for the reason `CertificateBlob` gives: no key this plugin loads ever
-        /// reaches the disk. These bytes are a bare certificate and carry no key, which `Load` is
-        /// what makes true, and this is what keeps it true for a record built through the public
-        /// constructor instead.
+        /// `EphemeralKeySet`, kept so that no key this plugin loads could reach the disk, though
+        /// these bytes cannot carry one: the constructor refuses anything but a bare certificate,
+        /// however a record is built.
         /// </remarks>
         public X509Certificate2 Certificate()
         {
@@ -410,9 +409,9 @@ namespace KeePassGate.Authority
         /// therefore not be the bytes it is keyed on, and a digest check alone cannot see that,
         /// because the key is a digest of whatever was stored.
         ///
-        /// `EphemeralKeySet` for the reason `CertificateBlob` uses it: a PKCS#12 reaching here
-        /// would otherwise write its private key into the operator's key store, from bytes a
-        /// `.kdbx` chose, on whichever thread happened to read the record.
+        /// `EphemeralKeySet`, because a PKCS#12 reaching here would otherwise write its private
+        /// key into the operator's key store, from bytes a `.kdbx` chose, on whichever thread
+        /// happened to read the record.
         ///
         /// Here rather than in `Load` alone, because the constructor is what decides what a record
         /// is and it was deciding less: a record built from a PKCS#12 and its digest passed every

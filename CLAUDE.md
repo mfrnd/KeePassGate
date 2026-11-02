@@ -8,7 +8,7 @@ Guidance for anyone, human or AI assistant, working in this repository.
 mutual TLS, so that automation and AI agents can each be given a narrow, revocable, audited slice of
 a database.
 
-**Status: the whole build order is done and the API is served.** The plugin loads
+**Status: all but step 34 of the build order are done, and the API is served.** The plugin loads
 into KeePass, the KPG tab creates, recreates and deletes the database's own certificate authority,
 the gate listens on loopback and answers over mutual TLS 1.3, a client is served only if
 the database holds an admission record for its certificate, and **a stranger can now become one**:
@@ -64,7 +64,10 @@ suppressed where it is made with its reason, and a merge waits for `code scannin
 fails on any finding left, and for every suppression the pull request touches to be resolved in
 review. **And a read holds KeePass still**: every read a connection makes holds KeePass's
 thread for its whole length, in a turn taken from the one queue every write takes its turn from as
-well, and only once KeePass has nothing else to do.
+well, and only once KeePass has nothing else to do. **And the certificates are Bouncy Castle's**:
+it issues every one, signs with every stored key and judges every anchor, so no key the plugin holds
+is handed to Windows and nothing builds a chain. **Step 34, tags, is planned and not started**: what
+the build order plans for it is in `DESIGN.md` §132.
 
 ## Read these before proposing anything
 
@@ -196,8 +199,9 @@ designing around them.
   KeePass can answer `503 locked` rather than failing at the transport. It was seven days and minted
   at unlock until a long lock outlived it. The normal host key is let go at lock, and `CA.md` §208
   is exact about how much of that is erasure: the gate key and the stored PKCS#12 are overwritten,
-  while the key the TLS server signs with is a BouncyCastle value over an immutable integer that
-  offers nothing to overwrite, so the last reference goes and nothing more. The responder is marked by a
+  while the keys, the one the TLS server signs with and the authority's, are BouncyCastle values
+  over an immutable integer that offer nothing to overwrite, so the last reference goes and nothing
+  more. The responder is marked by a
   `kpg://host/responder` URI in its subject alternative name, **not** a private OID: the UUID arc
   `2.25` encodes on .NET Framework and does not survive being read back, and `1.3.6.1.4.1` would be
   squatting on somebody else's enterprise number.
@@ -301,12 +305,18 @@ designing around them.
 - **The plugin's own name carries KeePass's icon 29, `TerminalEncrypted`**, on the Tools menu item
   and on all three tabs. Read off `MainWindow.ClientIcons` rather than shipped as a resource, so it
   matches the window it is in and follows a KeePass that restyles its icons, and copied every time
-  because each copy is handed to a menu or an image list that disposes it. **A tab strip shows
+  because each copy is kept by what it is handed to: a menu keeps its copy for the process, and a
+  tab's is disposed with the tab, after its image list. **A tab strip shows
   pictures only if the whole control has an `ImageList`**, and none of the three dialogs brings one,
   so `TabPageInjector` gives it one and takes it away again on detach: that makes every tab on
-  those dialogs a little taller, which WinForms offers no way around. `GateIconTests` pins both the
-  icon's identity and the fact that KeePass brings no list of its own, because a KeePass that
-  started putting icons on its own tabs would have us appending to somebody else's list.
+  those dialogs a little taller, which WinForms offers no way around. **The tab's copy lives as long
+  as that list** and is disposed after it, because neither platform has read the picture when
+  `Images.Add` returns: Windows copies it into the native list when the list's handle is made, at
+  the `TabControl.ImageList` setter or when the control gets its window, and Mono reads it when the
+  tab is first drawn, so a picture disposed straight after `Add` is lost on either. `GateIconTests`
+  pins both the icon's identity and the fact that KeePass brings no list of its own, because a
+  KeePass that started putting icons on its own tabs would have us appending to somebody else's
+  list.
 
 - **What is about the plugin is not on the KPG tab.** The listening socket and the port live
   on the window `Plugin.GetMenuItem` puts under Tools, because that answer is the same whichever
@@ -369,7 +379,13 @@ designing around them.
   measurement: SChannel will not serve with a key that has not been written to the user's profile,
   so the platform's own TLS meant a host key on the disk. `Org.BouncyCastle.Tls` is MIT, alive, and
   parses the stored PKCS#12 itself. Do not re-propose `SslStream` for the server without measuring
-  `EphemeralKeyProbe.cs` on `spikes/tls-and-certificates` again first.
+  `EphemeralKeyProbe.cs` on `spikes/tls-and-certificates` again first. **And it issues every
+  certificate**, signing with the authority's key as it reads that key out of the stored PKCS#12,
+  so no key of the plugin's own is handed to Windows, which is given certificates to read. The one
+  thing Windows parses that could hold a key is an admission record's certificate, bytes a
+  database chose, read under `EphemeralKeySet`, `CA.md` §222. Names are UTF8String, and a leaf's
+  issuer is its authority's subject copied as stored, so an authority Windows wrote, in
+  PrintableString, still chains what it issues. `CA.md` §203.
 - **Spec-first routing.** The OpenAPI document at `src/KeePassGate/Spec/openapi.yaml` is the
   routing table, embedded in the assembly, and handlers bind to `operationId`, so an undeclared path
   has nowhere to go. Every declared operation must have a handler and every handler a declared
@@ -528,8 +544,11 @@ Run them from
 
 - **`X509Chain` does not pin an anchor.** `ExtraStore` plus `AllowUnknownCertificateAuthority`
   accepts a certificate from a completely foreign authority. `X509ChainTrustMode.CustomRootTrust`
-  would fix it and is .NET 5 and later. **Byte-compare the chain's last element** and require exactly
-  two elements. `ChainProbe`.
+  would fix it and is .NET 5 and later. A pin built on it has to byte-compare the chain's last
+  element and require exactly two elements, which is what this plugin's pin did, `ChainProbe`.
+  **`AnchorPin` builds no chain now**: the anchor has to be an authority signed by itself, the leaf
+  has to name it in its very bytes and carry its signature, and both have to be of the one shape
+  this plugin writes, anything else answered no rather than thrown, `CA.md` §214.
 - **`X509Chain` goes out on the network for a certificate somebody else chose.** When the issuer is
   not in `ExtraStore`, CryptoAPI follows the `caIssuers` URLs written into the leaf before `Build`
   returns, so a peer names the address and the process fetches it. Measured at 15.0 seconds for one
@@ -537,7 +556,9 @@ Run them from
   `X509ChainPolicy.DisableCertificateDownloads` would forbid it and is .NET 5 and later, so on this
   framework `UrlRetrievalTimeout` is the whole of the vocabulary: zero means the platform's fifteen
   seconds, and a millisecond takes away the wait and the answer rather than the first packet.
-  `AnchorPinTests.A_foreign_leaf_that_names_a_download_is_refused_without_waiting_for_it`.
+  Measured by `AnchorPinTests` while the pin built a chain, rather than on a spike branch; the pin
+  fetches nothing now, since it builds no chain:
+  `AnchorPinTests.A_leaf_that_names_a_download_is_answered_without_anything_reaching_the_address`.
 - **`ClientCertificateRequired = false` is what breaks optional client certificates.** Under TLS 1.3
   the server then sends no `CertificateRequest` at all, so a client holding a good certificate never
   offers one. Under TLS 1.2 it does, so testing on 1.2 and shipping on 1.3 is a silent
@@ -556,15 +577,15 @@ Run them from
   carries a private key besides. `AdmissionRecord` does exactly that; measured by feeding a PFX to
   the byte constructor on .NET Framework 4.8 and printing all three numbers.
 - **`X509Certificate2.NotAfter` cannot hold a certificate that never expires.** RFC 5280 writes
-  "no well-defined expiration" as `99991231235959Z`, and `CertificateRequest` encodes it exactly
-  so. Read back, `NotAfter` converts to local time, and ahead of UTC that moment falls in the year
-  10000, which no `DateTime` holds: what comes back is `DateTime.MaxValue`, which converted back to
-  UTC is up to fourteen hours early, and nothing throws. Measured in this machine's own zone as
-  well as in simulated ones. The client's half is the same fact: `cryptography` reads the value
-  exactly, and moving that `datetime` into a zone ahead of UTC raises `OverflowError`. A hundred
-  years, the fallback the operator named, is read exactly by every reader on the path in every
-  zone tried. `LongLivedCertificateTests` on this side, and
-  `test_an_authority_and_a_host_good_for_a_hundred_years_are_accepted` on the client's.
+  "no well-defined expiration" as `99991231235959Z`, and Bouncy Castle encodes it exactly so, as
+  `CertificateRequest` did. Read back, `NotAfter` converts to local time, and ahead of UTC that
+  moment falls in the year 10000, which no `DateTime` holds: what comes back is
+  `DateTime.MaxValue`, which converted back to UTC is up to fourteen hours early, and nothing
+  throws. Measured in this machine's own zone as well as in simulated ones. The client's half is
+  the same fact: `cryptography` reads the value exactly, and moving that `datetime` into a zone
+  ahead of UTC raises `OverflowError`. A hundred years, the fallback the operator named, is read
+  exactly by every reader on the path in every zone tried. `LongLivedCertificateTests` on this
+  side, and `test_an_authority_and_a_host_good_for_a_hundred_years_are_accepted` on the client's.
 - **A KeePass merge of `PwDatabase.CustomData` visits the source's keys and no others, and never
   reads a value.** `PwDatabase.MergeInDbProperties` is the whole of it, run at the end of every
   `MergeIn`, which is File then Synchronize and File then Import alike. So no method removes a key
@@ -583,7 +604,7 @@ Run them from
   ASN.1 tags: `0x86` URI, `0x82` dNSName, `0x81` rfc822Name. `SanProbe`. **The plugin reads
   none**: it writes the profile claims and the responder marker, and the marker is for the peer to
   read, `CA.md` §208. Its tests read what the authority wrote through Bouncy Castle's
-  `GeneralNames`, which is here for the keys and the TLS.
+  `GeneralNames`, which is what wrote it.
 - **There is no RFC 5705 exporter** on .NET Framework, but
   `TransportContext.GetChannelBinding(ChannelBindingKind.Endpoint)` works on both sides under TLS 1.3
   and both agree. Take the application-data portion by its documented offsets, not the whole blob.
@@ -1092,7 +1113,7 @@ here can hang or crash the password manager.
 
 ## Where to start
 
-[`DESIGN.md`](DESIGN.md) §132 ends with a multi-step build order. **All of them are done.** The
+[`DESIGN.md`](DESIGN.md) §132 ends with a multi-step build order. **All but step 34 are done.** The
 skeleton loads and shows a KPG tab, that tab creates, recreates and deletes the authority, the gate
 serves the document's routes over mutual TLS to a client the authority issued and the database holds
 a record for, a stranger can pair, a locked database answers `503 locked`, a grant means something
@@ -1110,11 +1131,12 @@ whole journey that moves and a diagram of the pieces, the command line reaches e
 and prints JSON for a program, a write can be made against what was read, refused with `412`
 when the node has changed since, a merge into `master` waits for the whole gate to pass, a
 tag publishes both halves, CodeQL analyzes every language it reads, a merge waits until every
-finding is fixed or suppressed with its reason, and a read holds KeePass's thread still for as long
-as it reads, in a turn that gives way to the operator first.
+finding is fixed or suppressed with its reason, a read holds KeePass's thread still for as long
+as it reads, in a turn that gives way to the operator first, and every certificate is made, and
+every anchor judged, through Bouncy Castle.
 
 **Start with [`docs/`](docs/README.md) if the question is what this does**, and with the documents
-below if the question is why it does it that way.
+below if the question is why it does it that way. What is left is step 34, tags.
 
 **The storage decision survived the thing most likely to invalidate it.** The `GroupForm` snapshot
 hazard is real and now measured rather than remembered: `SnapshotHazardTests` reads the mechanism off
@@ -1289,9 +1311,12 @@ rather than through the file.
 
 **One thing to know before touching the transport.** An `EphemeralKeySet` certificate signs happily
 and SChannel will not do TLS with it in either direction. That is why `Org.BouncyCastle.Tls`
-terminates the transport, and why every key the plugin loads can stay off the disk.
+terminates the transport, so that every key the plugin loads can stay off the disk.
 `HostCertificateHandshakeTests` pins both halves, including the SChannel refusal, so a tidy-up that
-goes back to `SslStream` fails loudly rather than quietly writing keys to somebody's profile.
+goes back to `SslStream` fails loudly rather than quietly writing keys to somebody's profile. That
+no key of the plugin's own is handed to Windows at all is a later decision with another reason: the
+issuer moved to Bouncy Castle because Mono has no ECDSA and no `CertificateRequest` a .NET Framework
+build can reach, `CA.md` §203 and its row in §221.
 
 **A dependency ships beside the plugin, and so does everything it drags in.** `build.ps1 -Task
 Deploy` copies every DLL from the build output into `plugins\KeePassGate`, because KeePass loads
@@ -1300,6 +1325,12 @@ plugins with `Assembly.LoadFrom`, which probes the plugin's own directory rather
 and a flat install shares every dependency by file name with every other plugin installed flat.
 Only KeePass has a binding redirect, so one `Newtonsoft.Json.dll` cannot serve two plugins built
 against different major versions, and whichever was there first stops binding.
+**And a directory of its own keeps file names apart and nothing more.** The runtime binds a
+reference to an assembly of the same identity already loaded, from whichever directory it came,
+and every Bouncy Castle 2.x is `2.0.0.0`, so a copy another plugin loaded first is the one this
+plugin is given, measured with a copy loaded from a second directory. So as it starts the plugin
+compares the file version of the Bouncy Castle it was given with the one beside it, and refuses to
+start, naming both, when the one it was given is older.
 **The whole closure, not the direct references**: copying what the plugin names was enough while its
 one dependency had none of its own, and stopped being enough the moment one did. A plugin missing a
 transitive dependency failed to load with nothing in the log to say why, which is what 34 of the 35

@@ -338,8 +338,11 @@ def _usable(name: str, profiles: Iterable[str]) -> None:
         raise PairingError(f"that is not a name this database will issue to: {name!r}")
 
     if name.startswith(" ") or name.endswith(" "):
-        # Measured on the plugin's side: `X500DistinguishedName` strips the space either end,
-        # so two names that differ only there become one identity in a record and in a log.
+        # The plugin writes a space at either end as it is given, and Windows renders such a
+        # common name in quotes, so the gate could not read the name back for a renewal. Before
+        # Bouncy Castle wrote these names, `X500DistinguishedName` stripped the space instead, and
+        # two names that differ only there became one identity. The plugin refuses such a name,
+        # as this does.
         raise PairingError("a name cannot begin or end with a space")
 
     asked = list(profiles)

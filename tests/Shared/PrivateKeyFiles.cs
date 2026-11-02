@@ -23,9 +23,9 @@ namespace KeePassGate.Testing
     /// unit tier because the host tier asks it too and cannot reference that assembly, which is
     /// what this folder is for: the file is compiled into each of them from one source.
     ///
-    /// Every fixture that issues a client loads a key that lands here, so in a tier that runs
-    /// fixtures in parallel a test asking this question is `NonParallelizable`, and the fixtures
-    /// writing keys are not.
+    /// A fixture whose client is `SslStream` loads a key that lands here, through
+    /// `Certificates.WithKeyFile` or `PairingClient`, so in a tier that runs fixtures in parallel a
+    /// test asking this question is `NonParallelizable`, and the fixtures writing keys are not.
     ///
     /// **And a lock for the processes beside this one**, which no mark reaches. Two test runs at
     /// once, two gates or a second `dotnet test`, write their keys into the same two directories,

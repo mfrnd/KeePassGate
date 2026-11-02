@@ -32,17 +32,29 @@ namespace KeePassGate.Diagnostics
         /// Reading, writing or building certificates and keys.
         /// </summary>
         /// <remarks>
-        /// `CryptographicException` covers a malformed DER or PKCS#12, an unusable key and a chain
-        /// that will not build. `FormatException` is base64 that is not base64.
-        /// `PlatformNotSupportedException` is a curve or an algorithm this Windows does not have.
+        /// `CryptographicException` is a certificate's DER that Windows will not read, which is the
+        /// one thing Windows is still handed: everything with a key is Bouncy Castle's.
+        /// `FormatException` is base64 that is not base64, and `ArgumentException` a value of the
+        /// wrong shape, a key identifier the issuer cannot read among them.
         /// See https://learn.microsoft.com/dotnet/api/system.security.cryptography.x509certificates
+        ///
+        /// **None of Bouncy Castle's own types, because each place stored bytes reach Bouncy
+        /// Castle answers for its own** and hands none of them on. There are three.
+        /// `CertifiedKey.From` reads every stored authority and host: it refuses what is not the
+        /// shape this plugin writes before deriving anything, and answers null for each type Bouncy
+        /// Castle was measured to throw, which it names itself. `AnchorPin.Chains` reads a stored
+        /// certificate, or a peer's, beside an authority, and answers false for each type it names.
+        /// `AuthorityIssuer` reads the authority `From` handed it, whose name and dates were parsed
+        /// with it, and its subject key identifier, which nothing parsed before and which it reads
+        /// totally, answering an identifier it cannot read with an `ArgumentException`, named here.
+        /// A Bouncy Castle type that seems to belong in this list is a fourth place, which wants a
+        /// filter of its own beside what it reads rather than a name added here.
         /// </remarks>
         public static bool OfCryptography(Exception error)
         {
             return error is CryptographicException
                    || error is FormatException
                    || error is ArgumentException
-                   || error is PlatformNotSupportedException
                    || error is GateFailure;
         }
 
@@ -52,7 +64,9 @@ namespace KeePassGate.Diagnostics
         /// <remarks>
         /// Everything <see cref="OfCryptography"/> names, since the authority arrives as stored
         /// bytes and a key it may not be able to sign with, plus `InvalidOperationException`, which
-        /// is what `AuthorityIssuer` refuses an authority whose own dates have passed with.
+        /// is what `AuthorityIssuer` refuses an authority whose own dates have passed with, and one
+        /// whose dates have not begun yet by this machine's clock, a replica behind the one that
+        /// created it.
         ///
         /// **That refusal is the state of a database that old, not a defect here.**
         /// `AuthorityStore.Read` ignores expiry deliberately, so an authority past its hundred years
@@ -253,6 +267,15 @@ namespace KeePassGate.Diagnostics
         /// it was built against. That is a broken installation and a defect to count: taken for a
         /// client that hung up, it would fail every connection with a line nobody reads as a
         /// failure.
+        ///
+        /// **What a connection does between its socket's reads has to throw nothing named here.**
+        /// Resolving the name a client asked for reads no stream, only what the open databases
+        /// hold, so `GateListener` counts an `IOException` out of it as a defect rather than let it
+        /// reach this and be taken for a peer that left. Bouncy Castle reports bytes that will not
+        /// parse as one, which is why each place stored bytes reach it answers for its own, as
+        /// `OfCryptography` sets out: the issuer's reading of a stored authority's key identifier
+        /// was one that did not, and every connection to every open database ended as a client
+        /// leaving, with nothing counted.
         /// </remarks>
         public static bool OfConnection(Exception error)
         {

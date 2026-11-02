@@ -4,6 +4,7 @@ using System.Linq;
 using System.Security.Cryptography.X509Certificates;
 using KeePassGate.Acl;
 using KeePassGate.Authority;
+using KeePassGate.Testing;
 using KeePassGate.Tests.Fakes;
 using KeePassGate.Ui;
 using NUnit.Framework;
@@ -425,18 +426,10 @@ namespace KeePassGate.Tests
         /// <summary>A record for a certificate that ended yesterday.</summary>
         internal static AdmissionRecord Expired(string subject, params string[] profiles)
         {
-            using (var key = System.Security.Cryptography.ECDsa.Create())
-            {
-                var request = new CertificateRequest(
-                    "CN=" + subject, key, System.Security.Cryptography.HashAlgorithmName.SHA256);
-                var now = DateTimeOffset.UtcNow;
-                using (var certificate = request.CreateSelfSigned(now.AddDays(-30), now.AddDays(-1)))
-                {
-                    var der = certificate.RawData;
-                    return new AdmissionRecord(
-                        CertificateDigest.Of(der), "CN=" + subject, CertificateDigest.Of(der), now.AddDays(-30), profiles, der);
-                }
-            }
+            var now = DateTimeOffset.UtcNow;
+            var der = Minted.Named("CN=" + subject).Lasting(now.AddDays(-30), now.AddDays(-1)).SelfSigned().CertificateDer;
+            return new AdmissionRecord(
+                CertificateDigest.Of(der), "CN=" + subject, CertificateDigest.Of(der), now.AddDays(-30), profiles, der);
         }
 
         private static AdmissionRecord Admitting(string subject, params string[] profiles)

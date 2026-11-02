@@ -3,6 +3,7 @@ using System.Linq;
 using System.Security.Cryptography.X509Certificates;
 using KeePassGate.Authority;
 using KeePassGate.Diagnostics;
+using KeePassGate.Testing;
 using KeePassGate.Tests.Fakes;
 using KeePassGate.Transport;
 using NUnit.Framework;
@@ -191,11 +192,7 @@ namespace KeePassGate.Tests
         {
             // The one shape that would otherwise look perfectly healthy and serve nothing.
             Write();
-            using (var foreign = _issuer.CreateAuthority())
-            using (var foreignHost = _issuer.IssueHost(foreign))
-            {
-                Damage(AuthorityDocument.HostPartKey, CertificateBlob.Save(foreignHost));
-            }
+            Damage(AuthorityDocument.HostPartKey, CertificateBlob.Save(_issuer.IssueHost(_issuer.CreateAuthority())));
 
             using (var reading = _store.Read())
             {
@@ -304,9 +301,11 @@ namespace KeePassGate.Tests
             using (var first = _store.Read())
             using (var second = _store.Read())
             {
-                Assert.That(first.Material.Authority.HasPrivateKey, Is.True);
-                Assert.That(second.Material.Authority.HasPrivateKey, Is.True);
+                Assert.That(first.Material.AuthorityKey.PrivateKey.IsPrivate, Is.True);
+                Assert.That(second.Material.AuthorityKey.PrivateKey.IsPrivate, Is.True);
                 Assert.That(first.Material.Authority, Is.Not.SameAs(second.Material.Authority));
+                Assert.That(first.Material.Authority.HasPrivateKey, Is.False,
+                    "Windows reads the certificate and is never handed its key");
             }
         }
 
@@ -327,11 +326,12 @@ namespace KeePassGate.Tests
         [Test]
         public void Letting_the_material_go_overwrites_the_two_secrets_that_can_be_overwritten()
         {
-            // What `CA.md` §208 means by the normal host key being let go at lock. Two of the
-            // three really are erased, and this is the pair: the gate key and the stored PKCS#12
-            // the host certificate and its key travel in. The key the TLS server signs with is
-            // neither of these and cannot be erased at all, which is why the section says
-            // dereferenced rather than zeroed and why this test does not claim otherwise.
+            // What `CA.md` §208 means by the normal host key being let go at lock. Two of the parts
+            // really are erased, and this is the pair: the gate key and the stored PKCS#12 the
+            // host certificate and its key travel in. The keys are neither of those, the host's,
+            // which the TLS server signs with, and the authority's, which issues, and neither can
+            // be erased at all, which is why the section has them dereferenced rather than zeroed and
+            // why this test does not claim otherwise.
             Write();
 
             // Declared outside the `using`, because what is asserted is what it leaves behind.
@@ -523,6 +523,26 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_misfiled_authority_whose_host_will_not_read_is_reported_as_both()
+        {
+            // The misfiling is asked of the authority alone, so a host that will not read does not
+            // hide it, and it is the one of the two that points at a merge or an edit rather than
+            // at a damaged certificate.
+            var written = Write();
+            Damage(AuthorityDocument.HostPartKey, Convert.ToBase64String(new byte[] { 1, 2, 3 }));
+            var document = _values.Get(AuthorityKeys.AuthorityKey(written.Fingerprint));
+            _values.Remove(AuthorityKeys.AuthorityKey(written.Fingerprint));
+            _values.Plant(AuthorityKeys.AuthorityKey(Unreadable), document);
+
+            using (var reading = _store.Read())
+            {
+                Assert.That(reading.Presence, Is.EqualTo(AuthorityPresence.Damaged));
+                Assert.That(reading.Problems, Does.Contain("The host certificate cannot be read."));
+                Assert.That(reading.Problems, Does.Contain(AuthorityStore.MisfiledProblem));
+            }
+        }
+
+        [Test]
         public void The_most_one_authority_is_reported_with_is_what_the_tab_is_measured_against()
         {
             // J031: the tab is measured against `LongestProblems`, which says which problems can
@@ -532,11 +552,7 @@ namespace KeePassGate.Tests
             // makes one more, and this says so.
             var written = Write();
             Damage(AuthorityDocument.SniKeyPartKey, Convert.ToBase64String(new byte[8]));
-            using (var foreign = _issuer.CreateAuthority())
-            using (var foreignHost = _issuer.IssueHost(foreign))
-            {
-                Damage(AuthorityDocument.HostPartKey, CertificateBlob.Save(foreignHost));
-            }
+            Damage(AuthorityDocument.HostPartKey, CertificateBlob.Save(_issuer.IssueHost(_issuer.CreateAuthority())));
 
             var document = _values.Get(AuthorityKeys.AuthorityKey(written.Fingerprint));
             _values.Remove(AuthorityKeys.AuthorityKey(written.Fingerprint));
@@ -658,13 +674,43 @@ namespace KeePassGate.Tests
         [Test]
         public void A_document_is_never_written_twice()
         {
-            using (var authority = _issuer.CreateAuthority())
-            using (var host = _issuer.IssueHost(authority))
+            var authority = _issuer.CreateAuthority();
+            using (var material = new AuthorityMaterial(
+                       authority, _issuer.IssueHost(authority), new byte[AuthorityMaterial.SniKeyLength]))
             {
-                using (var material = new AuthorityMaterial(Copy(authority), Copy(host), new byte[AuthorityMaterial.SniKeyLength]))
+                _store.Write(material);
+                Assert.Throws<AuthorityFailure>(() => _store.Write(material));
+            }
+        }
+
+        [Test]
+        public void A_document_Windows_wrote_still_reads_as_the_authority_it_was_and_still_issues()
+        {
+            // What is stored keeps its shape, so a database written before Bouncy Castle issued
+            // anything keeps its authority, the digest every record and retirement names it by,
+            // and the certificates it goes on issuing.
+            string digest;
+            using (var windows = new X509Certificate2(
+                       CertificateBlob.Bytes(SeededAuthority.Authority), (string)null, X509KeyStorageFlags.EphemeralKeySet))
+            {
+                digest = CertificateDigest.Of(windows);
+            }
+
+            _values.Plant(
+                AuthorityKeys.AuthorityKey(digest),
+                AuthorityDocument.Save(SeededAuthority.Authority, SeededAuthority.Host, SeededAuthority.SniKey));
+
+            using (var reading = _store.Read())
+            {
+                Assert.That(reading.IsPresent, Is.True, string.Join("; ", reading.Problems));
+                Assert.That(reading.Material.AuthorityDigest, Is.EqualTo(digest));
+
+                // At a moment inside the authority's life rather than at the real one, so that this
+                // tests what was written rather than the calendar.
+                var issuer = new AuthorityIssuer(() => SeededAuthority.During);
+                using (var client = issuer.IssueClient(reading.Material.AuthorityKey, "agent-fictitious", null).Read())
                 {
-                    _store.Write(material);
-                    Assert.Throws<AuthorityFailure>(() => _store.Write(material));
+                    Assert.That(AnchorPin.Chains(client, reading.Material.Authority), Is.True);
                 }
             }
         }
@@ -689,28 +735,26 @@ namespace KeePassGate.Tests
 
         private WrittenAuthority Write()
         {
-            using (var authority = _issuer.CreateAuthority())
-            using (var host = _issuer.IssueHost(authority))
+            var authority = _issuer.CreateAuthority();
+            var host = _issuer.IssueHost(authority);
+            var sniKey = new byte[AuthorityMaterial.SniKeyLength];
+            for (var i = 0; i < sniKey.Length; i++)
             {
-                var sniKey = new byte[AuthorityMaterial.SniKeyLength];
-                for (var i = 0; i < sniKey.Length; i++)
-                {
-                    sniKey[i] = (byte)(i + 1);
-                }
-
-                using (var material = new AuthorityMaterial(Copy(authority), Copy(host), sniKey))
-                {
-                    _store.Write(material);
-                }
-
-                return new WrittenAuthority
-                {
-                    Fingerprint = CertificateDigest.Of(authority),
-                    Authority = authority.RawData,
-                    Host = host.RawData,
-                    SniKey = sniKey
-                };
+                sniKey[i] = (byte)(i + 1);
             }
+
+            using (var material = new AuthorityMaterial(authority, host, sniKey))
+            {
+                _store.Write(material);
+            }
+
+            return new WrittenAuthority
+            {
+                Fingerprint = CertificateDigest.Of(authority.CertificateDer),
+                Authority = authority.CertificateDer,
+                Host = host.CertificateDer,
+                SniKey = sniKey
+            };
         }
 
         /// <summary>
@@ -741,11 +785,6 @@ namespace KeePassGate.Tests
             }
 
             _values.Plant(key, AuthorityDocument.Save(authority, host, sniKey));
-        }
-
-        private static X509Certificate2 Copy(X509Certificate2 certificate)
-        {
-            return CertificateBlob.Load(CertificateBlob.Save(certificate));
         }
 
         private sealed class WrittenAuthority

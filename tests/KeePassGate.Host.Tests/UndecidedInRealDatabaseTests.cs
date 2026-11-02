@@ -57,6 +57,7 @@ namespace KeePassGate.Host.Tests
                 Assert.That(target.Unavailable, Is.EqualTo(UndecidedTarget.Error));
                 Assert.That(target.IsLocked, Is.False);
                 Assert.That(target.Authority, Is.Null, "no authority is loaded to judge a certificate with");
+                Assert.That(target.AuthorityKey, Is.Null, "nothing is issued from a candidate");
                 Assert.That(target.Vault, Is.Null);
                 target.Dispose();
             }

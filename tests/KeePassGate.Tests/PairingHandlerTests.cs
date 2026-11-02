@@ -218,9 +218,10 @@ namespace KeePassGate.Tests
 
             using (var issued = IdentityIn(context))
             {
+                // Its key is asserted by `IdentityIn`, which reads the identity the way the client's
+                // own reader would: a certificate stored with a key that is the one it certifies.
                 Assert.That(issued.Subject, Is.EqualTo("CN=agent-fictitious"));
-                Assert.That(issued.HasPrivateKey, Is.True, "a certificate with no key pairs nobody");
-                Assert.That(AnchorPin.Chains(issued, _target.Authority, false), Is.True);
+                Assert.That(AnchorPin.Chains(issued, _target.Authority), Is.True);
             }
         }
 
@@ -1147,15 +1148,19 @@ namespace KeePassGate.Tests
             return context;
         }
 
+        /// <summary>
+        /// The identity the bundle hands out, read as the renewal tests read theirs: through the
+        /// plugin's own reader, which holds it to a key the certificate certifies, and given to
+        /// Windows as a certificate alone, since nothing here needs Windows to hold its key.
+        /// </summary>
         private static X509Certificate2 IdentityIn(GateContext context)
         {
             var body = JsonBody.Read(context.Json);
             Assert.That(body, Is.Not.Null, context.Json);
 
-            return new X509Certificate2(
-                Convert.FromBase64String(body.Text("identity")),
-                (string)null,
-                X509KeyStorageFlags.Exportable | X509KeyStorageFlags.EphemeralKeySet);
+            var identity = CertificateBlob.Load(body.Text("identity"));
+            Assert.That(identity, Is.Not.Null, "a certificate with no key of its own pairs nobody");
+            return identity.Read();
         }
     }
 }

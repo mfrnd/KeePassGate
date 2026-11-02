@@ -561,9 +561,9 @@ def paired_context(
     """The context for a client that has been through pairing.
 
     The authority handed over at pairing is the only anchor loaded, so a certificate that does not
-    chain to it fails the handshake rather than being reported afterwards. That is the difference
-    from the plugin's own side of this, where the platform's chain builder had to be told to pin
-    and then checked by hand: here the trust store holds one certificate and nothing else.
+    chain to it fails the handshake rather than being reported afterwards. The plugin asks the same
+    question of a client's certificate itself, with no chain engine, `AnchorPin`, `CA.md` §214;
+    here OpenSSL asks it, and the trust store holds one certificate and nothing else.
 
     Host name checking is off because the name rotates by design and is not a name anybody
     resolves. What replaces it is the anchor: only the authority that issued this client's own

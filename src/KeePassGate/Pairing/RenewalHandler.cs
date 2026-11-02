@@ -599,10 +599,12 @@ namespace KeePassGate.Pairing
                     nameof(held), "The approval carried a lifetime no dialog offers.");
             }
 
+            CertifiedKey identity;
             X509Certificate2 certificate;
             try
             {
-                certificate = _issuer.IssueClient(target.Authority, name, profiles, lifetime);
+                identity = _issuer.IssueClient(target.AuthorityKey, name, profiles, lifetime);
+                certificate = new X509Certificate2(identity.CertificateDer);
             }
             catch (Exception error) when (Expected.OfIssuance(error))
             {
@@ -611,7 +613,7 @@ namespace KeePassGate.Pairing
                 return;
             }
 
-            try
+            using (certificate)
             {
                 var record = AdmissionRecord.For(certificate, _clock(), profiles, clientKey);
 
@@ -677,11 +679,7 @@ namespace KeePassGate.Pairing
                           CertificateDigest.Shorten(target.DatabaseId));
                 _audit.TakeTurn(clientKey);
 
-                context.Respond(200, PairingHandler.Bundle(target, certificate, profiles));
-            }
-            finally
-            {
-                certificate.Reset();
+                context.Respond(200, PairingHandler.Bundle(target, identity, profiles));
             }
         }
 

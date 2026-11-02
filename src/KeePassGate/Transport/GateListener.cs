@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
@@ -625,8 +626,14 @@ namespace KeePassGate.Transport
                             // In a `using`, because a resolved target arrives holding a reference
                             // taken for this connection. Giving it back here is what lets the cache
                             // release the material the moment nothing is serving from it.
-                            using (var resolution = _resolver.Resolve(peek.ServerName))
+                            using (var resolution = Resolve(peek.ServerName))
                             {
+                                if (resolution == null)
+                                {
+                                    // Counted as this side's by `Resolve`, and nothing is served.
+                                    return;
+                                }
+
                                 if (!resolution.IsResolved)
                                 {
                                     _log.Info(
@@ -705,7 +712,9 @@ namespace KeePassGate.Transport
                 // A client that left, and a database whose material was released while this
                 // connection was still holding it: closing a file is what raises the second, and
                 // neither is a defect. Named rather than filtered through `OfCryptography`, which
-                // also covers `ArgumentException` and would swallow a real one.
+                // also covers `ArgumentException` and would swallow a real one. An `IOException`
+                // here is the socket's or the TLS stream's, since resolving a name, which reads
+                // neither, counts its own: see `Resolve`.
                 _log.Info("a connection ended early: " + error.Message);
             }
             // codeql[cs/catch-of-all-exceptions] the connection thread, one of the four catch-alls
@@ -721,6 +730,33 @@ namespace KeePassGate.Transport
             {
                 Interlocked.Decrement(ref _conversations);
                 thread.CurrentCulture = own;
+            }
+        }
+
+        /// <summary>
+        /// What the name a client asked for resolves to, or null when resolving it failed in a way
+        /// that is this side's, which is counted.
+        /// </summary>
+        /// <remarks>
+        /// **An `IOException` here is a defect, never a client leaving**, because resolving reads no
+        /// stream: it asks the open databases, and what they hold is stored bytes. Bouncy Castle
+        /// reports bytes that will not parse as an `IOException`, and the catch around the
+        /// connection thread reads that type as a peer that hung up, logged at `Info` with nothing
+        /// counted: a stored authority whose key identifier would not read did that to every
+        /// connection to every open database. Each place that reads stored bytes answers for its
+        /// own now, `Expected.OfCryptography`, and this keeps one that does not on the operator's
+        /// window.
+        /// </remarks>
+        private GateResolution Resolve(string serverName)
+        {
+            try
+            {
+                return _resolver.Resolve(serverName);
+            }
+            catch (IOException error)
+            {
+                _incidents.Record("a name could not be resolved", error);
+                return null;
             }
         }
 

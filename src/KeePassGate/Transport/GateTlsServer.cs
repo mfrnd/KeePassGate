@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Security.Cryptography.X509Certificates;
-using KeePassGate.Gate;
+using KeePassGate.Authority;
 using Org.BouncyCastle.Tls;
 using Org.BouncyCastle.Tls.Crypto;
 using Org.BouncyCastle.Tls.Crypto.Impl.BC;
@@ -35,10 +35,10 @@ namespace KeePassGate.Transport
     internal sealed class GateTlsServer : DefaultTlsServer
     {
         private readonly BcTlsCrypto _crypto;
-        private readonly HostKeyMaterial _host;
+        private readonly CertifiedKey _host;
         private BcCertificate _serverCertificate;
 
-        public GateTlsServer(BcTlsCrypto crypto, HostKeyMaterial host)
+        public GateTlsServer(BcTlsCrypto crypto, CertifiedKey host)
             : base(crypto)
         {
             if (crypto == null)
