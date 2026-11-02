@@ -1684,6 +1684,15 @@ Each step is refusable, and each ends with something that runs.
     workflow's token may delete it and may not resolve it; and that the ruleset requires
     `code scanning passed`, every conversation resolved and no new alert at any severity, because
     the CodeQL check succeeds with a new warning and only the ruleset's threshold stops one.
+33. **Reads that hold KeePass still**: every read a connection makes of KeePass's objects holds
+    KeePass's thread still for the read's whole length, in a turn of its own, so that nothing
+    KeePass does can change the tree underneath it, and every write and every approval dialog takes
+    its turn from the same queue. A turn starts only once KeePass has nothing else to do, so the
+    operator's input and KeePass's own timers go first, and a write never starts inside one of
+    KeePass's own operations. A read whose turn does not come within ten seconds, or that outlasts
+    five, is answered `503 busy`, and so is a write under a message box, at once. One hold for each
+    read step rather than one for each request, which is a ruling, and no retry: the read that was
+    taken again when it threw goes, with the misses nothing could detect.
 
 Steps 5 to 8 are the ones that prove the design. Step 5 is deliberately early, because the
 `CustomData` dialog hazard is the thing most likely to invalidate the storage decision, and finding
