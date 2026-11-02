@@ -47,10 +47,16 @@ namespace KeePassGate.Gate
         /// <summary>
         /// The certificate to present and the key to prove it with, in memory and nowhere else.
         /// </summary>
-        HostKeyMaterial Host { get; }
+        CertifiedKey Host { get; }
 
         /// <summary>The authority every client certificate has to chain to.</summary>
         X509Certificate2 Authority { get; }
+
+        /// <summary>
+        /// The authority with its key, which a client certificate is issued with. Null wherever
+        /// <see cref="Authority"/> is.
+        /// </summary>
+        CertifiedKey AuthorityKey { get; }
 
         /// <summary>
         /// The record admitting this certificate, or null when there is none.

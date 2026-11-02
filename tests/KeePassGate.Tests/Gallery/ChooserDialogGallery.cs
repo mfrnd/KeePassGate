@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Linq;
 using System.Threading;
 using KeePassGate.Authority;
+using KeePassGate.Testing;
 using KeePassGate.Tests.Fakes;
 using KeePassGate.Ui;
 using NUnit.Framework;
@@ -108,9 +109,9 @@ namespace KeePassGate.Tests.Gallery
 
         private static void Admit(InMemoryKeyValueStore values, string digest, string client)
         {
-            using (var authority = CertificateBlob.Load(
-                       AuthorityDocument.Read(values.Get(AuthorityKeys.AuthorityKey(digest)), null).Authority))
-            using (var certificate = new AuthorityIssuer().IssueClient(authority, client, new[] { "ops", "reader" }))
+            var authority = CertificateBlob.Load(
+                AuthorityDocument.Read(values.Get(AuthorityKeys.AuthorityKey(digest)), null).Authority);
+            using (var certificate = new AuthorityIssuer().IssueClient(authority, client, new[] { "ops", "reader" }).Read())
             {
                 new AdmissionStore(values, null).Write(AdmissionRecord.For(certificate, Admitted, new[] { "ops", "reader" }));
             }

@@ -6,13 +6,16 @@ using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Reflection;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading;
+using KeePassGate.Authority;
 using KeePassGate.Gate;
 using KeePassGate.Pipeline;
 using KeePassGate.Spec;
 using KeePassGate.Tests.Fakes;
 using KeePassGate.Transport;
+using KeePassGate.Testing;
 using NUnit.Framework;
 
 namespace KeePassGate.Tests
@@ -233,8 +236,7 @@ namespace KeePassGate.Tests
         {
             using (var certificate = _first.IssueAdmittedClient())
             {
-                var material = HostKeyMaterial.From(
-                    KeePassGate.Authority.CertificateBlob.Bytes(KeePassGate.Authority.CertificateBlob.Save(certificate)));
+                var material = CertifiedKey.From(certificate.Export(X509ContentType.Pkcs12));
                 Assert.That(material, Is.Not.Null);
 
                 var forged = BouncyCastleGateClient.Get(
@@ -392,13 +394,10 @@ namespace KeePassGate.Tests
             // will not parse makes the credentials callback throw, as a defect there would.
             using (var broken = TestAuthority.New())
             {
-                var unreadable = (HostKeyMaterial)typeof(HostKeyMaterial)
-                    .GetConstructor(
-                        BindingFlags.Instance | BindingFlags.NonPublic,
-                        null,
-                        new[] { typeof(byte[]), typeof(Org.BouncyCastle.Crypto.AsymmetricKeyParameter) },
-                        null)
-                    .Invoke(new object[] { new byte[] { 1, 2, 3 }, broken.Host.PrivateKey });
+                var unreadable = new CertifiedKey(broken.Host.Certificate, broken.Host.PrivateKey);
+                typeof(CertifiedKey)
+                    .GetField("_certificateDer", BindingFlags.Instance | BindingFlags.NonPublic)
+                    .SetValue(unreadable, new byte[] { 1, 2, 3 });
                 typeof(TestAuthority)
                     .GetField("_hostKey", BindingFlags.Instance | BindingFlags.NonPublic)
                     .SetValue(broken, unreadable);

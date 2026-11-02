@@ -25,19 +25,18 @@ namespace KeePassGate.Tests
     public sealed class HostCertificateHandshakeTests
     {
         private AuthorityIssuer _issuer;
+        private CertifiedKey _authorityKey;
         private X509Certificate2 _authority;
-        private HostKeyMaterial _host;
+        private CertifiedKey _host;
 
         [SetUp]
         public void SetUp()
         {
             _issuer = new AuthorityIssuer();
-            _authority = _issuer.CreateAuthority();
+            _authorityKey = _issuer.CreateAuthority();
+            _authority = _authorityKey.Read();
 
-            using (var issued = _issuer.IssueHost(_authority))
-            {
-                _host = HostKeyMaterial.From(CertificateBlob.Bytes(CertificateBlob.Save(issued)));
-            }
+            _host = Stored(_issuer.IssueHost(_authorityKey));
         }
 
         [TearDown]
@@ -88,11 +87,7 @@ namespace KeePassGate.Tests
 
             for (var attempt = 0; attempt < KeyAttempts; attempt++)
             {
-                HostKeyMaterial host;
-                using (var issued = _issuer.IssueHost(_authority))
-                {
-                    host = HostKeyMaterial.From(CertificateBlob.Bytes(CertificateBlob.Save(issued)));
-                }
+                var host = Stored(_issuer.IssueHost(_authorityKey));
 
                 var before = PrivateKeyFiles.Names();
                 Assert.That(Handshake(host), Is.EqualTo("ok"));
@@ -128,8 +123,12 @@ namespace KeePassGate.Tests
         public void The_same_certificate_is_still_refused_by_SChannel()
         {
             // Kept as the reason the managed stack is here at all. If this ever starts passing,
-            // the dependency is worth revisiting.
-            using (var ephemeral = CertificateBlob.Load(CertificateBlob.Save(WithKey())))
+            // the dependency is worth revisiting. Loaded as the plugin loaded every key while
+            // Windows held them, with nothing written to the profile.
+            using (var ephemeral = new X509Certificate2(
+                       _issuer.IssueHost(_authorityKey).ToPkcs12(),
+                       (string)null,
+                       X509KeyStorageFlags.EphemeralKeySet | X509KeyStorageFlags.Exportable))
             {
                 Assert.That(ephemeral.HasPrivateKey, Is.True, "the key is there");
                 Assert.That(ephemeral.GetECDsaPrivateKey(), Is.Not.Null, "and it signs");
@@ -151,30 +150,29 @@ namespace KeePassGate.Tests
         [Test]
         public void A_host_certificate_that_cannot_be_read_is_refused_rather_than_half_used()
         {
-            Assert.That(HostKeyMaterial.From(null), Is.Null);
-            Assert.That(HostKeyMaterial.From(Array.Empty<byte>()), Is.Null);
-            Assert.That(HostKeyMaterial.From(new byte[] { 1, 2, 3 }), Is.Null);
+            Assert.That(CertifiedKey.From(null), Is.Null);
+            Assert.That(CertifiedKey.From(Array.Empty<byte>()), Is.Null);
+            Assert.That(CertifiedKey.From(new byte[] { 1, 2, 3 }), Is.Null);
         }
 
         [Test]
         public void The_material_carries_the_certificate_that_was_stored()
         {
-            using (var issued = _issuer.IssueHost(_authority))
-            {
-                var material = HostKeyMaterial.From(CertificateBlob.Bytes(CertificateBlob.Save(issued)));
+            var issued = _issuer.IssueHost(_authorityKey);
+            var material = Stored(issued);
 
-                Assert.That(material.CertificateDer, Is.EqualTo(issued.RawData));
-                Assert.That(material.PrivateKey.IsPrivate, Is.True);
-            }
+            Assert.That(material.CertificateDer, Is.EqualTo(issued.CertificateDer));
+            Assert.That(material.PrivateKey.IsPrivate, Is.True);
         }
 
-        private X509Certificate2 WithKey()
+        /// <summary>What the TLS server is handed: the certificate and key, through the form they are stored in.</summary>
+        private static CertifiedKey Stored(CertifiedKey issued)
         {
-            return _issuer.IssueHost(_authority);
+            return CertifiedKey.From(CertificateBlob.Bytes(CertificateBlob.Save(issued)));
         }
 
         /// <summary>The managed server, driven by an ordinary .NET client.</summary>
-        private static string Handshake(HostKeyMaterial host, SslProtocols clientProtocols = SslProtocols.Tls13)
+        private static string Handshake(CertifiedKey host, SslProtocols clientProtocols = SslProtocols.Tls13)
         {
             var listener = new TcpListener(IPAddress.Loopback, 0);
             listener.Start();

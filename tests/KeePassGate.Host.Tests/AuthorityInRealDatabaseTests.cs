@@ -6,6 +6,7 @@ using KeePassGate.Authority;
 using KeePassGate.Bridge;
 using KeePassGate.Diagnostics;
 using KeePassGate.Transport;
+using KeePassGate.Testing;
 using NUnit.Framework;
 
 namespace KeePassGate.Host.Tests
@@ -81,9 +82,9 @@ namespace KeePassGate.Host.Tests
                 Assert.That(after.Presence, Is.EqualTo(AuthorityPresence.Present));
                 Assert.That(after.Material.AuthorityDigest, Is.EqualTo(digest));
                 Assert.That(after.Material.SniKey, Is.EqualTo(gateKey));
-                Assert.That(after.Material.Authority.HasPrivateKey, Is.True,
+                Assert.That(after.Material.AuthorityKey.PrivateKey.IsPrivate, Is.True,
                     "A signing key that does not survive the file is no authority at all.");
-                Assert.That(after.Material.Host.HasPrivateKey, Is.True);
+                Assert.That(after.Material.HostKey.PrivateKey.IsPrivate, Is.True);
             }
         }
 
@@ -97,7 +98,7 @@ namespace KeePassGate.Host.Tests
                 new CustomDataStore(_database.Database), NullGateLog.Instance);
 
             using (var reading = afterReopening.Read())
-            using (var issued = new AuthorityIssuer().IssueHost(reading.Material.Authority))
+            using (var issued = new AuthorityIssuer().IssueHost(reading.Material.AuthorityKey).Read())
             {
                 Assert.That(AnchorPin.Chains(issued, reading.Material.Authority, false), Is.True);
             }
@@ -127,7 +128,7 @@ namespace KeePassGate.Host.Tests
 
             string admissionKey;
             using (var reading = _service.Read())
-            using (var client = new AuthorityIssuer().IssueClient(reading.Material.Authority, "agent-fictitious", new[] { "ops" }))
+            using (var client = new AuthorityIssuer().IssueClient(reading.Material.AuthorityKey, "agent-fictitious", new[] { "ops" }).Read())
             {
                 var admissions = new AdmissionStore(new CustomDataStore(_database.Database), NullGateLog.Instance);
                 var record = AdmissionRecord.For(client, DateTimeOffset.UtcNow, new[] { "ops" });

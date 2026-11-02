@@ -5,6 +5,7 @@ using KeePassGate.Authority;
 using KeePassGate.Diagnostics;
 using KeePassGate.Tests.Fakes;
 using KeePassGate.Transport;
+using KeePassGate.Testing;
 using NUnit.Framework;
 
 namespace KeePassGate.Tests
@@ -191,11 +192,7 @@ namespace KeePassGate.Tests
         {
             // The one shape that would otherwise look perfectly healthy and serve nothing.
             Write();
-            using (var foreign = _issuer.CreateAuthority())
-            using (var foreignHost = _issuer.IssueHost(foreign))
-            {
-                Damage(AuthorityDocument.HostPartKey, CertificateBlob.Save(foreignHost));
-            }
+            Damage(AuthorityDocument.HostPartKey, CertificateBlob.Save(_issuer.IssueHost(_issuer.CreateAuthority())));
 
             using (var reading = _store.Read())
             {
@@ -304,9 +301,11 @@ namespace KeePassGate.Tests
             using (var first = _store.Read())
             using (var second = _store.Read())
             {
-                Assert.That(first.Material.Authority.HasPrivateKey, Is.True);
-                Assert.That(second.Material.Authority.HasPrivateKey, Is.True);
+                Assert.That(first.Material.AuthorityKey.PrivateKey.IsPrivate, Is.True);
+                Assert.That(second.Material.AuthorityKey.PrivateKey.IsPrivate, Is.True);
                 Assert.That(first.Material.Authority, Is.Not.SameAs(second.Material.Authority));
+                Assert.That(first.Material.Authority.HasPrivateKey, Is.False,
+                    "Windows reads the certificate and is never handed its key");
             }
         }
 
@@ -532,11 +531,7 @@ namespace KeePassGate.Tests
             // makes one more, and this says so.
             var written = Write();
             Damage(AuthorityDocument.SniKeyPartKey, Convert.ToBase64String(new byte[8]));
-            using (var foreign = _issuer.CreateAuthority())
-            using (var foreignHost = _issuer.IssueHost(foreign))
-            {
-                Damage(AuthorityDocument.HostPartKey, CertificateBlob.Save(foreignHost));
-            }
+            Damage(AuthorityDocument.HostPartKey, CertificateBlob.Save(_issuer.IssueHost(_issuer.CreateAuthority())));
 
             var document = _values.Get(AuthorityKeys.AuthorityKey(written.Fingerprint));
             _values.Remove(AuthorityKeys.AuthorityKey(written.Fingerprint));
@@ -658,13 +653,40 @@ namespace KeePassGate.Tests
         [Test]
         public void A_document_is_never_written_twice()
         {
-            using (var authority = _issuer.CreateAuthority())
-            using (var host = _issuer.IssueHost(authority))
+            var authority = _issuer.CreateAuthority();
+            using (var material = new AuthorityMaterial(
+                       authority, _issuer.IssueHost(authority), new byte[AuthorityMaterial.SniKeyLength]))
             {
-                using (var material = new AuthorityMaterial(Copy(authority), Copy(host), new byte[AuthorityMaterial.SniKeyLength]))
+                _store.Write(material);
+                Assert.Throws<AuthorityFailure>(() => _store.Write(material));
+            }
+        }
+
+        [Test]
+        public void A_document_Windows_wrote_still_reads_as_the_authority_it_was_and_still_issues()
+        {
+            // What is stored keeps its shape, so a database written before Bouncy Castle issued
+            // anything keeps its authority, the digest every record and retirement names it by,
+            // and the certificates it goes on issuing.
+            string digest;
+            using (var windows = new X509Certificate2(
+                       CertificateBlob.Bytes(SeededAuthority.Authority), (string)null, X509KeyStorageFlags.EphemeralKeySet))
+            {
+                digest = CertificateDigest.Of(windows);
+            }
+
+            _values.Plant(
+                AuthorityKeys.AuthorityKey(digest),
+                AuthorityDocument.Save(SeededAuthority.Authority, SeededAuthority.Host, SeededAuthority.SniKey));
+
+            using (var reading = _store.Read())
+            {
+                Assert.That(reading.IsPresent, Is.True, string.Join("; ", reading.Problems));
+                Assert.That(reading.Material.AuthorityDigest, Is.EqualTo(digest));
+
+                using (var client = _issuer.IssueClient(reading.Material.AuthorityKey, "agent-fictitious", null).Read())
                 {
-                    _store.Write(material);
-                    Assert.Throws<AuthorityFailure>(() => _store.Write(material));
+                    Assert.That(AnchorPin.Chains(client, reading.Material.Authority, false), Is.True);
                 }
             }
         }
@@ -689,28 +711,26 @@ namespace KeePassGate.Tests
 
         private WrittenAuthority Write()
         {
-            using (var authority = _issuer.CreateAuthority())
-            using (var host = _issuer.IssueHost(authority))
+            var authority = _issuer.CreateAuthority();
+            var host = _issuer.IssueHost(authority);
+            var sniKey = new byte[AuthorityMaterial.SniKeyLength];
+            for (var i = 0; i < sniKey.Length; i++)
             {
-                var sniKey = new byte[AuthorityMaterial.SniKeyLength];
-                for (var i = 0; i < sniKey.Length; i++)
-                {
-                    sniKey[i] = (byte)(i + 1);
-                }
-
-                using (var material = new AuthorityMaterial(Copy(authority), Copy(host), sniKey))
-                {
-                    _store.Write(material);
-                }
-
-                return new WrittenAuthority
-                {
-                    Fingerprint = CertificateDigest.Of(authority),
-                    Authority = authority.RawData,
-                    Host = host.RawData,
-                    SniKey = sniKey
-                };
+                sniKey[i] = (byte)(i + 1);
             }
+
+            using (var material = new AuthorityMaterial(authority, host, sniKey))
+            {
+                _store.Write(material);
+            }
+
+            return new WrittenAuthority
+            {
+                Fingerprint = CertificateDigest.Of(authority.CertificateDer),
+                Authority = authority.CertificateDer,
+                Host = host.CertificateDer,
+                SniKey = sniKey
+            };
         }
 
         /// <summary>
@@ -741,11 +761,6 @@ namespace KeePassGate.Tests
             }
 
             _values.Plant(key, AuthorityDocument.Save(authority, host, sniKey));
-        }
-
-        private static X509Certificate2 Copy(X509Certificate2 certificate)
-        {
-            return CertificateBlob.Load(CertificateBlob.Save(certificate));
         }
 
         private sealed class WrittenAuthority

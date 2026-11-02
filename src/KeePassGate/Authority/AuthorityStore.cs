@@ -159,8 +159,8 @@ namespace KeePassGate.Authority
                 _store.Set(
                     key,
                     AuthorityDocument.Save(
-                        CertificateBlob.Save(material.Authority),
-                        CertificateBlob.Save(material.Host),
+                        CertificateBlob.Save(material.AuthorityKey),
+                        CertificateBlob.Save(material.HostKey),
                         Convert.ToBase64String(sniKey)));
             }
             finally
@@ -391,59 +391,59 @@ namespace KeePassGate.Authority
                 return null;
             }
 
-            X509Certificate2 authority = null;
-            X509Certificate2 host = null;
+            AuthorityMaterial material = null;
+            byte[] sniKey = null;
 
             try
             {
-                authority = CertificateBlob.Load(document.Authority);
+                var authority = CertificateBlob.Load(document.Authority);
                 if (authority == null)
                 {
                     problems.Add("The authority certificate cannot be read.");
                 }
 
-                host = CertificateBlob.Load(document.Host);
+                var host = CertificateBlob.Load(document.Host);
                 if (host == null)
                 {
                     problems.Add("The host certificate cannot be read.");
                 }
 
-                var sniKey = ReadSniKey(document.SniKey, problems);
+                sniKey = ReadSniKey(document.SniKey, problems);
 
-                if (authority != null && !string.Equals(
-                        CertificateDigest.Of(authority), fingerprint, StringComparison.Ordinal))
+                if (authority == null || host == null)
+                {
+                    return null;
+                }
+
+                material = new AuthorityMaterial(authority, host, sniKey, CertificateBlob.Bytes(document.Host));
+
+                if (!string.Equals(material.AuthorityDigest, fingerprint, StringComparison.Ordinal))
                 {
                     // The key is what a retirement names, so an authority filed under some other
                     // digest is one that retiring could never reach.
                     problems.Add(MisfiledProblem);
                 }
 
-                if (authority != null && host != null)
+                bool evaluated;
+                if (!IssuedBy(material.Host, material.Authority, out evaluated))
                 {
-                    bool evaluated;
-                    if (!IssuedBy(host, authority, out evaluated))
-                    {
-                        // Two different faults, and only one of them is the database's. A chain the
-                        // engine could not evaluate says nothing about the authority, and reporting
-                        // it as a foreign certificate points the operator at Recreate, which would
-                        // throw away a healthy authority and every admission record with it.
-                        problems.Add(evaluated
-                            ? "The host certificate was not issued by this authority."
-                            : HostUncheckedProblem);
-                    }
+                    // Two different faults, and only one of them is the database's. A chain the
+                    // engine could not evaluate says nothing about the authority, and reporting
+                    // it as a foreign certificate points the operator at Recreate, which would
+                    // throw away a healthy authority and every admission record with it.
+                    problems.Add(evaluated
+                        ? "The host certificate was not issued by this authority."
+                        : HostUncheckedProblem);
                 }
 
                 if (problems.Count > 0)
                 {
-                    Array.Clear(sniKey, 0, sniKey.Length);
                     return null;
                 }
 
-                var material = new AuthorityMaterial(authority, host, sniKey, CertificateBlob.Bytes(document.Host));
-                Array.Clear(sniKey, 0, sniKey.Length);
-                authority = null;
-                host = null;
-                return material;
+                var read = material;
+                material = null;
+                return read;
             }
             catch (Exception error) when (Expected.OfCryptography(error) || Expected.OfCustomData(error))
             {
@@ -452,14 +452,14 @@ namespace KeePassGate.Authority
             }
             finally
             {
-                if (authority != null)
+                if (sniKey != null)
                 {
-                    authority.Reset();
+                    Array.Clear(sniKey, 0, sniKey.Length);
                 }
 
-                if (host != null)
+                if (material != null)
                 {
-                    host.Reset();
+                    material.Dispose();
                 }
             }
         }

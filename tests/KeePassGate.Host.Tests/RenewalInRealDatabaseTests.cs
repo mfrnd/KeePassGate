@@ -13,6 +13,7 @@ using KeePassGate.Diagnostics;
 using KeePassGate.Gate;
 using KeePassGate.Pairing;
 using KeePassGate.Pipeline;
+using KeePassGate.Testing;
 using KeePassGate.Transport;
 using KeePassGate.Ui;
 using KeePassGate.Vault;
@@ -350,7 +351,7 @@ namespace KeePassGate.Host.Tests
                 _targets = new OpenDatabaseTargets(delegate { return databases; }, writer, null);
                 _target = _targets.Current().Single();
 
-                _client = new AuthorityIssuer().IssueClient(_target.Authority, "agent-fictitious", new[] { "ops" });
+                _client = new AuthorityIssuer().IssueClient(_target.AuthorityKey, "agent-fictitious", new[] { "ops" }).Read();
                 var record = AdmissionRecord.For(_client, DateTimeOffset.UtcNow, new[] { "ops" });
                 Assume.That(writer.WriteAdmission(database, record).Ok, Is.True);
                 _key = record.AdmissionKey;

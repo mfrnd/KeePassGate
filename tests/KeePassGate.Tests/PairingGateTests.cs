@@ -369,7 +369,8 @@ namespace KeePassGate.Tests
             // broken for the age of somebody's database.
             //
             // The century is the issuer's clock rather than the authority's age, because
-            // `CertificateRequest` refuses to write a date before 1950 at all.
+            // `CertificateRequest`, which made these before Bouncy Castle did, refused to write a
+            // date before 1950 at all, and a clock moved on asks the same question.
             var incidents = new GateIncidents(_log);
             var aCenturyOn = new AuthorityIssuer(
                 () => DateTimeOffset.UtcNow + AuthorityIssuer.AuthorityLifetime + TimeSpan.FromDays(1));

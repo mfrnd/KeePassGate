@@ -50,9 +50,9 @@ namespace KeePassGate.Tests
         private static readonly int[] Zones = { 14, 1, 0, -12 };
 
         private DateTimeOffset _century;
-        private X509Certificate2 _authority;
-        private X509Certificate2 _host;
-        private X509Certificate2 _client;
+        private CertifiedKey _authority;
+        private CertifiedKey _host;
+        private CertifiedKey _client;
 
         [SetUp]
         public void SetUp()
@@ -66,21 +66,10 @@ namespace KeePassGate.Tests
             _client = Leaf(_authority, AuthorityIssuer.ClientAuthOid, now.AddDays(365));
         }
 
-        [TearDown]
-        public void TearDown()
-        {
-            _client.Reset();
-            _host.Reset();
-            _authority.Reset();
-        }
-
         [Test]
         public void The_builder_writes_no_well_defined_expiration_as_RFC_5280_asks()
         {
-            using (var never = Authority(NoWellDefinedExpiration))
-            {
-                Assert.That(EndOf(never.RawData), Is.EqualTo("GeneralizedTime 99991231235959Z"));
-            }
+            Assert.That(EndOf(Authority(NoWellDefinedExpiration).CertificateDer), Is.EqualTo("GeneralizedTime 99991231235959Z"));
         }
 
         [Test]
@@ -89,11 +78,7 @@ namespace KeePassGate.Tests
             // The reason the authority does not use it. Ahead of UTC the local moment would be in
             // the year 10000, and what comes back instead is the last moment a `DateTime` can hold,
             // which converted back to UTC is that many hours early. No exception says so.
-            byte[] der;
-            using (var never = Authority(NoWellDefinedExpiration))
-            {
-                der = never.RawData;
-            }
+            var der = Authority(NoWellDefinedExpiration).CertificateDer;
 
             using (LocalTimeZone.At(1))
             using (var read = new X509Certificate2(der))
@@ -118,8 +103,8 @@ namespace KeePassGate.Tests
         public void A_hundred_years_is_written_as_generalized_time()
         {
             // RFC 5280 section 4.1.2.5: UTCTime through 2049, and GeneralizedTime from 2050.
-            Assert.That(EndOf(_authority.RawData), Is.EqualTo("GeneralizedTime " + Written(_century)));
-            Assert.That(EndOf(_host.RawData), Is.EqualTo("GeneralizedTime " + Written(_century)));
+            Assert.That(EndOf(_authority.CertificateDer), Is.EqualTo("GeneralizedTime " + Written(_century)));
+            Assert.That(EndOf(_host.CertificateDer), Is.EqualTo("GeneralizedTime " + Written(_century)));
         }
 
         [Test]
@@ -128,8 +113,8 @@ namespace KeePassGate.Tests
             foreach (var hours in Zones)
             {
                 using (LocalTimeZone.At(hours))
-                using (var authority = new X509Certificate2(_authority.RawData))
-                using (var host = new X509Certificate2(_host.RawData))
+                using (var authority = new X509Certificate2(_authority.CertificateDer))
+                using (var host = new X509Certificate2(_host.CertificateDer))
                 {
                     var zone = "at " + Zone(hours);
                     Assert.That(Utc(authority.NotAfter), Is.EqualTo(_century), "the authority " + zone);
@@ -146,9 +131,9 @@ namespace KeePassGate.Tests
             foreach (var hours in Zones)
             {
                 using (LocalTimeZone.At(hours))
-                using (var authority = new X509Certificate2(_authority.RawData))
-                using (var host = new X509Certificate2(_host.RawData))
-                using (var client = new X509Certificate2(_client.RawData))
+                using (var authority = new X509Certificate2(_authority.CertificateDer))
+                using (var host = new X509Certificate2(_host.CertificateDer))
+                using (var client = new X509Certificate2(_client.CertificateDer))
                 {
                     var zone = " at " + Zone(hours);
                     Assert.That(AnchorPin.Chains(host, authority, true), Is.True, "the host" + zone);
@@ -162,7 +147,7 @@ namespace KeePassGate.Tests
         [Test]
         public void Bouncy_Castle_reads_a_hundred_years_out_of_the_stored_form()
         {
-            var material = HostKeyMaterial.From(CertificateBlob.Bytes(CertificateBlob.Save(_host)));
+            var material = CertifiedKey.From(_host.ToPkcs12());
 
             Assert.That(material, Is.Not.Null, "the PKCS#12 the database keeps loads");
             var read = new Org.BouncyCastle.X509.X509CertificateParser().ReadCertificate(material.CertificateDer);
@@ -172,14 +157,15 @@ namespace KeePassGate.Tests
         [Test]
         public void The_gate_serves_a_hundred_year_host_that_a_client_pinning_its_authority_accepts()
         {
-            var material = HostKeyMaterial.From(CertificateBlob.Bytes(CertificateBlob.Save(_host)));
+            var material = CertifiedKey.From(_host.ToPkcs12());
             var accepted = false;
 
             var served = Handshake(material, delegate(object sender, X509Certificate sent, X509Chain chain, SslPolicyErrors errors)
             {
                 using (var certificate = new X509Certificate2(sent))
+                using (var authority = _authority.Read())
                 {
-                    accepted = AnchorPin.Chains(certificate, _authority, false)
+                    accepted = AnchorPin.Chains(certificate, authority, false)
                                && CertificateValidity.IsCurrent(certificate, DateTimeOffset.UtcNow)
                                && Utc(certificate.NotAfter) == _century;
                 }
@@ -222,49 +208,25 @@ namespace KeePassGate.Tests
             return kind + " " + Encoding.ASCII.GetString(encoded, 2, encoded[1]);
         }
 
-        private static X509Certificate2 Authority(DateTimeOffset notAfter)
+        private static CertifiedKey Authority(DateTimeOffset notAfter)
         {
-            using (var key = ECDsa.Create(ECCurve.NamedCurves.nistP256))
-            {
-                var request = new CertificateRequest(
-                    new X500DistinguishedName(AuthorityIssuer.AuthoritySubject), key, HashAlgorithmName.SHA256);
-
-                request.CertificateExtensions.Add(new X509BasicConstraintsExtension(true, true, 0, true));
-                request.CertificateExtensions.Add(new X509KeyUsageExtension(
-                    X509KeyUsageFlags.KeyCertSign | X509KeyUsageFlags.CrlSign, true));
-                request.CertificateExtensions.Add(new X509SubjectKeyIdentifierExtension(request.PublicKey, false));
-
-                using (var made = request.CreateSelfSigned(DateTimeOffset.UtcNow - AuthorityIssuer.Backdate, notAfter))
-                {
-                    return CertificateBlob.Load(CertificateBlob.Save(made));
-                }
-            }
+            return Minted.Named(AuthorityIssuer.AuthoritySubject)
+                .AsAuthority()
+                .Lasting(DateTimeOffset.UtcNow - AuthorityIssuer.Backdate, notAfter)
+                .SelfSigned();
         }
 
-        private static X509Certificate2 Leaf(X509Certificate2 authority, string usage, DateTimeOffset notAfter)
+        private static CertifiedKey Leaf(CertifiedKey authority, string usage, DateTimeOffset notAfter)
         {
-            using (var key = ECDsa.Create(ECCurve.NamedCurves.nistP256))
-            {
-                var request = new CertificateRequest(
-                    new X500DistinguishedName("CN=invented leaf"), key, HashAlgorithmName.SHA256);
-
-                request.CertificateExtensions.Add(new X509BasicConstraintsExtension(false, false, 0, true));
-                request.CertificateExtensions.Add(new X509KeyUsageExtension(X509KeyUsageFlags.DigitalSignature, true));
-                request.CertificateExtensions.Add(new X509EnhancedKeyUsageExtension(
-                    new OidCollection { new Oid(usage) }, false));
-                request.CertificateExtensions.Add(AuthorityIssuer.AuthorityKeyIdentifierOf(authority));
-
-                using (var issued = request.Create(
-                    authority, DateTimeOffset.UtcNow - AuthorityIssuer.Backdate, notAfter, AuthorityIssuer.NewSerialNumber()))
-                using (var withKey = issued.CopyWithPrivateKey(key))
-                {
-                    return CertificateBlob.Load(CertificateBlob.Save(withKey));
-                }
-            }
+            return Minted.Named("CN=invented leaf")
+                .ForUsage(usage)
+                .With(X509Extensions.KeyUsage, true, new KeyUsage(KeyUsage.DigitalSignature))
+                .Lasting(DateTimeOffset.UtcNow - AuthorityIssuer.Backdate, notAfter)
+                .IssuedBy(authority);
         }
 
         /// <summary>The gate's own TLS server, driven by an ordinary .NET client that decides for itself.</summary>
-        private static string Handshake(HostKeyMaterial host, RemoteCertificateValidationCallback decide)
+        private static string Handshake(CertifiedKey host, RemoteCertificateValidationCallback decide)
         {
             var listener = new TcpListener(IPAddress.Loopback, 0);
             listener.Start();

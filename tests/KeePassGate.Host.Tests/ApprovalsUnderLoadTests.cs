@@ -294,7 +294,7 @@ namespace KeePassGate.Host.Tests
         {
             using (var reading = new AuthorityService(new CustomDataStore(_database.Database), null).Read())
             {
-                var certificate = new AuthorityIssuer().IssueClient(reading.Material.Authority, name, new[] { "ops" });
+                var certificate = new AuthorityIssuer().IssueClient(reading.Material.AuthorityKey, name, new[] { "ops" }).Read();
                 var written = _writer.WriteAdmission(
                     _database.Database, AdmissionRecord.For(certificate, DateTimeOffset.UtcNow, new[] { "ops" }));
                 Assume.That(written.Ok, Is.True, written.Reason);

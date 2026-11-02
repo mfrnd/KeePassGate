@@ -8,7 +8,9 @@ using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading;
 using KeePassGate.Authority;
+using KeePassGate.Testing;
 using NUnit.Framework;
+using Org.BouncyCastle.Asn1.X509;
 
 namespace KeePassGate.Tests
 {
@@ -30,15 +32,19 @@ namespace KeePassGate.Tests
         private static readonly TimeSpan Promptly = TimeSpan.FromSeconds(3);
 
         private AuthorityIssuer _issuer;
+        private CertifiedKey _oursKey;
         private X509Certificate2 _ours;
+        private CertifiedKey _foreignKey;
         private X509Certificate2 _foreign;
 
         [SetUp]
         public void SetUp()
         {
             _issuer = new AuthorityIssuer();
-            _ours = _issuer.CreateAuthority();
-            _foreign = _issuer.CreateAuthority();
+            _oursKey = _issuer.CreateAuthority();
+            _ours = _oursKey.Read();
+            _foreignKey = _issuer.CreateAuthority();
+            _foreign = _foreignKey.Read();
         }
 
         [TearDown]
@@ -51,7 +57,7 @@ namespace KeePassGate.Tests
         [Test]
         public void Our_own_host_chains_to_us()
         {
-            using (var host = _issuer.IssueHost(_ours))
+            using (var host = _issuer.IssueHost(_oursKey).Read())
             {
                 Assert.That(AnchorPin.Chains(host, _ours, false), Is.True);
             }
@@ -60,7 +66,7 @@ namespace KeePassGate.Tests
         [Test]
         public void A_foreign_host_does_not()
         {
-            using (var host = _issuer.IssueHost(_foreign))
+            using (var host = _issuer.IssueHost(_foreignKey).Read())
             {
                 Assert.That(AnchorPin.Chains(host, _ours, false), Is.False);
             }
@@ -87,8 +93,7 @@ namespace KeePassGate.Tests
         [Test]
         public void An_authority_under_another_name_is_refused_by_the_shape_of_its_chain()
         {
-            using (var authority = SomebodyElse())
-            using (var leaf = ClientUnder(authority))
+            using (var leaf = ClientUnder(SomebodyElse()))
             {
                 using (var chain = BareChain(_ours))
                 {
@@ -170,40 +175,21 @@ namespace KeePassGate.Tests
         }
 
         /// <summary>A self-signed authority under a name that is not ours, as `CA.md` §214 measured.</summary>
-        private static X509Certificate2 SomebodyElse()
+        private static CertifiedKey SomebodyElse()
         {
-            using (var key = System.Security.Cryptography.ECDsa.Create(
-                       System.Security.Cryptography.ECCurve.NamedCurves.nistP256))
-            {
-                var request = new CertificateRequest(
-                    "CN=Somebody Else Entirely", key, System.Security.Cryptography.HashAlgorithmName.SHA256);
-                request.CertificateExtensions.Add(new X509BasicConstraintsExtension(true, true, 0, true));
-                request.CertificateExtensions.Add(new X509KeyUsageExtension(X509KeyUsageFlags.KeyCertSign, true));
-
-                var now = DateTimeOffset.UtcNow;
-                return request.CreateSelfSigned(now.AddMinutes(-5), now.AddYears(1));
-            }
+            var now = DateTimeOffset.UtcNow;
+            return Minted.Named("CN=Somebody Else Entirely").AsAuthority().Lasting(now.AddMinutes(-5), now.AddYears(1)).SelfSigned();
         }
 
         /// <summary>A certificate for client authentication, signed by the authority given.</summary>
-        private static X509Certificate2 ClientUnder(X509Certificate2 authority)
+        private static X509Certificate2 ClientUnder(CertifiedKey authority)
         {
-            using (var key = System.Security.Cryptography.ECDsa.Create(
-                       System.Security.Cryptography.ECCurve.NamedCurves.nistP256))
-            {
-                var request = new CertificateRequest(
-                    "CN=stranger", key, System.Security.Cryptography.HashAlgorithmName.SHA256);
-                request.CertificateExtensions.Add(new X509BasicConstraintsExtension(false, false, 0, true));
-                request.CertificateExtensions.Add(new X509EnhancedKeyUsageExtension(
-                    new System.Security.Cryptography.OidCollection
-                    {
-                        new System.Security.Cryptography.Oid("1.3.6.1.5.5.7.3.2")
-                    },
-                    false));
-
-                var now = DateTimeOffset.UtcNow;
-                return request.Create(authority, now.AddMinutes(-5), now.AddMonths(1), new byte[] { 1, 2, 3, 4, 5, 6, 7, 8 });
-            }
+            var now = DateTimeOffset.UtcNow;
+            return Minted.Named("CN=stranger")
+                .ForUsage(AuthorityIssuer.ClientAuthOid)
+                .Lasting(now.AddMinutes(-5), now.AddMonths(1))
+                .IssuedBy(authority)
+                .Read();
         }
 
         [Test]
@@ -220,8 +206,9 @@ namespace KeePassGate.Tests
             // and still current: its one year is long gone. A host is no good for this any more,
             // since it ends with its authority, a century on.
             var longAgo = DateTimeOffset.UtcNow - TimeSpan.FromDays(4000);
-            using (var oldAuthority = new AuthorityIssuer(() => longAgo).CreateAuthority())
-            using (var oldClient = new AuthorityIssuer(() => longAgo).IssueClient(oldAuthority, "agent-fictitious", null))
+            var oldAuthorityKey = new AuthorityIssuer(() => longAgo).CreateAuthority();
+            using (var oldAuthority = oldAuthorityKey.Read())
+            using (var oldClient = new AuthorityIssuer(() => longAgo).IssueClient(oldAuthorityKey, "agent-fictitious", null).Read())
             {
                 Assert.That(AnchorPin.Chains(oldClient, oldAuthority, false), Is.False);
                 Assert.That(AnchorPin.Chains(oldClient, oldAuthority, true), Is.True);
@@ -231,7 +218,7 @@ namespace KeePassGate.Tests
         [Test]
         public void Nothing_chains_to_nothing()
         {
-            using (var host = _issuer.IssueHost(_ours))
+            using (var host = _issuer.IssueHost(_oursKey).Read())
             {
                 Assert.That(AnchorPin.Chains(null, _ours, false), Is.False);
                 Assert.That(AnchorPin.Chains(host, null, false), Is.False);
@@ -249,7 +236,7 @@ namespace KeePassGate.Tests
         public void A_foreign_leaf_that_names_a_download_is_refused_without_waiting_for_it()
         {
             using (var silent = new SilentHttpAddress())
-            using (var leaf = ClientNaming(_foreign, silent.CaIssuers))
+            using (var leaf = ClientNaming(_foreignKey, silent.CaIssuers))
             {
                 var elapsed = Stopwatch.StartNew();
                 bool evaluated;
@@ -274,7 +261,7 @@ namespace KeePassGate.Tests
         [Test]
         public void Our_own_client_still_chains_and_does_so_at_once()
         {
-            using (var client = _issuer.IssueClient(_ours, "measured", new[] { "reader" }))
+            using (var client = _issuer.IssueClient(_oursKey, "measured", new[] { "reader" }).Read())
             {
                 var elapsed = Stopwatch.StartNew();
                 var chains = AnchorPin.Chains(client, _ours, true);
@@ -287,74 +274,27 @@ namespace KeePassGate.Tests
 
         /// <summary>
         /// A client certificate under <paramref name="authority"/> carrying an authority
-        /// information access extension, which `AuthorityIssuer` never writes and a stranger is
-        /// free to.
-        /// </summary>
-        private static X509Certificate2 ClientNaming(X509Certificate2 authority, string caIssuers)
-        {
-            using (var key = ECDsa.Create(ECCurve.NamedCurves.nistP256))
-            {
-                var request = new CertificateRequest(
-                    new X500DistinguishedName("CN=stranger"), key, HashAlgorithmName.SHA256);
-
-                request.CertificateExtensions.Add(new X509BasicConstraintsExtension(false, false, 0, true));
-                request.CertificateExtensions.Add(new X509KeyUsageExtension(
-                    X509KeyUsageFlags.DigitalSignature, true));
-                request.CertificateExtensions.Add(new X509EnhancedKeyUsageExtension(
-                    new OidCollection { new Oid(AuthorityIssuer.ClientAuthOid) }, false));
-                request.CertificateExtensions.Add(new X509SubjectKeyIdentifierExtension(request.PublicKey, false));
-                request.CertificateExtensions.Add(AuthorityIssuer.AuthorityKeyIdentifierOf(authority));
-                request.CertificateExtensions.Add(CaIssuersPointingAt(caIssuers));
-
-                var now = DateTimeOffset.UtcNow;
-                return request.Create(
-                    authority,
-                    now - AuthorityIssuer.Backdate,
-                    now + Lifetime.Unasked,
-                    AuthorityIssuer.NewSerialNumber());
-            }
-        }
-
-        /// <summary>
-        /// `id-pe-authorityInfoAccess` naming one `caIssuers` location, encoded by hand because
-        /// .NET Framework has no class that writes one.
+        /// information access extension naming one `caIssuers` location, which `AuthorityIssuer`
+        /// never writes and a stranger is free to.
         /// </summary>
         /// <remarks>
-        /// RFC 5280 section 4.2.2.1: `SEQUENCE OF AccessDescription`, each of which is
-        /// `SEQUENCE { accessMethod OBJECT IDENTIFIER, accessLocation GeneralName }`. The method is
-        /// `id-ad-caIssuers`, `1.3.6.1.5.5.7.48.2`, and the location is a URI, which is context tag
-        /// 6 in `GeneralName`. ITU-T X.690 section 8.1 is the length rule, and every length here
-        /// is the short form because the caller passes a loopback address.
-        /// https://www.rfc-editor.org/rfc/rfc5280#section-4.2.2.1
+        /// RFC 5280 section 4.2.2.1. https://www.rfc-editor.org/rfc/rfc5280#section-4.2.2.1
         /// </remarks>
-        private static X509Extension CaIssuersPointingAt(string url)
+        private static X509Certificate2 ClientNaming(CertifiedKey authority, string caIssuers)
         {
-            var uri = Encoding.ASCII.GetBytes(url);
-            if (uri.Length > 100)
-            {
-                throw new ArgumentException("The lengths below are the DER short form.", nameof(url));
-            }
-
-            var method = new byte[] { 0x06, 0x08, 0x2B, 0x06, 0x01, 0x05, 0x05, 0x07, 0x30, 0x02 };
-            var location = new byte[uri.Length + 2];
-            location[0] = 0x86;                          // [6] uniformResourceIdentifier
-            location[1] = (byte)uri.Length;
-            Buffer.BlockCopy(uri, 0, location, 2, uri.Length);
-
-            var description = new byte[method.Length + location.Length];
-            Buffer.BlockCopy(method, 0, description, 0, method.Length);
-            Buffer.BlockCopy(location, 0, description, method.Length, location.Length);
-
-            return new X509Extension("1.3.6.1.5.5.7.1.1", Sequence(Sequence(description)), false);
-        }
-
-        private static byte[] Sequence(byte[] content)
-        {
-            var wrapped = new byte[content.Length + 2];
-            wrapped[0] = 0x30;                           // SEQUENCE
-            wrapped[1] = (byte)content.Length;
-            Buffer.BlockCopy(content, 0, wrapped, 2, content.Length);
-            return wrapped;
+            // cspell:ignore ADCA
+            var location = new GeneralName(GeneralName.UniformResourceIdentifier, caIssuers);
+            var now = DateTimeOffset.UtcNow;
+            return Minted.Named("CN=stranger")
+                .ForUsage(AuthorityIssuer.ClientAuthOid)
+                .With(X509Extensions.KeyUsage, true, new KeyUsage(KeyUsage.DigitalSignature))
+                .With(
+                    X509Extensions.AuthorityInfoAccess,
+                    false,
+                    new AuthorityInformationAccess(new AccessDescription(AccessDescription.IdADCAIssuers, location)))
+                .Lasting(now - AuthorityIssuer.Backdate, now + Lifetime.Unasked)
+                .IssuedBy(authority)
+                .Read();
         }
 
         /// <summary>

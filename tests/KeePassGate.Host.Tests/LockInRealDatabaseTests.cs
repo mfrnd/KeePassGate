@@ -507,7 +507,7 @@ namespace KeePassGate.Host.Tests
             using (var reading = new AuthorityService(new CustomDataStore(_database.Database), _log).Read())
             {
                 var certificate = new AuthorityIssuer().IssueClient(
-                    reading.Material.Authority, "agent-fictitious", new[] { "ops" });
+                    reading.Material.AuthorityKey, "agent-fictitious", new[] { "ops" }).Read();
 
                 new AdmissionStore(new CustomDataStore(_database.Database), _log)
                     .Write(AdmissionRecord.For(certificate, DateTimeOffset.UtcNow, new[] { "ops" }));

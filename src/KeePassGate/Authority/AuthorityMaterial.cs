@@ -9,7 +9,12 @@ namespace KeePassGate.Authority
     /// key the gate derives connection names from.
     /// </summary>
     /// <remarks>
-    /// Disposable, and worth disposing. The certificates hold key handles, and the gate key is
+    /// Each certificate is held twice, and that is the split between reading and signing. Bouncy
+    /// Castle holds each with its key, which is what the issuer signs with and the TLS server
+    /// presents, and Windows holds each without one, for everything that only reads a
+    /// certificate: its digest, its dates, and what the tab shows.
+    ///
+    /// Disposable, and worth disposing. The Windows certificates hold handles, and the gate key is
     /// zeroed rather than left for a memory dump to find. That is hygiene rather than defense:
     /// local code execution as the user is conceded throughout, and this material is readable from
     /// the open database anyway.
@@ -19,23 +24,23 @@ namespace KeePassGate.Authority
         /// <summary>Thirty-two bytes, as `CA.md` §204 specifies.</summary>
         public const int SniKeyLength = 32;
 
+        private readonly CertifiedKey _authorityKey;
+        private readonly CertifiedKey _hostKey;
         private readonly X509Certificate2 _authority;
         private readonly X509Certificate2 _host;
         private readonly byte[] _sniKey;
         private readonly byte[] _hostPkcs12;
         private bool _disposed;
 
-        public AuthorityMaterial(X509Certificate2 authority, X509Certificate2 host, byte[] sniKey)
+        public AuthorityMaterial(CertifiedKey authority, CertifiedKey host, byte[] sniKey)
             : this(authority, host, sniKey, null)
         {
         }
 
         /// <summary>
-        /// The same, keeping the host's stored bytes. The TLS server parses those itself rather
-        /// than taking a Windows certificate, because a key Windows has loaded is a key on the
-        /// disk.
+        /// The same, keeping the host's stored bytes, which a database's tags are derived from.
         /// </summary>
-        public AuthorityMaterial(X509Certificate2 authority, X509Certificate2 host, byte[] sniKey, byte[] hostPkcs12)
+        public AuthorityMaterial(CertifiedKey authority, CertifiedKey host, byte[] sniKey, byte[] hostPkcs12)
         {
             if (authority == null)
             {
@@ -58,20 +63,45 @@ namespace KeePassGate.Authority
                     "The gate key is " + SniKeyLength + " bytes, not " + sniKey.Length + ".", nameof(sniKey));
             }
 
-            _authority = authority;
-            _host = host;
+            _authority = new X509Certificate2(authority.CertificateDer);
+            try
+            {
+                _host = new X509Certificate2(host.CertificateDer);
+            }
+            catch (CryptographicException)
+            {
+                _authority.Reset();
+                throw;
+            }
+
+            _authorityKey = authority;
+            _hostKey = host;
             _sniKey = (byte[])sniKey.Clone();
             _hostPkcs12 = hostPkcs12 == null ? null : (byte[])hostPkcs12.Clone();
         }
 
+        /// <summary>The authority, to read. It holds no key: <see cref="AuthorityKey"/> signs.</summary>
         public X509Certificate2 Authority
         {
             get { return _authority; }
         }
 
+        /// <summary>The host certificate, to read. It holds no key: <see cref="HostKey"/> serves.</summary>
         public X509Certificate2 Host
         {
             get { return _host; }
+        }
+
+        /// <summary>The authority and its key, which everything this database vouches for is issued with.</summary>
+        public CertifiedKey AuthorityKey
+        {
+            get { return _authorityKey; }
+        }
+
+        /// <summary>The host certificate and its key, which the TLS server presents.</summary>
+        public CertifiedKey HostKey
+        {
+            get { return _hostKey; }
         }
 
         /// <summary>A copy, so that a caller cannot zero what the plugin is still using.</summary>
@@ -81,8 +111,8 @@ namespace KeePassGate.Authority
         }
 
         /// <summary>
-        /// The host certificate and key as they are stored, for the TLS server to parse. Null when
-        /// the material was built rather than read.
+        /// The host certificate and key as they are stored, which a database's tags are derived
+        /// from. Null when the material was built rather than read.
         /// </summary>
         public byte[] HostPkcs12
         {
@@ -110,23 +140,8 @@ namespace KeePassGate.Authority
                 Array.Clear(_hostPkcs12, 0, _hostPkcs12.Length);
             }
 
-            try
-            {
-                _authority.Reset();
-            }
-            catch (CryptographicException)
-            {
-                // Releasing a key handle that has already gone. Nothing is owed to anybody here.
-            }
-
-            try
-            {
-                _host.Reset();
-            }
-            catch (CryptographicException)
-            {
-                // The host's key handle, gone already in the same way: there is nothing left to release.
-            }
+            _authority.Reset();
+            _host.Reset();
         }
     }
 }

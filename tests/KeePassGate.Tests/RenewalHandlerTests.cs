@@ -1183,7 +1183,9 @@ namespace KeePassGate.Tests
         {
             var start = bundle.IndexOf("\"identity\":\"", StringComparison.Ordinal) + "\"identity\":\"".Length;
             var end = bundle.IndexOf('"', start);
-            return CertificateBlob.Load(bundle.Substring(start, end - start), X509KeyStorageFlags.EphemeralKeySet);
+            var identity = CertificateBlob.Load(bundle.Substring(start, end - start));
+            Assert.That(identity, Is.Not.Null, "the bundle carries a certificate with its own key");
+            return identity.Read();
         }
     }
 }

@@ -206,17 +206,15 @@ namespace KeePassGate.Tests
 
         private static void Admit(InMemoryKeyValueStore values, string fingerprint, int count)
         {
-            using (var authority = CertificateBlob.Load(
-                       AuthorityDocument.Read(values.Get(AuthorityKeys.AuthorityKey(fingerprint)), null).Authority))
+            var authority = CertificateBlob.Load(
+                AuthorityDocument.Read(values.Get(AuthorityKeys.AuthorityKey(fingerprint)), null).Authority);
+            for (var i = 0; i < count; i++)
             {
-                for (var i = 0; i < count; i++)
+                var name = "agent-" + i.ToString("00", CultureInfo.InvariantCulture);
+                using (var client = new AuthorityIssuer().IssueClient(authority, name, new[] { "ops" }).Read())
                 {
-                    var name = "agent-" + i.ToString("00", CultureInfo.InvariantCulture);
-                    using (var client = new AuthorityIssuer().IssueClient(authority, name, new[] { "ops" }))
-                    {
-                        new AdmissionStore(values, null).Write(
-                            AdmissionRecord.For(client, DateTimeOffset.UtcNow, new[] { "ops" }));
-                    }
+                    new AdmissionStore(values, null).Write(
+                        AdmissionRecord.For(client, DateTimeOffset.UtcNow, new[] { "ops" }));
                 }
             }
         }

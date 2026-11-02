@@ -36,6 +36,12 @@ namespace KeePassGate.Diagnostics
         /// that will not build. `FormatException` is base64 that is not base64.
         /// `PlatformNotSupportedException` is a curve or an algorithm this Windows does not have.
         /// See https://learn.microsoft.com/dotnet/api/system.security.cryptography.x509certificates
+        ///
+        /// **None of Bouncy Castle's own types**, and that is not an omission: stored bytes reach
+        /// Bouncy Castle in one place, `CertifiedKey.From`, which names every type it was measured
+        /// to throw and answers null for each of them, and what it hands on is a certificate and a
+        /// key known to belong together, which the issuer signs with and nothing measured has made
+        /// throw.
         /// </remarks>
         public static bool OfCryptography(Exception error)
         {

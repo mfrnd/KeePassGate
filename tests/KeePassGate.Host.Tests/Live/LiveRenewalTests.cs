@@ -385,10 +385,9 @@ namespace KeePassGate.Host.Tests.Live
         {
             var body = JsonBody.Read(bundle);
             Assert.That(body, Is.Not.Null, "the renewal did not answer with a bundle: " + bundle);
-            using (PrivateKeyFiles.Lock())
-            {
-                return CertificateBlob.Load(body.Text("identity"), X509KeyStorageFlags.Exportable);
-            }
+            var identity = CertificateBlob.Load(body.Text("identity"));
+            Assert.That(identity, Is.Not.Null, "the bundle carries a certificate with its own key");
+            return identity.WithKeyFile();
         }
     }
 }

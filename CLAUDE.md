@@ -198,8 +198,9 @@ designing around them.
   KeePass can answer `503 locked` rather than failing at the transport. It was seven days and minted
   at unlock until a long lock outlived it. The normal host key is let go at lock, and `CA.md` §208
   is exact about how much of that is erasure: the gate key and the stored PKCS#12 are overwritten,
-  while the key the TLS server signs with is a BouncyCastle value over an immutable integer that
-  offers nothing to overwrite, so the last reference goes and nothing more. The responder is marked by a
+  while the keys, the one the TLS server signs with and the authority's, are BouncyCastle values
+  over an immutable integer that offer nothing to overwrite, so the last reference goes and nothing
+  more. The responder is marked by a
   `kpg://host/responder` URI in its subject alternative name, **not** a private OID: the UUID arc
   `2.25` encodes on .NET Framework and does not survive being read back, and `1.3.6.1.4.1` would be
   squatting on somebody else's enterprise number.
@@ -371,7 +372,11 @@ designing around them.
   measurement: SChannel will not serve with a key that has not been written to the user's profile,
   so the platform's own TLS meant a host key on the disk. `Org.BouncyCastle.Tls` is MIT, alive, and
   parses the stored PKCS#12 itself. Do not re-propose `SslStream` for the server without measuring
-  `EphemeralKeyProbe.cs` on `spikes/tls-and-certificates` again first.
+  `EphemeralKeyProbe.cs` on `spikes/tls-and-certificates` again first. **And it issues every
+  certificate**, signing with the authority's key as it reads that key out of the stored PKCS#12,
+  so Windows is handed certificates to read and never a key. Names are UTF8String, and a leaf's
+  issuer is its authority's subject copied as stored, so an authority Windows wrote, in
+  PrintableString, still chains what it issues. `CA.md` §203.
 - **Spec-first routing.** The OpenAPI document at `src/KeePassGate/Spec/openapi.yaml` is the
   routing table, embedded in the assembly, and handlers bind to `operationId`, so an undeclared path
   has nowhere to go. Every declared operation must have a handler and every handler a declared
@@ -558,8 +563,8 @@ Run them from
   carries a private key besides. `AdmissionRecord` does exactly that; measured by feeding a PFX to
   the byte constructor on .NET Framework 4.8 and printing all three numbers.
 - **`X509Certificate2.NotAfter` cannot hold a certificate that never expires.** RFC 5280 writes
-  "no well-defined expiration" as `99991231235959Z`, and `CertificateRequest` encodes it exactly
-  so. Read back, `NotAfter` converts to local time, and ahead of UTC that moment falls in the year
+  "no well-defined expiration" as `99991231235959Z`, and Bouncy Castle encodes it exactly so, as
+  `CertificateRequest` did. Read back, `NotAfter` converts to local time, and ahead of UTC that moment falls in the year
   10000, which no `DateTime` holds: what comes back is `DateTime.MaxValue`, which converted back to
   UTC is up to fourteen hours early, and nothing throws. Measured in this machine's own zone as
   well as in simulated ones. The client's half is the same fact: `cryptography` reads the value
@@ -1292,7 +1297,7 @@ rather than through the file.
 
 **One thing to know before touching the transport.** An `EphemeralKeySet` certificate signs happily
 and SChannel will not do TLS with it in either direction. That is why `Org.BouncyCastle.Tls`
-terminates the transport, and why every key the plugin loads can stay off the disk.
+terminates the transport, and why no key the plugin holds is handed to Windows at all.
 `HostCertificateHandshakeTests` pins both halves, including the SChannel refusal, so a tidy-up that
 goes back to `SslStream` fails loudly rather than quietly writing keys to somebody's profile.
 

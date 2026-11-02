@@ -47,13 +47,13 @@ namespace KeePassGate.Gate
 
         private readonly string _databaseId;
         private readonly byte[] _gateKey;
-        private readonly HostKeyMaterial _responder;
+        private readonly CertifiedKey _responder;
         // The cache holds the first of these; every caller `Current` hands it to takes one more.
         // It was a bare flag, and the first caller to give the target back zeroed the gate key for
         // everybody: the next connection matched its name against 32 zero bytes and was dropped.
         private int _holders = 1;
 
-        public LockedTarget(string databaseId, byte[] gateKey, HostKeyMaterial responder)
+        public LockedTarget(string databaseId, byte[] gateKey, CertifiedKey responder)
         {
             if (string.IsNullOrEmpty(databaseId))
             {
@@ -118,7 +118,7 @@ namespace KeePassGate.Gate
         }
 
         /// <summary>The responder, which is the only identity left.</summary>
-        public HostKeyMaterial Host
+        public CertifiedKey Host
         {
             get { return _responder; }
         }
@@ -129,6 +129,12 @@ namespace KeePassGate.Gate
         /// otherwise.
         /// </summary>
         public X509Certificate2 Authority
+        {
+            get { return null; }
+        }
+
+        /// <summary>Null, for the same reason: nothing can be issued while there is no authority.</summary>
+        public CertifiedKey AuthorityKey
         {
             get { return null; }
         }

@@ -2,7 +2,16 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography;
-using System.Security.Cryptography.X509Certificates;
+using Org.BouncyCastle.Asn1.X509;
+using Org.BouncyCastle.Asn1.X9;
+using Org.BouncyCastle.Crypto;
+using Org.BouncyCastle.Crypto.Generators;
+using Org.BouncyCastle.Crypto.Operators;
+using Org.BouncyCastle.Crypto.Parameters;
+using Org.BouncyCastle.Math;
+using Org.BouncyCastle.Security;
+using Org.BouncyCastle.X509;
+using Org.BouncyCastle.X509.Extension;
 
 namespace KeePassGate.Authority
 {
@@ -14,8 +23,19 @@ namespace KeePassGate.Authority
     /// </summary>
     /// <remarks>
     /// The shapes come from `CA.md` §207 and are asserted by the tests rather than trusted to
-    /// this comment. ECDSA on P-256 with SHA-256 throughout, which needs no third-party
-    /// cryptography on .NET Framework.
+    /// this comment. ECDSA on P-256 with SHA-256 throughout.
+    ///
+    /// **Bouncy Castle makes every one, and signs with a key it read itself**, so no key passes
+    /// through Windows: the authority signs from the PKCS#12 it is stored as, and what is issued is
+    /// written as one by the same library. .NET Framework could do all of this on Windows, through
+    /// CNG, and Mono can do none of it, `spikes/mono-compatibility`.
+    ///
+    /// **Names are written as UTF8String**, which RFC 5280 section 4.1.2.4 asks of every
+    /// certificate issued since 2004. Windows wrote PrintableString, and BMPString for a name
+    /// holding an underscore, which PrintableString cannot. A leaf's issuer is its authority's
+    /// subject copied as it is stored, never written again, because RFC 5280 section 7.1 compares
+    /// names after normalizing them and a chain engine that compares bytes would not, so an
+    /// authority written before keeps every certificate it issues afterwards in its chain.
     ///
     /// Everything below is RFC 5280: basic constraints in section 4.2.1.9, key usage in 4.2.1.3,
     /// extended key usage in 4.2.1.12, and the two key identifiers in 4.2.1.1 and 4.2.1.2.
@@ -24,9 +44,17 @@ namespace KeePassGate.Authority
     /// </remarks>
     public sealed class AuthorityIssuer
     {
-        public const string AuthoritySubject = "CN=KeePassGate authority";
-        public const string HostSubject = "CN=KeePassGate host";
-        public const string ResponderSubject = "CN=KeePassGate responder";
+        public const string AuthoritySubject = "CN=" + AuthorityName;
+        public const string HostSubject = "CN=" + HostName;
+        public const string ResponderSubject = "CN=" + ResponderName;
+
+        private const string AuthorityName = "KeePassGate authority";
+        private const string HostName = "KeePassGate host";
+        private const string ResponderName = "KeePassGate responder";
+
+        /// <summary>The signature every certificate carries: ECDSA over SHA-256.</summary>
+        // cspell:ignore WITHECDSA
+        private const string SignatureAlgorithm = "SHA256WITHECDSA";
 
         /// <summary>
         /// What marks a responder certificate, so a client can tell one without reading a subject
@@ -60,12 +88,6 @@ namespace KeePassGate.Authority
         /// verification is deliberately abandoned here, so they carry more weight than usual.
         /// </summary>
         public const string ClientAuthOid = "1.3.6.1.5.5.7.3.2";
-
-        /// <summary>`id-ce-subjectKeyIdentifier`, RFC 5280 section 4.2.1.2.</summary>
-        private const string SubjectKeyIdentifierOid = "2.5.29.14";
-
-        /// <summary>`id-ce-authorityKeyIdentifier`, RFC 5280 section 4.2.1.1.</summary>
-        private const string AuthorityKeyIdentifierOid = "2.5.29.35";
 
         /// <summary>
         /// A hundred years for the authority, and so for the host certificate issued with it.
@@ -138,30 +160,23 @@ namespace KeePassGate.Authority
         /// A self-signed authority: `CA:TRUE` with `pathLen 0` so it can never mint a subordinate,
         /// and no extended key usage, because one there would constrain everything beneath it.
         /// </summary>
-        public X509Certificate2 CreateAuthority()
+        public CertifiedKey CreateAuthority()
         {
-            // Disposed rather than dropped: this is an NCrypt key handle, and one per press adds
-            // up inside a password manager that runs for days. `Roundtrip` exports before the scope
-            // ends, so what it returns carries its own copy of the key.
-            using (var key = ECDsa.Create(ECCurve.NamedCurves.nistP256))
-            {
-                var request = new CertificateRequest(
-                    new X500DistinguishedName(AuthoritySubject), key, HashAlgorithmName.SHA256);
+            var random = new SecureRandom();
+            var key = NewKeyPair(random);
+            var subject = Name(AuthorityName);
+            var now = _clock();
 
-                request.CertificateExtensions.Add(new X509BasicConstraintsExtension(true, true, 0, true));
-                request.CertificateExtensions.Add(new X509KeyUsageExtension(
-                    X509KeyUsageFlags.KeyCertSign | X509KeyUsageFlags.CrlSign, true));
-                request.CertificateExtensions.Add(
-                    new X509SubjectKeyIdentifierExtension(request.PublicKey, false));
+            var generator = Generator(subject, subject, key.Public, now - Backdate, now + AuthorityLifetime);
+            generator.AddExtension(X509Extensions.BasicConstraints, true, new BasicConstraints(0));
+            generator.AddExtension(
+                X509Extensions.KeyUsage, true, new KeyUsage(KeyUsage.KeyCertSign | KeyUsage.CrlSign));
+            generator.AddExtension(
+                X509Extensions.SubjectKeyIdentifier,
+                false,
+                X509ExtensionUtilities.CreateSubjectKeyIdentifier(key.Public));
 
-                var now = _clock();
-                var certificate = request.CreateSelfSigned(now - Backdate, now + AuthorityLifetime);
-
-                // Through the store and back, so that a certificate which cannot survive being
-                // written to the database fails here rather than after the operator is told it
-                // worked.
-                return Roundtrip(certificate);
-            }
+            return Roundtrip(generator, key.Private, random, key.Private);
         }
 
         /// <summary>
@@ -175,52 +190,36 @@ namespace KeePassGate.Authority
         /// every client. A host life shorter than the authority's protects nothing either, because
         /// the host key is kept in the same document as the authority's and cannot leak without it.
         /// </remarks>
-        public X509Certificate2 IssueHost(X509Certificate2 authority)
+        public CertifiedKey IssueHost(CertifiedKey authority)
         {
             if (authority == null)
             {
                 throw new ArgumentNullException(nameof(authority));
             }
 
-            if (!authority.HasPrivateKey)
+            var random = new SecureRandom();
+            var key = NewKeyPair(random);
+            var now = _clock();
+            var notBefore = now - Backdate;
+            var notAfter = EndOf(authority);
+
+            // Against `now`, not `notBefore`. Comparing with the backdated start let an authority
+            // that expired within the last five minutes past this guard and mint a host that was
+            // already expired, which `Read` then accepted because it ignores expiry.
+            if (notAfter <= now)
             {
-                throw new ArgumentException("The authority cannot sign without its key.", nameof(authority));
+                throw new InvalidOperationException(
+                    "The authority has expired, so it can issue nothing that is valid.");
             }
 
-            using (var key = ECDsa.Create(ECCurve.NamedCurves.nistP256))
-            {
-                var request = new CertificateRequest(
-                    new X500DistinguishedName(HostSubject), key, HashAlgorithmName.SHA256);
+            var generator = Leaf(authority, Name(HostName), key.Public, notBefore, notAfter);
+            generator.AddExtension(
+                X509Extensions.KeyUsage, true, new KeyUsage(KeyUsage.DigitalSignature | KeyUsage.KeyAgreement));
+            generator.AddExtension(
+                X509Extensions.ExtendedKeyUsage, false, new ExtendedKeyUsage(KeyPurposeID.id_kp_serverAuth));
+            Identify(generator, authority, key.Public);
 
-                request.CertificateExtensions.Add(new X509BasicConstraintsExtension(false, false, 0, true));
-                request.CertificateExtensions.Add(new X509KeyUsageExtension(
-                    X509KeyUsageFlags.DigitalSignature | X509KeyUsageFlags.KeyAgreement, true));
-                request.CertificateExtensions.Add(new X509EnhancedKeyUsageExtension(
-                    new OidCollection { new Oid(ServerAuthOid) }, false));
-                request.CertificateExtensions.Add(new X509SubjectKeyIdentifierExtension(request.PublicKey, false));
-                request.CertificateExtensions.Add(AuthorityKeyIdentifierOf(authority));
-
-                var now = _clock();
-                var notBefore = now - Backdate;
-                var notAfter = EndOf(authority);
-
-                // Against `now`, not `notBefore`. Comparing with the backdated start let an authority
-                // that expired within the last five minutes past this guard and mint a host that was
-                // already expired, which `Read` then accepted because it ignores expiry.
-                if (notAfter <= now)
-                {
-                    throw new InvalidOperationException(
-                        "The authority has expired, so it can issue nothing that is valid.");
-                }
-
-                // `issued` is a certificate context of its own and is disposed with the rest: it
-                // carries no key, and only the copy below is returned.
-                using (var issued = request.Create(authority, notBefore, notAfter, NewSerialNumber()))
-                using (var withKey = issued.CopyWithPrivateKey(key))
-                {
-                    return Roundtrip(withKey);
-                }
-            }
+            return Roundtrip(generator, authority.PrivateKey, random, key.Private);
         }
 
         /// <summary>
@@ -242,56 +241,39 @@ namespace KeePassGate.Authority
         /// No `keyAgreement`, unlike the normal host certificate. It signs a handshake and does
         /// nothing else.
         /// </remarks>
-        public X509Certificate2 IssueResponder(X509Certificate2 authority)
+        public CertifiedKey IssueResponder(CertifiedKey authority)
         {
             if (authority == null)
             {
                 throw new ArgumentNullException(nameof(authority));
             }
 
-            if (!authority.HasPrivateKey)
+            var random = new SecureRandom();
+            var key = NewKeyPair(random);
+            var now = _clock();
+            var notBefore = now - Backdate;
+            var notAfter = Clamp(now + ResponderLifetime, authority);
+
+            // Against `now`, as in `IssueHost`. This method was written from that one before its
+            // guard was corrected, and comparing with the backdated start let an authority that
+            // expired within the last five minutes mint a responder that was already expired.
+            if (notAfter <= now)
             {
-                throw new ArgumentException("The authority cannot sign without its key.", nameof(authority));
+                throw new InvalidOperationException(
+                    "The authority has expired, so it can issue nothing that is valid.");
             }
 
-            // Disposed, as in the siblings: an NCrypt handle per unlock adds up in a process that
-            // runs for days.
-            using (var key = ECDsa.Create(ECCurve.NamedCurves.nistP256))
-            {
-                var request = new CertificateRequest(
-                    new X500DistinguishedName(ResponderSubject), key, HashAlgorithmName.SHA256);
+            var generator = Leaf(authority, Name(ResponderName), key.Public, notBefore, notAfter);
+            generator.AddExtension(X509Extensions.KeyUsage, true, new KeyUsage(KeyUsage.DigitalSignature));
+            generator.AddExtension(
+                X509Extensions.ExtendedKeyUsage, false, new ExtendedKeyUsage(KeyPurposeID.id_kp_serverAuth));
+            Identify(generator, authority, key.Public);
+            generator.AddExtension(
+                X509Extensions.SubjectAlternativeName,
+                false,
+                new GeneralNames(new GeneralName(GeneralName.UniformResourceIdentifier, ResponderClaim)));
 
-                request.CertificateExtensions.Add(new X509BasicConstraintsExtension(false, false, 0, true));
-                request.CertificateExtensions.Add(new X509KeyUsageExtension(
-                    X509KeyUsageFlags.DigitalSignature, true));
-                request.CertificateExtensions.Add(new X509EnhancedKeyUsageExtension(
-                    new OidCollection { new Oid(ServerAuthOid) }, false));
-                request.CertificateExtensions.Add(new X509SubjectKeyIdentifierExtension(request.PublicKey, false));
-                request.CertificateExtensions.Add(AuthorityKeyIdentifierOf(authority));
-
-                var marker = new SubjectAlternativeNameBuilder();
-                marker.AddUri(new Uri(ResponderClaim));
-                request.CertificateExtensions.Add(marker.Build(false));
-
-                var now = _clock();
-                var notBefore = now - Backdate;
-                var notAfter = Clamp(now + ResponderLifetime, authority);
-
-                // Against `now`, as in `IssueHost`. This method was written from that one before its
-                // guard was corrected, and comparing with the backdated start let an authority that
-                // expired within the last five minutes mint a responder that was already expired.
-                if (notAfter <= now)
-                {
-                    throw new InvalidOperationException(
-                        "The authority has expired, so it can issue nothing that is valid.");
-                }
-
-                using (var issued = request.Create(authority, notBefore, notAfter, NewSerialNumber()))
-                using (var withKey = issued.CopyWithPrivateKey(key))
-                {
-                    return Roundtrip(withKey);
-                }
-            }
+            return Roundtrip(generator, authority.PrivateKey, random, key.Private);
         }
 
         /// <summary>
@@ -308,8 +290,8 @@ namespace KeePassGate.Authority
         /// the wire, so the rule `CA.md` §207 states has one last door, and the result is clamped
         /// to the authority like every other leaf.
         /// </remarks>
-        public X509Certificate2 IssueClient(
-            X509Certificate2 authority, string subjectName, IEnumerable<string> profiles, TimeSpan? lifetime = null)
+        public CertifiedKey IssueClient(
+            CertifiedKey authority, string subjectName, IEnumerable<string> profiles, TimeSpan? lifetime = null)
         {
             var lasts = lifetime ?? Lifetime.Unasked;
             if (!Lifetime.IsAllowed(lasts))
@@ -325,11 +307,6 @@ namespace KeePassGate.Authority
                 throw new ArgumentNullException(nameof(authority));
             }
 
-            if (!authority.HasPrivateKey)
-            {
-                throw new ArgumentException("The authority cannot sign without its key.", nameof(authority));
-            }
-
             if (!IsUsableSubjectName(subjectName))
             {
                 throw new ArgumentException(
@@ -337,49 +314,36 @@ namespace KeePassGate.Authority
                     " characters of letters, digits, space, dot, dash or underscore.", nameof(subjectName));
             }
 
-            // Disposed rather than dropped, for the reason `CreateAuthority` gives: this is an
-            // NCrypt key handle, and pairing is the path an agent drives repeatedly. The scope has
-            // to cover the extension building as well, because an unusable profile name throws
-            // after the key exists.
-            using (var key = ECDsa.Create(ECCurve.NamedCurves.nistP256))
+            var claims = ProfileClaims(profiles);
+
+            var random = new SecureRandom();
+            var key = NewKeyPair(random);
+            var now = _clock();
+            var notBefore = now - Backdate;
+            var notAfter = Clamp(now + lasts, authority);
+
+            // Against `now`, not `notBefore`, for the reason `IssueHost` records: comparing
+            // with the backdated start lets an authority that expired within the last five
+            // minutes mint a client that is already expired, which `Read` then accepts because
+            // it ignores expiry and every connection afterwards refuses.
+            if (notAfter <= now)
             {
-                var request = new CertificateRequest(
-                    new X500DistinguishedName("CN=" + subjectName), key, HashAlgorithmName.SHA256);
-
-                request.CertificateExtensions.Add(new X509BasicConstraintsExtension(false, false, 0, true));
-                request.CertificateExtensions.Add(new X509KeyUsageExtension(
-                    X509KeyUsageFlags.DigitalSignature, true));
-                request.CertificateExtensions.Add(new X509EnhancedKeyUsageExtension(
-                    new OidCollection { new Oid(ClientAuthOid) }, false));
-                request.CertificateExtensions.Add(new X509SubjectKeyIdentifierExtension(request.PublicKey, false));
-                request.CertificateExtensions.Add(AuthorityKeyIdentifierOf(authority));
-
-                var claims = ProfileClaims(profiles);
-                if (claims != null)
-                {
-                    request.CertificateExtensions.Add(claims);
-                }
-
-                var now = _clock();
-                var notBefore = now - Backdate;
-                var notAfter = Clamp(now + lasts, authority);
-
-                // Against `now`, not `notBefore`, for the reason `IssueHost` records: comparing
-                // with the backdated start lets an authority that expired within the last five
-                // minutes mint a client that is already expired, which `Read` then accepts because
-                // it ignores expiry and every connection afterwards refuses.
-                if (notAfter <= now)
-                {
-                    throw new InvalidOperationException(
-                        "The authority has expired, so it can issue nothing that is valid.");
-                }
-
-                using (var issued = request.Create(authority, notBefore, notAfter, NewSerialNumber()))
-                using (var withKey = issued.CopyWithPrivateKey(key))
-                {
-                    return Roundtrip(withKey);
-                }
+                throw new InvalidOperationException(
+                    "The authority has expired, so it can issue nothing that is valid.");
             }
+
+            var generator = Leaf(authority, Name(subjectName), key.Public, notBefore, notAfter);
+            generator.AddExtension(X509Extensions.KeyUsage, true, new KeyUsage(KeyUsage.DigitalSignature));
+            generator.AddExtension(
+                X509Extensions.ExtendedKeyUsage, false, new ExtendedKeyUsage(KeyPurposeID.id_kp_clientAuth));
+            Identify(generator, authority, key.Public);
+
+            if (claims != null)
+            {
+                generator.AddExtension(X509Extensions.SubjectAlternativeName, false, claims);
+            }
+
+            return Roundtrip(generator, authority.PrivateKey, random, key.Private);
         }
 
         /// <summary>
@@ -408,10 +372,12 @@ namespace KeePassGate.Authority
                 return false;
             }
 
-            // Measured: `X500DistinguishedName` strips the space either end, so `CN=agent`,
-            // `CN= agent` and `CN=agent ` encode to the same bytes, and a name of nothing but
-            // spaces encodes to an empty common name. Two clients would then carry one identity in
-            // a log line and in an admission record, which is the one thing a name is for.
+            // Measured on `X500DistinguishedName`, which wrote these names before Bouncy Castle
+            // did: it strips the space either end, so `CN=agent`, `CN= agent` and `CN=agent `
+            // encoded to the same bytes, and a name of nothing but spaces to an empty common name.
+            // Two clients would then carry one identity in a log line and in an admission record,
+            // which is the one thing a name is for. Anything that trims a name still joins them,
+            // so the rule outlives the encoder that showed it was needed.
             if (subjectName[0] == ' ' || subjectName[subjectName.Length - 1] == ' ')
             {
                 return false;
@@ -420,16 +386,14 @@ namespace KeePassGate.Authority
             return subjectName.All(c => Ascii.IsLetterOrDigit(c) || c == '-' || c == '_' || c == '.' || c == ' ');
         }
 
-        private static X509Extension ProfileClaims(IEnumerable<string> profiles)
+        private static GeneralNames ProfileClaims(IEnumerable<string> profiles)
         {
             if (profiles == null)
             {
                 return null;
             }
 
-            var builder = new SubjectAlternativeNameBuilder();
-            var any = false;
-
+            var claims = new List<GeneralName>();
             foreach (var profile in profiles)
             {
                 if (!IsUsableProfileName(profile))
@@ -437,11 +401,10 @@ namespace KeePassGate.Authority
                     throw new ArgumentException("A profile name is not usable as a claim: " + profile, nameof(profiles));
                 }
 
-                builder.AddUri(new Uri(ProfileClaimPrefix + profile));
-                any = true;
+                claims.Add(new GeneralName(GeneralName.UniformResourceIdentifier, ProfileClaimPrefix + profile));
             }
 
-            return any ? builder.Build(false) : null;
+            return claims.Count > 0 ? new GeneralNames(claims.ToArray()) : null;
         }
 
         /// <summary>
@@ -466,71 +429,127 @@ namespace KeePassGate.Authority
         }
 
         /// <summary>
-        /// The authority key identifier, built by hand because .NET Framework has no class for it:
-        /// `SEQUENCE { [0] keyIdentifier }` carrying the issuer's subject key identifier.
+        /// A key pair on P-256, named by its curve, so that a certificate carries the curve's
+        /// identifier rather than its parameters spelled out, which is how Windows wrote it and what
+        /// RFC 5480 section 2.1.1 requires.
+        /// </summary>
+        private static AsymmetricCipherKeyPair NewKeyPair(SecureRandom random)
+        {
+            var generator = new ECKeyPairGenerator();
+            generator.Init(new ECKeyGenerationParameters(X9ObjectIdentifiers.Prime256v1, random));
+            return generator.GenerateKeyPair();
+        }
+
+        /// <summary>A name of one common name, which Bouncy Castle writes as UTF8String.</summary>
+        private static X509Name Name(string commonName)
+        {
+            return new X509Name(new[] { X509Name.CN }, new[] { commonName });
+        }
+
+        private static X509V3CertificateGenerator Generator(
+            X509Name issuer,
+            X509Name subject,
+            AsymmetricKeyParameter publicKey,
+            DateTimeOffset notBefore,
+            DateTimeOffset notAfter)
+        {
+            var generator = new X509V3CertificateGenerator();
+            generator.SetSerialNumber(new BigInteger(1, NewSerialNumber()));
+            generator.SetIssuerDN(issuer);
+            generator.SetSubjectDN(subject);
+            generator.SetNotBefore(Seconds(notBefore));
+            generator.SetNotAfter(Seconds(notAfter));
+            generator.SetPublicKey(publicKey);
+            return generator;
+        }
+
+        /// <summary>
+        /// The start of every leaf: its authority's subject as its issuer, and `CA:FALSE`.
+        /// </summary>
+        private static X509V3CertificateGenerator Leaf(
+            CertifiedKey authority,
+            X509Name subject,
+            AsymmetricKeyParameter publicKey,
+            DateTimeOffset notBefore,
+            DateTimeOffset notAfter)
+        {
+            var generator = Generator(authority.Certificate.SubjectDN, subject, publicKey, notBefore, notAfter);
+            generator.AddExtension(X509Extensions.BasicConstraints, true, new BasicConstraints(false));
+            return generator;
+        }
+
+        /// <summary>
+        /// The two key identifiers every leaf carries: its own, and its authority's, which is the
+        /// authority's subject key identifier and nothing else.
         /// </summary>
         /// <remarks>
-        /// RFC 5280 section 4.2.1.1, where `keyIdentifier` is context tag 0 and the other two
-        /// fields are optional and omitted here. The encoding below is DER by hand: `0x30` is
-        /// SEQUENCE, `0x80` is that context tag, and each length fits one byte because a key
-        /// identifier is a SHA-1 hash. ITU-T X.690 section 8.1 is the length rule.
+        /// RFC 5280 section 4.2.1.1, where `keyIdentifier` is context tag 0 and the issuer's name
+        /// and serial, which are optional, are left out. Both identifiers are the SHA-1 of the
+        /// public key, the first method of section 4.2.1.2, as Windows computed them.
         /// </remarks>
-        public static X509Extension AuthorityKeyIdentifierOf(X509Certificate2 issuer)
+        private static void Identify(
+            X509V3CertificateGenerator generator, CertifiedKey authority, AsymmetricKeyParameter publicKey)
         {
-            var subjectKeyIdentifier = issuer.Extensions[SubjectKeyIdentifierOid] as X509SubjectKeyIdentifierExtension;
-            if (subjectKeyIdentifier == null)
+            generator.AddExtension(
+                X509Extensions.SubjectKeyIdentifier,
+                false,
+                X509ExtensionUtilities.CreateSubjectKeyIdentifier(publicKey));
+
+            var stored = authority.Certificate.GetExtensionValue(X509Extensions.SubjectKeyIdentifier);
+            if (stored == null)
             {
                 throw new ArgumentException(
-                    "The issuer carries no subject key identifier to point at.", nameof(issuer));
+                    "The issuer carries no subject key identifier to point at.", nameof(authority));
             }
 
-            var identifier = FromHex(subjectKeyIdentifier.SubjectKeyIdentifier);
-            // 125, not 127. The identifier is wrapped in four bytes below, and the DER short
-            // form runs out at 127 for the whole structure rather than for its contents.
-            if (identifier.Length > 125)
-            {
-                throw new ArgumentException("The issuer's key identifier is implausibly long.", nameof(issuer));
-            }
+            var identifier = SubjectKeyIdentifier.GetInstance(X509ExtensionUtilities.FromExtensionValue(stored));
+            generator.AddExtension(
+                X509Extensions.AuthorityKeyIdentifier,
+                false,
+                new AuthorityKeyIdentifier(identifier.GetKeyIdentifier()));
+        }
 
-            var encoded = new byte[identifier.Length + 4];
-            encoded[0] = 0x30;                              // SEQUENCE
-            encoded[1] = (byte)(identifier.Length + 2);
-            encoded[2] = 0x80;                              // [0] keyIdentifier, context specific
-            encoded[3] = (byte)identifier.Length;
-            Buffer.BlockCopy(identifier, 0, encoded, 4, identifier.Length);
-
-            return new X509Extension(AuthorityKeyIdentifierOid, encoded, false);
+        /// <summary>
+        /// A moment as a certificate holds one, in whole seconds, which RFC 5280 section 4.1.2.5
+        /// asks of both forms a validity date takes.
+        /// </summary>
+        private static DateTime Seconds(DateTimeOffset moment)
+        {
+            var ticks = moment.UtcDateTime.Ticks;
+            return new DateTime(ticks - ticks % TimeSpan.TicksPerSecond, DateTimeKind.Utc);
         }
 
         /// <summary>
         /// The moment the authority stops vouching for anything, which no leaf may outlast.
         /// </summary>
-        private static DateTimeOffset EndOf(X509Certificate2 authority)
+        private static DateTimeOffset EndOf(CertifiedKey authority)
         {
-            return new DateTimeOffset(authority.NotAfter.ToUniversalTime(), TimeSpan.Zero);
+            return new DateTimeOffset(DateTime.SpecifyKind(authority.Certificate.NotAfter, DateTimeKind.Utc));
         }
 
-        private static DateTimeOffset Clamp(DateTimeOffset wanted, X509Certificate2 authority)
+        private static DateTimeOffset Clamp(DateTimeOffset wanted, CertifiedKey authority)
         {
             var ceiling = EndOf(authority);
             return wanted > ceiling ? ceiling : wanted;
         }
 
-        private static X509Certificate2 Roundtrip(X509Certificate2 certificate)
+        /// <summary>
+        /// Signs, then writes the result as it is stored and reads it back, so that a certificate
+        /// which cannot survive being written to the database fails here rather than after somebody
+        /// is told it worked.
+        /// </summary>
+        /// <param name="generator">The certificate to sign, with every field and extension set.</param>
+        /// <param name="signer">The key that signs it: the authority's, or its own when self-signed.</param>
+        /// <param name="random">What the signature's nonce is drawn from.</param>
+        /// <param name="key">The private key the certificate is for.</param>
+        private static CertifiedKey Roundtrip(
+            X509V3CertificateGenerator generator,
+            AsymmetricKeyParameter signer,
+            SecureRandom random,
+            AsymmetricKeyParameter key)
         {
-            string stored;
-            try
-            {
-                stored = CertificateBlob.Save(certificate);
-            }
-            finally
-            {
-                // In a `finally`, so a certificate that cannot be exported is still released
-                // rather than left for the garbage collector.
-                certificate.Reset();
-            }
-
-            var restored = CertificateBlob.Load(stored);
+            var certificate = generator.Generate(new Asn1SignatureFactory(SignatureAlgorithm, signer, random));
+            var restored = CertifiedKey.From(new CertifiedKey(certificate, key).ToPkcs12());
             if (restored == null)
             {
                 throw new InvalidOperationException(
@@ -538,17 +557,6 @@ namespace KeePassGate.Authority
             }
 
             return restored;
-        }
-
-        private static byte[] FromHex(string hex)
-        {
-            var bytes = new byte[hex.Length / 2];
-            for (var i = 0; i < bytes.Length; i++)
-            {
-                bytes[i] = Convert.ToByte(hex.Substring(i * 2, 2), 16);
-            }
-
-            return bytes;
         }
     }
 }

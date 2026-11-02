@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading;
 using System.Windows.Forms;
 using KeePassGate.Authority;
+using KeePassGate.Testing;
 using KeePassGate.Tests.Fakes;
 using KeePassGate.Ui;
 using NUnit.Framework;
@@ -359,8 +360,7 @@ namespace KeePassGate.Tests
             var authority = CertificateBlob.Load(
                 AuthorityDocument.Read(_values.Get(AuthorityKeys.AuthorityKey(fingerprint)), null).Authority);
 
-            using (authority)
-            using (var client = new AuthorityIssuer().IssueClient(authority, name, profiles))
+            using (var client = new AuthorityIssuer().IssueClient(authority, name, profiles).Read())
             {
                 var record = clientKey == null
                     ? AdmissionRecord.For(client, Admitted, profiles)

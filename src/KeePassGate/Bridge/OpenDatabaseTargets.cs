@@ -233,12 +233,12 @@ namespace KeePassGate.Bridge
         /// A database was locked. What is privileged goes; what answers a connection stays.
         /// </summary>
         /// <remarks>
-        /// The authority key and the host certificate are inside the `AuthorityReading` this
-        /// disposes, which overwrites the stored PKCS#12 and releases both handles. The key the TLS
-        /// server signs with is not in there: it is the `HostKeyMaterial` on the target, and it
-        /// goes when the target does, which is the last reference going rather than anything being
-        /// overwritten, because a BouncyCastle key is an immutable `BigInteger`. `CA.md` §208 says
-        /// what that is and is not worth. The
+        /// The authority and the host certificate are inside the `AuthorityReading` this disposes,
+        /// which overwrites the stored PKCS#12 and releases the handles of both certificates. Their
+        /// keys are not overwritten, and neither is the key the TLS server signs with, which is
+        /// the host's `CertifiedKey` on the target: each goes when the last reference to it does,
+        /// which is all that happens to it, because a BouncyCastle key is an immutable
+        /// `BigInteger`. `CA.md` §208 says what that is and is not worth. The
         /// admission records were never here to drop: they are read from the live database on every
         /// connection, and locking cuts them off by closing the database rather than by clearing
         /// anything. The gate key is copied out before the material goes, because disposing it
@@ -445,11 +445,11 @@ namespace KeePassGate.Bridge
         /// Whether a responder minted earlier is still usable, read off its own bytes.
         /// </summary>
         /// <remarks>
-        /// `HostKeyMaterial` keeps the certificate as DER rather than as an object, so this parses
-        /// to ask. That costs a fraction of a millisecond once per lock, against a certificate a
+        /// `CertificateValidity` reads a Windows certificate, so this makes one from the DER to
+        /// ask. That costs a fraction of a millisecond once per lock, against a certificate a
         /// client is required to reject if it has expired.
         /// </remarks>
-        private static bool StillCurrent(HostKeyMaterial responder)
+        private static bool StillCurrent(CertifiedKey responder)
         {
             try
             {
@@ -744,8 +744,8 @@ namespace KeePassGate.Bridge
             }
 
             // The target takes the reading and lets go of it with its last holder. Every other way
-            // out lets go of it here, a throw from the log or from `HostFor` among them, and in a
-            // `finally` rather than a `catch` for the reason `Current` gives.
+            // out lets go of it here, a throw from the log or from making the target among them,
+            // and in a `finally` rather than a `catch` for the reason `Current` gives.
             MaterialTarget target;
             var handedOver = false;
             try
@@ -768,14 +768,8 @@ namespace KeePassGate.Bridge
                     return null;
                 }
 
-                var host = HostFor(reading.Material);
-                if (host == null)
-                {
-                    return null;
-                }
-
                 target = new MaterialTarget(
-                    database, reading, host, _writer, _hold, _log);
+                    database, reading, reading.Material.HostKey, _writer, _hold, _log);
                 handedOver = true;
             }
             finally
@@ -822,11 +816,7 @@ namespace KeePassGate.Bridge
                         continue;
                     }
 
-                    var host = HostFor(candidate.Material);
-                    if (host == null)
-                    {
-                        continue;
-                    }
+                    var host = candidate.Material.HostKey;
 
                     // Into a local and zeroed afterwards, for the reason `Answering` gives.
                     var gateKey = candidate.Material.SniKey;
@@ -859,49 +849,6 @@ namespace KeePassGate.Bridge
         }
 
         /// <summary>
-        /// The host certificate and key as the TLS server will present them, or null, said in the
-        /// log, when they cannot be served.
-        /// </summary>
-        private HostKeyMaterial HostFor(AuthorityMaterial material)
-        {
-            // Into a local and zeroed afterwards. The property hands out a fresh copy of the host's
-            // key each time it is read, and a copy nobody clears is the one thing a dump would find
-            // that `AuthorityMaterial.Dispose` went to the trouble of wiping.
-            HostKeyMaterial host;
-            var pkcs12 = material.HostPkcs12;
-            try
-            {
-                host = HostKeyMaterial.From(pkcs12);
-            }
-            finally
-            {
-                if (pkcs12 != null)
-                {
-                    Array.Clear(pkcs12, 0, pkcs12.Length);
-                }
-            }
-
-            if (host == null)
-            {
-                _log.Warn("a database's host certificate could not be read, so it is not served");
-                return null;
-            }
-
-            // The certificate that will go on the wire against the one that was checked against the
-            // authority. They are two readings of the same stored bytes by two different parsers,
-            // and a PKCS#12 carrying more than one key entry is a thing a `.kdbx` can be crafted to
-            // hold, so the one served has to be the one that was believed.
-            if (!FixedTime.Equals(host.CertificateDer, material.Host.RawData))
-            {
-                _log.Warn("a database's host certificate is not the one its authority vouched for, " +
-                          "so it is not served");
-                return null;
-            }
-
-            return host;
-        }
-
-        /// <summary>
         /// A responder for this database, minted while the authority is still available.
         /// </summary>
         /// <remarks>
@@ -912,14 +859,11 @@ namespace KeePassGate.Bridge
         /// is reported and the database is served without one, which costs a readable refusal while
         /// locked and nothing else.
         /// </remarks>
-        private HostKeyMaterial Responder(AuthorityReading reading)
+        private CertifiedKey Responder(AuthorityReading reading)
         {
             try
             {
-                using (var responder = new AuthorityIssuer().IssueResponder(reading.Material.Authority))
-                {
-                    return HostKeyMaterial.From(CertificateBlob.Bytes(CertificateBlob.Save(responder)));
-                }
+                return new AuthorityIssuer().IssueResponder(reading.Material.AuthorityKey);
             }
             catch (Exception error) when (
                 Expected.OfCryptography(error) || error is InvalidOperationException)
@@ -943,14 +887,14 @@ namespace KeePassGate.Bridge
         {
             private readonly string _stored;
             private string _path;
-            private readonly HostKeyMaterial _responder;
+            private readonly CertifiedKey _responder;
             private readonly MaterialTarget _target;
             private readonly List<UndecidedTarget> _undecided;
 
             public CachedTarget(
                 string stored,
                 string path,
-                HostKeyMaterial responder,
+                CertifiedKey responder,
                 MaterialTarget target,
                 List<UndecidedTarget> undecided)
             {
@@ -1030,7 +974,7 @@ namespace KeePassGate.Bridge
             }
 
             /// <summary>What will answer once this database is locked. Null when none could be minted.</summary>
-            public HostKeyMaterial Responder
+            public CertifiedKey Responder
             {
                 get { return _responder; }
             }
@@ -1058,7 +1002,7 @@ namespace KeePassGate.Bridge
         private sealed class MaterialTarget : IGateTarget
         {
             private readonly AuthorityReading _reading;
-            private readonly HostKeyMaterial _host;
+            private readonly CertifiedKey _host;
             private readonly string _databaseId;
             private PwDatabase _database;
             private readonly DatabaseWriter _writer;
@@ -1072,7 +1016,7 @@ namespace KeePassGate.Bridge
             public MaterialTarget(
                 PwDatabase database,
                 AuthorityReading reading,
-                HostKeyMaterial host,
+                CertifiedKey host,
                 DatabaseWriter writer,
                 IReadHold hold,
                 IGateLog log)
@@ -1093,8 +1037,8 @@ namespace KeePassGate.Bridge
 
             /// <summary>The database's tag key, with the copy of the host key it came from wiped.</summary>
             /// <remarks>
-            /// A target exists only once <see cref="HostFor"/> has read the host certificate out of
-            /// the stored PKCS#12, so the bytes are there to derive from.
+            /// A target is made only from material the store read, which keeps the host certificate's
+            /// stored PKCS#12, so the bytes are there to derive from.
             /// </remarks>
             private static byte[] TagKey(AuthorityMaterial material)
             {
@@ -1247,7 +1191,7 @@ namespace KeePassGate.Bridge
                 get { return _reading; }
             }
 
-            public HostKeyMaterial Host
+            public CertifiedKey Host
             {
                 get { return _host; }
             }
@@ -1255,6 +1199,11 @@ namespace KeePassGate.Bridge
             public X509Certificate2 Authority
             {
                 get { return _reading.Material.Authority; }
+            }
+
+            public CertifiedKey AuthorityKey
+            {
+                get { return _reading.Material.AuthorityKey; }
             }
 
             /// <summary>Takes a reference, for a caller about to use this outside the cache lock.</summary>

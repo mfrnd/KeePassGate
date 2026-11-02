@@ -20,15 +20,19 @@ namespace KeePassGate.Tests
     public sealed class ResponderCertificateTests
     {
         private AuthorityIssuer _issuer;
+        private CertifiedKey _authorityKey;
         private X509Certificate2 _authority;
+        private CertifiedKey _responderKey;
         private X509Certificate2 _responder;
 
         [SetUp]
         public void SetUp()
         {
             _issuer = new AuthorityIssuer();
-            _authority = _issuer.CreateAuthority();
-            _responder = _issuer.IssueResponder(_authority);
+            _authorityKey = _issuer.CreateAuthority();
+            _authority = _authorityKey.Read();
+            _responderKey = _issuer.IssueResponder(_authorityKey);
+            _responder = _responderKey.Read();
         }
 
         [TearDown]
@@ -56,7 +60,7 @@ namespace KeePassGate.Tests
         [Test]
         public void The_marker_survives_being_stored_and_read_back()
         {
-            using (var restored = CertificateBlob.Load(CertificateBlob.Save(_responder)))
+            using (var restored = CertificateBlob.Load(CertificateBlob.Save(_responderKey)).Read())
             {
                 Assert.That(CertificateUris.Of(restored), Is.EqualTo(new[] { AuthorityIssuer.ResponderClaim }));
             }
@@ -65,7 +69,7 @@ namespace KeePassGate.Tests
         [Test]
         public void A_normal_host_certificate_is_not_a_responder()
         {
-            using (var host = _issuer.IssueHost(_authority))
+            using (var host = _issuer.IssueHost(_authorityKey).Read())
             {
                 Assert.That(CertificateUris.Of(host), Has.No.Member(AuthorityIssuer.ResponderClaim),
                     "otherwise a client could not tell what it is talking to");
@@ -75,7 +79,7 @@ namespace KeePassGate.Tests
         [Test]
         public void A_client_certificate_is_not_a_responder_either()
         {
-            using (var client = _issuer.IssueClient(_authority, "agent-fictitious", new[] { "ops" }))
+            using (var client = _issuer.IssueClient(_authorityKey, "agent-fictitious", new[] { "ops" }).Read())
             {
                 Assert.That(CertificateUris.Of(client), Is.EqualTo(new[] { "kpg://profile/ops" }),
                     "its profile claims and no marker");
@@ -134,7 +138,7 @@ namespace KeePassGate.Tests
         [Test]
         public void It_has_its_own_key_rather_than_the_hosts()
         {
-            using (var host = _issuer.IssueHost(_authority))
+            using (var host = _issuer.IssueHost(_authorityKey).Read())
             {
                 Assert.That(_responder.GetPublicKeyString(), Is.Not.EqualTo(host.GetPublicKeyString()));
             }
@@ -143,19 +147,10 @@ namespace KeePassGate.Tests
         [Test]
         public void Every_one_is_different_because_it_is_re_minted_at_every_unlock()
         {
-            using (var second = _issuer.IssueResponder(_authority))
+            using (var second = _issuer.IssueResponder(_authorityKey).Read())
             {
                 Assert.That(second.RawData, Is.Not.EqualTo(_responder.RawData));
                 Assert.That(second.SerialNumber, Is.Not.EqualTo(_responder.SerialNumber));
-            }
-        }
-
-        [Test]
-        public void An_authority_with_no_key_cannot_mint_one()
-        {
-            using (var withoutKey = new X509Certificate2(_authority.RawData))
-            {
-                Assert.Throws<ArgumentException>(() => _issuer.IssueResponder(withoutKey));
             }
         }
 

@@ -1,14 +1,20 @@
-namespace KeePassGate.Host.Tests.Live
+namespace KeePassGate.Testing
 {
     /// <summary>
     /// One authority and one admitted client, written down rather than minted, so that a picture of
     /// them is the same picture every time.
     /// </summary>
     /// <remarks>
-    /// **Why written down.** The plugin signs with .NET's `CertificateRequest`, whose ECDSA picks a
-    /// random k, so minting the same certificate twice gives different bytes and a different
-    /// fingerprint. A fingerprint that does not move therefore means bytes that do not move, and
-    /// bytes that do not move have to be kept somewhere. These are them.
+    /// **Why written down.** The plugin signs with ECDSA, which picks a random k, so minting the
+    /// same certificate twice gives different bytes and a different fingerprint. A fingerprint that
+    /// does not move therefore means bytes that do not move, and bytes that do not move have to be
+    /// kept somewhere. These are them.
+    ///
+    /// **And written by Windows**, through `CertificateRequest` and `X509Certificate2.Export`,
+    /// before Bouncy Castle issued anything: names in PrintableString, and the PKCS#12 shape
+    /// `CertifiedKey.ToPkcs12` keeps. So the unit tier holds a database written before to what it
+    /// keeps with these, which is why they are in `tests/Shared` rather than beside the fixture
+    /// that writes them into a file.
     ///
     /// **No `.kdbx` is committed.** What is here is what the plugin keeps under two `KPG` keys in
     /// the database's own custom data: an authority's three parts, which it writes as one

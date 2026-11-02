@@ -6,6 +6,7 @@ using KeePassGate.Authority;
 using KeePassGate.Bridge;
 using KeePassGate.Diagnostics;
 using KeePassGate.Host.Tests.Live;
+using KeePassGate.Testing;
 using KeePassGate.Ui;
 using NUnit.Framework;
 
@@ -146,12 +147,9 @@ namespace KeePassGate.Host.Tests
 
         private static void Write(CustomDataStore store, string authority, string host, string sniKey)
         {
-            using (var certificate = CertificateBlob.Load(authority))
-            {
-                store.Set(
-                    AuthorityKeys.AuthorityKey(CertificateDigest.Of(certificate)),
-                    AuthorityDocument.Save(authority, host, sniKey));
-            }
+            store.Set(
+                AuthorityKeys.AuthorityKey(CertificateDigest.Of(CertificateBlob.Load(authority).CertificateDer)),
+                AuthorityDocument.Save(authority, host, sniKey));
         }
     }
 }

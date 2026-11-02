@@ -6,6 +6,7 @@ using System.Security.Cryptography.X509Certificates;
 using KeePassGate.Authority;
 using KeePassGate.Diagnostics;
 using KeePassGate.Gate;
+using KeePassGate.Testing;
 
 namespace KeePassGate.Tests.Fakes
 {
@@ -18,10 +19,10 @@ namespace KeePassGate.Tests.Fakes
         // The fixture holds the first; `FakeGateTargets.Current` takes one per caller.
         private int _holders = 1;
 
+        private readonly CertifiedKey _authorityKey;
         private readonly X509Certificate2 _authority;
         private readonly X509Certificate2 _host;
-        private readonly string _hostBlob;
-        private readonly HostKeyMaterial _hostKey;
+        private readonly CertifiedKey _hostKey;
         private readonly byte[] _gateKey;
         private readonly List<X509Certificate2> _issued = new List<X509Certificate2>();
         private readonly InMemoryKeyValueStore _records = new InMemoryKeyValueStore();
@@ -29,12 +30,12 @@ namespace KeePassGate.Tests.Fakes
         private readonly List<string> _named = new List<string>();
 
         private TestAuthority(
-            X509Certificate2 authority, X509Certificate2 host, string hostBlob, HostKeyMaterial hostKey, byte[] gateKey)
+            CertifiedKey authority, CertifiedKey host, byte[] gateKey)
         {
-            _authority = authority;
-            _host = host;
-            _hostBlob = hostBlob;
-            _hostKey = hostKey;
+            _authorityKey = authority;
+            _authority = authority.Read();
+            _host = host.Read();
+            _hostKey = host;
             _gateKey = gateKey;
             _admissions = new AdmissionStore(_records, NullGateLog.Instance);
 
@@ -46,11 +47,9 @@ namespace KeePassGate.Tests.Fakes
             var issuer = new AuthorityIssuer();
             var authority = issuer.CreateAuthority();
 
-            // Kept in both forms: the key material the managed TLS server serves with, and a
-            // Windows certificate for the tests that only want to read it.
+            // Kept in both forms, as the plugin keeps them: the key material the managed TLS
+            // server serves with, and a Windows certificate for the tests that only want to read it.
             var host = issuer.IssueHost(authority);
-            var stored = CertificateBlob.Save(host);
-            var hostKey = HostKeyMaterial.From(CertificateBlob.Bytes(stored));
 
             var gateKey = new byte[AuthorityMaterial.SniKeyLength];
             using (var random = RandomNumberGenerator.Create())
@@ -58,7 +57,7 @@ namespace KeePassGate.Tests.Fakes
                 random.GetBytes(gateKey);
             }
 
-            return new TestAuthority(authority, host, stored, hostKey, gateKey);
+            return new TestAuthority(authority, host, gateKey);
         }
 
         public string DatabaseId
@@ -112,7 +111,7 @@ namespace KeePassGate.Tests.Fakes
             get { return (byte[])_gateKey.Clone(); }
         }
 
-        public HostKeyMaterial Host
+        public CertifiedKey Host
         {
             get { return _hostKey; }
         }
@@ -126,6 +125,11 @@ namespace KeePassGate.Tests.Fakes
         public X509Certificate2 Authority
         {
             get { return _authority; }
+        }
+
+        public CertifiedKey AuthorityKey
+        {
+            get { return _authorityKey; }
         }
 
         /// <summary>Set to make listing the records fail, as a write racing the read does.</summary>
@@ -444,15 +448,9 @@ namespace KeePassGate.Tests.Fakes
         public X509Certificate2 IssueClient(string subject, TimeSpan lifetime, params string[] profiles)
         {
             // The test client is an SslStream, which will not present a certificate whose key is
-            // ephemeral, so this one is loaded with a container. The plugin itself never does that
-            // any more: only the client side of these tests still goes through SChannel.
-            X509Certificate2 certificate;
-            using (var issued = new AuthorityIssuer().IssueClient(_authority, subject, profiles, lifetime))
-            using (KeePassGate.Testing.PrivateKeyFiles.Lock())
-            {
-                certificate = CertificateBlob.Load(CertificateBlob.Save(issued), X509KeyStorageFlags.Exportable);
-            }
-
+            // ephemeral, so this one is loaded with a container. The plugin itself never does that:
+            // only the client side of these tests still goes through SChannel.
+            var certificate = new AuthorityIssuer().IssueClient(_authorityKey, subject, profiles, lifetime).WithKeyFile();
             _issued.Add(certificate);
             return certificate;
         }
@@ -472,10 +470,7 @@ namespace KeePassGate.Tests.Fakes
             var then = DateTimeOffset.UtcNow.AddDays(-7);
             var issuer = new AuthorityIssuer(() => then);
 
-            using (var authority = issuer.CreateAuthority())
-            {
-                return issuer.IssueClient(authority, subject, profiles, TimeSpan.FromDays(1));
-            }
+            return issuer.IssueClient(issuer.CreateAuthority(), subject, profiles, TimeSpan.FromDays(1)).Read();
         }
 
         /// <summary>
@@ -485,12 +480,7 @@ namespace KeePassGate.Tests.Fakes
         /// </summary>
         public X509Certificate2 HostCertificateAsClient()
         {
-            X509Certificate2 certificate;
-            using (KeePassGate.Testing.PrivateKeyFiles.Lock())
-            {
-                certificate = CertificateBlob.Load(_hostBlob, X509KeyStorageFlags.Exportable);
-            }
-
+            var certificate = _hostKey.WithKeyFile();
             _issued.Add(certificate);
             return certificate;
         }

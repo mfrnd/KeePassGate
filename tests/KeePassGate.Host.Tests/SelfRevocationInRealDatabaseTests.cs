@@ -6,6 +6,7 @@ using KeePassLib;
 using KeePassGate.Authority;
 using KeePassGate.Bridge;
 using KeePassGate.Diagnostics;
+using KeePassGate.Testing;
 using KeePassGate.Ui;
 using NUnit.Framework;
 
@@ -353,7 +354,7 @@ namespace KeePassGate.Host.Tests
         {
             using (var reading = new AuthorityService(new CustomDataStore(_database.Database), null).Read())
             using (var certificate = new AuthorityIssuer().IssueClient(
-                       reading.Material.Authority, "agent-fictitious", new[] { "ops" }))
+                       reading.Material.AuthorityKey, "agent-fictitious", new[] { "ops" }).Read())
             {
                 var record = AdmissionRecord.For(certificate, DateTimeOffset.UtcNow, new[] { "ops" });
                 var written = _writer.WriteAdmission(_database.Database, record);
@@ -369,8 +370,8 @@ namespace KeePassGate.Host.Tests
             var then = DateTimeOffset.UtcNow.AddDays(-7);
             var issuer = new AuthorityIssuer(() => then);
 
-            using (var authority = issuer.CreateAuthority())
-            using (var certificate = issuer.IssueClient(authority, "agent-nonexistent", new[] { "ops" }, TimeSpan.FromDays(1)))
+            var authorityKey = issuer.CreateAuthority();
+            using (var certificate = issuer.IssueClient(authorityKey, "agent-nonexistent", new[] { "ops" }, TimeSpan.FromDays(1)).Read())
             {
                 var record = AdmissionRecord.For(certificate, then, new[] { "ops" });
                 _database.Database.CustomData.Set(record.StorageKey, record.Save());

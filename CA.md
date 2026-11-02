@@ -70,14 +70,21 @@ the file already holds every secret the authority protects.
 | --- | --- |
 | Key | ECDSA P-256 |
 | Signature | SHA-256 with ECDSA |
-| Authority certificate | about 384 bytes |
-| Leaf certificate | 393 bytes |
+| Authority certificate | 394 bytes |
+| Leaf certificate | 436 bytes for the host, and a few dozen more for the responder's marker or a client's claims |
 | Serial | 16 random bytes, high bit cleared so the INTEGER encodes positive |
 
-Issuing takes no third-party cryptography: `CertificateRequest` and `SubjectAlternativeNameBuilder`
-mint every certificate here. The rest of the cryptography is Bouncy Castle's: it terminates the
-TLS, `DESIGN.md` §133, and it is the fixed-time comparison every certificate's bytes go through,
-§214, which .NET Framework does not have.
+**Bouncy Castle issues every certificate here**, and signs with the authority's key as it reads that
+key out of the stored PKCS#12 itself, so no key this plugin holds is ever handed to Windows. Windows
+is given certificates to read and nothing else. The rest of the cryptography is Bouncy Castle's
+too: it terminates the TLS, `DESIGN.md` §133, and it is the fixed-time comparison every
+certificate's bytes go through, §214, which .NET Framework does not have.
+
+**Names are written as UTF8String**, which RFC 5280 section 4.1.2.4 asks of every certificate
+issued since 2004. A leaf's issuer is its authority's subject copied as it is stored, never written
+again, so an authority written while Windows issued these, whose names are PrintableString, goes on
+chaining everything it issues: section 7.1 compares names after normalizing them, and a chain
+engine that compares bytes would not.
 
 ---
 
@@ -269,13 +276,22 @@ them the way this section says.
 A certificate and its key are stored as **base64 of a PKCS#12 with no password**. No password
 because there is nothing for one to protect: the database's own encryption is what guards this, and
 a passphrase here would be cryptography written by us over cryptography that already works. The gate
-key is base64 of the 32 raw bytes. Sizes are unremarkable: roughly 1.3 KB of base64 for the
+key is base64 of the 32 raw bytes. Sizes are unremarkable: roughly 1.4 KB of base64 for the
 authority.
 
 **Nothing here is ever written to the disk, and that is what decided the transport.** Importing a
 PKCS#12 on .NET Framework writes a key file into `%APPDATA%\Microsoft\Crypto\Keys` for as long as
-the certificate is loaded, unless `EphemeralKeySet` is asked for. Everything the plugin loads asks
-for it.
+the certificate is loaded, unless `EphemeralKeySet` is asked for. The plugin imports none at all:
+Bouncy Castle writes the stored form and reads it back, and Windows is handed the certificate inside
+without its key. While Windows did read these, everything asked for the flag.
+
+The shape is the one Windows wrote, measured rather than remembered, so a database keeps one kind
+of PKCS#12 whichever release wrote its authority: a SHA-1 MAC, and the key and the certificate each
+under `pbeWithSHAAnd3-KeyTripleDES-CBC`. The certificate's algorithm is the one that had to be
+asked for, because Bouncy Castle's own is RC2 with a forty-bit key, which OpenSSL 3 keeps in its
+legacy provider, and the client's `cryptography` would have refused the identity a pairing hands
+it. And a key is believed only when it is the private half of the certificate beside it, because
+a PKCS#12 pairs the two by a local identifier anybody can write.
 
 That is only possible because the TLS server is managed code. An ephemeral key **signs perfectly
 well and cannot be used with SChannel at all**, in either direction, so serving with the platform's
@@ -367,8 +383,8 @@ without anybody having to remember to revoke it.
 
 **A hundred years for the authority and its host certificate, and nothing counts down to it.** What
 was asked for was no expiry at all, RFC 5280's `99991231235959Z`, with a hundred years if that
-turned out not to be fully supported, and it is not: `CertificateRequest` writes the end of year
-9999 as the RFC asks, and `X509Certificate2.NotAfter` reads it back as an earlier moment in any time
+turned out not to be fully supported, and it is not: the issuer writes the end of year 9999 as
+the RFC asks, and `X509Certificate2.NotAfter` reads it back as an earlier moment in any time
 zone ahead of UTC, without saying so. A hundred years is read exactly everywhere it is read,
 `LongLivedCertificateTests`. The two are issued together and end together, because a host
 certificate that ran out first, five years into an authority's ten, was an outage every client met
@@ -390,14 +406,15 @@ plugin memory. While locked it is the only identity available and it can do noth
 
 - **The normal host key is let go at lock**, or two certificates buy nothing: memory disclosure
   while locked would otherwise yield the full host identity. What letting go means is worth being
-  exact about, because the phrase promises more than the platform gives. Two of the three parts
-  really are erased: the gate key and the stored PKCS#12 the host certificate and its key travel in
-  are overwritten, and the certificate handles are released. The key the TLS server signs with is
-  neither of those. It is a BouncyCastle `AsymmetricKeyParameter` over an immutable `BigInteger`,
-  which offers nothing to overwrite, so what happens to it is that the last reference goes and the
-  collector reuses the memory when it gets to it. Read as erasure that would be a claim this design
-  cannot keep. It is the bound §220 concedes anyway: a dump taken at the wrong moment finds it, and
-  what the drop takes away is the key being reachable for as long as the database stays locked.
+  exact about, because the phrase promises more than the platform gives. Two of the parts really
+  are erased: the gate key and the stored PKCS#12 the host certificate and its key travel in are
+  overwritten, and the certificate handles are released. The keys are neither of those, the host's,
+  which the TLS server signs with, and the authority's, which issues. Each is a BouncyCastle
+  `AsymmetricKeyParameter` over an immutable `BigInteger`, which offers nothing to overwrite, so
+  what happens to it is that the last reference goes and the collector reuses the memory when it
+  gets to it. Read as erasure that would be a claim this design cannot keep. It is the bound §220
+  concedes anyway: a dump taken at the wrong moment finds it, and what the drop takes away is the
+  key being reachable for as long as the database stays locked.
 - **The responder must be distinguishable by what it carries**, not by convention, so a client can
   refuse to send real requests over it. It is a `kpg://host/responder` URI in the subject
   alternative name rather than an extension of its own: the UUID arc `2.25` does not survive
@@ -813,6 +830,9 @@ Recorded because a reader seeing only this version will not know which parts wer
 | No `keyUsage`, SKI, AKI or `pathLen` | all specified, and `notAfter` clamped | |
 | The stored form was unspecified | base64 PKCS#12, no password | the database's own encryption is what guards it |
 | Everything loaded with `EphemeralKeySet`, on SChannel | still everything, on a managed TLS stack | measured: SChannel cannot use an ephemeral key, so keeping the platform's TLS would have meant writing the host key to the disk |
+| Issued through `CertificateRequest`, signing with a key Windows held | issued by Bouncy Castle, signing with the key it reads out of the stored PKCS#12, and Windows handed certificates without their keys | Mono has neither ECDSA nor a `CertificateRequest` a .NET Framework build can reach, `spikes/mono-compatibility`, and no key needs to pass through Windows at all |
+| Names written as PrintableString, and BMPString for a name holding an underscore | UTF8String, with a leaf's issuer copied from its authority's subject as stored | RFC 5280 section 4.1.2.4; copied rather than written again, so an authority written before still chains what it issues |
+| A stored key believed because it was stored beside its certificate | believed only when it is the certificate's own | a local identifier anybody can write is all that pairs them, and an authority holding a key not its own issues certificates that chain to nothing |
 | A stored pair was to be checked by issuer name | checked with the anchor pin | every authority shares one subject, so names match where bytes do not |
 | SAN read loosely | ASN.1 tags, reject rather than repair | measured three ways to smuggle a claim past a renderer |
 | A revocation written as an empty record | a revocation key of its own beside the emptied record, only ever added | measured: a KeePass merge never removes a key and never reads a value, while the empty record lost to a dropped time, a slow clock and an import |

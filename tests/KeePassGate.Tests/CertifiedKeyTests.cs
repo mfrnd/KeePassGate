@@ -1,8 +1,9 @@
 using System;
 using System.Linq;
 using System.Security.Cryptography.X509Certificates;
+using System.IO;
 using KeePassGate.Authority;
-using KeePassGate.Gate;
+using KeePassGate.Testing;
 using NUnit.Framework;
 using Org.BouncyCastle.Asn1;
 using Org.BouncyCastle.Asn1.Oiw;
@@ -13,20 +14,23 @@ using Org.BouncyCastle.Crypto.Digests;
 using Org.BouncyCastle.Crypto.Generators;
 using Org.BouncyCastle.Crypto.Macs;
 using Org.BouncyCastle.Crypto.Parameters;
+using Org.BouncyCastle.Pkcs;
+using Org.BouncyCastle.Security;
 
 namespace KeePassGate.Tests
 {
     /// <summary>
-    /// A stored host certificate Bouncy Castle cannot read, in each of the ways it says so.
+    /// A stored certificate Bouncy Castle cannot read, in each of the ways it says so, and one it
+    /// reads whose key is not its own.
     /// </summary>
     /// <remarks>
     /// Built from a real host certificate and then altered. The first two are the ones that
     /// matter, because Windows accepts them: a second key bag beside the host's own, under a MAC
-    /// that is still valid. `X509Certificate2` is what vets a stored host certificate, so a
-    /// database somebody crafted can hold either, and only this parser ever meets the extra bag.
+    /// that is still valid. They are files a database somebody crafted can hold, and this parser
+    /// is the only one that reads what a database holds.
     /// </remarks>
     [TestFixture]
-    public sealed class HostKeyMaterialTests
+    public sealed class CertifiedKeyTests
     {
         private byte[] _stored;
 
@@ -34,11 +38,7 @@ namespace KeePassGate.Tests
         public void SetUp()
         {
             var issuer = new AuthorityIssuer();
-            using (var authority = issuer.CreateAuthority())
-            using (var host = issuer.IssueHost(authority))
-            {
-                _stored = CertificateBlob.Bytes(CertificateBlob.Save(host));
-            }
+            _stored = CertificateBlob.Bytes(CertificateBlob.Save(issuer.IssueHost(issuer.CreateAuthority())));
         }
 
         [Test]
@@ -49,7 +49,7 @@ namespace KeePassGate.Tests
             var crafted = WithBag(PkcsObjectIdentifiers.PbeWithShaAnd3KeyTripleDesCbc, 2000);
 
             AssumeWindowsAccepts(crafted);
-            Assert.That(HostKeyMaterial.From(crafted), Is.Null);
+            Assert.That(CertifiedKey.From(crafted), Is.Null);
         }
 
         [Test]
@@ -59,7 +59,7 @@ namespace KeePassGate.Tests
             var crafted = WithBag(PkcsObjectIdentifiers.PbeWithShaAnd3KeyTripleDesCbc, -1);
 
             AssumeWindowsAccepts(crafted);
-            Assert.That(HostKeyMaterial.From(crafted), Is.Null);
+            Assert.That(CertifiedKey.From(crafted), Is.Null);
         }
 
         [Test]
@@ -75,20 +75,46 @@ namespace KeePassGate.Tests
                 mac.GetSalt(),
                 mac.IterationCount.IntValueExact);
 
-            Assert.That(HostKeyMaterial.From(new Pfx(pfx.AuthSafe, unknown).GetDerEncoded()), Is.Null);
+            Assert.That(CertifiedKey.From(new Pfx(pfx.AuthSafe, unknown).GetDerEncoded()), Is.Null);
         }
 
         [Test]
         public void The_host_itself_still_reads_after_all_of_that()
         {
-            Assert.That(HostKeyMaterial.From(_stored), Is.Not.Null);
+            Assert.That(CertifiedKey.From(_stored), Is.Not.Null);
+        }
+
+        [Test]
+        public void A_certificate_stored_beside_a_key_that_is_not_its_own_is_nothing()
+        {
+            // A PKCS#12 pairs the two by a local identifier anybody can write. An authority read
+            // this way would have issued every client a certificate that chains to nothing, and a
+            // host would have failed every handshake, both long after the read said all was well.
+            var issuer = new AuthorityIssuer();
+            var authority = issuer.CreateAuthority();
+            var stranger = issuer.CreateAuthority();
+
+            var store = new Pkcs12StoreBuilder()
+                .SetCertAlgorithm(PkcsObjectIdentifiers.PbeWithShaAnd3KeyTripleDesCbc)
+                .Build();
+            store.SetKeyEntry(
+                "mismatched",
+                new AsymmetricKeyEntry(stranger.PrivateKey),
+                new[] { new X509CertificateEntry(authority.Certificate) });
+
+            using (var bytes = new MemoryStream())
+            {
+                store.Save(bytes, Array.Empty<char>(), new SecureRandom());
+                AssumeWindowsAccepts(bytes.ToArray());
+                Assert.That(CertifiedKey.From(bytes.ToArray()), Is.Null);
+            }
         }
 
         private static void AssumeWindowsAccepts(byte[] crafted)
         {
-            using (var loaded = CertificateBlob.Load(Convert.ToBase64String(crafted)))
+            using (var loaded = new X509Certificate2(crafted, (string)null, X509KeyStorageFlags.EphemeralKeySet))
             {
-                Assume.That(loaded, Is.Not.Null,
+                Assume.That(loaded.HasPrivateKey, Is.True,
                     "Windows accepts it, which is what makes it something a database can hold");
             }
         }

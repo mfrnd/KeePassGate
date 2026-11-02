@@ -1,6 +1,5 @@
 using System;
 using System.Security.Cryptography;
-using System.Security.Cryptography.X509Certificates;
 using KeePassGate.Diagnostics;
 
 namespace KeePassGate.Authority
@@ -263,15 +262,13 @@ namespace KeePassGate.Authority
         /// </param>
         private AuthorityChange Issue(string verb, Func<AuthorityChange> clearFirst)
         {
-            X509Certificate2 authority = null;
-            X509Certificate2 host = null;
             byte[] sniKey = null;
             string minted = null;
 
             try
             {
-                authority = _issuer.CreateAuthority();
-                host = _issuer.IssueHost(authority);
+                var authority = _issuer.CreateAuthority();
+                var host = _issuer.IssueHost(authority);
                 sniKey = NewSniKey();
 
                 if (clearFirst != null)
@@ -285,8 +282,6 @@ namespace KeePassGate.Authority
 
                 using (var material = new AuthorityMaterial(authority, host, sniKey))
                 {
-                    authority = null;
-                    host = null;
                     minted = material.AuthorityDigest;
                     _store.Write(material);
                 }
@@ -302,9 +297,6 @@ namespace KeePassGate.Authority
                 {
                     Array.Clear(sniKey, 0, sniKey.Length);
                 }
-
-                Reset(authority);
-                Reset(host);
             }
 
             // Read back out of the store that was written to. On the tab that store is the tab's
@@ -351,23 +343,6 @@ namespace KeePassGate.Authority
                 ? "The authority was written and could not be read back, so this database now holds " +
                   "one that cannot be used. Recreate it to replace it."
                 : "The authority was written and could not be read back, so nothing was stored.";
-        }
-
-        private static void Reset(X509Certificate2 certificate)
-        {
-            if (certificate == null)
-            {
-                return;
-            }
-
-            try
-            {
-                certificate.Reset();
-            }
-            catch (CryptographicException)
-            {
-                // Releasing a key handle that has already gone.
-            }
         }
     }
 }

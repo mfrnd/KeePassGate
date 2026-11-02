@@ -648,8 +648,8 @@ namespace KeePassGate
                 if (_targets != null)
                 {
                     // Disposing these is what drops the host certificates. Nothing comes off
-                    // the disk, because nothing was put there: every key this plugin loads is
-                    // loaded with `EphemeralKeySet`, which is what `CertificateBlob` is for.
+                    // the disk, because nothing was put there: no key this plugin holds is ever
+                    // handed to Windows, and `CertifiedKey` says why.
                     _targets.Dispose();
                     _targets = null;
                 }

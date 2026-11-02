@@ -19,6 +19,7 @@ using KeePassGate.Authority;
 using KeePassGate.Bridge;
 using KeePassGate.Diagnostics;
 using KeePassGate.Gate;
+using KeePassGate.Testing;
 
 namespace KeePassGate.Host.Tests.Live
 {
@@ -350,8 +351,8 @@ namespace KeePassGate.Host.Tests.Live
         /// </summary>
         /// <remarks>
         /// **Written rather than minted, because a minted one is different every time.** The plugin
-        /// signs with .NET's `CertificateRequest`, whose ECDSA picks a random k, so the same
-        /// certificate made twice has different bytes and a different fingerprint. Any picture
+        /// signs with ECDSA, which picks a random k, so the same certificate made twice has
+        /// different bytes and a different fingerprint. Any picture
         /// taken of this database shows that fingerprint and the dates beside it, so a
         /// database that mints its own is a database that changes the pictures on every
         /// regeneration.
@@ -370,10 +371,7 @@ namespace KeePassGate.Host.Tests.Live
                 // database is written exactly the way the plugin writes one.
                 var store = new CustomDataStore(database);
                 string fingerprint;
-                using (var authority = CertificateBlob.Load(SeededAuthority.Authority))
-                {
-                    fingerprint = CertificateDigest.Of(authority);
-                }
+                fingerprint = CertificateDigest.Of(CertificateBlob.Load(SeededAuthority.Authority).CertificateDer);
 
                 store.Set(
                     AuthorityKeys.AuthorityKey(fingerprint),
@@ -447,11 +445,7 @@ namespace KeePassGate.Host.Tests.Live
                 var store = new CustomDataStore(database);
                 new AuthorityStore(store, NullGateLog.Instance).DeleteEverything();
 
-                string fingerprint;
-                using (var certificate = CertificateBlob.Load(authority))
-                {
-                    fingerprint = CertificateDigest.Of(certificate);
-                }
+                var fingerprint = CertificateDigest.Of(CertificateBlob.Load(authority).CertificateDer);
 
                 store.Set(AuthorityKeys.AuthorityKey(fingerprint), AuthorityDocument.Save(authority, host, sniKey));
 
@@ -879,14 +873,11 @@ namespace KeePassGate.Host.Tests.Live
         public X509Certificate2 IssueClientCertificate(string path, string subject)
         {
             using (var reading = ReadAuthority(path))
-            using (var issued = new AuthorityIssuer().IssueClient(reading.Material.Authority, subject, null))
-            using (KeePassGate.Testing.PrivateKeyFiles.Lock())
             {
                 // With a key container, because the client in these tests is an SslStream and
-                // SChannel will not present an ephemeral key. The plugin itself no longer asks for
-                // one anywhere.
-                return CertificateBlob.Load(
-                    CertificateBlob.Save(issued), System.Security.Cryptography.X509Certificates.X509KeyStorageFlags.Exportable);
+                // SChannel will not present an ephemeral key. The plugin itself never hands
+                // Windows a key at all.
+                return new AuthorityIssuer().IssueClient(reading.Material.AuthorityKey, subject, null).WithKeyFile();
             }
         }
 
@@ -921,7 +912,7 @@ namespace KeePassGate.Host.Tests.Live
             X509Certificate2 issued;
             using (var reading = ReadAuthority())
             {
-                issued = new AuthorityIssuer(() => at).IssueClient(reading.Material.Authority, subject, null);
+                issued = new AuthorityIssuer(() => at).IssueClient(reading.Material.AuthorityKey, subject, null).Read();
             }
 
             using (issued)

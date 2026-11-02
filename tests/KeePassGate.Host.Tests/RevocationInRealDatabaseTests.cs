@@ -4,6 +4,7 @@ using System.Threading;
 using KeePassGate.Authority;
 using KeePassGate.Bridge;
 using KeePassGate.Diagnostics;
+using KeePassGate.Testing;
 using KeePassGate.Ui;
 using NUnit.Framework;
 
@@ -107,7 +108,7 @@ namespace KeePassGate.Host.Tests
             using (var reading = new AuthorityService(new CustomDataStore(_database.Database), null).Read())
             {
                 return new AuthorityIssuer().IssueClient(
-                    reading.Material.Authority, "agent-fictitious", new[] { "ops" });
+                    reading.Material.AuthorityKey, "agent-fictitious", new[] { "ops" }).Read();
             }
         }
     }

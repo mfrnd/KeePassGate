@@ -4,6 +4,7 @@ using System.Security.Cryptography.X509Certificates;
 using KeePassGate.Authority;
 using KeePassGate.Bridge;
 using KeePassGate.Diagnostics;
+using KeePassGate.Testing;
 using NUnit.Framework;
 
 namespace KeePassGate.Host.Tests
@@ -39,7 +40,7 @@ namespace KeePassGate.Host.Tests
 
             using (var reading = _authority.Read())
             {
-                _client = new AuthorityIssuer().IssueClient(reading.Material.Authority, "agent-fictitious", new[] { "ops" });
+                _client = new AuthorityIssuer().IssueClient(reading.Material.AuthorityKey, "agent-fictitious", new[] { "ops" }).Read();
             }
         }
 
@@ -194,7 +195,7 @@ namespace KeePassGate.Host.Tests
         public void Two_clients_are_two_keys_so_a_replicated_database_can_merge_them()
         {
             using (var reading = _authority.Read())
-            using (var second = new AuthorityIssuer().IssueClient(reading.Material.Authority, "agent-two", null))
+            using (var second = new AuthorityIssuer().IssueClient(reading.Material.AuthorityKey, "agent-two", null).Read())
             {
                 _admissions.Write(AdmissionRecord.For(_client, DateTimeOffset.UtcNow, new[] { "ops" }));
                 _admissions.Write(AdmissionRecord.For(second, DateTimeOffset.UtcNow, null));

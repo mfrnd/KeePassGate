@@ -248,12 +248,9 @@ namespace KeePassGate.Tests
         }
 
         /// <summary>The responder, minted from the authority exactly as the plugin mints it.</summary>
-        private HostKeyMaterial Responder()
+        private CertifiedKey Responder()
         {
-            using (var responder = new AuthorityIssuer().IssueResponder(_authority.Authority))
-            {
-                return HostKeyMaterial.From(CertificateBlob.Bytes(CertificateBlob.Save(responder)));
-            }
+            return new AuthorityIssuer().IssueResponder(_authority.AuthorityKey);
         }
     }
 }

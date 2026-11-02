@@ -8,6 +8,7 @@ using KeePassGate.Tests.Fakes;
 using KeePassGate.Pairing;
 using KeePassGate.Acl;
 using KeePassGate.Ui;
+using KeePassGate.Testing;
 using NUnit.Framework;
 
 namespace KeePassGate.Tests
@@ -954,7 +955,7 @@ namespace KeePassGate.Tests
                     // And one this authority did issue, so that the page is not simply calling
                     // everything a stranger.
                     using (var issued = new AuthorityIssuer().IssueClient(
-                        reading.Material.Authority, "agent-invented", new[] { "ops" }))
+                        reading.Material.AuthorityKey, "agent-invented", new[] { "ops" }).Read())
                     {
                         new AdmissionStore(_database.Store, null).Write(
                             AdmissionRecord.For(issued, DateTimeOffset.UtcNow, new[] { "ops" }));
@@ -990,17 +991,17 @@ namespace KeePassGate.Tests
                 using (var reading = new AuthorityService(_database.Store, null).Read())
                 {
                     Assume.That(reading.IsPresent, Is.True);
-                    var authority = reading.Material.Authority;
+                    var authority = reading.Material.AuthorityKey;
 
                     host = AdmissionRecord.For(reading.Material.Host, now, new[] { "ops" });
 
                     using (var issued = new AuthorityIssuer(() => now.AddDays(10)).IssueClient(
-                        authority, "agent-early", new[] { "ops" }))
+                        authority, "agent-early", new[] { "ops" }).Read())
                     {
                         early = AdmissionRecord.For(issued, now, new[] { "ops" });
                     }
 
-                    using (var issued = new AuthorityIssuer().IssueClient(authority, "agent-invented", new[] { "ops" }))
+                    using (var issued = new AuthorityIssuer().IssueClient(authority, "agent-invented", new[] { "ops" }).Read())
                     {
                         ordinary = AdmissionRecord.For(issued, now, new[] { "ops" });
                     }
@@ -1116,7 +1117,7 @@ namespace KeePassGate.Tests
         private AdmissionRecord IssuedAndAdmitted(string name)
         {
             using (var reading = new AuthorityService(_database.Store, null).Read())
-            using (var issued = new AuthorityIssuer().IssueClient(reading.Material.Authority, name, new[] { "ops" }))
+            using (var issued = new AuthorityIssuer().IssueClient(reading.Material.AuthorityKey, name, new[] { "ops" }).Read())
             {
                 var record = AdmissionRecord.For(issued, DateTimeOffset.UtcNow, new[] { "ops" });
                 new AdmissionStore(_database.Store, null).Write(record);

@@ -151,7 +151,8 @@ namespace KeePassGate.Tests
             // gets: `PAIRING.md` §311 answers the pairing itself, once the issuer refuses to sign.
             //
             // Asked of a clock a century on rather than of an authority made a century ago, because
-            // `CertificateRequest` refuses to write a date before 1950 at all.
+            // `CertificateRequest`, which made these before Bouncy Castle did, refused to write a
+            // date before 1950 at all, and a clock moved on asks the same question.
             _service.Create();
 
             using (var reading = _service.Read())

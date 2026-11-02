@@ -621,10 +621,12 @@ namespace KeePassGate.Pairing
                     nameof(held), "The approval carried a lifetime no dialog offers.");
             }
 
+            CertifiedKey identity;
             X509Certificate2 certificate;
             try
             {
-                certificate = _issuer.IssueClient(target.Authority, name, profiles, lifetime);
+                identity = _issuer.IssueClient(target.AuthorityKey, name, profiles, lifetime);
+                certificate = new X509Certificate2(identity.CertificateDer);
             }
             catch (Exception error) when (Expected.OfIssuance(error))
             {
@@ -639,7 +641,7 @@ namespace KeePassGate.Pairing
                 return;
             }
 
-            try
+            using (certificate)
             {
                 // A profile the operator approved that this database had never named is created by
                 // their approval, and the writer does that inside the same marshaled write as the
@@ -734,11 +736,7 @@ namespace KeePassGate.Pairing
                 _log.Info("paired " + certificate.Subject + " with " +
                           CertificateDigest.Shorten(target.DatabaseId));
 
-                context.Respond(200, Bundle(target, certificate, profiles));
-            }
-            finally
-            {
-                certificate.Reset();
+                context.Respond(200, Bundle(target, identity, certificate, profiles));
             }
         }
 
@@ -803,8 +801,12 @@ namespace KeePassGate.Pairing
         /// and the gate key every connection after this one is named from. A renewal answers with
         /// the same, so that a client stores either the same way.
         /// </summary>
+        /// <param name="target">The database the client is admitted to.</param>
+        /// <param name="identity">The certificate and key handed over, as they are stored.</param>
+        /// <param name="certificate">Windows's reading of the same certificate, for its name and dates.</param>
+        /// <param name="profiles">The profiles the record holds.</param>
         internal static string Bundle(
-            IGateTarget target, X509Certificate2 certificate, IReadOnlyList<string> profiles)
+            IGateTarget target, CertifiedKey identity, X509Certificate2 certificate, IReadOnlyList<string> profiles)
         {
             var gateKey = target.GateKey;
 
@@ -821,7 +823,7 @@ namespace KeePassGate.Pairing
                     json.WriteStartObject();
 
                     json.WritePropertyName("identity");
-                    json.WriteValue(CertificateBlob.Save(certificate));
+                    json.WriteValue(CertificateBlob.Save(identity));
                     json.WritePropertyName("authority");
                     json.WriteValue(Convert.ToBase64String(target.Authority.RawData));
                     json.WritePropertyName("gateKey");

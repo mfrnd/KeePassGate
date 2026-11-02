@@ -34,8 +34,8 @@ namespace KeePassGate.Tests
             using (var reading = _service.Read())
             {
                 Assert.That(reading.Presence, Is.EqualTo(AuthorityPresence.Present));
-                Assert.That(reading.Material.Authority.HasPrivateKey, Is.True);
-                Assert.That(reading.Material.Host.HasPrivateKey, Is.True);
+                Assert.That(reading.Material.AuthorityKey.PrivateKey.IsPrivate, Is.True);
+                Assert.That(reading.Material.HostKey.PrivateKey.IsPrivate, Is.True);
                 Assert.That(reading.Material.SniKey.Length, Is.EqualTo(AuthorityMaterial.SniKeyLength));
             }
         }
