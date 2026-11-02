@@ -522,6 +522,26 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_misfiled_authority_whose_host_will_not_read_is_reported_as_both()
+        {
+            // The misfiling is asked of the authority alone, so a host that will not read does not
+            // hide it, and it is the one of the two that points at a merge or an edit rather than
+            // at a damaged certificate.
+            var written = Write();
+            Damage(AuthorityDocument.HostPartKey, Convert.ToBase64String(new byte[] { 1, 2, 3 }));
+            var document = _values.Get(AuthorityKeys.AuthorityKey(written.Fingerprint));
+            _values.Remove(AuthorityKeys.AuthorityKey(written.Fingerprint));
+            _values.Plant(AuthorityKeys.AuthorityKey(Unreadable), document);
+
+            using (var reading = _store.Read())
+            {
+                Assert.That(reading.Presence, Is.EqualTo(AuthorityPresence.Damaged));
+                Assert.That(reading.Problems, Does.Contain("The host certificate cannot be read."));
+                Assert.That(reading.Problems, Does.Contain(AuthorityStore.MisfiledProblem));
+            }
+        }
+
+        [Test]
         public void The_most_one_authority_is_reported_with_is_what_the_tab_is_measured_against()
         {
             // J031: the tab is measured against `LongestProblems`, which says which problems can

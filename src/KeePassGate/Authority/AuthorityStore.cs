@@ -411,19 +411,23 @@ namespace KeePassGate.Authority
 
                 sniKey = ReadSniKey(document.SniKey, problems);
 
+                // Asked of the authority alone, before anything needs the host as well, so that a
+                // misfiled document whose host will not read is reported as both: the misfiling is
+                // what points at a merge or an edit rather than at a damaged certificate.
+                if (authority != null && !string.Equals(
+                        CertificateDigest.Of(authority.CertificateDer), fingerprint, StringComparison.Ordinal))
+                {
+                    // The key is what a retirement names, so an authority filed under some other
+                    // digest is one that retiring could never reach.
+                    problems.Add(MisfiledProblem);
+                }
+
                 if (authority == null || host == null)
                 {
                     return null;
                 }
 
                 material = new AuthorityMaterial(authority, host, sniKey, CertificateBlob.Bytes(document.Host));
-
-                if (!string.Equals(material.AuthorityDigest, fingerprint, StringComparison.Ordinal))
-                {
-                    // The key is what a retirement names, so an authority filed under some other
-                    // digest is one that retiring could never reach.
-                    problems.Add(MisfiledProblem);
-                }
 
                 if (!IssuedBy(material.Host, material.Authority))
                 {
