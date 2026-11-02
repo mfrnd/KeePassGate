@@ -220,7 +220,7 @@ namespace KeePassGate.Tests
             {
                 Assert.That(issued.Subject, Is.EqualTo("CN=agent-fictitious"));
                 Assert.That(issued.HasPrivateKey, Is.True, "a certificate with no key pairs nobody");
-                Assert.That(AnchorPin.Chains(issued, _target.Authority, false), Is.True);
+                Assert.That(AnchorPin.Chains(issued, _target.Authority), Is.True);
             }
         }
 

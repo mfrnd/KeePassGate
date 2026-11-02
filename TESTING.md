@@ -375,7 +375,7 @@ is shared by the whole process or the whole account:
 
 - an environment variable the plugin reads;
 - `Trace.Listeners`, and anything counting the lines that reach them;
-- the time zone, which every chain build and every `NotAfter` reads;
+- the time zone, which every `NotAfter` reads;
 - a shown window, the focus, a posted key or a menu left open, since a window another fixture shows
   takes the activation and closes the menu. Another test process shows its windows on the same
   screen, and no mark reaches it, so such a fixture carries `[Desktop]` as well, which holds the

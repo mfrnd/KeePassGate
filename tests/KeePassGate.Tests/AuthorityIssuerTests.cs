@@ -87,8 +87,7 @@ namespace KeePassGate.Tests
             using (var authority = written.Read())
             {
                 Assert.That(client.Certificate.IssuerDN.GetEncoded(), Is.EqualTo(written.Certificate.SubjectDN.GetEncoded()));
-                Assert.That(Chains(leaf, authority), Is.True);
-                Assert.That(AnchorPin.Chains(leaf, authority, false), Is.True);
+                Assert.That(AnchorPin.Chains(leaf, authority), Is.True);
             }
         }
 
@@ -308,8 +307,8 @@ namespace KeePassGate.Tests
             using (var host = _issuer.IssueHost(_authorityKey).Read())
             using (var foreign = new AuthorityIssuer(() => Now).CreateAuthority().Read())
             {
-                Assert.That(Chains(host, _authority), Is.True);
-                Assert.That(Chains(host, foreign), Is.False, "The anchor is pinned by its bytes, not by trust.");
+                Assert.That(AnchorPin.Chains(host, _authority), Is.True);
+                Assert.That(AnchorPin.Chains(host, foreign), Is.False, "The anchor is pinned by its bytes, not by trust.");
             }
         }
 
@@ -442,8 +441,8 @@ namespace KeePassGate.Tests
             using (var client = _issuer.IssueClient(_authorityKey, "agent-fictitious", null).Read())
             using (var foreign = new AuthorityIssuer(() => Now).CreateAuthority().Read())
             {
-                Assert.That(AnchorPin.Chains(client, _authority, false), Is.True);
-                Assert.That(AnchorPin.Chains(client, foreign, false), Is.False);
+                Assert.That(AnchorPin.Chains(client, _authority), Is.True);
+                Assert.That(AnchorPin.Chains(client, foreign), Is.False);
             }
         }
 
@@ -456,33 +455,6 @@ namespace KeePassGate.Tests
             Assert.That(first.Length, Is.EqualTo(16));
             Assert.That(first[0] & 0x80, Is.Zero, "A negative INTEGER is a certificate some parsers refuse.");
             Assert.That(first, Is.Not.EqualTo(second));
-        }
-
-        /// <summary>
-        /// The pin from `CA.md` §213, in the shape production will use it: build the chain,
-        /// insist on exactly two elements, and compare the anchor's bytes.
-        /// </summary>
-        private static bool Chains(X509Certificate2 leaf, X509Certificate2 anchor)
-        {
-            using (var chain = new X509Chain())
-            {
-                chain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
-                chain.ChainPolicy.VerificationFlags = X509VerificationFlags.AllowUnknownCertificateAuthority;
-                chain.ChainPolicy.ExtraStore.Add(anchor);
-
-                if (!chain.Build(leaf))
-                {
-                    return false;
-                }
-
-                if (chain.ChainElements.Count != 2)
-                {
-                    return false;
-                }
-
-                var root = chain.ChainElements[chain.ChainElements.Count - 1].Certificate;
-                return root.RawData.SequenceEqual(anchor.RawData);
-            }
         }
 
         private static bool OnP256(CertifiedKey certified)

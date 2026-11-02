@@ -90,13 +90,12 @@ namespace KeePassGate.Ui
         /// under the authority named by <see cref="_judgedBy"/>.
         /// </summary>
         /// <remarks>
-        /// Kept, because asking builds a chain per record, which was most of a redraw with a few
-        /// hundred clients, and because nothing changes the answer but the two certificates: the
-        /// admission key is the digest of the certificate its record holds, which loading the
-        /// record checks, and the authority is named by its own digest. Emptied whenever that
-        /// digest changes, and never given an answer from an engine that could not evaluate the
-        /// chain, which is a failure to be asked again rather than a fact. The dates are asked on
-        /// every redraw, since a clock does change them.
+        /// Kept, because asking checks two signatures per record, and building a chain for each
+        /// was most of a redraw with a few hundred clients while a chain engine answered it, and
+        /// because nothing changes the answer but the two certificates: the admission key is the
+        /// digest of the certificate its record holds, which loading the record checks, and the
+        /// authority is named by its own digest. Emptied whenever that digest changes. The dates
+        /// are asked on every redraw, since a clock does change them.
         /// </remarks>
         private readonly Dictionary<string, ClientReach> _judged =
             new Dictionary<string, ClientReach>(StringComparer.Ordinal);
@@ -1835,11 +1834,11 @@ namespace KeePassGate.Ui
         /// record in it reaches anything. The first page says the same in words, and the two
         /// agreeing is the point.
         ///
-        /// **An engine that could not evaluate the chain is not an answer**, which is the
-        /// distinction `AnchorPin` takes an `out` parameter for. A locked down machine store or a
-        /// CryptoAPI that will not load says nothing about where a certificate came from, and
-        /// calling a healthy record foreign here points the operator at Recreate, which destroys
-        /// the authority and every record with it. Such a record is asked the other questions.
+        /// **Every answer the pin gives is one**, about the certificate rather than the machine.
+        /// While a chain engine answered, a locked down machine store or a CryptoAPI that would not
+        /// load could leave it unable to answer at all, and such a record was asked the other
+        /// questions rather than called foreign, since that points the operator at Recreate. The
+        /// pin asks nothing of the machine now.
         ///
         /// Public, like the listing it judges, because what the operator is shown is worth testing
         /// without a control tree to walk to reach it.
@@ -1900,17 +1899,12 @@ namespace KeePassGate.Ui
                 ClientReach judged;
                 if (!_judged.TryGetValue(record.AdmissionKey, out judged))
                 {
-                    bool evaluated;
-                    judged = !AnchorPin.Chains(certificate, authority, true, out evaluated) && evaluated
+                    judged = !AnchorPin.Chains(certificate, authority)
                         ? ClientReach.Stranger
                         : ClientCredentials.IsForClientAuthentication(certificate)
                             ? ClientReach.Reaches
                             : ClientReach.NotForClients;
-
-                    if (evaluated)
-                    {
-                        _judged[record.AdmissionKey] = judged;
-                    }
+                    _judged[record.AdmissionKey] = judged;
                 }
 
                 if (judged != ClientReach.Reaches)

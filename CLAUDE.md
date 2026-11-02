@@ -536,7 +536,9 @@ Run them from
 - **`X509Chain` does not pin an anchor.** `ExtraStore` plus `AllowUnknownCertificateAuthority`
   accepts a certificate from a completely foreign authority. `X509ChainTrustMode.CustomRootTrust`
   would fix it and is .NET 5 and later. **Byte-compare the chain's last element** and require exactly
-  two elements. `ChainProbe`.
+  two elements. `ChainProbe`. **`AnchorPin` builds no chain now**: the anchor has to be an authority
+  signed by itself, and the leaf has to name it in its very bytes and carry its signature, `CA.md`
+  §214.
 - **`X509Chain` goes out on the network for a certificate somebody else chose.** When the issuer is
   not in `ExtraStore`, CryptoAPI follows the `caIssuers` URLs written into the leaf before `Build`
   returns, so a peer names the address and the process fetches it. Measured at 15.0 seconds for one
@@ -544,7 +546,8 @@ Run them from
   `X509ChainPolicy.DisableCertificateDownloads` would forbid it and is .NET 5 and later, so on this
   framework `UrlRetrievalTimeout` is the whole of the vocabulary: zero means the platform's fifteen
   seconds, and a millisecond takes away the wait and the answer rather than the first packet.
-  `AnchorPinTests.A_foreign_leaf_that_names_a_download_is_refused_without_waiting_for_it`.
+  The pin fetches nothing now, since it builds no chain:
+  `AnchorPinTests.A_leaf_that_names_a_download_is_answered_without_anything_reaching_the_address`.
 - **`ClientCertificateRequired = false` is what breaks optional client certificates.** Under TLS 1.3
   the server then sends no `CertificateRequest` at all, so a client holding a good certificate never
   offers one. Under TLS 1.2 it does, so testing on 1.2 and shipping on 1.3 is a silent

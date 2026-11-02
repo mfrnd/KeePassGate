@@ -124,10 +124,10 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void The_anchor_pin_chains_a_hundred_year_host_and_a_client_in_every_zone()
+        public void A_hundred_year_host_and_a_client_chain_and_are_current_in_every_zone()
         {
-            // With the dates ignored, which is how the plugin always asks, and judged, which is
-            // the chain engine reading them itself.
+            // The pin, which asks nothing of the dates, and `CertificateValidity`, which is where
+            // the plugin judges them, each in every zone.
             foreach (var hours in Zones)
             {
                 using (LocalTimeZone.At(hours))
@@ -136,10 +136,10 @@ namespace KeePassGate.Tests
                 using (var client = new X509Certificate2(_client.CertificateDer))
                 {
                     var zone = " at " + Zone(hours);
-                    Assert.That(AnchorPin.Chains(host, authority, true), Is.True, "the host" + zone);
-                    Assert.That(AnchorPin.Chains(host, authority, false), Is.True, "the host, dates judged" + zone);
-                    Assert.That(AnchorPin.Chains(client, authority, true), Is.True, "the client" + zone);
-                    Assert.That(AnchorPin.Chains(client, authority, false), Is.True, "the client, dates judged" + zone);
+                    Assert.That(AnchorPin.Chains(host, authority), Is.True, "the host" + zone);
+                    Assert.That(AnchorPin.Chains(client, authority), Is.True, "the client" + zone);
+                    Assert.That(CertificateValidity.IsCurrent(host, DateTimeOffset.UtcNow), Is.True, "the host, dated" + zone);
+                    Assert.That(CertificateValidity.IsCurrent(client, DateTimeOffset.UtcNow), Is.True, "the client, dated" + zone);
                 }
             }
         }
@@ -165,7 +165,7 @@ namespace KeePassGate.Tests
                 using (var certificate = new X509Certificate2(sent))
                 using (var authority = _authority.Read())
                 {
-                    accepted = AnchorPin.Chains(certificate, authority, false)
+                    accepted = AnchorPin.Chains(certificate, authority)
                                && CertificateValidity.IsCurrent(certificate, DateTimeOffset.UtcNow)
                                && Utc(certificate.NotAfter) == _century;
                 }

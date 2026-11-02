@@ -34,8 +34,8 @@ namespace KeePassGate.Authority
     /// certificate issued since 2004. Windows wrote PrintableString, and BMPString for a name
     /// holding an underscore, which PrintableString cannot. A leaf's issuer is its authority's
     /// subject copied as it is stored, never written again, because RFC 5280 section 7.1 compares
-    /// names after normalizing them and a chain engine that compares bytes would not, so an
-    /// authority written before keeps every certificate it issues afterwards in its chain.
+    /// names after normalizing them and `AnchorPin` compares bytes, so an authority written before
+    /// keeps every certificate it issues afterwards in its chain.
     ///
     /// Everything below is RFC 5280: basic constraints in section 4.2.1.9, key usage in 4.2.1.3,
     /// extended key usage in 4.2.1.12, and the two key identifiers in 4.2.1.1 and 4.2.1.2.

@@ -83,8 +83,8 @@ certificate's bytes go through, §214, which .NET Framework does not have.
 **Names are written as UTF8String**, which RFC 5280 section 4.1.2.4 asks of every certificate
 issued since 2004. A leaf's issuer is its authority's subject copied as it is stored, never written
 again, so an authority written while Windows issued these, whose names are PrintableString, goes on
-chaining everything it issues: section 7.1 compares names after normalizing them, and a chain
-engine that compares bytes would not.
+chaining everything it issues: section 7.1 compares names after normalizing them, and the anchor
+pin compares bytes, §214.
 
 ---
 
@@ -575,38 +575,41 @@ chain.Build(presented)
 `AllowUnknownCertificateAuthority` tolerates an untrusted root without saying which.
 `X509ChainTrustMode.CustomRootTrust`, which would fix it, is .NET 5 and later.
 
-```csharp
-if (!chain.Build(presented)) return false;
-if (chain.ChainElements.Count != 2) return false;               // no intermediates in this hierarchy
-byte[] root = chain.ChainElements[chain.ChainElements.Count - 1].Certificate.RawData;
-if (!FixedTime.Equals(root, anchor.RawData)) return false;      // the load-bearing line
+**And the engine went out on the way to `False`, which nothing here asked it to do.** When it could
+not find the issuer it read the leaf's authority information access extension, RFC 5280 section
+4.2.2.1, and downloaded whatever that named before `Build` returned. The leaf belongs to whoever
+opened the connection, so the address does too: measured, one address that accepts and answers
+nothing held the connection thread for 15.0 s, and the request really was issued by the KeePass
+process. `X509ChainPolicy.DisableCertificateDownloads` would have forbidden it and is .NET 5 and
+later; `UrlRetrievalTimeout` at a millisecond bounded the wait, to 79 ms, and the request was
+still opened. §217 declines to depend on the network at all, and this was that network arriving
+through a door nobody opened.
+
+**So the pin asks the question itself, and builds no chain.** The hierarchy is one authority and
+the leaves it signs, §207, which makes the whole question small:
+
+```text
+the anchor is an authority   CA:TRUE, keyCertSign if it has a key usage,
+                             named as its own issuer and signed by its own key
+the leaf is not the anchor   their bytes differ
+the leaf names the anchor    its issuer is the anchor's subject, byte for byte
+the anchor signed the leaf   its signature checks against the anchor's key
+nothing critical is unread   every critical extension is one this plugin writes
 ```
 
-With the pin: our client `True`, foreign client `False`.
+Bouncy Castle checks the two signatures, and that is all it is asked. With the pin: our client
+`True`, foreign client `False`, and a foreign authority named exactly as ours, which every
+authority this plugin makes is, refused by its signature. Nothing the leaf names is fetched, and
+nothing a machine store holds can change the answer, so there is no case left in which the pin
+cannot answer at all. Dates are not asked: §213 checks them on the connection, and everywhere else
+an expired certificate still belongs to its authority.
 
-**The load-bearing part is the comparison, not its timing.** `FixedTime.Equals` is what does it,
-because every comparison of certificate bytes in this plugin goes through that one door and one
-that did not would be a question a reader has to answer again. On its own it defends nothing here:
-an anchor is a public certificate, and every client that can reach this code was handed a copy of
-it at pairing. What is load bearing is that the anchor's own bytes are compared at all, which is
-the line the platform will not write.
-
-**And the engine goes out on the way to `False`, which nothing here asked it to do.** When it cannot
-find the issuer it reads the leaf's authority information access extension, RFC 5280 section
-4.2.2.1, and downloads whatever that names before `Build` returns. The leaf belongs to whoever
-opened the connection, so the address does too: measured, one address that accepts and answers
-nothing holds the connection thread for 15.0 s, and the request really is issued by the KeePass
-process. Nothing worth fetching exists here. The anchor is handed in through `ExtraStore` and the
-hierarchy is a leaf and the certificate above it, so a download can only ever be the engine looking
-for an issuer the pin is about to refuse.
-
-`X509ChainPolicy.DisableCertificateDownloads` says exactly that and is .NET 5 and later, like
-`CustomRootTrust` above. What this framework has is `UrlRetrievalTimeout`, where zero is the default
-the policy already carries and means fifteen seconds, so the pin sets the smallest positive value
-and the same leaf is refused in 79 ms. A millisecond is still a millisecond: the request may be
-opened before it is abandoned, so what the bound takes away is the wait and the answer rather than
-the first packet. §217 declines to depend on the network at all, and this is that network arriving
-through a door nobody opened, closed here as far as the platform allows.
+**The comparisons go through one door.** `FixedTime.Equals` is what does them, because every
+comparison of certificate bytes in this plugin goes through that one door and one that did not
+would be a question a reader has to answer again. On its own it defends nothing here: an anchor
+is a public certificate, and every client that can reach this code was handed a copy of it at
+pairing. What is load bearing is that the anchor's own key and bytes are what is checked, which
+is the line the platform would not write.
 
 `SslPolicyErrors.None` is the **wrong** test. The authority is deliberately in no machine store, so
 a correct deployment always reports `RemoteCertificateChainErrors`, and since the SNI rotates it

@@ -391,6 +391,7 @@ namespace KeePassGate.Authority
                 return null;
             }
 
+            // codeql[cs/missed-using-statement] disposed only when it is not handed back, which no `using` can do
             AuthorityMaterial material = null;
             byte[] sniKey = null;
 
@@ -424,16 +425,9 @@ namespace KeePassGate.Authority
                     problems.Add(MisfiledProblem);
                 }
 
-                bool evaluated;
-                if (!IssuedBy(material.Host, material.Authority, out evaluated))
+                if (!IssuedBy(material.Host, material.Authority))
                 {
-                    // Two different faults, and only one of them is the database's. A chain the
-                    // engine could not evaluate says nothing about the authority, and reporting
-                    // it as a foreign certificate points the operator at Recreate, which would
-                    // throw away a healthy authority and every admission record with it.
-                    problems.Add(evaluated
-                        ? "The host certificate was not issued by this authority."
-                        : HostUncheckedProblem);
+                    problems.Add("The host certificate was not issued by this authority.");
                 }
 
                 if (problems.Count > 0)
@@ -470,12 +464,19 @@ namespace KeePassGate.Authority
         /// accepts a host from somebody else's authority: found by a test that was written to
         /// prove the opposite.
         ///
-        /// Expiry is ignored here on purpose. An expired pair is still a pair, and expiry is
-        /// reported on its own terms rather than as "this does not belong to you".
+        /// Expiry is not asked about here, and the pin never asks it. An expired pair is still a
+        /// pair, and expiry is reported on its own terms rather than as "this does not belong to
+        /// you".
+        ///
+        /// **Every answer is the database's.** While a chain engine answered this, it could fail to
+        /// answer at all, on a locked down machine store or a CryptoAPI service that was not
+        /// running, and that was reported apart, because the remedy offered for a foreign host
+        /// destroys a healthy authority. The pin asks nothing of the machine now, so there is no
+        /// such case left to report.
         /// </summary>
-        private static bool IssuedBy(X509Certificate2 leaf, X509Certificate2 authority, out bool evaluated)
+        private static bool IssuedBy(X509Certificate2 leaf, X509Certificate2 authority)
         {
-            return AnchorPin.Chains(leaf, authority, true, out evaluated);
+            return AnchorPin.Chains(leaf, authority);
         }
 
         private static byte[] ReadSniKey(string blob, ICollection<string> problems)
@@ -513,11 +514,6 @@ namespace KeePassGate.Authority
 
         /// <summary>What an authority filed under a digest that is not its own is reported as.</summary>
         internal const string MisfiledProblem = "The authority is filed under a digest that is not its own.";
-
-        /// <summary>What a host certificate the chain engine could not judge is reported as.</summary>
-        internal const string HostUncheckedProblem =
-            "The host certificate could not be checked against this authority on this machine. " +
-            "Nothing here says the authority is wrong; recreating it would not help.";
 
         /// <summary>What begins a problem that is an exception, before the exception's own message.</summary>
         internal const string CouldNotReadProblem = "The authority could not be read: ";

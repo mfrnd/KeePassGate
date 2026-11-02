@@ -110,7 +110,7 @@ namespace KeePassGate.Ui
                 {
                     using (var certificate = record.Certificate())
                     {
-                        if (!AnchorPin.Chains(certificate, material.Authority, true))
+                        if (!AnchorPin.Chains(certificate, material.Authority))
                         {
                             continue;
                         }

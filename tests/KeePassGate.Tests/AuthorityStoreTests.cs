@@ -3,9 +3,9 @@ using System.Linq;
 using System.Security.Cryptography.X509Certificates;
 using KeePassGate.Authority;
 using KeePassGate.Diagnostics;
+using KeePassGate.Testing;
 using KeePassGate.Tests.Fakes;
 using KeePassGate.Transport;
-using KeePassGate.Testing;
 using NUnit.Framework;
 
 namespace KeePassGate.Tests
@@ -686,7 +686,7 @@ namespace KeePassGate.Tests
 
                 using (var client = _issuer.IssueClient(reading.Material.AuthorityKey, "agent-fictitious", null).Read())
                 {
-                    Assert.That(AnchorPin.Chains(client, reading.Material.Authority, false), Is.True);
+                    Assert.That(AnchorPin.Chains(client, reading.Material.Authority), Is.True);
                 }
             }
         }

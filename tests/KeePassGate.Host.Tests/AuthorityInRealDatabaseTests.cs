@@ -5,8 +5,8 @@ using KeePassLib.Collections;
 using KeePassGate.Authority;
 using KeePassGate.Bridge;
 using KeePassGate.Diagnostics;
-using KeePassGate.Transport;
 using KeePassGate.Testing;
+using KeePassGate.Transport;
 using NUnit.Framework;
 
 namespace KeePassGate.Host.Tests
@@ -100,7 +100,7 @@ namespace KeePassGate.Host.Tests
             using (var reading = afterReopening.Read())
             using (var issued = new AuthorityIssuer().IssueHost(reading.Material.AuthorityKey).Read())
             {
-                Assert.That(AnchorPin.Chains(issued, reading.Material.Authority, false), Is.True);
+                Assert.That(AnchorPin.Chains(issued, reading.Material.Authority), Is.True);
             }
         }
 

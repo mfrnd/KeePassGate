@@ -125,7 +125,7 @@ namespace KeePassGate.Tests
             client.Request("agent-fictitious");
 
             Assert.That(client.Authority.RawData, Is.EqualTo(_target.Authority.RawData));
-            Assert.That(AnchorPin.Chains(client.Identity, client.Authority, false), Is.True);
+            Assert.That(AnchorPin.Chains(client.Identity, client.Authority), Is.True);
         }
 
         [Test]

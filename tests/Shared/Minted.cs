@@ -105,7 +105,16 @@ namespace KeePassGate.Testing
         /// </summary>
         public CertifiedKey IssuedBy(CertifiedKey authority)
         {
-            _generator.SetIssuerDN(authority.Certificate.SubjectDN);
+            return IssuedBy(authority, authority.Certificate.SubjectDN);
+        }
+
+        /// <summary>
+        /// The same, naming the authority as the issuer in the bytes the test gives rather than in
+        /// the authority's own.
+        /// </summary>
+        public CertifiedKey IssuedBy(CertifiedKey authority, X509Name naming)
+        {
+            _generator.SetIssuerDN(naming);
 
             var stored = authority.Certificate.GetExtensionValue(X509Extensions.SubjectKeyIdentifier);
             if (stored != null)

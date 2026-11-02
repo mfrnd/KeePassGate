@@ -948,7 +948,7 @@ namespace KeePassGate.Tests
                 {
                     Assume.That(reading.IsPresent, Is.True);
 
-                    Assert.That(AnchorPin.Chains(certificate, reading.Material.Authority, true),
+                    Assert.That(AnchorPin.Chains(certificate, reading.Material.Authority),
                         Is.False,
                         "the gate refuses this certificate, which is what the page has to agree with");
 

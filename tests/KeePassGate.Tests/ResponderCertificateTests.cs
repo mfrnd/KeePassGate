@@ -45,7 +45,7 @@ namespace KeePassGate.Tests
         [Test]
         public void It_is_issued_by_the_database_authority_and_nothing_else()
         {
-            Assert.That(AnchorPin.Chains(_responder, _authority, false), Is.True);
+            Assert.That(AnchorPin.Chains(_responder, _authority), Is.True);
         }
 
         [Test]
