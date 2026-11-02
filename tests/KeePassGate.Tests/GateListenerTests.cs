@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
@@ -429,6 +430,37 @@ namespace KeePassGate.Tests
                     Assert.That(reply.Answered, Is.False, "there is no certificate to answer with");
                     Assert.That(Waited(() => incidents.Count == 1), Is.True, string.Join("\n", log.Lines));
                     Assert.That(incidents.Recent.Single(), Does.Contain("the handshake failed on this side"));
+                }
+            }
+        }
+
+        [Test]
+        public void An_IO_failure_resolving_a_name_is_counted_rather_than_put_down_to_the_peer()
+        {
+            // Resolving reads no stream, so an `IOException` out of it is this side's: Bouncy
+            // Castle raises one for stored bytes that will not parse, and the connection's catch
+            // read it as a client that hung up, at Info, with nothing counted.
+            using (var authority = TestAuthority.New())
+            {
+                var log = new QueueLog();
+                var incidents = new KeePassGate.Diagnostics.GateIncidents(log);
+                var targets = new FakeGateTargets(authority) { Throws = new IOException("unknown tag 13 encountered") };
+                using (var listener = new GateListener(
+                    new GateOptions { Port = 0 },
+                    new GateResolver(targets, log),
+                    GateOperations.Router("9.9.9"),
+                    incidents,
+                    log))
+                {
+                    Assert.That(listener.Start(), Is.True);
+
+                    var reply = GateClient.Get(listener.Port, authority.NewName(), null, GateOperations.StatusPath);
+
+                    Assert.That(reply.Answered, Is.False, "nothing is served under a name that did not resolve");
+                    Assert.That(Waited(() => incidents.Count == 1), Is.True, string.Join("\n", log.Lines));
+                    Assert.That(incidents.Recent.Single(), Does.Contain("a name could not be resolved"));
+                    Assert.That(log.Lines.Any(line => line.Contains("a connection ended early")), Is.False,
+                        string.Join("\n", log.Lines));
                 }
             }
         }

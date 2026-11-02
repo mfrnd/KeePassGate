@@ -264,11 +264,12 @@ namespace KeePassGate.Diagnostics
         ///
         /// **What a connection does between its socket's reads has to throw nothing named here.**
         /// Resolving the name a client asked for reads no stream, only what the open databases
-        /// hold, and an `IOException` out of it would be taken for a peer that left, with nothing
-        /// counted. Bouncy Castle reports bytes that will not parse as one, which is why each place
-        /// stored bytes reach it answers for its own, as `OfCryptography` sets out: the issuer's
-        /// reading of a stored authority's key identifier was one that did not, and every
-        /// connection to every open database ended as a client leaving.
+        /// hold, so `GateListener` counts an `IOException` out of it as a defect rather than let it
+        /// reach this and be taken for a peer that left. Bouncy Castle reports bytes that will not
+        /// parse as one, which is why each place stored bytes reach it answers for its own, as
+        /// `OfCryptography` sets out: the issuer's reading of a stored authority's key identifier
+        /// was one that did not, and every connection to every open database ended as a client
+        /// leaving, with nothing counted.
         /// </remarks>
         public static bool OfConnection(Exception error)
         {
