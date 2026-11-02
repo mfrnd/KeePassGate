@@ -1070,23 +1070,9 @@ namespace KeePassGate.Tests
         /// </remarks>
         private static X509Certificate2 SelfSigned(string usageOid)
         {
-            using (var key = System.Security.Cryptography.RSA.Create(2048))
-            {
-                var request = new CertificateRequest(
-                    "CN=invented",
-                    key,
-                    System.Security.Cryptography.HashAlgorithmName.SHA256,
-                    System.Security.Cryptography.RSASignaturePadding.Pkcs1);
-
-                if (usageOid != null)
-                {
-                    request.CertificateExtensions.Add(new X509EnhancedKeyUsageExtension(
-                        new System.Security.Cryptography.OidCollection { new System.Security.Cryptography.Oid(usageOid) }, false));
-                }
-
-                return request.CreateSelfSigned(
-                    DateTimeOffset.UtcNow.AddMinutes(-5), DateTimeOffset.UtcNow.AddHours(1));
-            }
+            var minted = Minted.Named("CN=invented")
+                .Lasting(DateTimeOffset.UtcNow.AddMinutes(-5), DateTimeOffset.UtcNow.AddHours(1));
+            return (usageOid == null ? minted : minted.ForUsage(usageOid)).SelfSigned().Read();
         }
     }
 }

@@ -227,6 +227,14 @@ The client half of pairing lives in `tests/Shared/PairingClient.cs` and is compi
 test assemblies. That is deliberate: if the loopback tests and the end to end test each had their
 own client, either could pass against a protocol only it knew.
 
+**Every certificate a test makes for itself is made through Bouncy Castle**, as the plugin makes
+its own. `tests/Shared/Minted.cs` builds one of whatever shape a test needs, another name, dates of
+its own or an extension a stranger is free to write, and `tests/Shared/Certificates.cs` hands one to
+Windows: without its key, to read, or with a key file, for a test whose client is `SslStream`. No
+test signs through `CertificateRequest`, `ECDsa` or RSA, asks Windows to export a key, or builds a
+chain with `X509Chain`. The one authority Windows did write, `tests/Shared/SeededAuthority.cs`, is
+kept for what that makes it: a database written before, which both tiers hold to what it keeps.
+
 It builds a **throwaway KeePass** under `%ProgramData%\KeePassGateLive` rather than the temporary
 directory, whose path names the account that ran it: a copy of the program, a local
 configuration, the plugin in `plugins`, and a database created with KeePassLib. Nothing it touches is

@@ -433,6 +433,30 @@ namespace KeePassGate.Tests.Fakes
             return certificate;
         }
 
+        /// <summary>
+        /// The same, as the certificate and key Bouncy Castle holds, for a client that is not
+        /// SChannel.
+        /// </summary>
+        public CertifiedKey IssueAdmittedClientKey(params string[] profiles)
+        {
+            var issued = IssueClientKey("agent-fictitious", profiles);
+            using (var certificate = issued.Read())
+            {
+                Admit(certificate, profiles);
+            }
+
+            return issued;
+        }
+
+        /// <summary>
+        /// A client certificate and its key as Bouncy Castle holds them, for a test that needs the
+        /// stored form or a client that is not SChannel.
+        /// </summary>
+        public CertifiedKey IssueClientKey(string subject, params string[] profiles)
+        {
+            return new AuthorityIssuer().IssueClient(_authorityKey, subject, profiles);
+        }
+
         /// <summary>A name this database will answer to, fresh each time.</summary>
         public string NewName()
         {

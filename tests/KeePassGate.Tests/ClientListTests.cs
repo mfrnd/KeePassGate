@@ -7,6 +7,7 @@ using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Windows.Forms;
 using KeePassGate.Authority;
+using KeePassGate.Testing;
 using KeePassGate.Ui;
 using NUnit.Framework;
 
@@ -797,14 +798,10 @@ namespace KeePassGate.Tests
 
         private static X509Certificate2 Certificate(string name)
         {
-            using (var key = RSA.Create(2048))
-            {
-                var request = new CertificateRequest(
-                    "CN=" + name, key, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
-
-                return request.CreateSelfSigned(
-                    DateTimeOffset.UtcNow.AddMinutes(-5), DateTimeOffset.UtcNow.AddDays(30));
-            }
+            return Minted.Named("CN=" + name)
+                .Lasting(DateTimeOffset.UtcNow.AddMinutes(-5), DateTimeOffset.UtcNow.AddDays(30))
+                .SelfSigned()
+                .Read();
         }
     }
 }

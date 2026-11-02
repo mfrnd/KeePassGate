@@ -304,15 +304,12 @@ namespace KeePassGate.Tests
 
         private static AdmissionRecord Record(string name)
         {
-            using (var key = RSA.Create(2048))
+            using (var certificate = Minted.Named("CN=" + name)
+                       .Lasting(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddDays(30))
+                       .SelfSigned()
+                       .Read())
             {
-                var request = new CertificateRequest(
-                    "CN=" + name, key, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
-                using (var certificate = request.CreateSelfSigned(
-                           DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddDays(30)))
-                {
-                    return AdmissionRecord.For(certificate, DateTimeOffset.UtcNow, new[] { "ops" });
-                }
+                return AdmissionRecord.For(certificate, DateTimeOffset.UtcNow, new[] { "ops" });
             }
         }
     }

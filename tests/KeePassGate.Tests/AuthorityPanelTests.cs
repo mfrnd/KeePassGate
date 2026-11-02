@@ -1243,17 +1243,10 @@ namespace KeePassGate.Tests
 
         private static System.Security.Cryptography.X509Certificates.X509Certificate2 SelfSigned(string name)
         {
-            using (var key = System.Security.Cryptography.RSA.Create(2048))
-            {
-                var request = new System.Security.Cryptography.X509Certificates.CertificateRequest(
-                    "CN=" + name,
-                    key,
-                    System.Security.Cryptography.HashAlgorithmName.SHA256,
-                    System.Security.Cryptography.RSASignaturePadding.Pkcs1);
-
-                return request.CreateSelfSigned(
-                    DateTimeOffset.UtcNow.AddDays(-25), DateTimeOffset.UtcNow.AddDays(5));
-            }
+            return Minted.Named("CN=" + name)
+                .Lasting(DateTimeOffset.UtcNow.AddDays(-25), DateTimeOffset.UtcNow.AddDays(5))
+                .SelfSigned()
+                .Read();
         }
 
         [Test]

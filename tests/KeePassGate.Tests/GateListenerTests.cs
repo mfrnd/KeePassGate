@@ -6,16 +6,15 @@ using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Reflection;
-using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading;
 using KeePassGate.Authority;
 using KeePassGate.Gate;
 using KeePassGate.Pipeline;
 using KeePassGate.Spec;
+using KeePassGate.Testing;
 using KeePassGate.Tests.Fakes;
 using KeePassGate.Transport;
-using KeePassGate.Testing;
 using NUnit.Framework;
 
 namespace KeePassGate.Tests
@@ -234,34 +233,30 @@ namespace KeePassGate.Tests
         [Test]
         public void A_certificate_presented_without_its_key_is_refused_in_the_handshake()
         {
-            using (var certificate = _first.IssueAdmittedClient())
-            {
-                var material = CertifiedKey.From(certificate.Export(X509ContentType.Pkcs12));
-                Assert.That(material, Is.Not.Null);
+            var material = _first.IssueAdmittedClientKey();
 
-                var forged = BouncyCastleGateClient.Get(
-                    _listener.Port, _first.NewName(), material.CertificateDer, BouncyCastleGateClient.AnotherKey(),
-                    "/gate/status");
-                var genuine = BouncyCastleGateClient.Get(
-                    _listener.Port, _first.NewName(), material.CertificateDer, material.PrivateKey, "/gate/status");
+            var forged = BouncyCastleGateClient.Get(
+                _listener.Port, _first.NewName(), material.CertificateDer, BouncyCastleGateClient.AnotherKey(),
+                "/gate/status");
+            var genuine = BouncyCastleGateClient.Get(
+                _listener.Port, _first.NewName(), material.CertificateDer, material.PrivateKey, "/gate/status");
 
-                Assert.That(genuine.Status, Is.EqualTo(200), "the client itself works: " + genuine);
-                Assert.That(forged.Answered, Is.False, "a certificate without its key was answered: " + forged);
+            Assert.That(genuine.Status, Is.EqualTo(200), "the client itself works: " + genuine);
+            Assert.That(forged.Answered, Is.False, "a certificate without its key was answered: " + forged);
 
-                // Why it was refused is asked of the gate's log rather than of the client. The gate
-                // closes a refused connection with the client's request still unread, Windows answers
-                // that with a reset, and a reset that reaches the client before its first read takes
-                // the alert with it: a client made to wait half a second before reading never saw
-                // `decrypt_error` at all. And waited for rather than read at once, because the line
-                // is written by the connection's own thread once the alert has gone, so a client
-                // can be told before the log is.
-                Assert.That(
-                    Waited(() => _log.Entries.Any(entry =>
-                        entry.Message.StartsWith("a handshake failed", StringComparison.Ordinal)
-                        && entry.Message.Contains("decrypt_error"))),
-                    Is.True,
-                    "refused in the handshake for its signature, which ends before the anchor or the record is asked");
-            }
+            // Why it was refused is asked of the gate's log rather than of the client. The gate
+            // closes a refused connection with the client's request still unread, Windows answers
+            // that with a reset, and a reset that reaches the client before its first read takes
+            // the alert with it: a client made to wait half a second before reading never saw
+            // `decrypt_error` at all. And waited for rather than read at once, because the line
+            // is written by the connection's own thread once the alert has gone, so a client
+            // can be told before the log is.
+            Assert.That(
+                Waited(() => _log.Entries.Any(entry =>
+                    entry.Message.StartsWith("a handshake failed", StringComparison.Ordinal)
+                    && entry.Message.Contains("decrypt_error"))),
+                Is.True,
+                "refused in the handshake for its signature, which ends before the anchor or the record is asked");
         }
 
         [Test]

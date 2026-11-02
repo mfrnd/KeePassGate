@@ -692,12 +692,7 @@ namespace KeePassGate.Host.Tests
         /// <summary>A client certificate whose dates do not move, for a row that reads the same every run.</summary>
         private static X509Certificate2 ClientCertificate(string name, DateTimeOffset issued)
         {
-            using (var key = RSA.Create(2048))
-            {
-                var request = new CertificateRequest(
-                    "CN=" + name, key, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
-                return request.CreateSelfSigned(issued, issued.AddYears(1));
-            }
+            return Minted.Named("CN=" + name).Lasting(issued, issued.AddYears(1)).SelfSigned().Read();
         }
 
         [Test]

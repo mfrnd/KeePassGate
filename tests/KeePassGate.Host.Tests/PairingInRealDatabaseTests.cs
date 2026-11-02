@@ -923,13 +923,12 @@ namespace KeePassGate.Host.Tests
                 Assume.That(admissions.Remove(CertificateDigest.Of(revoked)), Is.True);
 
                 // And a holder whose certificate has expired, which regains nothing.
-                using (var key = ECDsa.Create())
+                using (var ended = Minted.Named("CN=agent-expired")
+                           .Lasting(DateTimeOffset.UtcNow.AddDays(-30), DateTimeOffset.UtcNow.AddDays(-1))
+                           .SelfSigned()
+                           .Read())
                 {
-                    var request = new CertificateRequest("CN=agent-expired", key, HashAlgorithmName.SHA256);
-                    using (var ended = request.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-30), DateTimeOffset.UtcNow.AddDays(-1)))
-                    {
-                        admissions.Write(AdmissionRecord.For(ended, DateTimeOffset.UtcNow.AddDays(-30), new[] { "ops" }));
-                    }
+                    admissions.Write(AdmissionRecord.For(ended, DateTimeOffset.UtcNow.AddDays(-30), new[] { "ops" }));
                 }
 
                 // "ops" taken off the list, as the Profiles page does, so that its holders would
@@ -1201,7 +1200,6 @@ namespace KeePassGate.Host.Tests
             var issuer = new AuthorityIssuer(() => then);
 
             var authorityKey = issuer.CreateAuthority();
-            using (var authority = authorityKey.Read())
             using (var certificate = issuer.IssueClient(authorityKey, "agent-nonexistent", new[] { "ops" }, TimeSpan.FromDays(1)).Read())
             {
                 var record = AdmissionRecord.For(certificate, then, new[] { "ops" });
