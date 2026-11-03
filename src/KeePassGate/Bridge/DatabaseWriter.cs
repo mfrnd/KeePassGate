@@ -915,9 +915,10 @@ namespace KeePassGate.Bridge
         /// </summary>
         /// <param name="landed">
         /// Run on the user interface thread once the change stands: saved and verified, or saved
-        /// and left in place because the file could not be verified, which undoes nothing. Not on
-        /// any path that took the change back out. Null when nothing is drawn from what the change
-        /// wrote.
+        /// and left in place because the file could not be verified, which undoes nothing, and so
+        /// too when the save ended in an exception nothing expects, before that exception goes on.
+        /// Not on any path that took the change back out. Null when nothing is drawn from what the
+        /// change wrote.
         /// </param>
         private VaultWrite Change(PwDatabase database, Func<VaultChange> change, Action landed)
         {
@@ -1151,9 +1152,14 @@ namespace KeePassGate.Bridge
 
             Exception failed = null;
 
+            // True until the save ends in a way this method expects: returning, or throwing what
+            // `Expected.OfSaving` names.
+            var escaped = true;
+
             try
             {
                 Save(database);
+                escaped = false;
             }
             catch (Exception error) when (Expected.OfSaving(error))
             {
@@ -1163,8 +1169,45 @@ namespace KeePassGate.Bridge
                 // file's exceptions alone let another plugin's refused access through with the
                 // change still made, answered `500` as though nothing had been left behind.
                 failed = error;
+                escaped = false;
+            }
+            finally
+            {
+                if (escaped)
+                {
+                    // **A defect in the save is settled as an expected failure is, and then goes
+                    // on.** `MainForm.SaveDatabase` runs every other plugin's handlers on either
+                    // side of writing the file, and KeePass's own window work after it, so an
+                    // exception no filter here names leaves this method from inside the save. Left
+                    // at that, a change the file never received stayed in the database KeePass
+                    // holds, in force and kept by the operator's next save, and a change the file
+                    // did receive was never written down: a client's revocation of itself lost its
+                    // audit line either way, and a create answered `500` was made again by the
+                    // retry. The modified flag decides, as it does for every other ending, and
+                    // nothing here catches the exception, which goes on to the connection thread's
+                    // catch-all and is counted there.
+                    _log.Error("the save ended in an exception nothing here expects, so the change " +
+                               "is settled as the database leaves it, and the exception goes on", null);
+                    Concluded(database, decided, wasModified, owing, landed, null);
+                }
             }
 
+            return Concluded(database, decided, wasModified, owing, landed, failed);
+        }
+
+        /// <summary>
+        /// What a change comes to once its save has ended: taken back out when nothing reached the
+        /// disk, and otherwise left in force, written down and drawn.
+        /// </summary>
+        /// <remarks>
+        /// Asked of the database rather than of how the save ended, so a save that returned, a save
+        /// that threw what `Expected.OfSaving` names and a save that threw anything else are
+        /// settled alike. <paramref name="failed"/> is the exception of the second, and null for
+        /// the other two.
+        /// </remarks>
+        private VaultWrite Concluded(
+            PwDatabase database, VaultChange decided, bool wasModified, Owing owing, Action landed, Exception failed)
+        {
             if (database.Modified)
             {
                 // KeePass tells a caller nothing about whether a save worked. This is what it does
@@ -1230,6 +1273,17 @@ namespace KeePassGate.Bridge
                     "the file on disk does not hold what KeePass wrote to it");
             }
 
+            // The line before the window. `Redraw` is KeePass's `UpdateUI`, which raises
+            // `UIStateUpdated` to every other plugin loaded, and while the window was redrawn
+            // first, a defect there reached the connection thread with a client's revocation of
+            // itself saved, verified and never written down. A listener's defect here leaves the
+            // window as it was, which is a repaint an operator can ask for again.
+            Owing.Settle(owing, Owed);
+            if (landed != null)
+            {
+                landed();
+            }
+
             // Last, and the only place the tree and the list are asked for. Every path above
             // either changed nothing or has just put its change back, and in both cases they
             // already show the database as it now is: neither is rebuilt between the change and
@@ -1237,12 +1291,6 @@ namespace KeePassGate.Bridge
             // it to. What a put back does leave wrong is the mark saying there is something to
             // save, which `PutBack` redraws on its own.
             Redraw(database, true);
-
-            Owing.Settle(owing, Owed);
-            if (landed != null)
-            {
-                landed();
-            }
 
             return decided.Outcome;
         }
@@ -1649,12 +1697,23 @@ namespace KeePassGate.Bridge
                 return Undo(store, database, record, before, namesBefore, pruned, owing, wasModified, error.Message);
             }
 
+            // Everything this write touched, put back as it was, for every ending below that
+            // leaves the record out of the database.
+            Func<string, AdmissionWrite> undo = reason => Undo(
+                store, database, record, before, namesBefore, pruned, owing, wasModified, reason);
+
+            // True until the save ends in a way this method expects, as in `ChangeOnTheUiThread`.
+            var escaped = true;
+
             try
             {
                 Save(database);
+                escaped = false;
             }
             catch (Exception error) when (Expected.OfSaving(error))
             {
+                escaped = false;
+
                 // KeePass's own save and every other plugin's handlers around it, which can fail
                 // for every reason a file can and every reason a window can: `Expected.OfSaving`
                 // is that list. What it must not do is take the connection thread with it.
@@ -1670,27 +1729,58 @@ namespace KeePassGate.Bridge
                 if (database.Modified)
                 {
                     _log.Error("the database could not be saved after an admission record was written", error);
-                    return Undo(store, database, record, before, namesBefore, pruned, owing, wasModified, error.Message);
+                    return undo(error.Message);
                 }
 
                 _log.Error("the record was saved and something after the save failed, which is " +
                            "another plugin's `FileSaved` handler: the record is on the disk and " +
                            "is being left there", error);
             }
+            finally
+            {
+                if (escaped)
+                {
+                    // A defect in the save, settled as `ChangeOnTheUiThread` settles a defect in
+                    // its own save and for its reason: a record the file never received is taken
+                    // back out, and a record the file did receive is written down before the
+                    // exception goes on, to end the pairing or the renewal with no certificate
+                    // handed over.
+                    _log.Error("the save ended in an exception nothing here expects, so the record " +
+                               "is settled as the database leaves it, and the exception goes on", null);
+                    RecordConcluded(store, database, record, written, owing, audit, undo);
+                }
+            }
 
+            return RecordConcluded(store, database, record, written, owing, audit, undo);
+        }
+
+        /// <summary>
+        /// What a record comes to once its save has ended: taken back out unless it is in the
+        /// database and in the file, and written down when it is.
+        /// </summary>
+        /// <remarks>
+        /// Asked of the database rather than of how the save ended, for the reason `Concluded`
+        /// gives.
+        /// </remarks>
+        private AdmissionWrite RecordConcluded(
+            CustomDataStore store,
+            PwDatabase database,
+            AdmissionRecord record,
+            string written,
+            Owing owing,
+            Action audit,
+            Func<string, AdmissionWrite> undo)
+        {
             if (!string.Equals(store.Get(record.StorageKey), written, StringComparison.Ordinal))
             {
-                return Undo(
-                    store, database, record, before, namesBefore, pruned, owing, wasModified, "the record did not survive being written");
+                return undo("the record did not survive being written");
             }
 
             if (database.Modified)
             {
                 // KeePass tells a caller nothing about whether a save worked. This is what it does
                 // say: a database it has saved has no unsaved changes left.
-                return Undo(
-                    store, database, record, before, namesBefore, pruned, owing, wasModified,
-                    "the database still has unsaved changes, so nothing is on disk");
+                return undo("the database still has unsaved changes, so nothing is on disk");
             }
 
             if (!TheFileHoldsWhatWasWritten(database))
@@ -1708,9 +1798,7 @@ namespace KeePassGate.Bridge
                 // clear would be wrong about somebody else's work as well as about this record.
                 database.Modified = true;
 
-                return Undo(
-                    store, database, record, before, namesBefore, pruned, owing, wasModified,
-                    "the file on disk does not hold what KeePass wrote to it");
+                return undo("the file on disk does not hold what KeePass wrote to it");
             }
 
             Owing.Settle(owing, Owed);
@@ -1730,7 +1818,10 @@ namespace KeePassGate.Bridge
         /// to the connection thread's catch-all, so a change that was on the disk was never written
         /// down. Written here, on the path that leaves the change in force and before any listener
         /// runs, the line is in the audit however the listener ends, and nothing new catches
-        /// everything to keep it there.
+        /// everything to keep it there. Before KeePass's window is redrawn too, which raises an
+        /// event to every other plugin, and on the path a defect in the save itself takes, which a
+        /// `finally` settles as the database leaves it: a change the file received is written
+        /// down there, and a change it never received is taken back out.
         ///
         /// **Once at most.** Each path that leaves a change in force runs this once, and a path
         /// that took the change back out or never made it does not run it at all, so an operation

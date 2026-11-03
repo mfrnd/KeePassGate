@@ -149,6 +149,11 @@ database, or whose invitation had been spent or had run out by the time the oper
 admitted nobody: the program was told so, the plugin's log says why, and the audit has no line for
 it. Nor is there a line when there was nobody to ask, with no screen to show the dialog on.
 
+**And what reached the database is always here.** A pairing, a renewal or a program's revocation
+of itself that reached the database is written down even when a defect in KeePass or in another
+plugin ends the request afterwards. The program is then told `500`, and a pairing or a renewal
+ended that way hands over no certificate, so the program asks again.
+
 **Not everything that changes who is admitted is here yet.** Recreating or deleting the authority
 takes every record away and is not written down, and neither is a change to the rules or to the
 profiles. Those wait for a design of audit levels.

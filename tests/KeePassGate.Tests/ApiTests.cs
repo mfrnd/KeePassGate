@@ -1493,6 +1493,39 @@ namespace KeePassGate.Tests
                 "a value must never be sent because the entry it belongs to could not be found");
         }
 
+        [TestCase("POST", "/groups/{0}/entries", "{\"Password\":\"not-a-real-password\"}",
+                  TestName = "a new entry's password, in a group its handler could not find")]
+        [TestCase("PUT", "/entries/{1}", "{\"Password\":\"not-a-real-password\"}",
+                  TestName = "an entry's password, on an entry its handler could not find")]
+        [TestCase("POST", "/entries/{1}/fields",
+                  "{\"name\":\"Secret\",\"value\":\"not-a-real-password\",\"protected\":\"true\"}",
+                  TestName = "a new protected field, on an entry its handler could not find")]
+        [TestCase("PUT", "/entries/{1}/fields/Password", "{\"value\":\"not-a-real-password\"}",
+                  TestName = "a protected field written, on an entry its handler could not find")]
+        [TestCase("DELETE", "/entries/{1}/fields/Password", null,
+                  TestName = "a protected field stripped, from an entry its handler could not find")]
+        public void A_write_whose_handler_cannot_find_its_node_writes_nothing(string method, string template, string body)
+        {
+            // The router finds the node and the handler's own lookup does not, and the write looks
+            // it up again and finds it: an operator's move, caught between taking the node out of
+            // one group and putting it into the other. A handler that skipped the question about
+            // protected values on that miss wrote a protected value for a rule without
+            // `protected`, and stripped a protected field for a rule that could put an
+            // unprotected value back.
+            _vault.CreateField(_entry, "Password", "the stored password", true, VaultTagging.None);
+            _vault.Granting(_vault.RootAlias, AllButProtected);
+            var before = Written();
+            var lost = template.StartsWith("/groups/", StringComparison.Ordinal) ? _group : _entry;
+            _vault.After(1, () => _vault.Vanishes = lost);
+
+            var answer = Send(method, string.Format(CultureInfo.InvariantCulture, template, _group, _entry), body);
+            _vault.Vanishes = null;
+
+            Assert.That(answer.Status, Is.EqualTo(404), answer.Json);
+            Assert.That(answer.Json, Does.Contain(SpecRouter.UnreachableError));
+            Assert.That(Written(), Is.EqualTo(before), "nothing is written that the rules were not asked about");
+        }
+
         [Test]
         public void A_value_the_database_would_drop_is_refused_rather_than_reported_as_stored()
         {
@@ -1682,22 +1715,43 @@ namespace KeePassGate.Tests
             Assert.That(answer.Json, Is.EqualTo("{\"error\":\"locked\"}"));
         }
 
-        [TestCase("PUT", "/groups/{0}", "{\"Name\":\"Renamed\"}", TestName = "a group renamed in a database locked after the router decided")]
-        [TestCase("PUT", "/entries/{1}", "{\"Title\":\"renamed\"}", TestName = "an entry changed in a database locked after the router decided")]
-        [TestCase("POST", "/groups/{0}/entries", "{\"Title\":\"invented\"}", TestName = "an entry made in a database locked after the router decided")]
-        public void A_write_meeting_a_database_locked_after_the_router_decided_still_fails_on_this_side(
-            string method, string template, string body)
+        [TestCase("PUT", "/groups/{0}", "{\"Name\":\"Renamed\"}", 1, TestName = "a group renamed in a database locked after the router decided")]
+        [TestCase("PUT", "/entries/{1}", "{\"Title\":\"renamed\"}", 2, TestName = "an entry changed in a database locked after its handler looked")]
+        [TestCase("POST", "/groups/{0}/entries", "{\"Title\":\"invented\"}", 2, TestName = "an entry made in a database locked after its handler looked")]
+        public void A_write_meeting_a_database_locked_after_its_handler_looked_still_fails_on_this_side(
+            string method, string template, string body, int lookups)
         {
             // The one exception, which `openapi.yaml` §502 keeps: a write's handler hands the
             // change to the writer, which finds nothing open to change and answers that this side
-            // failed. It could not be attempted, so a retry duplicates nothing.
+            // failed. It could not be attempted, so a retry duplicates nothing. A handler that
+            // looks its node up first does so after the router, so the lock lands after both.
             _vault.Granting(_vault.RootAlias, AllButProtected);
-            _vault.After(1, _vault.Lock);
+            _vault.After(lookups, _vault.Lock);
 
             var answer = Send(method, string.Format(CultureInfo.InvariantCulture, template, _group, _entry), body);
 
             Assert.That(answer.Status, Is.EqualTo(500), answer.Json);
             Assert.That(answer.Json, Does.Contain("internal error"));
+        }
+
+        [TestCase("PUT", "/entries/{1}", "{\"Title\":\"renamed\"}", TestName = "an entry changed in a database locked before its handler looked")]
+        [TestCase("POST", "/groups/{0}/entries", "{\"Title\":\"invented\"}", TestName = "an entry made in a database locked before its handler looked")]
+        [TestCase("POST", "/entries/{1}/fields", "{\"name\":\"Invented\",\"value\":\"x\"}", TestName = "a field made in a database locked before its handler looked")]
+        [TestCase("PUT", "/entries/{1}/fields/Title", "{\"value\":\"renamed\"}", TestName = "a field changed in a database locked before its handler looked")]
+        [TestCase("DELETE", "/entries/{1}/fields/Title", null, TestName = "a field stripped in a database locked before its handler looked")]
+        public void A_write_meeting_a_database_locked_before_its_handler_looked_is_told_it_is_locked(
+            string method, string template, string body)
+        {
+            // A write whose handler looks its node up before writing meets the lock there, as a
+            // read's handler does, and is told what a read is told.
+            _vault.Granting(_vault.RootAlias, AllButProtected);
+            _vault.After(1, _vault.Lock);
+
+            var answer = Send(method, string.Format(CultureInfo.InvariantCulture, template, _group, _entry), body);
+
+            Assert.That(_vault.IsOpen, Is.False, "the database locked, which is what this is about");
+            Assert.That(answer.Status, Is.EqualTo(503), answer.Json);
+            Assert.That(answer.Json, Is.EqualTo("{\"error\":\"locked\"}"));
         }
 
         [Test]
@@ -2083,6 +2137,17 @@ namespace KeePassGate.Tests
         private Answer Get(string path)
         {
             return Send("GET", path, null);
+        }
+
+        /// <summary>
+        /// What a write could have changed: every field of the entry, with its value and whether it
+        /// is protected, and how many entries the group holds.
+        /// </summary>
+        private string Written()
+        {
+            var fields = _vault.Fields(_entry).Select(
+                field => field.Name + "=" + _vault.Field(_entry, field.Name) + (field.IsProtected ? ", protected" : string.Empty));
+            return string.Join("\n", fields) + "\n" + _vault.Entries(_group).Count;
         }
 
         private Answer Send(string method, string path, string body)

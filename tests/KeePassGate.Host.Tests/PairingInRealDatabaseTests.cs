@@ -70,20 +70,22 @@ namespace KeePassGate.Host.Tests
             _database.Dispose();
         }
 
-        [Test]
-        public void A_list_of_profiles_that_will_not_read_is_never_written_over()
+        [TestCase("{ not a list", TestName = "a list of profiles that does not parse is never written over")]
+        [TestCase("{\"Profiles\":[\"reader\"]}", TestName = "a list of profiles in another shape is never written over")]
+        [TestCase("{\"profiles\":[\"reader\",\"no such name\"]}", TestName = "a list holding a name it cannot hold is never written over")]
+        public void A_list_of_profiles_that_will_not_read_is_never_written_over(string damaged)
         {
-            // Read, a damaged list names nothing, and a list of only the approved names written in
-            // its place drops every name it held and the sign that it was damaged.
-            const string Damaged = "{ not a list";
-            _database.Database.CustomData.Set(ProfileNames.CustomDataKey, Damaged);
+            // Read, a damaged list names nothing, or fewer names than it holds, and a list of only
+            // the approved names written in its place drops every name reading left out and the
+            // sign that it was damaged.
+            _database.Database.CustomData.Set(ProfileNames.CustomDataKey, damaged);
 
             using (var certificate = IssueClient())
             {
                 var result = _writer.WriteAdmission(_database.Database, Record(certificate, "ops"));
 
                 Assert.That(result.Ok, Is.True, result.Reason);
-                Assert.That(_database.Database.CustomData.Get(ProfileNames.CustomDataKey), Is.EqualTo(Damaged));
+                Assert.That(_database.Database.CustomData.Get(ProfileNames.CustomDataKey), Is.EqualTo(damaged));
                 Assert.That(_log.Warnings.Any(line => line.Contains("will not read")), Is.True);
             }
         }
@@ -646,6 +648,68 @@ namespace KeePassGate.Host.Tests
                 _database.CloseAndReopenWithoutSaving();
                 Assert.That(new CustomDataStore(_database.Database).Get(record.StorageKey), Is.Not.Null,
                     "and the record the client was admitted by is the one on the disk");
+            }
+        }
+
+        [Test]
+        public void A_save_that_fails_after_writing_the_record_cannot_lose_its_audit_line()
+        {
+            // A `FileSaved` handler's defect, which no filter of the writer's names, once the file
+            // holds the record: the pairing ends with no certificate handed over, and the record
+            // that stays in force is written down before it does.
+            var lines = 0;
+            var writer = new DatabaseWriter(
+                CurrentThread.Instance,
+                database =>
+                {
+                    Save(database);
+                    throw new NullReferenceException("a FileSaved handler's defect");
+                },
+                null,
+                _dialogs,
+                _log);
+
+            using (var certificate = IssueClient())
+            {
+                var record = Record(certificate, "ops");
+
+                Assert.Throws<NullReferenceException>(
+                    () => writer.WriteAdmission(_database.Database, record, () => lines++));
+
+                Assert.That(lines, Is.EqualTo(1));
+
+                _database.CloseAndReopenWithoutSaving();
+
+                Assert.That(new CustomDataStore(_database.Database).Get(record.StorageKey), Is.Not.Null,
+                    "and the record the line is about is in the file");
+            }
+        }
+
+        [Test]
+        public void A_save_that_fails_before_writing_the_record_leaves_no_record_behind()
+        {
+            // A `FileSavingPre` handler's defect, before anything reached the disk. The record
+            // stayed in the database for the operator's next save to keep, admitting a
+            // certificate nobody was handed and written down nowhere.
+            var lines = 0;
+            var writer = new DatabaseWriter(
+                CurrentThread.Instance,
+                database => { throw new NullReferenceException("a FileSavingPre handler's defect"); },
+                null,
+                _dialogs,
+                _log);
+
+            using (var certificate = IssueClient())
+            {
+                var record = Record(certificate, "ops");
+                _database.Database.Modified = false;
+
+                Assert.Throws<NullReferenceException>(
+                    () => writer.WriteAdmission(_database.Database, record, () => lines++));
+
+                Assert.That(lines, Is.Zero, "a record taken back out admitted nobody");
+                Assert.That(new CustomDataStore(_database.Database).Get(record.StorageKey), Is.Null);
+                Assert.That(_database.Database.Modified, Is.False, "and the database agrees with the file");
             }
         }
 

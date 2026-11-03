@@ -812,6 +812,27 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void A_defect_before_the_save_still_takes_the_change_back_out()
+        {
+            // What no filter here names goes on to the connection thread, which answers `500`.
+            // Left in the database, the change was kept by the operator's next save, and a client
+            // that retried its create made a second entry.
+            _database.Save();
+            _database.Database.Modified = false;
+
+            var undone = 0;
+            var writer = Writer(new RunsUiThread(), db => { throw new NullReferenceException("a handler's defect"); });
+
+            Assert.Throws<NullReferenceException>(() => writer.Change(
+                _database.Database,
+                () => new VaultChange(VaultWrite.Created("abcd"), () => undone++)));
+
+            Assert.That(undone, Is.EqualTo(1), "the change is taken back out");
+            Assert.That(_database.Database.Modified, Is.False,
+                "and the file it never reached is still the file KeePass read");
+        }
+
+        [Test]
         public void A_standing_answer_for_this_session_is_refused_before_anything_is_touched()
         {
             var saves = 0;

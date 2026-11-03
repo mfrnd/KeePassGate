@@ -2174,9 +2174,11 @@ components:
         before the router has looked up the node it is about, or between the router's decision and
         the handler's read, is `locked` as well, because its nodes have not gone and a client told
         they had would stop looking for something that is still there. A node that has gone while
-        the database stays open is the `404` any absent node gets. The exception is a write whose
-        handler has already run: the change is handed to the writer, which finds nothing open to
-        change and answers `500 internal error`, because the change could not be attempted.
+        the database stays open is the `404` any absent node gets. A write whose handler looks its
+        node up before writing, to ask the rules about protected values, meets a lock there as a
+        read does, and is `locked` too. The exception is a lock landing once the change is on its
+        way: it is handed to the writer, which finds nothing open to change and answers `500
+        internal error`, because the change could not be attempted.
 
         `undecided` is a database holding more than one certificate authority that nobody has
         chosen between, which is copies that each made an authority of their own meeting in a

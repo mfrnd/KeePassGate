@@ -12,6 +12,24 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **A pairing, a renewal or a program's revocation of itself that reached the database is always
+  written to the audit.** A defect in KeePass or in another plugin, raised while the database was
+  saved or while KeePass's window was redrawn, ended the request with the change in force and no
+  line for it. The line is written before the window is redrawn now, and a save that ends in such
+  a defect is settled as the database leaves it before the request fails: a change the file
+  received is written down, and a change it never received is taken back out, which also keeps an
+  ordinary change answered `500` from being made twice by its retry.
+- **A list of profiles in another shape is refused by pairing and renewal**, as a list that does
+  not parse is. A `Profiles` spelled with a capital, a `profiles` that is a string, a member beside
+  it or a name the list cannot hold read as fewer names than the list holds, or none, so a renewal
+  wrote its client a record with no profiles and a pairing wrote its own names over the list. Only
+  another program or a hand edit writes such a list.
+- **A write that loses sight of its entry or group before writing writes nothing.** Five write
+  routes asked whether the caller may reach protected values only when their own lookup found the
+  node, and handed the write on when it did not, though the write looks the node up again. An
+  operator moving the entry at that moment let a rule without `protected` write a protected value,
+  or strip a protected field it could put back unprotected. Such a write is answered `404` now, as
+  a read is, or `503 locked` when the database locked.
 - **A protected field is kept from a strip whenever any profile could put an unprotected value
   back.** The guard asked whether some profile could create there and whether some profile could
   create a protected value there, so a program holding one profile that could put an unprotected

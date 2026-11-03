@@ -126,6 +126,87 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void A_window_that_fails_to_redraw_after_the_revocation_landed_cannot_lose_its_audit_line()
+        {
+            // KeePass's `UpdateUI` raises `UIStateUpdated` to every other plugin loaded, and a
+            // defect in a handler there is nothing the writer's filters name. The window was
+            // redrawn before the line was written, so the revocation was saved, verified and in
+            // force with no line for it.
+            var key = Admitted();
+            var lines = 0;
+            var writer = new DatabaseWriter(
+                CurrentThread.Instance,
+                Save,
+                (database, lists) => { throw new NullReferenceException("a UIStateUpdated handler's defect"); },
+                _dialogs,
+                null);
+
+            Assert.Throws<NullReferenceException>(() => writer.Revoke(_database.Database, key, () => lines++));
+
+            Assert.That(lines, Is.EqualTo(1));
+
+            _database.SaveCloseAndReopen();
+
+            var store = new CustomDataStore(_database.Database);
+            Assert.That(store.Get(AuthorityKeys.RevocationKey(key)), Is.Not.Null.And.Not.Empty,
+                "and the revocation the line is about is in the file");
+        }
+
+        [Test]
+        public void A_save_that_fails_after_writing_the_file_cannot_lose_the_revocations_audit_line()
+        {
+            // `MainForm.SaveDatabase` raises `FileSaved` to every other plugin once the file is
+            // written, and a defect there is nothing the writer's filters name: it left with the
+            // revocation on the disk and in force, and no line for it.
+            var key = Admitted();
+            var lines = 0;
+            var writer = new DatabaseWriter(
+                CurrentThread.Instance,
+                database =>
+                {
+                    Save(database);
+                    throw new NullReferenceException("a FileSaved handler's defect");
+                },
+                null,
+                _dialogs,
+                null);
+
+            Assert.Throws<NullReferenceException>(() => writer.Revoke(_database.Database, key, () => lines++));
+
+            Assert.That(lines, Is.EqualTo(1));
+            Assert.That(new AdmissionStore(new CustomDataStore(_database.Database), null).Find(key), Is.Null,
+                "the revocation the line is about is in force");
+
+            _database.CloseAndReopenWithoutSaving();
+
+            Assert.That(new CustomDataStore(_database.Database).Get(AuthorityKeys.RevocationKey(key)),
+                Is.Not.Null.And.Not.Empty, "and in the file");
+        }
+
+        [Test]
+        public void A_save_that_fails_before_writing_the_file_takes_the_revocation_back_out()
+        {
+            // A `FileSavingPre` handler's defect, before anything reached the disk. Nothing took
+            // the revocation back out, so the client was refused from its next request with no
+            // line for it, and the operator's next save kept it.
+            var key = Admitted();
+            var lines = 0;
+            var writer = new DatabaseWriter(
+                CurrentThread.Instance,
+                database => { throw new NullReferenceException("a FileSavingPre handler's defect"); },
+                null,
+                _dialogs,
+                null);
+
+            Assert.Throws<NullReferenceException>(() => writer.Revoke(_database.Database, key, () => lines++));
+
+            Assert.That(lines, Is.Zero, "a revocation taken back out revoked nothing");
+            Assert.That(new AdmissionStore(new CustomDataStore(_database.Database), null).Find(key), Is.Not.Null,
+                "the client is still admitted");
+            Assert.That(_database.Database.Modified, Is.False, "and the database agrees with the file");
+        }
+
+        [Test]
         public void The_audit_line_is_written_once_for_a_revocation_left_in_force_and_never_otherwise()
         {
             var lines = 0;

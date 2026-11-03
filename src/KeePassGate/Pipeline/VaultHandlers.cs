@@ -269,8 +269,20 @@ namespace KeePassGate.Pipeline
 
             var fields = Standard(context);
             var group = vault.Group(Captured(context, "uuid"));
+            if (group == null)
+            {
+                // Gone since the router found it, or locked, and answered as `ReadField` answers
+                // the same miss. While this lookup sat inside the conjunction below, a miss skipped
+                // the question about protected values and handed the write over anyway, and the
+                // vault looks the node up again: an operator's move takes a node out of one group
+                // before it puts it into the other, so this lookup can miss what the vault then
+                // finds, and a rule without `protected` wrote a protected value. The four write
+                // routes below answer the same miss the same way.
+                Gone(context);
+                return;
+            }
 
-            if (group != null && Guarded(vault, fields.Keys) && !ReachesProtected(context, group.Node, AclVerb.Create))
+            if (Guarded(vault, fields.Keys) && !ReachesProtected(context, group.Node, AclVerb.Create))
             {
                 Withheld(context, group.Node, AclVerb.Create);
                 return;
@@ -297,9 +309,13 @@ namespace KeePassGate.Pipeline
             var uuid = Captured(context, "uuid");
             var fields = Standard(context);
             var entry = vault.Entry(uuid);
+            if (entry == null)
+            {
+                Gone(context);
+                return;
+            }
 
-            if (entry != null
-                && (Guarded(vault, fields.Keys) || Guarded(vault, uuid, fields.Keys))
+            if ((Guarded(vault, fields.Keys) || Guarded(vault, uuid, fields.Keys))
                 && !ReachesProtected(context, entry.Node, AclVerb.Update))
             {
                 Withheld(context, entry.Node, AclVerb.Update);
@@ -473,8 +489,13 @@ namespace KeePassGate.Pipeline
             }
 
             var entry = vault.Entry(uuid);
-            if (entry != null && (guarded || vault.Protects(name))
-                && !ReachesProtected(context, entry.Node, AclVerb.Create))
+            if (entry == null)
+            {
+                Gone(context);
+                return;
+            }
+
+            if ((guarded || vault.Protects(name)) && !ReachesProtected(context, entry.Node, AclVerb.Create))
             {
                 Withheld(context, entry.Node, AclVerb.Create);
                 return;
@@ -503,12 +524,17 @@ namespace KeePassGate.Pipeline
             var uuid = Captured(context, "uuid");
             var name = Captured(context, "name");
             var entry = vault.Entry(uuid);
+            if (entry == null)
+            {
+                Gone(context);
+                return;
+            }
 
             // Both halves. `Guarded` answers the flag this string carries; `Protects` answers what
             // the database says about the name. They disagree whenever an operator turns a
             // protection on, because KeePass does not go back and re-flag what is already there.
             // While they disagreed, this route wrote a password the entry route refused.
-            if (entry != null && (vault.Protects(name) || Guarded(vault, uuid, new[] { name }))
+            if ((vault.Protects(name) || Guarded(vault, uuid, new[] { name }))
                 && !ReachesProtected(context, entry.Node, AclVerb.Update))
             {
                 Withheld(context, entry.Node, AclVerb.Update);
@@ -530,6 +556,11 @@ namespace KeePassGate.Pipeline
             var uuid = Captured(context, "uuid");
             var name = Captured(context, "name");
             var entry = vault.Entry(uuid);
+            if (entry == null)
+            {
+                Gone(context);
+                return;
+            }
 
             // A removal asks no switch, and this is not the removal being asked about: it is the
             // pair. Taking a protected string off an entry destroys the only mark that says the
@@ -544,8 +575,7 @@ namespace KeePassGate.Pipeline
             // protected field off as before, because it has nowhere to put anything back. What is
             // refused is a rule that could create in its place and could not have created the
             // protected value it is taking away: any rule the client holds, each asked on its own.
-            if (entry != null
-                && (vault.Protects(name) || Guarded(vault, uuid, new[] { name }))
+            if ((vault.Protects(name) || Guarded(vault, uuid, new[] { name }))
                 && CouldPutBackUnprotected(context, entry.Node))
             {
                 Withheld(context, entry.Node, AclVerb.Create);

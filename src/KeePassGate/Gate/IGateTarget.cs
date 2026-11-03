@@ -89,9 +89,10 @@ namespace KeePassGate.Gate
         /// pairing dialog says which of the profiles being asked for are new. And a renewal offers
         /// only the record's names the list still holds, and says which it no longer does.
         ///
-        /// Empty when the list cannot be read, which is the safe direction for the first reader:
-        /// every client reaches nothing. Not for the other two, which write the list or a record
-        /// from it, so both ask <see cref="ProfilesUnreadable"/> first and refuse.
+        /// Empty when the list cannot be read, and without the names it cannot hold when it holds
+        /// some it can, which is the safe direction for the first reader: a client reaches no
+        /// profile reading left out. Not for the other two, which write the list or a record from
+        /// it, so both ask <see cref="ProfilesUnreadable"/> first and refuse.
         /// </remarks>
         IReadOnlyList<string> KnownProfiles { get; }
 
@@ -105,6 +106,11 @@ namespace KeePassGate.Gate
         /// record as no names at all, and the client would have lost them for good; and a pairing
         /// writes the names it approves onto the list, which read as empty would have replaced
         /// every name the damaged list held.
+        ///
+        /// **Cannot be read is reading losing something**, `ProfileNames.Readable`'s answer: a
+        /// value that does not parse, an object of another shape, or a name the list cannot hold.
+        /// Each of the three reads as fewer names than the list holds, and for these two readers
+        /// fewer is the same loss as none.
         /// </remarks>
         string ProfilesUnreadable { get; }
 

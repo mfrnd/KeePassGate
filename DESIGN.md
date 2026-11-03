@@ -562,7 +562,9 @@ for it that stays on a node, or comes back with a restored revision or a merge, 
 resolver has never heard of it, which made losing the list cost an operator their pick list rather
 than anybody their access. The intersection makes it load bearing, and fails closed the way
 everything here does: a list that will not read is an empty set, so every client stays admitted
-and reaches nothing until it reads again.
+and reaches nothing until it reads again. A list in another shape, or holding a name it cannot
+hold, names only what reading could take from it, and pairing and renewal, which write the list or
+a record from what they read, refuse it as they refuse a list that does not parse.
 
 The one rule it applies is the issuer's, `AuthorityIssuer.IsUsableProfileName`, because a name that
 cannot travel as a claim is a name no client can ever hold: it would be granted here and refused at
