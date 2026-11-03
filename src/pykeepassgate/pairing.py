@@ -398,8 +398,8 @@ def _refuse(reply: transport.Response) -> None:
             ),
             undecided=(
                 "the database holds more than one certificate authority and the operator has "
-                "not kept one, so there is nothing to issue from until they do. The invitation "
-                "is still good"
+                "not yet kept any of them, so there is nothing to issue from until they do. The "
+                "invitation is still good"
             ),
         )
 

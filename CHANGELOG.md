@@ -12,11 +12,21 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **The chooser warns before it is answered**: answer on one copy of the database, and
+  synchronize before answering on another. Its button is **Keep this authority** rather than
+  **Keep this one**.
+- **The KPG tab shows a database whose every authority is retired as retired**, rather than as
+  having no authority yet. Copies that each kept a different authority in the chooser, before
+  their answers were synchronized, retire every authority, and the tab then sent the operator
+  looking for a step they had missed. A delete, which retires an authority too, is shown the same
+  way.
+- **The client's messages and the documentation name the authority** wherever "one" stood for
+  it, and no longer assume two copies or two authorities.
 - **A database holding a crafted authority key stops only itself being served.** A key named
   `KPG.Authority.` with no digest, beside the database's own authority, made the gate drop every
-  connection to every open database for as long as that one was open. That database now waits for
-  the operator to choose between its authorities, as one synchronized from two copies does, and
-  every other open database is served.
+  connection to every open database for as long as that database was open. It now waits for the
+  operator to choose between its authorities, as a database synchronized from copies that each made
+  an authority does, and every other open database is served.
 - **The plugin stores a URL as it is written**, as it stores every other value. It refused one
   holding `{` or beginning `cmd://` with `400`, and accepts both now. KeePass's Open URL does more
   with a URL than those two cases: it replaces an environment variable in it, hands a path or a

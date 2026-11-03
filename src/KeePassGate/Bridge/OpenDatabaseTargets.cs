@@ -793,9 +793,7 @@ namespace KeePassGate.Bridge
                     // or somebody else's edit of the key.
                     if (served != null)
                     {
-                        _log.Warn("stopped serving " + served + ": " + (reading.Presence == AuthorityPresence.None
-                            ? "it holds no authority now"
-                            : "its authority cannot be read now, " + string.Join("; ", reading.Problems)));
+                        _log.Warn("stopped serving " + served + ": " + Unserved(reading));
                     }
 
                     return null;
@@ -831,6 +829,17 @@ namespace KeePassGate.Bridge
                     }
                 }
             }
+        }
+
+        /// <summary>Why a database with nothing to serve has nothing, in the words the log gives.</summary>
+        private static string Unserved(AuthorityReading reading)
+        {
+            if (reading.Presence != AuthorityPresence.None)
+            {
+                return "its authority cannot be read now, " + string.Join("; ", reading.Problems);
+            }
+
+            return reading.IsRetired ? "every authority it held is retired now" : "it holds no authority now";
         }
 
         /// <summary>

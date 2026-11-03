@@ -141,6 +141,63 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void Copies_that_keep_different_authorities_retire_every_authority_and_read_as_retired()
+        {
+            // Three copies reach the same choice between three authorities before any answer is
+            // synchronized, which is machines sharing a file whose synchronize ran before anybody
+            // answered. The first and the third keep the first copy's authority, and the second
+            // keeps its own: every answer retires what it did not keep, so the two different answers
+            // between them retire all three, the authority two copies agreed on among them. The
+            // reading reports every authority as retired, rather than as never having been made.
+            foreach (var method in Methods)
+            {
+                using (var first = TemporaryDatabase.New())
+                {
+                    Assume.That(Authority(first).Create().Succeeded, Is.True);
+
+                    using (var second = CopyOf(first))
+                    using (var third = CopyOf(first))
+                    {
+                        var copies = new[] { first, second, third };
+                        foreach (var copy in copies)
+                        {
+                            Assume.That(Authority(copy).Recreate().Succeeded, Is.True);
+                        }
+
+                        var agreed = Digest(first);
+                        var own = Digest(second);
+
+                        first.Database.MergeIn(second.Database, PwMergeMethod.Synchronize, null);
+                        first.Database.MergeIn(third.Database, PwMergeMethod.Synchronize, null);
+                        second.Database.MergeIn(first.Database, PwMergeMethod.Synchronize, null);
+                        third.Database.MergeIn(first.Database, PwMergeMethod.Synchronize, null);
+
+                        var choices = new[]
+                        {
+                            Authority(first).Keep(agreed),
+                            Authority(second).Keep(own),
+                            Authority(third).Keep(agreed)
+                        };
+
+                        foreach (var choice in choices)
+                        {
+                            Assume.That(choice.Succeeded, Is.True, choice.Message);
+                        }
+
+                        first.Database.MergeIn(second.Database, method, null);
+                        first.Database.MergeIn(third.Database, method, null);
+
+                        using (var reading = Authority(first).Read())
+                        {
+                            Assert.That(reading.Presence, Is.EqualTo(AuthorityPresence.None), method.ToString());
+                            Assert.That(reading.IsRetired, Is.True, method + ": every authority it held is retired");
+                        }
+                    }
+                }
+            }
+        }
+
+        [Test]
         public void A_stale_copy_brings_a_pruned_document_back_and_it_serves_nothing()
         {
             foreach (var method in Methods)
@@ -194,6 +251,8 @@ namespace KeePassGate.Host.Tests
                             using (var reading = Authority(copy).Read())
                             {
                                 Assert.That(reading.Presence, Is.EqualTo(AuthorityPresence.None), method.ToString());
+                                Assert.That(reading.IsRetired, Is.True,
+                                    method + ": and reads as retired, rather than as never having had an authority");
                             }
                         }
                     }

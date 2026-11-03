@@ -33,6 +33,19 @@ namespace KeePassGate.Ui
         public const string UndecidedHeadline =
             "This database holds more than one authority, so nothing is served.";
 
+        public const string RetiredHeadline =
+            "Every authority this database has held is retired, so nothing is served.";
+
+        /// <summary>
+        /// How a database comes to have retired every authority it held, and what is left to do,
+        /// shown under <see cref="RetiredHeadline"/>.
+        /// </summary>
+        public const string RetiredLine =
+            "Deleting an authority retires it for good, and so does keeping another authority in its " +
+            "place. Copies of this database that each kept a different authority therefore retire " +
+            "every authority once they are synchronized. A new authority has to be created, and " +
+            "every client paired again.";
+
         private readonly string _headline;
         private readonly List<Fact> _facts;
         private readonly List<string> _details;
@@ -179,9 +192,12 @@ namespace KeePassGate.Ui
                     // Delete is offered when records outlived the authority that admitted
                     // them, which happens after a merge or a partial restore. They can never
                     // validate again, and with the button disabled the only way to be rid of
-                    // them was to create an authority and immediately recreate it.
+                    // them was to create an authority and immediately recreate it. A database
+                    // that retired every authority it held is told apart from a database that
+                    // never had an authority, since "no authority yet" sent the operator looking
+                    // for a step they had missed rather than at what retired it.
                     return new AuthorityDescription(
-                        AbsentHeadline, null, RecordsOnly(reading), true, false,
+                        reading.IsRetired ? RetiredHeadline : AbsentHeadline, null, Absence(reading), true, false,
                         reading.ClientRecordCount > 0);
 
                 case AuthorityPresence.Damaged:
@@ -223,12 +239,18 @@ namespace KeePassGate.Ui
         {
             return candidates.ToString(CultureInfo.InvariantCulture) +
                    " authorities were made separately in copies of this database that were later " +
-                   "merged. Nothing is served until one of them is kept: choose it below.";
+                   "merged. Nothing is served until one of these authorities is kept: press " +
+                   GateTab.ChooseButtonText + " below.";
         }
 
-        private static IEnumerable<string> RecordsOnly(AuthorityReading reading)
+        private static IEnumerable<string> Absence(AuthorityReading reading)
         {
             var lines = new List<string>();
+            if (reading.IsRetired)
+            {
+                lines.Add(RetiredLine);
+            }
+
             if (reading.ClientRecordCount > 0)
             {
                 lines.Add(RecordsOnlyLine(reading.ClientRecordCount));
@@ -370,7 +392,8 @@ namespace KeePassGate.Ui
                 {
                     CanChoose = true
                 },
-                new AuthorityDescription(AbsentHeadline, null, new[] { Longest(RecordsOnlyLine) }, true, false, true)
+                new AuthorityDescription(AbsentHeadline, null, new[] { Longest(RecordsOnlyLine) }, true, false, true),
+                new AuthorityDescription(RetiredHeadline, null, new[] { RetiredLine, Longest(RecordsOnlyLine) }, true, false, true)
             };
         }
 

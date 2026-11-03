@@ -275,7 +275,8 @@ namespace KeePassGate.Host.Tests
 
             Assert.That(_log.Warnings, Has.Count.EqualTo(2), string.Join("\n", _log.Warnings));
             Assert.That(_log.Warnings, Has.Some.Contains(first).And.Contains("cannot be read"));
-            Assert.That(_log.Warnings, Has.Some.Contains(second).And.Contains("holds no authority"));
+            Assert.That(_log.Warnings, Has.Some.Contains(second).And.Contains("every authority it held is retired"),
+                "a delete retires the authority, and the log names that rather than an authority never made");
         }
 
         [Test]

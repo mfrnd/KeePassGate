@@ -1300,8 +1300,9 @@ def _refuse(reply: transport.Response) -> None:
             ),
             undecided=(
                 "the database holds more than one certificate authority and the operator has "
-                "not kept one, which KeePass asks about on its own screen. If the one kept is "
-                "not this client's, this client reaches nothing afterwards and pairs again"
+                "not yet kept any of them, which KeePass asks about on its own screen. If the "
+                "authority kept is not this client's, this client reaches nothing afterwards and "
+                "pairs again"
             ),
         )
 

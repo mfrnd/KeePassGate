@@ -57,7 +57,7 @@ can read it.
 | | |
 | --- | --- |
 | `at` | when it was decided, UTC, to the second |
-| `database` | which database answered: the SHA-256 of its authority's certificate, in hex, whose first sixteen characters are the **Fingerprint** on the Certificate Authority page. Recreating the authority gives the same file a new one. `null` on the operator's revocation in a database serving no authority, which is one whose two copies each made one and nobody has yet chosen |
+| `database` | which database answered: the SHA-256 of its authority's certificate, in hex, whose first sixteen characters are the **Fingerprint** on the Certificate Authority page. Recreating the authority gives the same file a new value here. `null` on the operator's revocation in a database serving no authority, which is a database holding several authorities that copies of it made separately, before any of them has been kept |
 | `admissionKey` | which certificate the line is about, by the same admission key the Clients page revokes: the one that asked, or the one a revocation took away. `null` on a pairing, whose program holds no certificate yet |
 | `clientKey` | which client that certificate belongs to, by its **client key**: the admission key of the certificate it paired with, which the KPG tab counts and tells clients apart by and which a renewal keeps. `null` where no admission record stands behind the line, which is a pairing the operator did not approve and a certificate the gate refuses |
 | `operation` | what it asked for, by the name the routing table gives it, or `null` for the operator's own revocation, which no route asked for |

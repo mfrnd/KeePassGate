@@ -143,6 +143,8 @@ namespace KeePassGate.Tests
 
                 Assert.That(text, Does.Contain("Invented Vault holds 2 certificate authorities."));
                 Assert.That(text, Does.Contain(AuthorityChooserForm.Consequence));
+                Assert.That(text, Does.Contain(AuthorityChooserForm.OneCopy),
+                    "and, before anything is chosen, what different answers on two copies do");
             }
         }
 

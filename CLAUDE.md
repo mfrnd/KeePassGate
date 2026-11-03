@@ -148,7 +148,7 @@ designing around them.
   because a KeePass merge never removes a key and never reads a value. A revocation is
   `KPG.Revoked.<key>` beside the emptied record, never changed and pruned once the certificate has
   expired; an authority is one key per authority, `KPG.Authority.<fp>`, written once, and one
-  recreated or deleted gets `KPG.RetiredAuthority.<fp>` beside it, so which one is served is decided
+  recreated or deleted gets `KPG.RetiredAuthority.<fp>` beside it, so which authority is served is decided
   by the retirements and never by counting documents. More than one authority with no retirement
   serves nothing: every connection is answered `503 undecided`, and KeePass asks the operator which
   to keep in a dialog over its main window, never raised from a connection. **This reverses two

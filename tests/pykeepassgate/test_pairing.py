@@ -905,7 +905,7 @@ class TestWhatPairingMayRepeat:
     def test_an_undecided_database_is_waited_out_on_its_own_budget(
         self, gate: FakeGate, pairing_gate: Gate, waited: list[float]
     ) -> None:
-        # And not on the busy one: two authorities wait for a person to keep one of them.
+        # And not on the busy one: several authorities wait for a person to keep one of them.
         pairing_gate.hello_refusals = [(503, "undecided")]
         gate.retry_after = "2"
 

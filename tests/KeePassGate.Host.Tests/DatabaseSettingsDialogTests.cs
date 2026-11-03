@@ -201,7 +201,7 @@ namespace KeePassGate.Host.Tests
 
             Panel().DeleteAuthority();
 
-            Assert.That(Text(GateTab.StatusLabelName), Is.EqualTo(AuthorityDescription.AbsentHeadline));
+            Assert.That(Text(GateTab.StatusLabelName), Is.EqualTo(AuthorityDescription.RetiredHeadline));
             Assert.That(HoldsAnAuthority(), Is.True,
                 "gone from the database before anybody pressed OK");
 
