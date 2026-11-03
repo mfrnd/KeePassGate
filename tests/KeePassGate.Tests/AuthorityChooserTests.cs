@@ -36,7 +36,7 @@ namespace KeePassGate.Tests
         {
             _values = new InMemoryKeyValueStore();
             _service = new AuthorityService(_values, null);
-            _candidates = TwoAuthorities();
+            _candidates = Undecided();
             _clientKey = AdmitUnder(_candidates[0], "agent-fictitious", "ops", "reader");
         }
 
@@ -370,10 +370,11 @@ namespace KeePassGate.Tests
         }
 
         /// <summary>
-        /// Two authorities side by side and neither retired, which is what two copies each
-        /// recreating and then being merged leave behind.
+        /// Makes the database undecided, as copies that each recreated an authority leave it once
+        /// they are merged: authorities side by side and none of them retired, two here. Answers
+        /// with their digests.
         /// </summary>
-        private string[] TwoAuthorities()
+        private string[] Undecided()
         {
             Assume.That(_service.Create().Succeeded, Is.True);
             var first = _values.Keys.Single(k => AuthorityKeys.FingerprintInAuthority(k) != null);

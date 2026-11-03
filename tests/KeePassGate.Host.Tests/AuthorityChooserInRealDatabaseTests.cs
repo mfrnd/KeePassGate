@@ -44,7 +44,7 @@ namespace KeePassGate.Host.Tests
         public void SetUp()
         {
             _database = TemporaryDatabase.New();
-            _candidates = TwoAuthorities();
+            _candidates = Undecided(_database);
             _database.Save();
 
             _windows = new GlobalWindowManagerWindows();
@@ -143,6 +143,51 @@ namespace KeePassGate.Host.Tests
             _chooser.AskAll();
 
             Assert.That(_asked, Is.EqualTo(2));
+        }
+
+        [Test]
+        public void A_defect_asking_about_one_database_leaves_the_others_to_be_asked()
+        {
+            // B167. Every database a round would ask about is marked as asked before the first
+            // question, and a defect asking about the first left each database after it marked and
+            // never asked until a lock and an unlock. Nothing catches the defect: it reaches
+            // `Unattended`, which counts it. The next round, a moment later, asks about the rest.
+            using (var second = TemporaryDatabase.New())
+            {
+                Undecided(second);
+                second.Save();
+
+                var targets = new OpenDatabaseTargets(
+                    delegate { return new List<PwDatabase> { _database.Database, second.Database }; }, _writer,
+                    NullGateLog.Instance);
+                var asked = 0;
+                var chooser = new AuthorityChooser(
+                    new NoEvents(), targets, _writer, _owner, null, null, _prompt, null, NullGateLog.Instance)
+                {
+                    After = Waited,
+                    AskWhichToKeep = (choice, name) =>
+                    {
+                        if (++asked == 1)
+                        {
+                            throw new InvalidOperationException("a defect asking about the first database");
+                        }
+
+                        return null;
+                    }
+                };
+
+                using (targets)
+                using (chooser)
+                {
+                    Assert.Throws<InvalidOperationException>(() => chooser.AskAll(), "not caught on the way");
+
+                    chooser.AskAll();
+                    Assert.That(asked, Is.EqualTo(2), "the database the failed round never reached is asked");
+
+                    chooser.AskAll();
+                    Assert.That(asked, Is.EqualTo(2), "and each database once, the database that failed among them");
+                }
+            }
         }
 
         [Test]
@@ -320,12 +365,13 @@ namespace KeePassGate.Host.Tests
         }
 
         /// <summary>
-        /// Two authorities side by side and neither retired, which is what two copies each
-        /// recreating and then being merged leave behind.
+        /// Makes the database undecided, as copies that each recreated an authority leave it once
+        /// they are merged: authorities side by side and none of them retired, two here. Answers
+        /// with their digests.
         /// </summary>
-        private string[] TwoAuthorities()
+        private static string[] Undecided(TemporaryDatabase database)
         {
-            var store = new CustomDataStore(_database.Database);
+            var store = new CustomDataStore(database.Database);
             var service = new AuthorityService(store, NullGateLog.Instance);
 
             Assume.That(service.Create().Succeeded, Is.True);

@@ -29,7 +29,7 @@ namespace KeePassGate.Host.Tests
         public void SetUp()
         {
             _database = TemporaryDatabase.New();
-            _candidates = TwoAuthorities();
+            _candidates = Undecided();
             _database.Save();
 
             _open = new List<PwDatabase> { _database.Database };
@@ -93,10 +93,11 @@ namespace KeePassGate.Host.Tests
         }
 
         /// <summary>
-        /// Two authorities side by side and neither retired, which is what two copies each
-        /// recreating and then being merged leave behind.
+        /// Makes the database undecided, as copies that each recreated an authority leave it once
+        /// they are merged: authorities side by side and none of them retired, two here. Answers
+        /// with their digests.
         /// </summary>
-        private string[] TwoAuthorities()
+        private string[] Undecided()
         {
             var store = new CustomDataStore(_database.Database);
             var service = new AuthorityService(store, NullGateLog.Instance);

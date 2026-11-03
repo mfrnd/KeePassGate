@@ -1216,7 +1216,7 @@ namespace KeePassGate.Tests
         {
             // The same record in a database holding two authorities, where Choose threw it out of
             // the pin, past the filter `AuthorityChoice` carries, before the chooser opened.
-            var candidates = TwoAuthorities();
+            var candidates = Undecided();
             var key = CertificateBlob.Load(
                 AuthorityDocument.Read(_database.Store.Get(AuthorityKeys.AuthorityKey(candidates[0])), null).Authority);
             var crafted = AdmitReshaped(key, DateTimeOffset.UtcNow, der => NamingEd25519(der, key));
@@ -1588,7 +1588,7 @@ namespace KeePassGate.Tests
         [Test]
         public void Several_authorities_offer_the_chooser_in_the_place_create_has()
         {
-            TwoAuthorities();
+            Undecided();
 
             using (var panel = NewPanel(true))
             {
@@ -1630,7 +1630,7 @@ namespace KeePassGate.Tests
         [Test]
         public void Choosing_from_the_tab_waits_for_the_dialog_s_OK_like_everything_else_on_it()
         {
-            var candidates = TwoAuthorities();
+            var candidates = Undecided();
 
             foreach (var accepted in new[] { false, true })
             {
@@ -1666,7 +1666,7 @@ namespace KeePassGate.Tests
         [Test]
         public void Choosing_nothing_changes_nothing()
         {
-            TwoAuthorities();
+            Undecided();
 
             using (var panel = NewPanel(true))
             {
@@ -1680,10 +1680,11 @@ namespace KeePassGate.Tests
         }
 
         /// <summary>
-        /// Two authorities side by side and neither retired, which is what two copies each
-        /// recreating and then being merged leave behind.
+        /// Makes the database undecided, as copies that each recreated an authority leave it once
+        /// they are merged: authorities side by side and none of them retired, two here. Answers
+        /// with their digests.
         /// </summary>
-        private string[] TwoAuthorities()
+        private string[] Undecided()
         {
             var service = new AuthorityService(_database.Store, null);
             Assume.That(service.Create().Succeeded, Is.True);
