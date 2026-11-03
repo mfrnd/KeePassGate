@@ -241,7 +241,10 @@ authorities are the documents with no retirement beside them, so a retired docum
 brings back serves nothing, and the plugin's next write takes it away again. **More than one
 authority with no retirement serves nothing**: that is two copies that each created or recreated
 one, meeting in a synchronize, and choosing between them is the operator's decision rather than
-this plugin's.
+this plugin's. A key that names no proper digest, a bare `KPG.Authority.` among them, is a document
+too, filed under a digest not its own: beside another it is one more candidate that can be retired
+and never kept, and it holds up that database alone, since **what one database holds stops no other
+being served**.
 
 **So the plugin asks, and answers `503 undecided` until somebody has.** A connection to such a
 database is answered before a request is read, with each authority's own host certificate and no

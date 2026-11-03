@@ -77,6 +77,18 @@ namespace KeePassGate.Authority
                 : null;
         }
 
+        /// <summary>What a key naming an authority by no digest at all is shown as.</summary>
+        public const string NoDigest = "(no digest)";
+
+        /// <summary>
+        /// The digest an authority is filed under as the operator and the log see it: shortened,
+        /// or <see cref="NoDigest"/> for a key that names none, which a list would show as nothing.
+        /// </summary>
+        public static string Shown(string fingerprint)
+        {
+            return string.IsNullOrEmpty(fingerprint) ? NoDigest : CertificateDigest.Shorten(fingerprint);
+        }
+
         /// <summary>The digest a retirement is filed under, or null when the key is not one.</summary>
         public static string FingerprintInRetirement(string key)
         {

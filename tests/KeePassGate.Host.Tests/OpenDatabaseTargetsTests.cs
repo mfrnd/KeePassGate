@@ -184,6 +184,21 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void A_database_whose_authorities_will_not_read_leaves_every_other_one_served()
+        {
+            // A key naming an authority by no digest at all, beside the database's own, made
+            // reading that database throw, and the throw left `Current` for every database at once:
+            // the healthy one went unserved with it, and every connection to it was dropped as one
+            // naming nothing.
+            CreateAuthorityIn(_first);
+            CreateAuthorityIn(_second);
+            var own = _second.Database.CustomData.Get(AuthorityKeys.AuthorityKey(DigestOf(_second)));
+            _second.Database.CustomData.Set(AuthorityKeys.AuthorityPrefix, own);
+
+            Assert.That(_targets.Current().Select(target => target.DatabaseId), Does.Contain(DigestOf(_first)));
+        }
+
+        [Test]
         public void Recreating_the_authority_gives_a_new_target()
         {
             CreateAuthorityIn(_first);
