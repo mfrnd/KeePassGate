@@ -12,6 +12,11 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **The authority chooser asks about every database even when asking about one database fails.**
+  A round marked every database it would ask about before the first question, so a defect asking
+  about one database left the other databases unasked, and unserved, until each was locked and
+  unlocked. They are asked a moment later now, and the failure is still counted on the plugin's
+  window under Tools.
 - **The chooser warns before it is answered**: answer on one copy of the database, and
   synchronize before answering on another. Its button is **Keep this authority** rather than
   **Keep this one**.

@@ -537,6 +537,10 @@ namespace KeePassGate.Bridge
         /// Called on the user interface thread, from the events that say a database may have
         /// changed under the plugin, and never from a connection: a connection noticing the state
         /// answers `503` and raises nothing.
+        ///
+        /// **Every database is marked before any is asked about**, so that a round started while
+        /// a chooser is open, which its modal loop allows, finds nothing to ask on top of it. A
+        /// round that ends part way through gives the mark back with <see cref="AskAgain"/>.
         /// </remarks>
         public IReadOnlyList<PwDatabase> Unasked()
         {
@@ -558,6 +562,36 @@ namespace KeePassGate.Bridge
             }
 
             return unasked;
+        }
+
+        /// <summary>
+        /// Takes the mark back from databases <see cref="Unasked"/> handed out and nothing asked
+        /// about, so that the next round asks about them.
+        /// </summary>
+        /// <remarks>
+        /// For a round that ended part way through, on a defect asking about one database: every
+        /// database after it was marked with it and never asked, and stayed so until a lock and an
+        /// unlock rebuilt its entry. A database no longer undecided keeps its entry as it is, since
+        /// there is nothing left to ask about it.
+        /// </remarks>
+        public void AskAgain(IEnumerable<PwDatabase> databases)
+        {
+            if (databases == null)
+            {
+                return;
+            }
+
+            lock (_cacheLock)
+            {
+                foreach (var database in databases)
+                {
+                    CachedTarget cached;
+                    if (database != null && _cache.TryGetValue(database, out cached) && cached.IsUndecided)
+                    {
+                        cached.Asked = false;
+                    }
+                }
+            }
         }
 
         /// <summary>

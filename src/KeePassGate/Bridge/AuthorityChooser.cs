@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Windows.Forms;
 using KeePassLib;
 using KeePassGate.Audit;
@@ -25,7 +26,9 @@ namespace KeePassGate.Bridge
     /// state as asked when it hands the database out, so a Cancel is not answered by the same
     /// question a moment later; and a database already being asked about is not asked twice at
     /// once. Cancel serves nothing, and the tab's authority page is where the question can be
-    /// asked again.
+    /// asked again. A defect asking about one database is not caught here and still reaches
+    /// `Unattended`, and the databases the round had not reached are asked a moment later rather
+    /// than left marked.
     ///
     /// **A choice goes through `DatabaseWriter`**, whose guard refuses it while Database
     /// Maintenance is open, and marks the database modified without saving it.
@@ -163,9 +166,28 @@ namespace KeePassGate.Bridge
                 return;
             }
 
-            foreach (var database in _targets.Unasked())
+            var unasked = _targets.Unasked();
+            for (var next = 0; next < unasked.Count; next++)
             {
-                Ask(database);
+                var asked = false;
+                try
+                {
+                    Ask(unasked[next]);
+                    asked = true;
+                }
+                finally
+                {
+                    // Nothing is caught here: what was thrown reaches `Unattended`, which counts it
+                    // as an incident, as it always did. The databases after this database were
+                    // marked with it and never asked, so they get the mark back and are asked a
+                    // moment from now, while this database waits for its state to change, as a
+                    // Cancel does.
+                    if (!asked)
+                    {
+                        _targets.AskAgain(unasked.Skip(next + 1));
+                        Later();
+                    }
+                }
             }
         }
 

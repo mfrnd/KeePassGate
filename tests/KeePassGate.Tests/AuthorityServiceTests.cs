@@ -217,7 +217,7 @@ namespace KeePassGate.Tests
         [Test]
         public void Creating_over_several_authorities_is_refused_and_says_what_to_do_instead()
         {
-            TwoAuthorities();
+            Undecided();
 
             var result = _service.Create();
 
@@ -228,7 +228,7 @@ namespace KeePassGate.Tests
         [Test]
         public void Recreating_over_several_retires_every_one_of_them()
         {
-            var digests = TwoAuthorities();
+            var digests = Undecided();
 
             var result = _service.Recreate();
 
@@ -248,7 +248,7 @@ namespace KeePassGate.Tests
         [Test]
         public void Keeping_one_of_several_serves_it_and_says_how_many_went()
         {
-            var digests = TwoAuthorities();
+            var digests = Undecided();
 
             var result = _service.Keep(digests[0]);
 
@@ -260,7 +260,7 @@ namespace KeePassGate.Tests
         [Test]
         public void Keeping_something_that_is_not_a_choice_is_refused_rather_than_thrown()
         {
-            TwoAuthorities();
+            Undecided();
 
             var result = _service.Keep(new string('d', 64));
 
@@ -272,7 +272,7 @@ namespace KeePassGate.Tests
         [Test]
         public void A_choice_that_does_not_land_is_not_reported_as_made()
         {
-            var digests = TwoAuthorities();
+            var digests = Undecided();
             _values.SwallowWrites = true;
 
             var result = _service.Keep(digests[1]);
@@ -282,10 +282,11 @@ namespace KeePassGate.Tests
         }
 
         /// <summary>
-        /// Two authorities side by side and neither retired, which is what two copies each
-        /// recreating and then being merged leave behind.
+        /// Makes the database undecided, as copies that each recreated an authority leave it once
+        /// they are merged: authorities side by side and none of them retired, two here. Answers
+        /// with their digests.
         /// </summary>
-        private string[] TwoAuthorities()
+        private string[] Undecided()
         {
             _service.Create();
             var first = Digest();
