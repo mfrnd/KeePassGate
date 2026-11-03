@@ -652,6 +652,68 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void A_save_that_fails_after_writing_the_record_cannot_lose_its_audit_line()
+        {
+            // A `FileSaved` handler's defect, which no filter of the writer's names, once the file
+            // holds the record: the pairing ends with no certificate handed over, and the record
+            // that stays in force is written down before it does.
+            var lines = 0;
+            var writer = new DatabaseWriter(
+                CurrentThread.Instance,
+                database =>
+                {
+                    Save(database);
+                    throw new NullReferenceException("a FileSaved handler's defect");
+                },
+                null,
+                _dialogs,
+                _log);
+
+            using (var certificate = IssueClient())
+            {
+                var record = Record(certificate, "ops");
+
+                Assert.Throws<NullReferenceException>(
+                    () => writer.WriteAdmission(_database.Database, record, () => lines++));
+
+                Assert.That(lines, Is.EqualTo(1));
+
+                _database.CloseAndReopenWithoutSaving();
+
+                Assert.That(new CustomDataStore(_database.Database).Get(record.StorageKey), Is.Not.Null,
+                    "and the record the line is about is in the file");
+            }
+        }
+
+        [Test]
+        public void A_save_that_fails_before_writing_the_record_leaves_no_record_behind()
+        {
+            // A `FileSavingPre` handler's defect, before anything reached the disk. The record
+            // stayed in the database for the operator's next save to keep, admitting a
+            // certificate nobody was handed and written down nowhere.
+            var lines = 0;
+            var writer = new DatabaseWriter(
+                CurrentThread.Instance,
+                database => { throw new NullReferenceException("a FileSavingPre handler's defect"); },
+                null,
+                _dialogs,
+                _log);
+
+            using (var certificate = IssueClient())
+            {
+                var record = Record(certificate, "ops");
+                _database.Database.Modified = false;
+
+                Assert.Throws<NullReferenceException>(
+                    () => writer.WriteAdmission(_database.Database, record, () => lines++));
+
+                Assert.That(lines, Is.Zero, "a record taken back out admitted nobody");
+                Assert.That(new CustomDataStore(_database.Database).Get(record.StorageKey), Is.Null);
+                Assert.That(_database.Database.Modified, Is.False, "and the database agrees with the file");
+            }
+        }
+
+        [Test]
         public void A_save_that_does_not_happen_is_reported_rather_than_believed()
         {
             var writer = new DatabaseWriter(CurrentThread.Instance, database => { }, null, _dialogs, _log);

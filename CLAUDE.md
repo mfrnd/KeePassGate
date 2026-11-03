@@ -244,8 +244,11 @@ designing around them.
   suppression naming where it stands in this account.
   **A line that has to outlive a defect is written before it rather than caught around it**: the
   audit line for a pairing, a renewal or a client's own revocation that landed is written by
-  `DatabaseWriter` on its own landed path, before any listener runs, so no listener's defect can
-  lose it and the operation writes none of its own.
+  `DatabaseWriter` on its own landed path, before any listener runs and before KeePass's window is
+  redrawn, so no listener's defect can lose it and the operation writes none of its own. A defect
+  in the save itself, which runs every other plugin's handlers, is settled by a `finally` as the
+  database leaves it, and still reaches the connection thread: a change the file received is
+  written down, and a change it never received is taken back out.
 - **Everything on the KPG settings tab waits for that dialog's OK**, and this reverses an
   earlier decision rather than refining it. The tab used to write the moment a button was pressed,
   which was safe, because KeePass's database settings dialog holds no copy of the custom data this
