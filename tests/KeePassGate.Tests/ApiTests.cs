@@ -49,6 +49,9 @@ namespace KeePassGate.Tests
         private const string Combining = "\u0301";
 
         private FakeVault _vault;
+
+        /// <summary>The profiles the client's record holds: `agent`, unless a test sets others.</summary>
+        private string[] _profiles;
         private SpecRouter _router;
         private string _group;
         private string _entry;
@@ -57,6 +60,7 @@ namespace KeePassGate.Tests
         public void SetUp()
         {
             _vault = new FakeVault();
+            _profiles = new[] { "agent" };
             _group = _vault.Add(_vault.RootAlias, "Fictitious");
             _entry = _vault.AddEntry(_group, "an invented service");
 
@@ -149,6 +153,84 @@ namespace KeePassGate.Tests
             Assert.That(answer.Json, Does.Contain("an invented service"));
             Assert.That(answer.Json, Does.Not.Contain("not for this client"));
             Assert.That(answer.Json, Does.Contain("\"count\":1"));
+        }
+
+        [Test]
+        public void A_listing_shows_an_item_through_any_profile_once_some_profile_may_list_where_it_was_taken()
+        {
+            // T045, decided by the operator's ruling R10 as amended on 2026-11-03. `lister` may list
+            // from the group and not the entry, `viewer` the entry and nothing from the group. A
+            // listing is a read, so the entry is shown: `viewer` is entitled to it, and what the two
+            // profiles pool is the way to it.
+            _profiles = new[] { "lister", "viewer" };
+            _vault.Granting(_group, Rules.Granting(("lister", "L"), ("viewer", "")));
+            _vault.Granting(_entry, Rules.Granting(("lister", ""), ("viewer", "L")));
+
+            var listed = Get("/groups/" + _group + "/entries");
+
+            Assert.That(listed.Status, Is.EqualTo(200));
+            Assert.That(listed.Json, Does.Contain("an invented service"));
+        }
+
+        [Test]
+        public void A_listing_of_groups_shows_a_group_through_any_profile_once_some_profile_may_list_where_it_was_taken()
+        {
+            _profiles = new[] { "lister", "viewer" };
+            var shown = _vault.Add(_group, "Shown through another profile");
+            _vault.Granting(_group, Rules.Granting(("lister", "L"), ("viewer", "")));
+            _vault.Granting(shown, Rules.Granting(("lister", ""), ("viewer", "L")));
+
+            var listed = Get("/groups/" + _group + "/groups");
+
+            Assert.That(listed.Status, Is.EqualTo(200));
+            Assert.That(listed.Json, Does.Contain("Shown through another profile"));
+        }
+
+        [Test]
+        public void A_sweep_shows_an_item_through_any_profile_once_some_profile_may_list_the_root()
+        {
+            _profiles = new[] { "lister", "viewer" };
+            _vault.Granting(_vault.RootAlias, Rules.Granting(("lister", "L")));
+            _vault.Granting(_group, Rules.Granting(("lister", ""), ("viewer", "L")));
+
+            var swept = Get("/entries");
+
+            Assert.That(swept.Status, Is.EqualTo(200));
+            Assert.That(swept.Json, Does.Contain("an invented service"));
+        }
+
+        [Test]
+        public void A_listing_shows_a_protected_title_through_any_profile_that_reaches_it()
+        {
+            _profiles = new[] { "lister", "viewer" };
+            _vault.Protect(_entry, "Title");
+            _vault.Granting(_group, Rules.Granting(("lister", "L"), ("viewer", "")));
+            _vault.Granting(_entry, Rules.Granting(("lister", "L"), ("viewer", "LP")));
+
+            var listed = Get("/groups/" + _group + "/entries");
+
+            Assert.That(listed.Status, Is.EqualTo(200));
+            Assert.That(listed.Json, Does.Contain("an invented service"));
+        }
+
+        [Test]
+        public void A_listing_is_taken_only_where_some_profile_may_list_and_shows_only_what_some_profile_may_list()
+        {
+            // What the profiles pool is the way to an item, never the item: a profile entitled to
+            // the entry alone may not take the listing, and an entry no profile may list stays out.
+            _profiles = new[] { "viewer" };
+            _vault.Granting(_group, Rules.Granting(("lister", "L"), ("viewer", "")));
+            _vault.Granting(_entry, Rules.Granting(("lister", ""), ("viewer", "L")));
+
+            Assert.That(Get("/groups/" + _group + "/entries").Status, Is.EqualTo(404));
+
+            _profiles = new[] { "lister", "viewer" };
+            _vault.Granting(_entry, Rules.Granting(("lister", ""), ("viewer", "")));
+
+            var listed = Get("/groups/" + _group + "/entries");
+
+            Assert.That(listed.Status, Is.EqualTo(200));
+            Assert.That(listed.Json, Does.Contain("\"count\":0"));
         }
 
         [Test]
@@ -2039,12 +2121,12 @@ namespace KeePassGate.Tests
                 length);
         }
 
-        private static ClientIdentity Paired()
+        private ClientIdentity Paired()
         {
             using (var authority = TestAuthority.New())
             using (var certificate = authority.IssueClient("agent-fictitious"))
             {
-                return ClientIdentity.Paired("d1e2f3", certificate, new[] { "agent" });
+                return ClientIdentity.Paired("d1e2f3", certificate, _profiles);
             }
         }
 

@@ -892,7 +892,8 @@ paths:
       description: |
         One level, for walking a tree deliberately. Every entry the caller may not list is left out
         rather than refused, because a list is a question about a collection and the answer is
-        whatever part of it the rules allow.
+        whatever part of it the rules allow. An entry is shown when any profile the caller holds may
+        list it, whichever profile may list this group.
       x-kpg-verb: list
       parameters:
         - $ref: "#/components/parameters/GroupUuid"

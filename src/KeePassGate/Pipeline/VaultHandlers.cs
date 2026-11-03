@@ -1196,6 +1196,12 @@ namespace KeePassGate.Pipeline
         ///
         /// The profiles are the client's own, out of its admission record, so the intersection is
         /// the same one every other question makes.
+        ///
+        /// **Every profile the client holds, item by item**, the operator's ruling R10 as amended on
+        /// 2026-11-03. The router let the listing be taken because some profile may list from where
+        /// it is taken, and an item is shown through whichever profile may list it, which can be
+        /// another. A listing is a read: an item appears only to a client holding a profile entitled
+        /// to it, and what the profiles pool is the way to it. A change is allowed by one profile.
         /// </remarks>
         private static bool Visible(IGateContext context, IAclNode node, AclDocuments read)
         {
@@ -1344,6 +1350,8 @@ namespace KeePassGate.Pipeline
         /// For the reason `Visible` gives just above: a listing asks this about every entry it
         /// walks, so recording it would be a line per item for the ordinary case. The decisions
         /// worth reading are the ones about a named node, and those go through `ReachesProtected`.
+        /// Asked of every profile the client holds, as `Visible` is, so a protected title is shown
+        /// through any profile that may list the entry with its protected values.
         /// </remarks>
         private static bool ReachesProtectedInListing(
             IGateContext context, IAclNode node, AclVerb verb, AclDocuments read)
