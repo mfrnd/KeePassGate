@@ -123,8 +123,9 @@ namespace KeePassGate.Pipeline
         /// </summary>
         /// <remarks>
         /// Each name is asked on its own beside what the client still holds, so that a removed
-        /// name that grants nothing here is not blamed for a refusal. When none does alone and all
-        /// of them together do, which a removal asked on two nodes allows, every one is named.
+        /// name that grants nothing here is not blamed for a refusal. One profile has to allow each
+        /// question asked here, a removal's two sides together, so whenever all of them together
+        /// would have permitted it, at least one removed profile alone would have.
         /// </remarks>
         private static IReadOnlyList<string> Restoring(
             ClientIdentity client, AclVerb verb, AclReach reach, IAclNode node, out AclDecision restored)
@@ -149,12 +150,10 @@ namespace KeePassGate.Pipeline
                 return client.Removed;
             }
 
-            var alone = client.Removed
+            return client.Removed
                 .Where(profile => Answer(
                     client, client.Profiles.Concat(new[] { profile }).ToList(), verb, reach, node).Permitted)
                 .ToList();
-
-            return alone.Count == 0 ? client.Removed : alone;
         }
 
         /// <summary>
@@ -282,13 +281,31 @@ namespace KeePassGate.Pipeline
                 return AclDecisions.Refused("nothing above this node allows removals");
             }
 
-            var container = AclResolver.Decide(leaving, profiles, verb, reach);
-            if (!container.Permitted)
+            // **One profile has to allow both sides**, the operator's ruling R10: a change is
+            // allowed by one profile. Asked as two questions each answered by any profile, a client
+            // holding one profile that may remove from the group and another that may remove the
+            // node removed what neither of them may. So each profile is asked about both sides,
+            // the first that allows both answers, and otherwise the first refusal is reported,
+            // naming the side that refused as the line always has.
+            AclDecision refusal = null;
+            var each = (profiles ?? Array.Empty<string>())
+                .Where(profile => !string.IsNullOrEmpty(profile))
+                .Select(profile => new[] { profile });
+
+            foreach (var alone in each)
             {
-                return container;
+                var container = AclResolver.Decide(leaving, alone, verb, reach);
+                var decision = container.Permitted ? AclResolver.Decide(node, alone, verb, reach) : container;
+                if (decision.Permitted)
+                {
+                    return decision;
+                }
+
+                refusal = refusal ?? decision;
             }
 
-            return AclResolver.Decide(node, profiles, verb, reach);
+            // No profile to ask at all, which the resolver answers in its own words.
+            return refusal ?? AclResolver.Decide(leaving, profiles, verb, reach);
         }
     }
 }

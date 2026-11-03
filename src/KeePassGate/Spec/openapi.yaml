@@ -892,7 +892,8 @@ paths:
       description: |
         One level, for walking a tree deliberately. Every entry the caller may not list is left out
         rather than refused, because a list is a question about a collection and the answer is
-        whatever part of it the rules allow.
+        whatever part of it the rules allow. An entry is shown when any profile the caller holds may
+        list it, whichever profile may list this group.
       x-kpg-verb: list
       parameters:
         - $ref: "#/components/parameters/GroupUuid"
@@ -1824,7 +1825,8 @@ components:
             rule granting `A` or `P` beside `S` or `D` alone is answered without it, since
             removing takes attachments and protected values without asking. `D` is the rule saying
             removals are allowed here; removing the node itself asks the group above it as well,
-            so it needs a `D` in that group's answer too. The question is asked of the node
+            so it needs a `D` in that group's answer too, from the same profile. The question is
+            asked of the node
             alone, as the KPG tab shows a rule there, so `S` is reported on a group though no
             operation strips one: a mask says what the rules grant at the node rather than which
             operations would succeed on it.

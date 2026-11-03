@@ -124,7 +124,9 @@ namespace KeePassGate.Acl
     /// **A profile is resolved on its own, and then they are combined.** A client holding two
     /// profiles is permitted when either of them is, which is the only combination that does not
     /// depend on the order they happen to be in. Resolving them together would mean a rule about one
-    /// profile silently answering for another.
+    /// profile silently answering for another. That is one question; a request asking two is put
+    /// together above this, `AccessCheck` asking a removal's two sides of one profile at a time
+    /// and the strip guard in `VaultHandlers` asking each profile on its own.
     ///
     /// **How far in is asked at the same time as what.** An operation reaching an attachment needs
     /// the verb and the switch from the same rule, so a rule granting `read` without it refuses

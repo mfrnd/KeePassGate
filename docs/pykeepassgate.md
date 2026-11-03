@@ -736,10 +736,10 @@ if access.allows("RP"):
 profile granting `R` and another granting `P` do not let this client read a protected value, and
 `allows` asks each profile's mask on its own: `"RP"` is whether this client may read the protected
 values here, `"CA"` whether it may add an attachment to this entry, and `"C"` whether it may add to
-this group. A switch says nothing about removing, which shows nobody anything, so beside only `S`
-or `D` it is not asked: `"SA"`, whether this client may strip an attachment here, is answered by
-`S`. **Removing the node itself is the one question a single answer does not settle**: it
-needs `D` here and in the group the node would leave, which is that group's answer.
+this group. A switch says nothing about removing, which shows nobody anything, so beside only `S` or
+`D` it is not asked: `"SA"`, whether this client may strip an attachment here, is answered by `S`.
+**Removing the node itself is the one question a single answer does not settle**: it needs `D` from
+one profile both here and in the group the node would leave, which is that group's answer.
 `client.group_access()` asks about a group, the root unless told another, and `access.grants` holds
 the masks by profile. [`access-control.md`](access-control.md) says what each letter is worth.
 

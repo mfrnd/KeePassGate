@@ -767,7 +767,7 @@ class Access:
 
         **Removing the node itself is a question this cannot answer alone.** `D` here is the rule
         at this node saying removals are allowed, and a removal is asked of the group the node
-        would leave as well, so it needs a `D` in that group's answer too.
+        would leave as well, so it needs a `D` from the same profile in that group's answer too.
 
         The letters are the mask's own, in any order, and at least one of them a verb: a switch on
         its own grants nothing, so asking about one alone would be answered by nothing the gate

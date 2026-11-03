@@ -438,10 +438,10 @@ letter for both there is no way to allow the smaller one.
 attachments. It is one question asked at one node, because a field has no rule of its own.
 
 **`delete` is removals are allowed here**, and removing a node asks for it **on both sides of the
-move**: from the group the node is leaving, and from the node itself. A delete is literally a move,
-which is what makes that the honest shape rather than a contrivance. A group that grants it has
-removable contents; a node that does not grant it cannot be removed, and that is how one node is
-held back from a rule that frees its siblings.
+move**: from the group the node is leaving, and from the node itself, by one profile on both sides.
+A delete is literally a move, which is what makes that the honest shape rather than a contrivance. A
+group that grants it has removable contents; a node that does not grant it cannot be removed, and
+that is how one node is held back from a rule that frees its siblings.
 
 So `....D...` on a group is a client that may create and remove entries and subgroups inside it,
 including ones it creates after the rule was written, while the group itself stands, because nothing
@@ -490,11 +490,12 @@ entry around them.
 `create` can take a protected field away and write another under the same name, which is a
 substitution rather than a removal: what it ends with is a protected field holding a value the
 client chose, and `protected` is exactly the scope that governs writing one. So a strip is refused
-when the same rule could create in that field's place and could not have created a protected value
-there. The question is asked about `create`, never about `strip`, which is what leaves the paragraph
-above standing: a rule that may strip and may not create still takes a protected field off with no
-switch at all. The refusal is the `404` every other protected refusal gives, and the audit says
-which it was.
+when any rule the client holds could create in that field's place and could not have created a
+protected value there, each profile asked on its own, whichever profile's rule allows the strip. The
+question is asked about `create`, never about `strip`, which is what leaves the paragraph above
+standing: a client whose rules may strip and may not create still takes a protected field off with
+no switch at all. The refusal is the `404` every other protected refusal gives, and the audit
+records which it was.
 
 **It governs writing too.** A rule holding `update` without `protected` may change a URL and may not
 overwrite a password, and one holding `create` without it may add a field but not a protected one.
@@ -612,6 +613,14 @@ when something further up said more.
 **Each profile is resolved on its own, and then they are combined with or.** A client holding two
 profiles is permitted when either of them is. Resolving them together would let the nearest rule
 about one profile decide for another, so holding an extra profile could take a permission away.
+**And one profile has to allow whatever a request changes**, the operator's ruling R10 as amended on
+2026-11-03. A removal asks the group the node leaves and the node itself, and is permitted only when
+one profile allows both, since otherwise one profile's grant would undo the hold-back another
+profile's rule makes, and two profiles would do together what neither of them may. The strip guard
+of §136 asks each profile the same way. **A listing is the exception, being a read.** It is taken
+where some profile may list, and shows every item, and a protected title, that some profile the
+client holds may list, whichever profile that is: an item appears only to a client holding a profile
+entitled to it, and what the profiles pool is the way to it.
 
 **Every failure denies**: an unreadable document, an unknown default, an unknown verb, a node with no
 chain to a root, a client holding no profiles, a database that is not open. A document that will not

@@ -543,17 +543,34 @@ namespace KeePassGate.Pipeline
             // `DESIGN.md` §114 spells it out: a rule that may strip and may not create takes a
             // protected field off as before, because it has nowhere to put anything back. What is
             // refused is a rule that could create in its place and could not have created the
-            // protected value it is taking away.
+            // protected value it is taking away: any rule the client holds, each asked on its own.
             if (entry != null
                 && (vault.Protects(name) || Guarded(vault, uuid, new[] { name }))
-                && AclResolver.Permits(entry.Node, context.Client.Profiles, AclVerb.Create, AclReach.Fields)
-                && !ReachesProtected(context, entry.Node, AclVerb.Create))
+                && CouldPutBackUnprotected(context, entry.Node))
             {
                 Withheld(context, entry.Node, AclVerb.Create);
                 return;
             }
 
             Answer(context, vault, uuid, vault.DeleteField(uuid, name, Tagging(context, MayTag(context, entry), true)));
+        }
+
+        /// <summary>
+        /// Whether one of the client's profiles could put a value back where a protected field was,
+        /// and could not put back a protected value.
+        /// </summary>
+        /// <remarks>
+        /// **Each profile asked on its own**, the operator's ruling R10. Asked as two questions of
+        /// every profile at once, the guard let a strip through whenever any profile could create a
+        /// protected value, though another could still put an unprotected value back. A profile
+        /// that may create and reach protected values could write the protected value anyway, and
+        /// a profile that may not create has nowhere to put anything back.
+        /// </remarks>
+        private static bool CouldPutBackUnprotected(IGateContext context, IAclNode node)
+        {
+            return context.Client.Profiles.Any(profile =>
+                AclResolver.Permits(node, new[] { profile }, AclVerb.Create, AclReach.Fields)
+                && !AclResolver.Permits(node, new[] { profile }, AclVerb.Create, AclReach.Protected));
         }
 
         public static void ListAttachments(IGateContext context)
@@ -1196,6 +1213,12 @@ namespace KeePassGate.Pipeline
         ///
         /// The profiles are the client's own, out of its admission record, so the intersection is
         /// the same one every other question makes.
+        ///
+        /// **Every profile the client holds, item by item**, the operator's ruling R10 as amended on
+        /// 2026-11-03. The router let the listing be taken because some profile may list from where
+        /// it is taken, and an item is shown through whichever profile may list it, which can be
+        /// another. A listing is a read: an item appears only to a client holding a profile entitled
+        /// to it, and what the profiles pool is the way to it. A change is allowed by one profile.
         /// </remarks>
         private static bool Visible(IGateContext context, IAclNode node, AclDocuments read)
         {
@@ -1344,6 +1367,8 @@ namespace KeePassGate.Pipeline
         /// For the reason `Visible` gives just above: a listing asks this about every entry it
         /// walks, so recording it would be a line per item for the ordinary case. The decisions
         /// worth reading are the ones about a named node, and those go through `ReachesProtected`.
+        /// Asked of every profile the client holds, as `Visible` is, so a protected title is shown
+        /// through any profile that may list the entry with its protected values.
         /// </remarks>
         private static bool ReachesProtectedInListing(
             IGateContext context, IAclNode node, AclVerb verb, AclDocuments read)
