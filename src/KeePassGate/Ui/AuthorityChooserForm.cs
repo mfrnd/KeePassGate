@@ -28,12 +28,24 @@ namespace KeePassGate.Ui
     ///   that can be dismissed into one is a dialog that will be.
     /// - **Only an authority that reads can be kept.** One that will not is listed, because it is
     ///   still one the database holds, and keeping another retires it.
+    /// - **One copy answers.** The audit the evidence comes from is this machine's own, so copies
+    ///   asked before any answer is synchronized can each point at a different authority, and
+    ///   two different answers, among however many copies and authorities, retire every
+    ///   authority. The dialog warns of that before anything is chosen, since nothing can undo it
+    ///   afterwards.
     /// </remarks>
     public sealed class AuthorityChooserForm : Form
     {
         /// <summary>What choosing does, said once and in full.</summary>
         public const string Consequence =
-            "Keeping one retires the others for good, and the clients they admitted stop working.";
+            "Keeping an authority retires every other authority for good, and the clients those " +
+            "admitted stop working.";
+
+        /// <summary>What answering on more than one copy does, shown before any of them is answered.</summary>
+        public const string OneCopy =
+            "Answer this on one copy of the database, and synchronize before answering on another: " +
+            "copies that keep different authorities retire every authority, and then nothing is " +
+            "served at all.";
 
         /// <summary>What a client with nothing in the audit shows as its last request.</summary>
         public const string NeverSeen = "none in the audit";
@@ -133,10 +145,11 @@ namespace KeePassGate.Ui
 
             layout.Controls.Add(Line(Title(choice, databaseName), _titleFont, Spacing.Gap));
             layout.Controls.Add(Line(
-                "Copies of this database each made one, and a merge brought them together. " +
-                "Nothing is served until one is kept. " + Consequence,
+                "Copies of this database each made an authority of their own, and a merge brought " +
+                "them together. Nothing is served until one authority is kept. " + Consequence,
                 null,
                 Spacing.Gap));
+            layout.Controls.Add(Line(OneCopy, null, Spacing.Gap));
 
             layout.Controls.Add(Line(GateTab.ChooserAuthorityListLabel + ":", null, Spacing.Tight));
             _authorities = NewList(GateTab.ChooserAuthorityListName, GateTab.ChooserAuthorityListLabel);

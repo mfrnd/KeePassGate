@@ -445,7 +445,7 @@ namespace KeePassGate.Ui
 
         public const string KeepButtonName = "KpgKeepButton";
 
-        public const string KeepButtonText = "Keep this one";
+        public const string KeepButtonText = "Keep this authority";
 
         public const string ChooserCancelButtonName = "KpgChooserCancelButton";
 

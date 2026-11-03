@@ -238,7 +238,7 @@ it last made a request, if the audit file remembers one.
 
 ![The window asking which authority to keep](images/authority-chooser.png)
 
-**Keep this one** keeps the selected authority and retires every other authority for good: the
+**Keep this authority** keeps the selected authority and retires every other authority for good: the
 programs those admitted stop working and have to pair again, and their rows stay on the clients page
 as **not this authority** until they are removed. The database is marked changed and not saved, so
 save it to keep the choice.
@@ -252,6 +252,8 @@ anybody answered asks on its own, and the clients each copy lists are those that
 so copies can easily keep different authorities. Once those copies are synchronized, every authority
 is retired: nothing is served, the Certificate Authority page shows every authority this database
 has held as retired, and nothing undoes that. Create a new authority, and pair every program again.
+**So answer on one copy**, save it, and synchronize it into every other copy before answering there:
+a copy that already holds the answer does not ask.
 
 ## Locking while a program writes
 

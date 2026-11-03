@@ -268,7 +268,8 @@ synchronized can each keep a different authority. Each answer retires every auth
 keep, and a retirement is never removed, so once the answers meet in a synchronize nothing is served
 and every client is refused, with no way back but a new authority and every client paired again. The
 KPG tab then shows every authority the database has held as retired, rather than showing no
-authority yet, as it does after a delete, which retires an authority too.
+authority yet, as it does after a delete, which retires an authority too. **So the chooser warns,
+before anything is chosen**, to answer on one copy and synchronize before answering on another.
 
 **Recreating and deleting both remove every admission record, and every revocation with the records
 it emptied.** Each certificate they name chains to the authority just retired, and the retirement

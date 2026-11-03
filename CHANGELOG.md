@@ -12,6 +12,9 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **The chooser warns before it is answered**: answer on one copy of the database, and
+  synchronize before answering on another. Its button is **Keep this authority** rather than
+  **Keep this one**.
 - **The KPG tab shows a database whose every authority is retired as retired**, rather than as
   having no authority yet. Copies that each kept a different authority in the chooser, before
   their answers were synchronized, retire every authority, and the tab then sent the operator
