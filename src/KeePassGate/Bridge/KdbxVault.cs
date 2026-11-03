@@ -470,7 +470,6 @@ namespace KeePassGate.Bridge
 
                 var parent = group.ParentGroup;
                 var restoreGroup = Restoring(group);
-                var restoreParent = Restoring(parent);
                 var wasPrevious = group.PreviousParentGroup;
                 Action unmakeBin;
                 var bin = RecycleBin(out unmakeBin);
@@ -486,8 +485,15 @@ namespace KeePassGate.Bridge
                     parent.Groups.Remove(group);
                     group.PreviousParentGroup = parent.Uuid;
                     bin.AddGroup(group, true, true);
-                    group.Touch(true, false);
-                    parent.Touch(true, false);
+
+                    // Its use and its access time, as KeePass's own delete touches a node it bins,
+                    // and not its modification time or its parent's. A merge takes a group whole
+                    // from whichever copy's group was modified last, and a group keeps no history:
+                    // a parent stamped here won the next synchronize over an edit made to it on
+                    // another copy, rules and all, and a child's removal changed the parent's tag.
+                    // Not the access times above it either, which KeePass's `Touch(false)` walks,
+                    // so that the undo puts back everything this moved.
+                    group.Touch(false, false);
 
                     return new VaultChange(VaultWrite.Done(), () =>
                     {
@@ -495,7 +501,6 @@ namespace KeePassGate.Bridge
                         parent.AddGroup(group, true);
                         group.PreviousParentGroup = wasPrevious;
                         restoreGroup();
-                        restoreParent();
 
                         if (unmakeBin != null)
                         {
@@ -504,17 +509,17 @@ namespace KeePassGate.Bridge
                     });
                 }
 
+                // Nothing is stamped, as KeePass's own permanent delete stamps nothing, for the
+                // reason the bin path above gives.
                 parent.Groups.Remove(group);
                 var deleted = new PwDeletedObject(group.Uuid, DateTime.UtcNow);
                 _database.DeletedObjects.Add(deleted);
-                parent.Touch(true, false);
 
                 return new VaultChange(VaultWrite.Done(), () =>
                 {
                     _database.DeletedObjects.Remove(deleted);
                     parent.AddGroup(group, true);
                     restoreGroup();
-                    restoreParent();
 
                     if (unmakeBin != null)
                     {
@@ -1658,7 +1663,11 @@ namespace KeePassGate.Bridge
                 // happen.
                 entry.PreviousParentGroup = parent.Uuid;
                 bin.AddEntry(entry, true, true);
-                entry.Touch(true, false);
+
+                // Touched as `DeleteGroup` touches a group it bins, and for its reason: an entry
+                // stamped as modified here won the next synchronize as the newer content over an
+                // edit made to it on another copy, which the merge then filed in its history.
+                entry.Touch(false, false);
 
                 return () =>
                 {

@@ -12,6 +12,12 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **A removal through the API stamps what KeePass's own delete stamps.** It marked the removed
+  entry or group as modified, and a group's parent too, where KeePass's delete moves no
+  modification time. A merge reads that time as the newer edit, so the next synchronize took the
+  parent whole from this copy, undoing a rule the operator had narrowed on it in another copy, and
+  filed another copy's edit to a binned entry in the entry's history. A removal no longer changes
+  its parent's tag either.
 - **A pairing, a renewal or a program's revocation of itself that reached the database is always
   written to the audit.** A defect in KeePass or in another plugin, raised while the database was
   saved or while KeePass's window was redrawn, ended the request with the change in force and no
