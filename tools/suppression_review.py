@@ -1066,10 +1066,13 @@ def _show(root: Path, commit: str, name: str) -> str | None:
 
 
 def _markers_at(root: Path, commit: str, name: str, as_name: str) -> list[Placed]:
-    # The markers in one file as `commit` has it, named `as_name`, its name at the head.
+    # The markers in one file as `commit` has it, named `as_name`, its name at the head. A file in
+    # no language that holds them is never read, since it need not be text: a picture is not.
     language = suppressions.language_of(as_name)
+    if language is None:
+        return []
     text = _show(root, commit, name)
-    if language is None or text is None or suppressions.CANDIDATE.search(text) is None:
+    if text is None or suppressions.CANDIDATE.search(text) is None:
         return []
     source = suppressions.read(text, language)
     return placed(as_name, source, suppressions.suppressions(source, language, as_name))

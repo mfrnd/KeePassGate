@@ -938,24 +938,31 @@ def test_a_twin_added_later_gets_a_thread_of_its_own_on_its_own_line(waits: list
 SUPPRESSED = "class A\n{\n    // codeql[cs/a] why\n    void M() { }\n}\n"
 
 
-def _pull(root: Path, base: dict[str, str], head: dict[str, str | None],
+def _write(path: Path, content: str | bytes) -> None:
+    if isinstance(content, bytes):
+        path.write_bytes(content)
+    else:
+        path.write_text(content, encoding="utf-8", newline="\n")
+
+
+def _pull(root: Path, base: dict[str, str | bytes], head: dict[str, str | bytes | None],
           index_only: dict[str, str] | None = None) -> None:
-    """A repository whose two commits are `base` and `head`, by file name and the file's text.
+    """A repository whose two commits are `base` and `head`, by file name and the file's content.
 
     A name the head maps to None is deleted there, and `index_only` goes into the head through the
     index alone, for a name Windows cannot write.
     """
     root.mkdir()
     _git(root, "init", "-q", "-b", "master")
-    for name, text in base.items():
-        (root / name).write_text(text, encoding="utf-8", newline="\n")
+    for name, content in base.items():
+        _write(root / name, content)
     _git(root, "add", "--", *base)
     _git(root, "commit", "-q", "-m", "base")
     for name, after in head.items():
         if after is None:
             _git(root, "rm", "-q", "--", name)
         else:
-            (root / name).write_text(after, encoding="utf-8", newline="\n")
+            _write(root / name, after)
             _git(root, "add", "--", name)
     for name, text in (index_only or {}).items():
         # git's own names for what this asks of it: cspell:ignore NTFS cacheinfo
@@ -1005,6 +1012,28 @@ def test_names_git_quotes_are_read_as_they_are(tmp_path: Path) -> None:
                               _finding("cs/a", 4, path="ü.cs"))
     assert sorted((n.kind, n.path, n.line) for n in placed) == [
         ("added", "a b.cs", 3), ("added", 'q"t.cs', 3), ("added", "ü.cs", 3)]
+
+
+def test_a_picture_the_pull_request_changes_is_not_read(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    # Every changed file was read as UTF-8 before its language was asked, so the first pull
+    # request to change a documentation picture failed on the picture's first byte. Asked of what
+    # is read rather than of the failure, since on Windows the decoding fails on a thread of its
+    # own and the file reads as empty.
+    picture = b"\x89PNG\r\n\x1a\n"
+    _pull(tmp_path / "r", {"A.cs": SUPPRESSED, "shown.png": picture + b"\x00\x01"},
+          {"A.cs": None, "B.cs": SUPPRESSED, "shown.png": picture + b"\x02\x03"})
+    read: list[str] = []
+    show = review._show
+
+    def recorded(root: Path, commit: str, name: str) -> str | None:
+        read.append(name)
+        return show(root, commit, name)
+
+    monkeypatch.setattr(review, "_show", recorded)
+    found, placed = _gathered(tmp_path / "r", _finding("cs/a", 4, path="B.cs"))
+    assert "shown.png" not in read
+    assert (found.added, found.removed, placed) == ([], [], [])
 
 
 def test_a_twin_added_beside_one_already_there_is_the_one_added(tmp_path: Path) -> None:
