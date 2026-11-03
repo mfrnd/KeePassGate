@@ -473,7 +473,8 @@ designing around them.
   **Nearest wins, per profile**, and profiles are combined with or. An empty array is a rule
   granting nothing from there down; a profile the document does not name is silence, answered by
   `default`. **A change is allowed by one profile**, the operator's ruling R10 as amended on
-  2026-11-03: a removal needs `delete` from one profile on both of its sides. A listing is the
+  2026-11-03: a removal needs `delete` from one profile on both of its sides, and the strip guard
+  asks each profile on its own whether it could put an unprotected value back. A listing is the
   exception, being a read: some profile has to list from where it is taken, and its items are shown
   through any profile the client holds. A document that will not read refuses where it is found
   rather than being skipped, because walking past it would answer with a permission it may have been

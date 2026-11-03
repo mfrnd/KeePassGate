@@ -868,6 +868,45 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_protected_field_is_kept_from_a_strip_when_any_profile_could_put_back_an_unprotected_value()
+        {
+            // S123, under the operator's ruling R10, each profile asked on its own. `tidier` may
+            // create and strip and not reach protected values, so it could put its own value where
+            // the credential was; `maker` reaching protected values changes nothing about that.
+            // Asked of all the profiles at once, this strip went through.
+            _profiles = new[] { "tidier", "maker" };
+            _vault.CreateField(_entry, "PIN", "not-a-real-secret", true, VaultTagging.None);
+            _vault.Granting(_group, Rules.Granting(("tidier", "CRSL"), ("maker", "CRLP")));
+
+            Assert.That(Send("DELETE", "/entries/" + _entry + "/fields/PIN", null).Status, Is.EqualTo(404));
+            Assert.That(_vault.Field(_entry, "PIN"), Is.EqualTo("not-a-real-secret"));
+        }
+
+        [Test]
+        public void A_protected_field_is_kept_from_a_strip_when_another_profile_could_put_back_an_unprotected_value()
+        {
+            // The other direction: `tidier` may strip and not create, and `maker` could put an
+            // unprotected value back.
+            _profiles = new[] { "tidier", "maker" };
+            _vault.CreateField(_entry, "PIN", "not-a-real-secret", true, VaultTagging.None);
+            _vault.Granting(_group, Rules.Granting(("tidier", "RSL"), ("maker", "CRL")));
+
+            Assert.That(Send("DELETE", "/entries/" + _entry + "/fields/PIN", null).Status, Is.EqualTo(404));
+            Assert.That(_vault.Field(_entry, "PIN"), Is.EqualTo("not-a-real-secret"));
+        }
+
+        [Test]
+        public void A_protected_field_is_stripped_when_every_profile_that_could_put_one_back_reaches_protected_values()
+        {
+            _profiles = new[] { "tidier", "maker" };
+            _vault.CreateField(_entry, "PIN", "not-a-real-secret", true, VaultTagging.None);
+            _vault.Granting(_group, Rules.Granting(("tidier", "RSL"), ("maker", "CRLP")));
+
+            Assert.That(Send("DELETE", "/entries/" + _entry + "/fields/PIN", null).Status, Is.EqualTo(200));
+            Assert.That(_vault.Field(_entry, "PIN"), Is.Null);
+        }
+
+        [Test]
         public void The_entry_route_is_not_a_way_around_it()
         {
             // The same value, set through the entry rather than the field. A gate on one route

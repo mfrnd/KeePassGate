@@ -221,8 +221,9 @@ own, and asking for a switch first would forbid the smaller act while allowing t
 **With one exception, and it is about `C` rather than `S`.** A rule holding both `S` and `C` could
 take a protected field away and put another back under the same name, which ends with a protected
 field holding a value the program chose. That is writing a secret, which is what `P` governs, so a
-program with `S` and `C` and no `P` is refused the strip of a protected field. A rule with `S` and
-no `C` is unaffected: it has nowhere to put anything back.
+program is refused the strip of a protected field while any of its profiles holds `C` there without
+`P`, whichever profile holds the `S`. A program whose profiles hold no `C` there, or hold it only
+with `P`, is unaffected: it has nowhere to put an unprotected value back.
 
 ## Inherited rules
 

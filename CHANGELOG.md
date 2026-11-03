@@ -12,6 +12,11 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **A protected field is kept from a strip whenever any profile could put an unprotected value
+  back.** The guard asked whether some profile could create there and whether some profile could
+  create a protected value there, so a program holding one profile that could put an unprotected
+  value back beside another reaching protected values stripped the field. Each profile is asked on
+  its own now.
 - **A removal needs one profile to allow both sides of it.** Removing an entry or a group asks the
   group it leaves and the node itself, and a program holding two profiles that each allowed one
   side removed what neither of them may. One profile has to allow both now.

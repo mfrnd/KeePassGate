@@ -543,17 +543,34 @@ namespace KeePassGate.Pipeline
             // `DESIGN.md` §114 spells it out: a rule that may strip and may not create takes a
             // protected field off as before, because it has nowhere to put anything back. What is
             // refused is a rule that could create in its place and could not have created the
-            // protected value it is taking away.
+            // protected value it is taking away: any rule the client holds, each asked on its own.
             if (entry != null
                 && (vault.Protects(name) || Guarded(vault, uuid, new[] { name }))
-                && AclResolver.Permits(entry.Node, context.Client.Profiles, AclVerb.Create, AclReach.Fields)
-                && !ReachesProtected(context, entry.Node, AclVerb.Create))
+                && CouldPutBackUnprotected(context, entry.Node))
             {
                 Withheld(context, entry.Node, AclVerb.Create);
                 return;
             }
 
             Answer(context, vault, uuid, vault.DeleteField(uuid, name, Tagging(context, MayTag(context, entry), true)));
+        }
+
+        /// <summary>
+        /// Whether one of the client's profiles could put a value back where a protected field was,
+        /// and could not put back a protected value.
+        /// </summary>
+        /// <remarks>
+        /// **Each profile asked on its own**, the operator's ruling R10. Asked as two questions of
+        /// every profile at once, the guard let a strip through whenever any profile could create a
+        /// protected value, though another could still put an unprotected value back. A profile
+        /// that may create and reach protected values could write the protected value anyway, and
+        /// a profile that may not create has nowhere to put anything back.
+        /// </remarks>
+        private static bool CouldPutBackUnprotected(IGateContext context, IAclNode node)
+        {
+            return context.Client.Profiles.Any(profile =>
+                AclResolver.Permits(node, new[] { profile }, AclVerb.Create, AclReach.Fields)
+                && !AclResolver.Permits(node, new[] { profile }, AclVerb.Create, AclReach.Protected));
         }
 
         public static void ListAttachments(IGateContext context)
