@@ -29,6 +29,28 @@ namespace KeePassGate.Tests
             Assert.That(ProfileNames.Read("not a list at all").Names, Is.Empty);
         }
 
+        [TestCase("{\"Profiles\":[\"reader\"]}", TestName = "a list under a name spelled with a capital")]
+        [TestCase("{\"profiles\":\"reader\"}", TestName = "a list that is a string")]
+        [TestCase("{\"profiles\":[\"reader\"],\"more\":\"x\"}", TestName = "a list with a member beside it")]
+        [TestCase("{\"profiles\":[\"reader\",\"no such name\"]}", TestName = "a list holding a name it cannot hold")]
+        [TestCase("{\"profiles\":[\"reader\",\"default\"]}", TestName = "a list holding the name rules keep for themselves")]
+        [TestCase("{\"other\":\"x\"}", TestName = "an object holding no list at all")]
+        public void A_list_reading_would_lose_part_of_will_not_read(string stored)
+        {
+            // A flat object of another shape parses, and read it names nothing or fewer names than
+            // it holds. Written back, what reading left out is gone, so the reader that writes what
+            // it reads is told the list will not read, as it is told about a list that does not parse.
+            Assert.That(ProfileNames.Readable(stored), Is.False);
+        }
+
+        [TestCase("{\"profiles\":[]}", TestName = "a list naming nothing")]
+        [TestCase("{\"profiles\":[\"reader\",\"reader\"]}", TestName = "a list naming a profile twice")]
+        [TestCase("{\"profiles\":[\"reader\",\"ops\"]}", TestName = "a list in an order of its own")]
+        public void A_list_reading_loses_nothing_of_reads(string stored)
+        {
+            Assert.That(ProfileNames.Readable(stored), Is.True);
+        }
+
         [Test]
         public void A_database_with_no_list_names_no_profiles()
         {

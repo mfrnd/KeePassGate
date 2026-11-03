@@ -111,15 +111,18 @@ namespace KeePassGate.Host.Tests
             Assert.That(target.GateKey.Any(b => b != 0), Is.True);
         }
 
-        [Test]
-        public void A_list_of_profiles_that_will_not_read_is_said_to_be_unreadable_rather_than_empty()
+        [TestCase("not a list at all", TestName = "a list of profiles that does not parse is unreadable rather than empty")]
+        [TestCase("{\"Profiles\":[\"reader\"]}", TestName = "a list of profiles in another shape is unreadable rather than empty")]
+        public void A_list_of_profiles_that_will_not_read_is_said_to_be_unreadable_rather_than_empty(string damaged)
         {
+            // What pairing and renewal ask before they put a list in front of the operator, and
+            // refuse on: each writes a list or a record from what it read.
             CreateAuthorityIn(_first);
             var target = _targets.Current()[0];
 
             Assert.That(target.ProfilesUnreadable, Is.Null, "no list is a list naming nothing");
 
-            _first.Database.CustomData.Set(KeePassGate.Acl.ProfileNames.CustomDataKey, "not a list at all");
+            _first.Database.CustomData.Set(KeePassGate.Acl.ProfileNames.CustomDataKey, damaged);
 
             Assert.That(target.ProfilesUnreadable, Is.Not.Null);
             Assert.That(target.KnownProfiles, Is.Empty, "while every other reader still sees nothing named");

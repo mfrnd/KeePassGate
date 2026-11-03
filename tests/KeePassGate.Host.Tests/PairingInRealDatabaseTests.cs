@@ -70,20 +70,22 @@ namespace KeePassGate.Host.Tests
             _database.Dispose();
         }
 
-        [Test]
-        public void A_list_of_profiles_that_will_not_read_is_never_written_over()
+        [TestCase("{ not a list", TestName = "a list of profiles that does not parse is never written over")]
+        [TestCase("{\"Profiles\":[\"reader\"]}", TestName = "a list of profiles in another shape is never written over")]
+        [TestCase("{\"profiles\":[\"reader\",\"no such name\"]}", TestName = "a list holding a name it cannot hold is never written over")]
+        public void A_list_of_profiles_that_will_not_read_is_never_written_over(string damaged)
         {
-            // Read, a damaged list names nothing, and a list of only the approved names written in
-            // its place drops every name it held and the sign that it was damaged.
-            const string Damaged = "{ not a list";
-            _database.Database.CustomData.Set(ProfileNames.CustomDataKey, Damaged);
+            // Read, a damaged list names nothing, or fewer names than it holds, and a list of only
+            // the approved names written in its place drops every name reading left out and the
+            // sign that it was damaged.
+            _database.Database.CustomData.Set(ProfileNames.CustomDataKey, damaged);
 
             using (var certificate = IssueClient())
             {
                 var result = _writer.WriteAdmission(_database.Database, Record(certificate, "ops"));
 
                 Assert.That(result.Ok, Is.True, result.Reason);
-                Assert.That(_database.Database.CustomData.Get(ProfileNames.CustomDataKey), Is.EqualTo(Damaged));
+                Assert.That(_database.Database.CustomData.Get(ProfileNames.CustomDataKey), Is.EqualTo(damaged));
                 Assert.That(_log.Warnings.Any(line => line.Contains("will not read")), Is.True);
             }
         }

@@ -82,17 +82,40 @@ namespace KeePassGate.Acl
         }
 
         /// <summary>
-        /// Whether a stored list reads as one: absent and empty are a list naming nothing, and
-        /// anything else has to be the object this writes.
+        /// Whether a stored list reads whole, losing nothing: absent and empty are a list naming
+        /// nothing, and anything else has to be the object this writes, holding nothing
+        /// <see cref="Read"/> would leave out.
         /// </summary>
         /// <remarks>
-        /// <see cref="Read"/> answers a list that will not read as one naming nothing, the safe
-        /// direction for every reader that only asks what is named. This is for the reader that
-        /// writes what it reads, and must not write that nothing.
+        /// <see cref="Read"/> answers a list that will not read as a list naming nothing, and leaves
+        /// out every name it could not add, the safe direction for every reader that only asks what
+        /// is named. This is for the reader that writes what it reads, and must not write that
+        /// nothing.
+        ///
+        /// **What reads has to read whole.** While this asked only whether the value parsed, a flat
+        /// object of another shape counted as a list: a `Profiles` spelled with a capital, a
+        /// `profiles` that is a string, a member beside it, or a name the list cannot hold. Each
+        /// read as naming nothing, or fewer names than it held, so a renewal wrote its client a
+        /// record with no profiles and a pairing wrote its own names over the list. Every name the
+        /// object holds has to be held by the list read from it, which is the rule
+        /// <see cref="Add"/> keeps and no other; a name written twice loses nothing and reads.
         /// </remarks>
         public static bool Readable(string document)
         {
-            return string.IsNullOrEmpty(document) || JsonBody.Read(document) != null;
+            if (string.IsNullOrEmpty(document))
+            {
+                return true;
+            }
+
+            var body = JsonBody.Read(document);
+            var written = body == null || body.Count != 1 ? null : body.Array(ProfilesKey);
+            if (written == null)
+            {
+                return false;
+            }
+
+            var read = new ProfileNames(written);
+            return written.All(read.Holds);
         }
 
         /// <summary>
