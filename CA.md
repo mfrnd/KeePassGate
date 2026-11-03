@@ -231,36 +231,36 @@ written over the old key lost to any copy whose time for that key was later, so 
 in could put back the authority the operator had replaced. A document is now written once and never
 rewritten in place. What replaces it is a retirement, `KPG.RetiredAuthority.<sha256>`, added beside
 it and never changed or removed: recreating retires the old authority, deletes its document and
-writes the new one, and deleting retires it and deletes its document. Anything that later wants to
-renew a part, the host certificate say, needs a key of its own that is also written once. The single
-key is not read or migrated: a database that holds one reads as having no authority, and is given a
-new one and paired again.
+writes the new authority, and deleting retires it and deletes its document. Anything that later
+wants to renew a part, the host certificate for instance, needs a key of its own that is also
+written once. The single key is not read or migrated: a database that holds that key reads as having
+no authority, and is given a new authority and paired again.
 
 **Which authority a database has is decided by the retirements, never by counting documents.** The
 authorities are the documents with no retirement beside them, so a retired document that a merge
 brings back serves nothing, and the plugin's next write takes it away again. **More than one
-authority with no retirement serves nothing**: that is two copies that each created or recreated
-one, meeting in a synchronize, and choosing between them is the operator's decision rather than
-this plugin's. A key that names no proper digest, a bare `KPG.Authority.` among them, is a document
-too, filed under a digest not its own: beside another it is one more candidate that can be retired
-and never kept, and it holds up that database alone, since **what one database holds stops no other
-being served**.
+authority with no retirement serves nothing**: that is copies that each created or recreated an
+authority, meeting in a synchronize, and choosing between them is the operator's decision rather
+than this plugin's. A key that names no proper digest, a bare `KPG.Authority.` among them, is a
+document too, filed under a digest not its own: beside another authority it is one more candidate,
+which can be retired and never kept, and it holds up that database alone, since **what one database
+holds stops no other being served**.
 
 **So the plugin asks, and answers `503 undecided` until somebody has.** A connection to such a
 database is answered before a request is read, with each authority's own host certificate and no
 responder. KeePass asks the operator which authority to keep in a dialog over its main window, the
 first time the plugin sees the state: when the database is opened or unlocked, or at the save that
 ends a synchronize, and never from a connection. For each authority it shows the fingerprint, when
-it was made, and every client chaining to it with its profiles, when it was admitted and when it
-last made a request where the audit says so.
-Keeping one retires every other, through the single writer's guard, and marks the database
-modified without saving it; the records of the authorities not kept stay, admitting nobody, and
-the clients page names them for what they are. Cancel serves nothing, and the KPG tab's authority
-page asks again, waiting for the settings dialog's OK like everything else there. **A choice the
-writer refuses is tried again for a few seconds** before the operator is told to choose again,
-which is the operator's ruling of 2026-10-14: another client's write holding the writer, or KeePass
-part way through a save, is over in a moment, and only a refusal that outlasts that, Database
-Maintenance left open among them, is put back in front of the operator.
+it was made, and every client chaining to it with its profiles, when it was admitted and, where the
+audit holds it, when it last made a request. Keeping an authority retires every other authority,
+through the single writer's guard, and marks the database modified without saving it; the records of
+the authorities not kept stay, admitting nobody, and the clients page names them for what they are.
+Cancel serves nothing, and the KPG tab's authority page asks again, waiting for the settings
+dialog's OK like everything else there. **A choice the writer refuses is tried again for a few
+seconds** before the operator is told to choose again, which is the operator's ruling of 2026-10-14:
+another client's write holding the writer, or KeePass part way through a save, is over in a moment,
+and only a refusal that outlasts that, Database Maintenance left open among them, is put back in
+front of the operator.
 
 **Recreating and deleting both remove every admission record, and every revocation with the records
 it emptied.** Each certificate they name chains to the authority just retired, and the retirement
@@ -281,9 +281,9 @@ Deleting an emptied record there changes nothing, since the revocation beside it
 certificate. Deleting a revocation leaves the client refused only by its emptied record, which a
 stale copy merged in afterwards can beat, the way a dropped time, a slow clock or an import beat it
 before revocations had keys of their own. Deleting a retirement lets a stale copy's old authority
-back in beside the one in use, and the save that ends that synchronize asks the operator to choose
-between them again. Revoking, recreating and deleting are done on the KPG tab, which writes each of
-them the way this section says.
+back in beside the authority in use, and the save that ends that synchronize asks the operator to
+choose between them again. Revoking, recreating and deleting are done on the KPG tab, which writes
+each of them the way this section describes.
 
 ### How each value is written §222
 

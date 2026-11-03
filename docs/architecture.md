@@ -159,7 +159,7 @@ Reading moves neither timeout.
 | --- | --- |
 | Open | everything the record and the rules allow |
 | Locked | every route answers that the database is locked, and nothing else |
-| Undecided | the database holds more than one authority and the operator has not kept one: every route answers that, and nothing else |
+| Undecided | the database holds more than one authority and the operator has not yet kept any of them: every route answers that, and nothing else |
 | Open twice | two copies of one database holding the same authority, a backup opened beside the original for instance, answer to the same name and cannot be told apart, so neither is served: a connection is dropped before TLS until one of them is closed |
 | Closed | the gate is listening, but nothing resolves, so a connection is dropped before TLS |
 | KeePass not running | nothing is listening |

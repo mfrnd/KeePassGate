@@ -257,7 +257,7 @@ namespace KeePassGate.Bridge
             _prompt.Tell(
                 GateName.Full,
                 "The authority was not kept: " + kept.Message + Environment.NewLine +
-                Environment.NewLine + "Nothing is served for this database until one is. " +
+                Environment.NewLine + "Nothing is served for this database until an authority is kept. " +
                 "Choose again from the " + GateName.OnATab + " tab of the database settings.");
         }
 

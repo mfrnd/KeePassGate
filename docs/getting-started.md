@@ -220,26 +220,26 @@ number nobody can work out unaided. Both retire the old authority rather than on
 a copy of the file from before, synchronized in later, cannot put it back into service.
 
 An authority made by a development build older than this layout is not read at all: the page says
-the database has no authority yet. Create one, and pair every program again.
+the database has no authority yet. Create a new authority, and pair every program again.
 
 ## When a database holds more than one authority
 
-Two copies of one database that each created or recreated an authority, and were then synchronized,
-hold both. The plugin will not guess which one is trusted, so it serves neither: every program that
-connects is told the database is undecided, and nothing can pair.
+Copies of one database that each created or recreated an authority, and were then synchronized, hold
+every authority they made. The plugin will not guess which authority is trusted, so it serves none
+of them: every program that connects is told the database is undecided, and nothing can pair.
 
 KeePass then asks, in a window titled **KeePassGate (KPG): choose an authority** over its main
 window, as soon as the plugin sees the database that way: when it is opened or unlocked, or when it
 is saved, which is how a synchronize ends. The window lists every authority with its fingerprint,
-when it was created and how many clients it admitted, and for the one selected, its whole
+when it was created and how many clients it admitted, and for the authority selected, its whole
 fingerprint and every client it admitted, with the client's profiles, when it was admitted and when
 it last made a request, if the audit file remembers one.
 
 ![The window asking which authority to keep](images/authority-chooser.png)
 
-**Keep this one** keeps the selected authority and retires every other one for good: the programs
-they admitted stop working and have to pair again, and their rows stay on the clients page as
-**not this authority** until they are removed. The database is marked changed and not saved, so
+**Keep this one** keeps the selected authority and retires every other authority for good: the
+programs those admitted stop working and have to pair again, and their rows stay on the clients page
+as **not this authority** until they are removed. The database is marked changed and not saved, so
 save it to keep the choice.
 
 **Cancel** serves nothing. The Certificate Authority page then says the database holds more than

@@ -223,7 +223,8 @@ namespace KeePassGate.Ui
         {
             return candidates.ToString(CultureInfo.InvariantCulture) +
                    " authorities were made separately in copies of this database that were later " +
-                   "merged. Nothing is served until one of them is kept: choose it below.";
+                   "merged. Nothing is served until one of these authorities is kept: press " +
+                   GateTab.ChooseButtonText + " below.";
         }
 
         private static IEnumerable<string> RecordsOnly(AuthorityReading reading)

@@ -684,7 +684,7 @@ class TestWaitingOutARefusal:
         self, tmp_path: Path, bundle: dict[str, Any], gate: FakeGate, waited: list[float]
     ) -> None:
         # Not on the busy one, which used to be spent on it: `undecided` waits for a person to
-        # choose between two authorities, and may end with this client's not kept.
+        # choose between authorities, and may end with this client's not kept.
         stored = credentials_module.save(tmp_path / "kept", gate.port, bundle)
         self._refusing(gate, 1, "undecided")
 

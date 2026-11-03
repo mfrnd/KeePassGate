@@ -2177,10 +2177,10 @@ components:
         change and answers `500 internal error`, because the change could not be attempted.
 
         `undecided` is a database holding more than one certificate authority that nobody has
-        chosen between, which is two copies that each made one meeting in a synchronize. It is
-        answered before a route is chosen too, with each authority's own host certificate, so a
-        client of either reaches it, pairing included, and it lasts until the operator keeps one of
-        them, which KeePass asks for on its own screen. The clients of the authorities not kept are
+        chosen between, which is copies that each made an authority of their own meeting in a
+        synchronize. It is answered before a route is chosen too, with each authority's own host
+        certificate, so a client of any of them reaches it, pairing included, and it lasts until the
+        operator keeps one of them, which KeePass asks for on its own screen. The clients of the authorities not kept are
         refused from then on and pair again.
 
         `busy` is five things, and a read meets the first as readily as a write meets the others.

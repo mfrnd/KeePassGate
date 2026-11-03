@@ -217,12 +217,13 @@ class DatabaseLocked(GateUnavailable):
 
 
 class AuthorityUndecided(GateUnavailable):
-    """`503 undecided`: the database holds more than one authority, and nobody has kept one.
+    """`503 undecided`: the database holds more than one authority, and nobody has kept any.
 
-    Two copies of one database that each made an authority meet in a synchronize, and the
-    operator is asked at KeePass which to keep. Until somebody answers, every route answers this,
-    pairing included. It ends only when a person chooses, and it can end with the authority this
-    client belongs to not kept, after which this client reaches nothing and pairs again.
+    Copies of one database that each made an authority of their own meet in a synchronize, and
+    the operator is asked at KeePass which authority to keep. Until somebody answers, every
+    route answers this, pairing included. It ends only when a person chooses, and it can end
+    with the authority this client belongs to not kept, after which this client reaches nothing
+    and pairs again.
     """
 
     #: The word the gate sends with this refusal.
