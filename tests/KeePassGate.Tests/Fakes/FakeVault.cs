@@ -233,6 +233,11 @@ namespace KeePassGate.Tests.Fakes
         {
             Looking();
 
+            if (string.Equals(uuid, Vanishes, StringComparison.Ordinal))
+            {
+                return null;
+            }
+
             var group = Find(uuid);
             return group == null ? null : group.Describe();
         }
@@ -354,6 +359,11 @@ namespace KeePassGate.Tests.Fakes
         /// Both lookups that carry a node answer nothing for it, because a route reaching for the
         /// node it was going to ask about is what the race is: which of the two a handler happens
         /// to call is not something the operator's delete knows about.
+        ///
+        /// **A group as well**, whose lookup answers nothing for it the same way. Every change still
+        /// finds the node, which is the other race: an operator's move, caught between taking the
+        /// node out of one group and putting it into the other, misses a handler's lookup and is
+        /// over by the time the write looks again.
         /// </remarks>
         public string Vanishes { get; set; }
 

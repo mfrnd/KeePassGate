@@ -12,6 +12,12 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **A write that loses sight of its entry or group before writing writes nothing.** Five write
+  routes asked whether the caller may reach protected values only when their own lookup found the
+  node, and handed the write on when it did not, though the write looks the node up again. An
+  operator moving the entry at that moment let a rule without `protected` write a protected value,
+  or strip a protected field it could put back unprotected. Such a write is answered `404` now, as
+  a read is, or `503 locked` when the database locked.
 - **A protected field is kept from a strip whenever any profile could put an unprotected value
   back.** The guard asked whether some profile could create there and whether some profile could
   create a protected value there, so a program holding one profile that could put an unprotected
