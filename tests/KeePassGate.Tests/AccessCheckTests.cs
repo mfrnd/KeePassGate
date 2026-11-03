@@ -91,6 +91,35 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void Two_profiles_that_each_allow_one_side_of_a_removal_do_not_allow_it()
+        {
+            // S118, under the operator's ruling R10: a change is allowed by one profile. `ops` may
+            // remove from the root and not this entry, `cleaner` this entry and nothing from the
+            // root, so neither may remove it, and holding both changes nothing.
+            var entry = TestNode.Root("root").Granting("ops", AclVerb.Delete)
+                .Child("an entry").Holding(Rules.Granting(("cleaner", "D"), ("ops", "")));
+
+            Assert.That(
+                _check.Decide(Client("ops", "cleaner"), "deleteEntry", AclVerb.Delete, AclReach.Fields, entry).Permitted,
+                Is.False);
+            Assert.That(
+                _check.Decide(Client("cleaner", "ops"), "deleteEntry", AclVerb.Delete, AclReach.Fields, entry).Permitted,
+                Is.False, "whichever order the record holds them in");
+        }
+
+        [Test]
+        public void A_removal_one_profile_allows_on_both_sides_is_allowed_whatever_else_is_held()
+        {
+            // The profile that allows both sides answers, after a profile that allows neither.
+            var entry = TestNode.Root("root").Granting("ops", AclVerb.Delete).Child("an entry");
+
+            var decision = _check.Decide(
+                Client("reader", "ops"), "deleteEntry", AclVerb.Delete, AclReach.Fields, entry);
+
+            Assert.That(decision.Permitted, Is.True);
+        }
+
+        [Test]
         public void Nothing_above_the_root_allows_it_to_be_removed()
         {
             // Not a special case in the code: the root has no container to ask, and a removal asks
@@ -298,11 +327,13 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void A_removal_two_removed_profiles_allow_only_together_names_both()
+        public void A_removal_two_removed_profiles_would_allow_only_together_is_the_rules_refusing()
         {
-            // A removal is asked of the group it leaves and of the node itself, so one removed name
-            // can be what the container needed and another what the node did: `ops` may remove
-            // from the root and not this entry, `cleaner` this entry and nothing from the root.
+            // One removed name could be what the container needed and another what the node did:
+            // `ops` may remove from the root and not this entry, `cleaner` this entry and nothing
+            // from the root. Neither would have permitted it alone, and since one profile has to
+            // allow both sides of a removal, both of them together would not either, so no removed
+            // profile is blamed: the rules refused it.
             var entry = TestNode.Root("root").Granting("ops", AclVerb.Delete)
                 .Child("an entry").Holding(Rules.Granting(("cleaner", "D"), ("ops", "")));
 
@@ -310,8 +341,8 @@ namespace KeePassGate.Tests
 
             var recorded = _audit.Entries.Single();
 
-            Assert.That(recorded.Reason, Is.EqualTo(AccessCheck.ProfileRemoved));
-            Assert.That(recorded.RemovedProfiles, Is.EqualTo(new[] { "ops", "cleaner" }));
+            Assert.That(recorded.Reason, Is.Not.EqualTo(AccessCheck.ProfileRemoved));
+            Assert.That(recorded.RemovedProfiles, Is.Null);
         }
 
         [Test]

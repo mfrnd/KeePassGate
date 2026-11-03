@@ -129,7 +129,8 @@ which names an entry holds. It never learns a value that way.
 
 **`S` and `D` are two sizes of removal.** `S` takes parts off a node: an entry's fields and its
 attachments. `D` says removals are allowed here, and removing a group or an entry asks for it
-**twice**, from the group the thing is leaving and from the thing itself.
+**twice**, from the group the thing is leaving and from the thing itself, and one profile has to
+grant both.
 
 That is what allows the grant most people want. Put `D` on one group and a program may
 create and remove entries and subgroups inside it, including ones it makes later, while **the group
@@ -257,7 +258,11 @@ For any one profile, the nearest rule wins.
 - A profile that no rule names is answered by whatever the groups above say.
 
 Different profiles do not interfere: they are worked out separately and combined, so a program
-holding two profiles may reach what either of them reaches.
+holding two profiles may reach what either of them reaches. A change has to be allowed by one
+profile, though: removing an entry needs `D` from one profile in both places, and two profiles
+holding one `D` each do not add up to it. Listings are where profiles work together: a listing can
+be taken from a group one profile may list, and shows every item in it that any profile the program
+holds may list, with a protected title where that profile reaches protected values.
 
 An empty mask is a rule too. `........` on a group grants that profile nothing from there down, which
 is how a subtree is closed off for one profile while leaving the rest alone. A profile just

@@ -1824,7 +1824,8 @@ components:
             rule granting `A` or `P` beside `S` or `D` alone is answered without it, since
             removing takes attachments and protected values without asking. `D` is the rule saying
             removals are allowed here; removing the node itself asks the group above it as well,
-            so it needs a `D` in that group's answer too. The question is asked of the node
+            so it needs a `D` in that group's answer too, from the same profile. The question is
+            asked of the node
             alone, as the KPG tab shows a rule there, so `S` is reported on a group though no
             operation strips one: a mask says what the rules grant at the node rather than which
             operations would succeed on it.
