@@ -66,8 +66,31 @@ namespace KeePassGate.Tests
             using (var reading = _store.Read())
             {
                 Assert.That(reading.Presence, Is.EqualTo(AuthorityPresence.None));
+                Assert.That(reading.IsRetired, Is.False);
                 Assert.That(reading.Material, Is.Null);
                 Assert.That(reading.Problems, Is.Empty);
+            }
+        }
+
+        [Test]
+        public void A_database_that_held_an_authority_reads_as_retired_once_every_document_is_gone()
+        {
+            // The retirement is never removed, so it outlives the document the prune takes away,
+            // and the reading reports that this database has held an authority.
+            Write();
+            _store.DeleteEverything();
+
+            using (var reading = _store.Read())
+            {
+                Assert.That(reading.Presence, Is.EqualTo(AuthorityPresence.None));
+                Assert.That(reading.IsRetired, Is.True);
+            }
+
+            Write();
+            using (var reading = _store.Read())
+            {
+                Assert.That(reading.IsPresent, Is.True);
+                Assert.That(reading.IsRetired, Is.False, "an authority served is not retired, whatever was before it");
             }
         }
 

@@ -67,9 +67,12 @@ namespace KeePassGate.Authority
             var records = _admissions.Count(out listed);
 
             List<KeyValuePair<string, string>> live;
+            bool retired;
             try
             {
-                live = Live();
+                var retirements = Retired();
+                live = Live(retirements);
+                retired = retirements.Count > 0;
             }
             catch (Exception error) when (Expected.OfCustomData(error))
             {
@@ -81,7 +84,11 @@ namespace KeePassGate.Authority
 
             if (live.Count == 0)
             {
-                return AuthorityReading.Absent(records, listed);
+                // A retirement is never removed, so a database that held an authority is still
+                // read as retired once every document is gone: deleted, or retired by copies that
+                // each kept a different authority. Read as absence, it looked like a database that
+                // never had an authority.
+                return retired ? AuthorityReading.Retired(records, listed) : AuthorityReading.Absent(records, listed);
             }
 
             if (live.Count == 1)
@@ -294,9 +301,8 @@ namespace KeePassGate.Authority
         /// The authorities: every document with no retirement beside it, by digest, in the order
         /// of their digests.
         /// </summary>
-        private List<KeyValuePair<string, string>> Live()
+        private List<KeyValuePair<string, string>> Live(HashSet<string> retired)
         {
-            var retired = Retired();
             var live = new List<KeyValuePair<string, string>>();
 
             foreach (var key in Keys())
@@ -333,7 +339,7 @@ namespace KeePassGate.Authority
         {
             try
             {
-                return Live();
+                return Live(Retired());
             }
             catch (Exception error) when (Expected.OfCustomData(error) && !(error is GateFailure))
             {

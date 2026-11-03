@@ -6,7 +6,10 @@ namespace KeePassGate.Authority
     /// <summary>Whether a database carries an authority, and whether it is whole.</summary>
     public enum AuthorityPresence
     {
-        /// <summary>Nothing of this plugin's is in the database.</summary>
+        /// <summary>
+        /// No authority: no authority has been made yet, or every authority made has been retired,
+        /// which <see cref="AuthorityReading.IsRetired"/> tells apart.
+        /// </summary>
         None,
 
         /// <summary>Something is there and cannot be used. Never treated as absence.</summary>
@@ -41,6 +44,7 @@ namespace KeePassGate.Authority
         private readonly List<AuthorityCandidate> _candidates;
         private readonly int _clientRecordCount;
         private readonly bool _clientsComplete;
+        private readonly bool _retired;
 
         private AuthorityReading(
             AuthorityPresence presence,
@@ -48,7 +52,8 @@ namespace KeePassGate.Authority
             IEnumerable<string> problems,
             IEnumerable<AuthorityCandidate> candidates,
             int clientRecordCount,
-            bool clientsComplete)
+            bool clientsComplete,
+            bool retired)
         {
             _presence = presence;
             _material = material;
@@ -58,6 +63,7 @@ namespace KeePassGate.Authority
                 : new List<AuthorityCandidate>(candidates);
             _clientRecordCount = clientRecordCount;
             _clientsComplete = clientsComplete;
+            _retired = retired;
         }
 
         public AuthorityPresence Presence
@@ -106,17 +112,38 @@ namespace KeePassGate.Authority
             get { return _presence == AuthorityPresence.Present; }
         }
 
+        /// <summary>
+        /// Whether a database with no authority has held an authority and retired every authority
+        /// it held. Only a <see cref="AuthorityPresence.None"/> reading is ever retired, and nothing
+        /// is served either way: what differs is what the operator is told, which is not that there
+        /// has never been an authority.
+        /// </summary>
+        public bool IsRetired
+        {
+            get { return _retired; }
+        }
+
         public static AuthorityReading Absent(int clientRecordCount, bool clientsComplete)
         {
             return new AuthorityReading(
-                AuthorityPresence.None, null, null, null, clientRecordCount, clientsComplete);
+                AuthorityPresence.None, null, null, null, clientRecordCount, clientsComplete, false);
+        }
+
+        /// <summary>
+        /// No authority, in a database whose every authority is retired: deleted, or retired by
+        /// copies that each kept a different authority, once their answers were synchronized.
+        /// </summary>
+        public static AuthorityReading Retired(int clientRecordCount, bool clientsComplete)
+        {
+            return new AuthorityReading(
+                AuthorityPresence.None, null, null, null, clientRecordCount, clientsComplete, true);
         }
 
         public static AuthorityReading Damaged(
             IEnumerable<string> problems, int clientRecordCount, bool clientsComplete)
         {
             return new AuthorityReading(
-                AuthorityPresence.Damaged, null, problems, null, clientRecordCount, clientsComplete);
+                AuthorityPresence.Damaged, null, problems, null, clientRecordCount, clientsComplete, false);
         }
 
         public static AuthorityReading Whole(
@@ -128,7 +155,7 @@ namespace KeePassGate.Authority
             }
 
             return new AuthorityReading(
-                AuthorityPresence.Present, material, null, null, clientRecordCount, clientsComplete);
+                AuthorityPresence.Present, material, null, null, clientRecordCount, clientsComplete, false);
         }
 
         /// <summary>
@@ -144,7 +171,7 @@ namespace KeePassGate.Authority
             }
 
             return new AuthorityReading(
-                AuthorityPresence.Undecided, null, null, candidates, clientRecordCount, clientsComplete);
+                AuthorityPresence.Undecided, null, null, candidates, clientRecordCount, clientsComplete, false);
         }
 
         public void Dispose()

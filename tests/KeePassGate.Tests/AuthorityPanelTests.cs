@@ -244,7 +244,8 @@ namespace KeePassGate.Tests
                 Assert.That(prompt.Asked, Is.EqualTo(1));
                 Assert.That(_database.Store.Keys.All(k => AuthorityKeys.FingerprintInRetirement(k) != null), Is.True,
                     "nothing is left but the retirement that keeps it deleted");
-                Assert.That(Label(panel, GateTab.StatusLabelName).Text, Is.EqualTo(AuthorityDescription.AbsentHeadline));
+                Assert.That(Label(panel, GateTab.StatusLabelName).Text, Is.EqualTo(AuthorityDescription.RetiredHeadline),
+                    "and the page shows the authority as retired rather than as never made");
             }
         }
 

@@ -72,6 +72,45 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_database_that_retired_every_authority_it_held_says_so_and_offers_creation()
+        {
+            // "No authority yet" is what a database that never had an authority is shown, and a
+            // database whose authorities were all retired was shown it too, which sent the operator
+            // looking for a step they had missed rather than at what retired them.
+            _service.Create();
+            _service.Delete();
+
+            using (var reading = _service.Read())
+            {
+                var description = AuthorityDescription.Of(reading, null, null, Now);
+
+                Assert.That(description.Headline, Is.EqualTo(AuthorityDescription.RetiredHeadline));
+                Assert.That(description.Details, Is.EqualTo(new[] { AuthorityDescription.RetiredLine }));
+                Assert.That(description.CanCreate, Is.True);
+                Assert.That(description.CanRecreate, Is.False);
+                Assert.That(description.CanDelete, Is.False);
+            }
+        }
+
+        [Test]
+        public void Records_left_beside_retired_authorities_are_called_inert_under_the_retirement()
+        {
+            _values.Plant(AuthorityKeys.RetirementKey(new string('a', 64)), AuthorityKeys.RetiredValue);
+            _values.Plant(AuthorityKeys.ClientPrefix + "aaa", "record");
+
+            using (var reading = _service.Read())
+            {
+                var description = AuthorityDescription.Of(reading, null, null, Now);
+
+                Assert.That(description.Headline, Is.EqualTo(AuthorityDescription.RetiredHeadline));
+                Assert.That(description.Details.Count, Is.EqualTo(2));
+                Assert.That(description.Details[0], Is.EqualTo(AuthorityDescription.RetiredLine));
+                Assert.That(description.Details[1], Does.Contain("inert"));
+                Assert.That(description.CanDelete, Is.True, "the records can still be taken away");
+            }
+        }
+
+        [Test]
         public void A_healthy_authority_offers_recreation_and_deletion_but_not_creation()
         {
             _service.Create();
@@ -581,7 +620,8 @@ namespace KeePassGate.Tests
                 AuthorityDescription.DamagedHeadline,
                 AuthorityDescription.PresentHeadline,
                 AuthorityDescription.UndecidedHeadline,
-                AuthorityDescription.AbsentHeadline
+                AuthorityDescription.AbsentHeadline,
+                AuthorityDescription.RetiredHeadline
             }), "every headline, since which is tallest is not something to assume");
 
             var damaged = longest.Single(description => description.Headline == AuthorityDescription.DamagedHeadline);

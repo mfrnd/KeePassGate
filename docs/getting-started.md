@@ -213,7 +213,8 @@ that had not been saved yet, an edit made in KeePass included:
 Every program let in has to pair again. It is the recovery from an authority no longer trusted, not a way
 to remove one program: for that, see [`clients.md`](clients.md).
 
-**Delete authority** stops this database being served at all.
+**Delete authority** stops this database being served at all, and the Certificate Authority page
+then shows every authority this database has held as retired.
 
 Both ask first, and both say how many clients are about to be cut off, because that is the
 number nobody can work out unaided. Both retire the old authority rather than only removing it, so
@@ -245,6 +246,12 @@ save it to keep the choice.
 **Cancel** serves nothing. The Certificate Authority page then says the database holds more than
 one authority, and **Choose authority** there asks again; a choice made from there waits for OK
 like everything else on that tab.
+
+**Copies that keep different authorities retire every authority.** Every copy synchronized before
+anybody answered asks on its own, and the clients each copy lists are those that machine has seen,
+so copies can easily keep different authorities. Once those copies are synchronized, every authority
+is retired: nothing is served, the Certificate Authority page shows every authority this database
+has held as retired, and nothing undoes that. Create a new authority, and pair every program again.
 
 ## Locking while a program writes
 

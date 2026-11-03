@@ -12,6 +12,11 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **The KPG tab shows a database whose every authority is retired as retired**, rather than as
+  having no authority yet. Copies that each kept a different authority in the chooser, before
+  their answers were synchronized, retire every authority, and the tab then sent the operator
+  looking for a step they had missed. A delete, which retires an authority too, is shown the same
+  way.
 - **The client's messages and the documentation name the authority** wherever "one" stood for
   it, and no longer assume two copies or two authorities.
 - **A database holding a crafted authority key stops only itself being served.** A key named

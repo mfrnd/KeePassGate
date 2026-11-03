@@ -3,6 +3,7 @@ using System.Drawing;
 using System.Linq;
 using System.Threading;
 using System.Windows.Forms;
+using KeePassGate.Authority;
 using KeePassGate.Pairing;
 using KeePassGate.Tests.Fakes;
 using KeePassGate.Ui;
@@ -69,6 +70,38 @@ namespace KeePassGate.Tests.Gallery
                 Clients,
                 () => new PendingDatabase(new FakeGateDatabase(), null),
                 panel => panel.CreateAuthority());
+
+            // Every authority it held retired, here by deleting the authority it had: the
+            // headline is not the headline of a database that never had an authority, and a line
+            // under it explains how a database comes to this and what is left to do.
+            Shoot(
+                "authority-07-every-authority-retired",
+                Gallery.SettingsPage,
+                Authority,
+                panel =>
+                {
+                    panel.CreateAuthority();
+                    panel.DeleteAuthority();
+                });
+
+            // Copies that each kept a different authority, once their answers are synchronized:
+            // every authority retired, two of them here, and the records of each left behind,
+            // admitting nobody. The tallest the page gets with no authority on it.
+            Shoot("authority-08-retired-with-records-left", Gallery.SettingsPage, Authority, () => Retired(3), panel => { });
+        }
+
+        /// <summary>A database whose every authority is retired, with records left behind.</summary>
+        private static IGateDatabase Retired(int records)
+        {
+            var database = new FakeGateDatabase();
+            database.Store.Plant(AuthorityKeys.RetirementKey(new string('a', 64)), AuthorityKeys.RetiredValue);
+            database.Store.Plant(AuthorityKeys.RetirementKey(new string('b', 64)), AuthorityKeys.RetiredValue);
+            for (var i = 0; i < records; i++)
+            {
+                database.Store.Plant(AuthorityKeys.ClientRecordKey(new string((char)('c' + i), 64)), "record");
+            }
+
+            return database;
         }
 
         private const int Authority = 0;
