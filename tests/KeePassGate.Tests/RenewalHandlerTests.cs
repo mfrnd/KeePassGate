@@ -569,6 +569,28 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_refusal_in_this_session_is_not_hidden_by_an_owed_answer_whose_day_has_begun()
+        {
+            // The plugin's memory gave the owed answer before this session's whether or not it
+            // still refused, and the handler let the passed date go and asked again on every
+            // renewal, as though nothing stood.
+            var operatorAt = FakeRenewalApproval.Approving();
+
+            using (var old = _authority.IssueAdmittedClient("reader"))
+            {
+                var key = CertificateDigest.Of(old);
+                _session.Owe("db", key, RenewalRefusal.Until(_now.AddDays(-1)), null);
+                _session.Refuse(key);
+
+                var context = Renew(operatorAt, old, "{}");
+
+                Assert.That(context.Status, Is.EqualTo(409), context.Json);
+                Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody("this session")));
+                Assert.That(operatorAt.Asked, Is.Zero, "nobody was asked");
+            }
+        }
+
+        [Test]
         public void An_owed_answer_until_a_date_stops_refusing_once_its_day_begins()
         {
             var until = _now.AddDays(2);

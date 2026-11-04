@@ -1674,11 +1674,7 @@ namespace KeePassGate.Ui
                     var standing = store.StandingRefusal(record.AdmissionKey);
                     if (standing == null || !standing.Refuses(now))
                     {
-                        standing = _sessionRefusals == null ? null : _sessionRefusals.Answer(record.AdmissionKey);
-                        if (standing != null && !standing.Refuses(now))
-                        {
-                            standing = null;
-                        }
+                        standing = _sessionRefusals == null ? null : _sessionRefusals.Answer(record.AdmissionKey, now);
                     }
 
                     if (standing != null)

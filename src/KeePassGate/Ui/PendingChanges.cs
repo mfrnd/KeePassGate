@@ -781,7 +781,11 @@ namespace KeePassGate.Ui
     public sealed class PendingSessionRefusals
     {
         private readonly SessionRefusals _session;
-        private readonly HashSet<string> _lifted = new HashSet<string>(StringComparer.Ordinal);
+
+        /// <summary>
+        /// Every certificate lifted on the page, with the owed answer the lift held back.
+        /// </summary>
+        private readonly Dictionary<string, OwedAnswer> _lifted = new Dictionary<string, OwedAnswer>(StringComparer.Ordinal);
 
         public PendingSessionRefusals(SessionRefusals session)
         {
@@ -793,33 +797,42 @@ namespace KeePassGate.Ui
             _session = session;
         }
 
-        /// <summary>Whether renewals of this certificate are refused, as OK would leave them.</summary>
-        public bool Refuses(string admissionKey)
+        /// <summary>
+        /// Whether the plugin's memory holds an answer about renewing this certificate, as OK would
+        /// leave it.
+        /// </summary>
+        public bool Holds(string admissionKey)
         {
-            return Answer(admissionKey) != null;
+            return !_lifted.ContainsKey(admissionKey ?? string.Empty) && _session.Holds(admissionKey);
         }
 
         /// <summary>
-        /// The answer the plugin's memory holds about renewing this certificate, as OK would leave
-        /// it: this session's, or one for longer still owed to the database, or null.
+        /// The answer the plugin's memory holds about renewing this certificate that refuses at this
+        /// moment, as OK would leave it: this session's answer, or an answer for longer still owed
+        /// to the database, or null.
         /// </summary>
-        public RenewalRefusal Answer(string admissionKey)
+        public RenewalRefusal Answer(string admissionKey, DateTimeOffset now)
         {
-            return _lifted.Contains(admissionKey ?? string.Empty) ? null : _session.Answer(admissionKey);
+            return _lifted.ContainsKey(admissionKey ?? string.Empty) ? null : _session.Answer(admissionKey, now);
         }
 
         /// <summary>
-        /// Lifts this session's answer about one certificate when the dialog is accepted, answering
-        /// with whether there was one.
+        /// Lifts the plugin's memory of an answer about one certificate when the dialog is
+        /// accepted, answering with whether there was an answer.
         /// </summary>
+        /// <remarks>
+        /// An owed answer is held back from every write at once, through
+        /// <see cref="SessionRefusals.Withhold"/>, because nothing in the database's buffer stands
+        /// for it, and given back by <see cref="Discard"/>.
+        /// </remarks>
         public bool Lift(string admissionKey)
         {
-            if (!Refuses(admissionKey))
+            if (!Holds(admissionKey))
             {
                 return false;
             }
 
-            _lifted.Add(admissionKey);
+            _lifted[admissionKey] = _session.Withhold(admissionKey);
             return true;
         }
 
@@ -829,19 +842,27 @@ namespace KeePassGate.Ui
         /// </summary>
         public IReadOnlyList<string> Apply()
         {
-            var lifted = new List<string>(_lifted);
-            foreach (var key in lifted)
+            var lifted = new List<string>(_lifted.Keys);
+            foreach (var pair in _lifted)
             {
-                _session.Lift(key);
+                _session.Lift(pair.Key, pair.Value);
             }
 
             _lifted.Clear();
             return lifted;
         }
 
-        /// <summary>Forgets what was lifted on the page, which is what Cancel means.</summary>
+        /// <summary>
+        /// Forgets what was lifted on the page, which is what Cancel means, and gives every owed
+        /// answer it held back to the next write.
+        /// </summary>
         public void Discard()
         {
+            foreach (var withheld in _lifted.Values)
+            {
+                _session.Release(withheld);
+            }
+
             _lifted.Clear();
         }
     }

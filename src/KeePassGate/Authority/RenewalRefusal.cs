@@ -114,6 +114,17 @@ namespace KeePassGate.Authority
             return _notBefore.HasValue ? Moments.Wire(_notBefore.Value) : ForeverValue;
         }
 
+        /// <summary>Whether two answers are the same answer, null being none.</summary>
+        public static bool Same(RenewalRefusal first, RenewalRefusal second)
+        {
+            if (first == null || second == null)
+            {
+                return first == null && second == null;
+            }
+
+            return first._thisSession == second._thisSession && first._notBefore == second._notBefore;
+        }
+
         /// <summary>A stored value read back, or null when it is not one this plugin writes.</summary>
         public static RenewalRefusal Read(string written)
         {

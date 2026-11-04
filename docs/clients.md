@@ -197,11 +197,14 @@ click anywhere else puts it away, and a click on **Approve** that puts it away a
 - **Refuse forever** answers every renewal of it without asking at all, so the program has to pair
   again for a new certificate before this one runs out, unless the answer is taken back.
 
-The last two are kept in the database. If KeePass is busy when one is given, saving or with
+The last two are kept in the database. If KeePass is busy when either is given, saving or with
 Database Maintenance open, it holds at once all the same, from KeePass's memory, and is written to
-the database with the next change the plugin itself makes there. One still unwritten when KeePass
-exits is lost, and KeePass says so as it closes, so that nobody is surprised when the dialog comes
-back for that program.
+the database with its next save, yours or the plugin's, once Database Maintenance is closed on it.
+An answer still unwritten when KeePass exits is lost, and KeePass tells you so as it closes, naming
+the certificate, so that nobody is surprised when the dialog comes back for that program. **A later
+answer about the same certificate is the answer that counts**: an answer given on a later dialog, or
+an answer a synchronize brought in from another copy, is kept, and the answer still waiting is let
+go, as an answer until a date whose day has begun is.
 
 The plugin's log says what was answered and when, and the audit file records every renewal the
 operator answered or left unanswered, one refused without asking included. An approval is written

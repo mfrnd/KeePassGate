@@ -12,6 +12,33 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **The message at exit names the standing answers it lets go, and gives no cause.** It counted
+  them and blamed KeePass being busy whenever they were given and nothing being written after
+  them, which was untrue after a save that failed or a save made since, and promised a dialog for
+  clients it did not name. It now names each certificate by the key the log names it by, and the
+  log line names the authority each was given under.
+- **Every save of a database writes the standing answers KeePass could not take**, the operator's
+  own included. They rode on the plugin's own writes alone, so keeping an authority or pressing
+  the KPG tab's OK and then saving went to the file without them, and the message at exit told the
+  operator nothing had been written since. An answer is no longer written while Database
+  Maintenance is open on its database, whose close took it away after memory had let it go, nor
+  let go after a write whose file did not read back as written.
+- **A later standing answer about a certificate is the answer that counts.** An answer KeePass could
+  not take was written with the plugin's next write whatever the database held by then, so it went
+  over the operator's own later answer, in the very write that had just put that answer there, and
+  over an answer a synchronize brought in; and an answer until a date whose day had begun was
+  written to refuse nothing. **Allow renewal** on such an answer was lost when a write landed before
+  the settings dialog's OK. The waiting answer now gives way to anything written since it was given,
+  and Allow renewal holds it back from every write until OK or Cancel.
+- **A renewal refused in this session stays refused when an older answer until a date has passed.**
+  An answer until a date that KeePass could not take, and whose day had begun, stood in front of
+  a later "Refuse in this session" for the same certificate: the renewal dialog came up again on
+  every request, and the clients page showed the client as refused by nothing.
+- **A standing answer KeePass could not take is let go once its authority is recreated or
+  deleted.** Held in memory until a write could take it, an answer about a certificate whose
+  authority was then recreated or deleted was never written and never let go: it stayed held for
+  the session, and the message at exit told the operator its client would be asked about again,
+  which a client of a retired authority never is.
 - **A removal whose save fails is put back where it was, and every change taken back out puts the
   usage count back too.** The undo put an entry or a group back at the end of its parent's list,
   below the recycle bin under the root, and left each node a failed change touched counting one

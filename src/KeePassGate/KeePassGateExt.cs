@@ -40,6 +40,7 @@ namespace KeePassGate
         private MainWindowDatabases _databases;
         private LockWatch _locks;
         private AuthorityChooser _chooser;
+        private OwedAnswerSaves _owedAnswerSaves;
         private InvitationBook _invitations;
 
         /// <summary>
@@ -607,6 +608,15 @@ namespace KeePassGate
                 TellWhatIsStillOwed();
             });
 
+            Attempt("failed to release the save events", () =>
+            {
+                if (_owedAnswerSaves != null)
+                {
+                    _owedAnswerSaves.Dispose();
+                    _owedAnswerSaves = null;
+                }
+            });
+
             Attempt("failed to stop the authority chooser", () =>
             {
                 if (_chooser != null)
@@ -775,8 +785,10 @@ namespace KeePassGate
                 _log);
 
             // The standing answers the operator gave while a database could not take them, which
-            // the writer's next write to that database that lands writes as well.
+            // every save of that database writes as well, whoever asks for it.
             writer.Owed = _sessionRefusals;
+            _owedAnswerSaves = new OwedAnswerSaves(mainWindow, writer, _incidents);
+            _owedAnswerSaves.Start();
 
             _targets = new OpenDatabaseTargets(
                 delegate { return mainWindow.DocumentManager.GetOpenDatabases(); },
@@ -860,11 +872,12 @@ namespace KeePassGate
         /// </summary>
         /// <remarks>
         /// The operator's ruling of 2026-10-14: an answer forever or until a date given while
-        /// KeePass was busy holds from memory and is written by the plugin's next write to that
-        /// database, and one that still cannot be written by then is told to the operator rather
-        /// than only to the log. Exit is when that becomes true for good: a lock or a close keeps
-        /// it, and the next write after an unlock or an open writes it. Said once, on the way out,
-        /// so that the operator knows which programs will be asked about again.
+        /// KeePass was busy holds from memory and is written by the next save of that database,
+        /// and an answer still unwritten is told to the operator rather than only to the log. Exit
+        /// is when that becomes true for good: a lock or a close keeps it, and the next save after
+        /// an unlock or an open writes it. Said once, on the way out, naming each certificate, so
+        /// that the operator knows which programs may be asked about again; `OwedAnswerNotice` has
+        /// the words, and why they give no cause.
         /// </remarks>
         private void TellWhatIsStillOwed()
         {
@@ -877,22 +890,10 @@ namespace KeePassGate
             var log = _log;
             if (log != null)
             {
-                log.Warn(owed.Count + (owed.Count == 1 ? " standing answer" : " standing answers") +
-                         " to renewing a certificate never reached the database, and go now that KeePass exits");
+                log.Warn(OwedAnswerNotice.LogLine(owed));
             }
 
-            new MessageBoxPrompt().Tell(
-                GateName.Full,
-                (owed.Count == 1
-                    ? "A standing answer to renewing a client's certificate, refused forever or until a "
-                      + "date, was never written to its database, because KeePass was busy whenever it "
-                      + "was given and nothing was written after it."
-                    : owed.Count + " standing answers to renewing clients' certificates, refused forever "
-                      + "or until a date, were never written to their databases, because KeePass was busy "
-                      + "whenever they were given and nothing was written after them.")
-                + Environment.NewLine + Environment.NewLine
-                + "They held for this session and go now. The next time those clients ask to renew, "
-                + "the dialog comes up again.");
+            new MessageBoxPrompt().Tell(GateName.Full, OwedAnswerNotice.Message(owed));
         }
 
         /// <summary>
