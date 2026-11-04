@@ -522,7 +522,7 @@ namespace KeePassGate.Transport
         /// thread with nothing around them.
         ///
         /// Anything added to the accept loop has to keep that true, or the loop needs a catch-all
-        /// of its own and <see cref="GateIncidents"/> needs a fifth place in its list.
+        /// of its own, a kind `DESIGN.md` §141 then has to list.
         /// </remarks>
         private static void Drop(TcpClient client)
         {
@@ -717,13 +717,13 @@ namespace KeePassGate.Transport
                 // neither, counts its own: see `Resolve`.
                 _log.Info("a connection ended early: " + error.Message);
             }
-            // codeql[cs/catch-of-all-exceptions] the connection thread, one of the four catch-alls
+            // codeql[cs/catch-of-all-exceptions] the connection thread, a kind of catch-all DESIGN.md §141 lists
             catch (Exception error)
             {
-                // One of the four catch-alls. This runs on a thread pool thread, so an exception
-                // that escapes it is an unhandled exception in the password manager's process, and
-                // the process is what would end. A client chooses when this happens, which is why
-                // what it caught is counted where the operator can see it.
+                // A kind of catch-all `DESIGN.md` §141 lists. This runs on a thread pool thread, so
+                // an exception that escapes it is an unhandled exception in the password manager's
+                // process, and the process is what would end. A client chooses when this happens,
+                // which is why what it caught is counted where the operator can see it.
                 _incidents.Record("a connection failed", error);
             }
             finally

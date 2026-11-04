@@ -362,7 +362,7 @@ namespace KeePassGate.Tests
 
             Assert.DoesNotThrow(() => _events.RaiseClosed("C:\\invented\\one.kdbx", true));
             Assert.That(_incidents.Count, Is.EqualTo(1),
-                "one of the four catch-alls, so it is counted rather than only logged");
+                "a catch-all, so it is counted rather than only logged");
             Assert.That(_log.Surprises, Is.Not.Empty);
         }
 

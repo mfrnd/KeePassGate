@@ -1061,6 +1061,57 @@ So the rules here:
 - Distribution is a **plain DLL** targeting .NET Framework 4.8, not a `.plgx`, which is what allows
   modern C# and what the packaging measurement showed.
 
+### What catches everything, and why §141
+
+**A handler catches what it named**, from the lists `Diagnostics/Expected` keeps, and a few kinds of
+place catch everything instead, each because of what an exception escaping there would do. This is
+the only account of them. Nothing else counts them: each CodeQL suppression of
+`cs/catch-of-all-exceptions` at a place of a listed kind names its kind and this section, so a kind
+added or taken away is an edit here and at the places of that kind. What each kind catches is
+reported through `GateIncidents`, which counts on the plugin's window under Tools and logs at
+`UNEXPECTED`.
+
+The kinds:
+
+- **The handlers of KeePass's own events**, the settings dialog's close among them. KeePass raises
+  its events with nothing around them, so an escape stops KeePass's own work where it was: a lock of
+  every database stops at the database being closed and leaves the databases after it unlocked, and
+  a lock the inactivity timer began leaves that timer's critical section held, since KeePass
+  releases it outside a `finally`, so the timer locks nothing again that session, which is read off
+  KeePass 2.61.1 and not driven. Then WinForms, which KeePass gives no handler for an unhandled
+  exception, puts its own error dialog over KeePass, whose Quit ends the process outside KeePass's
+  own shutdown.
+- **The Tools menu item**, which would bring up that dialog.
+- **The connection thread**, where an escape ends the process.
+- **Each step of `Terminate`**: KeePass throws away whatever `Terminate` throws, so an escape would
+  cost the steps after it, among them what lets go of KeePass's static window events, the socket and
+  the keys, and `Initialize` runs it too, with KeePass carrying on.
+
+**Roots kept safe another way.** The accept thread and a connection's deadline timer have nothing
+above them, like the connection thread, and rather than catching everything, every call they make
+is total or filtered. `GateListener.Drop` explains what keeps that true, and what a change to the
+accept loop has to do if it cannot.
+
+**Places that catch everything without being a kind**, since each throws what it caught again where
+a place of a kind sees it, or must add no exception of its own:
+
+- `GateTlsServer`'s callbacks, because Bouncy Castle turns whatever a callback throws into a fatal
+  alert, and the call `ControlUiThread` marshals, because WinForms would answer an exception
+  escaping it with that dialog, both keeping what they caught for a place of a kind to see.
+- `Initialize`, which calls `Terminate` and throws what it caught to KeePass, since KeePass warns
+  the operator that the plugin cannot be loaded, with the exception's message, and undoes nothing.
+- The reporters, none of which may add an exception of its own: the log, `TraceGateLog`, which the
+  catch-alls report through and whose formatting and trace listeners run code nobody here wrote,
+  `GateIncidents.Record`, which they report to, and the audit line `JsonLinesAudit.Record` shapes,
+  which may not fail the request it records.
+- `Unattended.Post`, which catches what its posted work throws as the catch-all of the handler that
+  posted it, followed across the post to KeePass's message queue, and what its reporter throws, for
+  the reason the log does.
+
+CodeQL reports each of these places but the places that throw again from inside the catch, which
+its query accepts, and each place it reports carries a suppression naming where it stands in this
+account.
+
 ## 9. Audit §120
 
 Every decision, allowed or refused, as JSON Lines outside the database: the admission key and the
@@ -1120,7 +1171,7 @@ on its own path for a change left in force and before anything drawn from the re
 the operation that asked writes none of its own. Written by the operation once the write returned,
 a defect in the Clients page's listener went past every filter to the connection thread's
 catch-all, and the line about a change already on the disk was never written. Catching that defect
-instead would have made a fifth place that catches everything.
+instead would have made a place that catches everything of no kind §141 lists.
 
 Three things step 14 settled about it. It defaults to this user's own application data rather than
 beside the `.kdbx`, because a database is often on a share or in a cloud folder and a record of

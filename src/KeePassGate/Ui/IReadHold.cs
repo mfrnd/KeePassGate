@@ -44,7 +44,7 @@ namespace KeePassGate.Ui
     /// </summary>
     /// <remarks>
     /// A defect here rather than anything a caller or the operator did, so it is thrown as one, to
-    /// be counted where the four catch-alls count everything: waited out instead, it would hold
+    /// be counted where the catch-alls count everything: waited out instead, it would hold
     /// KeePass's window for the length of the hold's limit and then fail anyway. Deliberately not
     /// a `GateFailure`, which several filters take as an ordinary failure to read custom data.
     /// </remarks>

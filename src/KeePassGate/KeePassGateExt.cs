@@ -290,7 +290,7 @@ namespace KeePassGate
                     new MessageBoxPrompt().Tell(GateName.Full, said);
                 }
             }
-            // codeql[cs/catch-of-all-exceptions] the Tools menu item, one of the four catch-alls
+            // codeql[cs/catch-of-all-exceptions] the Tools menu item, a kind of catch-all DESIGN.md §141 lists
             catch (Exception error)
             {
                 _incidents.Record("the status window could not be shown", error);
@@ -700,7 +700,7 @@ namespace KeePassGate
         /// letting it past the steps after it.
         /// </summary>
         /// <remarks>
-        /// One of the four places that catch everything, and for a reason of its own. KeePass
+        /// A kind of catch-all `DESIGN.md` §141 lists, and for a reason of its own. KeePass
         /// catches whatever `Terminate` throws and throws it away, so what an exception let out of
         /// one step costs is the steps after it, among them the ones that let go of KeePass's
         /// static window events, the listening socket and the host keys. `Initialize` runs
@@ -713,7 +713,7 @@ namespace KeePassGate
             {
                 step();
             }
-            // codeql[cs/catch-of-all-exceptions] each step of `Terminate`, one of the four catch-alls
+            // codeql[cs/catch-of-all-exceptions] each step of `Terminate`, a kind of catch-all DESIGN.md §141 lists
             catch (Exception error)
             {
                 Report(failure, error);

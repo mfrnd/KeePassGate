@@ -716,14 +716,14 @@ namespace KeePassGate.Bridge
                     }
                 }
             }
-            // codeql[cs/catch-of-all-exceptions] a handler of KeePass's own events, one of the four catch-alls
+            // codeql[cs/catch-of-all-exceptions] a handler of KeePass's own events, a kind of catch-all DESIGN.md §141 lists
             catch (Exception error)
             {
-                // One of the four catch-alls, and this is why: it runs on KeePass's own thread,
-                // from KeePass's own event, raised with nothing around it from inside the dialog
-                // that is loading. An exception that escapes here stops that dialog part way and
-                // then reaches WinForms' own error dialog, which offers to quit KeePass. What it
-                // caught is reported as an incident rather than as a log line.
+                // A kind of catch-all `DESIGN.md` §141 lists, and this is why: it runs on KeePass's
+                // own thread, from KeePass's own event, raised with nothing around it from inside
+                // the dialog that is loading. An exception that escapes here stops that dialog part
+                // way and then reaches WinForms' own error dialog, which offers to quit KeePass.
+                // What it caught is reported as an incident rather than as a log line.
                 _incidents.Record("a group dialog opening could not be noted", error);
             }
         }
@@ -750,7 +750,7 @@ namespace KeePassGate.Bridge
                     _progress.Remove(form);
                 }
             }
-            // codeql[cs/catch-of-all-exceptions] a handler of KeePass's own events, one of the four catch-alls
+            // codeql[cs/catch-of-all-exceptions] a handler of KeePass's own events, a kind of catch-all DESIGN.md §141 lists
             catch (Exception error)
             {
                 // As above: a KeePass event handler may not throw.

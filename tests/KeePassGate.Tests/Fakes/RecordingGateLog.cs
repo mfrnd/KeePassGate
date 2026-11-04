@@ -60,8 +60,8 @@ namespace KeePassGate.Tests.Fakes
         }
 
         /// <summary>
-        /// What one of the four catch-alls caught. A test that finds one of these has found
-        /// something nobody predicted, which is nearly always a defect rather than a refusal.
+        /// What a catch-all caught. A test that finds such an entry has found something nobody
+        /// predicted, which is nearly always a defect rather than a refusal.
         /// </summary>
         public IEnumerable<Entry> Surprises
         {

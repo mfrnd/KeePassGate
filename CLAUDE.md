@@ -210,38 +210,11 @@ designing around them.
   .NET Framework exposes no server-side SNI hook. Which TLS stack terminates it is the bullet
   below.
 - **Handlers catch what they named.** `Diagnostics/Expected` holds the lists, used as exception
-  filters. Four places catch everything, each for what an escape would do there. **The handlers
-  of KeePass's own events**, the settings dialog's close among them, because KeePass raises its
-  events with nothing around them, so an escape stops KeePass's own work where it was: a lock of
-  every database stops at the one being closed and leaves the ones after it unlocked, and a lock
-  the inactivity timer began leaves that timer's critical section held, since KeePass releases it
-  outside a `finally`, so the timer locks nothing again that session, which is read off KeePass
-  2.61.1 and not driven. Then WinForms, which KeePass gives no handler for an unhandled exception,
-  puts its own error dialog over KeePass, whose Quit ends the process outside KeePass's own
-  shutdown. **The Tools menu item**, which would bring up that dialog. **The connection thread**,
-  where an escape ends the process. **And each step of `Terminate`**: KeePass throws away whatever
-  `Terminate` throws, so an escape would cost the steps after it, among them what lets go of
-  KeePass's static window events, the socket and the keys, and `Initialize` runs it too, with
-  KeePass carrying on.
-  Those report through `GateIncidents`, which counts on the plugin's window under Tools and
-  logs at `UNEXPECTED`. Two more roots are kept safe another way: the accept thread and a
-  connection's deadline timer have nothing above them, like the connection thread, and rather
-  than catching everything, every call they make is total or filtered. `GateListener.Drop`
-  explains what keeps that true. And three places catch everything without being a fifth, since
-  each throws what it caught again: `GateTlsServer`'s callbacks, because Bouncy Castle turns
-  whatever a callback throws into a fatal alert, and the call `ControlUiThread` marshals, because
-  WinForms would answer one escaping it with that dialog, both keeping it for where one of the
-  four sees it, and `Initialize`, which calls `Terminate` and throws it to KeePass, since KeePass
-  warns the operator that the plugin cannot be loaded, with the exception's message, and undoes
-  nothing. **And three reporters catch everything, since none may add an exception of its own**:
-  the log, `TraceGateLog`, which the catch-alls report through and whose formatting and trace
-  listeners run code nobody here wrote, `GateIncidents.Record`, which they report to, and the
-  audit line `JsonLinesAudit.Record` shapes, which may not fail the request it records.
-  `Unattended.Post` catches what its posted work throws, which is the catch-all of the handler
-  that posted it, followed across the post to KeePass's message queue, and what its reporter
-  throws, for the reason the log does. CodeQL reports each of these places but the ones that
-  throw again from inside the catch, which its query accepts, and each place it reports carries a
-  suppression naming where it stands in this account.
+  filters. A few kinds of place catch everything instead, each because of what an escape would do
+  there, and `DESIGN.md` §141 is the only account of them: the kinds and why each, the roots kept
+  safe another way, and the places that catch everything without being a kind. Nothing else
+  counts them, and each CodeQL suppression at a place of a listed kind names its kind and that
+  section, so adding a kind is an edit there and at its places.
   **A line that has to outlive a defect is written before it rather than caught around it**: the
   audit line for a pairing, a renewal or a client's own revocation that landed is written by
   `DatabaseWriter` on its own landed path, before any listener runs and before KeePass's window is

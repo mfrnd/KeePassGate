@@ -204,7 +204,7 @@ namespace KeePassGate
                     }
                 }
             }
-            // codeql[cs/catch-of-all-exceptions] a handler of KeePass's own events, one of the four catch-alls
+            // codeql[cs/catch-of-all-exceptions] a handler of KeePass's own events, a kind of catch-all DESIGN.md §141 lists
             catch (Exception error)
             {
                 // One of the catch-alls: KeePass raises its window events on its own thread, from
