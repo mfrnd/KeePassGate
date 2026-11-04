@@ -562,8 +562,14 @@ namespace KeePassGate.Ui
                 Margin = new Padding(0, 0, 0, 0)
             };
 
-            refuse.Click += delegate { Refuse(); };
-            approve.Click += delegate { Approve(); };
+            refuse.Click += delegate
+            {
+                WindowHandlers.Run("Refuse on the pairing dialog could not be carried out", Refuse);
+            };
+            approve.Click += delegate
+            {
+                WindowHandlers.Run("Approve on the pairing dialog could not be carried out", Approve);
+            };
 
             buttons.Controls.Add(refuse);
             buttons.Controls.Add(approve);
@@ -601,7 +607,8 @@ namespace KeePassGate.Ui
             AcceptButton = refuse;
 
             _clock = new Timer { Interval = 1000 };
-            _clock.Tick += OnTick;
+            _clock.Tick += (sender, e) =>
+                WindowHandlers.Run("the pairing dialog's countdown could not be moved on", () => OnTick(sender, e));
             _clock.Start();
         }
 
@@ -831,16 +838,19 @@ namespace KeePassGate.Ui
         /// </remarks>
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
-            base.OnFormClosing(e);
-
-            if (e.Cancel)
+            WindowHandlers.Run("the pairing dialog's close could not be handled", () =>
             {
-                // The dialog is staying open, so nothing has been decided and the operator can
-                // still answer it.
-                return;
-            }
+                base.OnFormClosing(e);
 
-            Decide(PairingDecision.Refused);
+                if (e.Cancel)
+                {
+                    // The dialog is staying open, so nothing has been decided and the operator can
+                    // still answer it.
+                    return;
+                }
+
+                Decide(PairingDecision.Refused);
+            });
         }
 
         /// <summary>

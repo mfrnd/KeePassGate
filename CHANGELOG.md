@@ -15,6 +15,11 @@ none, since it releases both.
 - **A debugger attached stops wherever the plugin records a failure it did not foresee**, with the
   exception in hand, and continuing carries on as it would with no debugger: every such failure is
   caught, so a debugger was told nothing.
+- **Nothing the plugin's own windows do ends in WinForms' error dialog.** Every handler on the
+  window under Tools, the approval dialogs, the authority chooser and the KPG pages records what it
+  did not foresee, as the plugin's other catch-alls do. Let through, such a failure could reach
+  that dialog in the middle of a save or a lock of KeePass's own, which KeePass handles messages
+  inside, and while it stood KeePass refused every lock and the gate went on serving reads.
 - **The message at exit names the standing answers it lets go, and gives no cause.** It counted
   them and blamed KeePass being busy whenever they were given and nothing being written after
   them, which was untrue after a save that failed or a save made since, and promised a dialog for

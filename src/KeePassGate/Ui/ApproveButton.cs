@@ -27,7 +27,10 @@ namespace KeePassGate.Ui
         /// <summary>Never drawn as the button Enter presses, because it never is.</summary>
         public override void NotifyDefault(bool value)
         {
-            base.NotifyDefault(false);
+            WindowHandlers.Run("Approve could not be kept from being the default button", () =>
+            {
+                base.NotifyDefault(false);
+            });
         }
 
         /// <summary>
@@ -45,12 +48,15 @@ namespace KeePassGate.Ui
         // cspell:ignore mevent
         protected override void OnMouseDown(MouseEventArgs mevent)
         {
-            if (ClosingAMenu != null && ClosingAMenu())
+            WindowHandlers.Run("a press on Approve could not be handled", () =>
             {
-                return;
-            }
+                if (ClosingAMenu != null && ClosingAMenu())
+                {
+                    return;
+                }
 
-            base.OnMouseDown(mevent);
+                base.OnMouseDown(mevent);
+            });
         }
 
         /// <summary>No letter presses it, with Alt or without.</summary>

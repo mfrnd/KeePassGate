@@ -259,9 +259,9 @@ namespace KeePassGate
         /// <remarks>
         /// A catch-all, like the handlers of KeePass's own events: a menu item runs on KeePass's
         /// own thread, and an exception escaping it reaches WinForms, which puts its own error
-        /// dialog over KeePass, with a Quit that ends the process outside KeePass's own shutdown. A
-        /// window that would not open is worth a log line and an incident of its own, not that
-        /// dialog.
+        /// dialog over KeePass, at the cost `DESIGN.md` §141 sets out. A window that would not open
+        /// is worth a log line and an incident of its own, not that dialog. What the window does
+        /// once it is open goes through `WindowHandlers`, its OK among it.
         /// </remarks>
         private void ShowStatus()
         {
@@ -454,6 +454,10 @@ namespace KeePassGate
 
                 _log = new TraceGateLog();
                 _incidents = new GateIncidents(_log);
+
+                // Before any window of the plugin's own is made, so that every handler on one
+                // records what it did not name rather than letting it reach WinForms' own dialog.
+                WindowHandlers.Incidents = _incidents;
                 _log.Info("initializing version " + GateVersion.Current);
                 // Before anything reaches for one, so that a dependency missing from beside the
                 // plugin, replaced by another assembly version, or loaded first by another plugin
@@ -571,6 +575,7 @@ namespace KeePassGate
             {
                 GateIcon.Return();
                 CaptureGuard.Wanted = () => false;
+                WindowHandlers.Incidents = null;
 
                 if (_grants != null)
                 {

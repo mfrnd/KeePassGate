@@ -271,8 +271,11 @@ namespace KeePassGate.Ui
             // to the front is a request to see what is there.
             _tabs.SelectedIndexChanged += delegate
             {
-                Describe();
-                PerformLayout();
+                WindowHandlers.Run("a page of the KPG tab could not be brought forward", () =>
+                {
+                    Describe();
+                    PerformLayout();
+                });
             };
 
             var authority = NewColumn("KpgAuthorityColumn", DockStyle.Fill);
@@ -369,12 +372,14 @@ namespace KeePassGate.Ui
                 Margin = new Padding(0, BoxNudge, 0, 0)
             };
 
-            _copy.Click += OnCopy;
+            _copy.Click += (sender, e) =>
+                WindowHandlers.Run("the invitation could not be copied", () => OnCopy(sender, e));
 
             _tips = new ToolTip();
             Tooltips.Set(_tips, _copy, GateTab.CopyButtonLabel);
 
-            _ticking.Tick += OnTick;
+            _ticking.Tick += (sender, e) =>
+                WindowHandlers.Run("the KPG tab's countdown could not be moved on", () => OnTick(sender, e));
 
             _inviting.Controls.Add(_invite);
             _inviting.Controls.Add(_token);
@@ -426,7 +431,11 @@ namespace KeePassGate.Ui
             // empty label still reserves a line and the pages above it are a line shorter than
             // they could be, for the whole time the operator has pressed nothing.
             _result.Visible = false;
-            _result.TextChanged += delegate { _result.Visible = _result.Text.Length > 0; };
+            _result.TextChanged += delegate
+            {
+                WindowHandlers.Run("the KPG tab's sentence could not be shown",
+                    () => _result.Visible = _result.Text.Length > 0);
+            };
 
             footer.Controls.Add(_result);
 
@@ -1158,21 +1167,24 @@ namespace KeePassGate.Ui
         /// </remarks>
         protected override void OnFontChanged(EventArgs e)
         {
-            base.OnFontChanged(e);
-
-            if (_token == null)
+            WindowHandlers.Run("the KPG tab could not take its new font", () =>
             {
-                return;
-            }
+                base.OnFontChanged(e);
 
-            var before = _tokenFont;
-            _tokenFont = CodeFont(Font.Size);
-            _token.Font = _tokenFont;
+                if (_token == null)
+                {
+                    return;
+                }
 
-            if (before != null)
-            {
-                before.Dispose();
-            }
+                var before = _tokenFont;
+                _tokenFont = CodeFont(Font.Size);
+                _token.Font = _tokenFont;
+
+                if (before != null)
+                {
+                    before.Dispose();
+                }
+            });
         }
 
         /// <summary>
@@ -1187,8 +1199,11 @@ namespace KeePassGate.Ui
         /// </remarks>
         protected override void OnLayout(LayoutEventArgs e)
         {
-            FitToWidth();
-            base.OnLayout(e);
+            WindowHandlers.Run("the KPG tab could not be laid out", () =>
+            {
+                FitToWidth();
+                base.OnLayout(e);
+            });
         }
 
         private void FitToWidth()
@@ -1358,7 +1373,8 @@ namespace KeePassGate.Ui
                 Margin = new Padding(0, 0, Spacing.Gap, 0)
             };
 
-            button.Click += onClick;
+            button.Click += (sender, e) => WindowHandlers.Run(
+                "\"" + text + "\" on the KPG tab could not be carried out", () => onClick(sender, e));
             return button;
         }
 

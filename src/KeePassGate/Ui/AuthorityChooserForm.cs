@@ -166,7 +166,10 @@ namespace KeePassGate.Ui
 
             _authorities.Height = ListHeight(_authorities, choice.Options.Count, FewestAuthorityRows, MostAuthorityRows);
             _authorities.Margin = new Padding(0, 0, 0, Spacing.Gap);
-            _authorities.SelectedIndexChanged += delegate { OnSelectionChanged(); };
+            _authorities.SelectedIndexChanged += delegate
+            {
+                WindowHandlers.Run("the chooser could not show the authority chosen", OnSelectionChanged);
+            };
             layout.Controls.Add(_authorities);
 
             layout.Controls.Add(Line(GateTab.ChooserFingerprintBoxLabel + ":", null, Spacing.Tight));
@@ -239,8 +242,8 @@ namespace KeePassGate.Ui
                 Margin = new Padding(0)
             };
 
-            cancel.Click += delegate { Cancel(); };
-            _keep.Click += delegate { Keep(); };
+            cancel.Click += delegate { WindowHandlers.Run("Cancel on the chooser could not be carried out", Cancel); };
+            _keep.Click += delegate { WindowHandlers.Run("Keep on the chooser could not be carried out", Keep); };
 
             buttons.Controls.Add(cancel);
             buttons.Controls.Add(_keep);
@@ -372,22 +375,28 @@ namespace KeePassGate.Ui
         /// </remarks>
         protected override void OnLoad(EventArgs e)
         {
-            int header;
-            int row;
-            if (RowMetrics(out header, out row))
+            WindowHandlers.Run("the chooser could not be fitted to its lists", () =>
             {
-                Fit(_authorities, header, row, RowsFor(_choice.Options.Count, FewestAuthorityRows, MostAuthorityRows));
-                Fit(_clients, header, row, RowsFor(MostClients(_choice), FewestClientRows, MostClientRows));
-            }
+                int header;
+                int row;
+                if (RowMetrics(out header, out row))
+                {
+                    Fit(_authorities, header, row, RowsFor(_choice.Options.Count, FewestAuthorityRows, MostAuthorityRows));
+                    Fit(_clients, header, row, RowsFor(MostClients(_choice), FewestClientRows, MostClientRows));
+                }
 
-            base.OnLoad(e);
+                base.OnLoad(e);
+            });
         }
 
         /// <summary>Kept out of screen captures when KeePass keeps its own windows out.</summary>
         protected override void OnHandleCreated(EventArgs e)
         {
-            base.OnHandleCreated(e);
-            CaptureGuard.Apply(this);
+            WindowHandlers.Run("the chooser could not be kept out of screen captures", () =>
+            {
+                base.OnHandleCreated(e);
+                CaptureGuard.Apply(this);
+            });
         }
 
         protected override void Dispose(bool disposing)

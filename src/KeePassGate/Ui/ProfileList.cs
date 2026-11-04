@@ -165,7 +165,7 @@ namespace KeePassGate.Ui
                 Margin = new Padding(0)
             };
 
-            add.Click += delegate { Add(_name.Text); };
+            add.Click += delegate { WindowHandlers.Run("a profile could not be added", () => Add(_name.Text)); };
 
             // Enter belongs to this box while the focus is in it. The dialog this page sits on has
             // an accept button, and a form with one treats Enter as that button wherever the focus
@@ -180,13 +180,16 @@ namespace KeePassGate.Ui
             // for it never ran: this hook is where the box says the key is one of its own.
             _name.PreviewKeyDown += delegate(object sender, PreviewKeyDownEventArgs about)
             {
-                Claiming(about);
+                WindowHandlers.Run("Enter could not be kept for the profile's name", () => Claiming(about));
             };
 
             // And this is what it then does with it. `SuppressKeyPress` takes the character away
             // from the box, which is what a text box handed a Return it cannot show answers with a
             // beep; `Handled` alone marks the key dealt with and lets the character travel.
-            _name.KeyDown += delegate(object sender, KeyEventArgs typed) { Typing(typed); };
+            _name.KeyDown += delegate(object sender, KeyEventArgs typed)
+            {
+                WindowHandlers.Run("a key in the profile's name could not be handled", () => Typing(typed));
+            };
 
             var adding = new FlowLayoutPanel
             {
@@ -490,8 +493,10 @@ namespace KeePassGate.Ui
                     + "come back into force if it is added again.")
             });
 
-            grid.CellClick += OnCellClick;
-            grid.CellPainting += OnCellPainting;
+            grid.CellClick += (sender, e) =>
+                WindowHandlers.Run("a press on the profiles could not be carried out", () => OnCellClick(sender, e));
+            grid.CellPainting += (sender, e) =>
+                WindowHandlers.Run("the profiles could not be drawn", () => OnCellPainting(sender, e));
             return grid;
         }
 

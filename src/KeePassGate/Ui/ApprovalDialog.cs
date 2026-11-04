@@ -80,49 +80,64 @@ namespace KeePassGate.Ui
         /// </remarks>
         protected override bool ProcessDialogKey(Keys keyData)
         {
-            if ((keyData & (Keys.Alt | Keys.Control)) == Keys.None)
+            return WindowHandlers.Run("a key on an approval dialog could not be handled", () =>
             {
-                var key = keyData & Keys.KeyCode;
-                if (key == Keys.Enter || key == Keys.Escape)
+                if ((keyData & (Keys.Alt | Keys.Control)) == Keys.None)
                 {
-                    RefuseByKey();
-                    return true;
+                    var key = keyData & Keys.KeyCode;
+                    if (key == Keys.Enter || key == Keys.Escape)
+                    {
+                        RefuseByKey();
+                        return true;
+                    }
                 }
-            }
 
-            return base.ProcessDialogKey(keyData);
+                return base.ProcessDialogKey(keyData);
+            }, true);
         }
 
         /// <summary>Kept out of screen captures when KeePass keeps its own windows out.</summary>
         protected override void OnHandleCreated(EventArgs e)
         {
-            base.OnHandleCreated(e);
-            CaptureGuard.Apply(this);
+            WindowHandlers.Run("an approval dialog could not be kept out of screen captures", () =>
+            {
+                base.OnHandleCreated(e);
+                CaptureGuard.Apply(this);
+            });
         }
 
         protected override void OnShown(EventArgs e)
         {
-            base.OnShown(e);
+            WindowHandlers.Run("an approval dialog could not flash KeePass on the taskbar", () =>
+            {
+                base.OnShown(e);
 
-            // KeePass's entry rather than this dialog's own, because KeePass is what the operator
-            // is looking for on the taskbar: the root of whatever owns this, which `ShowDialog`
-            // with no owner makes the window that was active. A dialog with no owner flashes its
-            // own entry.
-            var owner = NativeMethods.GetWindow(Handle, OwnerWindow);
-            var root = owner == IntPtr.Zero ? IntPtr.Zero : NativeMethods.GetAncestor(owner, RootOwner);
-            Flash(root == IntPtr.Zero ? Handle : root);
+                // KeePass's entry rather than this dialog's own, because KeePass is what the
+                // operator is looking for on the taskbar: the root of whatever owns this, which
+                // `ShowDialog` with no owner makes the window that was active. A dialog with no
+                // owner flashes its own entry.
+                var owner = NativeMethods.GetWindow(Handle, OwnerWindow);
+                var root = owner == IntPtr.Zero ? IntPtr.Zero : NativeMethods.GetAncestor(owner, RootOwner);
+                Flash(root == IntPtr.Zero ? Handle : root);
+            });
         }
 
         protected override void OnActivated(EventArgs e)
         {
-            base.OnActivated(e);
-            StopFlashing();
+            WindowHandlers.Run("an approval dialog could not stop flashing", () =>
+            {
+                base.OnActivated(e);
+                StopFlashing();
+            });
         }
 
         protected override void OnFormClosed(FormClosedEventArgs e)
         {
-            StopFlashing();
-            base.OnFormClosed(e);
+            WindowHandlers.Run("an approval dialog could not stop flashing as it closed", () =>
+            {
+                StopFlashing();
+                base.OnFormClosed(e);
+            });
         }
 
         private void Flash(IntPtr window)

@@ -360,18 +360,29 @@ namespace KeePassGate.Ui
             // press reaches anything, and cleared once it has.
             _refuse.Menu.Closing += (sender, e) =>
             {
-                if (e.CloseReason == ToolStripDropDownCloseReason.AppClicked && IsHandleCreated)
+                WindowHandlers.Run("the renewal dialog's Refuse menu could not be closed", () =>
                 {
-                    _closingTheMenu = true;
-                    BeginInvoke((Action)(() => _closingTheMenu = false));
-                }
+                    if (e.CloseReason == ToolStripDropDownCloseReason.AppClicked && IsHandleCreated)
+                    {
+                        _closingTheMenu = true;
+                        BeginInvoke((Action)(() => _closingTheMenu = false));
+                    }
+                });
             };
 
             approve.ClosingAMenu = () => _closingTheMenu;
 
-            _refuse.Click += delegate { Refuse(); };
-            _refuse.ItemChosen += (sender, e) => Chosen(e.ClickedItem);
-            approve.Click += delegate { Approve(); };
+            _refuse.Click += delegate
+            {
+                WindowHandlers.Run("Refuse on the renewal dialog could not be carried out", Refuse);
+            };
+            _refuse.ItemChosen += (sender, e) =>
+                WindowHandlers.Run("a choice from the Refuse menu could not be carried out",
+                    () => Chosen(e.ClickedItem));
+            approve.Click += delegate
+            {
+                WindowHandlers.Run("Approve on the renewal dialog could not be carried out", Approve);
+            };
 
             buttons.Controls.Add(_refuse);
             buttons.Controls.Add(approve);
@@ -391,7 +402,8 @@ namespace KeePassGate.Ui
             AskForADay = asking => asking.ShowDialog(this);
 
             _clock = new Timer { Interval = 1000 };
-            _clock.Tick += OnTick;
+            _clock.Tick += (sender, e) =>
+                WindowHandlers.Run("the renewal dialog's countdown could not be moved on", () => OnTick(sender, e));
             _clock.Start();
         }
 
@@ -586,15 +598,18 @@ namespace KeePassGate.Ui
         /// </remarks>
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
-            base.OnFormClosing(e);
-
-            if (e.Cancel)
+            WindowHandlers.Run("the renewal dialog's close could not be handled", () =>
             {
-                return;
-            }
+                base.OnFormClosing(e);
 
-            Decide(PairingDecision.Refused, null);
-            Abandon();
+                if (e.Cancel)
+                {
+                    return;
+                }
+
+                Decide(PairingDecision.Refused, null);
+                Abandon();
+            });
         }
 
         protected override void Dispose(bool disposing)

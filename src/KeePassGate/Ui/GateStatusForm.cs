@@ -203,10 +203,13 @@ namespace KeePassGate.Ui
             // choice the plugin has already made.
             _addresses.ItemCheck += delegate(object sender, ItemCheckEventArgs check)
             {
-                if (check.NewValue != CheckState.Checked)
+                WindowHandlers.Run("the address to listen on could not be kept checked", () =>
                 {
-                    check.NewValue = CheckState.Checked;
-                }
+                    if (check.NewValue != CheckState.Checked)
+                    {
+                        check.NewValue = CheckState.Checked;
+                    }
+                });
             };
 
             _tips = new ToolTip();
@@ -301,14 +304,17 @@ namespace KeePassGate.Ui
             // it: pressing Cancel, or closing the window, leaves the port where it was.
             ok.Click += delegate
             {
-                Keep();
-
-                if (!Applied)
+                WindowHandlers.Run("OK on the plugin's window could not be carried out", () =>
                 {
-                    // Refused. The window stays open, because the reason is written on it and
-                    // closing would be answering the operator by taking the answer away.
-                    DialogResult = DialogResult.None;
-                }
+                    Keep();
+
+                    if (!Applied)
+                    {
+                        // Refused. The window stays open, because the reason is written on it and
+                        // closing would be answering the operator by taking the answer away.
+                        DialogResult = DialogResult.None;
+                    }
+                });
             };
 
             var cancel = new Button
@@ -647,8 +653,11 @@ namespace KeePassGate.Ui
         /// <summary>Kept out of screen captures when KeePass keeps its own windows out.</summary>
         protected override void OnHandleCreated(EventArgs e)
         {
-            base.OnHandleCreated(e);
-            CaptureGuard.Apply(this);
+            WindowHandlers.Run("the plugin's window could not be kept out of screen captures", () =>
+            {
+                base.OnHandleCreated(e);
+                CaptureGuard.Apply(this);
+            });
         }
 
         protected override void Dispose(bool disposing)

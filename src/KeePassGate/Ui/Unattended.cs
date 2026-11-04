@@ -25,9 +25,9 @@ namespace KeePassGate.Ui
     /// callback `BeginInvoke` is running is handed to `Application.OnThreadException` as well as
     /// being stored for `EndInvoke`, and KeePass registers no `Application.ThreadException`
     /// handler and sets no unhandled exception mode, so WinForms goes modal inside the password
-    /// manager with a Quit button that ends the process outside KeePass's own shutdown. Nothing
-    /// here calls `EndInvoke`, so without this guard the dialog is the only thing that would ever
-    /// mention the failure. `FINDINGS.md` records the measurement.
+    /// manager, with what that costs set out in `DESIGN.md` §141. Nothing here calls `EndInvoke`,
+    /// so without this guard the dialog is the only thing that would ever mention the failure.
+    /// `FINDINGS.md` records the measurement.
     /// </remarks>
     internal static class Unattended
     {

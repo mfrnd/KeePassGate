@@ -204,46 +204,52 @@ namespace KeePassGate.Ui
 
         public override Size GetPreferredSize(Size proposedSize)
         {
-            var width = Available(proposedSize);
+            return WindowHandlers.Run("a label could not be measured", () =>
+            {
+                var width = Available(proposedSize);
 
-            // What the text may use, which is not what the label may use. Taking the padding off
-            // before measuring and adding it back afterwards is what makes a padded label wrap in
-            // the room it will actually be drawn in.
-            var room = width == int.MaxValue ? int.MaxValue : Math.Max(1, width - Padding.Horizontal);
+                // What the text may use, which is not what the label may use. Taking the padding
+                // off before measuring and adding it back afterwards is what makes a padded label
+                // wrap in the room it will actually be drawn in.
+                var room = width == int.MaxValue ? int.MaxValue : Math.Max(1, width - Padding.Horizontal);
 
-            var measured = TextRenderer.MeasureText(
-                Broken(room), Font, new Size(room, int.MaxValue), Shape);
+                var measured = TextRenderer.MeasureText(
+                    Broken(room), Font, new Size(room, int.MaxValue), Shape);
 
-            // A label with nothing in it is still a label. Zero height collapses the row it is on,
-            // which is right for one that is hidden and wrong for one that is merely empty.
-            var height = measured.Height == 0 ? Font.Height : measured.Height;
+                // A label with nothing in it is still a label. Zero height collapses the row it is
+                // on, which is right for one that is hidden and wrong for one that is merely empty.
+                var height = measured.Height == 0 ? Font.Height : measured.Height;
 
-            return new Size(measured.Width + Padding.Horizontal, height + Padding.Vertical);
+                return new Size(measured.Width + Padding.Horizontal, height + Padding.Vertical);
+            }, proposedSize);
         }
 
         protected override void OnPaint(PaintEventArgs e)
         {
-            // Deliberately not calling the base implementation: it is the thing adding the padding.
-            // The background is painted by `OnPaintBackground`, which still runs.
-            // **The padding is taken off here rather than asked for.** `DisplayRectangle` looks
-            // like the rectangle that would already have it off, and on a `Label` it is not:
-            // `Control` answers with the client rectangle and only a scrollable control subtracts
-            // anything. A label that asked for it drew its text hard against its own top edge
-            // while reporting a size with room for padding underneath, which is a gap in the
-            // wrong place and reads as no gap at all.
-            var inner = new Rectangle(
-                ClientRectangle.Left + Padding.Left,
-                ClientRectangle.Top + Padding.Top,
-                Math.Max(0, ClientRectangle.Width - Padding.Horizontal),
-                Math.Max(0, ClientRectangle.Height - Padding.Vertical));
+            WindowHandlers.Run("a label could not be drawn", () =>
+            {
+                // Deliberately not calling the base implementation: it is the thing adding the
+                // padding. The background is painted by `OnPaintBackground`, which still runs.
+                // **The padding is taken off here rather than asked for.** `DisplayRectangle` looks
+                // like the rectangle that would already have it off, and on a `Label` it is not:
+                // `Control` answers with the client rectangle and only a scrollable control
+                // subtracts anything. A label that asked for it drew its text hard against its own
+                // top edge while reporting a size with room for padding underneath, which is a gap
+                // in the wrong place and reads as no gap at all.
+                var inner = new Rectangle(
+                    ClientRectangle.Left + Padding.Left,
+                    ClientRectangle.Top + Padding.Top,
+                    Math.Max(0, ClientRectangle.Width - Padding.Horizontal),
+                    Math.Max(0, ClientRectangle.Height - Padding.Vertical));
 
-            TextRenderer.DrawText(
-                e.Graphics,
-                Broken(inner.Width),
-                Font,
-                inner,
-                Enabled ? ForeColor : SystemColors.GrayText,
-                Shape);
+                TextRenderer.DrawText(
+                    e.Graphics,
+                    Broken(inner.Width),
+                    Font,
+                    inner,
+                    Enabled ? ForeColor : SystemColors.GrayText,
+                    Shape);
+            });
         }
     }
 }

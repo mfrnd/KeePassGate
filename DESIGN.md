@@ -1071,6 +1071,19 @@ added or taken away is an edit here and at the places of that kind. What each ki
 reported through `GateIncidents`, which counts on the plugin's window under Tools, logs at
 `UNEXPECTED`, and stops a debugger attached, with the exception in hand.
 
+**What an escape on KeePass's thread costs is WinForms' own error dialog**, since KeePass gives
+WinForms no handler for an unhandled exception, and that cost was measured in KeePass 2.61.1 for
+review 4 rather than assumed: `FINDINGS.md` records it. KeePass pumps messages in the middle of its
+own work, a save, a lock and the closing of its windows among it, so the dialog can come up inside
+that work, and while it stands there KeePass refuses every lock, the inactivity timer's, a session
+switch's and the operator's own, while the gate goes on serving reads. Its Quit closes KeePass as
+its own close does, asking about unsaved changes, except that Cancel on that question, the option
+that makes closing minimize, and a close asked for inside KeePass's own work all end KeePass anyway,
+with nothing saved; a letter typed into it presses the button it underlines, and `q` is Quit.
+**Raising what a catch-all caught again, for that dialog to ask the operator about**, was tried
+for review 4 and taken back before it landed, for those reasons: a raise lands wherever KeePass
+next pumps, inside its save or lock, and on the connection thread a client chooses when.
+
 The kinds:
 
 - **The handlers of KeePass's own events**, the settings dialog's close among them. KeePass raises
@@ -1078,10 +1091,16 @@ The kinds:
   every database stops at the database being closed and leaves the databases after it unlocked, and
   a lock the inactivity timer began leaves that timer's critical section held, since KeePass
   releases it outside a `finally`, so the timer locks nothing again that session, which is read off
-  KeePass 2.61.1 and not driven. Then WinForms, which KeePass gives no handler for an unhandled
-  exception, puts its own error dialog over KeePass, whose Quit ends the process outside KeePass's
-  own shutdown.
+  KeePass 2.61.1 and not driven.
 - **The Tools menu item**, which would bring up that dialog.
+- **The handlers of the plugin's own windows**, through `WindowHandlers`: every handler and every
+  override on the window under Tools, the approval dialogs, the question of a day, the authority
+  chooser and the KPG pages with their pickers and menus, and what they post to run later. WinForms
+  runs them with nothing of the plugin's above them, wherever KeePass pumps, so a click, a timer's
+  tick or a repaint can be handled inside KeePass's own save or lock. What a handler names it
+  catches itself and puts on its window; the rest is recorded, and the handler's work stops there
+  with the window left standing. A test that sets nothing to record to sees the failure as it was
+  thrown.
 - **The connection thread**, where an escape ends the process.
 - **Each step of `Terminate`**: KeePass throws away whatever `Terminate` throws, so an escape would
   cost the steps after it, among them what lets go of KeePass's static window events, the socket and
@@ -1108,9 +1127,9 @@ a place of a kind sees it, or must add no exception of its own:
   posted it, followed across the post to KeePass's message queue, and what its reporter throws, for
   the reason the log does.
 
-CodeQL reports each of these places but the places that throw again from inside the catch, which
-its query accepts, and each place it reports carries a suppression naming where it stands in this
-account.
+CodeQL reports each of these places but the places that throw again from inside the catch and
+`WindowHandlers`, which catches through a filter: its query accepts both. Each place it reports
+carries a suppression naming where it stands in this account.
 
 ## 9. Audit §120
 
