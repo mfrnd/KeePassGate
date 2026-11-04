@@ -1713,8 +1713,7 @@ namespace KeePassGate.Bridge
         /// <param name="unmake">
         /// How to take back a bin this call had to make, or null when it found one already there.
         /// A removal whose save never lands has to leave the database as it was, and on the first
-        /// removal into a fresh bin that includes the bin, the `RecycleBinUuid` pointing at it and
-        /// the moment it was set.
+        /// removal into a fresh bin that includes the bin and the `RecycleBinUuid` pointing at it.
         /// </param>
         private PwGroup RecycleBin(out Action unmake)
         {
@@ -1733,18 +1732,19 @@ namespace KeePassGate.Bridge
             }
 
             var wasUuid = _database.RecycleBinUuid;
-            var wasChanged = _database.RecycleBinChanged;
 
+            // `RecycleBinChanged` is left alone, as KeePass's own first delete leaves it. A merge
+            // reads it as the moment somebody decided about the bin, so a stamp here made an
+            // agent's first removal outrank, at the next synchronize, an operator turning the bin
+            // off on another copy.
             var bin = new PwGroup(true, true, "Recycle Bin", PwIcon.TrashBin) { EnableAutoType = false, EnableSearching = false };
             root.AddGroup(bin, true);
             _database.RecycleBinUuid = bin.Uuid;
-            _database.RecycleBinChanged = DateTime.UtcNow;
 
             unmake = () =>
             {
                 root.Groups.Remove(bin);
                 _database.RecycleBinUuid = wasUuid;
-                _database.RecycleBinChanged = wasChanged;
             };
 
             return bin;

@@ -131,6 +131,23 @@ namespace KeePassGate.Host.Tests
                 "and the entry is still in the bin, where its removal moved it");
         }
 
+        [TestCase(true, TestName = "a recycle bin turned off elsewhere stays off after the first removal here, synchronized here")]
+        [TestCase(false, TestName = "a recycle bin turned off elsewhere stays off after the first removal here, synchronized elsewhere")]
+        public void A_recycle_bin_turned_off_on_another_copy_stays_off_after_the_first_removal_here(bool intoHere)
+        {
+            // Making the first bin stamped the moment the bin was last decided about, which
+            // KeePass's own first delete leaves alone, and a merge reads that moment. So this
+            // copy's first removal outranked the operator turning the bin off on the other copy,
+            // which `DESIGN.md` §138 gives as the way to make a client's removals final.
+            _elsewhere.Database.RecycleBinEnabled = false;
+            _elsewhere.Database.RecycleBinChanged = _made.AddMinutes(5);
+
+            Assert.That(_vault.DeleteEntry(Hex(_entry), VaultTagging.None).Ok, Is.True);
+            Assume.That(_here.Database.RecycleBinUuid, Is.Not.EqualTo(PwUuid.Zero), "the removal made this copy's first bin");
+
+            Assert.That(Synchronize(intoHere).RecycleBinEnabled, Is.False);
+        }
+
         private PwDatabase Synchronize(bool intoHere)
         {
             var target = intoHere ? _here.Database : _elsewhere.Database;

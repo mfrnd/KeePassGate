@@ -12,6 +12,10 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **The first recycle bin a removal makes is no decision about the bin.** The plugin stamped the
+  bin setting's time when a removal through the API made the first bin, which KeePass's own first
+  delete does not, so the next synchronize turned the bin back on over an operator who had turned
+  it off on another copy to make removals final.
 - **A removal through the API stamps what KeePass's own delete stamps.** It marked the removed
   entry or group as modified, and a group's parent too, where KeePass's delete moves no
   modification time. A merge reads that time as the newer edit, so the next synchronize took the

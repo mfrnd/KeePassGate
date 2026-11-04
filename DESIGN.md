@@ -1402,7 +1402,10 @@ agent's view.
 the node removed, and no modification time, the node's or its parent's. A merge reads a modification
 time as the newer edit and takes a group whole by it, so a parent stamped by its child's removal won
 the next synchronize over a rule the operator had narrowed on it in another copy, and an entry
-stamped on its way to the bin filed another copy's edit to it in its history.
+stamped on its way to the bin filed another copy's edit to it in its history. Nor does the first bin
+a removal makes stamp when the bin was last decided about, which a merge reads the same way: an
+agent's first removal outranked the operator turning the bin off on another copy, which is how an
+operator makes agent removals final.
 
 Two consequences to keep in mind rather than to fix. A removal through the API is not destruction
 while the database keeps a bin, so an operator who wants agent removals to be final turns the bin off
