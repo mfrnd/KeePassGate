@@ -12,6 +12,12 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **Every save of a database writes the standing answers KeePass could not take**, the operator's
+  own included. They rode on the plugin's own writes alone, so keeping an authority or pressing
+  the KPG tab's OK and then saving went to the file without them, and the message at exit told the
+  operator nothing had been written since. An answer is no longer written while Database
+  Maintenance is open on its database, whose close took it away after memory had let it go, nor
+  let go after a write whose file did not read back as written.
 - **A later standing answer about a certificate is the answer that counts.** An answer KeePass could
   not take was written with the plugin's next write whatever the database held by then, so it went
   over the operator's own later answer, in the very write that had just put that answer there, and

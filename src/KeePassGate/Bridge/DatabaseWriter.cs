@@ -96,6 +96,20 @@ namespace KeePassGate.Bridge
         /// </remarks>
         private int _saves;
 
+        /// <summary>The database this writer's own save is saving, on KeePass's thread, or null.</summary>
+        private PwDatabase _ownSave;
+
+        /// <summary>
+        /// What this writer's last save carried of the standing answers owed, written by
+        /// <see cref="BeforeSave"/> while it ran.
+        /// </summary>
+        private Owing _carried;
+
+        /// <summary>
+        /// What each save KeePass is making for somebody else carries, from its start to its end.
+        /// </summary>
+        private readonly Dictionary<PwDatabase, Owing> _carrying = new Dictionary<PwDatabase, Owing>();
+
         /// <summary>
         /// A writer that makes each change and its save in one call marshaled to the user
         /// interface thread.
@@ -286,16 +300,98 @@ namespace KeePassGate.Bridge
         }
 
         /// <summary>Saves through KeePass, counted so that its block is known for this writer's.</summary>
+        /// <remarks>
+        /// **And noted as this writer's**, so that what <see cref="BeforeSave"/> writes into it is
+        /// the writer's to settle once the file has been read back: <see cref="_carried"/>.
+        /// </remarks>
         private void Save(PwDatabase database)
         {
             Interlocked.Increment(ref _saves);
+            _ownSave = database;
+            _carried = null;
             try
             {
                 _save(database);
             }
             finally
             {
+                _ownSave = null;
                 Interlocked.Increment(ref _saves);
+            }
+        }
+
+        /// <summary>
+        /// Writes into a database KeePass is about to save the standing answers owed to it, so that
+        /// the save carries them, whoever asked for it. KeePass's `FileSavingPre`, on its thread.
+        /// </summary>
+        /// <remarks>
+        /// **Every save, which is the operator's choice of 2026-11-04.** The answers rode on this
+        /// writer's own writes alone, so a database the operator saved after keeping an authority
+        /// or pressing the KPG tab's OK went to its file without them, and an answer that no write
+        /// of the plugin's reached before KeePass exited was lost though the database had been
+        /// saved since.
+        ///
+        /// **Not a copy**, which leaves the database's own file as it was, and **not while Database
+        /// Maintenance is open on it**: that dialog writes its copy of the custom data back when it
+        /// closes whenever the number of keys differs, and an answer written underneath it was gone
+        /// from the database after memory had let it go. Both leave the answers owed for the next
+        /// save.
+        ///
+        /// **This writer's own save settles what it carried itself**, once the file has been read
+        /// back, and takes it back out with the change on every path that takes the change back
+        /// out, so an answer is let go from memory only by a save known to have landed. A save
+        /// whose file did not read back as written leaves it owed, since whether the file holds it
+        /// is exactly what nothing knows.
+        /// </remarks>
+        public void BeforeSave(PwDatabase database, bool copy)
+        {
+            if (database == null || copy || !database.IsOpen)
+            {
+                return;
+            }
+
+            if (_dialogs != null && _dialogs.BlockingRecords(database) != null)
+            {
+                return;
+            }
+
+            var owing = Owe(database);
+            if (ReferenceEquals(database, _ownSave))
+            {
+                _carried = owing;
+                return;
+            }
+
+            if (owing != null)
+            {
+                _carrying[database] = owing;
+            }
+        }
+
+        /// <summary>
+        /// Settles what a save KeePass made for somebody else carried, or takes it back out when
+        /// the save did not land. KeePass's `FileSaved`, on its thread.
+        /// </summary>
+        /// <remarks>
+        /// Believed on KeePass's word, as an operator's own save is believed: only this writer's
+        /// saves read the file back, and those settle their own.
+        /// </remarks>
+        public void AfterSave(PwDatabase database, bool success)
+        {
+            Owing owing;
+            if (database == null || ReferenceEquals(database, _ownSave) || !_carrying.TryGetValue(database, out owing))
+            {
+                return;
+            }
+
+            _carrying.Remove(database);
+            if (success)
+            {
+                Owing.Settle(owing, Owed);
+            }
+            else
+            {
+                TakeBackOwed(owing);
             }
         }
 
@@ -1145,12 +1241,12 @@ namespace KeePassGate.Bridge
             var wasModified = database.Modified;
             database.Modified = true;
 
-            // Standing answers the operator gave while a database could not take them, written
-            // with this change because it is the plugin's next write to that database: kept by
-            // the same save, and taken back out with the change when the save does not land.
-            var owing = Owe(database);
-
             Exception failed = null;
+
+            // What the save carried of the standing answers owed to this database, which
+            // `BeforeSave` wrote as KeePass began it: kept by the same save, and taken back out with
+            // the change when the save does not land.
+            Owing owing = null;
 
             // True until the save ends in a way this method expects: returning, or throwing what
             // `Expected.OfSaving` names.
@@ -1173,6 +1269,7 @@ namespace KeePassGate.Bridge
             }
             finally
             {
+                owing = _carried;
                 if (escaped)
                 {
                     // **A defect in the save is settled as an expected failure is, and then goes
@@ -1262,8 +1359,9 @@ namespace KeePassGate.Bridge
                 // the records is told as a change that landed is: a revocation kept here refuses
                 // the client from its next request, and a page still listing that client would be
                 // listing one every request refuses. The window is not redrawn, as it is not for a change that may not be
-                // stored; the clients page is about who is refused, which this decides.
-                Owing.Settle(owing, Owed);
+                // stored; the clients page is about who is refused, which this decides. **The
+                // standing answers the save carried stay owed**: whether the file holds them is what
+                // this path does not know, and the next save that lands writes them from memory.
                 if (landed != null)
                 {
                     landed();
@@ -1480,8 +1578,8 @@ namespace KeePassGate.Bridge
         }
 
         /// <summary>
-        /// The standing answers owed to databases, written by every write that lands on the one
-        /// each belongs to, or null for none.
+        /// The standing answers owed to databases, written by every save KeePass makes of the
+        /// database each belongs to, or null for none.
         /// </summary>
         /// <remarks>
         /// Settable rather than a constructor argument because one plugin builds one of each and
@@ -1504,8 +1602,8 @@ namespace KeePassGate.Bridge
         /// whatever the key held, an owed answer went over the operator's newer answer, in the very
         /// write that had just put that answer there, and over an answer a synchronize brought in;
         /// and an answer until a date whose day had begun was written to refuse nothing. Both are
-        /// let go unwritten. **A failure here fails nothing**: the write it rides on goes ahead, the
-        /// answers stay owed, and the next write tries again.
+        /// let go unwritten. **A failure here fails nothing**: the save it rides on goes ahead, the
+        /// answers stay owed, and the next save tries again.
         /// </remarks>
         private Owing Owe(PwDatabase database)
         {
@@ -1713,7 +1811,6 @@ namespace KeePassGate.Bridge
                 Name(store, record.Profiles);
                 store.Set(record.StorageKey, written);
                 pruned = Prune(store);
-                owing = Owe(database);
                 database.Modified = true;
             }
             catch (Exception error) when (Expected.OfCustomData(error))
@@ -1738,6 +1835,7 @@ namespace KeePassGate.Bridge
             catch (Exception error) when (Expected.OfSaving(error))
             {
                 escaped = false;
+                owing = _carried;
 
                 // KeePass's own save and every other plugin's handlers around it, which can fail
                 // for every reason a file can and every reason a window can: `Expected.OfSaving`
@@ -1763,6 +1861,7 @@ namespace KeePassGate.Bridge
             }
             finally
             {
+                owing = _carried;
                 if (escaped)
                 {
                     // A defect in the save, settled as `ChangeOnTheUiThread` settles a defect in

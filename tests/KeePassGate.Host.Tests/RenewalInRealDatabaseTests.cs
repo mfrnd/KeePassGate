@@ -53,7 +53,10 @@ namespace KeePassGate.Host.Tests
             _saves = 0;
             _failSaves = false;
 
+            _restoreAfterSave = null;
+
             _writer = new DatabaseWriter(CurrentThread.Instance, Save, null, _dialogs, null);
+            _savingWriter = _writer;
             _database.Save();
         }
 
@@ -407,17 +410,127 @@ namespace KeePassGate.Host.Tests
             }
         }
 
+        [Test]
+        public void An_owed_answer_is_written_by_a_save_the_plugin_did_not_make()
+        {
+            // The operator keeps an authority, or presses the KPG tab's OK, and saves: neither is a
+            // write of the plugin's own, and the answers rode on those alone, so the file went
+            // without them and the exit told the operator nothing had been written since.
+            using (var renewal = new RealRenewal(this))
+            {
+                renewal.Session.Owe(renewal.DatabaseId, renewal.Key, RenewalRefusal.Forever(), null);
+
+                SaveAsKeePass(renewal.Writer, _database.Database, true);
+
+                Assert.That(renewal.Standing, Is.Not.Null, "the operator's save carried it");
+                Assert.That(renewal.Standing.IsForever, Is.True);
+                Assert.That(renewal.Session.Owed(), Is.Empty, "and the database's copy answers from here");
+            }
+        }
+
+        [Test]
+        public void An_owed_answer_waits_through_a_copy_and_a_save_that_failed()
+        {
+            using (var renewal = new RealRenewal(this))
+            {
+                renewal.Session.Owe(renewal.DatabaseId, renewal.Key, RenewalRefusal.Forever(), null);
+
+                renewal.Writer.BeforeSave(_database.Database, true);
+                Assert.That(renewal.Standing, Is.Null, "a copy leaves the database's own file as it was");
+
+                SaveAsKeePass(renewal.Writer, _database.Database, false);
+                Assert.That(renewal.Standing, Is.Null, "taken back out with the save that did not land");
+                Assert.That(renewal.Session.Owed(), Has.Count.EqualTo(1), "and still owed");
+            }
+        }
+
+        [Test]
+        public void An_owed_answer_is_not_written_under_an_open_maintenance_dialog()
+        {
+            // The dialog writes its copy of the custom data back when it closes whenever the number
+            // of keys differs, so an answer written underneath it went with that, after memory had
+            // already let it go.
+            using (var renewal = new RealRenewal(this))
+            using (var maintenance = new DatabaseOperationsForm())
+            {
+                renewal.Session.Owe(renewal.DatabaseId, renewal.Key, RenewalRefusal.Forever(), null);
+                maintenance.InitEx(_database.Database);
+                GlobalWindowManager.AddWindow(maintenance);
+
+                try
+                {
+                    SaveAsKeePass(renewal.Writer, _database.Database, true);
+                }
+                finally
+                {
+                    GlobalWindowManager.RemoveWindow(maintenance);
+                }
+
+                Assert.That(renewal.Standing, Is.Null, "nothing written under the dialog");
+                Assert.That(renewal.Session.Owed(), Has.Count.EqualTo(1), "and still owed for the next save");
+            }
+        }
+
+        [Test]
+        public void An_owed_answer_stays_owed_after_a_write_whose_file_did_not_read_back()
+        {
+            // Settled there, an answer whose place in the file nobody knew left memory, and a file
+            // that lacked it lost it, with no word at exit.
+            using (var renewal = new RealRenewal(this))
+            {
+                _database.Save();
+                _restoreAfterSave = System.IO.File.ReadAllBytes(_database.Path);
+                renewal.Session.Owe(renewal.DatabaseId, renewal.Key, RenewalRefusal.Forever(), null);
+
+                var written = renewal.Writer.Change(_database.Database, () => VaultWrite.Created("abcd"));
+
+                Assert.That(written.IsUnverified, Is.True, written.Reason);
+                Assert.That(renewal.Session.Owed(), Has.Count.EqualTo(1), "still owed");
+            }
+        }
+
         private bool _failSaves;
+
+        /// <summary>The file as it was, put back after a save, which the writer then cannot read back.</summary>
+        private byte[] _restoreAfterSave;
+
+        /// <summary>
+        /// The writer whose saves raise what `MainForm.SaveDatabase` raises either side of a save,
+        /// as KeePass's own events reach the plugin: the fixture's, or a renewal's.
+        /// </summary>
+        private DatabaseWriter _savingWriter;
 
         private void Save(PwDatabase database)
         {
             _saves++;
-            if (_failSaves)
+            SaveAsKeePass(_savingWriter, database, !_failSaves);
+
+            if (_restoreAfterSave != null)
             {
-                return;
+                System.IO.File.WriteAllBytes(_database.Path, _restoreAfterSave);
+            }
+        }
+
+        /// <summary>
+        /// A save as `MainForm.SaveDatabase` makes it, with `FileSavingPre` before it and `FileSaved`
+        /// after it, saying whether it landed; a save that does not land writes nothing.
+        /// </summary>
+        private static void SaveAsKeePass(DatabaseWriter writer, PwDatabase database, bool lands)
+        {
+            if (writer != null)
+            {
+                writer.BeforeSave(database, false);
             }
 
-            database.Save(null);
+            if (lands)
+            {
+                database.Save(null);
+            }
+
+            if (writer != null)
+            {
+                writer.AfterSave(database, lands);
+            }
         }
 
         /// <summary>
@@ -451,6 +564,7 @@ namespace KeePassGate.Host.Tests
                 var databases = new List<PwDatabase> { database };
                 writer.Owed = _session;
                 Writer = writer;
+                test._savingWriter = writer;
                 _targets = new OpenDatabaseTargets(delegate { return databases; }, writer, null);
                 _target = _targets.Current().Single();
 

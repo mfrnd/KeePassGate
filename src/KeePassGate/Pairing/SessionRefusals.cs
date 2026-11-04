@@ -23,9 +23,9 @@ namespace KeePassGate.Pairing
     /// **An answer for longer is held here too while the database cannot take it**, which is the
     /// operator's ruling of 2026-10-14. Refused forever or until a date while KeePass was busy, it
     /// used to be lost with a line in the log, and the next renewal raised the dialog again. Now it
-    /// takes effect at once, from here, like an answer about this session, and the plugin's next
-    /// write to that database that lands writes it as well, through <see cref="IOwedAnswers"/>,
-    /// after which the database's own copy is what answers. One still owed when KeePass exits is
+    /// takes effect at once, from here, like an answer about this session, and the next save of
+    /// that database that lands writes it as well, whoever asks for it, through
+    /// <see cref="IOwedAnswers"/>, after which the database's own copy is what answers. One still owed when KeePass exits is
     /// lost then, and the operator is told so on the way out rather than only in the log.
     ///
     /// **One for the plugin, shared by the gate and the KPG tab.** The renewal handler adds to it

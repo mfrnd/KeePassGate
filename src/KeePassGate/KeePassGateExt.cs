@@ -40,6 +40,7 @@ namespace KeePassGate
         private MainWindowDatabases _databases;
         private LockWatch _locks;
         private AuthorityChooser _chooser;
+        private OwedAnswerSaves _owedAnswerSaves;
         private InvitationBook _invitations;
 
         /// <summary>
@@ -607,6 +608,15 @@ namespace KeePassGate
                 TellWhatIsStillOwed();
             });
 
+            Attempt("failed to release the save events", () =>
+            {
+                if (_owedAnswerSaves != null)
+                {
+                    _owedAnswerSaves.Dispose();
+                    _owedAnswerSaves = null;
+                }
+            });
+
             Attempt("failed to stop the authority chooser", () =>
             {
                 if (_chooser != null)
@@ -775,8 +785,10 @@ namespace KeePassGate
                 _log);
 
             // The standing answers the operator gave while a database could not take them, which
-            // the writer's next write to that database that lands writes as well.
+            // every save of that database writes as well, whoever asks for it.
             writer.Owed = _sessionRefusals;
+            _owedAnswerSaves = new OwedAnswerSaves(mainWindow, writer, _incidents);
+            _owedAnswerSaves.Start();
 
             _targets = new OpenDatabaseTargets(
                 delegate { return mainWindow.DocumentManager.GetOpenDatabases(); },
@@ -860,10 +872,10 @@ namespace KeePassGate
         /// </summary>
         /// <remarks>
         /// The operator's ruling of 2026-10-14: an answer forever or until a date given while
-        /// KeePass was busy holds from memory and is written by the plugin's next write to that
-        /// database, and one that still cannot be written by then is told to the operator rather
-        /// than only to the log. Exit is when that becomes true for good: a lock or a close keeps
-        /// it, and the next write after an unlock or an open writes it. Said once, on the way out,
+        /// KeePass was busy holds from memory and is written by the next save of that database,
+        /// and an answer still unwritten is told to the operator rather than only to the log. Exit
+        /// is when that becomes true for good: a lock or a close keeps it, and the next save after
+        /// an unlock or an open writes it. Said once, on the way out,
         /// so that the operator knows which programs will be asked about again.
         /// </remarks>
         private void TellWhatIsStillOwed()

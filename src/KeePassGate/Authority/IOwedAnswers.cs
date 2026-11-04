@@ -40,13 +40,14 @@ namespace KeePassGate.Authority
     }
 
     /// <summary>
-    /// The standing answers owed to databases, which the plugin's next write to each that lands
-    /// writes as well.
+    /// The standing answers owed to databases, which the next save of each writes as well.
     /// </summary>
     /// <remarks>
     /// The operator's ruling of 2026-10-14: a standing answer given while KeePass was busy takes
-    /// effect at once, from memory, and is written at the plugin's next successful write.
-    /// `DatabaseWriter` asks this inside every write it makes and tells it what landed.
+    /// effect at once, from memory, and is written at the next save that lands, whoever asks for
+    /// it, which is the operator's choice of 2026-11-04 over the plugin's own writes alone.
+    /// `DatabaseWriter` asks this as KeePass begins every save of a database and tells it what
+    /// landed.
     /// </remarks>
     public interface IOwedAnswers
     {
