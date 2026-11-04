@@ -12,6 +12,11 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **The message at exit names the standing answers it lets go, and gives no cause.** It counted
+  them and blamed KeePass being busy whenever they were given and nothing being written after
+  them, which was untrue after a save that failed or a save made since, and promised a dialog for
+  clients it did not name. It now names each certificate by the key the log names it by, and the
+  log line names the authority each was given under.
 - **Every save of a database writes the standing answers KeePass could not take**, the operator's
   own included. They rode on the plugin's own writes alone, so keeping an authority or pressing
   the KPG tab's OK and then saving went to the file without them, and the message at exit told the
