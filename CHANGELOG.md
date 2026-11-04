@@ -27,6 +27,9 @@ none, since it releases both.
   and a redraw that failed left the rule on the sheet, so the next edit wrote it, after the tab had
   reported it as not applied. A grant picker that could not be closed is reported as not closed,
   rather than as a picker that could not be opened.
+- **A refusal until a date can be chosen across midnight on the eve of a certificate's last day.**
+  Tomorrow was read more than once, and a midnight between two readings threw, so the choice went
+  without a word and the renewal dialog stayed unanswered.
 - **The message at exit names the standing answers it lets go, and gives no cause.** It counted
   them and blamed KeePass being busy whenever they were given and nothing being written after
   them, which was untrue after a save that failed or a save made since, and promised a dialog for

@@ -295,6 +295,33 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void Midnight_between_asking_whether_there_is_a_day_and_asking_for_it_still_asks()
+        {
+            // On the eve of the certificate's last day there is one day to name. Tomorrow was read
+            // once to ask whether there was any day at all and again for the first day the question
+            // offers, and a midnight between the two handed the question a first day after its
+            // last, which it refuses by throwing.
+            var asking = false;
+            var reads = 0;
+            Func<DateTime> clock = () => asking && reads++ > 0 ? Today.AddDays(1) : Today;
+
+            using (var dialog = new RenewalApprovalForm(Request(new[] { "reader" }, 1), Timeout, null, clock, null))
+            {
+                var asked = 0;
+                dialog.AskForADay = question =>
+                {
+                    asked++;
+                    return DialogResult.Cancel;
+                };
+
+                asking = true;
+
+                Assert.That(() => dialog.AskToRefuseUntil(), Throws.Nothing);
+                Assert.That(asked, Is.EqualTo(1), "the question is put over the day there was when it was asked");
+            }
+        }
+
+        [Test]
         public void A_certificate_whose_last_day_comes_while_the_dialog_is_up_stops_offering_a_day()
         {
             var today = Today;

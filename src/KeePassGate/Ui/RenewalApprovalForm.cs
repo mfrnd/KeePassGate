@@ -501,6 +501,12 @@ namespace KeePassGate.Ui
                     nameof(day), day, "A refusal until a date names a day from tomorrow to the day the certificate ends.");
             }
 
+            RefusedUntil(day);
+        }
+
+        /// <summary>Refuses until a day already found nameable, without asking the clock again.</summary>
+        private void RefusedUntil(DateTime day)
+        {
             Finish(PairingDecision.Refused, RenewalRefusal.Until(StartOf(day, TimeZoneInfo.Local)));
         }
 
@@ -516,12 +522,16 @@ namespace KeePassGate.Ui
         /// </summary>
         public void AskToRefuseUntil()
         {
-            if (!CanRefuseUntil || _decided)
+            // Tomorrow read once, so that the check and the days the question offers agree. Read
+            // twice, a midnight between the two on the eve of the certificate's last day passed
+            // the check with the first tomorrow and handed the question a first day after its last,
+            // which threw into the menu's handler and took the operator's choice with it.
+            var first = FirstDay;
+            if (first > _lastDay || _decided)
             {
                 return;
             }
 
-            var first = FirstDay;
             var week = first.AddDays(6);
 
             using (var asking = new RefuseUntilForm(first, _lastDay, week <= _lastDay ? week : _lastDay, Font))
@@ -552,7 +562,9 @@ namespace KeePassGate.Ui
                 // them has gone, rather than thrown into a menu's handler that would only log it.
                 if (Nameable(asking.Day))
                 {
-                    RefuseUntil(asking.Day);
+                    // Not through `RefuseUntil`, which asks the clock again: a midnight between
+                    // the two would throw for the day just found nameable.
+                    RefusedUntil(asking.Day);
                     return;
                 }
             }
@@ -561,9 +573,11 @@ namespace KeePassGate.Ui
         }
 
         /// <summary>Whether a day can still be named: from tomorrow to the certificate's last day.</summary>
+        /// <remarks>Tomorrow read once, for the reason `AskToRefuseUntil` reads it once.</remarks>
         private bool Nameable(DateTime day)
         {
-            return CanRefuseUntil && day.Date >= FirstDay && day.Date <= _lastDay;
+            var first = FirstDay;
+            return day.Date >= first && day.Date <= _lastDay;
         }
 
         /// <summary>
