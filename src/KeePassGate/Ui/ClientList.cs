@@ -1004,9 +1004,10 @@ namespace KeePassGate.Ui
         /// Refuse menu's is, so that Enter has something to choose. Opened by the pointer, nothing
         /// is, which is how a menu comes up under a click.
         ///
-        /// Run from the grid's window procedure, where whatever escapes reaches KeePass's message
-        /// loop and closes the dialog: a failure of a kind the user interface throws is said under
-        /// the list instead.
+        /// Run from the grid's window procedure, where whatever escapes would reach WinForms' own
+        /// error dialog over a settings dialog that stays open: a failure of a kind the user
+        /// interface throws is written under the list instead, and what is left is a defect, which
+        /// the window procedure records through `WindowHandlers`.
         /// </remarks>
         private void ShowMenu(Point? screen)
         {

@@ -29,11 +29,12 @@ namespace KeePassGate.Ui
     /// recreating costs, in the number of clients that lose their admission, because that is the
     /// number the operator cannot work out for themselves.
     ///
-    /// **Nothing in here throws**, because it runs on the UI thread of a password manager and an
-    /// exception leaving a click handler reaches the message loop, where nothing on this page can
-    /// see it. That is a claim about every path, including the ones that only draw: filling a grid
-    /// and creating a window handle both fail in ways that have nothing to do with certificates, so
-    /// the filters here name <see cref="Expected.OfUserInterface"/> as well.
+    /// **Nothing it can foresee is thrown**, because it runs on the UI thread of a password manager,
+    /// where an exception leaving a click handler is recorded as a defect by `WindowHandlers` and
+    /// nothing on this page tells the operator what happened. That is a claim about every path,
+    /// including the ones that only draw: filling a grid and creating a window handle both fail in
+    /// ways that have nothing to do with certificates, so the filters here name
+    /// <see cref="Expected.OfUserInterface"/> as well.
     /// </remarks>
     public sealed class AuthorityPanel : UserControl
     {
@@ -798,8 +799,9 @@ namespace KeePassGate.Ui
             //
             // Inside a catch of its own, though, because drawing is not reading a database: rows
             // and window handles fail for reasons of their own, and this runs on the click of every
-            // button on the tab. An exception leaving here would leave a click handler and reach
-            // KeePass's message loop, which closes the dialog and reports nothing.
+            // button on the tab. An ordinary failure of drawing leaving here would leave a click
+            // handler, whose `WindowHandlers` records it as a defect, where a sentence on the tab
+            // is what it deserves.
             try
             {
                 _clients.Fill(admitted, reaches, NamedProfiles(), StandingAnswers(admitted, DateTimeOffset.UtcNow));
