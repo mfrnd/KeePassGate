@@ -1068,8 +1068,8 @@ place catch everything instead, each because of what an exception escaping there
 the only account of them. Nothing else counts them: each CodeQL suppression of
 `cs/catch-of-all-exceptions` at a place of a listed kind names its kind and this section, so a kind
 added or taken away is an edit here and at the places of that kind. What each kind catches is
-reported through `GateIncidents`, which counts on the plugin's window under Tools and logs at
-`UNEXPECTED`.
+reported through `GateIncidents`, which counts on the plugin's window under Tools, logs at
+`UNEXPECTED`, and stops a debugger attached, with the exception in hand.
 
 The kinds:
 

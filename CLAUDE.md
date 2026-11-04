@@ -214,7 +214,8 @@ designing around them.
   there, and `DESIGN.md` §141 is the only account of them: the kinds and why each, the roots kept
   safe another way, and the places that catch everything without being a kind. Nothing else
   counts them, and each CodeQL suppression at a place of a listed kind names its kind and that
-  section, so adding a kind is an edit there and at its places.
+  section, so adding a kind is an edit there and at its places. What they catch is recorded, and a
+  debugger attached stops there.
   **A line that has to outlive a defect is written before it rather than caught around it**: the
   audit line for a pairing, a renewal or a client's own revocation that landed is written by
   `DatabaseWriter` on its own landed path, before any listener runs and before KeePass's window is

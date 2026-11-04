@@ -12,6 +12,9 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **A debugger attached stops wherever the plugin records a failure it did not foresee**, with the
+  exception in hand, and continuing carries on as it would with no debugger: every such failure is
+  caught, so a debugger was told nothing.
 - **The message at exit names the standing answers it lets go, and gives no cause.** It counted
   them and blamed KeePass being busy whenever they were given and nothing being written after
   them, which was untrue after a save that failed or a save made since, and promised a dialog for
