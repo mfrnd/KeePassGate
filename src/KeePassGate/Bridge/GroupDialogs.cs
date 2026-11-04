@@ -68,6 +68,16 @@ namespace KeePassGate.Bridge
         private readonly Dictionary<Form, PwDatabase> _openSettings = new Dictionary<Form, PwDatabase>();
         private readonly HashSet<Form> _progress = new HashSet<Form>();
 
+        // **Every dialog whose opening could not be noted**, which refuses every write until it
+        // closes. Its opening threw part way, so whether it is one of the dialogs this watches, and
+        // what it holds, is exactly what is not known: left out, a Database Maintenance dialog
+        // nobody noted let a revocation land under it, which that dialog's close then wrote back
+        // over with the record it had copied.
+        private readonly HashSet<Form> _unnoted = new HashSet<Form>();
+
+        private const string Unnoted =
+            "a dialog KeePass opened could not be noted, so nothing is written until it closes";
+
         private readonly IReadOnlyList<string> _watched;
 
         private bool _started;
@@ -212,6 +222,11 @@ namespace KeePassGate.Bridge
                     return "the group dialogs are not being watched";
                 }
 
+                if (_unnoted.Count > 0)
+                {
+                    return Unnoted;
+                }
+
                 foreach (var pair in _open)
                 {
                     if (pair.Value == null)
@@ -262,6 +277,11 @@ namespace KeePassGate.Bridge
                     return "the dialogs are not being watched";
                 }
 
+                if (_unnoted.Count > 0)
+                {
+                    return Unnoted;
+                }
+
                 foreach (var pair in _filling)
                 {
                     if (pair.Value == null)
@@ -302,6 +322,11 @@ namespace KeePassGate.Bridge
                 if (!_started)
                 {
                     return "the dialogs are not being watched";
+                }
+
+                if (_unnoted.Count > 0)
+                {
+                    return Unnoted;
                 }
 
                 foreach (var pair in _open)
@@ -349,6 +374,11 @@ namespace KeePassGate.Bridge
                 if (!_started)
                 {
                     return "the dialogs are not being watched";
+                }
+
+                if (_unnoted.Count > 0)
+                {
+                    return Unnoted;
                 }
 
                 foreach (var pair in _openMaintenance)
@@ -402,6 +432,11 @@ namespace KeePassGate.Bridge
                     return "the dialogs are not being watched";
                 }
 
+                if (_unnoted.Count > 0)
+                {
+                    return Unnoted;
+                }
+
                 return _progress.Count == 0
                     ? null
                     : "KeePass is showing a progress window for an operation of its own, such as XML Replace";
@@ -436,6 +471,11 @@ namespace KeePassGate.Bridge
                 if (!_started)
                 {
                     return "the dialogs are not being watched";
+                }
+
+                if (_unnoted.Count > 0)
+                {
+                    return Unnoted;
                 }
 
                 foreach (var pair in _openSettings)
@@ -481,6 +521,11 @@ namespace KeePassGate.Bridge
                     // sentence in `KeePassGateExt` promising that a watch which never started
                     // refuses every write was true of groups and false of entries.
                     return "the entry dialogs are not being watched";
+                }
+
+                if (_unnoted.Count > 0)
+                {
+                    return Unnoted;
                 }
 
                 foreach (var pair in _openEntries)
@@ -590,15 +635,16 @@ namespace KeePassGate.Bridge
                 _openMaintenance.Clear();
                 _openSettings.Clear();
                 _progress.Clear();
+                _unnoted.Clear();
             }
         }
 
         private void OnWindowAdded(object sender, GateWindowEventArgs e)
         {
             // On the UI thread, inside KeePass. Nothing here may throw.
+            var form = e == null ? null : e.Form;
             try
             {
-                var form = e == null ? null : e.Form;
                 if (form == null || (!IsGroupDialog(form) && !IsEntryDialog(form)
                                      && !IsMaintenanceDialog(form) && !IsSettingsDialog(form)
                                      && !IsTanWizard(form) && !IsProgressWindow(form)))
@@ -724,6 +770,11 @@ namespace KeePassGate.Bridge
                 // the dialog that is loading. An exception that escapes here stops that dialog part
                 // way and then reaches WinForms' own error dialog, which offers to quit KeePass.
                 // What it caught is reported as an incident rather than as a log line.
+                lock (_lock)
+                {
+                    _unnoted.Add(form);
+                }
+
                 _incidents.Record("a group dialog opening could not be noted", error);
             }
         }
@@ -748,6 +799,7 @@ namespace KeePassGate.Bridge
                     _openMaintenance.Remove(form);
                     _openSettings.Remove(form);
                     _progress.Remove(form);
+                    _unnoted.Remove(form);
                 }
             }
             // codeql[cs/catch-of-all-exceptions] a handler of KeePass's own events, a kind of catch-all DESIGN.md §141 lists

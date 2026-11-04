@@ -26,6 +26,9 @@ none, since it releases both.
 - **A lock lets go of a database's keys and connections whatever closing the approval question
   did.** A failure there kept the host key and the authority in memory after the lock, kept the
   connections open and went on putting pairing requests in front of the operator.
+- **A dialog the plugin could not note holds every write back until it closes.** It was left
+  unwatched, so a revocation could land under Database Maintenance and be put back by that
+  dialog's close.
 - **Revocations pressed on the KPG tab land at OK whatever else fails there.** A failure while the
   clients were named for the audit dropped everything the tab held, revocations included.
 - **A rule the grant editor could not store is never stored later.** It redrew before it stored,

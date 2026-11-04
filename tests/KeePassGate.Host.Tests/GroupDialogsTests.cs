@@ -1,5 +1,6 @@
 using System;
 using System.Reflection;
+using System.Reflection.Emit;
 using System.Threading;
 using System.Windows.Forms;
 using KeePass.Forms;
@@ -102,6 +103,73 @@ namespace KeePassGate.Host.Tests
                 Assert.That(watch.Blocking(EntryUnderRoot()), Is.Not.Null);
                 Assert.That(watch.BlockingRecords(_database.Database), Is.Not.Null);
                 Assert.That(watch.Working(), Is.Not.Null);
+            }
+        }
+
+        [Test]
+        public void A_dialog_whose_opening_could_not_be_noted_holds_every_write_back_until_it_closes()
+        {
+            // Left out of every table, it read as nothing open: a Database Maintenance dialog nobody
+            // noted let a revocation land under it, and its close wrote the record it had copied
+            // back over it. The stand-in is a group dialog by name, made here because no form of
+            // KeePass's own fails to be noted, and it lacks the field that names its group, so
+            // noting it writes to the log, and the log fails as a defect would.
+            var incidents = new GateIncidents(NullGateLog.Instance);
+
+            using (var windows = new GlobalWindowManagerWindows())
+            using (var watch = new GroupDialogs(windows, incidents, new ThrowingWarnings()))
+            using (var form = StandInFor(KeePassContract.GroupFormTypeName))
+            {
+                Assert.That(watch.Start(), Is.True);
+
+                GlobalWindowManager.AddWindow(form);
+                try
+                {
+                    Assert.That(incidents.Count, Is.EqualTo(1), "noting the dialog did not fail");
+                    Assert.That(watch.Blocking(_database.RootGroup), Is.Not.Null);
+                    Assert.That(watch.Blocking(EntryUnderRoot()), Is.Not.Null);
+                    Assert.That(watch.BlockingRecords(_database.Database), Is.Not.Null);
+                    Assert.That(watch.BlockingRemoval(_database.RootGroup), Is.Not.Null);
+                }
+                finally
+                {
+                    GlobalWindowManager.RemoveWindow(form);
+                }
+
+                Assert.That(watch.Blocking(_database.RootGroup), Is.Null, "and nothing once it closed");
+                Assert.That(watch.BlockingRecords(_database.Database), Is.Null);
+            }
+        }
+
+        /// <summary>A form whose type has the full name given and nothing of the dialog behind it.</summary>
+        private static Form StandInFor(string typeName)
+        {
+            var assembly = AppDomain.CurrentDomain.DefineDynamicAssembly(
+                new AssemblyName("KeePassGate.Tests.StandIns"), AssemblyBuilderAccess.Run);
+            var type = assembly.DefineDynamicModule("StandIns")
+                .DefineType(typeName, TypeAttributes.Public | TypeAttributes.Sealed, typeof(Form));
+            type.DefineDefaultConstructor(MethodAttributes.Public);
+            return (Form)Activator.CreateInstance(type.CreateType());
+        }
+
+        /// <summary>A log whose warnings fail, as a defect reached through it would.</summary>
+        private sealed class ThrowingWarnings : IGateLog
+        {
+            public void Info(string message)
+            {
+            }
+
+            public void Warn(string message)
+            {
+                throw new NullReferenceException("a defect in the log");
+            }
+
+            public void Error(string message, Exception error)
+            {
+            }
+
+            public void Unexpected(string message, Exception error)
+            {
             }
         }
 
