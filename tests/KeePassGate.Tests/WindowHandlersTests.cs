@@ -175,7 +175,7 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void A_defect_storing_the_seal_is_recorded()
+        public void A_defect_storing_the_seal_is_recorded_and_left_off_the_sheet()
         {
             var store = new FakeGrantStore(Rules.Granting(("reader", "R")));
 
@@ -192,6 +192,11 @@ namespace KeePassGate.Tests
 
                 Assert.That(_loop, Is.Empty);
                 Assert.That(_incidents.Recent, Has.Exactly(1).StartsWith("the seal could not be changed"));
+
+                store.Refusal = null;
+                Assert.That(panel.AddGrant("ops"), Is.Null);
+                Assert.That(new GrantSheet(store.Read(), null, null, null).Default, Is.EqualTo(AclDefault.Inherit),
+                    "the next write carried the seal that was never stored");
             }
         }
 
