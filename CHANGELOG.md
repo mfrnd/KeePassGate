@@ -12,6 +12,11 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **A standing answer KeePass could not take is let go once its authority is recreated or
+  deleted.** Held in memory until a write could take it, an answer about a certificate whose
+  authority was then recreated or deleted was never written and never let go: it stayed held for
+  the session, and the message at exit told the operator its client would be asked about again,
+  which a client of a retired authority never is.
 - **A removal whose save fails is put back where it was, and every change taken back out puts the
   usage count back too.** The undo put an entry or a group back at the end of its parent's list,
   below the recycle bin under the root, and left each node a failed change touched counting one

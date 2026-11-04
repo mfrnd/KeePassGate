@@ -304,6 +304,29 @@ namespace KeePassGate.Host.Tests
             }
         }
 
+        [TestCase(true, TestName = "an owed answer whose authority was recreated is settled by the next write")]
+        [TestCase(false, TestName = "an owed answer whose authority was deleted is settled by the next write")]
+        public void An_owed_answer_whose_authority_was_retired_is_settled_by_the_next_write(bool recreate)
+        {
+            // A recreate or a delete retires the authority and takes every record with it, so
+            // nothing is left for the answer to refuse and no renewal can ask about it again.
+            // Skipped rather than settled, it stayed owed for the session, and the exit counted it
+            // as an answer whose client would be asked about again.
+            using (var renewal = new RealRenewal(this))
+            {
+                renewal.Session.Owe(renewal.DatabaseId, renewal.Key, RenewalRefusal.Forever());
+                var authority = new AuthorityService(new CustomDataStore(_database.Database), null);
+                var retired = recreate ? authority.Recreate() : authority.Delete();
+                Assume.That(retired.Succeeded, Is.True, retired.Message);
+
+                var written = renewal.Writer.Change(_database.Database, () => VaultWrite.Created("abcd"));
+                Assume.That(written.Ok, Is.True, written.Reason);
+
+                Assert.That(renewal.Session.Owed(), Is.Empty);
+                Assert.That(renewal.Standing, Is.Null, "and nothing was written for a record that has gone");
+            }
+        }
+
         private bool _failSaves;
 
         private void Save(PwDatabase database)

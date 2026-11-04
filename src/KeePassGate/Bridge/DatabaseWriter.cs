@@ -1495,10 +1495,10 @@ namespace KeePassGate.Bridge
         /// </summary>
         /// <remarks>
         /// **Only where the answer belongs**: the database serving the authority it was given
-        /// under, and while the record it is about is still there. One whose record has gone is
-        /// settled without being written, since nothing is left for it to refuse. **A failure here
-        /// fails nothing**: the write it rides on goes ahead, the answers stay owed, and the next
-        /// write tries again.
+        /// under, and while the record it is about is still there. An answer whose record has gone
+        /// is settled without being written, since nothing is left for it to refuse, and so is an
+        /// answer whose authority this database has retired. **A failure here fails nothing**: the
+        /// write it rides on goes ahead, the answers stay owed, and the next write tries again.
         /// </remarks>
         private Owing Owe(PwDatabase database)
         {
@@ -1514,9 +1514,20 @@ namespace KeePassGate.Bridge
                 var admissions = new AdmissionStore(owing.Store, _log);
                 foreach (var answer in owed)
                 {
-                    if (string.IsNullOrEmpty(owing.Store.Get(AuthorityKeys.AuthorityKey(answer.DatabaseId)))
-                        || owing.Store.Get(AuthorityKeys.RetirementKey(answer.DatabaseId)) != null)
+                    if (owing.Store.Get(AuthorityKeys.RetirementKey(answer.DatabaseId)) != null)
                     {
+                        // Given under an authority this database has since retired. A recreate or a
+                        // delete takes every record with it, so nothing is left for the answer to
+                        // refuse, and a certificate that authority issued is refused before any
+                        // renewal can ask about it. Skipped, it stayed owed for the session and was
+                        // counted at exit as an answer whose client would be asked about again.
+                        owing.Settled.Add(answer);
+                        continue;
+                    }
+
+                    if (string.IsNullOrEmpty(owing.Store.Get(AuthorityKeys.AuthorityKey(answer.DatabaseId))))
+                    {
+                        // Owed to another database: this database never held the authority.
                         continue;
                     }
 
