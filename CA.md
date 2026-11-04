@@ -128,11 +128,14 @@ refuses to write while that one is open.
 entry's `CustomData` keeps no time per key, so a merge takes the whole dictionary from one side or
 the other and decides by the node's own modification time. A rule is written only into the copy a
 group or entry dialog puts back on OK, so it travels exactly as far as any other edit made in that
-dialog, and the plugin writes no rule of its own. A merge that hands back a rule for a profile the
-operator has since removed hands back something inert, because the database's list of profiles
-decides which names are in force (`DESIGN.md` §139); that replaced a purge which rewrote every rule
-naming a removed profile, and moved the times of entries nobody had edited to make the rewrite
-carry. A write that says nothing new stays a no-op, so reading a rule is never an unsaved change.
+dialog, and the plugin writes no rule of its own. Nor does it move the time that decides which
+copy's rule a merge keeps: a removal through the API stamps what KeePass's own delete stamps, so a
+child's removal is no edit of its parent, and the first bin it makes is no decision about the bin. A
+merge that hands back a rule for a profile the operator has since removed hands back something
+inert, because the database's list of profiles decides which names are in force (`DESIGN.md` §139);
+that replaced a purge which rewrote every rule naming a removed profile, and moved the times of
+entries nobody had edited to make the rewrite carry. A write that says nothing new stays a no-op, so
+reading a rule is never an unsaved change.
 
 **One key per client, never one blob, and in the dictionary that merges per key.** Measured on
 KeePass 2.61.1: `PwDatabase.CustomData` keeps a modification time for each key and a merge

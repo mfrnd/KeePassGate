@@ -1222,6 +1222,37 @@ namespace KeePassGate.Host.Tests
             Assert.That(_vault.DeleteField(uuid, "Invented", VaultTagging.None).Ok, Is.True, "and any other field goes as before");
         }
 
+        [TestCase(true, TestName = "a removal to the bin leaves every modification time alone and its parent's tag with them")]
+        [TestCase(false, TestName = "a removal for good leaves every modification time alone and its parent's tag with them")]
+        public void A_removal_leaves_every_modification_time_alone_and_its_parents_tag_with_them(bool bin)
+        {
+            // KeePass's own delete moves no modification time, of the node or of its parent, and a
+            // merge reads that time as the newer edit: a parent stamped by its child's removal won
+            // the next synchronize whole, rules and all. The parent's tag hashes that time, so it
+            // changed as well, though the tag covers a group and not what is inside it. Each time
+            // is put in the past first, so that a stamp is seen whatever the clock's resolution.
+            _database.Database.RecycleBinEnabled = bin;
+            var parent = Created(_vault.CreateGroup(_vault.RootAlias, "Fictitious", null));
+            var child = Created(_vault.CreateGroup(parent, "Empty", null));
+            var entry = Created(_vault.CreateEntry(parent, Named("an invented service")));
+            var then = DateTime.UtcNow.AddMinutes(-10);
+            var parentGroup = Group(parent);
+            var childGroup = Group(child);
+            var removed = Entry(entry);
+            parentGroup.LastModificationTime = then;
+            childGroup.LastModificationTime = then;
+            removed.LastModificationTime = then;
+            var tag = _vault.GroupTag(parent);
+
+            Assert.That(_vault.DeleteEntry(entry, VaultTagging.None).Ok, Is.True);
+            Assert.That(_vault.DeleteGroup(child, VaultTagging.None).Ok, Is.True);
+
+            Assert.That(parentGroup.LastModificationTime, Is.EqualTo(then), "the parent");
+            Assert.That(_vault.GroupTag(parent), Is.EqualTo(tag), "and so its tag");
+            Assert.That(childGroup.LastModificationTime, Is.EqualTo(then), "the group removed");
+            Assert.That(removed.LastModificationTime, Is.EqualTo(then), "the entry removed");
+        }
+
         [Test]
         public void A_change_whose_save_never_lands_leaves_the_database_as_it_was()
         {
@@ -1235,8 +1266,12 @@ namespace KeePassGate.Host.Tests
             var entry = Created(_vault.CreateEntry(group, Named("an invented service"), VaultExpiry.At(Moment)));
 
             // A group of its own for the removal, because a group only goes when it is empty and
-            // the entry above is put back by its own undo before that line is reached.
+            // the entry above is put back by its own undo before that line is reached. Each of the
+            // two removed has a sibling after it, so that a node put back at its parent's end is
+            // seen: `Describe` walks the tree in order.
             var spare = Created(_vault.CreateGroup(_vault.RootAlias, "Empty", null));
+            Created(_vault.CreateEntry(group, Named("an entry after it")));
+            Created(_vault.CreateGroup(_vault.RootAlias, "A group after it", null));
             Assert.That(_vault.CreateField(entry, "Invented", "a value", true, VaultTagging.None).Ok, Is.True);
             Assert.That(_vault.CreateAttachment(entry, "note.txt", new byte[] { 1, 2, 3 }, VaultTagging.None).Ok, Is.True);
 
@@ -1323,11 +1358,17 @@ namespace KeePassGate.Host.Tests
         /// one can prune an older one to stay inside the operator's limits. A change taken back
         /// out therefore has to put the whole list back, not merely drop what it added. The
         /// expiry is in it because an update can move it or take it off, flag and moment alike.
+        ///
+        /// **And the order, the usage counts and the bin's time.** The tree is walked in order, so
+        /// a node put back at its parent's end is a difference; `Touch` advances a usage count on
+        /// every change, which the undo has to put back with the times; and a first bin taken back
+        /// out has to leave the moment the bin was last decided about where it was.
         /// </remarks>
         private string Describe()
         {
             var text = new StringBuilder();
-            text.Append("bin=").Append(_database.Database.RecycleBinUuid.ToHexString()).Append('\n');
+            text.Append("bin=").Append(_database.Database.RecycleBinUuid.ToHexString())
+                .Append(' ').Append(_database.Database.RecycleBinChanged.Ticks).Append('\n');
 
             foreach (var group in _database.Database.RootGroup.GetGroups(true))
             {
@@ -1336,7 +1377,8 @@ namespace KeePassGate.Host.Tests
                     .Append(' ').Append(group.Notes)
                     .Append(' ').Append(group.ParentGroup == null ? "-" : group.ParentGroup.Uuid.ToHexString())
                     .Append(' ').Append(group.LastModificationTime.Ticks)
-                    .Append(' ').Append(group.LocationChanged.Ticks).Append('\n');
+                    .Append(' ').Append(group.LocationChanged.Ticks)
+                    .Append(' ').Append(group.UsageCount).Append('\n');
             }
 
             foreach (var entry in _database.Database.RootGroup.GetEntries(true))
@@ -1345,6 +1387,7 @@ namespace KeePassGate.Host.Tests
                     .Append(' ').Append(entry.ParentGroup.Uuid.ToHexString())
                     .Append(' ').Append(entry.LastModificationTime.Ticks)
                     .Append(' ').Append(entry.LocationChanged.Ticks)
+                    .Append(' ').Append(entry.UsageCount)
                     .Append(' ').Append(entry.Expires)
                     .Append(' ').Append(entry.ExpiryTime.Ticks).Append('\n');
 
@@ -1381,6 +1424,12 @@ namespace KeePassGate.Host.Tests
         private PwEntry Entry(string uuid)
         {
             return _database.Database.RootGroup.FindEntry(
+                new PwUuid(MemUtil.HexStringToByteArray(uuid)), true);
+        }
+
+        private PwGroup Group(string uuid)
+        {
+            return _database.Database.RootGroup.FindGroup(
                 new PwUuid(MemUtil.HexStringToByteArray(uuid)), true);
         }
 

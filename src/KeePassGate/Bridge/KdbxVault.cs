@@ -469,8 +469,8 @@ namespace KeePassGate.Bridge
                 }
 
                 var parent = group.ParentGroup;
+                var position = parent.Groups.IndexOf(group);
                 var restoreGroup = Restoring(group);
-                var restoreParent = Restoring(parent);
                 var wasPrevious = group.PreviousParentGroup;
                 Action unmakeBin;
                 var bin = RecycleBin(out unmakeBin);
@@ -486,16 +486,22 @@ namespace KeePassGate.Bridge
                     parent.Groups.Remove(group);
                     group.PreviousParentGroup = parent.Uuid;
                     bin.AddGroup(group, true, true);
-                    group.Touch(true, false);
-                    parent.Touch(true, false);
+
+                    // Its use and its access time, as KeePass's own delete touches a node it bins,
+                    // and not its modification time or its parent's. A merge takes a group whole
+                    // from whichever copy's group was modified last, and a group keeps no history:
+                    // a parent stamped here won the next synchronize over an edit made to it on
+                    // another copy, rules and all, and a child's removal changed the parent's tag.
+                    // Not the access times above it either, which KeePass's `Touch(false)` walks,
+                    // so that the undo puts back everything this moved.
+                    group.Touch(false, false);
 
                     return new VaultChange(VaultWrite.Done(), () =>
                     {
                         bin.Groups.Remove(group);
-                        parent.AddGroup(group, true);
+                        Reinsert(parent, group, position);
                         group.PreviousParentGroup = wasPrevious;
                         restoreGroup();
-                        restoreParent();
 
                         if (unmakeBin != null)
                         {
@@ -504,17 +510,17 @@ namespace KeePassGate.Bridge
                     });
                 }
 
+                // Nothing is stamped, as KeePass's own permanent delete stamps nothing, for the
+                // reason the bin path above gives.
                 parent.Groups.Remove(group);
                 var deleted = new PwDeletedObject(group.Uuid, DateTime.UtcNow);
                 _database.DeletedObjects.Add(deleted);
-                parent.Touch(true, false);
 
                 return new VaultChange(VaultWrite.Done(), () =>
                 {
                     _database.DeletedObjects.Remove(deleted);
-                    parent.AddGroup(group, true);
+                    Reinsert(parent, group, position);
                     restoreGroup();
-                    restoreParent();
 
                     if (unmakeBin != null)
                     {
@@ -1109,24 +1115,30 @@ namespace KeePassGate.Bridge
             return _hold.Hold(read);
         }
 
-        /// <summary>The timestamps `Touch` is about to move, and how to put them back.</summary>
+        /// <summary>
+        /// The timestamps and the usage count `Touch` is about to move, and how to put them back.
+        /// </summary>
         /// <remarks>
         /// Called before the change, because it captures what is there now. `LocationChanged` is in
         /// here with the other two: a removal to the recycle bin stamps it, and an entry put back
         /// carrying a newer one than the copy in somebody's replica is an entry a later merge
-        /// relocates.
+        /// relocates. **And the usage count**, which `Touch` advances on every change: left
+        /// advanced, a change taken back out left the node counting a use the file never recorded,
+        /// in a database marked as holding nothing unsaved, for the next save to write.
         /// </remarks>
         private static Action Restoring(PwEntry entry)
         {
             var modified = entry.LastModificationTime;
             var accessed = entry.LastAccessTime;
             var located = entry.LocationChanged;
+            var used = entry.UsageCount;
 
             return () =>
             {
                 entry.LastModificationTime = modified;
                 entry.LastAccessTime = accessed;
                 entry.LocationChanged = located;
+                entry.UsageCount = used;
             };
         }
 
@@ -1167,13 +1179,44 @@ namespace KeePassGate.Bridge
             var modified = group.LastModificationTime;
             var accessed = group.LastAccessTime;
             var located = group.LocationChanged;
+            var used = group.UsageCount;
 
             return () =>
             {
                 group.LastModificationTime = modified;
                 group.LastAccessTime = accessed;
                 group.LocationChanged = located;
+                group.UsageCount = used;
             };
+        }
+
+        /// <summary>Puts a group back into its parent at the place it was taken from.</summary>
+        /// <remarks>
+        /// **`AddGroup` appends**, so a removal taken back out put the group after all its
+        /// siblings, the recycle bin among them, in a database then marked as holding nothing
+        /// unsaved, and the operator's next save wrote the new order. It is still what gives the
+        /// group its parent back, which nothing public sets, and the group then moves to where it
+        /// was. A place the list no longer has is its end.
+        /// </remarks>
+        private static void Reinsert(PwGroup parent, PwGroup group, int position)
+        {
+            parent.AddGroup(group, true);
+            parent.Groups.Remove(group);
+            parent.Groups.Insert(Place(position, parent.Groups.UCount), group);
+        }
+
+        /// <summary>Puts an entry back into its group at the place it was taken from.</summary>
+        /// <remarks>For the reason the group's overload gives.</remarks>
+        private static void Reinsert(PwGroup parent, PwEntry entry, int position)
+        {
+            parent.AddEntry(entry, true);
+            parent.Entries.Remove(entry);
+            parent.Entries.Insert(Place(position, parent.Entries.UCount), entry);
+        }
+
+        private static uint Place(int position, uint count)
+        {
+            return position < 0 || (uint)position > count ? count : (uint)position;
         }
 
         /// <summary>
@@ -1639,6 +1682,7 @@ namespace KeePassGate.Bridge
         private Action Discard(PwEntry entry)
         {
             var parent = entry.ParentGroup;
+            var position = parent == null ? -1 : parent.Entries.IndexOf(entry);
             var restore = Restoring(entry);
             Action unmakeBin;
             var bin = RecycleBin(out unmakeBin);
@@ -1658,12 +1702,16 @@ namespace KeePassGate.Bridge
                 // happen.
                 entry.PreviousParentGroup = parent.Uuid;
                 bin.AddEntry(entry, true, true);
-                entry.Touch(true, false);
+
+                // Touched as `DeleteGroup` touches a group it bins, and for its reason: an entry
+                // stamped as modified here won the next synchronize as the newer content over an
+                // edit made to it on another copy, which the merge then filed in its history.
+                entry.Touch(false, false);
 
                 return () =>
                 {
                     bin.Entries.Remove(entry);
-                    parent.AddEntry(entry, true);
+                    Reinsert(parent, entry, position);
                     entry.PreviousParentGroup = wasPrevious;
                     restore();
 
@@ -1688,7 +1736,7 @@ namespace KeePassGate.Bridge
 
                 if (parent != null)
                 {
-                    parent.AddEntry(entry, true);
+                    Reinsert(parent, entry, position);
                 }
 
                 restore();
@@ -1704,8 +1752,7 @@ namespace KeePassGate.Bridge
         /// <param name="unmake">
         /// How to take back a bin this call had to make, or null when it found one already there.
         /// A removal whose save never lands has to leave the database as it was, and on the first
-        /// removal into a fresh bin that includes the bin, the `RecycleBinUuid` pointing at it and
-        /// the moment it was set.
+        /// removal into a fresh bin that includes the bin and the `RecycleBinUuid` pointing at it.
         /// </param>
         private PwGroup RecycleBin(out Action unmake)
         {
@@ -1724,18 +1771,19 @@ namespace KeePassGate.Bridge
             }
 
             var wasUuid = _database.RecycleBinUuid;
-            var wasChanged = _database.RecycleBinChanged;
 
+            // `RecycleBinChanged` is left alone, as KeePass's own first delete leaves it. A merge
+            // reads it as the moment somebody decided about the bin, so a stamp here made an
+            // agent's first removal outrank, at the next synchronize, an operator turning the bin
+            // off on another copy.
             var bin = new PwGroup(true, true, "Recycle Bin", PwIcon.TrashBin) { EnableAutoType = false, EnableSearching = false };
             root.AddGroup(bin, true);
             _database.RecycleBinUuid = bin.Uuid;
-            _database.RecycleBinChanged = DateTime.UtcNow;
 
             unmake = () =>
             {
                 root.Groups.Remove(bin);
                 _database.RecycleBinUuid = wasUuid;
-                _database.RecycleBinChanged = wasChanged;
             };
 
             return bin;
