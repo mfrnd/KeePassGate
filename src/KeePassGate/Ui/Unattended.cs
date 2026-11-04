@@ -17,9 +17,9 @@ namespace KeePassGate.Ui
     /// work instead would hold the one thread that has to run it.
     ///
     /// So the failure is reported where it happens rather than carried to somebody. That is what
-    /// keeps this from being a fifth place that catches everything: it is the catch-all of the
-    /// handler that posted the work, following that handler's own work across the post, and what
-    /// it catches goes to the same `GateIncidents` the handlers' own catch-alls report to.
+    /// keeps this from being a kind of catch-all of its own, `DESIGN.md` §141: it is the catch-all
+    /// of the handler that posted the work, following that handler's own work across the post, and
+    /// what it catches goes to the same `GateIncidents` the handlers' own catch-alls report to.
     ///
     /// **What is being kept out is WinForms' own error dialog.** An exception let out of a
     /// callback `BeginInvoke` is running is handed to `Application.OnThreadException` as well as

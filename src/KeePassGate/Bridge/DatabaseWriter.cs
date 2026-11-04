@@ -1977,14 +1977,14 @@ namespace KeePassGate.Bridge
         /// paths that leave the change in force: saved and verified, and saved without the file
         /// being verified, which takes nothing back out.
         ///
-        /// **A page that fails to redraw never fails the write.** By the time this runs the record is
-        /// on the disk and the client is about to be handed its certificate, so a page that failed
-        /// to redraw is a page an operator can bring forward again; failing the pairing over it
-        /// would spend the invitation and give nothing back. What is caught is what drawing can
+        /// **A page that fails to redraw never fails the write.** By the time this runs the record
+        /// is on the disk and the client is about to be handed its certificate, so a page that
+        /// failed to redraw is a page an operator can bring forward again; failing the pairing over
+        /// it would spend the invitation and give nothing back. What is caught is what drawing can
         /// throw, the list `Expected.OfUserInterface` keeps. Anything else is a defect in the
-        /// listener and is not caught here, because this is not one of the four places that catch
-        /// everything: it reaches the connection thread's, which counts it, and the pairing ends
-        /// with its record saved and no certificate handed over. A renewal ends the same way, and a
+        /// listener and is not caught here, because this is no kind of catch-all `DESIGN.md` §141
+        /// lists: it reaches the connection thread's, which counts it, and the pairing ends with
+        /// its record saved and no certificate handed over. A renewal ends the same way, and a
         /// client's revocation of itself ends in force and answered `500`. In all three the audit
         /// line is already written, by <see cref="Landed"/> before this ran, so the change on the
         /// disk is in the audit as well, and the incident the catch-all counts says why its answer

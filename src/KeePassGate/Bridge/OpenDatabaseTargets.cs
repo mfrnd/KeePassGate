@@ -176,7 +176,7 @@ namespace KeePassGate.Bridge
                     // by nobody: the count never reaches zero, so the gate key and the host PKCS#12
                     // of a database that was perfectly readable are never wiped. Given back here
                     // rather than in a `catch`, so the throw goes on to the resolver untouched and
-                    // this stays out of the four places that catch everything.
+                    // this is no kind of catch-all `DESIGN.md` §141 lists.
                     if (!handedOver)
                     {
                         // codeql[cs/missed-using-statement] disposed only when it is not kept, which no `using` can do

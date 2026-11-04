@@ -74,13 +74,14 @@ namespace KeePassGate.Bridge
                     _writer.BeforeSave(e.Database, e.Copy);
                 }
             }
-            // codeql[cs/catch-of-all-exceptions] a handler of KeePass's own events, one of the four catch-alls
+            // codeql[cs/catch-of-all-exceptions] a handler of KeePass's own events, a kind of catch-all DESIGN.md §141 lists
             catch (Exception error)
             {
-                // One of the four catch-alls, and this is why: it runs on KeePass's own thread from
-                // KeePass's own event, raised outside the try `SaveDatabase` keeps around the save,
-                // so an exception escaping here would stop the operator's save before anything was
-                // written and then reach WinForms' own error dialog. The answers stay owed.
+                // A kind of catch-all `DESIGN.md` §141 lists, and this is why: it runs on KeePass's
+                // own thread from KeePass's own event, raised outside the try `SaveDatabase` keeps
+                // around the save, so an exception escaping here would stop the operator's save
+                // before anything was written and then reach WinForms' own error dialog. The
+                // answers stay owed.
                 Record("the standing answers owed to a database could not be written before its save", error);
             }
         }
@@ -94,7 +95,7 @@ namespace KeePassGate.Bridge
                     _writer.AfterSave(e.Database, e.Success);
                 }
             }
-            // codeql[cs/catch-of-all-exceptions] a handler of KeePass's own events, one of the four catch-alls
+            // codeql[cs/catch-of-all-exceptions] a handler of KeePass's own events, a kind of catch-all DESIGN.md §141 lists
             catch (Exception error)
             {
                 // As above, at the other end of the same save.

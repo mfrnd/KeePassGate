@@ -15,9 +15,9 @@ namespace KeePassGate.Tests
     /// What happens to a failure nobody predicted.
     /// </summary>
     /// <remarks>
-    /// Four places in the plugin catch every exception, because in those four an escaping one
-    /// would do more harm than the defect it carries, which `GateIncidents` spells out. The risk
-    /// that comes with such a catch is that it turns a defect into a log line nobody reads, so this
+    /// Some places in the plugin catch every exception, because there an escaping exception would
+    /// do more harm than the defect it carries, which `DESIGN.md` §141 spells out. The risk that
+    /// comes with such a catch is that it turns a defect into a log line nobody reads, so this
     /// fixture is about the other half: that it is counted, and that the count reaches the one
     /// screen the operator already looks at.
     /// </remarks>

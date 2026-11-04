@@ -46,9 +46,10 @@ namespace KeePassGate.Ui
         /// **Whatever the work threw is thrown here, on the calling thread**, rather than being
         /// reported as an answer, because there is no answer a failed write or a dialog that never
         /// opened could honestly give: true would claim it ran to completion and false would claim
-        /// it never started. Every caller already stands under one of the four catch-alls, so an
-        /// exception nothing on the way up names is counted and logged there; the implementation
-        /// over a `Control` says why it has to carry it rather than let it travel.
+        /// it never started. Every caller already stands under a kind of catch-all `DESIGN.md` §141
+        /// lists, so an exception nothing on the way up names is counted and logged there; the
+        /// implementation over a `Control` explains why it has to carry it rather than let it
+        /// travel.
         /// </remarks>
         bool Run(Action work, TimeSpan timeout);
 
@@ -515,17 +516,17 @@ namespace KeePassGate.Ui
         /// given its answer already, so a turn it withdrew must never run afterwards. The lock is
         /// what makes the timeout mean "this did not happen" rather than "this has not happened yet".
         ///
-        /// **The catch around the work is total, and it is not a fifth catch-all.** Work that lets
-        /// an exception out on the user interface thread does not simply fail the caller: WinForms
-        /// hands it to `Application.OnThreadException`, and KeePass registers no handler and sets
-        /// no unhandled exception mode, so WinForms shows its own "Unhandled exception has occurred
-        /// in your application" dialog inside the password manager, whose Quit ends the process
-        /// outside KeePass's own shutdown. Measured on .NET Framework 4.8 with a form on one thread
-        /// and a throwing `BeginInvoke` from another: with a handler registered it fired on the
-        /// user interface thread before `EndInvoke` was ever called, and with none registered
-        /// WinForms went modal instead.
+        /// **The catch around the work is total, and it is no kind of catch-all of its own.** Work
+        /// that lets an exception out on the user interface thread does not simply fail the caller:
+        /// WinForms hands it to `Application.OnThreadException`, and KeePass registers no handler
+        /// and sets no unhandled exception mode, so WinForms shows its own "Unhandled exception has
+        /// occurred in your application" dialog inside the password manager, whose Quit ends the
+        /// process outside KeePass's own shutdown. Measured on .NET Framework 4.8 with a form on
+        /// one thread and a throwing `BeginInvoke` from another: with a handler registered it fired
+        /// on the user interface thread before `EndInvoke` was ever called, and with none
+        /// registered WinForms went modal instead.
         ///
-        /// Nothing is absorbed here, which is what separates this from the four places that catch
+        /// Nothing is absorbed here, which is what separates this from the places that catch
         /// everything: the exception is carried to the thread that asked for the work and thrown
         /// there by `Rethrow`, which is where a filter can name it or a catch-all can count it.
         /// Recording it here instead would take a `GateFailure` a caller names away from the caller
