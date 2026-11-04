@@ -30,6 +30,8 @@ none, since it releases both.
 - **A refusal until a date can be chosen across midnight on the eve of a certificate's last day.**
   Tomorrow was read more than once, and a midnight between two readings threw, so the choice went
   without a word and the renewal dialog stayed unanswered.
+- **A retry of keeping the authority the operator chose stops when the plugin is let go.** It
+  ticked once more as KeePass closed, and told the operator the authority was not kept.
 - **The message at exit names the standing answers it lets go, and gives no cause.** It counted
   them and blamed KeePass being busy whenever they were given and nothing being written after
   them, which was untrue after a save that failed or a save made since, and promised a dialog for

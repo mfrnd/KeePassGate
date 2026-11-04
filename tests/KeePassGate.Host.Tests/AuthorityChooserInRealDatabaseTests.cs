@@ -249,6 +249,49 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void A_retry_still_waiting_when_the_plugin_is_let_go_never_runs()
+        {
+            // The retries above wait on timers of KeePass's thread. One still waiting when KeePass
+            // let the plugin go ticked at the next pump, tried to keep the authority for a plugin
+            // that had gone and told the operator it was not kept.
+            var tries = 0;
+            var writer = new DatabaseWriter(
+                CurrentThread.Instance, database => { }, () =>
+                {
+                    tries++;
+                    return "KeePass is saving";
+                }, null, null, _dialogs, NullGateLog.Instance);
+
+            using (var owner = new Form())
+            {
+                Assume.That(owner.Handle, Is.Not.EqualTo(IntPtr.Zero), "the retries post onto this window");
+
+                // Disposed twice, by the test and by the `using`, which a dispose has to take.
+                using (var chooser = new AuthorityChooser(
+                           new NoEvents(), _targets, writer, owner, null, null, _prompt, null, NullGateLog.Instance)
+                       {
+                           AskWhichToKeep = (choice, name) => _candidates[0]
+                       })
+                {
+                    chooser.AskAll();
+                    Assume.That(tries, Is.EqualTo(1), "the first try was refused, which leaves a retry waiting");
+
+                    chooser.Dispose();
+
+                    var until = DateTime.UtcNow + AuthorityChooser.KeepEvery + AuthorityChooser.KeepEvery;
+                    while (DateTime.UtcNow < until)
+                    {
+                        Application.DoEvents();
+                        Thread.Sleep(10);
+                    }
+
+                    Assert.That(tries, Is.EqualTo(1), "a retry ran after the chooser was disposed");
+                    Assert.That(_prompt.Told, Is.Null, "and the operator was told about a plugin that had gone");
+                }
+            }
+        }
+
+        [Test]
         public void KeePass_busy_with_something_of_its_own_is_waited_for_rather_than_asked_through()
         {
             var chooser = new AuthorityChooser(

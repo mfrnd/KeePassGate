@@ -64,9 +64,11 @@ namespace KeePassGate.Bridge
         private readonly GateIncidents _incidents;
         private readonly IGateLog _log;
         private readonly HashSet<PwDatabase> _asking = new HashSet<PwDatabase>();
+        private readonly HashSet<Timer> _shortly = new HashSet<Timer>();
 
         private Timer _later;
         private bool _started;
+        private bool _disposed;
 
         public AuthorityChooser(
             IDatabaseEvents events,
@@ -135,6 +137,8 @@ namespace KeePassGate.Bridge
 
         public void Dispose()
         {
+            _disposed = true;
+
             if (_started)
             {
                 _started = false;
@@ -147,6 +151,16 @@ namespace KeePassGate.Bridge
                 _later.Dispose();
                 _later = null;
             }
+
+            // And every retry still waiting, which would otherwise tick the next time KeePass
+            // pumps, try to keep an authority for a plugin KeePass has let go, and tell the
+            // operator it was not kept.
+            foreach (var timer in _shortly)
+            {
+                timer.Dispose();
+            }
+
+            _shortly.Clear();
         }
 
         /// <summary>
@@ -284,15 +298,36 @@ namespace KeePassGate.Bridge
         }
 
         /// <summary>A one-shot timer on KeePass's thread, whose tick goes through `Unattended`.</summary>
+        /// <remarks>
+        /// Kept until it ticks so that `Dispose` can stop it, and the work it posts asks again
+        /// whether this has been disposed, since a tick can post just before `Dispose` and run just
+        /// after it.
+        /// </remarks>
         private void Shortly(TimeSpan delay, Action work)
         {
+            if (_disposed)
+            {
+                return;
+            }
+
             var timer = new Timer { Interval = Math.Max(1, (int)delay.TotalMilliseconds) };
+            _shortly.Add(timer);
             timer.Tick += delegate
             {
+                _shortly.Remove(timer);
                 timer.Dispose();
                 try
                 {
-                    Unattended.Post(_owner, work, error => _incidents.Record("an authority could not be kept", error));
+                    Unattended.Post(
+                        _owner,
+                        delegate
+                        {
+                            if (!_disposed)
+                            {
+                                work();
+                            }
+                        },
+                        error => _incidents.Record("an authority could not be kept", error));
                 }
                 catch (Exception error) when (Expected.OfUserInterface(error))
                 {
