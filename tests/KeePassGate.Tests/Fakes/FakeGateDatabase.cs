@@ -41,8 +41,24 @@ namespace KeePassGate.Tests.Fakes
 
         public IKeyValueStore PluginCustomData
         {
-            get { return _store; }
+            get
+            {
+                var refusal = NextReadThrows;
+                if (refusal != null)
+                {
+                    NextReadThrows = null;
+                    throw refusal;
+                }
+
+                return _store;
+            }
         }
+
+        /// <summary>
+        /// What the next read of the custom data throws, once, or null for reads that work: a
+        /// defect in one step of something that reads it several times.
+        /// </summary>
+        public System.Exception NextReadThrows { get; set; }
 
         /// <summary>
         /// What marking the database as modified throws, or null for a mark that works. For the

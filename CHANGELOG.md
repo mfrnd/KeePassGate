@@ -23,6 +23,8 @@ none, since it releases both.
 - **KeePass's start goes on past a defect in making the plugin's menu item**, which is left out of
   the Tools menu instead, and a dialog the plugin put a tab on is no longer held open by a defect in
   taking the tab off as it closes without KeePass announcing it.
+- **Revocations pressed on the KPG tab land at OK whatever else fails there.** A failure while the
+  clients were named for the audit dropped everything the tab held, revocations included.
 - **A rule the grant editor could not store is never stored later.** It redrew before it stored,
   and a redraw that failed left the rule on the sheet, so the next edit wrote it, after the tab had
   reported it as not applied. A grant picker that could not be closed is reported as not closed,

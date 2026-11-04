@@ -146,6 +146,41 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_defect_naming_the_clients_at_OK_keeps_no_revocation_from_landing()
+        {
+            // The clients are named for the audit's lines before OK empties their records, and a
+            // failure there, in the same step as applying what the tab held, dropped every
+            // revocation the clients page had already shown gone.
+            var incidents = new GateIncidents(_log);
+            Assume.That(new AuthorityService(_database.PluginCustomData, _log).Create().Succeeded, Is.True);
+
+            using (var issuer = TestAuthority.New())
+            using (var client = issuer.IssueClient("agent-fictitious", "reader"))
+            {
+                new AdmissionStore(_database.PluginCustomData, _log)
+                    .Write(AdmissionRecord.For(client, DateTimeOffset.UtcNow, new[] { "reader" }));
+                var key = CertificateDigest.Of(client);
+                var factory = new AuthorityPanelFactory(
+                    new FakeDatabaseSource(_database), new FakePrompt(true), _log, null, null, incidents,
+                    new AdmissionAudit(NullGateAudit.Instance), new SessionRefusals());
+
+                using (var form = Dialogs.WithNestedTabControl("General"))
+                using (var panel = (AuthorityPanel)factory.CreatePanel(form))
+                {
+                    Assert.That(panel.Revoke(key), Is.Null);
+
+                    _database.NextReadThrows = new NullReferenceException("a defect naming the clients");
+                    form.DialogResult = DialogResult.OK;
+                    form.RaiseClosed();
+                }
+
+                Assert.That(new AdmissionStore(_database.PluginCustomData, _log).Find(key), Is.Null,
+                    "the revocation never landed");
+                Assert.That(incidents.Recent, Has.Exactly(1).Contains(nameof(NullReferenceException)));
+            }
+        }
+
+        [Test]
         public void The_factory_the_plugin_builds_cannot_be_given_no_audit()
         {
             // A factory given none wrote nothing down and said nothing, so whether the operator's
