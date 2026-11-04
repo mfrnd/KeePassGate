@@ -1266,8 +1266,12 @@ namespace KeePassGate.Host.Tests
             var entry = Created(_vault.CreateEntry(group, Named("an invented service"), VaultExpiry.At(Moment)));
 
             // A group of its own for the removal, because a group only goes when it is empty and
-            // the entry above is put back by its own undo before that line is reached.
+            // the entry above is put back by its own undo before that line is reached. Each of the
+            // two removed has a sibling after it, so that a node put back at its parent's end is
+            // seen: `Describe` walks the tree in order.
             var spare = Created(_vault.CreateGroup(_vault.RootAlias, "Empty", null));
+            Created(_vault.CreateEntry(group, Named("an entry after it")));
+            Created(_vault.CreateGroup(_vault.RootAlias, "A group after it", null));
             Assert.That(_vault.CreateField(entry, "Invented", "a value", true, VaultTagging.None).Ok, Is.True);
             Assert.That(_vault.CreateAttachment(entry, "note.txt", new byte[] { 1, 2, 3 }, VaultTagging.None).Ok, Is.True);
 
@@ -1354,11 +1358,17 @@ namespace KeePassGate.Host.Tests
         /// one can prune an older one to stay inside the operator's limits. A change taken back
         /// out therefore has to put the whole list back, not merely drop what it added. The
         /// expiry is in it because an update can move it or take it off, flag and moment alike.
+        ///
+        /// **And the order, the usage counts and the bin's time.** The tree is walked in order, so
+        /// a node put back at its parent's end is a difference; `Touch` advances a usage count on
+        /// every change, which the undo has to put back with the times; and a first bin taken back
+        /// out has to leave the moment the bin was last decided about where it was.
         /// </remarks>
         private string Describe()
         {
             var text = new StringBuilder();
-            text.Append("bin=").Append(_database.Database.RecycleBinUuid.ToHexString()).Append('\n');
+            text.Append("bin=").Append(_database.Database.RecycleBinUuid.ToHexString())
+                .Append(' ').Append(_database.Database.RecycleBinChanged.Ticks).Append('\n');
 
             foreach (var group in _database.Database.RootGroup.GetGroups(true))
             {
@@ -1367,7 +1377,8 @@ namespace KeePassGate.Host.Tests
                     .Append(' ').Append(group.Notes)
                     .Append(' ').Append(group.ParentGroup == null ? "-" : group.ParentGroup.Uuid.ToHexString())
                     .Append(' ').Append(group.LastModificationTime.Ticks)
-                    .Append(' ').Append(group.LocationChanged.Ticks).Append('\n');
+                    .Append(' ').Append(group.LocationChanged.Ticks)
+                    .Append(' ').Append(group.UsageCount).Append('\n');
             }
 
             foreach (var entry in _database.Database.RootGroup.GetEntries(true))
@@ -1376,6 +1387,7 @@ namespace KeePassGate.Host.Tests
                     .Append(' ').Append(entry.ParentGroup.Uuid.ToHexString())
                     .Append(' ').Append(entry.LastModificationTime.Ticks)
                     .Append(' ').Append(entry.LocationChanged.Ticks)
+                    .Append(' ').Append(entry.UsageCount)
                     .Append(' ').Append(entry.Expires)
                     .Append(' ').Append(entry.ExpiryTime.Ticks).Append('\n');
 

@@ -469,6 +469,7 @@ namespace KeePassGate.Bridge
                 }
 
                 var parent = group.ParentGroup;
+                var position = parent.Groups.IndexOf(group);
                 var restoreGroup = Restoring(group);
                 var wasPrevious = group.PreviousParentGroup;
                 Action unmakeBin;
@@ -498,7 +499,7 @@ namespace KeePassGate.Bridge
                     return new VaultChange(VaultWrite.Done(), () =>
                     {
                         bin.Groups.Remove(group);
-                        parent.AddGroup(group, true);
+                        Reinsert(parent, group, position);
                         group.PreviousParentGroup = wasPrevious;
                         restoreGroup();
 
@@ -518,7 +519,7 @@ namespace KeePassGate.Bridge
                 return new VaultChange(VaultWrite.Done(), () =>
                 {
                     _database.DeletedObjects.Remove(deleted);
-                    parent.AddGroup(group, true);
+                    Reinsert(parent, group, position);
                     restoreGroup();
 
                     if (unmakeBin != null)
@@ -1114,24 +1115,30 @@ namespace KeePassGate.Bridge
             return _hold.Hold(read);
         }
 
-        /// <summary>The timestamps `Touch` is about to move, and how to put them back.</summary>
+        /// <summary>
+        /// The timestamps and the usage count `Touch` is about to move, and how to put them back.
+        /// </summary>
         /// <remarks>
         /// Called before the change, because it captures what is there now. `LocationChanged` is in
         /// here with the other two: a removal to the recycle bin stamps it, and an entry put back
         /// carrying a newer one than the copy in somebody's replica is an entry a later merge
-        /// relocates.
+        /// relocates. **And the usage count**, which `Touch` advances on every change: left
+        /// advanced, a change taken back out left the node counting a use the file never recorded,
+        /// in a database marked as holding nothing unsaved, for the next save to write.
         /// </remarks>
         private static Action Restoring(PwEntry entry)
         {
             var modified = entry.LastModificationTime;
             var accessed = entry.LastAccessTime;
             var located = entry.LocationChanged;
+            var used = entry.UsageCount;
 
             return () =>
             {
                 entry.LastModificationTime = modified;
                 entry.LastAccessTime = accessed;
                 entry.LocationChanged = located;
+                entry.UsageCount = used;
             };
         }
 
@@ -1172,13 +1179,44 @@ namespace KeePassGate.Bridge
             var modified = group.LastModificationTime;
             var accessed = group.LastAccessTime;
             var located = group.LocationChanged;
+            var used = group.UsageCount;
 
             return () =>
             {
                 group.LastModificationTime = modified;
                 group.LastAccessTime = accessed;
                 group.LocationChanged = located;
+                group.UsageCount = used;
             };
+        }
+
+        /// <summary>Puts a group back into its parent at the place it was taken from.</summary>
+        /// <remarks>
+        /// **`AddGroup` appends**, so a removal taken back out put the group after all its
+        /// siblings, the recycle bin among them, in a database then marked as holding nothing
+        /// unsaved, and the operator's next save wrote the new order. It is still what gives the
+        /// group its parent back, which nothing public sets, and the group then moves to where it
+        /// was. A place the list no longer has is its end.
+        /// </remarks>
+        private static void Reinsert(PwGroup parent, PwGroup group, int position)
+        {
+            parent.AddGroup(group, true);
+            parent.Groups.Remove(group);
+            parent.Groups.Insert(Place(position, parent.Groups.UCount), group);
+        }
+
+        /// <summary>Puts an entry back into its group at the place it was taken from.</summary>
+        /// <remarks>For the reason the group's overload gives.</remarks>
+        private static void Reinsert(PwGroup parent, PwEntry entry, int position)
+        {
+            parent.AddEntry(entry, true);
+            parent.Entries.Remove(entry);
+            parent.Entries.Insert(Place(position, parent.Entries.UCount), entry);
+        }
+
+        private static uint Place(int position, uint count)
+        {
+            return position < 0 || (uint)position > count ? count : (uint)position;
         }
 
         /// <summary>
@@ -1644,6 +1682,7 @@ namespace KeePassGate.Bridge
         private Action Discard(PwEntry entry)
         {
             var parent = entry.ParentGroup;
+            var position = parent == null ? -1 : parent.Entries.IndexOf(entry);
             var restore = Restoring(entry);
             Action unmakeBin;
             var bin = RecycleBin(out unmakeBin);
@@ -1672,7 +1711,7 @@ namespace KeePassGate.Bridge
                 return () =>
                 {
                     bin.Entries.Remove(entry);
-                    parent.AddEntry(entry, true);
+                    Reinsert(parent, entry, position);
                     entry.PreviousParentGroup = wasPrevious;
                     restore();
 
@@ -1697,7 +1736,7 @@ namespace KeePassGate.Bridge
 
                 if (parent != null)
                 {
-                    parent.AddEntry(entry, true);
+                    Reinsert(parent, entry, position);
                 }
 
                 restore();
