@@ -793,19 +793,23 @@ namespace KeePassGate.Ui
             _session = session;
         }
 
-        /// <summary>Whether renewals of this certificate are refused, as OK would leave them.</summary>
-        public bool Refuses(string admissionKey)
+        /// <summary>
+        /// Whether the plugin's memory holds an answer about renewing this certificate, as OK would
+        /// leave it.
+        /// </summary>
+        public bool Holds(string admissionKey)
         {
-            return Answer(admissionKey) != null;
+            return !_lifted.Contains(admissionKey ?? string.Empty) && _session.Holds(admissionKey);
         }
 
         /// <summary>
-        /// The answer the plugin's memory holds about renewing this certificate, as OK would leave
-        /// it: this session's, or one for longer still owed to the database, or null.
+        /// The answer the plugin's memory holds about renewing this certificate that refuses at this
+        /// moment, as OK would leave it: this session's answer, or an answer for longer still owed
+        /// to the database, or null.
         /// </summary>
-        public RenewalRefusal Answer(string admissionKey)
+        public RenewalRefusal Answer(string admissionKey, DateTimeOffset now)
         {
-            return _lifted.Contains(admissionKey ?? string.Empty) ? null : _session.Answer(admissionKey);
+            return _lifted.Contains(admissionKey ?? string.Empty) ? null : _session.Answer(admissionKey, now);
         }
 
         /// <summary>
@@ -814,7 +818,7 @@ namespace KeePassGate.Ui
         /// </summary>
         public bool Lift(string admissionKey)
         {
-            if (!Refuses(admissionKey))
+            if (!Holds(admissionKey))
             {
                 return false;
             }

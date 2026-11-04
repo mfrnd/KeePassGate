@@ -12,6 +12,10 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **A renewal refused in this session stays refused when an older answer until a date has passed.**
+  An answer until a date that KeePass could not take, and whose day had begun, stood in front of
+  a later "Refuse in this session" for the same certificate: the renewal dialog came up again on
+  every request, and the clients page showed the client as refused by nothing.
 - **A standing answer KeePass could not take is let go once its authority is recreated or
   deleted.** Held in memory until a write could take it, an answer about a certificate whose
   authority was then recreated or deleted was never written and never let go: it stayed held for

@@ -1,3 +1,4 @@
+using System;
 using KeePassGate.Acl;
 using KeePassGate.Authority;
 using KeePassGate.Tests.Fakes;
@@ -676,7 +677,7 @@ namespace KeePassGate.Tests
 
             var canceled = new PendingSessionRefusals(session);
             Assert.That(canceled.Lift("one"), Is.True);
-            Assert.That(canceled.Refuses("one"), Is.False, "the page reads it as lifted at once");
+            Assert.That(canceled.Holds("one"), Is.False, "the page reads it as lifted at once");
             Assert.That(session.Refuses("one"), Is.True, "and the gate still refuses");
             canceled.Discard();
             Assert.That(session.Refuses("one"), Is.True, "Cancel leaves it standing");
@@ -698,15 +699,33 @@ namespace KeePassGate.Tests
             session.Owe("db", "one", RenewalRefusal.Forever());
 
             var pending = new PendingSessionRefusals(session);
-            Assert.That(pending.Answer("one").IsForever, Is.True);
+            var now = DateTimeOffset.UtcNow;
+            Assert.That(pending.Answer("one", now).IsForever, Is.True);
 
             Assert.That(pending.Lift("one"), Is.True);
-            Assert.That(pending.Answer("one"), Is.Null, "the page reads it as lifted at once");
-            Assert.That(session.Answer("one"), Is.Not.Null, "and the gate still refuses");
+            Assert.That(pending.Answer("one", now), Is.Null, "the page reads it as lifted at once");
+            Assert.That(session.Answer("one", now), Is.Not.Null, "and the gate still refuses");
 
             pending.Apply();
-            Assert.That(session.Answer("one"), Is.Null, "OK lifts it");
+            Assert.That(session.Answer("one", now), Is.Null, "OK lifts it");
             Assert.That(session.Owed(), Is.Empty, "and nothing is owed to the database any more");
+        }
+
+        [Test]
+        public void An_owed_answer_whose_day_has_begun_leaves_this_sessions_answer_showing()
+        {
+            // Answered whether or not it still refused, the owed answer stood in front of this
+            // session's, and the page let the passed date go and showed the client refused by
+            // nothing. It is still there to lift, since memory still holds it.
+            var now = DateTimeOffset.UtcNow;
+            var session = new KeePassGate.Pairing.SessionRefusals();
+            session.Owe("db", "one", RenewalRefusal.Until(now.AddDays(-1)));
+            session.Refuse("one");
+
+            var pending = new PendingSessionRefusals(session);
+
+            Assert.That(pending.Answer("one", now).IsThisSession, Is.True);
+            Assert.That(pending.Lift("one"), Is.True);
         }
     }
 }

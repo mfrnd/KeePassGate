@@ -431,15 +431,13 @@ namespace KeePassGate.Pairing
                 return true;
             }
 
-            if (standing == null || !standing.Refuses(_clock()))
+            var now = _clock();
+            if (standing == null || !standing.Refuses(now))
             {
                 // The plugin's memory after the database: this session's answer, or one for longer
-                // the database could not take when it was given and is owed it still.
-                standing = _session.Answer(key);
-                if (standing != null && !standing.Refuses(_clock()))
-                {
-                    standing = null;
-                }
+                // the database could not take when it was given and is owed it still, whichever
+                // refuses now.
+                standing = _session.Answer(key, now);
             }
 
             if (standing == null)

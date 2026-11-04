@@ -109,10 +109,18 @@ namespace KeePassGate.Pairing
         }
 
         /// <summary>
-        /// The answer this holds about renewing this certificate, or null: one still owed to the
-        /// database before one for this session, since it says more.
+        /// The answer this holds about renewing this certificate that refuses at this moment, or
+        /// null: an answer still owed to the database before this session's answer, since it says
+        /// more.
         /// </summary>
-        public RenewalRefusal Answer(string admissionKey)
+        /// <remarks>
+        /// **Asked of the moment**, because an owed answer until a date stops refusing once its day
+        /// begins and nothing takes it out of memory then. Answered whether or not it still
+        /// refused, it stood in front of this session's answer, and both readers let the passed
+        /// date go and found nothing: the renewal raised the dialog again on every request, and
+        /// the clients page showed the client as refused by nothing.
+        /// </remarks>
+        public RenewalRefusal Answer(string admissionKey, DateTimeOffset now)
         {
             if (string.IsNullOrEmpty(admissionKey))
             {
@@ -122,12 +130,29 @@ namespace KeePassGate.Pairing
             lock (_lock)
             {
                 OwedAnswer owed;
-                if (_owed.TryGetValue(admissionKey, out owed))
+                if (_owed.TryGetValue(admissionKey, out owed) && owed.Refusal.Refuses(now))
                 {
                     return owed.Refusal;
                 }
 
                 return _refused.Contains(admissionKey) ? RenewalRefusal.ThisSession() : null;
+            }
+        }
+
+        /// <summary>
+        /// Whether this holds any answer about renewing this certificate, an answer owed until a
+        /// date that has passed among them, which is what there is to lift.
+        /// </summary>
+        public bool Holds(string admissionKey)
+        {
+            if (string.IsNullOrEmpty(admissionKey))
+            {
+                return false;
+            }
+
+            lock (_lock)
+            {
+                return _refused.Contains(admissionKey) || _owed.ContainsKey(admissionKey);
             }
         }
 
