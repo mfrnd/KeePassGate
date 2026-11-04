@@ -781,7 +781,11 @@ namespace KeePassGate.Ui
     public sealed class PendingSessionRefusals
     {
         private readonly SessionRefusals _session;
-        private readonly HashSet<string> _lifted = new HashSet<string>(StringComparer.Ordinal);
+
+        /// <summary>
+        /// Every certificate lifted on the page, with the owed answer the lift held back.
+        /// </summary>
+        private readonly Dictionary<string, OwedAnswer> _lifted = new Dictionary<string, OwedAnswer>(StringComparer.Ordinal);
 
         public PendingSessionRefusals(SessionRefusals session)
         {
@@ -799,7 +803,7 @@ namespace KeePassGate.Ui
         /// </summary>
         public bool Holds(string admissionKey)
         {
-            return !_lifted.Contains(admissionKey ?? string.Empty) && _session.Holds(admissionKey);
+            return !_lifted.ContainsKey(admissionKey ?? string.Empty) && _session.Holds(admissionKey);
         }
 
         /// <summary>
@@ -809,13 +813,18 @@ namespace KeePassGate.Ui
         /// </summary>
         public RenewalRefusal Answer(string admissionKey, DateTimeOffset now)
         {
-            return _lifted.Contains(admissionKey ?? string.Empty) ? null : _session.Answer(admissionKey, now);
+            return _lifted.ContainsKey(admissionKey ?? string.Empty) ? null : _session.Answer(admissionKey, now);
         }
 
         /// <summary>
-        /// Lifts this session's answer about one certificate when the dialog is accepted, answering
-        /// with whether there was one.
+        /// Lifts the plugin's memory of an answer about one certificate when the dialog is
+        /// accepted, answering with whether there was an answer.
         /// </summary>
+        /// <remarks>
+        /// An owed answer is held back from every write at once, through
+        /// <see cref="SessionRefusals.Withhold"/>, because nothing in the database's buffer stands
+        /// for it, and given back by <see cref="Discard"/>.
+        /// </remarks>
         public bool Lift(string admissionKey)
         {
             if (!Holds(admissionKey))
@@ -823,7 +832,7 @@ namespace KeePassGate.Ui
                 return false;
             }
 
-            _lifted.Add(admissionKey);
+            _lifted[admissionKey] = _session.Withhold(admissionKey);
             return true;
         }
 
@@ -833,19 +842,27 @@ namespace KeePassGate.Ui
         /// </summary>
         public IReadOnlyList<string> Apply()
         {
-            var lifted = new List<string>(_lifted);
-            foreach (var key in lifted)
+            var lifted = new List<string>(_lifted.Keys);
+            foreach (var pair in _lifted)
             {
-                _session.Lift(key);
+                _session.Lift(pair.Key, pair.Value);
             }
 
             _lifted.Clear();
             return lifted;
         }
 
-        /// <summary>Forgets what was lifted on the page, which is what Cancel means.</summary>
+        /// <summary>
+        /// Forgets what was lifted on the page, which is what Cancel means, and gives every owed
+        /// answer it held back to the next write.
+        /// </summary>
         public void Discard()
         {
+            foreach (var withheld in _lifted.Values)
+            {
+                _session.Release(withheld);
+            }
+
             _lifted.Clear();
         }
     }

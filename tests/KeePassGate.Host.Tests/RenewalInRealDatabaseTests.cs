@@ -293,7 +293,7 @@ namespace KeePassGate.Host.Tests
         {
             using (var renewal = new RealRenewal(this))
             {
-                renewal.Session.Owe(renewal.DatabaseId, renewal.Key, RenewalRefusal.Forever());
+                renewal.Session.Owe(renewal.DatabaseId, renewal.Key, RenewalRefusal.Forever(), null);
                 _failSaves = true;
 
                 var written = renewal.Writer.Change(_database.Database, () => VaultWrite.Created("abcd"));
@@ -314,7 +314,7 @@ namespace KeePassGate.Host.Tests
             // as an answer whose client would be asked about again.
             using (var renewal = new RealRenewal(this))
             {
-                renewal.Session.Owe(renewal.DatabaseId, renewal.Key, RenewalRefusal.Forever());
+                renewal.Session.Owe(renewal.DatabaseId, renewal.Key, RenewalRefusal.Forever(), null);
                 var authority = new AuthorityService(new CustomDataStore(_database.Database), null);
                 var retired = recreate ? authority.Recreate() : authority.Delete();
                 Assume.That(retired.Succeeded, Is.True, retired.Message);
@@ -324,6 +324,86 @@ namespace KeePassGate.Host.Tests
 
                 Assert.That(renewal.Session.Owed(), Is.Empty);
                 Assert.That(renewal.Standing, Is.Null, "and nothing was written for a record that has gone");
+            }
+        }
+
+        [Test]
+        public void An_owed_answer_gives_way_to_an_answer_written_since_it_was_given()
+        {
+            // Refused forever while KeePass was busy, then until a date on a later dialog, which
+            // landed. That write took the owed answer as well, after its own change, and wrote the
+            // older forever over the date it had just written.
+            using (var renewal = new RealRenewal(this))
+            {
+                renewal.Session.Owe(renewal.DatabaseId, renewal.Key, RenewalRefusal.Forever(), null);
+                var until = RenewalRefusal.Until(DateTimeOffset.UtcNow.AddDays(30));
+
+                var written = renewal.Writer.RefuseRenewal(_database.Database, renewal.Key, until);
+                Assume.That(written.Ok, Is.True, written.Reason);
+
+                Assert.That(RenewalRefusal.Same(renewal.Standing, until), Is.True, "the later answer stands");
+                Assert.That(renewal.Session.Owed(), Is.Empty, "and the earlier answer is let go");
+            }
+        }
+
+        [Test]
+        public void An_owed_answer_gives_way_to_an_answer_a_synchronize_brought_in()
+        {
+            // A merge writes the key without asking anybody, which is how another copy's answer
+            // arrives, and the owed answer was given over what the key held before it.
+            using (var renewal = new RealRenewal(this))
+            {
+                renewal.Session.Owe(
+                    renewal.DatabaseId, renewal.Key, RenewalRefusal.Until(DateTimeOffset.UtcNow.AddDays(30)), null);
+                _database.Database.CustomData.Set(AuthorityKeys.RenewalRefusalKey(renewal.Key), RenewalRefusal.ForeverValue);
+
+                var written = renewal.Writer.Change(_database.Database, () => VaultWrite.Created("abcd"));
+                Assume.That(written.Ok, Is.True, written.Reason);
+
+                Assert.That(renewal.Standing.IsForever, Is.True, "the answer the merge brought stands");
+                Assert.That(renewal.Session.Owed(), Is.Empty);
+            }
+        }
+
+        [Test]
+        public void An_owed_answer_whose_day_has_begun_is_let_go_unwritten()
+        {
+            using (var renewal = new RealRenewal(this))
+            {
+                renewal.Session.Owe(
+                    renewal.DatabaseId, renewal.Key, RenewalRefusal.Until(DateTimeOffset.UtcNow.AddDays(-1)), null);
+
+                var written = renewal.Writer.Change(_database.Database, () => VaultWrite.Created("abcd"));
+                Assume.That(written.Ok, Is.True, written.Reason);
+
+                Assert.That(renewal.Standing, Is.Null, "nothing is written that refuses nothing");
+                Assert.That(renewal.Session.Owed(), Is.Empty);
+            }
+        }
+
+        [Test]
+        public void An_owed_answer_lifted_on_the_clients_page_is_written_by_no_write_before_OK()
+        {
+            // Allow renewal on an answer that is only owed buffers nothing in the database, since
+            // no key holds it yet, and a write landing before OK wrote the answer and let it go
+            // from memory: OK then found nothing to lift, and the client stayed refused.
+            using (var renewal = new RealRenewal(this))
+            {
+                renewal.Session.Owe(renewal.DatabaseId, renewal.Key, RenewalRefusal.Forever(), null);
+                var pending = new PendingSessionRefusals(renewal.Session);
+                Assume.That(pending.Lift(renewal.Key), Is.True);
+
+                var written = renewal.Writer.Change(_database.Database, () => VaultWrite.Created("abcd"));
+                Assume.That(written.Ok, Is.True, written.Reason);
+
+                Assert.That(renewal.Standing, Is.Null, "not written while the lift waits for OK");
+                Assert.That(renewal.Session.Answer(renewal.Key, DateTimeOffset.UtcNow), Is.Not.Null,
+                    "and the gate still refuses until then");
+
+                pending.Apply();
+
+                Assert.That(renewal.Session.Answer(renewal.Key, DateTimeOffset.UtcNow), Is.Null, "OK lifts it");
+                Assert.That(renewal.Session.Owed(), Is.Empty);
             }
         }
 

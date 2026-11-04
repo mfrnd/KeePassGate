@@ -226,7 +226,8 @@ namespace KeePassGate.Pairing
                 // can bring one in, and so can the dialog of a renewal that asked for another
                 // lifetime, which is a request of its own. The approval is let go, so the next
                 // renewal after the answer is lifted asks the operator rather than using it.
-                if (Standing(context, target, key, record))
+                RenewalRefusal stored;
+                if (Standing(context, target, key, record, out stored))
                 {
                     _held.Take(held);
                     return;
@@ -297,7 +298,8 @@ namespace KeePassGate.Pairing
             string approval,
             DateTimeOffset arrived)
         {
-            if (Standing(context, target, key, record))
+            RenewalRefusal stored;
+            if (Standing(context, target, key, record, out stored))
             {
                 return null;
             }
@@ -364,7 +366,7 @@ namespace KeePassGate.Pairing
                     return null;
 
                 case PairingDecision.Refused:
-                    Refused(target, key, decision.Standing);
+                    Refused(target, key, decision.Standing, stored);
 
                     // Which of the four answers the operator gave, whether or not the standing
                     // half of it could be kept: what is written down is what they decided.
@@ -417,7 +419,8 @@ namespace KeePassGate.Pairing
         /// takes over, so its `notBefore` is not then a moment the operator is asked again.
         /// </remarks>
         /// <param name="record">The record being renewed, whose client key the audit line names.</param>
-        private bool Standing(IGateContext context, IGateTarget target, string key, AdmissionRecord record)
+        private bool Standing(
+            IGateContext context, IGateTarget target, string key, AdmissionRecord record, out RenewalRefusal stored)
         {
             RenewalRefusal standing;
             try
@@ -428,8 +431,13 @@ namespace KeePassGate.Pairing
             {
                 _log.Error("a standing answer to a renewal could not be read", error);
                 context.Respond(503, HttpResponse.ErrorBody("busy"));
+                stored = null;
                 return true;
             }
+
+            // What the database holds, whether or not it still refuses, for an answer the
+            // operator gives now that the database cannot take: `OwedAnswer.Baseline`.
+            stored = standing;
 
             var now = _clock();
             if (standing == null || !standing.Refuses(now))
@@ -489,7 +497,7 @@ namespace KeePassGate.Pairing
         /// an answer about this session does, and the plugin's next write to the database that
         /// lands writes it, after which the database's own copy answers.
         /// </remarks>
-        private void Refused(IGateTarget target, string key, RenewalRefusal standing)
+        private void Refused(IGateTarget target, string key, RenewalRefusal standing, RenewalRefusal stored)
         {
             if (standing == null)
             {
@@ -523,7 +531,7 @@ namespace KeePassGate.Pairing
                 return;
             }
 
-            _session.Owe(target.DatabaseId, key, standing);
+            _session.Owe(target.DatabaseId, key, standing, stored);
             _log.Warn("a renewal by " + CertificateDigest.Shorten(key) + " was refused " +
                       (standing.IsForever ? "forever" : "until " + Moments.Wire(standing.NotBefore.Value)) +
                       ", and the database could not take the answer now, so it holds from memory until " +

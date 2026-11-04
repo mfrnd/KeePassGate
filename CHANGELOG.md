@@ -12,6 +12,13 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **A later standing answer about a certificate is the answer that counts.** An answer KeePass could
+  not take was written with the plugin's next write whatever the database held by then, so it went
+  over the operator's own later answer, in the very write that had just put that answer there, and
+  over an answer a synchronize brought in; and an answer until a date whose day had begun was
+  written to refuse nothing. **Allow renewal** on such an answer was lost when a write landed before
+  the settings dialog's OK. The waiting answer now gives way to anything written since it was given,
+  and Allow renewal holds it back from every write until OK or Cancel.
 - **A renewal refused in this session stays refused when an older answer until a date has passed.**
   An answer until a date that KeePass could not take, and whose day had begun, stood in front of
   a later "Refuse in this session" for the same certificate: the renewal dialog came up again on

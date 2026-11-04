@@ -1497,8 +1497,15 @@ namespace KeePassGate.Bridge
         /// **Only where the answer belongs**: the database serving the authority it was given
         /// under, and while the record it is about is still there. An answer whose record has gone
         /// is settled without being written, since nothing is left for it to refuse, and so is an
-        /// answer whose authority this database has retired. **A failure here fails nothing**: the
-        /// write it rides on goes ahead, the answers stay owed, and the next write tries again.
+        /// answer whose authority this database has retired.
+        ///
+        /// **And only while it is still the later word**: while the key holds what it held when the
+        /// answer was given, `OwedAnswer.Baseline`, and while the answer still refuses. Written
+        /// whatever the key held, an owed answer went over the operator's newer answer, in the very
+        /// write that had just put that answer there, and over an answer a synchronize brought in;
+        /// and an answer until a date whose day had begun was written to refuse nothing. Both are
+        /// let go unwritten. **A failure here fails nothing**: the write it rides on goes ahead, the
+        /// answers stay owed, and the next write tries again.
         /// </remarks>
         private Owing Owe(PwDatabase database)
         {
@@ -1532,6 +1539,13 @@ namespace KeePassGate.Bridge
                     }
 
                     if (admissions.Find(answer.AdmissionKey) == null)
+                    {
+                        owing.Settled.Add(answer);
+                        continue;
+                    }
+
+                    if (!RenewalRefusal.Same(admissions.StandingRefusal(answer.AdmissionKey), answer.Baseline)
+                        || !answer.Refusal.Refuses(DateTimeOffset.UtcNow))
                     {
                         owing.Settled.Add(answer);
                         continue;

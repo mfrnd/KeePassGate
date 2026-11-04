@@ -611,7 +611,9 @@ answer stands, every renewal of that certificate is answered without the dialog:
   the same, held in the plugin's memory as an answer about this session is, and the plugin's next
   write to that database that lands writes it with whatever that write was for, which is the
   operator's ruling of 2026-10-14. One that no write has taken when KeePass exits goes with it, and
-  the operator is told so on the way out rather than only in the log.
+  the operator is told so on the way out rather than only in the log. It is written only while the
+  key still holds what it held when the answer was given, and while the answer still refuses, so an
+  answer written there since, on a later dialog or by a synchronize, is the later word.
 
 **The operator can take any of the three back**, which is the operator's ruling on review 3: on the
 clients page a client with a standing answer has its name in red, the row's tooltip and its

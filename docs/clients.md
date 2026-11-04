@@ -201,7 +201,9 @@ The last two are kept in the database. If KeePass is busy when one is given, sav
 Database Maintenance open, it holds at once all the same, from KeePass's memory, and is written to
 the database with the next change the plugin itself makes there. One still unwritten when KeePass
 exits is lost, and KeePass says so as it closes, so that nobody is surprised when the dialog comes
-back for that program.
+back for that program. **A later answer about the same certificate is the answer that counts**:
+an answer given on a later dialog, or an answer a synchronize brought in from another copy, is
+kept, and the answer still waiting is let go, as an answer until a date whose day has begun is.
 
 The plugin's log says what was answered and when, and the audit file records every renewal the
 operator answered or left unanswered, one refused without asking included. An approval is written

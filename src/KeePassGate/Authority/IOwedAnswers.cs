@@ -6,13 +6,21 @@ namespace KeePassGate.Authority
     /// A standing answer to renewing one certificate that its database could not take when the
     /// operator gave it.
     /// </summary>
+    /// <remarks>
+    /// **With what the database held when it was given**, because that is what tells a later
+    /// answer from an earlier answer. Nothing else can: KeePass keeps a time per key and offers
+    /// no public way to read it, and this answer has no moment the database could compare. So it
+    /// is written only while its key still holds that, and an answer written there since, the
+    /// operator's own on a later dialog or an answer a synchronize brought in, is the later word.
+    /// </remarks>
     public sealed class OwedAnswer
     {
-        public OwedAnswer(string databaseId, string admissionKey, RenewalRefusal refusal)
+        public OwedAnswer(string databaseId, string admissionKey, RenewalRefusal refusal, RenewalRefusal baseline)
         {
             DatabaseId = databaseId;
             AdmissionKey = admissionKey;
             Refusal = refusal;
+            Baseline = baseline;
         }
 
         /// <summary>The authority whose database it belongs in.</summary>
@@ -23,6 +31,12 @@ namespace KeePassGate.Authority
 
         /// <summary>Forever, or until a date: an answer the database keeps.</summary>
         public RenewalRefusal Refusal { get; private set; }
+
+        /// <summary>
+        /// The answer the database held about this certificate when this answer was given, or null
+        /// for none.
+        /// </summary>
+        public RenewalRefusal Baseline { get; private set; }
     }
 
     /// <summary>

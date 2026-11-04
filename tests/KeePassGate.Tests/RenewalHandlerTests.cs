@@ -579,7 +579,7 @@ namespace KeePassGate.Tests
             using (var old = _authority.IssueAdmittedClient("reader"))
             {
                 var key = CertificateDigest.Of(old);
-                _session.Owe("db", key, RenewalRefusal.Until(_now.AddDays(-1)));
+                _session.Owe("db", key, RenewalRefusal.Until(_now.AddDays(-1)), null);
                 _session.Refuse(key);
 
                 var context = Renew(operatorAt, old, "{}");

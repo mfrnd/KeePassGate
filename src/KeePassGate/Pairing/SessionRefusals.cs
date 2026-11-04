@@ -38,6 +38,7 @@ namespace KeePassGate.Pairing
         private readonly object _lock = new object();
         private readonly HashSet<string> _refused = new HashSet<string>(StringComparer.Ordinal);
         private readonly Dictionary<string, OwedAnswer> _owed = new Dictionary<string, OwedAnswer>(StringComparer.Ordinal);
+        private readonly HashSet<OwedAnswer> _withheld = new HashSet<OwedAnswer>();
 
         /// <summary>Refuses every later renewal of this certificate until KeePass exits.</summary>
         public void Refuse(string admissionKey)
@@ -57,7 +58,11 @@ namespace KeePassGate.Pairing
         /// Holds a standing answer for longer than this session that the database could not take
         /// when it was given, so that it is answered from here until it is written.
         /// </summary>
-        public void Owe(string databaseId, string admissionKey, RenewalRefusal refusal)
+        /// <param name="baseline">
+        /// What the database held about the certificate when the answer was given, or null for
+        /// none: <see cref="OwedAnswer.Baseline"/>.
+        /// </param>
+        public void Owe(string databaseId, string admissionKey, RenewalRefusal refusal, RenewalRefusal baseline)
         {
             if (string.IsNullOrEmpty(admissionKey))
             {
@@ -71,15 +76,20 @@ namespace KeePassGate.Pairing
 
             lock (_lock)
             {
-                _owed[admissionKey] = new OwedAnswer(databaseId, admissionKey, refusal);
+                _owed[admissionKey] = new OwedAnswer(databaseId, admissionKey, refusal, baseline);
             }
         }
 
         /// <summary>
-        /// Takes back the answer about renewing this certificate, whichever this holds, so that its
-        /// next renewal raises the dialog again, and says whether there was one.
+        /// Takes back this session's answer about renewing this certificate, and the owed answer a
+        /// clients page held back with <see cref="Withhold"/>, so that its next renewal raises the
+        /// dialog again, and answers whether there was either.
         /// </summary>
-        public bool Lift(string admissionKey)
+        /// <remarks>
+        /// **The owed answer that was held back and no other**: an answer given on a renewal dialog
+        /// since the press is newer than the lift, and stands.
+        /// </remarks>
+        public bool Lift(string admissionKey, OwedAnswer withheld)
         {
             if (string.IsNullOrEmpty(admissionKey))
             {
@@ -89,8 +99,67 @@ namespace KeePassGate.Pairing
             lock (_lock)
             {
                 var session = _refused.Remove(admissionKey);
-                var owed = _owed.Remove(admissionKey);
+                var owed = false;
+
+                OwedAnswer held;
+                if (withheld != null && _owed.TryGetValue(admissionKey, out held) && ReferenceEquals(held, withheld))
+                {
+                    owed = _owed.Remove(admissionKey);
+                }
+
+                if (withheld != null)
+                {
+                    _withheld.Remove(withheld);
+                }
+
                 return session || owed;
+            }
+        }
+
+        /// <summary>
+        /// Holds the owed answer about renewing this certificate back from every write until it is
+        /// lifted or released, and answers with it, or null when none is owed.
+        /// </summary>
+        /// <remarks>
+        /// **The clients page's Allow renewal**, which waits for the settings dialog's OK. An owed
+        /// answer has no key in the database yet, so the press buffers nothing there, and a write
+        /// that landed before OK wrote the answer and let it go from here: OK then found nothing to
+        /// lift, and the client stayed refused. Held back, it is written by no write meanwhile,
+        /// and it still answers, so the gate goes on refusing until OK, as the page promises.
+        /// </remarks>
+        public OwedAnswer Withhold(string admissionKey)
+        {
+            if (string.IsNullOrEmpty(admissionKey))
+            {
+                return null;
+            }
+
+            lock (_lock)
+            {
+                OwedAnswer owed;
+                if (!_owed.TryGetValue(admissionKey, out owed))
+                {
+                    return null;
+                }
+
+                _withheld.Add(owed);
+                return owed;
+            }
+        }
+
+        /// <summary>
+        /// Gives an answer held back by <see cref="Withhold"/> back to the next write.
+        /// </summary>
+        public void Release(OwedAnswer withheld)
+        {
+            if (withheld == null)
+            {
+                return;
+            }
+
+            lock (_lock)
+            {
+                _withheld.Remove(withheld);
             }
         }
 
@@ -156,12 +225,14 @@ namespace KeePassGate.Pairing
             }
         }
 
-        /// <summary>Every answer still owed to a database.</summary>
+        /// <summary>
+        /// Every answer still owed to a database, less the answers a clients page holds back.
+        /// </summary>
         public IReadOnlyList<OwedAnswer> Owed()
         {
             lock (_lock)
             {
-                return _owed.Values.ToList();
+                return _owed.Values.Where(answer => !_withheld.Contains(answer)).ToList();
             }
         }
 
