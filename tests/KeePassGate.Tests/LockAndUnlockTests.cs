@@ -207,6 +207,32 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_lock_whose_question_could_not_be_taken_away_still_lets_go_of_the_database()
+        {
+            // In one step with the question, a failure there skipped letting go of the database: a
+            // locked KeePass kept its host key and authority in memory and its connections open, and
+            // went on putting pairing requests in front of the operator.
+            _screen.Refusal = new NullReferenceException("a defect taking the question away");
+
+            _events.RaiseClosed("C:\\invented\\one.kdbx", true);
+
+            Assert.That(_targets.Locked, Is.EqualTo(new[] { "C:\\invented\\one.kdbx" }));
+            Assert.That(_connections.Closed, Is.EqualTo(1));
+            Assert.That(_incidents.Recent, Has.Exactly(1).Contains(nameof(NullReferenceException)));
+        }
+
+        [Test]
+        public void A_close_whose_question_could_not_be_taken_away_still_forgets_the_database()
+        {
+            _screen.Refusal = new NullReferenceException("a defect taking the question away");
+
+            _events.RaiseClosed("C:\\invented\\one.kdbx", false);
+
+            Assert.That(_targets.Forgotten, Is.EqualTo(new[] { "C:\\invented\\one.kdbx" }));
+            Assert.That(_incidents.Recent, Has.Exactly(1).Contains(nameof(NullReferenceException)));
+        }
+
+        [Test]
         public void The_material_goes_before_the_connections_do()
         {
             // The other way round, a thread waking from a closed socket could still find the
@@ -595,16 +621,27 @@ namespace KeePassGate.Tests
 
             public int Closed { get; private set; }
 
+            /// <summary>What taking the question away throws, or null for one that goes.</summary>
+            public Exception Refusal { get; set; }
+
             void IApprovalScreen.Locked()
             {
                 Locked++;
                 _order.Add("screen");
+                if (Refusal != null)
+                {
+                    throw Refusal;
+                }
             }
 
             void IApprovalScreen.Closed()
             {
                 Closed++;
                 _order.Add("screen closed");
+                if (Refusal != null)
+                {
+                    throw Refusal;
+                }
             }
         }
     }

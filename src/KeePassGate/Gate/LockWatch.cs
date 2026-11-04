@@ -320,40 +320,56 @@ namespace KeePassGate.Gate
                     return;
                 }
 
+                // **Each half runs whatever the first threw**, which the `finally` is for: in one
+                // step, a failure closing the question skipped letting go of the database, so a
+                // locked KeePass kept its host key and authority in memory, kept its connections
+                // and went on putting pairing requests in front of the operator. What the first
+                // threw still reaches the catch below, once the second has run.
                 if (e.IsLocking)
                 {
-                    // The question first, whichever database this is: KeePass locks every open
-                    // database at once, so a lock of any of them is a lock of the one a dialog is
-                    // about.
-                    if (_screen != null)
+                    try
                     {
-                        _screen.Locked();
+                        // The question first, whichever database this is: KeePass locks every open
+                        // database at once, so a lock of any of them is a lock of the one a dialog
+                        // is about.
+                        if (_screen != null)
+                        {
+                            _screen.Locked();
+                        }
                     }
-
-                    // The material is let go first, then the connections. That does not wipe it
-                    // while a connection is still holding its own reference; what it does is stop
-                    // any later connection reaching it, and start closing the ones that are.
-                    // Guarded the way the unlock is. A lock that held nothing has taken nothing
-                    // away, and closing every connection then kills handshakes and parked pairings
-                    // belonging to databases that are still perfectly open.
-                    if (_targets.Lock(e.Path))
+                    finally
                     {
-                        Close("a database was locked", true);
+                        // The material is let go first, then the connections. That does not wipe
+                        // it while a connection is still holding its own reference; what it does is
+                        // stop any later connection reaching it, and start closing the ones that
+                        // are. Guarded the way the unlock is. A lock that held nothing has taken
+                        // nothing away, and closing every connection then kills handshakes and
+                        // parked pairings belonging to databases that are still perfectly open.
+                        if (_targets.Lock(e.Path))
+                        {
+                            Close("a database was locked", true);
+                        }
                     }
 
                     return;
                 }
 
-                // An approval waiting to be written goes with the database, as at a lock: one held
-                // across a close would be written into whatever is opened under that authority next.
-                if (_screen != null)
+                try
                 {
-                    _screen.Closed();
+                    // An approval waiting to be written goes with the database, as at a lock: one
+                    // held across a close would be written into whatever is opened under that
+                    // authority next.
+                    if (_screen != null)
+                    {
+                        _screen.Closed();
+                    }
                 }
-
-                if (_targets.Forget(e.Path))
+                finally
                 {
-                    Close("a database was closed", false);
+                    if (_targets.Forget(e.Path))
+                    {
+                        Close("a database was closed", false);
+                    }
                 }
             }
             // codeql[cs/catch-of-all-exceptions] a handler of KeePass's own events, a kind of catch-all DESIGN.md §141 lists
