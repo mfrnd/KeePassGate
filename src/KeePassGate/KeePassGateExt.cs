@@ -202,20 +202,33 @@ namespace KeePassGate
                 return null;
             }
 
-            // With a mnemonic, because every item KeePass puts in that menu has one and an item
-            // without one is the odd entry a keyboard cannot reach. `K` is free: the menu already
-            // spends g, l, t, d, a, r, p and o on its own items.
-            var item = new ToolStripMenuItem("&" + GateTab.MenuItemText)
+            try
             {
-                Name = GateTab.MenuItemName,
+                // With a mnemonic, because every item KeePass puts in that menu has one and an item
+                // without one is the odd entry a keyboard cannot reach. `K` is free: the menu
+                // already spends g, l, t, d, a, r, p and o on its own items.
+                var item = new ToolStripMenuItem("&" + GateTab.MenuItemText)
+                {
+                    Name = GateTab.MenuItemName,
 
-                // The same picture the three tabs carry, so that everything this plugin puts into
-                // KeePass is recognizable as one plugin's doing.
-                Image = Icon()
-            };
+                    // The same picture the three tabs carry, so that everything this plugin puts
+                    // into KeePass is recognizable as one plugin's doing.
+                    Image = Icon()
+                };
 
-            item.Click += (sender, e) => ShowStatus();
-            return item;
+                item.Click += (sender, e) => ShowStatus();
+                return item;
+            }
+            // codeql[cs/catch-of-all-exceptions] the Tools menu item, a kind of catch-all DESIGN.md §141 lists
+            catch (Exception error)
+            {
+                // A kind of catch-all `DESIGN.md` §141 lists, and this is why: KeePass asks for the
+                // item while its main window loads, with nothing around the call, so an escape here
+                // would stop that load before any database is opened. Without the item the plugin's
+                // window cannot be reached, which the incident is there to explain.
+                Report("the Tools menu item could not be made", error);
+                return null;
+            }
         }
 
         /// <summary>
@@ -513,7 +526,8 @@ namespace KeePassGate
                         KeePassContract.DatabaseSettingsTabControlName,
                         GateTab.Text,
                         GateTab.PageControlName,
-                        Icon),
+                        Icon,
+                        _incidents),
                     _incidents,
                     _log);
 
@@ -531,7 +545,8 @@ namespace KeePassGate
                         KeePassContract.NodeFormTabControlName,
                         GrantTab.Text,
                         GrantTab.PageControlName,
-                        Icon),
+                        Icon,
+                        _incidents),
                     _incidents,
                     _log);
 

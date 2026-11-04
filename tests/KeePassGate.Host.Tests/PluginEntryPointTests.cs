@@ -225,6 +225,25 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void A_menu_item_that_cannot_be_made_is_left_out_rather_than_stopping_KeePass_loading()
+        {
+            // KeePass asks for the item from inside its main window's load, with nothing around the
+            // call, so what escapes here stops that load before any database is opened. The host
+            // refuses to hand over its main window with a defect's exception, which no filter
+            // around the icon names.
+            var host = new FakePluginHost();
+            Assert.That(_plugin.Initialize(host), Is.True);
+            host.RefuseFromNowOn(new NullReferenceException("a defect while the item was made"));
+
+            ToolStripMenuItem item = null;
+            Assert.DoesNotThrow(() => item = _plugin.GetMenuItem(PluginMenuType.Main));
+
+            Assert.That(item, Is.Null, "KeePass leaves out an item it is not given");
+            Assert.That(File.ReadAllText(Paths.Join(_logDirectory, TraceGateLog.DefaultFileName)),
+                Does.Contain("the Tools menu item could not be made"));
+        }
+
+        [Test]
         public void Terminating_a_plugin_that_never_started_is_harmless()
         {
             Assert.DoesNotThrow(() => _plugin.Terminate());

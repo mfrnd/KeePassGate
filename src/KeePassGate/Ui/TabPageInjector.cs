@@ -27,6 +27,7 @@ namespace KeePassGate.Ui
         private readonly string _pageText;
         private readonly string _pageName;
         private readonly Func<Image> _icon;
+        private readonly GateIncidents _incidents;
 
         public TabPageInjector(IGatePanelFactory panels, IGateLog log)
             : this(panels, log, KeePassContract.DatabaseSettingsTabControlName)
@@ -64,6 +65,24 @@ namespace KeePassGate.Ui
             string pageText,
             string pageName,
             Func<Image> icon)
+            : this(panels, log, tabControlName, pageText, pageName, icon, null)
+        {
+        }
+
+        /// <summary>The same, reporting what its close handler catches to the incidents.</summary>
+        /// <param name="incidents">
+        /// Where a failure in the handler of a decorated dialog's close is counted and raised
+        /// again, or null for a count of its own that nothing shows, which is what a test that asks
+        /// nothing about it wants.
+        /// </param>
+        public TabPageInjector(
+            IGatePanelFactory panels,
+            IGateLog log,
+            string tabControlName,
+            string pageText,
+            string pageName,
+            Func<Image> icon,
+            GateIncidents incidents)
         {
             if (panels == null)
             {
@@ -76,6 +95,7 @@ namespace KeePassGate.Ui
             _pageText = pageText;
             _pageName = pageName;
             _icon = icon;
+            _incidents = incidents ?? new GateIncidents(_log);
         }
 
         /// <summary>How many forms currently carry the tab. For tests and for shutdown assertions.</summary>
@@ -333,9 +353,22 @@ namespace KeePassGate.Ui
 
         private void OnFormClosed(object sender, FormClosedEventArgs e)
         {
-            // Defense in depth: the host is expected to announce the closing window, and this
-            // catches the case where it does not, so a closed dialog never keeps the tab alive.
-            Detach(sender as Form);
+            try
+            {
+                // Defense in depth: the host is expected to announce the closing window, and this
+                // catches the case where it does not, so a closed dialog never keeps the tab alive.
+                Detach(sender as Form);
+            }
+            // codeql[cs/catch-of-all-exceptions] a handler of KeePass's own events, a kind of catch-all DESIGN.md §141 lists
+            catch (Exception error)
+            {
+                // A kind of catch-all `DESIGN.md` §141 lists: this is the `FormClosed` of a dialog
+                // KeePass made, raised on KeePass's thread as the dialog closes. It runs the detach
+                // the host's own handler runs first in the ordinary order, and what `Release` does
+                // not name, a defect in disposing a panel among it, would otherwise escape into
+                // WinForms, which sets the dialog's result back to none and keeps it open.
+                _incidents.Record("a closing dialog's tab could not be taken off", error);
+            }
         }
 
         /// <summary>

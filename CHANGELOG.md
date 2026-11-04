@@ -20,6 +20,9 @@ none, since it releases both.
   did not foresee, as the plugin's other catch-alls do. Let through, such a failure could reach
   that dialog in the middle of a save or a lock of KeePass's own, which KeePass handles messages
   inside, and while it stood KeePass refused every lock and the gate went on serving reads.
+- **KeePass's start goes on past a defect in making the plugin's menu item**, which is left out of
+  the Tools menu instead, and a dialog the plugin put a tab on is no longer held open by a defect in
+  taking the tab off as it closes without KeePass announcing it.
 - **The message at exit names the standing answers it lets go, and gives no cause.** It counted
   them and blamed KeePass being busy whenever they were given and nothing being written after
   them, which was untrue after a save that failed or a save made since, and promised a dialog for

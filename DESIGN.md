@@ -1086,13 +1086,15 @@ next pumps, inside its save or lock, and on the connection thread a client choos
 
 The kinds:
 
-- **The handlers of KeePass's own events**, the settings dialog's close among them. KeePass raises
-  its events with nothing around them, so an escape stops KeePass's own work where it was: a lock of
-  every database stops at the database being closed and leaves the databases after it unlocked, and
-  a lock the inactivity timer began leaves that timer's critical section held, since KeePass
-  releases it outside a `finally`, so the timer locks nothing again that session, which is read off
-  KeePass 2.61.1 and not driven.
-- **The Tools menu item**, which would bring up that dialog.
+- **The handlers of KeePass's own events**, the close of the settings dialog and of every dialog
+  the plugin puts a tab on among them. KeePass raises its events with nothing around them, so an
+  escape stops KeePass's own work where it was: a lock of every database stops at the database being
+  closed and leaves the databases after it unlocked, and a lock the inactivity timer began leaves
+  that timer's critical section held, since KeePass releases it outside a `finally`, so the timer
+  locks nothing again that session, which is read off KeePass 2.61.1 and not driven.
+- **The Tools menu item**, from KeePass asking for it, which it does while its main window loads
+  with nothing around the call, so that an escape stops the load before any database is opened, to
+  its click, which would bring up that dialog.
 - **The handlers of the plugin's own windows**, through `WindowHandlers`: every handler and every
   override on the window under Tools, the approval dialogs, the question of a day, the authority
   chooser and the KPG pages with their pickers and menus, and what they post to run later. WinForms
