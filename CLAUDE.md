@@ -975,7 +975,10 @@ request, and the repository's administrators may bypass it. It names `gate passe
 gate, because the gates are what `build.ps1 -ListGates` answers, and a list written into a setting
 would go stale the first time a gate was added. This reverses "there is no branch protection", which
 held until the build order's pull requests had all been merged, since a required check on a stack
-being merged would have held every one of them.
+being merged would have held every one of them. **A release tag requires it too**: the tag ruleset
+`release gate` refuses a `v` tag on a commit without GitHub Actions' `gate passed`, before the tag
+exists and with nobody allowed past it, since `master` holding a commit is not the gate having
+passed on it. `RELEASING.md` lists it among the settings a release needs.
 
 **Pins move in pull requests of their own, proposed rather than noticed.** `.github/dependabot.yml`
 opens one grouped pull request a week for each kind: the actions' commits, `uv.lock`, the prose

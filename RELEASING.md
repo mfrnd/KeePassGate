@@ -32,7 +32,17 @@ fails at the step that needs it until it is done.
    The `pypi` environment decides which runs may publish; this decides who may make the tag that
    starts one, and keeps a published tag from ever moving. A release does not fail without it,
    which is what makes it the one to forget.
-5. **No API token on PyPI**, for the account or the project. Publishing needs none, and one made
+5. **GitHub**, under the same: `release gate`, for tags matching `v*`, requiring the status check
+   `gate passed` from GitHub Actions, with nobody allowed past it, administrators included. A
+   `v` tag is then refused before it exists on a commit the gate has not passed on: an earlier
+   commit of a merged pull request, a commit pushed past the ruleset on `master`, and the merge
+   itself while its gate is still running. Its own ruleset, because `release tags` lets
+   administrators past everything it holds. The source is named, since a status anybody with
+   write access can post would satisfy the name alone; a workflow given `checks: write` can
+   still make a check run of GitHub Actions under it, so this holds to write access, as the
+   ruleset on `master` does. The release asks the same question again, so it still holds
+   without this, and fails rather than publishing.
+6. **No API token on PyPI**, for the account or the project. Publishing needs none, and one made
    later would be a second way to publish that passes by the tag, the checks before it and the
    reviewer on `pypi`.
 
@@ -79,7 +89,9 @@ builds and checks everything and publishes nothing.
      - Newtonsoft.Json from 13.0.3 to 13.0.4
    ```
 
-2. **Merge it, then tag the merge and push the tag**:
+2. **Merge it, wait for the gate on `master` to pass on the merge, then tag the merge and push
+   the tag**. `release gate` refuses the push until then, which pushes nothing, and the same
+   push is made again once it has passed:
 
    ```powershell
    git fetch origin
@@ -87,7 +99,9 @@ builds and checks everything and publishes nothing.
    git push origin v0.1.0
    ```
 
-3. **Watch the run.** A tag the workflow refuses has published nothing: delete it, locally and with
-   `git push origin :refs/tags/v0.1.0`, which only an administrator can, past the tag ruleset, and
-   tag the right commit. A tag that published is never moved, and a release found wrong is
-   followed by the next patch.
+3. **Watch the run.** It refuses a patch whose heading names another half than the half it
+   changed, and a commit the gate did not pass on, which `release gate` has already refused. A
+   tag the workflow refuses has published nothing: delete it, locally and with
+   `git push origin :refs/tags/v0.1.0`, which only an administrator can, past the tag ruleset,
+   and tag the right commit. A tag that published is
+   never moved, and a release found wrong is followed by the next patch.
