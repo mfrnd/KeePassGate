@@ -65,9 +65,12 @@ namespace KeePassGate.Ui
             _log = log ?? NullGateLog.Instance;
 
             _menu = new ContextMenuStrip { ShowImageMargin = false };
-            _menu.ItemClicked += (sender, e) => _chosen = e.ClickedItem;
-            _menu.Closing += OnMenuClosing;
-            _menu.Closed += OnMenuClosed;
+            _menu.ItemClicked += (sender, e) =>
+                WindowHandlers.Run("a menu could not note the choice", () => _chosen = e.ClickedItem);
+            _menu.Closing += (sender, e) =>
+                WindowHandlers.Run("a menu could not be closed", () => OnMenuClosing(sender, e));
+            _menu.Closed += (sender, e) =>
+                WindowHandlers.Run("a menu's choice could not be taken", () => OnMenuClosed(sender, e));
 
             Reserve();
         }
@@ -79,7 +82,8 @@ namespace KeePassGate.Ui
         /// <remarks>
         /// Raised on the message loop, where whatever escapes reaches the program around the
         /// dialog rather than the code that chose: a failure of a kind the user interface throws
-        /// is caught here and written to the log, and nothing else is.
+        /// is caught here and written to the log, and anything else is a defect, which
+        /// `WindowHandlers` records.
         /// </remarks>
         public event EventHandler<ToolStripItemClickedEventArgs> ItemChosen;
 
@@ -152,14 +156,20 @@ namespace KeePassGate.Ui
 
         protected override void OnFontChanged(EventArgs e)
         {
-            base.OnFontChanged(e);
-            Reserve();
+            WindowHandlers.Run("a split button could not take its new font", () =>
+            {
+                base.OnFontChanged(e);
+                Reserve();
+            });
         }
 
         protected override void OnEnabledChanged(EventArgs e)
         {
-            base.OnEnabledChanged(e);
-            Invalidate();
+            WindowHandlers.Run("a split button could not be redrawn", () =>
+            {
+                base.OnEnabledChanged(e);
+                Invalidate();
+            });
         }
 
         /// <summary>
@@ -191,7 +201,13 @@ namespace KeePassGate.Ui
         /// </remarks>
         protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
         {
-            return Press(keyData) || base.ProcessCmdKey(ref msg, keyData);
+            var copy = msg;
+            var answer = WindowHandlers.Run("a key on a split button could not be handled", () =>
+            {
+                return Press(keyData) || base.ProcessCmdKey(ref copy, keyData);
+            }, true);
+            msg = copy;
+            return answer;
         }
 
         /// <summary>
@@ -205,65 +221,72 @@ namespace KeePassGate.Ui
         /// </remarks>
         protected override void OnMouseDown(MouseEventArgs e)
         {
-            if (e != null && e.Button == MouseButtons.Left && ArrowBounds.Contains(e.Location))
+            WindowHandlers.Run("a press on a split button could not be handled", () =>
             {
-                if (_closedByAPress)
+                if (e != null && e.Button == MouseButtons.Left && ArrowBounds.Contains(e.Location))
                 {
-                    _closedByAPress = false;
+                    if (_closedByAPress)
+                    {
+                        _closedByAPress = false;
+                        return;
+                    }
+
+                    // Let go of the pointer, which the control took as the press arrived, so that
+                    // it is the menu's to have.
+                    Capture = false;
+                    ShowMenu(false);
                     return;
                 }
 
-                // Let go of the pointer, which the control took as the press arrived, so that it is
-                // the menu's to have.
-                Capture = false;
-                ShowMenu(false);
-                return;
-            }
-
-            base.OnMouseDown(e);
+                base.OnMouseDown(e);
+            });
         }
 
         protected override void OnPaint(PaintEventArgs e)
         {
-            // The frame, the background, the caption and the focus rectangle are the base class's,
-            // as on the button beside it.
-            base.OnPaint(e);
-
-            if (e == null)
+            WindowHandlers.Run("a split button could not be drawn", () =>
             {
-                return;
-            }
+                // The frame, the background, the caption and the focus rectangle are the base
+                // class's, as on the button beside it.
+                base.OnPaint(e);
 
-            var arrow = ArrowBounds;
-            if (arrow.Width <= 0 || arrow.Height <= SeparatorInset * 2)
-            {
-                return;
-            }
-
-            var graphics = e.Graphics;
-            graphics.SmoothingMode = SmoothingMode.None;
-
-            using (var line = new Pen(Enabled ? SystemColors.ControlDark : SystemColors.GrayText))
-            {
-                graphics.DrawLine(line, arrow.Left, arrow.Top + SeparatorInset, arrow.Left, arrow.Bottom - SeparatorInset - 1);
-            }
-
-            // A triangle pointing down, as wide as half the part and odd, so that it has a middle,
-            // and half that tall. Filled on whole pixels: anti-aliasing a glyph this small blurs it.
-            var width = Math.Max(5, ((arrow.Width / 2) / 2 * 2) + 1);
-            var height = (width + 1) / 2;
-            var left = arrow.Left + ((arrow.Width - width) / 2) + 1;
-            var top = arrow.Top + ((arrow.Height - height) / 2);
-
-            using (var brush = new SolidBrush(Enabled ? SystemColors.ControlText : SystemColors.GrayText))
-            {
-                graphics.FillPolygon(brush, new[]
+                if (e == null)
                 {
-                    new Point(left, top),
-                    new Point(left + width, top),
-                    new Point(left + (width / 2), top + height)
-                });
-            }
+                    return;
+                }
+
+                var arrow = ArrowBounds;
+                if (arrow.Width <= 0 || arrow.Height <= SeparatorInset * 2)
+                {
+                    return;
+                }
+
+                var graphics = e.Graphics;
+                graphics.SmoothingMode = SmoothingMode.None;
+
+                using (var line = new Pen(Enabled ? SystemColors.ControlDark : SystemColors.GrayText))
+                {
+                    graphics.DrawLine(line, arrow.Left, arrow.Top + SeparatorInset, arrow.Left, arrow.Bottom - SeparatorInset - 1);
+                }
+
+                // A triangle pointing down, as wide as half the part and odd, so that it has a
+                // middle, and half that tall. Filled on whole pixels: anti-aliasing a glyph this
+                // small blurs it.
+                var width = Math.Max(5, ((arrow.Width / 2) / 2 * 2) + 1);
+                var height = (width + 1) / 2;
+                var left = arrow.Left + ((arrow.Width - width) / 2) + 1;
+                var top = arrow.Top + ((arrow.Height - height) / 2);
+
+                using (var brush = new SolidBrush(Enabled ? SystemColors.ControlText : SystemColors.GrayText))
+                {
+                    graphics.FillPolygon(brush, new[]
+                    {
+                        new Point(left, top),
+                        new Point(left + width, top),
+                        new Point(left + (width / 2), top + height)
+                    });
+                }
+            });
         }
 
         protected override void Dispose(bool disposing)
@@ -327,7 +350,7 @@ namespace KeePassGate.Ui
         /// </remarks>
         private void Later(Action work)
         {
-            Action guarded = () =>
+            Action guarded = () => WindowHandlers.Run("a choice from a menu could not be carried out", () =>
             {
                 try
                 {
@@ -337,7 +360,7 @@ namespace KeePassGate.Ui
                 {
                     _log.Error("a choice from a menu could not be carried out", error);
                 }
-            };
+            });
 
             if (!IsHandleCreated || IsDisposed)
             {

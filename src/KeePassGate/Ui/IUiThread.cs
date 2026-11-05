@@ -520,8 +520,8 @@ namespace KeePassGate.Ui
         /// that lets an exception out on the user interface thread does not simply fail the caller:
         /// WinForms hands it to `Application.OnThreadException`, and KeePass registers no handler
         /// and sets no unhandled exception mode, so WinForms shows its own "Unhandled exception has
-        /// occurred in your application" dialog inside the password manager, whose Quit ends the
-        /// process outside KeePass's own shutdown. Measured on .NET Framework 4.8 with a form on
+        /// occurred in your application" dialog inside the password manager, which costs what
+        /// `DESIGN.md` §141 sets out. Measured on .NET Framework 4.8 with a form on
         /// one thread and a throwing `BeginInvoke` from another: with a handler registered it fired
         /// on the user interface thread before `EndInvoke` was ever called, and with none
         /// registered WinForms went modal instead.

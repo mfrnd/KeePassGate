@@ -29,11 +29,12 @@ namespace KeePassGate.Ui
     /// recreating costs, in the number of clients that lose their admission, because that is the
     /// number the operator cannot work out for themselves.
     ///
-    /// **Nothing in here throws**, because it runs on the UI thread of a password manager and an
-    /// exception leaving a click handler reaches the message loop, where nothing on this page can
-    /// see it. That is a claim about every path, including the ones that only draw: filling a grid
-    /// and creating a window handle both fail in ways that have nothing to do with certificates, so
-    /// the filters here name <see cref="Expected.OfUserInterface"/> as well.
+    /// **Nothing it can foresee is thrown**, because it runs on the UI thread of a password manager,
+    /// where an exception leaving a click handler is recorded as a defect by `WindowHandlers` and
+    /// nothing on this page tells the operator what happened. That is a claim about every path,
+    /// including the ones that only draw: filling a grid and creating a window handle both fail in
+    /// ways that have nothing to do with certificates, so the filters here name
+    /// <see cref="Expected.OfUserInterface"/> as well.
     /// </remarks>
     public sealed class AuthorityPanel : UserControl
     {
@@ -271,8 +272,11 @@ namespace KeePassGate.Ui
             // to the front is a request to see what is there.
             _tabs.SelectedIndexChanged += delegate
             {
-                Describe();
-                PerformLayout();
+                WindowHandlers.Run("a page of the KPG tab could not be brought forward", () =>
+                {
+                    Describe();
+                    PerformLayout();
+                });
             };
 
             var authority = NewColumn("KpgAuthorityColumn", DockStyle.Fill);
@@ -369,12 +373,14 @@ namespace KeePassGate.Ui
                 Margin = new Padding(0, BoxNudge, 0, 0)
             };
 
-            _copy.Click += OnCopy;
+            _copy.Click += (sender, e) =>
+                WindowHandlers.Run("the invitation could not be copied", () => OnCopy(sender, e));
 
             _tips = new ToolTip();
             Tooltips.Set(_tips, _copy, GateTab.CopyButtonLabel);
 
-            _ticking.Tick += OnTick;
+            _ticking.Tick += (sender, e) =>
+                WindowHandlers.Run("the KPG tab's countdown could not be moved on", () => OnTick(sender, e));
 
             _inviting.Controls.Add(_invite);
             _inviting.Controls.Add(_token);
@@ -426,7 +432,11 @@ namespace KeePassGate.Ui
             // empty label still reserves a line and the pages above it are a line shorter than
             // they could be, for the whole time the operator has pressed nothing.
             _result.Visible = false;
-            _result.TextChanged += delegate { _result.Visible = _result.Text.Length > 0; };
+            _result.TextChanged += delegate
+            {
+                WindowHandlers.Run("the KPG tab's sentence could not be shown",
+                    () => _result.Visible = _result.Text.Length > 0);
+            };
 
             footer.Controls.Add(_result);
 
@@ -789,8 +799,9 @@ namespace KeePassGate.Ui
             //
             // Inside a catch of its own, though, because drawing is not reading a database: rows
             // and window handles fail for reasons of their own, and this runs on the click of every
-            // button on the tab. An exception leaving here would leave a click handler and reach
-            // KeePass's message loop, which closes the dialog and reports nothing.
+            // button on the tab. An ordinary failure of drawing leaving here would leave a click
+            // handler, whose `WindowHandlers` records it as a defect, where a sentence on the tab
+            // is what it deserves.
             try
             {
                 _clients.Fill(admitted, reaches, NamedProfiles(), StandingAnswers(admitted, DateTimeOffset.UtcNow));
@@ -1158,21 +1169,24 @@ namespace KeePassGate.Ui
         /// </remarks>
         protected override void OnFontChanged(EventArgs e)
         {
-            base.OnFontChanged(e);
-
-            if (_token == null)
+            WindowHandlers.Run("the KPG tab could not take its new font", () =>
             {
-                return;
-            }
+                base.OnFontChanged(e);
 
-            var before = _tokenFont;
-            _tokenFont = CodeFont(Font.Size);
-            _token.Font = _tokenFont;
+                if (_token == null)
+                {
+                    return;
+                }
 
-            if (before != null)
-            {
-                before.Dispose();
-            }
+                var before = _tokenFont;
+                _tokenFont = CodeFont(Font.Size);
+                _token.Font = _tokenFont;
+
+                if (before != null)
+                {
+                    before.Dispose();
+                }
+            });
         }
 
         /// <summary>
@@ -1187,8 +1201,11 @@ namespace KeePassGate.Ui
         /// </remarks>
         protected override void OnLayout(LayoutEventArgs e)
         {
-            FitToWidth();
-            base.OnLayout(e);
+            WindowHandlers.Run("the KPG tab could not be laid out", () =>
+            {
+                FitToWidth();
+                base.OnLayout(e);
+            });
         }
 
         private void FitToWidth()
@@ -1358,7 +1375,8 @@ namespace KeePassGate.Ui
                 Margin = new Padding(0, 0, Spacing.Gap, 0)
             };
 
-            button.Click += onClick;
+            button.Click += (sender, e) => WindowHandlers.Run(
+                "\"" + text + "\" on the KPG tab could not be carried out", () => onClick(sender, e));
             return button;
         }
 

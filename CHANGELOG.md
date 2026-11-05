@@ -12,6 +12,34 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **A debugger attached stops wherever the plugin records a failure it did not foresee**, with the
+  exception in hand, and continuing carries on as it would with no debugger: every such failure is
+  caught, so a debugger was told nothing.
+- **Nothing the plugin's own windows do ends in WinForms' error dialog.** Every handler on the
+  window under Tools, the approval dialogs, the authority chooser and the KPG pages records what it
+  did not foresee, as the plugin's other catch-alls do. Let through, such a failure could reach
+  that dialog in the middle of a save or a lock of KeePass's own, which KeePass handles messages
+  inside, and while it stood KeePass refused every lock and the gate went on serving reads.
+- **KeePass's start goes on past a defect in making the plugin's menu item**, which is left out of
+  the Tools menu instead, and a dialog the plugin put a tab on is no longer held open by a defect in
+  taking the tab off as it closes without KeePass announcing it.
+- **A lock lets go of a database's keys and connections whatever closing the approval question
+  did.** A failure there kept the host key and the authority in memory after the lock, kept the
+  connections open and went on putting pairing requests in front of the operator.
+- **A dialog the plugin could not note holds every write back until it closes.** It was left
+  unwatched, so a revocation could land under Database Maintenance and be put back by that
+  dialog's close.
+- **Revocations pressed on the KPG tab land at OK whatever else fails there.** A failure while the
+  clients were named for the audit dropped everything the tab held, revocations included.
+- **A rule the grant editor could not store is never stored later.** It redrew before it stored,
+  and a redraw that failed left the rule on the sheet, so the next edit wrote it, after the tab had
+  reported it as not applied. A grant picker that could not be closed is reported as not closed,
+  rather than as a picker that could not be opened.
+- **A refusal until a date can be chosen across midnight on the eve of a certificate's last day.**
+  Tomorrow was read more than once, and a midnight between two readings threw, so the choice went
+  without a word and the renewal dialog stayed unanswered.
+- **A retry of keeping the authority the operator chose stops when the plugin is let go.** It
+  ticked once more as KeePass closed, and told the operator the authority was not kept.
 - **The message at exit names the standing answers it lets go, and gives no cause.** It counted
   them and blamed KeePass being busy whenever they were given and nothing being written after
   them, which was untrue after a save that failed or a save made since, and promised a dialog for

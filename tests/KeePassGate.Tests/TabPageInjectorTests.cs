@@ -1,6 +1,7 @@
 using System.Linq;
 using System.Threading;
 using System.Windows.Forms;
+using KeePassGate.Diagnostics;
 using KeePassGate.Tests.Fakes;
 using KeePassGate.Ui;
 using NUnit.Framework;
@@ -355,6 +356,33 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_panel_that_will_not_go_as_an_unannounced_dialog_closes_is_counted_rather_than_thrown()
+        {
+            // The close handler above runs the detach the host normally runs first, as KeePass's
+            // dialog closes and with nothing of KeePass's around it. A defect in disposing the
+            // panel there went past `Release`'s filter into WinForms, which keeps the dialog open.
+            var incidents = new GateIncidents(_log);
+            var injector = new TabPageInjector(
+                new PanelThatWillNotGoFactory(),
+                _log,
+                KeePassContract.DatabaseSettingsTabControlName,
+                GateTab.Text,
+                GateTab.PageControlName,
+                null,
+                incidents);
+
+            using (var form = Dialogs.WithNestedTabControl("General"))
+            {
+                Assert.That(injector.Attach(form), Is.True);
+
+                Assert.DoesNotThrow(() => form.RaiseClosed());
+
+                Assert.That(incidents.Count, Is.EqualTo(1));
+                Assert.That(incidents.Recent.Single(), Does.Contain(nameof(System.NullReferenceException)));
+            }
+        }
+
+        [Test]
         public void IsAttached_reports_what_the_dialog_actually_carries()
         {
             using (var form = Dialogs.WithNestedTabControl("General"))
@@ -602,6 +630,30 @@ namespace KeePassGate.Tests
             {
                 get { return base.Dock; }
                 set { throw new System.InvalidOperationException("this panel cannot be docked"); }
+            }
+        }
+
+        /// <summary>A factory whose panel throws a defect's exception as it is disposed.</summary>
+        private sealed class PanelThatWillNotGoFactory : IGatePanelFactory
+        {
+            public Control CreatePanel(Form dialog)
+            {
+                return new PanelThatWillNotGo();
+            }
+        }
+
+        private sealed class PanelThatWillNotGo : Panel
+        {
+            private bool _thrown;
+
+            protected override void Dispose(bool disposing)
+            {
+                base.Dispose(disposing);
+                if (disposing && !_thrown)
+                {
+                    _thrown = true;
+                    throw new System.NullReferenceException("this panel would not go");
+                }
             }
         }
 

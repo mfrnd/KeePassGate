@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Linq;
 using System.Threading;
 using System.Windows.Forms;
 using KeePassGate.Acl;
+using KeePassGate.Diagnostics;
 using KeePassGate.Testing;
 using KeePassGate.Tests.Fakes;
 using KeePassGate.Ui;
@@ -499,6 +501,117 @@ namespace KeePassGate.Tests
                     "and what it opened was that profile's rule");
                 Assert.That(_loop, Is.Empty);
             });
+        }
+
+        [Test]
+        public void A_defect_storing_a_choice_is_recorded_with_the_rule_off_the_sheet_and_the_keys_given_back()
+        {
+            // What a picker's close does runs a message later, posted, and what it catches there by
+            // name is what the user interface throws. A defect goes on to the window's handler,
+            // which records it, `DESIGN.md` §141. What it must not leave behind is the dialog's
+            // Enter and Escape still taken, or the refused rule on the sheet: the redraw came
+            // before the store, so a later edit wrote the rule the tab had reported as not applied.
+            var store = new FakeGrantStore(Rules.Granting(("reader", "R")));
+            var incidents = new GateIncidents(new RecordingGateLog());
+            WindowHandlers.Incidents = incidents;
+
+            using (var form = OffScreenForm.New())
+            using (var panel = new GrantPanel(
+                new GrantSheet(store.Read(), null, new[] { "reader", "ops" }, null), store, GrantTab.GroupScope, null))
+            {
+                var accept = new Button();
+                var cancel = new Button();
+                form.Controls.Add(accept);
+                form.Controls.Add(cancel);
+                form.AcceptButton = accept;
+                form.CancelButton = cancel;
+
+                panel.Dock = DockStyle.Fill;
+                form.Controls.Add(panel);
+                form.Show();
+                OffScreenForm.Pump();
+
+                panel.Press(0, MaskColumn);
+                OffScreenForm.Pump();
+                Assert.That(panel.Picking, Is.True);
+
+                try
+                {
+                    store.Refusal = new NullReferenceException("a defect while the rule was stored");
+                    panel.Type(Keys.L);
+                    panel.ClosePicker();
+                    OffScreenForm.Pump();
+
+                    Assert.That(_loop, Is.Empty, "a defect on the plugin's own window reached WinForms");
+                    Assert.That(incidents.Recent, Has.Exactly(1).Contains(nameof(NullReferenceException)));
+                    Assert.That(form.AcceptButton, Is.SameAs(accept), "Enter was left with the closed picker");
+                    Assert.That(form.CancelButton, Is.SameAs(cancel), "Escape was left with the closed picker");
+                    Assert.That(panel.Picking, Is.False);
+
+                    store.Refusal = null;
+                    Assert.That(panel.AddGrant("ops"), Is.Null);
+
+                    var stored = new GrantSheet(store.Read(), null, new[] { "reader", "ops" }, null).Rows;
+                    Assert.That(stored.Single(row => row.Profile == "reader").Mask, Is.EqualTo(VerbMask.Of(new[] { AclVerb.Read })),
+                        "the next write carried the rule that was never stored");
+                }
+                finally
+                {
+                    WindowHandlers.Incidents = null;
+                }
+
+                form.Close();
+                OffScreenForm.Pump();
+            }
+        }
+
+        [Test]
+        public void A_redraw_that_fails_leaves_nothing_on_the_sheet_the_store_does_not_hold()
+        {
+            // The rules were redrawn before they were stored, and a redraw that failed left the
+            // edit on the sheet, not stored, for the next write to carry after the tab had reported
+            // it as not applied. Stored first, the edit is in force when the redraw fails. The
+            // grid's own event is where a test can make the redraw fail.
+            var store = new FakeGrantStore(Rules.Granting(("reader", "R")));
+            var incidents = new GateIncidents(new RecordingGateLog());
+            WindowHandlers.Incidents = incidents;
+
+            using (var form = OffScreenForm.New())
+            using (var panel = new GrantPanel(
+                new GrantSheet(store.Read(), null, new[] { "reader", "ops" }, null), store, GrantTab.GroupScope, null))
+            {
+                try
+                {
+                    panel.Dock = DockStyle.Fill;
+                    form.Controls.Add(panel);
+                    form.Show();
+                    OffScreenForm.Pump();
+
+                    var armed = true;
+                    ControlTree.FindByName<DataGridView>(panel, GrantTab.GridControlName).RowsAdded += (sender, e) =>
+                    {
+                        if (armed)
+                        {
+                            throw new NullReferenceException("a defect redrawing the rules");
+                        }
+                    };
+
+                    ControlTree.FindByName<CheckBox>(panel, GrantTab.SealCheckBoxName).Checked = true;
+                    armed = false;
+
+                    Assert.That(_loop, Is.Empty);
+                    Assert.That(incidents.Recent, Has.Exactly(1).StartsWith("the seal could not be changed"));
+                    Assert.That(new GrantSheet(store.Read(), null, null, null).Default, Is.EqualTo(AclDefault.Deny),
+                        "stored before the redraw, so the seal is in force rather than waiting on the sheet");
+                }
+                finally
+                {
+                    WindowHandlers.Incidents = null;
+                }
+
+                form.Close();
+                OffScreenForm.Pump();
+            }
         }
 
         [Test]

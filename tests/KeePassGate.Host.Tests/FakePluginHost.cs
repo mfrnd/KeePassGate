@@ -21,7 +21,7 @@ namespace KeePassGate.Host.Tests
     /// </summary>
     internal sealed class FakePluginHost : IPluginHost
     {
-        private readonly InvalidOperationException _refusal;
+        private Exception _refusal;
         private int _readsLeft;
 
         public FakePluginHost()
@@ -36,6 +36,16 @@ namespace KeePassGate.Host.Tests
         {
             _readsLeft = reads;
             _refusal = refusal;
+        }
+
+        /// <summary>
+        /// Refuses every later read of the main window with <paramref name="refusal"/>, which is
+        /// how a test makes something the plugin does after its start fail.
+        /// </summary>
+        public void RefuseFromNowOn(Exception refusal)
+        {
+            _refusal = refusal;
+            _readsLeft = 0;
         }
 
         public MainForm MainWindow

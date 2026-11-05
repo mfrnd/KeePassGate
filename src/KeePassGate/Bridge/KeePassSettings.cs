@@ -32,7 +32,9 @@ namespace KeePassGate.Bridge
     /// `Program.Config` makes the configuration the first time it is asked for; and KeePass's
     /// serializer catches what writing its file throws, tells the operator in a dialog of its
     /// own, and answers false. A catch here would only ever have caught a mistake in this
-    /// plugin, and reported it as a configuration that would not answer.
+    /// plugin, and reported it as a configuration that would not answer. Such a mistake is
+    /// caught by the handler of the window's OK instead, through `WindowHandlers`, and recorded as
+    /// the defect it is.
     /// </remarks>
     public sealed class KeePassSettings : IGateSettings
     {

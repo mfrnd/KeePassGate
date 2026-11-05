@@ -195,9 +195,26 @@ namespace KeePassGate.Ui
                 {
                     if (dialog.DialogResult == DialogResult.OK)
                     {
-                        if (invitations != null)
+                        // The database's buffer first, revocations among it, and whatever naming
+                        // the clients for the audit did, since the names only go into its lines:
+                        // read inside the same step, a failure there, or in what comes after it
+                        // here, dropped every revocation the clients page had already shown gone.
+                        // What follows can only fail closed: a lifted answer left standing refuses,
+                        // and an invitation made on the dialog is outstanding from the moment it
+                        // was made, which accepting the dialog only stops being taken back.
+                        IDictionary<string, string> clients = null;
+                        try
                         {
-                            invitations.Apply();
+                            clients = ClientKeys(live, database);
+                        }
+                        finally
+                        {
+                            if (database.Apply())
+                            {
+                                Log().Info("what the " + GateName.Product + " tab held was put into "
+                                    + "the database, which KeePass now says has changes to save");
+                                Revoked(database, clients ?? new Dictionary<string, string>(StringComparer.Ordinal));
+                            }
                         }
 
                         foreach (var key in session.Apply())
@@ -206,12 +223,9 @@ namespace KeePassGate.Ui
                                 + " are asked about again: the operator lifted the answer for this session");
                         }
 
-                        var clients = ClientKeys(live, database);
-                        if (database.Apply())
+                        if (invitations != null)
                         {
-                            Log().Info("what the " + GateName.Product + " tab held was put into "
-                                + "the database, which KeePass now says has changes to save");
-                            Revoked(database, clients);
+                            invitations.Apply();
                         }
 
                         return;
@@ -226,7 +240,7 @@ namespace KeePassGate.Ui
                     session.Discard();
                     database.Discard();
                 }
-                // codeql[cs/catch-of-all-exceptions] the settings dialog's close, a kind of catch-all DESIGN.md §141 lists
+                // codeql[cs/catch-of-all-exceptions] a handler of KeePass's own events, a kind of catch-all DESIGN.md §141 lists
                 catch (Exception error)
                 {
                     // A catch-all, because `FormClosed` is raised on KeePass's own thread as its

@@ -7,6 +7,7 @@ using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Windows.Forms;
 using KeePassGate.Authority;
+using KeePassGate.Diagnostics;
 using KeePassGate.Testing;
 using KeePassGate.Tests.Fakes;
 using KeePassGate.Ui;
@@ -183,6 +184,60 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_choice_that_fails_is_said_under_the_list_rather_than_thrown_into_the_loop()
+        {
+            // What a choice does runs a message after the menu has closed, posted, where whatever
+            // escapes reaches WinForms' own dialog rather than this list. A failure of the kind
+            // the user interface throws is an ordinary failure, written under the list instead, and
+            // the remark on that guard holds that the promise should not depend on nothing
+            // throwing.
+            Using(
+                (list, grid) =>
+                {
+                    Select(grid, 0);
+                    AskFromTheKeyboard(grid);
+
+                    Key(grid, Keys.Down);
+                    Key(grid, Keys.Enter);
+
+                    Assert.That(_loop, Is.Empty);
+                    Assert.That(list.Result, Does.StartWith("That could not be done: "));
+                    Assert.That(list.Clients, Is.EqualTo(new[] { _refused, _asked }), "nothing was taken away");
+                },
+                key => throw new InvalidOperationException("the revocation could not be buffered"));
+        }
+
+        [Test]
+        public void A_defect_in_a_choice_is_recorded_rather_than_thrown_into_the_loop()
+        {
+            // The other half of the guard above: what it does not name is a defect, which the
+            // posted work's own handler records, `DESIGN.md` §141.
+            var incidents = new GateIncidents(new RecordingGateLog());
+            WindowHandlers.Incidents = incidents;
+            try
+            {
+                Using(
+                    (list, grid) =>
+                    {
+                        Select(grid, 0);
+                        AskFromTheKeyboard(grid);
+
+                        Key(grid, Keys.Down);
+                        Key(grid, Keys.Enter);
+
+                        Assert.That(_loop, Is.Empty);
+                        Assert.That(incidents.Recent, Has.Exactly(1).Contains(nameof(NullReferenceException)));
+                        Assert.That(list.Clients, Is.EqualTo(new[] { _refused, _asked }), "nothing was taken away");
+                    },
+                    key => throw new NullReferenceException("a defect in the revocation"));
+            }
+            finally
+            {
+                WindowHandlers.Incidents = null;
+            }
+        }
+
+        [Test]
         public void Escape_puts_the_menu_away_and_does_nothing()
         {
             Using((list, grid) =>
@@ -201,13 +256,18 @@ namespace KeePassGate.Tests
 
         private void Using(Action<ClientList, DataGridView> test)
         {
+            Using(test, key =>
+            {
+                _revoked.Add(key);
+                return null;
+            });
+        }
+
+        private void Using(Action<ClientList, DataGridView> test, Func<string, string> revoke)
+        {
             using (var form = OffScreenForm.New())
             using (var list = new ClientList(
-                       key =>
-                       {
-                           _revoked.Add(key);
-                           return null;
-                       },
+                       revoke,
                        key =>
                        {
                            _lifted.Add(key);

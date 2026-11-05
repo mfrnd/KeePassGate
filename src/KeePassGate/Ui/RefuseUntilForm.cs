@@ -146,8 +146,11 @@ namespace KeePassGate.Ui
         /// <summary>Kept out of screen captures when KeePass keeps its own windows out.</summary>
         protected override void OnHandleCreated(EventArgs e)
         {
-            base.OnHandleCreated(e);
-            CaptureGuard.Apply(this);
+            WindowHandlers.Run("the question of a day could not be kept out of screen captures", () =>
+            {
+                base.OnHandleCreated(e);
+                CaptureGuard.Apply(this);
+            });
         }
 
         /// <summary>The day chosen, which renewals are refused until the start of.</summary>

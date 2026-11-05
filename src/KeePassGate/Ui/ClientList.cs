@@ -318,8 +318,10 @@ namespace KeePassGate.Ui
             // a dropdown not surviving. The menu is never disposed there either; it goes with this
             // list. And nothing closes it by code, which left the next window's menu closing as it
             // opened.
-            _menu.ItemClicked += (sender, e) => _chosen = e.ClickedItem;
-            _menu.Closed += OnMenuClosed;
+            _menu.ItemClicked += (sender, e) =>
+                WindowHandlers.Run("a client's menu could not note the choice", () => _chosen = e.ClickedItem);
+            _menu.Closed += (sender, e) =>
+                WindowHandlers.Run("a client's menu could not be closed", () => OnMenuClosed(sender, e));
             ((ClientGrid)_grid).MenuAsked = ShowMenu;
 
             // **One line under the grid rather than two.** There were two: one saying nobody is
@@ -392,19 +394,22 @@ namespace KeePassGate.Ui
         /// </remarks>
         protected override void OnLayout(LayoutEventArgs e)
         {
-            // Every child that has been added so far, since the constructor lays this out as it
-            // adds them.
-            var order = new Control[] { _grid, _reappeared, _note };
-            for (var at = 0; at < order.Length; at++)
+            WindowHandlers.Run("the clients page could not be laid out", () =>
             {
-                var child = order[at];
-                if (child != null && child.Parent == this && Controls.GetChildIndex(child) != at)
+                // Every child that has been added so far, since the constructor lays this out as it
+                // adds them.
+                var order = new Control[] { _grid, _reappeared, _note };
+                for (var at = 0; at < order.Length; at++)
                 {
-                    Controls.SetChildIndex(child, at);
+                    var child = order[at];
+                    if (child != null && child.Parent == this && Controls.GetChildIndex(child) != at)
+                    {
+                        Controls.SetChildIndex(child, at);
+                    }
                 }
-            }
 
-            base.OnLayout(e);
+                base.OnLayout(e);
+            });
         }
 
         /// <summary>What the last gesture said, by name.</summary>
@@ -843,8 +848,11 @@ namespace KeePassGate.Ui
             grid.Columns.Add(revoke);
 
             grid.Columns[ProfilesColumn].DefaultCellStyle.WrapMode = DataGridViewTriState.True;
-            grid.CellClick += OnCellClick;
-            grid.CellPainting += OnCellPainting;
+            grid.CellClick += (sender, e) =>
+                WindowHandlers.Run("a press on the clients list could not be carried out",
+                    () => OnCellClick(sender, e));
+            grid.CellPainting += (sender, e) =>
+                WindowHandlers.Run("the clients list could not be drawn", () => OnCellPainting(sender, e));
 
             return grid;
         }
@@ -996,9 +1004,10 @@ namespace KeePassGate.Ui
         /// Refuse menu's is, so that Enter has something to choose. Opened by the pointer, nothing
         /// is, which is how a menu comes up under a click.
         ///
-        /// Run from the grid's window procedure, where whatever escapes reaches KeePass's message
-        /// loop and closes the dialog: a failure of a kind the user interface throws is said under
-        /// the list instead.
+        /// Run from the grid's window procedure, where whatever escapes would reach WinForms' own
+        /// error dialog over a settings dialog that stays open: a failure of a kind the user
+        /// interface throws is written under the list instead, and what is left is a defect, which
+        /// the window procedure records through `WindowHandlers`.
         /// </remarks>
         private void ShowMenu(Point? screen)
         {
@@ -1129,12 +1138,14 @@ namespace KeePassGate.Ui
         /// </summary>
         /// <remarks>
         /// Posted work runs on KeePass's message loop after the code that posted it has returned,
-        /// where an escape is WinForms' own error dialog rather than a line under this list. Straight
-        /// through when there is no window yet, which is how a test reaches the same path.
+        /// where a failure of a kind the user interface throws gets a line under this list and
+        /// anything else is a defect, which `WindowHandlers` records, since the work runs through
+        /// it. Straight through when there is no window yet, which is how a test reaches the same
+        /// path.
         /// </remarks>
         private void Later(Action work)
         {
-            Action guarded = () =>
+            Action guarded = () => WindowHandlers.Run("a choice from a client's menu could not be carried out", () =>
             {
                 try
                 {
@@ -1144,7 +1155,7 @@ namespace KeePassGate.Ui
                 {
                     Said("That could not be done: " + error.Message);
                 }
-            };
+            });
 
             if (!IsHandleCreated || IsDisposed)
             {
@@ -1192,24 +1203,29 @@ namespace KeePassGate.Ui
 
             protected override void WndProc(ref Message m)
             {
-                if (m.Msg == ContextMenuMessage && MenuAsked != null)
+                var copy = m;
+                WindowHandlers.Run("a message to the clients list could not be handled", () =>
                 {
-                    // Minus one in both halves when the keyboard asked, and a point on the screen,
-                    // each half signed, when the pointer did.
-                    var position = unchecked((int)m.LParam.ToInt64());
-                    if (position == -1)
+                    if (copy.Msg == ContextMenuMessage && MenuAsked != null)
                     {
-                        MenuAsked(null);
-                    }
-                    else
-                    {
-                        MenuAsked(new Point((short)(position & 0xFFFF), (short)((position >> 16) & 0xFFFF)));
+                        // Minus one in both halves when the keyboard asked, and a point on the
+                        // screen, each half signed, when the pointer did.
+                        var position = unchecked((int)copy.LParam.ToInt64());
+                        if (position == -1)
+                        {
+                            MenuAsked(null);
+                        }
+                        else
+                        {
+                            MenuAsked(new Point((short)(position & 0xFFFF), (short)((position >> 16) & 0xFFFF)));
+                        }
+
+                        return;
                     }
 
-                    return;
-                }
-
-                base.WndProc(ref m);
+                    base.WndProc(ref copy);
+                });
+                m = copy;
             }
         }
 

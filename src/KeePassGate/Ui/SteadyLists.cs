@@ -16,24 +16,30 @@ namespace KeePassGate.Ui
     {
         protected override void OnKeyDown(KeyEventArgs e)
         {
-            if (e != null && !DroppedDown && !e.Alt && Moves(e.KeyCode))
+            WindowHandlers.Run("a key on a list could not be handled", () =>
             {
-                e.Handled = true;
-                return;
-            }
+                if (e != null && !DroppedDown && !e.Alt && Moves(e.KeyCode))
+                {
+                    e.Handled = true;
+                    return;
+                }
 
-            base.OnKeyDown(e);
+                base.OnKeyDown(e);
+            });
         }
 
         protected override void OnKeyPress(KeyPressEventArgs e)
         {
-            if (e != null && !DroppedDown)
+            WindowHandlers.Run("a letter on a list could not be handled", () =>
             {
-                e.Handled = true;
-                return;
-            }
+                if (e != null && !DroppedDown)
+                {
+                    e.Handled = true;
+                    return;
+                }
 
-            base.OnKeyPress(e);
+                base.OnKeyPress(e);
+            });
         }
 
         private static bool Moves(Keys key)
@@ -70,13 +76,16 @@ namespace KeePassGate.Ui
     {
         protected override void OnKeyPress(KeyPressEventArgs e)
         {
-            if (e != null && e.KeyChar != ' ')
+            WindowHandlers.Run("a letter on a list of choices could not be handled", () =>
             {
-                e.Handled = true;
-                return;
-            }
+                if (e != null && e.KeyChar != ' ')
+                {
+                    e.Handled = true;
+                    return;
+                }
 
-            base.OnKeyPress(e);
+                base.OnKeyPress(e);
+            });
         }
     }
 }

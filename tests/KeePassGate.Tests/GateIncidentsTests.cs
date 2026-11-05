@@ -108,8 +108,9 @@ namespace KeePassGate.Tests
         [Test]
         public void A_log_that_throws_does_not_defeat_the_catch_that_called_it()
         {
-            // This is called from inside the three handlers that stand between a failure and the
-            // end of KeePass. If it could throw, those handlers would not be handlers.
+            // This is called from inside the catch-alls `DESIGN.md` §141 lists, which stand
+            // between a failure and the harm it would do. If it could throw, they would not be
+            // catch-alls.
             var incidents = new GateIncidents(new ThrowingLog());
 
             Assert.DoesNotThrow(() => incidents.Record("a connection failed", new InvalidOperationException()));

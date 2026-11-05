@@ -456,3 +456,24 @@ changes a list, and then what each way of keeping the two apart costs. The probe
 | **A read holds the thread for its own length, and that is short.** Over a thousand groups and ten thousand entries: a full sweep 16.9 ms at the median in Release, a lookup 0.17 ms, the structure alone 0.055 ms | timed in Release and Debug |
 | **KeePass changes some live entries in place outside its dialogs**, so a hold over the structure alone would not be exact: placeholders that generate a value, opening an attachment, editing several entries at once, XML Replace, the OTP generator settings and a merge's database properties | KeePass 2.61.1's IL, every caller of the in-place mutators of an entry's dictionaries |
 | **A read needs a turn where Idle is never raised too.** Inside a `MessageBox`, whose loop raises no Idle, a 50 ms fallback timer kept reads going at fifteen a second, and the window's own timer stayed on time | the window section 21 measured, inside a message box |
+
+## 23. WinForms' own error dialog, inside KeePass
+
+**The plugin's remarks held that the dialog's Quit ends KeePass outside its own shutdown, and it does
+not; what the dialog does cost lay elsewhere, and was worse.** Measured for review 4 in KeePass 2.61.1
+on .NET Framework 4.8, while raising a defect again for this dialog to ask the operator about was
+weighed and given up, `DESIGN.md` §141. The dialog's own behavior was measured with a throwaway
+plugin throwing once from a timer on KeePass's thread, KeePass registering no
+`Application.ThreadException` handler, over a throwaway database: twenty-two runs, a run for each
+case.
+
+| Fact | How it was established |
+| --- | --- |
+| **Quit closes KeePass as closing its window does, first.** `Application.ExitInternal` raises `FormClosing`, with `CloseReason.ApplicationExitCall`, on every open form, so KeePass's main window asks whether to save a changed database in the task dialog its ordinary close shows, then `FormClosed`, where KeePass unloads its plugins and their `Terminate` runs, and only then does the process end, with exit code 0 | the probe's own handlers on the main window, with the stacks from the timer through `OnThreadException` to the save question and to `Terminate`, and the database file read afterwards: changed after Save, untouched after Discard |
+| **Cancel on that question ends KeePass anyway**, though the question promises that KeePass will not be closed: nothing is saved, `FormClosed` is never raised and no plugin's `Terminate` runs | the same, answering Cancel: the main window's `FormClosing` reported the close canceled and the process ended 5 ms later |
+| **Escape presses Continue, and Enter shows the details.** Continue is both the accept and the cancel button, but the dialog opens with Details focused, and Enter presses the focused button | posted keys and real keystrokes on the dialog, the tab order read off it: Details, Continue, Quit |
+| **A letter typed into the dialog presses the button it underlines**, without Alt: `q` is Quit, `c` Continue, `d` Details | `WM_CHAR` and key messages posted to the focused button, and real keystrokes |
+| **A second exception while the dialog is up shows nothing more**, and an exception after Continue shows the dialog again | a second timer throwing five times under the dialog, and once after Continue |
+| **Continue leaves KeePass running**, with the throwing handler's later work never done, timers ticking and the database open, and a later close of KeePass's own runs `Terminate` as usual | the same probe, closing KeePass afterwards |
+| **Work posted to KeePass's thread runs inside the next pump, which can be KeePass's own work.** KeePass pumps inside a save, through `UIBlockInteraction` and its status bar logger while the file is written, inside a lock, as `PrepareLock` closes its windows, and between auto-typed keys. A dialog that comes up there stands inside that work, and with interaction blocked `LockAllDocuments` returns at once and the inactivity timer only postpones, so every lock is refused while reads, which start on `Application.Idle` inside the dialog's own loop, go on | a throw posted with `BeginInvoke` reached WinForms' handler inside a `DoEvents` in the middle of stand-in work; the callers of `DoEvents` and `LockAllDocuments` read off KeePass 2.61.1's IL |
+| **Quit asks nothing, either, while KeePass's interaction is blocked or with closing set to minimize** KeePass, since its `FormClosing` cancels the close in both before asking: the process ends unsaved, and neither `Terminate` nor KeePass's own clearing of the clipboard runs | KeePass 2.61.1's `MainForm.OnFormClosing`, read rather than driven |

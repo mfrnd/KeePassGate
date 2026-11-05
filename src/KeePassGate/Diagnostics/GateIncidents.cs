@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 
 namespace KeePassGate.Diagnostics
@@ -63,11 +64,21 @@ namespace KeePassGate.Diagnostics
         }
 
         /// <summary>
-        /// Reports one. Total by construction: this is called from inside a catch-all, and a
+        /// Reports a failure. Total by construction: this is called from inside a catch-all, and a
         /// reporter that throws would defeat the whole point of that catch.
         /// </summary>
+        /// <remarks>
+        /// **A debugger attached is stopped here**, with the exception in hand, because every
+        /// place that catches everything reports here and a debugger is otherwise told nothing:
+        /// what was caught is caught, and continuing carries on as it would with no debugger.
+        /// </remarks>
         public void Record(string where, Exception error)
         {
+            if (Debugger.IsAttached)
+            {
+                Debugger.Break();
+            }
+
             var description = (where ?? "somewhere") +
                               (error == null ? string.Empty : ": " + error.GetType().Name);
 

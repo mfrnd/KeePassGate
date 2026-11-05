@@ -158,18 +158,19 @@ namespace KeePassGate.Ui
             Tooltips.Set(_tips, _sealed, GrantTab.SealCheckBoxHelp);
             Tooltips.Set(_tips, _discard, GrantTab.DiscardButtonHelp);
 
-            _sealed.CheckedChanged += (sender, e) => OnSealChanged();
-            _discard.Click += (sender, e) => Discard();
+            _sealed.CheckedChanged += (sender, e) => WindowHandlers.Run("the seal could not be changed", OnSealChanged);
+            _discard.Click += (sender, e) =>
+                WindowHandlers.Run("rules nobody can read could not be discarded", Discard);
 
             // Every time the tab is brought forward, which is the only way back to it from the
             // Plugin Data tab that shares its copy.
-            VisibleChanged += (sender, e) =>
+            VisibleChanged += (sender, e) => WindowHandlers.Run("the rules could not be read again", () =>
             {
                 if (Visible)
                 {
                     Resync();
                 }
-            };
+            });
 
             Populate();
         }
@@ -549,11 +550,11 @@ namespace KeePassGate.Ui
             // group dialog's OK and Cancel take them and the dialog closes mid-choice.
             var keys = DialogKeys.Suspend(_grid);
 
-            list.Click += (sender, e) =>
+            list.Click += (sender, e) => WindowHandlers.Run("a profile could not be chosen", () =>
             {
                 chosen = Picked(list);
                 drop.Close();
-            };
+            });
 
             drop.Closed += (sender, e) => Finish(drop, keys, () =>
             {
@@ -572,7 +573,7 @@ namespace KeePassGate.Ui
                 // Straight on to what it may do, because choosing a profile is half a decision:
                 // the rule that exists now grants nothing, and nobody opened this to say that.
                 var profile = chosen;
-                Later(() => OpenPicker(RowOf(profile)));
+                Later("opened", () => OpenPicker(RowOf(profile)));
             });
 
             Open(drop, list, ProfileColumn, rowIndex, keys);
@@ -807,7 +808,13 @@ namespace KeePassGate.Ui
 
             protected override bool ProcessCmdKey(ref Message message, Keys keyData)
             {
-                return Press(keyData) || base.ProcessCmdKey(ref message, keyData);
+                var copy = message;
+                var answer = WindowHandlers.Run("a key in a grant picker could not be handled", () =>
+                {
+                    return Press(keyData) || base.ProcessCmdKey(ref copy, keyData);
+                }, true);
+                message = copy;
+                return answer;
             }
         }
 
@@ -825,8 +832,11 @@ namespace KeePassGate.Ui
         {
             protected override void OnHandleCreated(EventArgs e)
             {
-                base.OnHandleCreated(e);
-                ClearSelection();
+                WindowHandlers.Run("the rules could not be shown with nothing chosen", () =>
+                {
+                    base.OnHandleCreated(e);
+                    ClearSelection();
+                });
             }
         }
 
@@ -981,31 +991,56 @@ namespace KeePassGate.Ui
         /// </remarks>
         private void Finish(ToolStripDropDown drop, IDisposable keys, Action work)
         {
-            // Cleared at once, so a click arriving between the close and the next message opens the
-            // next picker rather than being ignored as though one were still up. The dialog's keys
-            // stay taken across that: the next picker's token joins this one's rather than
-            // recording the buttons afresh, and `DialogKeys` gives them back only when the last of
-            // the two is let go, whichever that is.
-            _open = null;
-
-            Later(() =>
+            WindowHandlers.Run("a grant picker's close could not be handled", () =>
             {
-                using (drop)
+                // Cleared at once, so a click arriving between the close and the next message opens
+                // the next picker rather than being ignored as though one were still up. The
+                // dialog's keys stay taken across that: the next picker's token joins this one's
+                // rather than recording the buttons afresh, and `DialogKeys` gives them back only
+                // when the last of the two is let go, whichever that is.
+                _open = null;
+
+                // A post refused here leaves the dialog's keys taken and the dropdown undisposed,
+                // and nothing is done about either from here, because this runs inside the
+                // dropdown's own `Closed` and both are what that handler must not do: the reason
+                // this is posted at all. A post is refused only by a window that is going, whose
+                // dialog goes with it.
+                Later("closed", () =>
                 {
-                    try
+                    using (drop)
                     {
-                        keys.Dispose();
-                        work();
+                        var writes = Writes;
+                        try
+                        {
+                            keys.Dispose();
+                            work();
+                        }
+                        catch (Exception error) when (Expected.OfUserInterface(error))
+                        {
+                            // Named rather than swallowed whole, and reported on the tab, because
+                            // an ordinary failure of the user interface is no defect for
+                            // `WindowHandlers` to record, and the operator at this tab is the one
+                            // to tell. Whatever the choice had put on the sheet and not stored comes
+                            // off it, so that no later write carries it, and the sentence tells
+                            // which happened: a choice stored before the redraw failed is in force.
+                            _log.Error("a grant picker could not be closed cleanly", error);
+                            if (Writes > writes)
+                            {
+                                Warn("That choice is stored, but the rules could not be redrawn: "
+                                    + Clipped.Message(error.Message));
+                            }
+                            else
+                            {
+                                if (_sheet.Changed)
+                                {
+                                    _sheet.Revert();
+                                }
+
+                                Warn("That choice could not be applied: " + Clipped.Message(error.Message));
+                            }
+                        }
                     }
-                    catch (Exception error) when (Expected.OfUserInterface(error))
-                    {
-                        // Named rather than swallowed whole, and reported on the tab, because this runs
-                        // on the message loop of a password manager and what escapes here closes the
-                        // dialog the operator is working in.
-                        _log.Error("a grant picker could not be closed cleanly", error);
-                        Warn("That choice could not be applied: " + Clipped.Message(error.Message));
-                    }
-                }
+                });
             });
         }
 
@@ -1069,14 +1104,19 @@ namespace KeePassGate.Ui
         /// is no window at all, which is how a test reaches the same path.
         ///
         /// **Guarded where it runs, and not only where it is posted.** Posted work runs later on
-        /// KeePass's message loop, after the try around the post has long returned, and what
-        /// escapes there is WinForms' own error dialog with a Quit button in it rather than a
-        /// sentence on this tab. Nothing has been seen to throw there; the point is that the
+        /// KeePass's message loop, after the try around the post has long returned, and a failure
+        /// of a kind the user interface throws gets a sentence on this tab there, while anything
+        /// else is a defect, which `WindowHandlers` records, since the work runs through it. Nothing has been seen to throw there; the point is that the
         /// promise this class makes should not depend on that.
         /// </remarks>
-        private void Later(Action work)
+        /// <param name="done">
+        /// What the work does to a picker, "opened" or "closed", for the sentence a failure leaves:
+        /// both go through here, and a picker that would not close reported as a picker that would
+        /// not open sends the reader after the wrong half.
+        /// </param>
+        private void Later(string done, Action work)
         {
-            Action guarded = () =>
+            Action guarded = () => WindowHandlers.Run("a grant picker could not be " + done, () =>
             {
                 try
                 {
@@ -1084,10 +1124,10 @@ namespace KeePassGate.Ui
                 }
                 catch (Exception error) when (Expected.OfUserInterface(error))
                 {
-                    _log.Error("a grant picker could not be opened", error);
-                    Warn("That picker could not be opened: " + Clipped.Message(error.Message));
+                    _log.Error("a grant picker could not be " + done, error);
+                    Warn("That picker could not be " + done + ": " + Clipped.Message(error.Message));
                 }
-            };
+            });
 
             try
             {
@@ -1101,7 +1141,7 @@ namespace KeePassGate.Ui
             }
             catch (Exception error) when (Expected.OfUserInterface(error))
             {
-                _log.Warn("a grant picker could not be opened: " + error.Message);
+                _log.Warn("a grant picker could not be " + done + ": " + error.Message);
             }
         }
 
@@ -1248,10 +1288,14 @@ namespace KeePassGate.Ui
             // built around, and `FINDINGS.md` records why automation cannot type into one
             // either. A read-only cell exposes no pattern that operates it, so the end to end
             // test sends real keystrokes at the picker instead.
-            grid.CellClick += OnCellClick;
-            grid.KeyDown += OnGridKey;
-            grid.CellPainting += OnCellPainting;
-            grid.DataError += (sender, e) => e.Cancel = true;
+            grid.CellClick += (sender, e) =>
+                WindowHandlers.Run("a press on the rules could not be carried out", () => OnCellClick(sender, e));
+            grid.KeyDown += (sender, e) =>
+                WindowHandlers.Run("a key on the rules could not be handled", () => OnGridKey(sender, e));
+            grid.CellPainting += (sender, e) =>
+                WindowHandlers.Run("the rules could not be drawn", () => OnCellPainting(sender, e));
+            grid.DataError += (sender, e) =>
+                WindowHandlers.Run("a value on the rules could not be refused", () => e.Cancel = true);
 
             return grid;
         }
@@ -1448,14 +1492,22 @@ namespace KeePassGate.Ui
         }
 
         /// <summary>
-        /// Redraw, then store. In that order, because storing is what can fail and what it says
-        /// when it does has to be the last thing written to the tab rather than the first.
+        /// Store, then redraw, unless the store refused, in which case `Save` has redrawn and said
+        /// why, so that what it says is still the last thing written to the tab.
         /// </summary>
+        /// <remarks>
+        /// **Stored first, so that nothing on the table is missing from the store.** Drawn first, a
+        /// redraw that failed left the edit on the sheet, not stored and still counted as a change,
+        /// the tab said the choice could not be applied, and the next write of anything at all
+        /// carried it: a rule the operator was told was refused landed later with nothing said.
+        /// </remarks>
         /// <param name="settle">The profile the edit was about, which `Populate` takes the keyboard to.</param>
         private void Apply(string settle = null)
         {
-            Populate(settle);
-            Save();
+            if (Save())
+            {
+                Populate(settle);
+            }
         }
 
         /// <summary>
@@ -1674,18 +1726,22 @@ namespace KeePassGate.Ui
             public bool NewRow { get; }
         }
 
-        private void Save()
+        /// <summary>Writes the sheet to the store, answering false when the store refused it.</summary>
+        private bool Save()
         {
             if (_store == null || !_sheet.Changed)
             {
-                return;
+                return true;
             }
 
+            var stored = false;
             try
             {
                 _store.Write(_sheet.Document);
                 _sheet.Stored();
+                stored = true;
                 Writes++;
+                return true;
             }
             catch (Exception error) when (Expected.OfUserInterface(error) || Expected.OfReflection(error))
             {
@@ -1710,6 +1766,16 @@ namespace KeePassGate.Ui
                 // at this dialog would have to go and find.
                 Warn("That could not be stored, so it is not in force: "
                     + Clipped.Message(error.GetBaseException().Message));
+                return false;
+            }
+            finally
+            {
+                // And a failure no filter names, which goes on to the window's handler, takes the
+                // refused rule off the sheet too, so that no later write carries it either.
+                if (!stored && _sheet.Changed)
+                {
+                    _sheet.Revert();
+                }
             }
         }
     }

@@ -34,52 +34,58 @@ namespace KeePassGate.Ui
         /// <summary>Gray rather than black once the button cannot be pressed.</summary>
         protected override void OnEnabledChanged(EventArgs e)
         {
-            base.OnEnabledChanged(e);
-            Invalidate();
+            WindowHandlers.Run("the copy button could not be redrawn", () =>
+            {
+                base.OnEnabledChanged(e);
+                Invalidate();
+            });
         }
 
         protected override void OnPaint(PaintEventArgs e)
         {
-            // The frame, the background and the focus rectangle are the base class's, and are worth
-            // keeping: they are what makes this look like a button rather than a picture.
-            base.OnPaint(e);
-
-            var box = Math.Min(ClientSize.Width, ClientSize.Height);
-            if (box < 8)
+            WindowHandlers.Run("the copy button could not be drawn", () =>
             {
-                return;
-            }
+                // The frame, the background and the focus rectangle are the base class's, and are
+                // worth keeping: they are what makes this look like a button rather than a picture.
+                base.OnPaint(e);
 
-            // The sheet is half the button, and the one behind it is offset by a third of that,
-            // which leaves the icon clear of the button's own frame. Proportions rather than
-            // pixels, so this is right at any font size.
-            var sheet = Math.Max(6, box / 2);
-            var offset = Math.Max(2, sheet / 3);
+                var box = Math.Min(ClientSize.Width, ClientSize.Height);
+                if (box < 8)
+                {
+                    return;
+                }
 
-            var left = (ClientSize.Width - sheet - offset) / 2;
-            var top = (ClientSize.Height - sheet - offset) / 2;
+                // The sheet is half the button, and the one behind it is offset by a third of that,
+                // which leaves the icon clear of the button's own frame. Proportions rather than
+                // pixels, so this is right at any font size.
+                var sheet = Math.Max(6, box / 2);
+                var offset = Math.Max(2, sheet / 3);
 
-            var front = new Rectangle(left, top + offset, sheet, sheet);
+                var left = (ClientSize.Width - sheet - offset) / 2;
+                var top = (ClientSize.Height - sheet - offset) / 2;
 
-            // The exposed edges of the sheet behind: up its left side from where the front sheet
-            // covers it, across the top, down the right, and back in to where the front sheet
-            // starts covering it again.
-            var behind = new[]
-            {
-                new Point(front.Left + offset, front.Top),
-                new Point(front.Left + offset, front.Top - offset),
-                new Point(front.Right + offset, front.Top - offset),
-                new Point(front.Right + offset, front.Bottom - offset),
-                new Point(front.Right, front.Bottom - offset)
-            };
+                var front = new Rectangle(left, top + offset, sheet, sheet);
 
-            using (var pen = new Pen(Enabled ? SystemColors.ControlText : SystemColors.GrayText))
-            {
-                // Straight lines on whole pixels: anti-aliasing an icon this small blurs it.
-                e.Graphics.SmoothingMode = SmoothingMode.None;
-                e.Graphics.DrawLines(pen, behind);
-                e.Graphics.DrawRectangle(pen, front);
-            }
+                // The exposed edges of the sheet behind: up its left side from where the front
+                // sheet covers it, across the top, down the right, and back in to where the front
+                // sheet starts covering it again.
+                var behind = new[]
+                {
+                    new Point(front.Left + offset, front.Top),
+                    new Point(front.Left + offset, front.Top - offset),
+                    new Point(front.Right + offset, front.Top - offset),
+                    new Point(front.Right + offset, front.Bottom - offset),
+                    new Point(front.Right, front.Bottom - offset)
+                };
+
+                using (var pen = new Pen(Enabled ? SystemColors.ControlText : SystemColors.GrayText))
+                {
+                    // Straight lines on whole pixels: anti-aliasing an icon this small blurs it.
+                    e.Graphics.SmoothingMode = SmoothingMode.None;
+                    e.Graphics.DrawLines(pen, behind);
+                    e.Graphics.DrawRectangle(pen, front);
+                }
+            });
         }
     }
 }
