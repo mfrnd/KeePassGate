@@ -39,7 +39,9 @@ rewritten can give the Windows account KeePass runs as the right to append to it
 but the two rights Windows asks for on every open, which `icacls` spells `(AD,S,RA)`; `(AD)` alone
 refuses even an append. A file that can be renamed away is not append only, so removing and renaming
 in its directory has to be taken away as well. The plugin opens the file asking for the right to
-append and no other, so every decision is still written down. Two things change: the file can no
+append and no other, so every decision is still written down, and sets it aside only where the ACL
+lets it, whatever privileges the account holds: a KeePass started from a shell that enables the
+backup and restore privileges, as Git Bash run elevated does, records as any other. Two things change: the file can no
 longer be set aside at eight megabytes, which the plugin's log says once while the file grows past
 it, and the window asking which authority to keep cannot read the file, so it says `unknown` for
 when each client last made a request.

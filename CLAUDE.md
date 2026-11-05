@@ -824,6 +824,14 @@ Run them from
 - **`dotnet test` with a filter that matches nothing exits 0**, having run nothing, and its trx
   counts nothing. A gate that believes the exit code is green over an empty run, so `build.ps1`
   reads each tier's trx and refuses one in which nothing executed, `Assert-Executed`.
+- **`File.Delete` and `File.Move` open for backup, so an enabled backup or restore privilege
+  passes every ACL with them**, and Git Bash run elevated enables both in every process it starts.
+  Making a file asks for no such thing, so in a directory sealed against removing and adding the
+  audit set its file aside and then could not make the next file. `PluginFiles.SetAside` renames
+  through a handle opened for the right to delete and no other, which Windows holds to the ACLs
+  either way. A test of an ACL that fails only when started from Git Bash is meeting this.
+  `FINDINGS.md` has the measurement, and `BackupPrivileges` is for a test that needs the
+  privileges.
 - **Windows PowerShell 5.1 passes an argument ending in a backslash so that the backslash escapes
   the closing quote.** `-p:KeePassDevDir=C:\Program Files\KeePass\` reaches `dotnet` as one
   argument that swallows the `--nologo` after it. `Resolve-KeePass` trims a trailing separator for

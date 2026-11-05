@@ -12,6 +12,12 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **The audit is set aside at its bound only where its access control lists let it, whatever
+  privileges KeePass's account holds.** In a KeePass started from a shell that enables the backup and
+  restore privileges, as Git Bash run elevated does, a directory sealed for an append-only audit let
+  the file be set aside and the previous file deleted, and then refused the next, so no
+  decision was recorded from then on. A directory that lets files be removed and not added keeps
+  the previous file too, which was deleted before the rename it then refused.
 - **A debugger attached stops wherever the plugin records a failure it did not foresee**, with the
   exception in hand, and continuing carries on as it would with no debugger: every such failure is
   caught, so a debugger was told nothing.

@@ -5,8 +5,8 @@ using System.Text;
 namespace KeePassGate.Testing
 {
     /// <summary>
-    /// Every call the tests make into Windows itself, each through the method here of the same
-    /// name.
+    /// Every call the tests make into Windows' window manager, each through the method here of the
+    /// same name.
     /// </summary>
     /// <remarks>
     /// What the tests ask Windows directly is what WinForms and UI automation either do not offer
@@ -18,7 +18,8 @@ namespace KeePassGate.Testing
     /// and both are answered here and nowhere else: the declaration with why nothing managed does
     /// its job, and its one call as the one there is. Not `NativeMethods`, which is the plugin's
     /// own class of the kind, and a test that imports the plugin's `KeePassGate.Ui` would find
-    /// two of them.
+    /// two of them. The tests' other calls into Windows enable the backup and restore privileges,
+    /// and `BackupPrivileges` makes them, for the unit tier alone.
     /// </remarks>
     internal static class User32
     {
