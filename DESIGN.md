@@ -676,7 +676,12 @@ The OpenAPI document is the routing table, and it ships as an embedded resource.
   parameter's or a query parameter's, held keyword by keyword to a list of what each type there may
   say, so that anything the checker would not act on refuses to load. That is what keeps a
   subset from becoming a gap: a construct nobody implemented stops the plugin loading, and can
-  never be a body that went unchecked because the checker did not recognize its schema. **A string
+  never be a body that went unchecked because the checker did not recognize its schema. **A
+  parameter's own fields are held the same way**: `required`, `style`, `explode`, `allowReserved`
+  and `allowEmptyValue` stay as OpenAPI has them where the parameter sits, because the router reads
+  a segment, one `name=value` pair or a header line as it arrives and keeps none of them. Only the
+  schema used to be read, so a query parameter declared required loaded, and the router served a
+  request without it. **A string
   may carry a `pattern`**, compiled as the document is read and held to what JSON Schema means by
   one, which is ECMA-262's: there `$` is the end of the value, where .NET's also matches before a
   final line feed, so the checker writes it as `\z`. A pattern is held to the subset the two
