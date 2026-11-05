@@ -46,7 +46,9 @@ namespace KeePassGate.Audit
     /// **It asks for the right to append and no other**, so it goes on working on a file an
     /// administrator has made append only, where it can no longer set the file aside. See
     /// <see cref="Append"/>. That is an arrangement it works under rather than a protection it
-    /// gives, since code running as the user is conceded throughout.
+    /// gives, since code running as the user is conceded throughout. **And it sets the file aside
+    /// only where the ACLs let it, whatever privileges the account holds**, which
+    /// `PluginFiles.SetAside` is about.
     /// </remarks>
     public sealed class JsonLinesAudit : IGateAudit
     {
@@ -398,13 +400,7 @@ namespace KeePassGate.Audit
                 return;
             }
 
-            var previous = _path + ".1";
-            if (File.Exists(previous))
-            {
-                File.Delete(previous);
-            }
-
-            File.Move(_path, previous);
+            PluginFiles.SetAside(_path);
         }
 
         private static string Decisions(int count)

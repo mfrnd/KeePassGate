@@ -1,7 +1,6 @@
 using System;
 using System.IO;
 using System.Security.AccessControl;
-using System.Security.Principal;
 using System.Text;
 using KeePassGate.Audit;
 using KeePassGate.Diagnostics;
@@ -222,7 +221,7 @@ namespace KeePassGate.Tests
             {
                 if (Directory.Exists(_directory))
                 {
-                    Unseal();
+                    FileAcls.Unseal(_directory);
                     Directory.Delete(_directory, true);
                 }
             }
@@ -246,7 +245,7 @@ namespace KeePassGate.Tests
             Directory.CreateDirectory(_directory);
             var path = Paths.Join(_directory, "audit.jsonl");
             File.WriteAllText(path, "first\n");
-            Allow(path, AppendOnly);
+            FileAcls.Allow(path, FileAcls.AppendOnly);
 
             Assert.Throws<UnauthorizedAccessException>(() => File.AppendAllText(path, "refused\n"));
 
@@ -257,10 +256,10 @@ namespace KeePassGate.Tests
 
             // The synchronize right is not optional. Without it even the append right alone is
             // refused, which is what an administrator writing the ACL by hand has to know.
-            Allow(path, FileSystemRights.AppendData);
+            FileAcls.Allow(path, FileSystemRights.AppendData);
             Assert.Throws<UnauthorizedAccessException>(() => Append(path, "refused too\n"));
 
-            Allow(path, FileSystemRights.FullControl);
+            FileAcls.Allow(path, FileSystemRights.FullControl);
             Assert.That(File.ReadAllText(path), Is.EqualTo("first\nappended\n"));
         }
 
@@ -272,7 +271,7 @@ namespace KeePassGate.Tests
             Directory.CreateDirectory(_directory);
             var path = Paths.Join(_directory, "audit.jsonl");
             File.WriteAllText(path, string.Empty);
-            Allow(path, AppendOnly);
+            FileAcls.Allow(path, FileAcls.AppendOnly);
 
             var log = new Fakes.RecordingGateLog();
             var audit = new JsonLinesAudit(path, log);
@@ -283,7 +282,7 @@ namespace KeePassGate.Tests
             Assert.That(audit.Lost, Is.Zero);
             Assert.That(System.Linq.Enumerable.Any(log.Errors), Is.False);
 
-            Allow(path, FileSystemRights.FullControl);
+            FileAcls.Allow(path, FileSystemRights.FullControl);
             var lines = File.ReadAllLines(path);
 
             Assert.That(lines.Length, Is.EqualTo(2));
@@ -298,55 +297,98 @@ namespace KeePassGate.Tests
             // it takes away removing and renaming in the directory as well. Setting the file aside
             // then fails, which the audit already survived: it goes on writing past its bound, and
             // says once that it is doing so.
+            RecordedPastItsBound(0, BackupPrivileges.AsHeld);
+        }
+
+        [Test]
+        public void A_file_that_allows_only_appending_is_written_to_when_it_cannot_be_set_aside_with_the_backup_and_restore_privileges_enabled()
+        {
+            // The same directory, with both privileges enabled, as Git Bash run elevated enables
+            // them in every process it starts. `File.Delete` and `File.Move` pass any ACL then, as
+            // the measurement below shows, so the roll that used them set the file aside, deleting
+            // the previous file, and then the next file could not be made: this decision was lost,
+            // and every decision after it.
+            RecordedPastItsBound(0, BackupPrivileges.Run);
+        }
+
+        [Test]
+        public void A_directory_that_lets_files_be_removed_and_not_added_keeps_the_previous_file()
+        {
+            // Setting the file aside removed the previous file and then renamed the current file
+            // into its place, and a directory allowing the first and not the second lost the previous file
+            // for nothing. One rename that replaces it does both or neither.
+            RecordedPastItsBound(FileSystemRights.DeleteSubdirectoriesAndFiles, BackupPrivileges.AsHeld);
+        }
+
+        [Test]
+        public void A_directory_that_lets_files_be_removed_and_not_added_keeps_the_previous_file_with_the_backup_and_restore_privileges_enabled()
+        {
+            RecordedPastItsBound(FileSystemRights.DeleteSubdirectoriesAndFiles, BackupPrivileges.Run);
+        }
+
+        [Test]
+        public void File_Delete_and_File_Move_pass_a_sealed_directory_once_the_backup_and_restore_privileges_are_enabled()
+        {
+            // The fact the audit's way of setting its file aside rests on, kept as the measurement
+            // about appending is: both open what they change for backup, and a process holding these
+            // privileges enabled is let past every ACL that way. So the audit renames its file
+            // through a handle of its own, opened for the right to delete and no other.
+            Directory.CreateDirectory(_directory);
+            var path = Paths.Join(_directory, "audit.jsonl");
+            File.WriteAllText(path, "current\n");
+            File.WriteAllText(path + ".1", "older\n");
+            FileAcls.Allow(path, FileAcls.AppendOnly);
+            FileAcls.Allow(path + ".1", FileAcls.AppendOnly);
+            FileAcls.Seal(_directory);
+
+            var ran = BackupPrivileges.Run(() =>
+            {
+                File.Delete(path + ".1");
+                File.Move(path, path + ".1");
+            });
+            if (!ran)
+            {
+                Assert.Ignore(BackupPrivileges.NotHeld);
+            }
+
+            FileAcls.Unseal(_directory);
+
+            Assert.That(File.Exists(path), Is.False, "the file was moved in a directory that refuses it");
+            Assert.That(File.ReadAllText(path + ".1"), Is.EqualTo("current\n"),
+                "into the place of the previous file, deleted in a directory that refuses that too");
+        }
+
+        /// <summary>
+        /// Records a decision through <paramref name="run"/> to a file past its bound, in a sealed
+        /// directory that <paramref name="also"/> opens a little, where neither file allows more
+        /// than appending, and holds the audit to having written it and kept the previous file.
+        /// </summary>
+        private void RecordedPastItsBound(FileSystemRights also, Func<Action, bool> run)
+        {
             Directory.CreateDirectory(_directory);
             var path = Paths.Join(_directory, "audit.jsonl");
             Grow(path, JsonLinesAudit.RollAt + 1);
             File.WriteAllText(path + ".1", "older\n");
-            Allow(path, AppendOnly);
-            Allow(path + ".1", AppendOnly);
-            Seal(_directory);
+            FileAcls.Allow(path, FileAcls.AppendOnly);
+            FileAcls.Allow(path + ".1", FileAcls.AppendOnly);
+            FileAcls.Seal(_directory, also);
 
             var log = new Fakes.RecordingGateLog();
             var audit = new JsonLinesAudit(path, log);
 
-            audit.Record(Entry("readEntry", true));
+            if (!run(() => audit.Record(Entry("readEntry", true))))
+            {
+                Assert.Ignore(BackupPrivileges.NotHeld);
+            }
 
             Assert.That(audit.Lost, Is.Zero, "the decision was recorded");
             Assert.That(System.Linq.Enumerable.Single(log.Errors).Message, Does.Contain("could not be set aside"),
                 "and the operator is told once that the file is growing past its bound");
 
-            Unseal();
+            FileAcls.Unseal(_directory);
 
             Assert.That(new FileInfo(path).Length, Is.GreaterThan(JsonLinesAudit.RollAt + 1), "on the end of the file");
             Assert.That(File.ReadAllText(path + ".1"), Is.EqualTo("older\n"), "and the previous one as it was");
-        }
-
-        /// <summary>The account these tests run as, which is the one an ACL here grants or refuses.</summary>
-        private static readonly SecurityIdentifier Me = WindowsIdentity.GetCurrent().User;
-
-        /// <summary>
-        /// What an administrator's append only ACL gives the account: the right to append, and the
-        /// synchronize right Windows asks for on every open. Read attributes, which it asks for as
-        /// well, comes from the directory here, since the account may list it.
-        /// </summary>
-        private const FileSystemRights AppendOnly = FileSystemRights.AppendData | FileSystemRights.Synchronize;
-
-        /// <summary>
-        /// Gives the current account exactly these rights on a file and nothing inherited.
-        /// </summary>
-        /// <remarks>
-        /// Written as SDDL rather than as a `FileSystemAccessRule`, which adds the synchronize right
-        /// to every rule that allows anything: a rule for the append right alone is stored as
-        /// append and synchronize, and hides the very thing an ACL written by hand gets wrong.
-        /// </remarks>
-        private static void Allow(string path, FileSystemRights rights)
-        {
-            var security = new FileSecurity();
-            security.SetSecurityDescriptorSddlForm(
-                string.Format(
-                    System.Globalization.CultureInfo.InvariantCulture, "D:P(A;;0x{0:X};;;{1})", (int)rights, Me.Value),
-                AccessControlSections.Access);
-            File.SetAccessControl(path, security);
         }
 
         /// <summary>Appends the way the audit does, asking for the right to append and no other.</summary>
@@ -357,42 +399,6 @@ namespace KeePassGate.Tests
             {
                 var bytes = Encoding.UTF8.GetBytes(text);
                 stream.Write(bytes, 0, bytes.Length);
-            }
-        }
-
-        /// <summary>
-        /// Leaves the current account able to list a directory and open what is in it, and not to
-        /// add, remove or rename anything there.
-        /// </summary>
-        private static void Seal(string directory)
-        {
-            var security = new DirectorySecurity();
-            security.SetAccessRuleProtection(true, false);
-            security.AddAccessRule(new FileSystemAccessRule(
-                Me,
-                FileSystemRights.ListDirectory | FileSystemRights.ReadAttributes | FileSystemRights.Traverse
-                    | FileSystemRights.Synchronize,
-                AccessControlType.Allow));
-            Directory.SetAccessControl(directory, security);
-        }
-
-        /// <summary>
-        /// Gives the current account everything back on the directory and on whatever is in it, so
-        /// that it can be deleted. The account owns all of it, which is what lets it do this after
-        /// granting itself so little.
-        /// </summary>
-        private void Unseal()
-        {
-            var security = new DirectorySecurity();
-            security.SetAccessRuleProtection(true, false);
-            security.AddAccessRule(new FileSystemAccessRule(
-                Me, FileSystemRights.FullControl, InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit,
-                PropagationFlags.None, AccessControlType.Allow));
-            Directory.SetAccessControl(_directory, security);
-
-            foreach (var file in Directory.GetFiles(_directory))
-            {
-                Allow(file, FileSystemRights.FullControl);
             }
         }
 

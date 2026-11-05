@@ -1227,6 +1227,17 @@ administrator meant it to, which is the failure the next paragraph already survi
 something the plugin works under and not a control it provides: code running as the user is
 conceded, and what keeps the file append only is an owner that is not the account.
 
+**And it is set aside by what the ACLs allow, whatever privileges the account holds.** `File.Delete`
+and `File.Move` open what they change for backup, so in a process with the backup and restore
+privileges enabled they pass any ACL, and Git Bash run elevated enables both in every process it
+starts. In the directory the paragraph above has the administrator seal, the previous file was
+deleted and the current file moved, and then the next could not be made, so a KeePass started from such a
+shell recorded nothing from its first roll on. The file is now renamed through a handle opened for
+the right to delete and nothing else, without asking for backup, which Windows holds to the file's
+ACL and the directory's alike, privileged or not. And in one rename that replaces the previous
+file, so a directory that lets a file be removed and not added no longer loses the previous file to
+a removal before refusing the rename. `FINDINGS.md` has the measurement.
+
 **Rolling is a bound on the file and not permission to write to it.** A roll fails when the
 previous copy is held open by whatever is tailing the audit, and what that costs is the bound rather
 than the decision, because an audit that grows past eight megabytes is a smaller failure than an

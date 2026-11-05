@@ -176,6 +176,14 @@ namespace KeePassGate.Diagnostics
         /// bounds the file and is no condition for writing to it, and a viewer holding the previous
         /// file, which is how anything following a log holds it, would otherwise end the log for
         /// the rest of the session. It is tried again at the next line.
+        ///
+        /// **And it goes by what the ACLs allow, as the audit's does**, through
+        /// `PluginFiles.SetAside`. The log is beside the audit by default, so a directory sealed
+        /// against adding files for an append-only audit holds the log too. There a process with
+        /// the backup and restore privileges enabled set the log aside and then could not make the
+        /// next file, which gave the log up for the session; and wherever the log's own ACL lets
+        /// it be removed, any process lost the previous file to the removal before the rename was
+        /// refused.
         /// </remarks>
         private void Prepare()
         {
@@ -193,13 +201,7 @@ namespace KeePassGate.Diagnostics
                     return;
                 }
 
-                var previous = _filePath + ".1";
-                if (File.Exists(previous))
-                {
-                    File.Delete(previous);
-                }
-
-                File.Move(_filePath, previous);
+                PluginFiles.SetAside(_filePath);
                 _rollReported = false;
             }
             catch (Exception error) when (Expected.OfStorage(error))

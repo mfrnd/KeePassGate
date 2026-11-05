@@ -414,6 +414,15 @@ A fake that the gate's threads write while a test reads takes a lock, as `Record
 Without one the test reads a list that is being added to, which throws only when the timing is
 unlucky and so reads as a flake.
 
+**A privilege a test needs is enabled on its own thread**, by `BackupPrivileges`, which wears a copy
+of the process's token for the work, since a privilege enabled on the process would reach every
+fixture beside it. Only an elevated account holds the backup and restore privileges to enable, so
+the tests needing them ignore themselves under the gate, which runs unelevated, and run in CI,
+whose runner is elevated, and in a session started elevated. The opposite case is a process
+holding both already enabled, which is every process Git Bash run elevated starts: a test of an
+ACL that fails only when started from there is meeting them, and `FINDINGS.md` has what that
+measured.
+
 **The host tier stays one test after another**, and that is a choice rather than an omission. Its
 fixtures drive KeePass's own statics, which belong to the whole process as much as anything above
 does, and the plugin reads them. A mark forgotten there would fail now and then rather than

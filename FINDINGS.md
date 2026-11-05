@@ -477,3 +477,23 @@ case.
 | **Continue leaves KeePass running**, with the throwing handler's later work never done, timers ticking and the database open, and a later close of KeePass's own runs `Terminate` as usual | the same probe, closing KeePass afterwards |
 | **Work posted to KeePass's thread runs inside the next pump, which can be KeePass's own work.** KeePass pumps inside a save, through `UIBlockInteraction` and its status bar logger while the file is written, inside a lock, as `PrepareLock` closes its windows, and between auto-typed keys. A dialog that comes up there stands inside that work, and with interaction blocked `LockAllDocuments` returns at once and the inactivity timer only postpones, so every lock is refused while reads, which start on `Application.Idle` inside the dialog's own loop, go on | a throw posted with `BeginInvoke` reached WinForms' handler inside a `DoEvents` in the middle of stand-in work; the callers of `DoEvents` and `LockAllDocuments` read off KeePass 2.61.1's IL |
 | **Quit asks nothing, either, while KeePass's interaction is blocked or with closing set to minimize** KeePass, since its `FormClosing` cancels the close in both before asking: the process ends unsaved, and neither `Terminate` nor KeePass's own clearing of the clipboard runs | KeePass 2.61.1's `MainForm.OnFormClosing`, read rather than driven |
+
+## 24. Setting a file aside under the backup and restore privileges
+
+**`File.Delete` and `File.Move` let a privileged process past an ACL that the next file cannot get
+past, so an audit sealed for append only lost every decision from its first roll on.** Measured
+for review 4 on Windows 11 and .NET Framework 4.8, after a test of the sealed directory failed only
+when the unit tier was started from Git Bash. A throwaway probe in Windows PowerShell 5.1 tried
+each way of setting a file aside in a directory under each ACL, once from Git Bash run elevated,
+with both privileges enabled, and once from an elevated PowerShell, holding both disabled, and
+`JsonLinesAuditTests` keeps what the audit rests on.
+
+| Fact | How it was established |
+| --- | --- |
+| **Git Bash run elevated enables the backup and restore privileges in every process it starts**, where an elevated PowerShell holds both disabled and an unelevated token holds neither | `whoami /priv` from each; the sealed-directory test failed twenty runs in twenty started from Git Bash and passed twenty in twenty from PowerShell and unelevated |
+| **`File.Delete` and `File.Move` pass any ACL with the privileges enabled**: in a directory granting only listing, traversing, reading attributes and synchronizing, over files granting only appending, both did their work, and both were refused without the privileges. Each opens what it changes for backup, which is what lets the restore privilege grant the right to delete | the probe's sealed directory, in both runs |
+| **Making a file passes no ACL that way**: a `FileStream` making the next file in that directory was refused with the privileges enabled, so a roll that went through left nothing to append to | the same |
+| **A handle opened for the right to delete and no other, without asking for backup, is given only what the ACLs give**, enabled or not: refused on an append-only file in a directory that refuses removal, given where the directory lets files be removed | every case of the probe, answering alike in both runs |
+| **A rename through that handle is held to the directory's ACL too**: `SetFileInformationByHandle` with `FileRenameInfo` was refused where the directory lets files be removed and not added, with the privileges enabled, where `File.Move` went through | the same |
+| **A rename that replaces the previous file asks the previous file's ACL as well**: refused when the previous file allows only appending and its directory refuses removal, done when either lets it go | the probe's replacing cases |
+| **A reader holding the previous file holds that rename off whatever it shares**, the right to delete included, where `File.Delete` lets the name go on this Windows | the probe, with a reader sharing reading alone and a reader sharing everything, and `File.Delete` and then `File.Move` under the second |
