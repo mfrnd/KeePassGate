@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Security.AccessControl;
 using KeePassGate.Audit;
 using KeePassGate.Diagnostics;
 using NUnit.Framework;
@@ -238,7 +239,7 @@ namespace KeePassGate.Tests
         public void A_file_that_cannot_be_set_aside_is_still_written_to()
         {
             // Setting the file aside bounds it and is no condition for writing to it. A viewer
-            // holding the previous file stops it being deleted, and the log goes on regardless.
+            // holding the previous file stops it being replaced, and the log goes on regardless.
             var path = Paths.Join(_directory, "gate.log");
             Grow(path, TraceGateLog.RollAt + 1);
 
@@ -253,6 +254,61 @@ namespace KeePassGate.Tests
                     "said once rather than at every line");
                 Assert.That(_listener.Lines.Any(l => l.Contains("log file disabled")), Is.False);
             }
+        }
+
+        [Test]
+        public void A_directory_that_refuses_adding_files_keeps_the_log_and_its_previous_file()
+        {
+            // The audit's directory by default, sealed as an administrator seals it for an
+            // append-only audit. Setting the log aside removed the previous file, which its own ACL
+            // let go, and then the rename was refused, so the older lines went for nothing.
+            WrittenPastItsBound(BackupPrivileges.AsHeld);
+        }
+
+        [Test]
+        public void A_directory_that_refuses_adding_files_keeps_the_log_and_its_previous_file_with_the_backup_and_restore_privileges_enabled()
+        {
+            // With both privileges enabled the rename went through as well, and then the next file
+            // could not be made, so the log was given up for the rest of the session.
+            WrittenPastItsBound(BackupPrivileges.Run);
+        }
+
+        /// <summary>
+        /// Logs through <paramref name="run"/> to a file past its bound in a sealed directory,
+        /// where both files may be changed and removed but nothing may be added, and holds the log
+        /// to having gone on writing and kept the previous file.
+        /// </summary>
+        private void WrittenPastItsBound(Func<Action, bool> run)
+        {
+            var path = Paths.Join(_directory, "gate.log");
+            Grow(path, TraceGateLog.RollAt + 1);
+            File.WriteAllText(path + ".1", "older\n");
+            FileAcls.Allow(path, FileSystemRights.FullControl);
+            FileAcls.Allow(path + ".1", FileSystemRights.FullControl);
+            FileAcls.Seal(_directory);
+
+            try
+            {
+                var log = new TraceGateLog(path);
+                if (!run(() =>
+                    {
+                        log.Info("one");
+                        log.Info("two");
+                    }))
+                {
+                    Assert.Ignore(BackupPrivileges.NotHeld);
+                }
+            }
+            finally
+            {
+                FileAcls.Unseal(_directory);
+            }
+
+            Assert.That(File.ReadAllText(path), Does.Contain("KPG INFO one").And.Contain("KPG INFO two"));
+            Assert.That(_listener.Lines.Count(l => l.Contains("not set aside")), Is.EqualTo(1),
+                "the trace is told once that the log grows past its bound");
+            Assert.That(_listener.Lines.Any(l => l.Contains("log file disabled")), Is.False);
+            Assert.That(File.ReadAllText(path + ".1"), Is.EqualTo("older\n"), "and the previous file is as it was");
         }
 
         [Test]

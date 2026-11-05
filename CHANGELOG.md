@@ -18,6 +18,10 @@ none, since it releases both.
   the file be set aside and the previous file deleted, and then refused the next, so no
   decision was recorded from then on. A directory that lets files be removed and not added keeps
   the previous file too, which was deleted before the rename it then refused.
+- **The plugin's log is set aside the same way**, so it goes on being written in a directory
+  sealed for an append-only audit, which it shares by default. With the backup and restore
+  privileges enabled it was given up for the session at its first roll there, and wherever its
+  own ACL let it be removed, its previous file was deleted for nothing.
 - **A debugger attached stops wherever the plugin records a failure it did not foresee**, with the
   exception in hand, and continuing carries on as it would with no debugger: every such failure is
   caught, so a debugger was told nothing.
