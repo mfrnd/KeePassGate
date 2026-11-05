@@ -304,7 +304,7 @@ namespace KeePassGate.Host.Tests
             var unstamped = typeof(StringDictionaryEx).GetMethod(
                 "Set", BindingFlags.Instance | BindingFlags.NonPublic, null,
                 new[] { typeof(string), typeof(string), typeof(DateTime?) }, null);
-            Assume.That(unstamped, Is.Not.Null, "KeePass no longer lets a key be written without a time");
+            Assert.That(unstamped, Is.Not.Null, "KeePass no longer lets a key be written without a time");
 
             foreach (var pair in database.Database.CustomData.ToList())
             {

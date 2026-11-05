@@ -380,7 +380,10 @@ uv run pytest --cov        # the client, with the coverage floor the gate enforc
   method.
 - Tests touching WinForms carry `[Apartment(ApartmentState.STA)]`.
 - A test that needs something the machine may not have calls `Assert.Ignore` with the reason, so a
-  missing KeePass reads as "not measured here" rather than as a failure.
+  missing KeePass reads as "not measured here" rather than as a failure. **A member of the pinned
+  KeePass is not such a thing**: the host tier runs against the release `keepass.version` names,
+  which no machine lacks, so a test reaching a member by reflection fails when the member is gone,
+  as `KeePassContractTests` does, and neither ignores itself nor assumes the member is there.
 - Failure messages carry what was actually there: the tabs on the dialog, the windows on screen, the
   text that was read.
 - A unit test that touches anything the whole process shares carries `[NonParallelizable]`, on the

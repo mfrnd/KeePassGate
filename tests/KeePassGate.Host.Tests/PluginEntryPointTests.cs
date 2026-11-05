@@ -58,10 +58,13 @@ namespace KeePassGate.Host.Tests
                 : manager.GetMethod("CreatePluginInstance",
                     BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
 
+            // Failed rather than ignored when it is gone: the KeePass this runs against is the release
+            // the repository pins, which a machine cannot lack, so a release that renamed the call
+            // KeePass makes for every plugin is a pin move this test has to stop.
             if (create == null)
             {
-                throw new IgnoreException(
-                    "This KeePass build does not expose PluginManager.CreatePluginInstance.");
+                Assert.Fail("The pinned KeePass no longer has PluginManager.CreatePluginInstance, which made every plugin.");
+                return;
             }
 
             var baseName = Path.GetFileNameWithoutExtension(Plugin.Location);
@@ -92,6 +95,11 @@ namespace KeePassGate.Host.Tests
         /// Taken from the KeePass under test rather than written down here, so that a KeePass which
         /// ever changes the string fails this test rather than shipping a plugin that never loads.
         /// </summary>
+        /// <remarks>
+        /// And a KeePass that moves the string fails it too. It was ignored when the field was
+        /// gone, so a pin move renaming it and changing the value left this tier green over a
+        /// plugin KeePass would skip, and only the end to end tier would have caught it.
+        /// </remarks>
         private static string RequiredProductName()
         {
             var appDefs = typeof(KeePass.Plugins.Plugin).Assembly.GetType("KeePass.App.AppDefs", false);
@@ -101,7 +109,8 @@ namespace KeePassGate.Host.Tests
 
             if (field == null)
             {
-                throw new IgnoreException("This KeePass build does not expose AppDefs.PluginProductName.");
+                Assert.Fail("The pinned KeePass no longer has AppDefs.PluginProductName, which it screens plugins on.");
+                return null;
             }
 
             return (string)field.GetValue(null);
