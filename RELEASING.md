@@ -10,6 +10,8 @@ holds, and the tag only picks the commit to release: a tag naming another versio
 `master` does not hold, or for a version the changelog still calls unreleased is refused before
 anything is built. **The plugin is a GitHub release** under the tag, its zip and `SHA256SUMS`
 attached and the changelog's section for the version as its text, and **the client is on PyPI**.
+A patch to the client alone is a GitHub release too, with the text and nothing attached, and is
+never marked the latest, so that the latest release always carries the plugin.
 **PyPI comes last**, because a version number there can never be used again,
 even after deleting it, so everything that could still fail fails before it.
 

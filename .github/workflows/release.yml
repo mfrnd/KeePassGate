@@ -259,6 +259,7 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       MODE: ${{ needs.decide.outputs.mode }}
       VERSION: ${{ needs.decide.outputs.version }}
+      PLUGIN: ${{ needs.decide.outputs.plugin }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -277,15 +278,19 @@ jobs:
             sed -E "s#\]\(([^):/#][^):]*)\)#](https://github.com/$GITHUB_REPOSITORY/blob/$GITHUB_SHA/\1)#g" > notes.md
           test -s notes.md
 
-          # No files at all for a patch to the client alone, whose release is its text.
+          # No files at all for a patch to the client alone, whose release is its text, and which is
+          # never marked the latest, since that is the release whoever wants the plugin opens first.
           mkdir -p dist
           files=()
           for file in dist/*; do
             if [ -e "$file" ]; then files+=("$file"); fi
           done
+          latest=()
+          if [ "$PLUGIN" != true ]; then latest=(--latest=false); fi
           if [ "$MODE" = release ]; then
             tag="v$VERSION"
-            gh release create "$tag" --verify-tag --title "KeePassGate $VERSION" --notes-file notes.md "${files[@]}"
+            gh release create "$tag" --verify-tag --title "KeePassGate $VERSION" --notes-file notes.md \
+              "${latest[@]}" "${files[@]}"
           else
             tag="v$VERSION-rehearsal.$GITHUB_RUN_NUMBER"
             gh release create "$tag" --draft --target "$GITHUB_SHA" --title "KeePassGate $VERSION, rehearsed" \
