@@ -2,8 +2,11 @@
 # other pull request.
 #
 # **Which ones**, by the group `dependabot.yml` puts them in: `prose-tools`, whatever it moves,
-# and `actions`, unless one of its updates is a major version. `python` and `libraries` wait for a
-# person, as does any pull request Dependabot opens outside a group, a security update among them.
+# and `actions` when fetch-metadata names its update a minor or a patch version. Named as those
+# two rather than as anything but a major version, because an update whose kind fetch-metadata
+# cannot tell comes out empty, and that passed as if it were minor. `python` and `libraries` wait
+# for a person, as does any pull request Dependabot opens outside a group, a security update
+# among them.
 #
 # **The merge still waits for everything a merge waits for.** Auto-merge holds until the ruleset
 # on `master` is satisfied, which is `gate passed`. The release workflow's check is not required,
@@ -35,13 +38,15 @@ jobs:
         if: >-
           steps.meta.outputs.dependency-group == 'prose-tools' ||
           (steps.meta.outputs.dependency-group == 'actions' &&
-           steps.meta.outputs.update-type != 'version-update:semver-major')
+           (steps.meta.outputs.update-type == 'version-update:semver-minor' ||
+            steps.meta.outputs.update-type == 'version-update:semver-patch'))
 
       - name: auto-merge
         if: >-
           steps.meta.outputs.dependency-group == 'prose-tools' ||
           (steps.meta.outputs.dependency-group == 'actions' &&
-           steps.meta.outputs.update-type != 'version-update:semver-major')
+           (steps.meta.outputs.update-type == 'version-update:semver-minor' ||
+            steps.meta.outputs.update-type == 'version-update:semver-patch'))
         env:
           GH_TOKEN: ${{ github.token }}
           NUMBER: ${{ github.event.pull_request.number }}
