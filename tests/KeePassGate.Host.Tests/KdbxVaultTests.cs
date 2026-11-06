@@ -1129,7 +1129,7 @@ namespace KeePassGate.Host.Tests
             var group = Created(_vault.CreateGroup(_vault.RootAlias, "Fictitious", null));
             var field = typeof(PwDatabase).GetField(
                 "m_pgRootGroup", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
-            Assume.That(field, Is.Not.Null, "where PwDatabase keeps its root group");
+            Assert.That(field, Is.Not.Null, "where PwDatabase keeps its root group");
 
             var database = _database.Database;
             var root = database.RootGroup;

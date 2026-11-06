@@ -255,7 +255,7 @@ namespace KeePassGate.Host.Tests
             var set = typeof(StringDictionaryEx).GetMethod(
                 "Set", BindingFlags.Instance | BindingFlags.NonPublic, null,
                 new[] { typeof(string), typeof(string), typeof(DateTime?) }, null);
-            Assume.That(set, Is.Not.Null, "KeePass no longer lets a key be written with a chosen time");
+            Assert.That(set, Is.Not.Null, "KeePass no longer lets a key be written with a chosen time");
             set.Invoke(database.Database.CustomData, new object[] { key, value, time });
         }
 
@@ -263,7 +263,7 @@ namespace KeePassGate.Host.Tests
         {
             var read = typeof(StringDictionaryEx).GetMethod(
                 "GetLastModificationTime", BindingFlags.Instance | BindingFlags.NonPublic);
-            Assume.That(read, Is.Not.Null, "KeePass no longer says when a key was written");
+            Assert.That(read, Is.Not.Null, "KeePass no longer says when a key was written");
             return (DateTime?)read.Invoke(database.Database.CustomData, new object[] { key });
         }
     }
