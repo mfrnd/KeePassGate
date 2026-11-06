@@ -12,6 +12,8 @@ adds the call, and removing one fails it until somebody removes the call.
 from __future__ import annotations
 
 import inspect
+import re
+import tomllib
 from pathlib import Path
 from typing import Any
 
@@ -136,16 +138,24 @@ def operations(document: dict[str, Any]) -> dict[str, dict[str, Any]]:
     return found
 
 
-def test_the_document_carries_the_version_this_client_is_installed_as(
-    document: dict[str, Any],
-) -> None:
-    """One version for the plugin, this client and the document, moved together.
+def test_this_client_is_installed_as_the_version_the_repository_holds() -> None:
+    """One version for the plugin, this client and the document, written once.
 
-    It is written once, in `Directory.Build.props`, and this client is installed with it, but the
-    document is YAML and takes it from nowhere, so this is what holds the two to each other. The
-    plugin's tests hold the same document to the plugin.
+    The build writes `Version` from `Directory.Build.props` into the document as it embeds it, so
+    the document needs holding to nothing here. What is left is the install: hatchling reads the
+    same line for the package, and an install made before the number moved keeps the version it
+    was made with. Asked the way hatchling asks it, with the path and the pattern `pyproject.toml`
+    gives it.
     """
-    assert str(document["info"]["version"]) == __version__
+    if not (REPOSITORY / "pyproject.toml").exists():  # pragma: no cover, only outside it
+        pytest.skip(f"no repository at {REPOSITORY}, so no version to hold the client to")
+
+    project = tomllib.loads((REPOSITORY / "pyproject.toml").read_text("utf-8"))
+    source = project["tool"]["hatch"]["version"]
+    written = re.search(source["pattern"], (REPOSITORY / source["path"]).read_text("utf-8"))
+
+    assert written is not None, f"{source['path']} holds no version hatchling can read"
+    assert __version__ == written.group("version")
 
 
 def test_every_operation_the_gate_declares_has_a_call_here(document: dict[str, Any]) -> None:

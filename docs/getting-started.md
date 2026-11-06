@@ -37,13 +37,14 @@ plugin compares the copy it was given with the one beside it as it starts, and w
 given is older it refuses to start and names both, where it would name a missing one. Updating the
 other plugin to a Bouncy Castle at least as new mends it, and so does removing that plugin.
 
-**From a release**, which is the way most installs go: each one on
+**From a release**, which is the way most installs go: every release of the plugin on
 [the releases page](https://github.com/mfrnd/KeePassGate/releases) carries
-`KeePassGate-<version>.zip` and a `SHA256SUMS`, and the zip holds the whole set, the license and
-`THIRD-PARTY-NOTICES.md`, under `KeePassGate`. The sums name each file under `KeePassGate/` and the
-zip by its own name, so they are checked where the zip lies: put both in one directory, extract the
-zip there, run `sha256sum -c SHA256SUMS` in that directory, and only then copy the folder into
-`plugins`.
+`KeePassGate-<version>.zip` and a `SHA256SUMS`, and so does the release it marks the latest,
+since a release of the client alone carries neither and is never marked so. The zip holds the
+whole set, the license and `THIRD-PARTY-NOTICES.md`, under `KeePassGate`. The sums name each file
+under `KeePassGate/` and the zip by its own name, so they are checked where the zip lies: put both
+in one directory, extract the zip there, run `sha256sum -c SHA256SUMS` in that directory, and only
+then copy the folder into `plugins`.
 
 When building from source, `.\build.ps1 -Task Deploy` copies the whole set into
 `plugins\KeePassGate`, with `THIRD-PARTY-NOTICES.md` beside it, which holds the licenses of the DLLs

@@ -2,7 +2,10 @@ openapi: 3.0.3
 
 info:
   title: KeePassGate
-  version: 0.1.0
+  # A placeholder and never a version: the build writes `Version` from Directory.Build.props in as
+  # it embeds this document, so the version is written once and a patch leaves this file alone.
+  # SemVer, so that tools checking the version's syntax take it, and a release can never be it.
+  version: 0.0.0-placeholder
   # The paragraph on what a write's answer promises. A read is not locked against the writer, for
   # the reason DESIGN.md §119 gives: that lock waits on the user interface thread's save. §501
   #

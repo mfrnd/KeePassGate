@@ -10,6 +10,8 @@ holds, and the tag only picks the commit to release: a tag naming another versio
 `master` does not hold, or for a version the changelog still calls unreleased is refused before
 anything is built. **The plugin is a GitHub release** under the tag, its zip and `SHA256SUMS`
 attached and the changelog's section for the version as its text, and **the client is on PyPI**.
+A patch to the client alone is a GitHub release too, with the text and nothing attached, and is
+never marked the latest, so that the latest release always carries the plugin.
 **PyPI comes last**, because a version number there can never be used again,
 even after deleting it, so everything that could still fail fails before it.
 
@@ -61,11 +63,11 @@ builds and checks everything and publishes nothing.
 
 ## A release
 
-1. **A pull request that makes the version**: `Version` in `Directory.Build.props` and
-   `info.version` in `src/KeePassGate/Spec/openapi.yaml`, which a test on each side holds together,
-   and the version's heading in `CHANGELOG.md`, with the date in place of unreleased, as
-   `## 0.1.0, 2026-10-26`, or `## 0.1.1, the plugin, 2026-11-02` for a patch. The gate checks it
-   like any other, and the ruleset on `master` waits for it.
+1. **A pull request that makes the version**: `Version` in `Directory.Build.props`, which the
+   build writes into the routing document as well, and the version's heading in `CHANGELOG.md`,
+   with the date in place of unreleased, as `## 0.1.0, 2026-10-26`, or
+   `## 0.1.1, the plugin, 2026-11-02` for a patch. The gate checks it like any other, and the
+   ruleset on `master` waits for it.
 
    **The same pull request names every dependency the version ships that moved**, since Dependabot
    updates them and cannot write the changelog. What moved is what this prints, against the

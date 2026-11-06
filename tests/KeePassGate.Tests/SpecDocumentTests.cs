@@ -122,10 +122,10 @@ namespace KeePassGate.Tests
         public void The_document_carries_the_version_the_plugin_is_built_as()
         {
             // One version for the plugin, the client and this document, written once in
-            // `Directory.Build.props` and moved together. The build stamps the plugin and the
-            // client reads its own from what was installed, but a YAML file reads nothing, so this
-            // is what holds the document to the number: a version moved there and not here fails
-            // before anything ships. The client's tests hold the same document to the client.
+            // `Directory.Build.props`. A YAML file reads nothing, so the file holds a placeholder
+            // and the build writes the version in as it embeds it, beside the version it stamps on
+            // the plugin: this holds the two to each other, so a document embedded without its
+            // version, or with another, fails before anything ships.
             Microsoft.OpenApi.Models.OpenApiDocument document;
             using (var stream = typeof(SpecDocument).Assembly.GetManifestResourceStream("KeePassGate.Spec.openapi.yaml"))
             {
