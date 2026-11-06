@@ -1082,10 +1082,13 @@ the tools this branch carries.
   spellings by name, in `flagWords`. A name that is somebody else's keeps its own spelling behind a
   `cspell:ignore` where it is quoted.
 - **The version is written once, as `Version` in `Directory.Build.props`.** The build stamps the
-  plugin with it, hatchling reads it from there for the client's package, the client's
-  `__version__` comes from the installed metadata, and the routing document's `info.version`, which
-  YAML cannot take from anywhere, is held to it by a test on each side. Moving it is one line there
-  and the same in `openapi.yaml`; `CONVENTIONS.md` says when, and `CHANGELOG.md` says what moved.
+  plugin with it and writes it into the routing document's `info.version` as it embeds that,
+  hatchling reads it from there for the client's package, and the client's `__version__` comes
+  from the installed metadata. **The document holds a placeholder rather than a version**, and
+  the build fails on a document without it. This reverses a version written in it by hand and
+  held to the number by a test on each side, which made every patch change a file under
+  `src/KeePassGate`, so that every patch released the plugin. Moving the version is that one
+  line; `CONVENTIONS.md` has when, and `CHANGELOG.md` what moved.
   A minor version releases both halves and a patch only the half it fixes, so a patch number may
   exist on one side only, and the same major and minor version is what makes two halves a pair.
 

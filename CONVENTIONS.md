@@ -86,8 +86,9 @@ A document that is historical and frozen is not anchored either.
 **One version, for the plugin, PyKeePassGate and the routing document, moved together.** A client
 and a gate meet in somebody's install, and one number is what lets anybody tell which halves belong
 together, where three would each need an answer to which of the other two they work with. It is
-written in one place, and everything else reads it or is held to it by a test, so a version moved in
-one place and not another fails the gate rather than shipping.
+written in one place and everything else takes it from there, the routing document included,
+which the build writes it into, so there is no second place for a version to be moved in and not
+the first.
 
 **At 0.x, a minor version for anything that breaks either half, and a patch for a fix that breaks
 nothing.** Breaking is a program or an operator that worked before having to change: a route, a

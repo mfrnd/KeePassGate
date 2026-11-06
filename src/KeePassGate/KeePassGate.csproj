@@ -54,11 +54,58 @@
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
   </ItemGroup>
 
-  <ItemGroup>
-    <!-- Embedded rather than shipped beside the plugin, so the routing table cannot be edited
-         apart from the assembly that serves it. -->
-    <EmbeddedResource Include="Spec\openapi.yaml" />
-  </ItemGroup>
+  <!-- The routing document is embedded rather than shipped beside the plugin, so the routing table
+       cannot be edited apart from the assembly that serves it. What is embedded is the file with
+       `Version` written into its `info.version`, which the file holds a placeholder for, since YAML
+       cannot read a version from anywhere: so a version is moved in `Directory.Build.props` alone,
+       and a patch to the client alone changes nothing under this directory. A file without the
+       placeholder, or with it twice, fails the build. Written beside the rest of the build's own
+       files, and only when it differs, so a build that changes nothing compiles nothing. -->
+  <UsingTask TaskName="StampRoutingDocument" TaskFactory="RoslynCodeTaskFactory"
+             AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <Source ParameterType="System.String" Required="true" />
+      <Destination ParameterType="System.String" Required="true" />
+      <Version ParameterType="System.String" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System" />
+      <Using Namespace="System.IO" />
+      <Using Namespace="System.Text" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        const string Placeholder = "version: 0.0.0-placeholder";
+        // Strict, and without a mark: the bytes go back out exactly as they came in, but for the
+        // version, and a file that is not UTF-8 stops the build rather than being rewritten.
+        var encoding = new UTF8Encoding(false, true);
+        var text = encoding.GetString(File.ReadAllBytes(Source));
+        var at = text.IndexOf(Placeholder, StringComparison.Ordinal);
+        if (at < 0 || text.IndexOf(Placeholder, at + 1, StringComparison.Ordinal) >= 0)
+        {
+            Log.LogError(Source + " has to hold \"" + Placeholder + "\" exactly once, where the build writes the version.");
+            return false;
+        }
+
+        var stamped = text.Replace(Placeholder, "version: " + Version);
+        if (!File.Exists(Destination) || File.ReadAllText(Destination, encoding) != stamped)
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(Destination));
+            File.WriteAllBytes(Destination, encoding.GetBytes(stamped));
+        }
+      ]]></Code>
+    </Task>
+  </UsingTask>
+
+  <Target Name="StampRoutingDocument" AfterTargets="PrepareForBuild">
+    <PropertyGroup>
+      <StampedRoutingDocument>$([MSBuild]::NormalizePath('$(MSBuildProjectDirectory)', '$(IntermediateOutputPath)', 'openapi.yaml'))</StampedRoutingDocument>
+    </PropertyGroup>
+    <StampRoutingDocument Source="$(MSBuildProjectDirectory)\Spec\openapi.yaml"
+                          Destination="$(StampedRoutingDocument)" Version="$(Version)" />
+    <ItemGroup>
+      <EmbeddedResource Include="$(StampedRoutingDocument)" LogicalName="KeePassGate.Spec.openapi.yaml" />
+      <FileWrites Include="$(StampedRoutingDocument)" />
+    </ItemGroup>
+  </Target>
 
   <ItemGroup>
     <InternalsVisibleTo Include="KeePassGate.Tests" />

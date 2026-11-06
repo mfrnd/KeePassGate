@@ -9,8 +9,8 @@
 # and checks everything and publishes nothing, with no job holding more than read access.
 #
 # **The version is the one `Directory.Build.props` holds**, never one read off the tag, because
-# that is where it is written once and where the routing document, the plugin and the client are
-# held to it. The tag only picks the commit to release, and a tag naming another version is
+# that is where it is written once and where the routing document, the plugin and the client take
+# it from. The tag only picks the commit to release, and a tag naming another version is
 # refused before anything is built, and so is a tag whose changelog heading still reads unreleased
 # or names another half than the half released, a tag on a commit `master` does not hold, and a
 # tag on a commit the gate did not pass on. **That last is refused before the tag exists**, by
