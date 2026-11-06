@@ -11,8 +11,12 @@
 # **The version is the one `Directory.Build.props` holds**, never one read off the tag, because
 # that is where it is written once and where the routing document, the plugin and the client are
 # held to it. The tag only picks the commit to release, and a tag naming another version is
-# refused before anything is built, as is one whose changelog heading still reads unreleased, or
-# one on a commit `master` does not hold.
+# refused before anything is built, and so is a tag whose changelog heading still reads unreleased
+# or names another half than the half released, a tag on a commit `master` does not hold, and a
+# tag on a commit the gate did not pass on. **That last is refused before the tag exists**, by
+# the tag ruleset `release gate`, which requires GitHub Actions' `gate passed` of the commit a `v`
+# tag names and lets nobody past it, administrators included; `RELEASING.md` lists it among the
+# settings a release needs, and `decide` asks again.
 #
 # **The plugin as a GitHub release, the client on PyPI.** The plugin is installed by putting a zip's
 # contents into KeePass's `plugins`, which no package manager does, so its zip and `SHA256SUMS`
@@ -55,6 +59,9 @@ jobs:
     name: what this release publishes
     runs-on: windows-latest
     timeout-minutes: 10
+    permissions:
+      contents: read
+      checks: read
     outputs:
       mode: ${{ steps.decide.outputs.mode }}
       version: ${{ steps.decide.outputs.version }}
@@ -70,6 +77,8 @@ jobs:
 
       - id: decide
         shell: powershell
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           $mode = switch ($env:GITHUB_EVENT_NAME) {
             'push' { 'release' }
@@ -93,8 +102,36 @@ jobs:
             }
             & git merge-base --is-ancestor HEAD origin/master
             if ($LASTEXITCODE -ne 0) {
-              throw "The tag $env:GITHUB_REF_NAME is on a commit master does not hold, and a release is only ever of one that went through the gate."
+              throw "The tag $env:GITHUB_REF_NAME is on a commit master does not hold, and a release is only ever of a commit master holds."
             }
+          }
+
+          # The gate's own verdict on this commit, and not only master holding it. The ruleset on
+          # `master` asks `gate passed` of a pull request's head, which is not every commit master
+          # holds: an earlier commit of a merged pull request never had a run, and a commit pushed
+          # past that ruleset had only its push run. The tag ruleset `release gate` refuses a `v`
+          # tag on a commit without that check, before the tag exists, so a release finds it here;
+          # asked again so that a release still holds if that ruleset is ever switched off, and so
+          # that a rehearsal, which pushes no tag, is held to it as well. Read once, never waited
+          # for: a commit whose gate is still running is a tag pushed too early, which the ruleset
+          # refuses as well, and a rehearsal is run again once the gate on master has passed.
+          if ($mode -ne 'check') {
+            # Errors let through and the exit code read, as for git below. The conclusions are
+            # compared here rather than in the filter, since Windows PowerShell hands an
+            # argument's double quotes to a program unescaped. GitHub Actions' own, which is what
+            # the ruleset asks for: a status anybody can post under the name is not the gate.
+            $ErrorActionPreference = 'Continue'
+            $conclusions = @(& gh api "repos/$env:GITHUB_REPOSITORY/commits/$env:GITHUB_SHA/check-runs?check_name=gate%20passed" `
+              --jq '.check_runs[] | select(.app.id == 15368) | .conclusion' 2>$null)
+            $asked = $LASTEXITCODE -eq 0
+            $ErrorActionPreference = 'Stop'
+            if (-not $asked) {
+              throw "The checks on $env:GITHUB_SHA could not be read, so whether the gate passed on it is not known."
+            }
+            if (-not ($conclusions -contains 'success')) {
+              throw "The gate has not passed on $env:GITHUB_SHA, and a release is only ever of a commit it passed on. A rehearsal is run again once the gate on master has passed."
+            }
+            Write-Host "The gate passed on $env:GITHUB_SHA."
           }
 
           # The heading is the version, then the half a patch releases, then unreleased until it
@@ -107,6 +144,20 @@ jobs:
           }
           if ($mode -eq 'release' -and $heading[0] -match 'unreleased') {
             throw "CHANGELOG.md still calls $version unreleased: '$($heading[0])'."
+          }
+
+          # The half the heading names, which a minor version leaves out, since it releases both,
+          # and a patch never does. Every mode asks this much of the heading, and a release holds
+          # it to what changed below, so that the notes published with it name what was published.
+          $named = ''
+          if ($heading[0] -match "^## $([regex]::Escape($version)), (the plugin and the client|the plugin|the client)(,|$)") {
+            $named = $Matches[1]
+          }
+          if ($patch -eq 0 -and $named) {
+            throw "CHANGELOG.md names $named in the heading of $version, and a minor version releases both halves: '$($heading[0])'."
+          }
+          if ($patch -ne 0 -and -not $named) {
+            throw "CHANGELOG.md names no half in the heading of $version, and a patch releases the half it names: '$($heading[0])'."
           }
 
           # A minor version releases both halves, a patch the half whose files it changed since the
@@ -131,6 +182,10 @@ jobs:
             Write-Host "Changed since ${previous}: $($changed.Count) file(s); the plugin $(if ($plugin) { 'ships' } else { 'does not' }), the client $(if ($client) { 'ships' } else { 'does not' })."
             if (-not $plugin -and -not $client) {
               throw "v$version is a patch that changed neither half since $previous, so it has nothing to release."
+            }
+            $releases = if ($plugin -and $client) { 'the plugin and the client' } elseif ($plugin) { 'the plugin' } else { 'the client' }
+            if ($named -ne $releases) {
+              throw "CHANGELOG.md's heading for $version names $named, and what changed since $previous releases $releases."
             }
           }
 
