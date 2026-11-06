@@ -482,7 +482,7 @@ namespace KeePassGate.Spec
                                 " declares no path parameter for it.");
                         }
 
-                        var unsupported = BodyCheck.SupportsParameter(declared.Schema);
+                        var unsupported = Unkept(declared) ?? BodyCheck.SupportsParameter(declared.Schema);
                         if (unsupported != null)
                         {
                             // What a body schema that cannot be enforced is refused for: a
@@ -688,7 +688,7 @@ namespace KeePassGate.Spec
 
             foreach (var parameter in Located(onThePath, onTheOperation, ParameterLocation.Query))
             {
-                var unsupported = BodyCheck.SupportsQuery(parameter.Schema);
+                var unsupported = Unkept(parameter) ?? BodyCheck.SupportsQuery(parameter.Schema);
                 if (unsupported != null)
                 {
                     // The router asks whether a name is declared and never looks at its
@@ -735,11 +735,12 @@ namespace KeePassGate.Spec
                         ", and " + IfMatchHeader + " is the only one the document may declare.");
                 }
 
-                if (parameter.Required)
+                var unkept = Unkept(parameter);
+                if (unkept != null)
                 {
                     throw new InvalidOperationException(
-                        operationId + " declares " + IfMatchHeader + " required, and a request" +
-                        " without one is served unconditionally.");
+                        operationId + " declares " + IfMatchHeader + " as the router does not read it: " +
+                        unkept);
                 }
 
                 var unsupported = BodyCheck.SupportsQuery(parameter.Schema);
@@ -754,6 +755,51 @@ namespace KeePassGate.Spec
             }
 
             return takes;
+        }
+
+        /// <summary>
+        /// What a parameter declares about itself, beside its schema, that the router does not
+        /// keep, or null when it declares nothing of the kind.
+        /// </summary>
+        /// <remarks>
+        /// **A parameter's own fields are promises as much as its schema's keywords are.**
+        /// `required` on a query parameter or on `If-Match` promises that a request without it is
+        /// refused, and the router serves such a request; `style` and `explode` describe how a
+        /// value is spelled on the wire, and `allowReserved` and `allowEmptyValue` what it may
+        /// hold, and the router reads a path segment, one `name=value` pair or a header line as it
+        /// arrives and holds it to none of them. So each is left as OpenAPI has it where the
+        /// parameter sits, which is what the reader hands back for a parameter that declares none
+        /// of them. A path parameter is required, and the reader refuses a path parameter that is
+        /// not, so such a document never gets this far.
+        /// </remarks>
+        private static string Unkept(OpenApiParameter parameter)
+        {
+            if (parameter.In != ParameterLocation.Path && parameter.Required)
+            {
+                return "it is required, and a request without it is served";
+            }
+
+            // Form and exploded for a query parameter, as `name=value`; simple and not exploded
+            // for a path segment and a header line, which are the value as it arrives.
+            var form = parameter.In == ParameterLocation.Query;
+            if (parameter.Style != (form ? ParameterStyle.Form : ParameterStyle.Simple) || parameter.Explode != form)
+            {
+                return "it is spelled " + parameter.Style + (parameter.Explode ? ", exploded" : string.Empty) +
+                       ", and the router reads it " + (form ? "as Form, exploded" : "as Simple") +
+                       ", as OpenAPI has it there";
+            }
+
+            if (parameter.AllowReserved)
+            {
+                return "it allows reserved characters unencoded, and the router decodes the value";
+            }
+
+            if (parameter.AllowEmptyValue)
+            {
+                return "it allows an empty value, and the router decides nothing about the value";
+            }
+
+            return null;
         }
 
         /// <summary>Every parameter either list declares in this location, the path's first.</summary>

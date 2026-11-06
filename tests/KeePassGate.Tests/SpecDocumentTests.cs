@@ -723,6 +723,64 @@ namespace KeePassGate.Tests
             Assert.That(raised.Message, Does.Contain(named));
         }
 
+        [TestCase("\"required\":true", "required")]
+        [TestCase("\"explode\":false", "spelled Form, and")]
+        [TestCase("\"style\":\"deepObject\"", "spelled DeepObject")]
+        [TestCase("\"style\":\"spaceDelimited\"", "spelled SpaceDelimited")]
+        [TestCase("\"allowReserved\":true", "reserved")]
+        [TestCase("\"allowEmptyValue\":true", "empty")]
+        public void A_query_parameter_declared_as_the_router_does_not_read_it_is_refused(string declared, string named)
+        {
+            // A parameter's own fields promise as much as its schema does, and only the schema was
+            // read: a query parameter declared required loaded, and the router served a request
+            // without it, as it serves a request spelled any other way.
+            var raised = Assert.Throws<InvalidOperationException>(() => SpecDocument.Parse(Document(
+                Queried("{\"name\":\"limit\",\"in\":\"query\"," + declared + ",\"schema\":{\"type\":\"string\"}}"))));
+
+            Assert.That(raised.Message, Does.Contain("query parameter limit"));
+            Assert.That(raised.Message, Does.Contain(named));
+        }
+
+        [Test]
+        public void A_query_parameter_declaring_what_OpenAPI_would_have_anyway_loads()
+        {
+            // What is refused is a spelling other than the router's, not the router's own written
+            // down.
+            Assert.DoesNotThrow(() => SpecDocument.Parse(Document(Queried(
+                "{\"name\":\"limit\",\"in\":\"query\",\"required\":false,\"style\":\"form\",\"explode\":true," +
+                "\"allowReserved\":false,\"allowEmptyValue\":false,\"schema\":{\"type\":\"string\"}}"))));
+        }
+
+        [TestCase("\"style\":\"matrix\"", "spelled Matrix")]
+        [TestCase("\"style\":\"label\"", "spelled Label")]
+        [TestCase("\"explode\":true", "spelled Simple, exploded")]
+        public void A_path_parameter_spelled_as_the_router_does_not_read_it_is_refused(string declared, string named)
+        {
+            // The router takes the segment as it arrives, so a document saying it carries `;id=` or
+            // a leading dot describes a value nothing reads that way.
+            var parameter = "[{\"name\":\"id\",\"in\":\"path\",\"required\":true," + declared +
+                            ",\"schema\":{\"type\":\"string\"}}]";
+
+            var raised = Assert.Throws<InvalidOperationException>(() => SpecDocument.Parse(Document(
+                "\"/a/{id}\":{\"get\":{\"operationId\":\"readA\",\"x-kpg-verb\":\"none\",\"parameters\":" + parameter +
+                ",\"responses\":{\"200\":{\"description\":\"o\"}}}," +
+                "\"head\":{\"operationId\":\"headA\",\"x-kpg-verb\":\"none\",\"parameters\":" + parameter +
+                ",\"responses\":{\"200\":{\"description\":\"o\"}}}}")));
+
+            Assert.That(raised.Message, Does.Contain("path parameter id"));
+            Assert.That(raised.Message, Does.Contain(named));
+        }
+
+        /// <summary>A get and its head under a path item declaring this parameter.</summary>
+        private static string Queried(string parameter)
+        {
+            return "\"/a\":{\"parameters\":[" + parameter + "]," +
+                   "\"get\":{\"operationId\":\"readA\",\"x-kpg-verb\":\"none\"," +
+                   "\"responses\":{\"200\":{\"description\":\"o\"}}}," +
+                   "\"head\":{\"operationId\":\"headA\",\"x-kpg-verb\":\"none\"," +
+                   "\"responses\":{\"200\":{\"description\":\"o\"}}}}";
+        }
+
         [Test]
         public void A_captured_name_the_operation_never_declares_is_refused()
         {
@@ -903,13 +961,16 @@ namespace KeePassGate.Tests
         }
 
         [TestCase("\"required\":true,\"schema\":{\"type\":\"string\"}", "required")]
+        [TestCase("\"style\":\"form\",\"schema\":{\"type\":\"string\"}", "spelled Form")]
+        [TestCase("\"explode\":true,\"schema\":{\"type\":\"string\"}", "spelled Simple, exploded")]
         [TestCase("\"schema\":{\"type\":\"integer\"}", "schema")]
         [TestCase("\"schema\":{\"type\":\"string\",\"maxLength\":10}", "schema")]
         public void If_Match_declared_as_something_the_router_does_not_do_stops_the_document_being_read(
             string declared, string named)
         {
             // Required would promise that a request without one is refused, while the router
-            // serves it unconditionally; a schema would promise a check nothing makes.
+            // serves it unconditionally; a spelling would promise a grammar nobody reads, and a
+            // schema a check nothing makes.
             var parameter = "\"parameters\":[{\"name\":\"If-Match\",\"in\":\"header\"," + declared + "}],";
 
             var raised = Assert.Throws<InvalidOperationException>(() => SpecDocument.Parse(Document(

@@ -371,8 +371,9 @@ designing around them.
 - **No schema library checks request bodies**, and that is a count rather than a preference:
   fourteen assemblies against three for reading the document. `BodyCheck` covers the subset this
   wire carries and **refuses at startup any schema it does not implement**, a path or query
-  parameter's as well as a body's, holding every keyword to a list of what its type may say, which
-  is what stops a subset becoming a gap. Re-proposing one means arguing with the counts on
+  parameter's as well as a body's, holding every keyword to a list of what its type may say, and a
+  parameter's own fields to what OpenAPI has where it sits, which is what stops a subset becoming
+  a gap. Re-proposing one means arguing with the counts on
   `spikes/json-reading`.
 - **The JSON grammar is `Newtonsoft.Json`'s and the policy is ours**, which is the split worth
   keeping. `JsonBody` decides what this wire may carry, which is one flat object of strings and

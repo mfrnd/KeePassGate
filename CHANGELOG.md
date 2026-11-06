@@ -12,6 +12,12 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **The plugin refuses to load a routing document whose parameters declare what the router does
+  not keep**: a query parameter or `If-Match` declared required, or a parameter given a `style`,
+  `explode`, `allowReserved` or `allowEmptyValue` other than OpenAPI's own for where it sits. Only
+  the schema was read, so a query parameter declared required loaded and the router served a
+  request without it. The document the plugin ships declares none of them, so nothing it serves
+  changes.
 - **The audit is set aside at its bound only where its access control lists let it, whatever
   privileges KeePass's account holds.** In a KeePass started from a shell that enables the backup and
   restore privileges, as Git Bash run elevated does, a directory sealed for an append-only audit let
