@@ -182,6 +182,30 @@ namespace KeePassGate.Pipeline
             Listed(context, vault.Held(() => Entries(context, vault.Entries(uuid), withExpired)));
         }
 
+        /// <summary>
+        /// The most characters of names and values an entry's strings may come to and still be
+        /// handed out whole, which is also the most a write may take an entry to.
+        /// </summary>
+        /// <remarks>
+        /// **A ceiling on what an answer costs, for the reason <see cref="MaxAttachmentBytes"/>
+        /// is a ceiling.** An entry's answer is every string it holds, decrypted, written into a
+        /// document, copied out of the writer and encoded again, which measured at about four
+        /// times the strings in managed memory, all live at once: 94.5 MB for one read of two
+        /// hundred fields of 64K characters. Nothing bounded how far writes could grow an entry,
+        /// so a client holding `create` and `read` on an entry could make every read of it cost
+        /// that, on all `GateOptions.MaxConnections` at once, inside the password manager's own
+        /// process.
+        ///
+        /// **The same number for reading and for writing**, so that what the gate lets a client
+        /// write it also hands back: a write that would take an entry over it is refused under the
+        /// writer's lock, and an entry over it, which KeePass or a merge can make, is refused to
+        /// `read` with its size, and nothing decrypted. A single field is held to it as well, with
+        /// its name. It is <see cref="VaultEntryDetail.MostCharacters"/>, so that the vault, which
+        /// measures, and the routes, which refuse, read the same number, and it is the
+        /// attachments' half a megabyte, counted in characters.
+        /// </remarks>
+        public const int MaxEntryCharacters = VaultEntryDetail.MostCharacters;
+
         public static void ReadEntry(IGateContext context)
         {
             var vault = Vault(context);
@@ -192,7 +216,10 @@ namespace KeePassGate.Pipeline
 
             var uuid = Captured(context, "uuid");
             var tag = EntryTag(context, vault, uuid);
-            var entry = vault.Read(uuid);
+
+            // The ceiling goes with the question, so an entry over it comes back measured and not
+            // decrypted, as an attachment does.
+            var entry = vault.Read(uuid, MaxEntryCharacters);
             if (entry == null)
             {
                 Gone(context);
@@ -204,6 +231,18 @@ namespace KeePassGate.Pipeline
             tag = MayTag(context, entry.Entry) ? tag : null;
             if (PreconditionFails(context, tag))
             {
+                return;
+            }
+
+            // Measured again on what came back, because a vault handing over more than it was
+            // asked for must not be the way past the ceiling either.
+            if (entry.Fields == null || entry.Characters > MaxEntryCharacters)
+            {
+                context.Respond(413, HttpResponse.ErrorBody(string.Format(
+                    CultureInfo.InvariantCulture,
+                    "this entry holds {0} characters of names and values, and this gate hands out at most {1}",
+                    entry.Characters,
+                    MaxEntryCharacters)));
                 return;
             }
 
@@ -390,10 +429,11 @@ namespace KeePassGate.Pipeline
             var uuid = Captured(context, "uuid");
             var name = Captured(context, "name");
 
-            // The tag, before the value it is served with, for the reason `IVault.GroupTag` gives.
+            // The tag, before the value it is served with, for the reason `IVault.GroupTag` gives,
+            // and the ceiling with the question, as `readEntry` asks it.
             var tag = EntryTag(context, vault, uuid);
-            var value = vault.Field(uuid, name);
-            if (value == null)
+            var held = vault.Field(uuid, name, MaxEntryCharacters);
+            if (held == null)
             {
                 Gone(context);
                 return;
@@ -445,6 +485,17 @@ namespace KeePassGate.Pipeline
             tag = MayTag(context, entry) ? tag : null;
             if (PreconditionFails(context, tag))
             {
+                return;
+            }
+
+            var value = held.Value;
+            if (value == null || held.Characters > MaxEntryCharacters)
+            {
+                context.Respond(413, HttpResponse.ErrorBody(string.Format(
+                    CultureInfo.InvariantCulture,
+                    "this field holds {0} characters with its name, and this gate hands out at most {1}",
+                    held.Characters,
+                    MaxEntryCharacters)));
                 return;
             }
 
@@ -1651,6 +1702,17 @@ namespace KeePassGate.Pipeline
                 // Not retried and not a conflict: the node is there and holds something other
                 // than what the request was written against, and only reading it again says what.
                 PreconditionFailed(context);
+                return;
+            }
+
+            if (write.IsTooLarge)
+            {
+                // About the request, as `412` is: nothing was changed, and the entry is as it was.
+                context.Respond(413, HttpResponse.ErrorBody(string.Format(
+                    CultureInfo.InvariantCulture,
+                    "this would leave the entry holding {0} characters of names and values, and this gate keeps at most {1}",
+                    write.Characters,
+                    MaxEntryCharacters)));
                 return;
             }
 

@@ -238,6 +238,13 @@ none, since it releases both.
   that kind it refused as `Unresolved`: a standard string held under a look-alike name, and a
   placeholder naming a field only in another case beyond ASCII. A program catching `Unresolved`
   for either catches `AmbiguousName` now.
+- **An entry's strings are held to 524288 characters, names and values together**, read and
+  written alike. Reading an entry built an answer of every string it held with no ceiling, at
+  about four times their size in memory inside KeePass, measured at 94.5 MB for two hundred
+  fields of 64K characters, and nothing bounded how far writes could grow an entry. A read of an
+  entry over it, or of one field over it with its name, is now refused with `413` before
+  anything is decrypted, and a write that would take an entry over it is refused with `413`
+  and changes nothing. Stripping a field is never refused for it.
 
 ## 0.1.0, 2026-10-25
 

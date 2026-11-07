@@ -970,6 +970,8 @@ paths:
           $ref: "#/components/responses/Unpaired"
         "404":
           $ref: "#/components/responses/Unreachable"
+        "413":
+          $ref: "#/components/responses/EntryTooLarge"
         "415":
           $ref: "#/components/responses/UnsupportedMediaType"
         "500":
@@ -1103,6 +1105,8 @@ paths:
           $ref: "#/components/responses/Unreachable"
         "412":
           $ref: "#/components/responses/PreconditionFailed"
+        "413":
+          $ref: "#/components/responses/EntryTooLarge"
         "503":
           $ref: "#/components/responses/Unavailable"
     head:
@@ -1127,6 +1131,8 @@ paths:
           $ref: "#/components/responses/Unreachable"
         "412":
           $ref: "#/components/responses/PreconditionFailed"
+        "413":
+          $ref: "#/components/responses/EntryTooLarge"
         "503":
           $ref: "#/components/responses/Unavailable"
     put:
@@ -1160,6 +1166,8 @@ paths:
           $ref: "#/components/responses/Conflict"
         "412":
           $ref: "#/components/responses/PreconditionFailed"
+        "413":
+          $ref: "#/components/responses/EntryTooLarge"
         "415":
           $ref: "#/components/responses/UnsupportedMediaType"
         "500":
@@ -1313,6 +1321,8 @@ paths:
           $ref: "#/components/responses/Conflict"
         "412":
           $ref: "#/components/responses/PreconditionFailed"
+        "413":
+          $ref: "#/components/responses/EntryTooLarge"
         "415":
           $ref: "#/components/responses/UnsupportedMediaType"
         "500":
@@ -1354,6 +1364,8 @@ paths:
           $ref: "#/components/responses/Unreachable"
         "412":
           $ref: "#/components/responses/PreconditionFailed"
+        "413":
+          $ref: "#/components/responses/EntryTooLarge"
         "503":
           $ref: "#/components/responses/Unavailable"
     head:
@@ -1379,6 +1391,8 @@ paths:
           $ref: "#/components/responses/Unreachable"
         "412":
           $ref: "#/components/responses/PreconditionFailed"
+        "413":
+          $ref: "#/components/responses/EntryTooLarge"
         "503":
           $ref: "#/components/responses/Unavailable"
     put:
@@ -1416,6 +1430,8 @@ paths:
           $ref: "#/components/responses/Unreachable"
         "412":
           $ref: "#/components/responses/PreconditionFailed"
+        "413":
+          $ref: "#/components/responses/EntryTooLarge"
         "415":
           $ref: "#/components/responses/UnsupportedMediaType"
         "500":
@@ -2286,6 +2302,23 @@ components:
 
     # The transport serves thirty-two connections at once, so ten times an attachment's size, at
     # once on every one of them, is what the ceiling holds down.
+    # An entry's answer costs about four times its strings, on each of the thirty-two
+    # connections the transport serves at once, so its strings are held down as an attachment is.
+    EntryTooLarge:
+      description: |
+        The entry's strings, names and values together, come to more than this gate hands out or
+        keeps: 524288 characters, half a million. A read of an entry over it, which KeePass or a
+        merge can make, is refused before anything is decrypted, and so is a read of one field
+        over it with its name; a write that would take the entry over it is refused with nothing
+        changed. The same number for both, so that what this gate lets a client write it also
+        hands back. Stripping a field is never refused for it, which is how an entry over it is
+        brought back under. The body names the size and the ceiling in a sentence rather than a
+        word, so a client knows this refusal by its status.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
     TooLarge:
       description: |
         The attachment is larger than this gate will hand out. Building one costs about ten times

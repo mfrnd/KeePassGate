@@ -206,6 +206,17 @@ namespace KeePassGate.Tests.Fakes
             return entry.Uuid;
         }
 
+        /// <summary>
+        /// Sets a string on an entry without going through the rules or the ceiling, as KeePass or
+        /// a merge can.
+        /// </summary>
+        public void Plant(string entryUuid, string field, string value)
+        {
+            var entry = FindEntry(entryUuid)
+                ?? throw new InvalidOperationException("there is no entry called " + entryUuid);
+            entry.Fields[field] = value;
+        }
+
         /// <summary>Marks a field this entry already has as protected.</summary>
         /// <remarks>
         /// The route for it would be a create, and a create refuses a name that is taken. What a
@@ -377,7 +388,7 @@ namespace KeePassGate.Tests.Fakes
         /// </remarks>
         public int Detailed { get; private set; }
 
-        public VaultEntryDetail Read(string uuid)
+        public VaultEntryDetail Read(string uuid, int most)
         {
             Looking();
             Detailed++;
@@ -388,13 +399,45 @@ namespace KeePassGate.Tests.Fakes
             }
 
             var entry = FindEntry(uuid);
+            if (entry == null)
+            {
+                return null;
+            }
 
-            return entry == null
-                ? null
-                : new VaultEntryDetail(
-                    Single(entry),
-                    new Dictionary<string, string>(entry.Fields, StringComparer.Ordinal),
-                    entry.Fields.Keys.Where(n => Guards(entry, n)).ToList());
+            var characters = Characters(entry.Fields);
+            var over = characters > most && !IgnoresCeiling;
+            if (!over)
+            {
+                StringReads++;
+            }
+
+            return new VaultEntryDetail(
+                Single(entry),
+                over ? null : new Dictionary<string, string>(entry.Fields, StringComparer.Ordinal),
+                entry.Fields.Keys.Where(n => Guards(entry, n)).ToList(),
+                characters);
+        }
+
+        /// <summary>
+        /// What these strings, names and values together, come to, as the real vault counts them.
+        /// </summary>
+        private static int Characters(IEnumerable<KeyValuePair<string, string>> strings)
+        {
+            return strings.Sum(pair => pair.Key.Length + (pair.Value ?? string.Empty).Length);
+        }
+
+        /// <summary>What an entry's strings would come to with these values set on it.</summary>
+        private static int Characters(
+            SortedDictionary<string, string> held, IEnumerable<KeyValuePair<string, string>> setting)
+        {
+            // Under the entry's own comparer, so a name it holds is replaced rather than added.
+            var after = new SortedDictionary<string, string>(held, held.Comparer);
+            foreach (var field in setting ?? Enumerable.Empty<KeyValuePair<string, string>>())
+            {
+                after[field.Key] = field.Value;
+            }
+
+            return Characters(after);
         }
 
         public IReadOnlyList<VaultEntry> Entries(string groupUuid)
@@ -426,16 +469,26 @@ namespace KeePassGate.Tests.Fakes
                 : entry.Fields.Keys.Select(n => new VaultField(n, Guards(entry, n))).ToList();
         }
 
-        public string Field(string entryUuid, string name)
+        public VaultValue Field(string entryUuid, string name, int most)
         {
             Looking();
 
             var entry = FindEntry(entryUuid);
             string value;
 
-            return entry != null && Holds(entry.Fields.Keys, name) && entry.Fields.TryGetValue(name, out value)
-                ? value
-                : null;
+            if (entry == null || !Holds(entry.Fields.Keys, name) || !entry.Fields.TryGetValue(name, out value))
+            {
+                return null;
+            }
+
+            var characters = name.Length + (value ?? string.Empty).Length;
+            if (characters > most && !IgnoresCeiling)
+            {
+                return new VaultValue(characters, null);
+            }
+
+            StringReads++;
+            return new VaultValue(characters, value);
         }
 
         public IReadOnlyList<VaultAttachment> Attachments(string entryUuid)
@@ -452,14 +505,22 @@ namespace KeePassGate.Tests.Fakes
         }
 
         /// <summary>
-        /// Hands over an attachment's contents whatever size it is when set, as a vault that broke
-        /// its promise would.
+        /// Hands over an attachment's contents, an entry's strings or a field's value whatever size
+        /// they are when set, as a vault that broke its promise would.
         /// </summary>
         /// <remarks>
-        /// What `ReadAttachment`'s own check of what it was handed is for, and without this
-        /// nothing here could ever hand it more than it asked for.
+        /// What `ReadAttachment`'s, `ReadEntry`'s and `ReadField`'s own checks of what they were
+        /// handed are for, and without this nothing here could ever hand them more than they
+        /// asked for.
         /// </remarks>
         public bool IgnoresCeiling { get; set; }
+
+        /// <summary>
+        /// How many times an entry's strings or a field's value have been handed over, which is how
+        /// many times they were decrypted, so that a test can tell an answer was refused before
+        /// anything was decrypted rather than after.
+        /// </summary>
+        public int StringReads { get; set; }
 
         /// <summary>
         /// How many attachments have been handed over with their contents, which is how many were
@@ -617,6 +678,13 @@ namespace KeePassGate.Tests.Fakes
                     }
                 }
 
+                var characters = Characters(entry.Fields);
+                if (characters > VaultEntryDetail.MostCharacters)
+                {
+                    _entries.Remove(uuid);
+                    return VaultWrite.TooLarge(characters);
+                }
+
                 // The real vault's rule, templates group aside, which nothing here has.
                 if (expiry != null && expiry.IsAuto)
                 {
@@ -655,6 +723,12 @@ namespace KeePassGate.Tests.Fakes
                 if (fields != null && Clashes(entry.Fields.Keys, fields.Keys))
                 {
                     return VaultWrite.Conflict("that field is already there");
+                }
+
+                var characters = Characters(entry.Fields, fields);
+                if (characters > VaultEntryDetail.MostCharacters)
+                {
+                    return VaultWrite.TooLarge(characters);
                 }
 
                 var refused = Refused(tagging, () => Tag(entry));
@@ -717,6 +791,12 @@ namespace KeePassGate.Tests.Fakes
                     return VaultWrite.Conflict("that field is already there");
                 }
 
+                var characters = Characters(entry.Fields, new Dictionary<string, string> { { name, value } });
+                if (characters > VaultEntryDetail.MostCharacters)
+                {
+                    return VaultWrite.TooLarge(characters);
+                }
+
                 var refused = Refused(tagging, () => Tag(entry));
                 if (refused != null)
                 {
@@ -742,6 +822,12 @@ namespace KeePassGate.Tests.Fakes
                 if (entry == null || !Holds(entry.Fields.Keys, name))
                 {
                     return VaultWrite.Missing();
+                }
+
+                var characters = Characters(entry.Fields, new Dictionary<string, string> { { name, value } });
+                if (characters > VaultEntryDetail.MostCharacters)
+                {
+                    return VaultWrite.TooLarge(characters);
                 }
 
                 var refused = Refused(tagging, () => Tag(entry));

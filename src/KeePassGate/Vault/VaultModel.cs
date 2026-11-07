@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using KeePassGate.Acl;
 
 namespace KeePassGate.Vault
@@ -148,6 +149,29 @@ namespace KeePassGate.Vault
         /// carries the flag or because the database protects a field of that name.
         /// </summary>
         public bool IsProtected { get; private set; }
+    }
+
+    /// <summary>
+    /// A string's value, or its size alone when it is more than a read may hand over.
+    /// </summary>
+    public sealed class VaultValue
+    {
+        public VaultValue(int characters, string value)
+        {
+            Characters = characters;
+            Value = value;
+        }
+
+        /// <summary>
+        /// The string's name and value together, in characters, measured before anything was
+        /// decrypted.
+        /// </summary>
+        public int Characters { get; private set; }
+
+        /// <summary>
+        /// The value, or null when it was more than the read was allowed to hand over.
+        /// </summary>
+        public string Value { get; private set; }
     }
 
     /// <summary>
@@ -316,6 +340,25 @@ namespace KeePassGate.Vault
         /// </remarks>
         public bool IsPreconditionFailed { get; private set; }
 
+        /// <summary>
+        /// The change would take the entry's strings over what this gate keeps, so nothing was
+        /// changed.
+        /// </summary>
+        /// <remarks>
+        /// A refusal about the request, answered `413`, and decided under the writer's lock against
+        /// the entry as the change would have found it, as <see cref="IsPreconditionFailed"/>
+        /// is, so that two writes landing in turn cannot each be measured against what the entry
+        /// held before the other. <see cref="VaultEntryDetail.MostCharacters"/> is the
+        /// ceiling, and <see cref="Characters"/> what the entry would have come to.
+        /// </remarks>
+        public bool IsTooLarge { get; private set; }
+
+        /// <summary>
+        /// What the entry's strings, names and values together, would have come to in characters,
+        /// when <see cref="IsTooLarge"/>.
+        /// </summary>
+        public int Characters { get; private set; }
+
         /// <summary>What was created, when something was.</summary>
         public string Uuid { get; private set; }
 
@@ -353,6 +396,24 @@ namespace KeePassGate.Vault
             return new VaultWrite(false, false, false, null, "the node no longer holds what If-Match named")
             {
                 IsPreconditionFailed = true,
+            };
+        }
+
+        /// <summary>
+        /// The entry would hold more than this gate keeps, and nothing was changed.
+        /// </summary>
+        public static VaultWrite TooLarge(int characters)
+        {
+            return new VaultWrite(
+                false,
+                false,
+                false,
+                null,
+                "the entry would hold " + characters.ToString(CultureInfo.InvariantCulture)
+                    + " characters of names and values")
+            {
+                IsTooLarge = true,
+                Characters = characters,
             };
         }
 
@@ -394,20 +455,44 @@ namespace KeePassGate.Vault
     /// <summary>An entry and everything it holds, which is what `read` answers with.</summary>
     public sealed class VaultEntryDetail
     {
-        public VaultEntryDetail(VaultEntry entry, IReadOnlyDictionary<string, string> fields, IReadOnlyList<string> protectedFields)
+        /// <summary>
+        /// The most characters an entry's strings, names and values together, may come to and
+        /// still be read whole or written to.
+        /// </summary>
+        /// <remarks>
+        /// Here rather than with the routes, so that the vault, which measures an entry and refuses
+        /// a write taking an entry past it, and the routes, which refuse to read an entry past it,
+        /// read the same number. `VaultHandlers.MaxEntryCharacters` gives the reason for this
+        /// number.
+        /// </remarks>
+        public const int MostCharacters = 512 * 1024;
+
+        public VaultEntryDetail(
+            VaultEntry entry,
+            IReadOnlyDictionary<string, string> fields,
+            IReadOnlyList<string> protectedFields,
+            int characters)
         {
             Entry = entry;
             Fields = fields;
             Protected = protectedFields;
+            Characters = characters;
         }
 
         public VaultEntry Entry { get; private set; }
 
         /// <summary>
         /// Every string the entry holds, by KeePass's own names, values included, enumerated in
-        /// the order KeePass keeps them, which is the order `read` writes them in.
+        /// the order KeePass keeps them, which is the order `read` writes them in, or null when
+        /// they come to more characters than the read was allowed to hand over.
         /// </summary>
         public IReadOnlyDictionary<string, string> Fields { get; private set; }
+
+        /// <summary>
+        /// What the entry's strings, names and values together, come to in characters, measured
+        /// before anything was decrypted.
+        /// </summary>
+        public int Characters { get; private set; }
 
         /// <summary>
         /// Which of them are kept protected, by the string's own flag or by the database's setting
