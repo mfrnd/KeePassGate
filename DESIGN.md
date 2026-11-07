@@ -881,20 +881,35 @@ So the rules here:
 
   **And the second cost is that KeePass does not lock while one of them is up**, which is worth
   writing down because it is the one that runs against the operator's own settings rather than
-  against a request. `MainForm.SaveDatabase` brackets everything from `PreSaveValidate` to those
-  two warnings in `UIBlockInteraction`, and while interaction is blocked the main timer
-  restarts the inactivity countdown on every tick instead of locking, and `LockAllDocuments`
-  returns without locking and without recording that a lock was wanted. That call is what a
-  Windows lock, a user switch, a suspend and a remote-control change all reach, so each of those
-  is dropped rather than deferred: after the box is answered, the lock that was asked for is not
-  applied and the countdown starts again from zero. No lock means no `FileClosed`, so the gate is
-  never told, and every admitted client goes on reading the unlocked database on its own
-  connection thread for as long as the box stands. **This is KeePass's behavior for any failed
-  save, and what this plugin adds is that an unattended agent can provoke one with nobody at the
-  desk.** It cannot be closed from here: nothing in a plugin can make KeePass lock while KeePass
-  is refusing to. What narrows it is forestalling the failures that can be seen coming, which is
-  what the three refusals above are, and the writer's own guard, which refuses a second write for
-  as long as the box is counted.
+  against a request. `MainForm.SaveDatabase` brackets everything from `PreSaveValidate` to those two
+  warnings in `UIBlockInteraction`, and while interaction is blocked the main timer restarts the
+  inactivity countdown on every tick instead of locking, and `LockAllDocuments` returns without
+  locking and without recording that a lock was wanted. That call is what a Windows lock, a user
+  switch, a suspend and a remote-control change all reach, so KeePass drops each of those rather
+  than deferring it, and the countdown starts again from zero once the box is answered. No lock
+  means no `FileClosed`, so the gate is never told, and every admitted client goes on reading the
+  unlocked database on its own connection thread for as long as the box stands. **This is KeePass's
+  behavior for any failed save, and what this plugin adds is that an unattended agent can provoke
+  such a save with nobody at the desk.** Nothing in a plugin can make KeePass lock while the box
+  stands, since KeePass refuses for as long as it does. What narrows that is forestalling the
+  failures that can be seen coming, which is what the three refusals above are, and the writer's own
+  guard, which refuses a second write for as long as the box is counted. **The lock that was asked
+  for is made once the box is answered**, by the plugin, as for every save of its own, below.
+
+  **KeePass drops that lock during every save of this plugin's, and not only a failed save**,
+  since every save blocks interaction for as long as it runs, and this plugin saves whenever a
+  client writes. Measured on a running KeePass set to lock when Windows does: the message Windows
+  sends when the session locks, arriving during a write's save, left KeePass unlocked and the
+  gate answering, and the same message with KeePass idle locked it at once. So `DroppedLocks`
+  hears the same events through a `SessionLockNotifier` of its own, notes a lock asked for while
+  the writer's own save is running and whose trigger the operator turned on, and makes it with
+  KeePass's own `LockAllDocuments` once the request that saved has been answered, so that
+  KeePass's rules still decide. **Not at once**: a lock closes every connection the gate holds,
+  and the write whose save delayed it is still building its answer then, so a client would lose
+  the answer to a write that landed and might make it twice. Windows has locked the screen by
+  then, since it waits for no program, so the lock is made behind it. A lock KeePass drops during
+  an operation of its own, which the operator started, stays KeePass's behavior. KeePassXC defers a
+  lock asked for during a save the same way, retrying until the save is over.
 
   **And the operator's own triggers run inside the save**, which makes them the one dialog a
   request can raise that somebody asked for. `SaveDatabase` raises KeePass's Saving database file

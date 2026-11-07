@@ -256,6 +256,11 @@ none, since it releases both.
   own OK, and KeePass's save handles messages as it goes, so an OK pressed during the save a
   write makes added to the list the save was walking: the save threw, KeePass showed its save
   warning, and the write was answered `500 not saved`.
+- **A Windows lock, a user switch, a suspend or a change of remote control that arrives while a
+  write's save is running locks KeePass once that write has been answered**, where KeePass is set
+  to lock for it. KeePass drops such a lock while it is saving, so it was lost for good and the
+  gate went on serving the database. The plugin now makes it through KeePass's own lock, which
+  still keeps the workspace unlocked while a dialog of KeePass's is open.
 
 ## 0.1.0, 2026-10-25
 

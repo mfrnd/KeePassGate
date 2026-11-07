@@ -41,6 +41,7 @@ namespace KeePassGate
         private LockWatch _locks;
         private AuthorityChooser _chooser;
         private OwedAnswerSaves _owedAnswerSaves;
+        private DroppedLocks _droppedLocks;
         private InvitationBook _invitations;
 
         /// <summary>
@@ -132,6 +133,10 @@ namespace KeePassGate
 
             _listener = new GateListener(
                 new GateOptions { Port = port }, resolver, router, _incidents, _log);
+            if (_droppedLocks != null)
+            {
+                _listener.Answered = _droppedLocks.Settle;
+            }
 
             // **A variable naming something that is not a port stops the gate** rather than the
             // default being bound in its place. The listener keeps the reason and is never
@@ -614,6 +619,15 @@ namespace KeePassGate
                 }
             });
 
+            Attempt("failed to stop watching for the locks KeePass drops", () =>
+            {
+                if (_droppedLocks != null)
+                {
+                    _droppedLocks.Dispose();
+                    _droppedLocks = null;
+                }
+            });
+
             Attempt("failed to stop watching for locks", () =>
             {
                 if (_locks != null)
@@ -809,6 +823,12 @@ namespace KeePassGate
             writer.Owed = _sessionRefusals;
             _owedAnswerSaves = new OwedAnswerSaves(mainWindow, writer, _incidents);
             _owedAnswerSaves.Start();
+
+            // A lock KeePass was asked for while the writer's own save was running, which KeePass
+            // drops, made once the request that saved has been answered: `DroppedLocks` gives the reason.
+            _droppedLocks = new DroppedLocks(
+                () => writer.Saving, new MainWindowLocking(mainWindow), ui, _incidents, _log);
+            _droppedLocks.Start();
 
             _targets = new OpenDatabaseTargets(
                 delegate { return mainWindow.DocumentManager.GetOpenDatabases(); },

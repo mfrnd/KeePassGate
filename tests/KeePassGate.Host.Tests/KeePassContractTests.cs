@@ -549,6 +549,48 @@ namespace KeePassGate.Host.Tests
                 "the dialog no longer takes itself off the window manager when it closes");
         }
 
+        [Test]
+        public void KeePass_still_drops_a_lock_asked_for_while_its_interaction_is_blocked()
+        {
+            // What `DroppedLocks` exists for: every save blocks it, the plugin's among them.
+            var locking = typeof(MainForm).GetMethod(nameof(MainForm.LockAllDocuments), Type.EmptyTypes);
+
+            Assert.That(locking, Is.Not.Null);
+            Assert.That(Calls(locking, typeof(MainForm).GetMethod(nameof(MainForm.UIIsInteractionBlocked))), Is.True,
+                "KeePass's lock no longer asks whether its interaction is blocked, so a lock during a save may "
+                + "no longer be dropped, and DroppedLocks may be locking twice");
+        }
+
+        [Test]
+        public void KeePass_still_locks_on_a_session_event_by_the_three_settings_the_replay_reads()
+        {
+            // `MainWindowLocking.Asks` follows this handler reason by reason, and the replay locks
+            // through what it locks through.
+            var handler = typeof(MainForm).GetMethod(
+                "OnSessionLock",
+                BindingFlags.Instance | BindingFlags.NonPublic,
+                null,
+                new[] { typeof(object), typeof(KeePass.Util.SessionLockEventArgs) },
+                null);
+            var settings = typeof(KeePass.App.Configuration.AceWorkspaceLocking);
+
+            Assert.That(handler, Is.Not.Null, "KeePass's handler of the session events is gone");
+            foreach (var setting in new[]
+            {
+                nameof(KeePass.App.Configuration.AceWorkspaceLocking.LockOnSessionSwitch),
+                nameof(KeePass.App.Configuration.AceWorkspaceLocking.LockOnSuspend),
+                nameof(KeePass.App.Configuration.AceWorkspaceLocking.LockOnRemoteControlChange),
+            })
+            {
+                Assert.That(Calls(handler, settings.GetProperty(setting).GetGetMethod()), Is.True,
+                    "KeePass's handler no longer reads " + setting);
+            }
+
+            Assert.That(Calls(handler, typeof(MainForm).GetMethod(nameof(MainForm.IsAtLeastOneFileOpen))), Is.True);
+            Assert.That(Calls(handler, typeof(MainForm).GetMethod(nameof(MainForm.LockAllDocuments), Type.EmptyTypes)),
+                Is.True);
+        }
+
         /// <summary>Whether a method's body calls, or constructs through, the other one.</summary>
         /// <remarks>
         /// The token after every call, virtual call and constructor call opcode in the body is

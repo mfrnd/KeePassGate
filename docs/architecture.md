@@ -174,12 +174,18 @@ KeePass's own, and the plugin never holds it.
 **KeePass does not lock while it has a question of its own on the screen**, and that is worth
 knowing because an agent can put one there. When a save fails, KeePass warns that writing to the
 file may have failed and waits for somebody to answer. Until they do, the inactivity countdown
-restarts every second, and a Windows lock, a user switch or a suspend is dropped rather than
-remembered: the database stays Open, the gate goes on serving it, and after the box is answered the
-lock that was asked for is not applied. This is how KeePass behaves for any failed save, including
-one the operator caused; what is new is that a write arriving over the gate can cause it while
-nobody is at the desk. If a database is kept somewhere its saves can fail, that is worth knowing
-before leaving the machine on a lock timeout.
+restarts every second and nothing can lock: the database stays Open and the gate goes on serving it.
+This is how KeePass behaves for any failed save, including a save the operator caused; what is new
+is that a write arriving over the gate can cause it while nobody is at the desk. If a database is
+kept somewhere its saves can fail, that is worth knowing before leaving the machine on a lock
+timeout.
+
+**A Windows lock during a save that a program's write makes is applied once that write has been
+answered.** KeePass itself drops a Windows lock, a user switch, a suspend or a change of remote
+control that arrives while it is saving, so the plugin notes such a lock arriving during its own
+save, where KeePass is set to lock for it, and has KeePass lock once the program that wrote has its
+answer. The screen is locked by then, since Windows locks it whatever KeePass does, so this happens
+behind it. After a failed save that is once the warning is answered.
 
 ## What this deliberately does not defend against
 
