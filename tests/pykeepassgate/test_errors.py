@@ -138,6 +138,7 @@ def test_what_a_caller_does_next_is_one_class_each_under_the_one_root() -> None:
         errors.StorageError,
         errors.TransportError,
         errors.Unresolved,
+        errors.AmbiguousName,
     )
 
     for kind in separate:

@@ -30,7 +30,7 @@ from datetime import UTC, datetime
 from types import MappingProxyType
 from typing import Any
 
-from .errors import ProtocolError, Withheld
+from .errors import AmbiguousName, ProtocolError, Withheld
 
 TITLE = "Title"
 USERNAME = "UserName"
@@ -376,6 +376,35 @@ class Group:
         return [cls.of(item) for item in _objects(body, "groups")]
 
 
+def _standard(strings: Fields, name: str) -> str:
+    """A standard string as KeePass reads it, or refused where that is unsure.
+
+    **Not held is empty**, as KeePass reads it: its own `ReadSafe` answers "" and its dialog shows
+    a blank, so this is "" rather than absent, and absence is kept for what this client never
+    read. A string the rule withheld is neither, and `Fields` raises `Withheld` for it.
+
+    **But not held is a question KeePass answers with its own comparison**, which `refs.resolve`
+    refuses to guess at, and so does this. KeePass reads the five out of a dictionary ordered by
+    the culture's collation, under which a name holding a character the collation ignores, a soft
+    hyphen in `Pass­word` among them, is the same name as `Password`, and a file another
+    program wrote can hold such a name. So an entry that holds the string under no name spelled
+    exactly so, while it holds a name beyond ASCII, raises `AmbiguousName`: "" could stand where
+    KeePass shows a value, or where the gate withheld a value, and a withheld value is never
+    empty here.
+    """
+    if name in strings:
+        return strings[name]
+
+    if not all(held.isascii() for held in strings):
+        raise AmbiguousName(
+            f"this entry holds no string named exactly {name!r}, and it holds a name beyond "
+            f"ASCII that KeePass's own comparison may read as {name!r}, which this will not "
+            "guess at"
+        )
+
+    return ""
+
+
 @dataclass(frozen=True)
 class Entry:
     """An entry, with as much of it as the gate was asked for.
@@ -488,9 +517,9 @@ class Entry:
 
     def _shown(self, name: str) -> str:
         """A string a listing carries as well as a read, from whichever this came from."""
-        # A listing always carries both, so only a read can lack one, and that is the entry not
-        # holding it: empty, as `_field` reads the other three and as a listing of it says.
-        return self._strings.get(name, "")
+        # A listing always carries both, so only a read can lack either, and that is read as
+        # `_field` reads the other three.
+        return _standard(self._strings, name)
 
     def _field(self, name: str) -> str:
         if self.fields is None:
@@ -499,11 +528,7 @@ class Entry:
                 "Read it with GateClient.entry() first."
             )
 
-        # A standard string the read does not carry is one the entry does not hold, and KeePass
-        # reads that as empty: its own `ReadSafe` answers "" and its dialog shows a blank. So this
-        # is "" rather than absent, and absence is kept for what this client never read, above.
-        # One the rule withheld is neither, and `Fields` raises `Withheld` for it, `get` included.
-        return self.fields.get(name, "")
+        return _standard(self.fields, name)
 
     @classmethod
     def listing(cls, body: dict[str, Any]) -> list[Entry]:

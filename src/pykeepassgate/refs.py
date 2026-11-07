@@ -22,11 +22,11 @@ listed in `REFUSED`, and one of those an earlier replacement made, which KeePass
 leaves as text by where in its own order the placeholder's step falls. References that go round in
 a circle or further than KeePass follows, where KeePass gives up at the deepest level and answers
 that value as empty, keeping the text around it: this refuses the whole value rather than give
-that. A placeholder whose name matches a field only when letters
-beyond ASCII are compared without their case, which is a comparison KeePass makes its own way. And
-a standard string the entry holds under no name spelled exactly so while it holds a name beyond
-ASCII, which KeePass's collation may read as that string. A value it may not read, behind a
-reference or a placeholder, raises `Withheld`.
+that. **And what it refuses with `AmbiguousName`**: a placeholder whose name matches a field
+only when letters beyond ASCII are compared without their case, which is a comparison KeePass
+makes its own way, and a standard string the entry holds under no name spelled exactly so while
+it holds a name beyond ASCII, which KeePass's collation may read as that string. A value it may not
+read, behind a reference or a placeholder, raises `Withheld`.
 
 **What it leaves as it is.** Braces that name nothing KeePass knows, which are ordinary in a
 generated password, and a reference too malformed for KeePass to read, both as KeePass leaves them.
@@ -46,7 +46,7 @@ from __future__ import annotations
 
 from typing import Protocol
 
-from .errors import RouteRefused, Unresolved, Withheld
+from .errors import AmbiguousName, RouteRefused, Unresolved, Withheld
 from .model import NOTES, PASSWORD, STANDARD, TITLE, URL, USERNAME, Entry, Fields
 
 #: How deep KeePass compiles a value before it gives up and answers that value as empty, which is
@@ -233,7 +233,7 @@ def _present(text: str, placeholder: str) -> bool:
     """
     folded, wide = _fold(placeholder), _wide(placeholder)
     if _found(_wide(text), wide) != _found(_fold(text), folded):
-        raise Unresolved(
+        raise AmbiguousName(
             f"{placeholder} is spelled here in a case other than the field's, in letters beyond "
             "ASCII, and whether KeePass reads the two as one name is its own comparison to make"
         )
@@ -342,7 +342,7 @@ class _Resolution:
             raise Withheld(name, through=through)
 
         if name in STANDARD and name not in fields and not all(held.isascii() for held in fields):
-            raise Unresolved(
+            raise AmbiguousName(
                 f"{through} stands for {name!r}, which this entry holds under no name spelled "
                 "exactly so, and it holds a name beyond ASCII that KeePass's own comparison may "
                 f"read as {name!r}, which this will not guess at"

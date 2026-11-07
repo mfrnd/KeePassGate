@@ -20,6 +20,7 @@ from importlib.metadata import version
 
 from .api import (
     Access,
+    AmbiguousName,
     AuthorityUndecided,
     Credentials,
     DatabaseLocked,
@@ -62,6 +63,7 @@ __version__ = version("pykeepassgate")
 
 __all__ = [
     "Access",
+    "AmbiguousName",
     "AuthorityUndecided",
     "Credentials",
     "DatabaseLocked",

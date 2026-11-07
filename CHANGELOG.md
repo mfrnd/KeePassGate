@@ -227,6 +227,17 @@ none, since it releases both.
   files are written. It wrote through `Path.write_bytes`, which created the file readable by every
   account under the usual umask, left a file already there as open as it was, and followed a
   link to wherever it pointed.
+- **An entry's standard strings refuse a look-alike name rather than read as empty**, as the
+  reference resolver already did. `entry.password`, and the title, the user name, the URL and the
+  notes likewise, answered `""` for an entry holding the string under no name spelled exactly so
+  beside a name beyond ASCII, such as `Password` with a soft hyphen in it, which KeePass's
+  collation reads as the password: empty where KeePass shows a value, and where the gate withheld
+  a value. They now raise `AmbiguousName`, and an entry whose names are all ASCII reads a
+  missing standard string as empty, as KeePass does. **`AmbiguousName` is new**, for a name only
+  KeePass's own comparison can match, and the reference resolver raises it for the two cases of
+  that kind it refused as `Unresolved`: a standard string held under a look-alike name, and a
+  placeholder naming a field only in another case beyond ASCII. A program catching `Unresolved`
+  for either catches `AmbiguousName` now.
 
 ## 0.1.0, 2026-10-25
 

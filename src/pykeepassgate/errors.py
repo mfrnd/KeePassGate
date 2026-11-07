@@ -290,11 +290,26 @@ class Unresolved(GateError):
     identifier, which KeePass answers from the whole database and the gate from what this client
     may see; a reference to an entry this client cannot read, absent, in the recycle bin and
     refused being one answer; a placeholder KeePass replaces and the resolver does not;
-    references that go round in a circle, or further than KeePass follows; a placeholder whose
-    name matches a field only when letters beyond ASCII are compared without their case; and a
-    standard string the entry holds under no name spelled exactly so, beside a name beyond ASCII
-    that KeePass's collation may read as it. The message names the reference, the placeholder or
-    the field, and never the value it was found in.
+    and references that go round in a circle, or further than KeePass follows. Which name KeePass
+    would read is `AmbiguousName`'s. The message names the reference or the placeholder, and never
+    the value it was found in.
+    """
+
+
+class AmbiguousName(GateError):
+    """A name only KeePass's own comparison can match, which this client will not guess at.
+
+    KeePass matches names in two ways this client cannot reproduce. It reads the five standard
+    strings out of a dictionary ordered by the culture's collation, under which a name holding a
+    character the collation ignores, `Password` with a soft hyphen in it among them, is the
+    standard name. And it compares placeholders without their case in .NET Framework's terms,
+    which beyond ASCII are not Python's. So an entry's `title`, `username`, `password`, `url` and
+    `notes`, and a placeholder or a reference standing for such a string, raise this when the
+    entry holds the string under no name spelled exactly so beside a name beyond ASCII, and
+    `refs.resolve` raises it for a placeholder that names a field only when letters beyond ASCII
+    are compared without their case. Empty or another field's value could stand where KeePass
+    reads a value, or where the gate withheld a value. The message names the string or the
+    placeholder, and never a value.
     """
 
 
