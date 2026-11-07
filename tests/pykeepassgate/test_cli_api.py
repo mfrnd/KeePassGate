@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import base64
+import codecs
+import io
 import json
 from collections.abc import Callable
 from pathlib import Path
@@ -366,6 +368,37 @@ def test_a_password_keeps_the_spaces_around_it(
     assert sent[-1]["Password"] == "  not a real password \t"
 
 
+@pytest.mark.parametrize(
+    "piped",
+    ["äöü\n".encode(), codecs.BOM_UTF8 + "äöü\n".encode()],
+    ids=["utf-8", "utf-8 behind the mark Windows PowerShell writes"],
+)
+def test_a_value_piped_in_is_read_as_utf8_whatever_the_code_page(
+    gate: FakeGate, kept: Path, monkeypatch: pytest.MonkeyPatch, piped: bytes
+) -> None:
+    # A pipe on Windows is a stream in the code page, cp1252 here, so each letter sent as UTF-8
+    # arrived as two others and was stored so, exit 0.
+    sent = _created(gate)
+    monkeypatch.setattr("sys.stdin", io.TextIOWrapper(io.BytesIO(piped), encoding="cp1252"))
+
+    assert cli.main(["add", "--title", "x", "--password", "--directory", str(kept)]) == 0
+    assert sent[-1]["Password"] == "äöü"
+
+
+def test_a_value_piped_in_that_is_not_utf8_is_refused_before_anything_is_sent(
+    gate: FakeGate, kept: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # The byte cp1252 writes for a letter UTF-8 writes in two: stored as it was decoded, it
+    # would be some other text, which nothing would show until the password failed somewhere.
+    sent = _created(gate)
+    stdin = io.TextIOWrapper(io.BytesIO(bytes([0xE4, 0x0A])), encoding="cp1252")
+    monkeypatch.setattr("sys.stdin", stdin)
+
+    assert cli.main(["add", "--title", "x", "--password", "--directory", str(kept)]) == 2
+    assert "not UTF-8" in capsys.readouterr().err
+    assert sent == []
+
+
 def test_remove_says_what_it_removed(
     gate: FakeGate, kept: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -374,6 +407,18 @@ def test_remove_says_what_it_removed(
     assert cli.main(["remove", UUID, "--directory", str(kept)]) == 0
     assert UUID in capsys.readouterr().out
     assert gate.requests[-1] == ("DELETE", f"/entries/{UUID}")
+
+
+def _created(gate: FakeGate) -> list[dict[str, Any]]:
+    """Answer every request as an entry created, keeping each body sent."""
+    sent: list[dict[str, Any]] = []
+
+    def answer(path: str, body: str, client: bytes | None) -> tuple[int, str]:
+        sent.append(json.loads(body))
+        return 200, json.dumps({"uuid": UUID})
+
+    gate.handler = answer
+    return sent
 
 
 def _bodies(gate: FakeGate) -> list[dict[str, Any]]:

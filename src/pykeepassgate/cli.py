@@ -19,6 +19,10 @@ switch, so that another format is one more choice. Both say the same things unde
 a value the rule withholds is named as withheld and never printed as empty, and what the gate did
 not say is left out rather than printed as nothing. Only what a command found is formatted; a
 failure is a sentence on standard error and an exit code either way.
+
+**Every standard stream is UTF-8**, whatever the code page, as Python 3.15 makes them by default:
+a listing written to a file or a pipe on Windows was encoded as cp1252 and died part way through
+at the first name beyond it, and a value piped in was decoded as cp1252 and stored as other text.
 """
 
 from __future__ import annotations
@@ -27,6 +31,7 @@ import argparse
 import ctypes
 import getpass
 import importlib
+import io
 import json
 import math
 import os
@@ -55,17 +60,53 @@ OUTPUTS = ("plain", "json")
 
 def main(argv: list[str] | None = None) -> int:
     """Run one command and return what the shell should see."""
+    _utf8_streams()
     parser = _parser()
     arguments = parser.parse_args(argv)
 
     try:
         return int(arguments.run(arguments))
+    except _Refused as refusal:
+        # Found inside a reader a command calls, where returning 2 is not possible, and the same
+        # answer a command gives an argument it cannot use: nothing has been sent.
+        print(str(refusal), file=sys.stderr)
+        return 2
     except GateError as error:
         # The exception hierarchy already says what happened in a sentence a person can act on, so
         # the command line adds nothing to it beyond the class name for anybody grepping. That
         # covers a profile nothing has paired under, which is `NotPaired`.
         print(f"{type(error).__name__}: {error}", file=sys.stderr)
         return FAILED
+
+
+class _Refused(Exception):
+    """What a command cannot do as given, found where it cannot return exit code 2 itself."""
+
+
+def _utf8_streams() -> None:
+    """Read and write UTF-8 on every standard stream, whatever the locale's code page.
+
+    On Windows a stream that is not a console takes the code page, cp1252 here, so plain output
+    written to a file or a pipe raised `UnicodeEncodeError` part way through a listing at the
+    first name it cannot encode, after the rows before it were written, and a value piped in was
+    decoded as cp1252: `ä` sent as UTF-8 arrived as two other letters, and was stored so. A
+    console was never the problem, since Python reads and writes a console in UTF-16. Python
+    3.15 makes UTF-8 the default for all three, PEP 686, and this makes the same choice now.
+
+    **Input is strict**, so a value piped in that is not UTF-8 is refused by `_secret` rather than
+    stored as something else, and a byte order mark at its start is dropped, which is what
+    Windows PowerShell puts there when told to send UTF-8. **Output never fails**: a character
+    UTF-8 cannot encode, which only a lone surrogate is, is written as its escape. A stream that
+    is not a text wrapper over a file, as a test's capture may be, is left as it is.
+    """
+    # Python's own name for the handler: cspell:ignore backslashreplace
+    for stream, encoding, errors in (
+        (sys.stdin, "utf-8-sig", "strict"),
+        (sys.stdout, "utf-8", "backslashreplace"),
+        (sys.stderr, "utf-8", "backslashreplace"),
+    ):
+        if isinstance(stream, io.TextIOWrapper):
+            stream.reconfigure(encoding=encoding, errors=errors)
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -944,7 +985,13 @@ def _secret(prompt: str) -> str:
     exception, and is asked for through `_typed` with nothing shown.
     """
     if not _console():
-        return sys.stdin.readline()
+        try:
+            return sys.stdin.readline()
+        except UnicodeDecodeError:
+            raise _Refused(
+                "standard input is not UTF-8, so what it holds would be stored as other text; "
+                "send it as UTF-8"
+            ) from None
 
     return _typed(prompt, "*")
 

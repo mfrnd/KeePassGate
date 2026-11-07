@@ -10,7 +10,9 @@ from __future__ import annotations
 
 import argparse
 import base64
+import io
 import json
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -335,6 +337,23 @@ def test_a_write_names_what_it_wrote(
     assert cli.main([*arguments, "--directory", str(kept), "-o", "json"]) == 0
 
     assert printed(capsys) == {"uuid": UUID}
+
+
+def test_plain_output_written_through_a_code_page_is_utf8_and_whole(
+    gate: FakeGate, kept: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # A file or a pipe on Windows is a stream in the code page, cp1252 here: the first name
+    # beyond it raised `UnicodeEncodeError` part way through the listing, after the rows before
+    # it were written, and the command ended in a traceback.
+    answering(gate, {"attachments": [{"name": "a.pem", "size": 1}, {"name": "Ω.pem", "size": 2}]})
+    written = io.BytesIO()
+    monkeypatch.setattr("sys.stdout", io.TextIOWrapper(written, encoding="cp1252"))
+
+    assert cli.main(["attachments", UUID, "--directory", str(kept)]) == 0
+
+    sys.stdout.flush()
+    lines = written.getvalue().decode("utf-8").splitlines()
+    assert [line.split()[-1] for line in lines] == ["a.pem", "Ω.pem"]
 
 
 def test_attachments_are_listed_by_name_and_size(
