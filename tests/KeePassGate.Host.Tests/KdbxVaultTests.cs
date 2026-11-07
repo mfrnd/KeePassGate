@@ -9,6 +9,7 @@ using KeePassGate.Testing;
 using KeePassGate.Ui;
 using KeePassGate.Vault;
 using KeePassLib;
+using KeePassLib.Security;
 using KeePassLib.Utility;
 using NUnit.Framework;
 
@@ -108,6 +109,69 @@ namespace KeePassGate.Host.Tests
             Assert.That(read.Fields[PwDefs.UserNameField], Is.EqualTo("agent-fictitious"));
             Assert.That(read.Protected, Does.Contain(PwDefs.PasswordField),
                 "a password is protected because this database says that kind of field is");
+        }
+
+        [Test]
+        public void An_entry_over_the_ceiling_is_measured_and_handed_back_with_no_strings()
+        {
+            // Planted as KeePass would hold it, since no write here can make such an entry. A
+            // protected string's length is kept beside its encrypted bytes, so the measure needs
+            // none of it.
+            var uuid = Created(_vault.CreateEntry(_vault.RootAlias, Named("an invented service")));
+            var entry = Kept(uuid);
+            entry.Strings.Set("Big", new ProtectedString(true, new string('x', VaultEntryDetail.MostCharacters)));
+            var characters = entry.Strings.Sum(pair => pair.Key.Length + pair.Value.Length);
+
+            var read = _vault.Read(uuid, VaultEntryDetail.MostCharacters);
+
+            Assert.That(read.Fields, Is.Null);
+            Assert.That(read.Characters, Is.EqualTo(characters));
+            Assert.That(read.Protected, Does.Contain("Big"), "which strings are protected is still told");
+            Assert.That(_vault.Field(uuid, "Big", VaultEntryDetail.MostCharacters).Value, Is.Null);
+            Assert.That(
+                _vault.Field(uuid, PwDefs.TitleField, VaultEntryDetail.MostCharacters).Value,
+                Is.EqualTo("an invented service"),
+                "a field under it in the same entry is still read");
+        }
+
+        [Test]
+        public void A_write_that_would_take_an_entry_over_the_ceiling_changes_nothing()
+        {
+            var uuid = Created(_vault.CreateEntry(_vault.RootAlias, Named("an invented service")));
+            var entry = Kept(uuid);
+            var room = VaultEntryDetail.MostCharacters - entry.Strings.Sum(pair => pair.Key.Length + pair.Value.Length);
+            entry.Strings.Set("Filler", new ProtectedString(false, new string('x', room - "Filler".Length - "More".Length - 10)));
+
+            var refused = _vault.CreateField(uuid, "More", new string('y', 11), false, VaultTagging.None);
+
+            Assert.That(refused.IsTooLarge, Is.True, refused.Reason);
+            Assert.That(refused.Characters, Is.EqualTo(VaultEntryDetail.MostCharacters + 1));
+            Assert.That(entry.Strings.Exists("More"), Is.False);
+
+            Assert.That(_vault.CreateField(uuid, "More", new string('y', 10), false, VaultTagging.None).Ok, Is.True,
+                "exactly the ceiling is a write like any other");
+            var saves = _saves;
+
+            Assert.That(_vault.UpdateField(uuid, "More", new string('y', 11), VaultTagging.None).IsTooLarge, Is.True);
+            Assert.That(_vault.UpdateEntry(uuid, new Dictionary<string, string> { { PwDefs.NotesField, "z" } },
+                VaultTagging.None).IsTooLarge, Is.True);
+            Assert.That(entry.Strings.ReadSafe("More"), Is.EqualTo(new string('y', 10)));
+            Assert.That(entry.Strings.ReadSafe(PwDefs.NotesField), Is.Empty);
+            Assert.That(_saves, Is.EqualTo(saves), "a refusal saves nothing");
+        }
+
+        [Test]
+        public void A_new_entry_over_the_ceiling_is_never_put_in_its_group()
+        {
+            var before = _database.RootGroup.Entries.UCount;
+
+            var refused = _vault.CreateEntry(_vault.RootAlias, new Dictionary<string, string>
+            {
+                { PwDefs.NotesField, new string('x', VaultEntryDetail.MostCharacters) },
+            });
+
+            Assert.That(refused.IsTooLarge, Is.True, refused.Reason);
+            Assert.That(_database.RootGroup.Entries.UCount, Is.EqualTo(before));
         }
 
         [Test]
@@ -1469,6 +1533,14 @@ namespace KeePassGate.Host.Tests
         private static IReadOnlyDictionary<string, string> Named(string title)
         {
             return new Dictionary<string, string> { { PwDefs.TitleField, title } };
+        }
+
+        /// <summary>
+        /// The entry itself, as KeePass holds it, for a test to change without the vault.
+        /// </summary>
+        private PwEntry Kept(string uuid)
+        {
+            return _database.RootGroup.FindEntry(new PwUuid(MemUtil.HexStringToByteArray(uuid)), true);
         }
 
         private static string Created(VaultWrite write)

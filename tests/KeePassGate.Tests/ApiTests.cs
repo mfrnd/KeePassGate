@@ -1204,6 +1204,111 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void An_entry_over_the_ceiling_is_refused_without_its_strings_being_read()
+        {
+            // An entry's answer costs about four times its strings, all live at once, on each of
+            // thirty-two connections inside KeePass. KeePass or a merge can make an entry this
+            // large, so the refusal has to come before the strings are decrypted, which is why
+            // this counts the reads.
+            _vault.Granting(_group, AllButProtected);
+            _vault.Plant(_entry, "Big", new string('x', VaultHandlers.MaxEntryCharacters));
+
+            _vault.StringReads = 0;
+            var read = Get("/entries/" + _entry);
+
+            Assert.That(read.Status, Is.EqualTo(413));
+            Assert.That(
+                read.Json,
+                Does.Contain(VaultHandlers.MaxEntryCharacters.ToString(CultureInfo.InvariantCulture)),
+                "the refusal has to name the ceiling");
+            Assert.That(_vault.StringReads, Is.Zero,
+                "an entry refused for its size must not be decrypted to find that out");
+        }
+
+        [Test]
+        public void An_entry_a_vault_hands_over_past_the_ceiling_is_still_refused()
+        {
+            _vault.Granting(_group, AllButProtected);
+            _vault.Plant(_entry, "Big", new string('x', VaultHandlers.MaxEntryCharacters));
+            _vault.IgnoresCeiling = true;
+
+            var read = Get("/entries/" + _entry);
+
+            Assert.That(_vault.StringReads, Is.EqualTo(1),
+                "the vault handed them over, so this is the check of what came back");
+            Assert.That(read.Status, Is.EqualTo(413));
+            Assert.That(read.Json, Does.Not.Contain("xxxx"), "nothing of the entry is handed out");
+        }
+
+        [Test]
+        public void An_entry_at_the_ceiling_is_still_handed_out()
+        {
+            _vault.Granting(_group, AllButProtected);
+            var held = "Title".Length + "an invented service".Length + "Big".Length;
+            _vault.Plant(_entry, "Big", new string('x', VaultHandlers.MaxEntryCharacters - held));
+
+            Assert.That(Get("/entries/" + _entry).Status, Is.EqualTo(200));
+        }
+
+        [Test]
+        public void A_field_over_the_ceiling_is_refused_without_being_read()
+        {
+            _vault.Granting(_group, AllButProtected);
+            _vault.Plant(_entry, "Big", new string('x', VaultHandlers.MaxEntryCharacters));
+            _vault.StringReads = 0;
+
+            var read = Get("/entries/" + _entry + "/fields/Big");
+
+            Assert.That(read.Status, Is.EqualTo(413));
+            Assert.That(_vault.StringReads, Is.Zero);
+            Assert.That(Get("/entries/" + _entry + "/fields/Title").Status, Is.EqualTo(200),
+                "a field under it in the same entry is still read");
+        }
+
+        [Test]
+        public void A_write_taking_an_entry_over_the_ceiling_is_refused_and_changes_nothing()
+        {
+            // Nothing bounded how far writes grew an entry, so a client holding create and read
+            // could make every read of it cost a hundred megabytes, a field at a time. Held to the
+            // ceiling a read is, so that what a write leaves can be read back.
+            _vault.Granting(_group, AllButProtected);
+            var room = VaultHandlers.MaxEntryCharacters - "Title".Length - "an invented service".Length;
+            _vault.Plant(_entry, "Filler", new string('x', room - "Filler".Length - "More".Length - 10));
+
+            var refused = Send("POST", "/entries/" + _entry + "/fields",
+                Bodies.Of(("name", "More"), ("value", new string('y', 11))));
+            Assert.That(refused.Status, Is.EqualTo(413));
+            Assert.That(
+                refused.Json,
+                Does.Contain(VaultHandlers.MaxEntryCharacters.ToString(CultureInfo.InvariantCulture)));
+            Assert.That(_vault.Field(_entry, "More"), Is.Null, "nothing is added");
+
+            Assert.That(Send("POST", "/entries/" + _entry + "/fields",
+                Bodies.Of(("name", "More"), ("value", new string('y', 10)))).Status, Is.EqualTo(201),
+                "exactly the ceiling is a write like any other");
+            Assert.That(Get("/entries/" + _entry).Status, Is.EqualTo(200), "and it reads back whole");
+
+            Assert.That(Send("PUT", "/entries/" + _entry + "/fields/More",
+                Bodies.Of(("value", new string('y', 11)))).Status, Is.EqualTo(413));
+            Assert.That(Send("PUT", "/entries/" + _entry, "{\"Notes\":\"z\"}").Status, Is.EqualTo(413),
+                "an update naming a string the entry does not hold adds it");
+            Assert.That(_vault.Field(_entry, "More"), Is.EqualTo(new string('y', 10)),
+                "what was there is left alone");
+            Assert.That(_vault.Field(_entry, "Notes"), Is.Null);
+        }
+
+        [Test]
+        public void Stripping_a_field_is_how_an_entry_over_the_ceiling_comes_back_under()
+        {
+            _vault.Granting(_group, AllButProtected);
+            _vault.Plant(_entry, "Big", new string('x', VaultHandlers.MaxEntryCharacters));
+            Assume.That(Get("/entries/" + _entry).Status, Is.EqualTo(413));
+
+            Assert.That(Send("DELETE", "/entries/" + _entry + "/fields/Big", null).Status, Is.EqualTo(200));
+            Assert.That(Get("/entries/" + _entry).Status, Is.EqualTo(200));
+        }
+
+        [Test]
         public void Stripping_an_attachment_needs_no_switch()
         {
             _vault.Granting(_group, AllButProtected);

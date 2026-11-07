@@ -113,8 +113,18 @@ namespace KeePassGate.Vault
         /// </summary>
         string EntryTag(string uuid);
 
-        /// <summary>An entry and everything it holds, or null when there is none.</summary>
-        VaultEntryDetail Read(string uuid);
+        /// <summary>
+        /// An entry and everything it holds, with its strings when their names and values
+        /// together come to no more than <paramref name="most"/> characters, or null when there is
+        /// none.
+        /// </summary>
+        /// <remarks>
+        /// **Measured before anything is decrypted, in the same read**, as
+        /// <see cref="Attachment"/> is: KeePass keeps a protected string's length beside its
+        /// encrypted bytes, so an entry over the ceiling comes back with its size and no strings,
+        /// and a caller refusing it never pays for the plaintext.
+        /// </remarks>
+        VaultEntryDetail Read(string uuid, int most);
 
         /// <summary>The entries in a group, one level down, or null when it is not there.</summary>
         IReadOnlyList<VaultEntry> Entries(string groupUuid);
@@ -127,8 +137,13 @@ namespace KeePassGate.Vault
         /// there.</summary>
         IReadOnlyList<VaultField> Fields(string entryUuid);
 
-        /// <summary>One string's value, or null when the entry or the name is not there.</summary>
-        string Field(string entryUuid, string name);
+        /// <summary>
+        /// A string's value when it comes, with its name, to no more than
+        /// <paramref name="most"/> characters, its size either way, or null when the entry or the
+        /// name is not there.
+        /// </summary>
+        /// <remarks>Measured before anything is decrypted, as <see cref="Read"/> is.</remarks>
+        VaultValue Field(string entryUuid, string name, int most);
 
         /// <summary>The names and sizes of an entry's attachments, never their contents, or null
         /// when it is not there.</summary>

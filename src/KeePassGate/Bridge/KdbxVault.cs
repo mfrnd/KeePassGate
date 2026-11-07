@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using KeePassGate.Diagnostics;
 using KeePassGate.Ui;
 using KeePassGate.Vault;
@@ -204,7 +205,7 @@ namespace KeePassGate.Bridge
             return entry == null ? null : Tag(entry);
         }
 
-        private VaultEntryDetail ReadInside(string uuid)
+        private VaultEntryDetail ReadInside(string uuid, int most)
         {
             var entry = FindEntry(uuid);
             if (entry == null)
@@ -212,23 +213,29 @@ namespace KeePassGate.Bridge
                 return null;
             }
 
+            // Which strings are protected is read from their flags, and how long they are from the
+            // length kept beside their encrypted bytes, so an entry over the ceiling is measured
+            // and handed back with nothing decrypted.
+            var guarded = entry.Strings.Where(pair => Guards(pair.Key, pair.Value))
+                .Select(pair => pair.Key)
+                .ToList();
+            var described = Describe(entry, guarded.Count > 0);
+            var characters = Characters(entry);
+            if (characters > most)
+            {
+                return new VaultEntryDetail(described, null, guarded, characters);
+            }
+
             // In the order KeePass keeps them, which `OrderedFields` promises to keep.
             var fields = new OrderedFields();
-            var guarded = new List<string>();
-
             foreach (var pair in entry.Strings)
             {
                 // As stored, and never compiled: KeePass resolves a reference against the whole
                 // open database, which knows nothing about the rules this answer was allowed by.
                 fields.Set(pair.Key, pair.Value.ReadString());
-
-                if (Guards(pair.Key, pair.Value))
-                {
-                    guarded.Add(pair.Key);
-                }
             }
 
-            return new VaultEntryDetail(Describe(entry, guarded.Count > 0), fields, guarded);
+            return new VaultEntryDetail(described, fields, guarded, characters);
         }
 
         private IReadOnlyList<VaultEntry> EntriesInside(string groupUuid)
@@ -292,7 +299,7 @@ namespace KeePassGate.Bridge
             return found;
         }
 
-        private string FieldInside(string entryUuid, string name)
+        private VaultValue FieldInside(string entryUuid, string name, int most)
         {
             var entry = FindEntry(entryUuid);
             if (!Holds(entry, name))
@@ -300,7 +307,44 @@ namespace KeePassGate.Bridge
                 return null;
             }
 
-            return entry.Strings.ReadSafe(name);
+            var held = entry.Strings.Get(name);
+            var characters = name.Length + (held == null ? 0 : held.Length);
+            return new VaultValue(characters, characters > most ? null : entry.Strings.ReadSafe(name));
+        }
+
+        /// <summary>
+        /// What an entry's strings, names and values together, come to in characters, measured
+        /// without decrypting anything.
+        /// </summary>
+        /// <remarks>
+        /// `ProtectedString.Length` is kept beside the encrypted value, so a protected password is
+        /// measured as cheaply as a title.
+        /// </remarks>
+        private static int Characters(PwEntry entry)
+        {
+            return entry.Strings.Sum(pair => pair.Key.Length + pair.Value.Length);
+        }
+
+        /// <summary>
+        /// What an entry's strings would come to with these values set on it: a name it holds
+        /// counted with the new value in place of the old, and a name it does not hold as added.
+        /// </summary>
+        private static int Characters(PwEntry entry, IReadOnlyDictionary<string, string> setting)
+        {
+            var characters = Characters(entry);
+            if (setting == null)
+            {
+                return characters;
+            }
+
+            foreach (var field in setting)
+            {
+                var held = entry.Strings.Get(field.Key);
+                var value = (field.Value ?? string.Empty).Length;
+                characters += held == null ? field.Key.Length + value : value - held.Length;
+            }
+
+            return characters;
         }
 
         private IReadOnlyList<VaultAttachment> AttachmentsInside(string entryUuid)
@@ -578,6 +622,13 @@ namespace KeePassGate.Bridge
                     }
                 }
 
+                // Measured as it would be added, so nothing is put into the group to be taken out.
+                var characters = Characters(entry);
+                if (characters > VaultEntryDetail.MostCharacters)
+                {
+                    return VaultWrite.TooLarge(characters);
+                }
+
                 ExpireAsAsked(entry, group, expiry);
                 group.AddEntry(entry, true);
 
@@ -618,6 +669,12 @@ namespace KeePassGate.Bridge
                 if (blocked != null)
                 {
                     return VaultWrite.Busy(blocked);
+                }
+
+                var characters = Characters(entry, fields);
+                if (characters > VaultEntryDetail.MostCharacters)
+                {
+                    return VaultWrite.TooLarge(characters);
                 }
 
                 var tag = Before(tagging, entry);
@@ -758,6 +815,12 @@ namespace KeePassGate.Bridge
                     return VaultWrite.Busy(blocked);
                 }
 
+                var characters = Characters(entry, new Dictionary<string, string> { { name, value } });
+                if (characters > VaultEntryDetail.MostCharacters)
+                {
+                    return VaultWrite.TooLarge(characters);
+                }
+
                 if (VaultPrecondition.Fails(tagging.Precondition, Before(tagging, entry)))
                 {
                     return VaultWrite.PreconditionFailed();
@@ -793,6 +856,12 @@ namespace KeePassGate.Bridge
                 if (blocked != null)
                 {
                     return VaultWrite.Busy(blocked);
+                }
+
+                var characters = Characters(entry, new Dictionary<string, string> { { name, value } });
+                if (characters > VaultEntryDetail.MostCharacters)
+                {
+                    return VaultWrite.TooLarge(characters);
                 }
 
                 // The entry's tag, since the entry is what answers for the field.
@@ -1053,9 +1122,9 @@ namespace KeePassGate.Bridge
             return Reading(() => EntryInside(uuid));
         }
 
-        public VaultEntryDetail Read(string uuid)
+        public VaultEntryDetail Read(string uuid, int most)
         {
-            return Reading(() => ReadInside(uuid));
+            return Reading(() => ReadInside(uuid, most));
         }
 
         public IReadOnlyList<VaultEntry> Entries(string groupUuid)
@@ -1073,9 +1142,9 @@ namespace KeePassGate.Bridge
             return Reading(() => FieldsInside(entryUuid));
         }
 
-        public string Field(string entryUuid, string name)
+        public VaultValue Field(string entryUuid, string name, int most)
         {
-            return Reading(() => FieldInside(entryUuid, name));
+            return Reading(() => FieldInside(entryUuid, name, most));
         }
 
         public IReadOnlyList<VaultAttachment> Attachments(string entryUuid)
