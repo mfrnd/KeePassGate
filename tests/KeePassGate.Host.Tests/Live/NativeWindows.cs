@@ -95,5 +95,40 @@ namespace KeePassGate.Host.Tests.Live
             var titles = Visible(process).ConvertAll(w => "'" + w.Title + "'");
             return titles.Count == 0 ? "(none)" : string.Join(", ", titles.ToArray());
         }
+
+        /// <summary>
+        /// The hidden window .NET keeps in a process for `SystemEvents`, which is where Windows'
+        /// session and power messages reach that process's listeners, or zero for none.
+        /// </summary>
+        /// <remarks>
+        /// Found by its title, which .NET gives it as its class name, and hidden, so the visible
+        /// windows the rest of this class enumerates never include it.
+        /// </remarks>
+        public static IntPtr BroadcastWindow(Process process)
+        {
+            var found = IntPtr.Zero;
+            var wanted = (uint)process.Id;
+
+            User32.EnumWindows((window, parameter) =>
+            {
+                uint owner;
+                if (User32.GetWindowThreadProcessId(window, out owner) == 0 || owner != wanted)
+                {
+                    return true;
+                }
+
+                var text = new StringBuilder(512);
+                User32.GetWindowText(window, text, text.Capacity);
+                if (!text.ToString().StartsWith(".NET-BroadcastEventWindow", StringComparison.Ordinal))
+                {
+                    return true;
+                }
+
+                found = window;
+                return false;
+            }, IntPtr.Zero);
+
+            return found;
+        }
     }
 }

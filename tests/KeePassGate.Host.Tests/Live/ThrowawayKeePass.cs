@@ -570,6 +570,38 @@ namespace KeePassGate.Host.Tests.Live
         }
 
         /// <summary>
+        /// Turns on KeePass's lock when Windows is locked or the user is switched, before KeePass
+        /// is started.
+        /// </summary>
+        /// <remarks>
+        /// Off in KeePass's own defaults, and so in every other session, where a lock nobody asked
+        /// for would read as a failure about something else. Only over <see cref="Configuration"/>,
+        /// which has no security section of its own.
+        /// </remarks>
+        public void LockWhenWindowsLocks()
+        {
+            var path = Paths.Join(_root, "KeePass.config.xml");
+            var configuration = File.ReadAllText(path);
+            const string Before = "  <Integration>\r\n";
+            if (configuration.Contains("<Security>") || !configuration.Contains(Before))
+            {
+                throw new InvalidOperationException("only the configuration Configuration holds can be added to");
+            }
+
+            File.WriteAllText(
+                path,
+                configuration.Replace(
+                    Before,
+                    "  <Security>\r\n" +
+                    "    <WorkspaceLocking>\r\n" +
+                    "      <LockOnSessionSwitch>true</LockOnSessionSwitch>\r\n" +
+                    "    </WorkspaceLocking>\r\n" +
+                    "  </Security>\r\n" +
+                    Before),
+                new UTF8Encoding(false));
+        }
+
+        /// <summary>
         /// <see cref="Configuration"/>, with KeePass's own inactivity lock set to fire after this
         /// many seconds, or exactly it for zero.
         /// </summary>
