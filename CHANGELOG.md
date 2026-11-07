@@ -216,6 +216,12 @@ none, since it releases both.
   `--password`, `add-field` or `update-field` was decoded as cp1252 and stored as other text. A
   piped value that is not UTF-8 is now refused, exit 2, and a byte order mark at its start is
   dropped.
+- **Input that ends before a line is refused rather than sent as an empty value**, exit 2 with
+  nothing sent: a producer that printed nothing, a closed standard input or `< /dev/null` gave
+  `update --password`, `add --password`, `add-field` and `update-field` an empty value, which
+  they wrote and reported done, exit 0. An empty line is still the empty value it was sent as.
+  `pair` given no invitation that way is refused the same way, where it was refused as a
+  malformed token, exit 1.
 
 ## 0.1.0, 2026-10-25
 

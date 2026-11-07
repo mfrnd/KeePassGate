@@ -83,6 +83,13 @@ class _Refused(Exception):
     """What a command cannot do as given, found where it cannot return exit code 2 itself."""
 
 
+#: What `_secret` refuses input that ended before a line with.
+_NO_LINE = (
+    "input ended before a line was read, so there is no value to send: an empty value is an "
+    "empty line"
+)
+
+
 def _utf8_streams() -> None:
     """Read and write UTF-8 on every standard stream, whatever the locale's code page.
 
@@ -983,17 +990,30 @@ def _secret(prompt: str) -> str:
     that stays blank after a paste looks as if the paste did not land. That says how long the
     value is, which is the price of it. The password a client's own key is kept under is the
     exception, and is asked for through `_typed` with nothing shown.
-    """
-    if not _console():
-        try:
-            return sys.stdin.readline()
-        except UnicodeDecodeError:
-            raise _Refused(
-                "standard input is not UTF-8, so what it holds would be stored as other text; "
-                "send it as UTF-8"
-            ) from None
 
-    return _typed(prompt, "*")
+    **Input that ends before a line is no value**, and is refused rather than sent as an empty
+    value: a producer that printed nothing, a closed standard input and `< /dev/null` end so, and
+    so does the end of input typed at the prompt. An empty value is an empty line, which a pipe
+    sends as a line break and a person as Enter on its own.
+    """
+    if _console():
+        try:
+            return getpass.getpass(prompt, echo_char="*")
+        except EOFError:
+            raise _Refused(_NO_LINE) from None
+
+    try:
+        line = sys.stdin.readline()
+    except UnicodeDecodeError:
+        raise _Refused(
+            "standard input is not UTF-8, so what it holds would be stored as other text; "
+            "send it as UTF-8"
+        ) from None
+
+    if not line:
+        raise _Refused(_NO_LINE)
+
+    return line
 
 
 def _console() -> bool:
@@ -1047,7 +1067,9 @@ def _typed(prompt: str, echo_char: str | None = None) -> str:
     try:
         return getpass.getpass(prompt, echo_char=echo_char)
     except EOFError:
-        # Input ended at the prompt, which a pipe would have given as an empty line.
+        # Input ended at the prompt with nothing typed: an empty key password, which opens no
+        # key and protects none, and every prompt asking through this refuses an empty key
+        # password.
         return ""
 
 

@@ -348,8 +348,8 @@ def test_at_a_terminal_the_invitation_is_asked_for_and_not_echoed(
 ) -> None:
     # The same read, made through `getpass` when a person is typing: a prompt, so the command
     # does not look hung, and a star for each character rather than the character, so a paste is
-    # seen to land and the invitation is not left on the screen. Input ending at the prompt is an
-    # empty invitation, refused as a pipe's empty line is.
+    # seen to land and the invitation is not left on the screen. Input ending at the prompt is no
+    # invitation, refused as a pipe that sent no line is, before anything is dialed.
     from pykeepassgate import token as token_module
 
     prompts: list[str] = []
@@ -384,10 +384,11 @@ def test_at_a_terminal_the_invitation_is_asked_for_and_not_echoed(
         ]
     )
 
-    assert code == 1
+    assert code == (2 if ended else 1)
     assert prompts == ["Invitation: "]
     assert echoes == ["*"]
-    assert ("MalformedToken" if ended else "DatabaseLocked") in capsys.readouterr().err
+    printed = capsys.readouterr().err
+    assert ("ended before a line was read" if ended else "DatabaseLocked") in printed
 
 
 def test_a_token_that_is_not_one_is_refused_before_anything_is_dialed(
