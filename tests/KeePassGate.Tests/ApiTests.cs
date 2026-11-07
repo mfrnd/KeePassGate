@@ -632,6 +632,85 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_read_never_serves_content_older_than_its_tag(
+            [Values("group", "entry", "field", "attachment")] string route,
+            [Range(0, 5)] int lookups)
+        {
+            // A read takes the node's tag before the content it serves with it, so a change landing
+            // between the two leaves the tag older than the content, and a write under that tag is
+            // refused. Taken the other way round, the content would be the older and the tag the
+            // newer, and a write under that tag would be carried over a change the client never
+            // saw. So wherever in the read a change lands, content that does not show the change
+            // has to come with a tag that refuses a write. Each read is tried at every moment
+            // rather than at a moment counted, so that the order is what is pinned, not the count.
+            _vault.Granting(_group, AllButProtected);
+            Assume.That(_vault.CreateAttachment(_entry, "notes.txt", new byte[] { 1 }, VaultTagging.None).Ok, Is.True);
+
+            var entry = "/entries/" + _entry;
+            string path;
+            Action change;
+            string changed;
+            string write;
+            string body;
+            switch (route)
+            {
+                case "group":
+                    path = "/groups/" + _group;
+                    change = () => _vault.UpdateGroup(_group, "renamed by somebody else", null, VaultTagging.None);
+                    changed = "renamed by somebody else";
+                    write = path;
+                    body = "{\"Name\":\"what the first client meant\"}";
+                    break;
+                case "attachment":
+                    path = entry + "/attachments/notes.txt";
+                    change = () => _vault.UpdateAttachment(_entry, "notes.txt", new byte[] { 2 }, VaultTagging.None);
+                    changed = Convert.ToBase64String(new byte[] { 2 });
+                    write = path;
+                    body = "{\"content\":\"" + Convert.ToBase64String(new byte[] { 3 }) + "\"}";
+                    break;
+                default:
+                    path = route == "entry" ? entry : entry + "/fields/Title";
+                    change = () => _vault.UpdateEntry(
+                        _entry, new Dictionary<string, string> { { "Title", "changed by somebody else" } }, VaultTagging.None);
+                    changed = "changed by somebody else";
+                    write = entry;
+                    body = "{\"Title\":\"what the first client meant\"}";
+                    break;
+            }
+
+            var landed = false;
+            _vault.After(lookups, () =>
+            {
+                landed = true;
+                change();
+            });
+
+            var read = Get(path);
+
+            // Disarmed, so that a change this read never reached lands nowhere rather than inside
+            // the write below.
+            _vault.After(0, null);
+            Assume.That(read.Status, Is.EqualTo(200), read.Json);
+            Assume.That(read.Tag, Is.Not.Null, "this client is handed the tag, which is what this is about");
+
+            var answer = Conditioned("PUT", write, body, read.Tag);
+
+            if (!landed)
+            {
+                // The read was over before this moment, so nothing changed under it.
+                Assert.That(answer.Status, Is.EqualTo(200), answer.Json);
+            }
+            else if (!read.Json.Contains(changed))
+            {
+                Assert.That(answer.Status, Is.EqualTo(412),
+                    "served without the change, under a tag that let a write go over it: " + answer.Json);
+            }
+
+            // Content showing the change may come with either tag, and either answer is right: the
+            // client saw what it is writing over.
+        }
+
+        [Test]
         public void Reading_an_entry_gives_its_fields_and_says_which_are_protected()
         {
             _vault.Granting(_group, AllButProtected);
