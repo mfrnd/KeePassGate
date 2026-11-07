@@ -324,7 +324,10 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
+      # The uv `uv.lock` holds, which has to be named, as `gate.yml` explains.
       - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          version-file: uv.lock
 
       # Only a rehearsal writes another version, into this checkout and nowhere else, since
       # hatchling reads it from the same line the plugin does.
@@ -338,12 +341,17 @@ jobs:
           grep -q "<Version>$PYTHON</Version>" Directory.Build.props
 
       # A wheel and a source distribution, each named for the version, and nothing else: anything
-      # more in the directory would be uploaded beside them.
+      # more in the directory would be uploaded beside them, which is why the constraints go
+      # elsewhere. Those are the hatchling `uv.lock` holds, in `pyproject.toml`'s `build` group,
+      # with its hashes, and `uv build` refuses a backend that matches none of them.
       - name: build
         env:
           PYTHON: ${{ needs.decide.outputs.python }}
         run: |
-          uv build --out-dir dist
+          constraints="$RUNNER_TEMP/build-constraints.txt"
+          uv export --frozen --only-group build --no-emit-project --format requirements.txt \
+            --quiet --output-file "$constraints"
+          uv build --out-dir dist --build-constraints "$constraints" --require-hashes
           ls dist
           test -f "dist/pykeepassgate-$PYTHON-py3-none-any.whl"
           test -f "dist/pykeepassgate-$PYTHON.tar.gz"

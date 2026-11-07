@@ -128,10 +128,14 @@ jobs:
         with:
           cache: npm
 
+      # The uv `uv.lock` holds, in `pyproject.toml`'s `build` group, so the client is checked with
+      # the uv a release builds it with. The file has to be named: without it, setup-uv finds that
+      # group's floor in `pyproject.toml` and installs the newest uv above it.
       - name: uv, where the client exists
         if: hashFiles('uv.lock') != ''
         uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
         with:
+          version-file: uv.lock
           enable-cache: true
 
       # Windows only, because only there is KeePass provided: a check on another system has no
