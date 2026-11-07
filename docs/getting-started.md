@@ -276,6 +276,12 @@ question is not one of those: a lock that falls due while a pairing or renewal d
 the dialog as unanswered, and the program is told the database is locked. A locked database
 answers every request that it is locked, until somebody unlocks it.
 
+**Locking when Windows locks, when the user switches or when the computer is suspended** are under
+the same tab, and all three are off until you turn them on. KeePass ignores such a lock while it
+is saving, and a program's write is a save, so the plugin catches a lock that arrives during its
+own save and has KeePass lock as soon as the program that wrote has been answered, a few seconds
+later at most. Windows has locked the screen by then, so this happens behind it.
+
 ## Next
 
 The database can now issue certificates and nobody holds one. [`pairing.md`](pairing.md) is how a

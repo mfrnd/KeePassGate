@@ -159,6 +159,18 @@ namespace KeePassGate.Transport
         public string Refusal { get; private set; }
 
         /// <summary>
+        /// What runs on a connection's own thread once its conversation is over, or null for
+        /// nothing.
+        /// </summary>
+        /// <remarks>
+        /// `DroppedLocks.Settle`, the lock KeePass was asked for while this plugin's save was
+        /// running, which waits for the answer to the request that saved. Under the connection
+        /// thread's catch-all, and not run after a conversation that ended in a failure, whose lock
+        /// the next conversation makes.
+        /// </remarks>
+        public Action Answered { get; set; }
+
+        /// <summary>
         /// Records why this listener is never started, for a port refused before the socket was
         /// asked for it. A listener that is already running keeps listening and ignores this.
         /// </summary>
@@ -705,6 +717,14 @@ namespace KeePassGate.Transport
                             _awaiting.Remove(client);
                         }
                     }
+                }
+
+                // Once the conversation is over and its answer has gone, which is when a lock
+                // KeePass was asked for during this plugin's own save is made.
+                var answered = Answered;
+                if (answered != null)
+                {
+                    answered();
                 }
             }
             catch (Exception error) when (Expected.OfConnection(error) || error is CryptographicException)
