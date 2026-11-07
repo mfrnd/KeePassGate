@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Text;
 using Newtonsoft.Json;
@@ -62,8 +63,25 @@ namespace KeePassGate.Transport
                 "X-Content-Type-Options",
                 "Connection",
                 "Retry-After",
+                UnavailableField,
             },
             StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>
+        /// The field every `503` names its refusal in, as its body does: `busy`, `locked` or
+        /// `undecided`.
+        /// </summary>
+        /// <remarks>
+        /// **For the answer to a HEAD**, which carries no body, so a client asking whether
+        /// something is there could not tell `busy` from `locked`, and waited out neither. RFC 9110 section 9.3.2 asks a HEAD to carry the fields a GET would,
+        /// so a GET carries it too, and a client reads it wherever the body names nothing.
+        ///
+        /// **Read back out of the body rather than handed in beside it**, so the two cannot name
+        /// different refusals, and written here rather than at every place that answers `503`, as
+        /// `Retry-After` is, so that no refusal added later can forget it. A body that names no
+        /// word of ASCII letters sends none.
+        /// </remarks>
+        public const string UnavailableField = "KPG-Unavailable";
 
         /// <summary>
         /// How long a client is told to wait before asking again, on every `503` this gate sends.
@@ -179,6 +197,12 @@ namespace KeePassGate.Transport
                 lines.Append("Retry-After: ")
                     .Append(RetryAfterSeconds.ToString(CultureInfo.InvariantCulture))
                     .Append("\r\n");
+
+                var word = UnavailableWord(json);
+                if (word != null)
+                {
+                    lines.Append(UnavailableField).Append(": ").Append(word).Append("\r\n");
+                }
             }
 
             if (headers != null)
@@ -204,6 +228,16 @@ namespace KeePassGate.Transport
             }
 
             stream.Flush();
+        }
+
+        /// <summary>
+        /// The word a `503`'s body names under `error`, or null when it names none of ASCII
+        /// letters, which is all <see cref="UnavailableField"/> carries.
+        /// </summary>
+        private static string UnavailableWord(string json)
+        {
+            var word = JsonBody.Read(json)?.Text("error");
+            return !string.IsNullOrEmpty(word) && word.All(Ascii.IsLetter) ? word : null;
         }
 
     }

@@ -2168,8 +2168,9 @@ components:
     Unavailable:
       description: |
         Not now, and worth trying again shortly, where a refusal is not. The body carries
-        `locked`, `undecided` or `busy`, and `busy` covers everything the password manager is doing
-        that this request cannot be served underneath.
+        `locked`, `undecided` or `busy`, and so does `KPG-Unavailable`, for a `head`, and `busy`
+        covers everything the password manager is doing that this request cannot be served
+        underneath.
 
         `locked` is the database being locked, answered before a route is chosen at all, by a
         second host certificate held only in memory so that a locked KeePass answers rather than
@@ -2235,6 +2236,8 @@ components:
       headers:
         Retry-After:
           $ref: "#/components/headers/RetryAfter"
+        KPG-Unavailable:
+          $ref: "#/components/headers/Unavailable"
       content:
         application/json:
           schema:
@@ -2260,6 +2263,8 @@ components:
       headers:
         Retry-After:
           $ref: "#/components/headers/RetryAfter"
+        KPG-Unavailable:
+          $ref: "#/components/headers/Unavailable"
       content:
         application/json:
           schema:
@@ -2467,6 +2472,18 @@ components:
       required: true
       schema:
         type: integer
+
+    Unavailable:
+      description: |
+        Which refusal this is, the word the body's `error` names: `locked`, `undecided` or
+        `busy`, on every `503` this gate sends and on nothing else. Here as well as in the body
+        for the answer to a `head`, which carries no body, so that a client asking whether
+        something is there tells `busy` from `locked` and waits each out as it would for a
+        `get`. RFC 9110 section 9.3.2 asks a `head` for the header fields a `get` would
+        answer with, so a `get` carries it too.
+      required: true
+      schema:
+        type: string
 
     ETag:
       description: |

@@ -63,11 +63,56 @@ namespace KeePassGate.Tests
         public void A_head_asking_about_a_refusal_is_told_the_same_thing()
         {
             // A HEAD answers with the fields its GET would, which is the whole of what a HEAD is
-            // for: only the content goes. So the one field that says what to do next stays.
+            // for: only the content goes. So the fields telling a client what to do next stay.
             var written = Write(503, HttpResponse.ErrorBody("locked"), true);
 
             Assert.That(written, Does.Contain("Retry-After: 2\r\n"));
-            Assert.That(written, Does.Not.Contain("locked"));
+            Assert.That(written, Does.Contain("KPG-Unavailable: locked\r\n"));
+            Assert.That(written, Does.EndWith("\r\n\r\n"));
+        }
+
+        [Test]
+        public void Every_refusal_that_is_worth_retrying_names_its_word_in_a_field_as_well()
+        {
+            // For the answer to a HEAD, which has no body to name it in: a client asking whether
+            // something was there told `busy` from `locked` by nothing, and waited out neither. A GET carries it too, since a HEAD carries the fields a GET would.
+            foreach (var word in new[] { "busy", "locked", "undecided" })
+            {
+                foreach (var head in new[] { false, true })
+                {
+                    Assert.That(Write(503, HttpResponse.ErrorBody(word), head),
+                        Does.Contain(HttpResponse.UnavailableField + ": " + word + "\r\n"),
+                        word + (head ? " to a HEAD" : " to a GET"));
+                }
+            }
+        }
+
+        [Test]
+        public void The_field_names_the_body_s_word_whatever_else_the_body_holds()
+        {
+            // An approval held is answered with the moment it is held until beside the word.
+            var written = Write(503, "{\"error\":\"busy\",\"heldUntil\":\"2026-11-07T10:00:00Z\"}", true);
+
+            Assert.That(written, Does.Contain("KPG-Unavailable: busy\r\n"));
+        }
+
+        [Test]
+        public void A_body_naming_no_word_names_none_in_the_field_either()
+        {
+            foreach (var json in new[] { "{}", HttpResponse.ErrorBody("not a word"), "not json", "" })
+            {
+                Assert.That(Write(503, json, false), Does.Not.Contain("KPG-Unavailable"), json);
+            }
+        }
+
+        [Test]
+        public void Nothing_but_a_refusal_worth_retrying_names_a_word_in_the_field()
+        {
+            foreach (var status in new[] { 200, 400, 401, 404, 409, 500, 504 })
+            {
+                Assert.That(Write(status, HttpResponse.ErrorBody("busy"), false),
+                    Does.Not.Contain("KPG-Unavailable"), "status " + status);
+            }
         }
 
         [Test]
@@ -88,7 +133,11 @@ namespace KeePassGate.Tests
         {
             // The same rule as `Content-Length` and the rest: what this writer decides, nothing
             // above it may decide again. Two of them on the wire is two answers to one question.
-            var headers = new System.Net.WebHeaderCollection { { "Retry-After", "600" } };
+            var headers = new System.Net.WebHeaderCollection
+            {
+                { "Retry-After", "600" },
+                { "KPG-Unavailable", "teapot" },
+            };
 
             using (var stream = new MemoryStream())
             {
@@ -97,6 +146,8 @@ namespace KeePassGate.Tests
                 var written = Encoding.UTF8.GetString(stream.ToArray());
                 Assert.That(written, Does.Contain("Retry-After: 2\r\n"));
                 Assert.That(written, Does.Not.Contain("600"));
+                Assert.That(written, Does.Contain("KPG-Unavailable: busy\r\n"));
+                Assert.That(written, Does.Not.Contain("teapot"));
             }
         }
 

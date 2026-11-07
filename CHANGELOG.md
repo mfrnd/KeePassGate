@@ -205,6 +205,10 @@ none, since it releases both.
   once the directory was made, or was a Windows device name such as `CON`. An identity paired
   under such a name by 0.1.0 is refused under it, exit 2 or `ValueError`, and is reached with
   `--directory` naming its directory.
+- **A `503` names its word in a field as well as in its body**, `KPG-Unavailable: busy`, `locked`
+  or `undecided`, which the routing document declares, and so does PyKeePassGate's stand-in gate.
+  The answer to a `head` carries no body, and the field is where a client reads which refusal
+  it was.
 
 ## 0.1.0, 2026-10-25
 

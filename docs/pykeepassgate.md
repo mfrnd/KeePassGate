@@ -1016,7 +1016,8 @@ pairing or a renewal whose approval it holds until a moment, `503 busy` with `he
 handler to return while a test watches `pair` or `renew` ask again. **Its answers carry the head the plugin's do**:
 the reason phrase, `Content-Type: application/json; charset=utf-8`, `Cache-Control: no-store`,
 `X-Content-Type-Options: nosniff`, and on a `503` `Retry-After: 2`, which `retry_after` changes,
-or takes away when it is `None`, and an `ETag` wherever `tag` put one. The one header it cannot
+or takes away when it is `None`, and `KPG-Unavailable` naming the body's word, and an `ETag`
+wherever `tag` put one. The one header it cannot
 give is the `Allow` the plugin puts on a `405`. **And it refuses what the plugin refuses before any
 route sees it**: a header sent twice, or one whose value holds a control character, is `400` with
 the plugin's reason and never reaches the handler. A handler that raises, `tag` refusing a tag

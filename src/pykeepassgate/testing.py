@@ -422,10 +422,11 @@ class FakeGate:
                 # client that only ever met a gate which answered HEAD like GET would not be
                 # tested against the gate it has.
                 retry_after = self.retry_after if status == 503 else None
+                word = _unavailable_word(answer) if status == 503 else None
                 if method == "HEAD":
-                    written = _response(status, "", "", retry_after, etag)
+                    written = _response(status, "", "", retry_after, etag, word)
                 else:
-                    written = _response(status, answer, self.declare, retry_after, etag)
+                    written = _response(status, answer, self.declare, retry_after, etag, word)
                 if self.truncate:
                     written = written[: len(written) - self.truncate]
 
@@ -501,12 +502,14 @@ def _response(
     declare: str | None = None,
     retry_after: str | None = None,
     etag: str | None = None,
+    unavailable: str | None = None,
 ) -> bytes:
     """The head the plugin's `HttpResponse.Write` writes, and the body.
 
     The reason phrase is RFC 9110's, and the two headers that keep an answer out of a cache and a
     browser's guessing are there as the plugin sends them. The one header a script cannot give is
-    `Allow`, which the plugin puts on every `405` and this does not.
+    `Allow`, which the plugin puts on every `405` and this does not. `unavailable` is the word a
+    `503` names in `KPG-Unavailable` as well as in its body, which the answer to a HEAD keeps.
     """
     payload = body.encode("utf-8")
     length = str(len(payload)) if declare is None else declare
@@ -522,9 +525,28 @@ def _response(
         + "Cache-Control: no-store\r\n"
         "X-Content-Type-Options: nosniff\r\n"
         + (f"Retry-After: {retry_after}\r\n" if retry_after is not None else "")
+        + (f"KPG-Unavailable: {unavailable}\r\n" if unavailable is not None else "")
         + (f"ETag: {etag}\r\n" if etag is not None else "")
         + "Connection: close\r\n"
         "\r\n"
     )
 
     return head.encode("ascii") + payload
+
+
+def _unavailable_word(answer: str) -> str | None:
+    """The word a `503`'s body names under `error`, which the plugin carries in a field too.
+
+    Read back out of the body, as the plugin reads its own, so that a script answering `503`
+    names the word once. Only a word of ASCII letters is carried, and anything else sends none.
+    """
+    try:
+        parsed = json.loads(answer)
+    except ValueError:
+        return None
+
+    word = parsed.get("error") if isinstance(parsed, dict) else None
+    if isinstance(word, str) and word.isascii() and word.isalpha():
+        return word
+
+    return None
