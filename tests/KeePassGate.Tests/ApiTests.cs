@@ -32,6 +32,9 @@ namespace KeePassGate.Tests
     {
         private static readonly string AllButProtected = Rules.Granting(("agent", "CRUSDLA"));
 
+        /// <summary>The reason the resolver gives when a rule holds the verb and not `P`.</summary>
+        private const string NoProtectedReach = "a rule here does not reach protected values";
+
         /// <summary>
         /// A spelling of `Password` a database cannot tell from the real one, and its path form.
         /// </summary>
@@ -52,6 +55,12 @@ namespace KeePassGate.Tests
 
         /// <summary>The profiles the client's record holds: `agent`, unless a test sets others.</summary>
         private string[] _profiles;
+
+        /// <summary>
+        /// The profiles the record holds that the database's list no longer names: none, unless a
+        /// test sets some.
+        /// </summary>
+        private string[] _removed;
         private SpecRouter _router;
         private string _group;
         private string _entry;
@@ -61,6 +70,7 @@ namespace KeePassGate.Tests
         {
             _vault = new FakeVault();
             _profiles = new[] { "agent" };
+            _removed = null;
             _group = _vault.Add(_vault.RootAlias, "Fictitious");
             _entry = _vault.AddEntry(_group, "an invented service");
 
@@ -1614,6 +1624,110 @@ namespace KeePassGate.Tests
                 "the verb was granted and the scope was not, which is two decisions");
             Assert.That(audit.Entries[0].Permitted, Is.True, "the route was allowed");
             Assert.That(audit.Entries[1].Permitted, Is.False, "and this is the line worth having");
+            Assert.That(audit.Entries[1].Reason, Is.EqualTo(NoProtectedReach));
+        }
+
+        [Test]
+        public void Every_write_refused_a_protected_value_writes_the_refusal_down(
+            [Values("createEntry", "updateEntry", "createField", "stripField")] string operation)
+        {
+            // The test above, for the other writes that ask the switch. Each is refused by the
+            // handler after the router wrote that the verb was granted, so each needs the second
+            // line or the file shows a write the gate turned away as a write that was allowed.
+            // `stripField` asks `create` of the same rule, since taking a protected field off is
+            // only refused where the caller could put an unprotected value back in its place.
+            var audit = new RecordingAudit();
+            var router = GateOperations.Router("9.9.9", null, new AccessCheck(audit));
+            _vault.Granting(_group, Rules.Granting(("agent", "CRUSL")));
+
+            var context = Withholding(operation);
+            router.Handle(context);
+
+            Assert.That(context.Status, Is.EqualTo(404), context.Json);
+            Assert.That(audit.Entries.Count, Is.EqualTo(2), "the route was granted and the value was not");
+            Assert.That(audit.Entries[0].Permitted, Is.True);
+            Assert.That(audit.Entries[1].Permitted, Is.False);
+            Assert.That(audit.Entries[1].OperationId, Is.EqualTo(operation));
+            Assert.That(audit.Entries[1].Reason, Is.EqualTo(NoProtectedReach));
+        }
+
+        [Test]
+        public void A_read_that_withholds_protected_values_writes_one_refusal_however_many_it_blanks()
+        {
+            // The read is answered, with the protected values as `null`, so the router's line is
+            // true and is all the router knows. The refusal inside the answer is written by the
+            // handler, and written once for the entry: blanking two values is a single decision,
+            // and a line per field would grow the file by whatever the entry holds.
+            var audit = new RecordingAudit();
+            var router = GateOperations.Router("9.9.9", null, new AccessCheck(audit));
+            _vault.CreateField(_entry, "Password", "not-a-real-password", true, VaultTagging.None);
+            _vault.CreateField(_entry, "PIN", "not-a-real-pin", true, VaultTagging.None);
+            _vault.Granting(_group, Rules.Granting(("agent", "RL")));
+
+            var context = Context("GET", "/entries/" + _entry, null);
+            router.Handle(context);
+
+            Assert.That(context.Status, Is.EqualTo(200), context.Json);
+            Assert.That(context.Json, Does.Contain("\"Password\":null"));
+            Assert.That(audit.Entries.Count, Is.EqualTo(2), "the read was granted and two values were withheld in it");
+            Assert.That(audit.Entries[0].Permitted, Is.True);
+            Assert.That(audit.Entries[1].Permitted, Is.False);
+            Assert.That(audit.Entries[1].OperationId, Is.EqualTo("readEntry"));
+            Assert.That(audit.Entries[1].Reason, Is.EqualTo(NoProtectedReach));
+        }
+
+        [Test]
+        public void A_field_read_writes_a_refusal_only_when_it_withholds_the_value()
+        {
+            // Reading a field nothing protects withholds nothing, so the router's line is the
+            // whole account of it; a line for every read a client makes without the switch is the
+            // noise `A_listing_is_recorded_once_and_not_once_per_item` keeps out.
+            var audit = new RecordingAudit();
+            var router = GateOperations.Router("9.9.9", null, new AccessCheck(audit));
+            _vault.CreateField(_entry, "Password", "not-a-real-password", true, VaultTagging.None);
+            _vault.Granting(_group, Rules.Granting(("agent", "RL")));
+
+            var title = Context("GET", "/entries/" + _entry + "/fields/Title", null);
+            router.Handle(title);
+
+            Assert.That(title.Status, Is.EqualTo(200), title.Json);
+            Assert.That(audit.Entries.Count, Is.EqualTo(1), "nothing was withheld from it");
+
+            var password = Context("GET", "/entries/" + _entry + "/fields/Password", null);
+            router.Handle(password);
+
+            Assert.That(password.Status, Is.EqualTo(200), password.Json);
+            Assert.That(password.Json, Does.Contain("\"value\":null"));
+            Assert.That(audit.Entries.Count, Is.EqualTo(3), "and this read withheld its value");
+            Assert.That(audit.Entries[1].Permitted, Is.True);
+            Assert.That(audit.Entries[2].Permitted, Is.False);
+            Assert.That(audit.Entries[2].OperationId, Is.EqualTo("readField"));
+            Assert.That(audit.Entries[2].Reason, Is.EqualTo(NoProtectedReach));
+        }
+
+        [Test]
+        public void A_value_a_removed_profile_would_have_reached_is_written_down_as_removed()
+        {
+            // The record holds `keeper`, whose rule here reaches protected values, and the list no
+            // longer names it, so the client reads holding `agent` alone and the value is withheld.
+            // Written as the rule refusing, the line sends the operator to a rule that is not the
+            // reason; the handler's refusal goes through the router's check so that it is written
+            // the way the router's own refusals are.
+            var audit = new RecordingAudit();
+            var router = GateOperations.Router("9.9.9", null, new AccessCheck(audit));
+            _removed = new[] { "keeper" };
+            _vault.CreateField(_entry, "Password", "not-a-real-password", true, VaultTagging.None);
+            _vault.Granting(_group, Rules.Granting(("agent", "RL"), ("keeper", "RLP")));
+
+            var context = Context("GET", "/entries/" + _entry, null);
+            router.Handle(context);
+
+            Assert.That(context.Status, Is.EqualTo(200), context.Json);
+            Assert.That(context.Json, Does.Contain("\"Password\":null"));
+            Assert.That(audit.Entries.Count, Is.EqualTo(2));
+            Assert.That(audit.Entries[1].Permitted, Is.False);
+            Assert.That(audit.Entries[1].Reason, Is.EqualTo(AccessCheck.ProfileRemoved));
+            Assert.That(audit.Entries[1].RemovedProfiles, Is.EqualTo(new[] { "keeper" }));
         }
 
         [Test]
@@ -2385,6 +2499,33 @@ namespace KeePassGate.Tests
             return new Answer(context.Status, context.Json, context.Headers);
         }
 
+        /// <summary>
+        /// A request to this operation that sets or takes away a protected value, against an entry
+        /// made ready for it.
+        /// </summary>
+        private GateContext Withholding(string operation)
+        {
+            const string Chosen = "chosen-by-the-caller";
+            if (operation == "updateEntry" || operation == "stripField")
+            {
+                _vault.CreateField(_entry, "Password", "not-a-real-password", true, VaultTagging.None);
+            }
+
+            switch (operation)
+            {
+                case "createEntry":
+                    return Context("POST", "/groups/" + _group + "/entries", Bodies.Of(("Title", "x"), ("Password", Chosen)));
+                case "updateEntry":
+                    return Context("PUT", "/entries/" + _entry, Bodies.Of(("Password", Chosen)));
+                case "createField":
+                    return Context("POST", "/entries/" + _entry + "/fields", Bodies.Of(("name", "Password"), ("value", Chosen)));
+                case "stripField":
+                    return Context("DELETE", "/entries/" + _entry + "/fields/Password", null);
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(operation), operation, "no request is written for it");
+            }
+        }
+
         private GateContext Context(string method, string path, string body)
         {
             var text = body ?? string.Empty;
@@ -2414,7 +2555,7 @@ namespace KeePassGate.Tests
             using (var authority = TestAuthority.New())
             using (var certificate = authority.IssueClient("agent-fictitious"))
             {
-                return ClientIdentity.Paired("d1e2f3", certificate, _profiles);
+                return ClientIdentity.Paired("d1e2f3", certificate, _profiles, _removed);
             }
         }
 
