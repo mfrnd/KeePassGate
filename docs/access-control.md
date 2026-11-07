@@ -211,8 +211,10 @@ made against a database that is being written, which ends with half of somebody'
 or a change a program was told had been saved not being there. So a change waits for KeePass to
 finish, for up to half a minute, and answers "busy" when KeePass is still at it after that. While
 KeePass is waiting for an answer to a message box, a change answers "busy" at once, since nothing
-happens on that thread until the box is closed. Every refusal of this kind tells the program to come
-back in two seconds.
+happens on that thread until the box is closed. While KeePass's TAN wizard is open on the database,
+every change answers "busy" too, since the wizard adds its entries from inside its own OK, which can
+land part way through the save the change ends in. Every refusal of this kind tells the program to
+come back in two seconds.
 
 **Neither switch applies to `S` or `D`.** Removing something shows nobody anything, and a rule
 that may remove an entry already takes everything in it. So `...S....` removes an attachment on its

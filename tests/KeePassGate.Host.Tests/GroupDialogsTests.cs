@@ -456,6 +456,29 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void A_tan_wizard_whose_group_cannot_be_read_refuses_every_save()
+        {
+            // The database refused is found by the tree that holds the group the wizard fills,
+            // so a wizard with no group to read could be adding to any of them.
+            using (var form = new TanWizardForm())
+            using (var other = TemporaryDatabase.New())
+            {
+                form.InitEx(_database.Database, null);
+                GlobalWindowManager.AddWindow(form);
+
+                try
+                {
+                    Assert.That(_dialogs.BlockingSaves(_database.Database), Is.Not.Null);
+                    Assert.That(_dialogs.BlockingSaves(other.Database), Is.Not.Null);
+                }
+                finally
+                {
+                    GlobalWindowManager.RemoveWindow(form);
+                }
+            }
+        }
+
+        [Test]
         public void The_tan_wizard_keeps_the_group_it_will_fill_in_the_tree()
         {
             // Tools then TAN Wizard is handed the selected group and adds one entry per TAN to it
@@ -475,6 +498,8 @@ namespace KeePassGate.Host.Tests
                         "the group the wizard fills on OK must stay where it is");
                     Assert.That(_dialogs.Blocking(group), Is.Null,
                         "and nothing else about it is refused, since the wizard holds none of it");
+                    Assert.That(_dialogs.BlockingSaves(_database.Database), Is.Not.Null,
+                        "but its database is not saved, since the OK adds entries inside whatever save is running");
                     Assert.That(_dialogs.Count, Is.Zero,
                         "nor is it counted, since it puts back no custom data");
                 }
@@ -483,6 +508,8 @@ namespace KeePassGate.Host.Tests
                     GlobalWindowManager.RemoveWindow(form);
                 }
             }
+
+            Assert.That(_dialogs.BlockingSaves(_database.Database), Is.Null, "and closing it lets the database be saved");
 
             Assert.That(_dialogs.BlockingRemoval(group), Is.Null, "and closing it lets the group go again");
         }

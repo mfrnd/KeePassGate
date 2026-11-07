@@ -246,8 +246,10 @@ namespace KeePassGate.Bridge
                 // One dialog, because one dictionary. A record and the profile names it adds go
                 // into the database's own custom data, which only the maintenance dialog copies. No
                 // group dialog is asked, the root group's included: this write touches no group, so
-                // a group dialog's OK puts back nothing it changed.
-                var open = _dialogs.BlockingRecords(database);
+                // a group dialog's OK puts back nothing it changed. The TAN wizard is asked about
+                // the save rather than the write, since its OK adds entries inside a save of its
+                // database, and this write ends in a save.
+                var open = _dialogs.BlockingRecords(database) ?? _dialogs.BlockingSaves(database);
                 if (open != null)
                 {
                     return open;
@@ -1150,7 +1152,7 @@ namespace KeePassGate.Bridge
 
             if (_dialogs != null)
             {
-                var open = _dialogs.BlockingRecords(database);
+                var open = _dialogs.BlockingRecords(database) ?? _dialogs.BlockingSaves(database);
                 if (open != null)
                 {
                     return AuthorityChange.Refused(open);
@@ -1190,6 +1192,15 @@ namespace KeePassGate.Bridge
                 // thread the write is going to run on. A write refused here has not touched the
                 // database.
                 return VaultWrite.Busy(interrupting);
+            }
+
+            var saving = _dialogs == null ? null : _dialogs.BlockingSaves(database);
+            if (saving != null)
+            {
+                // Whatever the change is about, because what is refused is the save it ends in:
+                // an OK pressed in a dialog that adds to the tree from inside itself is handled
+                // part way through that save.
+                return VaultWrite.Busy(saving);
             }
 
             var asking = Asking(database);

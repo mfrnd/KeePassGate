@@ -45,6 +45,7 @@ namespace KeePassGate.Host.Tests
         private GlobalWindowManagerWindows _windows;
         private GroupDialogs _dialogs;
         private ImageList _icons;
+        private DatabaseWriter _writer;
         private IVault _vault;
         private int _saves;
 
@@ -59,11 +60,8 @@ namespace KeePassGate.Host.Tests
 
             Assert.That(_dialogs.Start(), Is.True);
 
-            _vault = new KdbxVault(
-                _database.Database,
-                new DatabaseWriter(CurrentThread.Instance, Save, null, _dialogs, NullGateLog.Instance),
-                TestTags.Fixed,
-                NullGateLog.Instance);
+            _writer = new DatabaseWriter(CurrentThread.Instance, Save, null, _dialogs, NullGateLog.Instance);
+            _vault = new KdbxVault(_database.Database, _writer, TestTags.Fixed, NullGateLog.Instance);
         }
 
         [TearDown]
@@ -313,6 +311,48 @@ namespace KeePassGate.Host.Tests
             }
 
             Assert.That(_vault.DeleteGroup(group, VaultTagging.None).Ok, Is.True, "and once it is closed the group may go");
+        }
+
+        [Test]
+        public void Nothing_is_saved_to_a_database_the_tan_wizard_is_open_on()
+        {
+            // The wizard adds its entries from inside its own OK, and KeePass's save pumps
+            // messages while it walks the tree, so an OK pressed during a write's save added to
+            // the list the save was walking: the save threw, KeePass showed its save warning, and
+            // the write was answered as not saved. What is refused is the save, so a write about
+            // a group the wizard knows nothing of is refused too, and so is a pairing's record.
+            var bank = Created(_vault.CreateGroup(_vault.RootAlias, "Bank", null));
+            var elsewhere = Created(_vault.CreateGroup(_vault.RootAlias, "Elsewhere", null));
+            var entry = Created(_vault.CreateEntry(elsewhere, Named("Invented")));
+
+            using (var form = new TanWizardForm())
+            {
+                form.InitEx(_database.Database, Group(bank));
+                GlobalWindowManager.AddWindow(form);
+                _saves = 0;
+
+                try
+                {
+                    Refused(_vault.UpdateEntry(entry, Named("Renamed"), VaultTagging.None), "UpdateEntry");
+                    Refused(_vault.CreateEntry(elsewhere, Named("Another")), "CreateEntry");
+                    Assert.That(_saves, Is.Zero, "a refused write saves nothing");
+                    Assert.That(_writer.Blocked(_database.Database), Does.Contain("TAN wizard"),
+                        "and the question a pairing asks before it spends its invitation gives the same answer");
+
+                    using (var other = TemporaryDatabase.New())
+                    {
+                        Assert.That(_dialogs.BlockingSaves(other.Database), Is.Null,
+                            "a database the wizard adds nothing to is saved as before");
+                    }
+                }
+                finally
+                {
+                    GlobalWindowManager.RemoveWindow(form);
+                }
+            }
+
+            Assert.That(_vault.UpdateEntry(entry, Named("Renamed"), VaultTagging.None).Ok, Is.True,
+                "and once it is closed the write goes ahead");
         }
 
         [Test]

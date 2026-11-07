@@ -2220,25 +2220,27 @@ components:
         adding something is answered for where it adds, so a group that Add Entry or the TAN wizard
         will fill on OK is not removed while either is open, and nothing is created in a group whose
         Add Group dialog is still open, since its Cancel takes the group back out with whatever was
-        put in it. Another change is already being written, or the user interface did not answer in
-        time: a write waits up to 20 seconds for the one ahead of it and up to 30 more for KeePass's
-        own thread to take it, which it does once that thread is idle, so `busy` for either can take
-        close to a minute to arrive, and a client waiting less gives up on a write that may still
-        land. A message box, or any other dialog of Windows' own open in KeePass, is answered at
-        once instead, since KeePass's thread takes nothing while one is open. One KeePass has
-        started is bounded by its save rather than by these waits, and is answered when the save is
-        over, which takes as long as the database's size and its storage make it; for a database
-        KeePass opened from a URL the storage is a server, and a save waits on it for as long as
-        KeePass's network timeouts allow. And a save that would stop and ask: KeePass answers three
-        conditions with a question on the operator's screen rather than by writing, which are saving
-        disallowed by policy, a database with no file yet, and a file on disk that is not the one
-        KeePass read, and a request from an unattended client must not raise a modal box that would
-        hold the connection until somebody answered it. The third is the one a client meets in the
-        ordinary course of things, on a database kept on a share or in a synced folder, and it
-        clears when the operator lets KeePass reconcile the file, which is why it is a retry rather
-        than an error. It is refused as well where KeePass is set to synchronize without asking,
-        because that merge would run inside the request and underneath the write, and can still stop
-        to ask for the other file's key.
+        put in it. And nothing at all is written to a database the TAN wizard is open on, since its
+        OK adds its entries from inside whatever save is running when it is pressed, and every
+        write ends in a save. Another change is already being written, or the user interface did not
+        answer in time: a write waits up to 20 seconds for the one ahead of it and up to 30 more for
+        KeePass's own thread to take it, which it does once that thread is idle, so `busy` for
+        either can take close to a minute to arrive, and a client waiting less gives up on a write
+        that may still land. A message box, or any other dialog of Windows' own open in KeePass, is
+        answered at once instead, since KeePass's thread takes nothing while one is open. One
+        KeePass has started is bounded by its save rather than by these waits, and is answered when
+        the save is over, which takes as long as the database's size and its storage make it; for a
+        database KeePass opened from a URL the storage is a server, and a save waits on it for as
+        long as KeePass's network timeouts allow. And a save that would stop and ask: KeePass
+        answers three conditions with a question on the operator's screen rather than by writing,
+        which are saving disallowed by policy, a database with no file yet, and a file on disk that
+        is not the one KeePass read, and a request from an unattended client must not raise a modal
+        box that would hold the connection until somebody answered it. The third is the one a client
+        meets in the ordinary course of things, on a database kept on a share or in a synced folder,
+        and it clears when the operator lets KeePass reconcile the file, which is why it is a retry
+        rather than an error. It is refused as well where KeePass is set to synchronize without
+        asking, because that merge would run inside the request and underneath the write, and can
+        still stop to ask for the other file's key.
 
         The fifth is KeePass being part way through something of its own. A write is made and
         saved on KeePass's own thread, and the operations that take it for a while, saving,

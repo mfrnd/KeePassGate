@@ -197,6 +197,35 @@ namespace KeePassGate.Host.Tests.Live
             return OpenFromMenu("Entry", "Edit", "Edit Entry");
         }
 
+        /// <summary>Tools, TAN Wizard, on whichever group the tree has selected.</summary>
+        public AutomationElement OpenTanWizard()
+        {
+            return OpenFromMenu("Tools", "TAN Wizard", "TAN Wizard");
+        }
+
+        /// <summary>
+        /// Writes TANs into the wizard and answers what presses its OK.
+        /// </summary>
+        /// <remarks>
+        /// Fetched now, for a press that has to be made while KeePass's own thread is busy: the
+        /// tree is answered by that thread, and the press itself is a message that waits for it.
+        /// </remarks>
+        public InvokePattern PrepareTans(AutomationElement wizard, string tans)
+        {
+            // Looked for by identifier alone and typed into, since a box of several lines is
+            // reported as whatever the provider takes it for and offers no value to set.
+            var box = Uia.WaitFor("the TAN box", () => Uia.ById(wizard, "m_tbTANs"));
+            Keyboard.Front(wizard);
+            box.SetFocus();
+            foreach (var letter in tans)
+            {
+                Keyboard.Send(new Keyboard.Stroke(false, letter));
+            }
+
+            var ok = Uia.WaitFor("the TAN wizard's OK", () => Uia.ById(wizard, "m_btnOK"));
+            return (InvokePattern)ok.GetCurrentPattern(InvokePattern.Pattern);
+        }
+
         /// <summary>
         /// Entry, Attachments, and the first attachment of the first entry the list is showing,
         /// which KeePass opens in its own editor when the file is text.
@@ -376,7 +405,7 @@ namespace KeePassGate.Host.Tests.Live
             var menuName = path[0];
             var menu = Uia.WaitFor(
                 "the " + menuName + " menu",
-                () => Uia.Descendant(_mainWindow, ControlType.MenuItem, name => Strip(name) == menuName));
+                () => Uia.Descendant(MenuRoot(), ControlType.MenuItem, name => Strip(name) == menuName));
 
             var found = new Keyboard.Stroke?[path.Length];
             found[0] = Keyboard.ParseAccessKey(AccessKeyOf(menu));
@@ -431,7 +460,7 @@ namespace KeePassGate.Host.Tests.Live
             var places = new System.Drawing.Rectangle[path.Length];
             var current = Uia.WaitFor(
                 "the " + path[0] + " menu",
-                () => Uia.Descendant(_mainWindow, ControlType.MenuItem, name => Strip(name) == path[0]));
+                () => Uia.Descendant(MenuRoot(), ControlType.MenuItem, name => Strip(name) == path[0]));
             places[0] = Bounds(current);
 
             for (var level = 1; level < path.Length; level++)
@@ -911,17 +940,41 @@ namespace KeePassGate.Host.Tests.Live
             return null;
         }
 
+        /// <summary>
+        /// Where the main window's menus are looked for: its menu bar, or the whole window when no
+        /// menu bar is a child of it.
+        /// </summary>
+        /// <remarks>
+        /// Not the whole window when it can be helped, because the window holds the entry list, and
+        /// a search walks every element of it: with twenty thousand entries listed, finding a menu
+        /// took minutes.
+        /// </remarks>
+        private AutomationElement MenuRoot()
+        {
+            return _mainWindow.FindFirst(
+                       TreeScope.Children,
+                       new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.MenuBar))
+                   ?? _mainWindow;
+        }
+
         private AutomationElement MenuItemStartingWith(string prefix)
         {
-            var underMainWindow = Uia.Descendant(_mainWindow, ControlType.MenuItem,
+            var underMainWindow = Uia.Descendant(MenuRoot(), ControlType.MenuItem,
                 name => Strip(name).StartsWith(prefix, StringComparison.Ordinal));
             if (underMainWindow != null)
             {
                 return underMainWindow;
             }
 
+            var main = new IntPtr(_mainWindow.Current.NativeWindowHandle);
             foreach (var window in NativeWindows.Visible(_process))
             {
+                if (window.Handle == main)
+                {
+                    // Its menus were searched above, and the rest of it is the entry list.
+                    continue;
+                }
+
                 AutomationElement element;
                 try
                 {
