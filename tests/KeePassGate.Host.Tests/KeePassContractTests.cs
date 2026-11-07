@@ -206,6 +206,32 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void The_attachment_editor_still_names_the_attachment_it_is_open_on()
+        {
+            var type = KeePassAssembly.GetType(KeePassContract.DataEditorFormTypeName, false);
+
+            Assert.That(type, Is.Not.Null,
+                KeePassContract.DataEditorFormTypeName + " is gone, so the attachment it writes back "
+                + "is never recognized and a write to its entry is undone when it closes.");
+            Assert.That(typeof(Form).IsAssignableFrom(type), Is.True);
+
+            var field = type.GetField(
+                KeePassContract.DataEditorFormNameField, BindingFlags.NonPublic | BindingFlags.Instance);
+
+            Assert.That(field, Is.Not.Null,
+                "Without this, no entry is written while the editor is open, which is safe and useless.");
+            Assert.That(field.FieldType, Is.EqualTo(typeof(string)));
+
+            // Set by the call that opens the editor, before it loads, which is when the watch
+            // reads it.
+            using (var form = new DataEditorForm())
+            {
+                form.InitEx("note.txt", new byte[] { 1 });
+                Assert.That(field.GetValue(form), Is.EqualTo("note.txt"));
+            }
+        }
+
+        [Test]
         public void The_group_dialog_still_says_when_it_is_adding_a_group()
         {
             var type = KeePassAssembly.GetType(KeePassContract.GroupFormTypeName, false);

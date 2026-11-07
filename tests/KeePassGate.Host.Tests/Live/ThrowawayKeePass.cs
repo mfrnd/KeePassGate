@@ -1231,6 +1231,35 @@ namespace KeePassGate.Host.Tests.Live
             }
         }
 
+        /// <summary>
+        /// Attaches a file to the Shared Mailbox entry, before KeePass is started.
+        /// </summary>
+        /// <remarks>
+        /// For KeePass's own attachment editor, which the Entry menu opens on the entry the list
+        /// has selected, and the mailbox is the entry a freshly opened KeePass lists.
+        /// </remarks>
+        public void AttachToTheMailbox(string name, byte[] content)
+        {
+            var database = new PwDatabase();
+            try
+            {
+                database.Open(IOConnectionInfo.FromPath(DatabasePath), NewKey(), null);
+
+                var entry = database.RootGroup.FindEntry(Identified(MailboxUuid), true);
+                if (entry == null)
+                {
+                    throw new InvalidOperationException("the database holds no Shared Mailbox entry");
+                }
+
+                entry.Binaries.Set(name, new ProtectedBinary(false, content));
+                database.Save(null);
+            }
+            finally
+            {
+                database.Close();
+            }
+        }
+
         /// <summary>Every entry in the file, read after KeePass has exited.</summary>
         public IReadOnlyList<PwEntry> ReadEntries()
         {

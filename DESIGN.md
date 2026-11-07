@@ -1386,6 +1386,28 @@ Entry or the TAN wizard will fill on OK is not removed while either is open, and
 in a group whose Add Group dialog is still open, since its Cancel takes the group back out with
 whatever was put in it.
 
+These are the windows of KeePass's that the plugin watches, and what each refuses. A KeePass that
+lacks any of them starts no watch, and every write and every pairing is refused.
+
+- **The group dialog**, Edit Group and Add Group, puts its copy of the group's name, notes and
+  custom data back on OK, so a write to that group is refused. Add Group has put its group into the
+  tree already and takes it back out on Cancel, so nothing is created in it.
+- **The entry dialog**, one entry's and Edit Entries over several, puts its copy of the strings,
+  attachments and custom data back on OK, so a write to that entry is refused, and under Edit
+  Entries a write to any entry of that database. Add Entry fills its group on OK, so that group is
+  not removed.
+- **The TAN wizard** fills its group on OK, so that group is not removed.
+- **Database Maintenance** puts its copy of the database's own custom data back as it closes,
+  whatever the operator did, so no record, revocation or profile is written while it is open.
+- **Database Settings** puts its recycle bin choice back on OK, so a removal that would make the
+  database's first bin is refused.
+- **KeePass's attachment editor** holds an attachment's name and bytes and nothing of the entry,
+  which the main window keeps and writes the edited bytes back onto as the editor closes. So a
+  write to any entry holding an attachment of that name is refused.
+- **KeePass's progress window** holds nothing, and shows that KeePass is part way through an
+  operation of its own that pumps messages inside the tree, XML Replace among them, so every
+  write is refused while it is open (§119).
+
 ### C4. The plugin as its own CA puts the CA key beside the database §125
 
 **The objection was right, and the answer is now structural rather than defensive.** Its point was

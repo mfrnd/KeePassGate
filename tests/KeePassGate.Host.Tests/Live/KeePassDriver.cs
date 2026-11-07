@@ -197,6 +197,55 @@ namespace KeePassGate.Host.Tests.Live
             return OpenFromMenu("Entry", "Edit", "Edit Entry");
         }
 
+        /// <summary>
+        /// Entry, Attachments, and the first attachment of the first entry the list is showing,
+        /// which KeePass opens in its own editor when the file is text.
+        /// </summary>
+        /// <remarks>
+        /// KeePass builds the Attachments menu from the selected entry, so its items carry no
+        /// access key: the menu is opened by its own, and Enter takes the item it opens on, which
+        /// is the first. The editor's title is the attachment's name.
+        /// </remarks>
+        public AutomationElement OpenAttachmentEditor(string name)
+        {
+            SelectFirstEntry();
+            return OpenWith(name, KeysFor("Entry", "Attachments"), Keyboard.SendEnter);
+        }
+
+        /// <summary>
+        /// Types a letter into KeePass's attachment editor, saves it there and closes it, and
+        /// answers whether the window went.
+        /// </summary>
+        /// <remarks>
+        /// The text box is given the focus through the tree first, since a letter typed anywhere
+        /// else changes nothing and an editor closed unchanged writes nothing back. Saved before
+        /// closing, so that closing asks nothing; Escape is the editor's own way out.
+        /// </remarks>
+        public bool ChangeInAttachmentEditor(AutomationElement editor, string name, char letter)
+        {
+            var text = Uia.Descendant(editor, ControlType.Document, _ => true)
+                       ?? Uia.Descendant(editor, ControlType.Edit, _ => true);
+            if (text == null)
+            {
+                throw new InvalidOperationException(
+                    "The attachment editor shows no text: " + Uia.Inventory(editor));
+            }
+
+            Keyboard.Front(editor);
+            text.SetFocus();
+            Keyboard.Send(new Keyboard.Stroke(false, letter));
+            Keyboard.SendControl('s');
+            Keyboard.SendEscape();
+
+            var gone = Uia.WaitForOrNull(
+                () => Window(_process, title => title.IndexOf(name, StringComparison.OrdinalIgnoreCase) >= 0) == null
+                    ? name
+                    : null,
+                TimeSpan.FromSeconds(15)) != null;
+            _diagnostics.AppendLine("the attachment editor " + (gone ? "closed" : "stayed open"));
+            return gone;
+        }
+
         /// <summary>Selects the first row of the entry list, and says which entry that was.</summary>
         /// <remarks>
         /// The row is looked for by more than one control type because how a list reports itself is
@@ -253,7 +302,10 @@ namespace KeePassGate.Host.Tests.Live
         /// Sends the keys that reach a menu item, one after the other, and waits for the window the
         /// item opens.
         /// </summary>
-        private AutomationElement OpenWith(string windowTitlePart, Keyboard.Stroke[] keys)
+        /// <param name="then">
+        /// What chooses the item once the keys have reached it, or null when the last key does.
+        /// </param>
+        private AutomationElement OpenWith(string windowTitlePart, Keyboard.Stroke[] keys, Action then = null)
         {
             for (var attempt = 1; attempt <= 2; attempt++)
             {
@@ -263,6 +315,11 @@ namespace KeePassGate.Host.Tests.Live
                 foreach (var key in keys)
                 {
                     Keyboard.Send(key);
+                }
+
+                if (then != null)
+                {
+                    then();
                 }
 
                 var dialog = Uia.WaitForOrNull(

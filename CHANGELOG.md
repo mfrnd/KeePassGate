@@ -245,6 +245,12 @@ none, since it releases both.
   entry over it, or of one field over it with its name, is now refused with `413` before
   anything is decrypted, and a write that would take an entry over it is refused with `413`
   and changes nothing. Stripping a field is never refused for it.
+- **A write to an entry is refused `503 busy` while KeePass's own attachment editor is open on an
+  attachment of that entry's.** The editor holds the attachment and not the entry, and KeePass
+  writes the edited bytes back onto the entry as it closes, so a removal of the attachment
+  answered as done came back, and an update was overwritten, with nothing to show for it. Since the
+  editor does not tell which entry it came from, every entry holding an attachment of that name
+  is refused while it is open.
 
 ## 0.1.0, 2026-10-25
 

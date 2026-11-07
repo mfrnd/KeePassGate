@@ -2213,7 +2213,10 @@ components:
         turn that does not come round within ten seconds, or a read that outlasts five, is answered
         `busy` rather than trusted. That is KeePass busy with something it does not pause in, such
         as deriving a key, rather than a fault here. A dialog is open on what a write would change,
-        and a change made underneath one is a change the operator's OK destroys; a dialog that is
+        and a change made underneath it is a change the operator's OK destroys. KeePass's
+        attachment editor destroys it as it closes, writing the attachment back onto the entry it
+        came from, and since nothing tells which entry that is, every entry holding an attachment
+        of that name is answered `busy` while it is open; a dialog that is
         adding something is answered for where it adds, so a group that Add Entry or the TAN wizard
         will fill on OK is not removed while either is open, and nothing is created in a group whose
         Add Group dialog is still open, since its Cancel takes the group back out with whatever was

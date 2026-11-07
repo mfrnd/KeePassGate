@@ -141,6 +141,23 @@ namespace KeePassGate
         public const string TanWizardFormGroupField = "m_pgStorage";
 
         /// <summary>
+        /// KeePass's own attachment editor, which opens a text attachment by default.
+        /// </summary>
+        /// <remarks>
+        /// It holds the attachment's name and bytes and nothing of the entry they came from: the
+        /// main window keeps the entry, and when the editor closes changed it writes the edited
+        /// bytes back onto that entry with `Binaries.Set`, whatever was written to the entry
+        /// meanwhile. A removal underneath it comes back, an update is overwritten, and an entry
+        /// moved to the recycle bin takes the edit with it.
+        /// </remarks>
+        public const string DataEditorFormTypeName = "KeePass.Forms.DataEditorForm";
+
+        /// <summary>
+        /// The name of the attachment that editor is open on, set before it is shown.
+        /// </summary>
+        public const string DataEditorFormNameField = "m_strDataDesc";
+
+        /// <summary>
         /// The tab strip on the group and entry dialogs, which both call it what the database
         /// settings dialog does.
         /// </summary>
