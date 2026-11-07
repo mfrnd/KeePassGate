@@ -334,6 +334,13 @@ class GateClient:
         saying how to finish the one that stopped. Anything there that does not load as an identity
         is what a renewal that stopped before its answer leaves, and is written over.
 
+        **Only an identity of this client's own is taken for either**: an identity carrying this
+        client's key, as everything a renewal leaves beside it does. An identity under another key
+        in either directory is some other client's, kept there by a `directory` naming that path,
+        and stops the renewal before anything is asked, with a `StorageError` naming it and
+        nothing there touched, since presenting it would revoke it and forgetting it would remove
+        it.
+
         **Then this certificate is given up**, with `revoke_certificate` as the identity it
         renewed from, because the gate leaves the old record in place: an answer lost on the way
         costs nothing that way, since the old certificate still works and the renewal can be asked
@@ -449,7 +456,8 @@ class GateClient:
         to. A directory that does not load as an identity is what a renewal that stopped before
         its answer leaves. One holding the certificate this client already presents is a copy an
         earlier renewal put in place and could not take away afterwards, and is forgotten. A link
-        there is refused rather than read through, since what it names is not this renewal's.
+        there is refused rather than read through, since what it names is not this renewal's, and
+        so is an identity under another client's key, which no renewal of this client left.
         """
         credentials_module.refuse_link(staging)
         try:
@@ -457,6 +465,7 @@ class GateClient:
         except StorageError:
             return
 
+        self._refuse_another(found, staging)
         if _same(found, self._credentials):
             credentials_module.forget(staging)
             return
@@ -476,6 +485,8 @@ class GateClient:
         What does not load is no kept identity, and the renewal writes over it. A link there is
         refused before anything is read through it: presenting what it names would revoke some
         other identity of this user's, and forgetting it would take that identity's files away.
+        An identity under another client's key is refused for the same reason, since no renewal of
+        this client left it.
         """
         credentials_module.refuse_link(retired)
         try:
@@ -485,6 +496,7 @@ class GateClient:
             # operator read leaves: the old identity was never copied out of its own directory.
             return
 
+        self._refuse_another(old, retired)
         if _same(old, self._credentials):
             # A copy of this client's own identity, which a renewal that put the old one back left.
             # Presenting it would revoke this client.
@@ -500,6 +512,22 @@ class GateClient:
             )
 
         credentials_module.forget(retired)
+
+    def _refuse_another(self, found: credentials_module.Credentials, where: Path) -> None:
+        """Refuse to touch an identity beside this client's that some other client keeps there.
+
+        Everything a renewal leaves carries the key of the client that renewed, which the gate
+        copies into every record it renews, so a different key is a different client.
+        """
+        if found.client_key == self._credentials.client_key:
+            return
+
+        raise StorageError(
+            f"{where} holds {found.subject}, another client's identity under a client key of its "
+            f"own, {found.client_key}, where a renewal of {self._credentials.directory} keeps "
+            "its own. Nothing was asked and nothing there was touched: move that identity "
+            "elsewhere and renew again"
+        )
 
     def _give_up(self, old: credentials_module.Credentials) -> GateError | None:
         """Revoke the certificate a renewal replaced, presenting it, and say why not if not."""

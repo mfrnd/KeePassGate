@@ -192,6 +192,12 @@ none, since it releases both.
   disposed by `using`, or on every way out where it is handed on.
 - **PyKeePassGate refuses to connect over a TLS context offering anything but TLS 1.3**, before it
   dials, which every context it makes already did, so nothing a program built on it does changes.
+- **A renewal takes nothing beside a profile for its own but an identity of this client's.** It
+  keeps the identity it renews from at `<directory>.retired` and the renewed identity at
+  `<directory>.renewing`, and took whatever identity it found at either for an identity a renewal
+  had left: renewing `work` revoked a separately paired profile `work.retired` on the gate and
+  removed its files. Either is now this client's only when it carries this client's key, and
+  anything else stops the renewal before anything is asked, untouched.
 - **A profile name is ASCII letters, digits, hyphens and underscores**, where it was anything
   but a separator, a colon or a null that did not end in a dot or a space. A dot is kept for what
   the client keeps beside a profile, as a renewal of `work` keeps `work.renewing` and

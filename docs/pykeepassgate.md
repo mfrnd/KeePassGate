@@ -278,6 +278,11 @@ already admits it: `renew` says so, and a later renewal refuses to start rather 
 only key for it, and says how to finish, by copying its four files over the identity's, or giving it
 up with `revoke --directory`.
 
+**What either directory holds is taken for this client's only when it carries this client's key**,
+as everything a renewal leaves there does. Another client's identity kept there, by a
+`--directory` naming that path, stops the renewal with nothing asked and nothing there touched,
+since presenting it would revoke it on the gate and forgetting it would remove its files.
+
 **Renew before the certificate runs out.** The gate renews only a certificate it still admits, and
 one that has expired by the gate's clock is refused as it refuses a stranger. So this client asks
 nothing with one that has expired by this machine's clock: once that clock is five minutes past the
