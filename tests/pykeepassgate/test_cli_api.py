@@ -6,6 +6,8 @@ import base64
 import codecs
 import io
 import json
+import os
+import stat
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -15,6 +17,7 @@ import pytest
 from pykeepassgate import api, cli, transport
 from pykeepassgate import credentials as credentials_module
 from pykeepassgate.testing import FakeGate
+from test_credentials import linked
 
 UUID = "7b1c" * 8
 
@@ -686,6 +689,62 @@ def test_fetch_to_a_place_that_cannot_be_written_is_a_wrong_argument(
     printed = capsys.readouterr().err
     assert to.name in printed
     assert len(printed.strip().splitlines()) == 1
+
+
+def _fetched(gate: FakeGate, content: bytes) -> None:
+    """Answer every request with an attachment holding this."""
+    answering(
+        gate,
+        {
+            "name": "key.pem",
+            "size": len(content),
+            "content": base64.b64encode(content).decode("ascii"),
+        },
+    )
+
+
+@pytest.mark.skipif(os.name == "nt", reason="the directory's ACL decides there, not a mode")
+def test_fetch_writes_a_file_only_its_owner_may_read(
+    gate: FakeGate, kept: Path, tmp_path: Path
+) -> None:
+    # The documented example is a private key, and `write_bytes` created it at 0666 less the
+    # umask, 0644 under the usual umask: readable by every account on the machine.
+    _fetched(gate, b"not a real key")
+    where = tmp_path / "key.pem"
+
+    assert cli.main(["fetch", UUID, "key.pem", "--to", str(where), "--directory", str(kept)]) == 0
+    assert stat.S_IMODE(where.stat().st_mode) == 0o600
+
+
+@pytest.mark.skipif(os.name == "nt", reason="the directory's ACL decides there, not a mode")
+def test_fetch_narrows_a_file_already_there_before_writing_into_it(
+    gate: FakeGate, kept: Path, tmp_path: Path
+) -> None:
+    # A mode applies only where a file is created, so writing over a file left the key in a
+    # file anybody could read.
+    _fetched(gate, b"not a real key")
+    where = tmp_path / "key.pem"
+    where.write_bytes(b"what was there before, and longer than the key")
+    where.chmod(0o644)
+
+    assert cli.main(["fetch", UUID, "key.pem", "--to", str(where), "--directory", str(kept)]) == 0
+    assert stat.S_IMODE(where.stat().st_mode) == 0o600
+    assert where.read_bytes() == b"not a real key"
+
+
+def test_fetch_refuses_a_link_where_the_file_goes(
+    gate: FakeGate, kept: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # Followed, whoever planted the link chose which file received the key.
+    _fetched(gate, b"not a real key")
+    elsewhere = tmp_path / "elsewhere.txt"
+    elsewhere.write_bytes(b"left alone")
+    where = tmp_path / "key.pem"
+    linked(where, elsewhere)
+
+    assert cli.main(["fetch", UUID, "key.pem", "--to", str(where), "--directory", str(kept)]) == 2
+    assert "link" in capsys.readouterr().err
+    assert elsewhere.read_bytes() == b"left alone"
 
 
 def test_fetch_writes_nothing_for_an_attachment_that_came_without_its_bytes(
