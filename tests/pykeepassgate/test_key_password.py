@@ -323,7 +323,7 @@ class TestPairingUnderAPassword:
         # at a prompt, and asking one and then refusing a setting wastes their answer.
         asked = Counting()
 
-        with pytest.raises(ValueError, match="not one directory's name"):
+        with pytest.raises(ValueError, match="not a profile's name"):
             api.pair(
                 port=gate.port,
                 invitation=INVITATION,

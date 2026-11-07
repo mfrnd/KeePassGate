@@ -192,6 +192,13 @@ none, since it releases both.
   disposed by `using`, or on every way out where it is handed on.
 - **PyKeePassGate refuses to connect over a TLS context offering anything but TLS 1.3**, before it
   dials, which every context it makes already did, so nothing a program built on it does changes.
+- **A profile name is ASCII letters, digits, hyphens and underscores**, where it was anything
+  but a separator, a colon or a null that did not end in a dot or a space. A dot is kept for what
+  the client keeps beside a profile, as a renewal of `work` keeps `work.renewing` and
+  `work.retired`, which a profile could otherwise be called. What else is refused failed only
+  once the directory was made, or was a Windows device name such as `CON`. An identity paired
+  under such a name by 0.1.0 is refused under it, exit 2 or `ValueError`, and is reached with
+  `--directory` naming its directory.
 
 ## 0.1.0, 2026-10-25
 

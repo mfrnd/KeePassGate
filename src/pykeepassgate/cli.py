@@ -630,8 +630,9 @@ def _shared(parser: argparse.ArgumentParser) -> None:
         type=_profile,
         default="default",
         help=(
-            "which stored identity to use, by name, since a client can pair with more than one "
-            "database; a path is --directory"
+            "which stored identity to use, by a name of ASCII letters, digits, hyphens and "
+            "underscores, since a client can pair with more than one database; a path is "
+            "--directory"
         ),
     )
 

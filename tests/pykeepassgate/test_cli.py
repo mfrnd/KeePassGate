@@ -786,7 +786,15 @@ def test_a_profile_that_is_a_path_is_an_argument_error(
         cli.main(["identity", "--profile", profile])
 
     assert raised.value.code == 2
-    assert "not one directory's name" in capsys.readouterr().err
+    assert "not a profile's name" in capsys.readouterr().err
+
+
+def test_a_profile_holding_a_dot_is_an_argument_error(capsys: pytest.CaptureFixture[str]) -> None:
+    with pytest.raises(SystemExit) as raised:
+        cli.main(["pair", "--name", "agent", "--profile", "work.retired"])
+
+    assert raised.value.code == 2
+    assert "not a profile's name" in capsys.readouterr().err
 
 
 def test_a_pairing_under_a_profile_that_is_a_path_touches_nothing(
@@ -796,7 +804,7 @@ def test_a_pairing_under_a_profile_that_is_a_path_touches_nothing(
     monkeypatch.setenv("LOCALAPPDATA", str(tmp_path))
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
 
-    with pytest.raises(ValueError, match="not one directory's name"):
+    with pytest.raises(ValueError, match="not a profile's name"):
         api.pair(
             port=gate.port,
             invitation="A" * 43,

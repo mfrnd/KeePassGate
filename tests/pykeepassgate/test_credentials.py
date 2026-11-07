@@ -313,19 +313,45 @@ def test_credentials_live_somewhere_per_profile(monkeypatch: pytest.MonkeyPatch)
         "a\0b",
         "work.",
         "work ",
+        "agent one",
+        " work",
+        "a?b",
+        "a*b",
+        "a<b>",
+        'a"b',
+        "a|b",
+        "a\tb",
+        "a\nb",
+        # A letter beyond ASCII: cspell:ignore émile
+        "émile",
+        "work.retired",
+        "work.renewing",
+        "build.v2",
+        ".hidden",
     ],
 )
-def test_a_profile_that_is_not_one_directory_is_refused_rather_than_joined(name: str) -> None:
+def test_a_profile_beyond_letters_digits_hyphens_and_underscores_is_refused(name: str) -> None:
     # Joined, `..` or a separator stored the identity beside or above the other profiles, an
     # absolute path replaced the place altogether, and `identity` read it back from there as
     # though it were a profile. Windows stores a name without a trailing dot or space, which
-    # makes `...` the directory every profile lives in and `work.` the same identity as `work`.
-    with pytest.raises(ValueError, match="not one directory's name"):
+    # makes `...` the directory every profile lives in and `work.` the same identity as `work`,
+    # and refuses `?`, `*` and the rest only once the directory is being made. And a dot names
+    # what the client keeps beside a profile: a profile called `work.retired` was where a renewal
+    # of `work` keeps the identity it renewed from, and that renewal revoked it and removed its
+    # files.
+    with pytest.raises(ValueError, match="not a profile's name"):
         credentials.default_directory(name)
 
 
-def test_every_name_that_is_one_directory_is_a_profile() -> None:
-    for name in ("default", "work", "agent one", "build.v2", ".hidden"):
+@pytest.mark.parametrize("name", ["CON", "nul", "Aux", "PRN", "COM1", "lpt9", "COM0"])
+def test_a_profile_that_windows_reads_as_a_device_is_refused_everywhere(name: str) -> None:
+    with pytest.raises(ValueError, match="as a device"):
+        credentials.default_directory(name)
+
+
+def test_every_name_of_letters_digits_hyphens_and_underscores_is_a_profile() -> None:
+    named = ("default", "work", "agent-one", "build_v2", "_hidden", "A-1_b", "CONSOLE", "COM10")
+    for name in named:
         assert credentials.default_directory(name).name == name
 
 
