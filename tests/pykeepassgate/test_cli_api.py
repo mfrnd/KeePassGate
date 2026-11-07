@@ -399,6 +399,60 @@ def test_a_value_piped_in_that_is_not_utf8_is_refused_before_anything_is_sent(
     assert sent == []
 
 
+@pytest.mark.parametrize(
+    "command",
+    [
+        ["add", "--title", "x", "--password"],
+        ["update", UUID, "--password"],
+        ["add-field", UUID, "Token"],
+        ["update-field", UUID, "Token"],
+    ],
+    ids=["add", "update", "add-field", "update-field"],
+)
+def test_input_that_ended_before_a_line_is_refused_rather_than_sent_empty(
+    gate: FakeGate,
+    kept: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    command: list[str],
+) -> None:
+    # A producer that printed nothing, a closed standard input, `< /dev/null`: each was sent as
+    # an empty value and reported done, exit 0, which reads exactly like a password cleared on
+    # purpose.
+    sent = _created(gate)
+    monkeypatch.setattr("sys.stdin", _Line(""))
+
+    assert cli.main([*command, "--directory", str(kept)]) == 2
+    assert "ended before a line was read" in capsys.readouterr().err
+    assert sent == []
+    assert gate.requests == []
+
+
+def test_an_empty_line_is_the_empty_value_it_was_sent_as(
+    gate: FakeGate, kept: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    sent = _created(gate)
+    monkeypatch.setattr("sys.stdin", _Line("\n"))
+
+    assert cli.main(["update", UUID, "--password", "--directory", str(kept)]) == 0
+    assert sent[-1]["Password"] == ""
+
+
+def test_input_that_ended_at_the_prompt_is_refused_rather_than_sent_empty(
+    gate: FakeGate, kept: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    def ended(prompt: str = "", stream: object = None, *, echo_char: str | None = None) -> str:
+        raise EOFError
+
+    sent = _created(gate)
+    monkeypatch.setattr("sys.stdin", _Terminal())
+    monkeypatch.setattr("getpass.getpass", ended)
+
+    assert cli.main(["update", UUID, "--password", "--directory", str(kept)]) == 2
+    assert "ended before a line was read" in capsys.readouterr().err
+    assert sent == []
+
+
 def test_remove_says_what_it_removed(
     gate: FakeGate, kept: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:

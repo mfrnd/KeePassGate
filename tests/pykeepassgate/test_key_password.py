@@ -579,7 +579,7 @@ class TestTheCommandLine:
         ("arguments", "code", "said"),
         [
             (["--invitation", INVITATION, "--key-password"], 2, "there is none here"),
-            ([], 1, "MalformedToken"),
+            ([], 2, "ended before a line was read"),
         ],
     )
     def test_input_from_the_null_device_is_no_terminal(
