@@ -1,5 +1,8 @@
 # KeePassGate: design
 
+<!-- A policy flag of KeePass's own, named the way KeePass names it. -->
+<!-- cspell:ignore Unhide -->
+
 What to build, and why each part is shaped the way it is. Everything here rests on
 [`FINDINGS.md`](FINDINGS.md), which records what was measured rather than assumed;
 [`ANALYSIS.md`](ANALYSIS.md) carries the arguments and the rejected alternatives.
@@ -416,6 +419,14 @@ it; §139 says why that replaced purging the rules.
 The ACL is `AclDocument`, `AclResolver`, `AclGrant`, `AclVerb` and `AclDefault`, with `KdbxNodes`
 adapting a `PwGroup` or a `PwEntry` to the one seam the rules need. It stays authoritative, so access
 can always be taken away by editing the database rather than by reissuing a certificate.
+
+**No KeePass policy binds the gate, the clipboard included.** The ACL is the gate's own policy.
+KeePass's, under Tools, Options, Policy, whether set there or enforced by an administrator, governs
+the person at KeePass's window and nothing the gate serves: a denied `UnhidePasswords` withholds no
+protected value a rule opens, a denied `Export` shortens no listing, and a denied `CopyToClipboard`
+leaves the KPG tab's button copying an invitation. `SaveFile` is the only flag the gate honors, and
+only to keep KeePass's warning box off the screen: a save it disallows shows that box and writes
+nothing, so a write that would meet it is refused `503 busy` before the save, §119.
 
 An earlier draft of this list also named `AclProfiles`, `AclVerbView` and `KdbxFormat`. Two of those
 turned out not to be types. The format is `AclDocument.Read` and `AclDocument.Write`, which is what

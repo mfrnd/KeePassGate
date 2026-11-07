@@ -1,5 +1,8 @@
 # The system on one page
 
+<!-- A policy option of KeePass's own, named the way KeePass names it. -->
+<!-- cspell:ignore Unhide -->
+
 What the pieces are and how a request gets through them. [`../DESIGN.md`](../DESIGN.md) is the
 argument for all of it; this is the shape.
 
@@ -102,6 +105,15 @@ sequenceDiagram
 the ones the database still names count; the rules say what those profiles reach. Neither is
 enough on its own, and the record is read from the open database every time, which is what makes
 revoking one immediate.
+
+**KeePass's own policies do not narrow what a program gets.** The options under **Tools**,
+**Options**, **Policy**, whether set there or enforced by an administrator, govern the person at
+KeePass's window. With **Unhide Passwords**, **Export** or **Clipboard** turned off, the gate still
+serves a program whatever its rules allow, protected values and whole listings included, and the
+button beside an invitation on the KPG tab still copies it. **Save Database** is the exception:
+with it turned off, KeePass answers a save with a warning box and saves nothing, so the gate
+answers "busy" to every request that would save the database rather than put that box on the
+screen.
 
 **Every decision is written to the audit file**, allowed or refused, and so is every pairing and
 renewal the operator answers and every client revoked, outside the database so that a program with
