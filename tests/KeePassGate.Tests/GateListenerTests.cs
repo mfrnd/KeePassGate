@@ -588,6 +588,80 @@ namespace KeePassGate.Tests
             }
         }
 
+        [TestCase("PUT /gate/status|x HTTP/1.1\r\n", 400)]
+        [TestCase("POST /gate/status HTTP/2.0\r\n", 505)]
+        [TestCase("POST /gate/status HTTP/1.1\r\nBad Name: x\r\n", 400)]
+        public void A_head_refused_before_its_length_was_parsed_is_answered_to_a_client_streaming_a_body(
+            string start, int status)
+        {
+            // The target, the version and a header ahead of the length are each refused with the
+            // whole head in hand, its length among it. A refusal that announced nothing left the
+            // body unread, and the reset that closing over it brings discarded the answer.
+            using (var certificate = _first.IssueAdmittedClient())
+            {
+                var reply = GateClient.Send(
+                    _listener.Port, _first.NewName(), certificate, WithABody(start + "Host: gate\r\n"));
+
+                Assert.That(reply.Answered, Is.True, reply.Failure);
+                Assert.That(reply.Status, Is.EqualTo(status), reply.Raw);
+            }
+        }
+
+        [Test]
+        public void A_head_holding_a_byte_that_is_not_ascii_is_answered_to_a_client_streaming_a_body()
+        {
+            // Refused before anything in it is decoded, and so before the length was parsed, for
+            // the same reason as the cases above. The byte is written as a character here, because
+            // the head is encoded a byte for each character up to U+00FF.
+            using (var certificate = _first.IssueAdmittedClient())
+            {
+                var reply = GateClient.Send(
+                    _listener.Port, _first.NewName(), certificate,
+                    WithABody("POST /gate/status HTTP/1.1\r\nHost: gate\r\nX-Note: " + (char)0x80 + "\r\n"));
+
+                Assert.That(reply.Answered, Is.True, reply.Failure);
+                Assert.That(reply.Status, Is.EqualTo(400), reply.Raw);
+            }
+        }
+
+        [Test]
+        public void A_head_over_the_cap_is_answered_with_a_431_the_client_can_read()
+        {
+            // Long enough to run several TLS records past the record the reader stopped in at the
+            // cap, so the answer is read only if the rest of the head is taken off the wire, and
+            // the body it announced after it.
+            var padding = new StringBuilder();
+            for (var i = 0; i < 1024; i++)
+            {
+                padding.Append("X-Padding-").Append(i).Append(": ").Append('p', 48).Append("\r\n");
+            }
+
+            using (var certificate = _first.IssueAdmittedClient())
+            {
+                var reply = GateClient.Send(
+                    _listener.Port, _first.NewName(), certificate,
+                    WithABody("POST /gate/status HTTP/1.1\r\nHost: gate\r\n" + padding));
+
+                Assert.That(reply.Answered, Is.True, reply.Failure);
+                Assert.That(reply.Status, Is.EqualTo(431), reply.Raw);
+            }
+        }
+
+        /// <summary>
+        /// A head finished with a length and the body it announces, as bytes, a byte for each
+        /// character up to U+00FF so that a test can put a byte that is not ASCII in the head.
+        /// </summary>
+        /// <remarks>
+        /// Big enough that the client is still writing when the gate refuses it, which is what
+        /// makes the reset certain rather than a race a small body sometimes wins.
+        /// </remarks>
+        internal static byte[] WithABody(string start)
+        {
+            var body = new string('x', 512 * 1024);
+            return Encoding.GetEncoding(28591).GetBytes(
+                start + "Content-Length: " + body.Length + "\r\n\r\n" + body);
+        }
+
         [Test]
         public void Nothing_it_ever_answers_leaks_a_certificate_or_a_key()
         {

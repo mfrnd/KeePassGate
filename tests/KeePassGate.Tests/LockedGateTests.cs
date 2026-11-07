@@ -151,6 +151,22 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_target_the_reader_would_refuse_is_told_it_is_locked_with_its_body_still_coming()
+        {
+            // Refused on the request line, before the length that follows it was parsed. The body
+            // still has to be taken off the wire for the 503 to be read, as it does for a body over
+            // the cap.
+            var reply = GateClient.Send(
+                _listener.Port,
+                SniName.For(_gateKey),
+                null,
+                GateListenerTests.WithABody("PUT /pair/hello|x HTTP/1.1\r\nHost: gate\r\n"));
+
+            Assert.That(reply.Status, Is.EqualTo(503), reply.Failure ?? reply.Raw);
+            Assert.That(reply.Body, Does.Contain(GateConversation.LockedError));
+        }
+
+        [Test]
         public void It_names_the_lock_and_nothing_about_the_database()
         {
             var reply = GateClient.Get(_listener.Port, SniName.For(_gateKey), null, GateOperations.StatusPath);

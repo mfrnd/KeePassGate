@@ -111,8 +111,10 @@ namespace KeePassGate.Transport
         ///
         /// Zero when the head named no body, and zero when it carried an `Expect`, because such a
         /// client has sent nothing and is waiting: reading would leave both sides waiting for the
-        /// other. Zero as well for a refusal decided before the header block was read, where there
-        /// is nothing to bound a read by.
+        /// other. Read off the whole head whatever a refusal was decided on, since the request line
+        /// and a refused header can both come before the length, and for a head over the cap off
+        /// the rest of it, read on to its blank line. Zero for a head the connection cut short,
+        /// where nothing more is coming.
         /// </remarks>
         public long Announced { get; private set; }
 
