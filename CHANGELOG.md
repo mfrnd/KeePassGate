@@ -210,6 +210,12 @@ none, since it releases both.
   The answer to a `head` carries no body, so `GateClient.head` met every `503` as a
   `GateUnavailable` with no word and never spent the three retry budgets it takes. It now reads
   the field and waits a `head` out as it does a `get`.
+- **The command line reads and writes UTF-8 on every standard stream**, whatever the code page.
+  On Windows, plain output written to a file or a pipe was encoded as cp1252 and ended in a
+  traceback at the first name beyond it, part way through a listing, and a value piped to
+  `--password`, `add-field` or `update-field` was decoded as cp1252 and stored as other text. A
+  piped value that is not UTF-8 is now refused, exit 2, and a byte order mark at its start is
+  dropped.
 
 ## 0.1.0, 2026-10-25
 

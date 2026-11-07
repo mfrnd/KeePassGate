@@ -546,7 +546,9 @@ pykeepassgate remove <uuid>
 `update` changes only what it names, and refuses to run with nothing named; `--expires never` takes
 an expiry off. `--password` reads from standard input rather than taking a value, so the secret
 stays out of the process list. At a terminal it is asked for, and each character typed or pasted
-shows as a `*`; piped in, it is the one line as sent, spaces and all.
+shows as a `*`; piped in, it is the one line as sent, spaces and all, read as UTF-8 whatever the
+code page, with a byte order mark at its start dropped. Input that is not UTF-8 is refused, exit 2,
+rather than stored as other text.
 
 **`expires` is when the entry expires**: a moment with its time zone, `"auto"` on a create for
 whatever KeePass's options give every new entry, or `False` for none, which on an update takes an
@@ -763,7 +765,9 @@ this page, written for a person: one item to a line, with a line break or anothe
 character inside a name or a value written as its escape, so that nothing can print a row that is
 not there. `json` prints one document for a program, an array for a listing and an object for
 anything else, with every value exactly as stored, and only ASCII, so a console whose code page
-holds less than the database does still prints it.
+holds less than the database does still prints it. **Both are written as UTF-8** to a file or a
+pipe, whatever the code page, as Python 3.15 writes by default, so whatever reads the output reads
+it as UTF-8.
 
 **The same rules hold in both.** A value the rule withholds is never printed as empty: `show` and
 `entries` leave it out and name it in `withheld`, as `entry.withheld` does in the library, beside
