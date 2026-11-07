@@ -44,7 +44,8 @@ namespace KeePassGate.Bridge
     /// - **A dialog open on what is being written refuses the write**, checked again inside the
     ///   marshaled call rather than only before it, because that is where the answer stops being
     ///   able to change. A dialog holds its own copy of what it shows and writes that copy back when
-    ///   it is accepted, so a change made underneath one is a change the operator's OK destroys.
+    ///   it is accepted, or as it closes in the case of KeePass's attachment editor, so a change
+    ///   made underneath it is a change the operator destroys without being told.
     /// - **A save that would ask the operator something is refused instead**, which
     ///   `DESIGN.md` §119 states as "no API request raises a dialog of KeePass's own that could
     ///   have been foreseen". `MainForm.SaveDatabase` has three questions that can be seen

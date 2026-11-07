@@ -35,7 +35,9 @@ namespace KeePassGate.Bridge
     /// written. The entry dialog holds a copy of an entry's strings and the group dialog holds a
     /// group's own settings, so a change underneath either is a change the operator's OK destroys.
     /// Neither holds the list of what is inside a group, so adding an entry to a group somebody is
-    /// looking at is safe and is allowed.
+    /// looking at is safe and is allowed. KeePass's attachment editor holds an attachment and none
+    /// of its entry, and the main window writes the edited bytes back onto the entry as the editor
+    /// closes, so every entry holding an attachment of that name is refused while it is open.
     ///
     /// **Except where the dialog is adding the group itself**, because KeePass's Add Group puts the
     /// group into the tree before it opens and takes it back out on Cancel, and whatever was added

@@ -148,6 +148,53 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void The_attachment_editor_refuses_every_write_to_the_entry_its_attachment_came_from()
+        {
+            // KeePass's own editor, opened on an attachment from the main window, which keeps the
+            // entry and writes the edited bytes back onto it when the editor closes: a removal
+            // underneath came back, and an update was overwritten. The editor holds the
+            // attachment's name and not the entry, so an entry holding none of that name is left
+            // alone.
+            var group = Created(_vault.CreateGroup(_vault.RootAlias, "Outer", null));
+            var entry = Created(_vault.CreateEntry(group, Named("Invented")));
+            var other = Created(_vault.CreateEntry(group, Named("Other")));
+
+            Assert.That(_vault.CreateField(entry, "Ticket", "4b21", false, VaultTagging.None).Ok, Is.True);
+            Assert.That(_vault.CreateAttachment(entry, "note.txt", new byte[] { 1, 2, 3 }, VaultTagging.None).Ok, Is.True);
+
+            using (var form = new DataEditorForm())
+            {
+                form.InitEx("note.txt", new byte[] { 1, 2, 3 });
+                GlobalWindowManager.AddWindow(form);
+                _saves = 0;
+
+                try
+                {
+                    Refused(_vault.UpdateEntry(entry, Named("Renamed"), VaultTagging.None), "UpdateEntry");
+                    Refused(_vault.CreateField(entry, "Second", "9c30", false, VaultTagging.None), "CreateField");
+                    Refused(_vault.UpdateField(entry, "Ticket", "0000", VaultTagging.None), "UpdateField");
+                    Refused(_vault.DeleteField(entry, "Ticket", VaultTagging.None), "DeleteField");
+                    Refused(_vault.CreateAttachment(entry, "other.txt", new byte[] { 4 }, VaultTagging.None), "CreateAttachment");
+                    Refused(_vault.UpdateAttachment(entry, "note.txt", new byte[] { 5 }, VaultTagging.None), "UpdateAttachment");
+                    Refused(_vault.DeleteAttachment(entry, "note.txt", VaultTagging.None), "DeleteAttachment");
+                    Refused(_vault.DeleteEntry(entry, VaultTagging.None), "DeleteEntry");
+                    Assert.That(_saves, Is.Zero, "a refused write saves nothing");
+
+                    var outcome = _vault.UpdateEntry(other, Named("Renamed"), VaultTagging.None);
+                    Assert.That(outcome.Ok, Is.True, outcome.Reason);
+                }
+                finally
+                {
+                    GlobalWindowManager.RemoveWindow(form);
+                }
+            }
+
+            Assert.That(Entry(entry).Binaries.Get("note.txt"), Is.Not.Null);
+            Assert.That(_vault.DeleteAttachment(entry, "note.txt", VaultTagging.None).Ok, Is.True,
+                "and once it is closed the attachment may go");
+        }
+
+        [Test]
         public void A_group_dialog_refuses_the_group_and_lets_through_what_goes_into_it()
         {
             // Both halves of the documented rule in one place, because they are one decision. The

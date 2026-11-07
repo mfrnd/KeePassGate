@@ -29,6 +29,12 @@ namespace KeePassGate.Bridge
     /// they hold nothing of, which `BlockingRemoval` answers, and Add Group has put a group into
     /// the tree that its Cancel takes back out, which `BlockingAdditions` answers.
     ///
+    /// **KeePass's attachment editor holds an attachment and not the entry it came from.** The main
+    /// window keeps the entry while the editor is open and writes the edited bytes back onto it
+    /// when the editor closes, so a write to that entry underneath is undone or overwritten.
+    /// Nothing on the editor tells which entry that is, so `Blocking(PwEntry)` refuses every entry
+    /// holding an attachment of the name it is open on.
+    ///
     /// **The database settings dialog is here for one thing only**, and it is not custom data:
     /// that dialog copies nothing of the kind, which is what makes the KPG tab's own buttons safe
     /// on it. What it does copy is the recycle bin choice, so a removal that makes a database its
@@ -63,6 +69,7 @@ namespace KeePassGate.Bridge
         private readonly HashSet<Form> _creating = new HashSet<Form>();
         private readonly Dictionary<Form, PwGroup> _filling = new Dictionary<Form, PwGroup>();
         private readonly Dictionary<Form, PwEntry> _openEntries = new Dictionary<Form, PwEntry>();
+        private readonly Dictionary<Form, string> _editing = new Dictionary<Form, string>();
         private readonly Dictionary<Form, PwDatabase> _openBulk = new Dictionary<Form, PwDatabase>();
         private readonly Dictionary<Form, PwDatabase> _openMaintenance = new Dictionary<Form, PwDatabase>();
         private readonly Dictionary<Form, PwDatabase> _openSettings = new Dictionary<Form, PwDatabase>();
@@ -116,6 +123,7 @@ namespace KeePassGate.Bridge
             KeePassContract.DatabaseSettingsFormTypeName,
             KeePassContract.TanWizardFormTypeName,
             KeePassContract.StatusProgressFormTypeName,
+            KeePassContract.DataEditorFormTypeName,
         };
 
         /// <summary>
@@ -503,6 +511,13 @@ namespace KeePassGate.Bridge
         /// The entry dialog hands its own copy of the entry's strings to its tabs and writes that
         /// copy back over the entry when it is accepted, so a field written underneath one is a
         /// field the operator's OK throws away.
+        ///
+        /// **The attachment editor is asked by the attachment's name**, the only thing it holds
+        /// that tells where it came from. The entry it was opened on holds an attachment of that
+        /// name for as long as it is open, since every write to that entry is refused, so asking
+        /// by the name refuses that entry and every other entry that happens to hold an
+        /// attachment of the same name, which costs those a retry. Asked without reading the
+        /// bytes, so a refusal takes nothing out of protected memory.
         /// </remarks>
         public string Blocking(PwEntry entry)
         {
@@ -554,6 +569,20 @@ namespace KeePassGate.Bridge
                         return "an Edit Entries dialog is open on entries of this database, and this may be one of them";
                     }
                 }
+
+                foreach (var pair in _editing)
+                {
+                    if (pair.Value == null)
+                    {
+                        return "the attachment editor dialog is open, and which attachment it is editing could not be read";
+                    }
+
+                    if (entry.Binaries.Get(pair.Value) != null)
+                    {
+                        return "the attachment editor dialog is open on an attachment of this name, and closing it "
+                               + "writes the attachment back onto the entry it came from";
+                    }
+                }
             }
 
             return null;
@@ -592,7 +621,8 @@ namespace KeePassGate.Bridge
         /// started counts zero exactly as an empty desktop does, so every refusal here asks
         /// `Blocking` or `BlockingRecords`, which fold that question into their answer. The
         /// database settings dialog is not in it: it carries no node's custom data, and what it
-        /// does copy is asked about by `BlockingRecycleBin` instead.
+        /// does copy is asked about by `BlockingRecycleBin` instead. Nor is the attachment editor,
+        /// which carries an attachment and no custom data either.
         /// </remarks>
         public int Count
         {
@@ -631,6 +661,7 @@ namespace KeePassGate.Bridge
                 _creating.Clear();
                 _filling.Clear();
                 _openEntries.Clear();
+                _editing.Clear();
                 _openBulk.Clear();
                 _openMaintenance.Clear();
                 _openSettings.Clear();
@@ -647,8 +678,23 @@ namespace KeePassGate.Bridge
             {
                 if (form == null || (!IsGroupDialog(form) && !IsEntryDialog(form)
                                      && !IsMaintenanceDialog(form) && !IsSettingsDialog(form)
-                                     && !IsTanWizard(form) && !IsProgressWindow(form)))
+                                     && !IsTanWizard(form) && !IsProgressWindow(form)
+                                     && !IsAttachmentEditor(form)))
                 {
+                    return;
+                }
+
+                if (IsAttachmentEditor(form))
+                {
+                    // Read here, because the editor registers itself as it loads and its name is
+                    // set before that, by the code that opened it.
+                    var name = AttachmentBehind(form);
+
+                    lock (_lock)
+                    {
+                        _editing[form] = name;
+                    }
+
                     return;
                 }
 
@@ -795,6 +841,7 @@ namespace KeePassGate.Bridge
                     _creating.Remove(form);
                     _filling.Remove(form);
                     _openEntries.Remove(form);
+                    _editing.Remove(form);
                     _openBulk.Remove(form);
                     _openMaintenance.Remove(form);
                     _openSettings.Remove(form);
@@ -844,6 +891,39 @@ namespace KeePassGate.Bridge
         {
             return string.Equals(
                 form.GetType().FullName, KeePassContract.StatusProgressFormTypeName, StringComparison.Ordinal);
+        }
+
+        private static bool IsAttachmentEditor(Form form)
+        {
+            return string.Equals(
+                form.GetType().FullName, KeePassContract.DataEditorFormTypeName, StringComparison.Ordinal);
+        }
+
+        /// <summary>
+        /// Null when it cannot be read, which is taken to mean any attachment at all.
+        /// </summary>
+        private string AttachmentBehind(Form form)
+        {
+            try
+            {
+                var field = form.GetType().GetField(
+                    KeePassContract.DataEditorFormNameField, BindingFlags.NonPublic | BindingFlags.Instance);
+
+                if (field == null)
+                {
+                    _log.Warn("the attachment editor no longer names its attachment in " +
+                              KeePassContract.DataEditorFormNameField +
+                              ", so every write to an entry is refused while an editor is open");
+                    return null;
+                }
+
+                return field.GetValue(form) as string;
+            }
+            catch (Exception error) when (Expected.OfReflection(error))
+            {
+                _log.Error("the attachment behind the attachment editor could not be read", error);
+                return null;
+            }
         }
 
         /// <summary>Null when it cannot be read, which is taken to mean any database at all.</summary>

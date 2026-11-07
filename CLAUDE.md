@@ -1158,13 +1158,14 @@ is destroyed by its OK.
 **That dialog does hold one other copy**, and it is the recycle bin choice rather than custom data.
 A bin made underneath it is undone by its OK, so a removal that would make the first one is refused
 while it is open. `GroupDialogs` therefore watches the settings dialog beside the group, entry and
-maintenance dialogs, the TAN wizard as well, which fills a group on OK, and KeePass's progress
-window, which says an operation of KeePass's own is running inside the tree: six in all. A KeePass
-that lacks any of the six starts no watch, so every write and every pairing is refused and the log
-names the missing one. The settings dialog is left out of the count it keeps, since it carries no
-node's custom data, and so are the wizard, which puts back no custom data either, and the progress
-window, which holds nothing. The count gates nothing: it gated the profile purge, a button on that
-very dialog, and went on being kept for the tests and the log when the purge went.
+maintenance dialogs, and more besides, which `DESIGN.md` §124 lists with what each refuses:
+KeePass's attachment editor among them, which holds no node and writes an attachment back onto
+the entry it came from as it closes. A KeePass that lacks any of them starts no watch, so every
+write and every pairing is refused and the log names what is missing. The settings dialog is left
+out of the count it keeps, since it carries no node's custom data, and so are the windows that
+put back no custom data either or hold nothing. The count gates nothing: it gated the profile
+purge, a button on that very dialog, and went on being kept for the tests and the log when the
+purge went.
 
 **The profile list is the database's own names.** `GrantSheet.Available` is what the profile
 picker offers, being `ProfileNames` less every profile already on the table, **explicit and

@@ -82,7 +82,7 @@ namespace KeePassGate.Host.Tests
         {
             // The same names the contract tests pin, asked the way `Start` asks them: of the KeePass
             // that is loaded rather than of the constants.
-            Assert.That(GroupDialogs.Watched, Has.Count.EqualTo(6));
+            Assert.That(GroupDialogs.Watched, Has.Count.EqualTo(7));
             Assert.That(GroupDialogs.Unrecognized(typeof(GroupForm).Assembly, GroupDialogs.Watched, null), Is.Empty);
         }
 
@@ -485,6 +485,40 @@ namespace KeePassGate.Host.Tests
             }
 
             Assert.That(_dialogs.BlockingRemoval(group), Is.Null, "and closing it lets the group go again");
+        }
+
+        [Test]
+        public void The_attachment_editor_refuses_an_entry_holding_an_attachment_of_its_name()
+        {
+            // The editor holds the attachment's name and bytes and nothing of the entry, which the
+            // main window keeps and writes the edited bytes back onto when it closes. So the name
+            // is what is asked, of every entry, and an entry without such an attachment is left
+            // alone.
+            var holding = new PwEntry(true, true);
+            holding.Binaries.Set("note.txt", new KeePassLib.Security.ProtectedBinary(false, new byte[] { 1 }));
+            _database.RootGroup.AddEntry(holding, true);
+            var other = new PwEntry(true, true);
+            _database.RootGroup.AddEntry(other, true);
+
+            using (var form = new DataEditorForm())
+            {
+                form.InitEx("note.txt", new byte[] { 1 });
+                GlobalWindowManager.AddWindow(form);
+
+                try
+                {
+                    Assert.That(_dialogs.Blocking(holding), Is.Not.Null,
+                        "closing the editor writes the attachment back onto the entry it came from");
+                    Assert.That(_dialogs.Blocking(other), Is.Null, "and an entry without such an attachment is not its business");
+                    Assert.That(_dialogs.Count, Is.Zero, "nor is it counted, since it puts back no custom data");
+                }
+                finally
+                {
+                    GlobalWindowManager.RemoveWindow(form);
+                }
+            }
+
+            Assert.That(_dialogs.Blocking(holding), Is.Null, "and closing it lets the entry be written again");
         }
 
         [Test]
