@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using KeePassGate.Diagnostics;
 using KeePassGate.Ui;
@@ -15,16 +16,16 @@ namespace KeePassGate.Gate
         bool Lock(string path);
 
         /// <summary>
-        /// Serves it in full again, with a freshly minted responder. True when this really lifted a
-        /// lock, false when it was a database being opened for the first time.
+        /// Serves it in full again, with a freshly minted responder, and answers the authority of
+        /// the lock this lifted. Empty when it was a database being opened for the first time.
         /// </summary>
-        bool Unlock(string path);
+        IReadOnlyCollection<string> Unlock(string path);
 
         /// <summary>
-        /// Forgets it entirely, which is what closing a database really means. True when there was
-        /// something being held for it.
+        /// Forgets it entirely, which is what closing a database really means, and answers every
+        /// authority something was being held for. Empty when there was nothing.
         /// </summary>
-        bool Forget(string path);
+        IReadOnlyCollection<string> Forget(string path);
 
         /// <summary>
         /// Reads every open database again, so that a lock or close about to follow finds what
@@ -36,11 +37,14 @@ namespace KeePassGate.Gate
     /// <summary>The connections being served, as locking sees them.</summary>
     public interface IConnections
     {
-        /// <summary>Closes every one of them, and says how many there were.</summary>
-        int CloseAll(string why);
+        /// <summary>
+        /// Closes every connection to a database with any of these authorities, waiting on the
+        /// operator or not, and answers how many it closed. What a close and an unlock do.
+        /// </summary>
+        int Close(IReadOnlyCollection<string> databaseIds, string why);
 
         /// <summary>
-        /// Closes every one of them except those waiting on the operator, and says how many it
+        /// Closes every connection except those waiting on the operator, and answers how many it
         /// closed. What a lock does, because <see cref="IApprovalScreen.Locked"/> has already
         /// taken their question away and each answers `503 locked` itself.
         /// </summary>
@@ -57,10 +61,11 @@ namespace KeePassGate.Gate
         void Locked();
 
         /// <summary>
-        /// A database was closed for real: an approval waiting to be written is let go, on
-        /// KeePass's thread.
+        /// A database was closed for real: an approval waiting to be written for any of these
+        /// authorities is let go, on KeePass's thread. Null when the database could not be named,
+        /// which lets every approval go.
         /// </summary>
-        void Closed();
+        void Closed(IReadOnlyCollection<string> databaseIds);
     }
 
     /// <summary>Several of them, told in the order they were given.</summary>
@@ -81,11 +86,11 @@ namespace KeePassGate.Gate
             }
         }
 
-        public void Closed()
+        public void Closed(IReadOnlyCollection<string> databaseIds)
         {
             foreach (var screen in _screens.Where(screen => screen != null))
             {
-                screen.Closed();
+                screen.Closed(databaseIds);
             }
         }
     }
@@ -99,20 +104,28 @@ namespace KeePassGate.Gate
     /// which matters more here than usual: locking is the one transition a test cannot easily
     /// arrange by hand in a running KeePass.
     ///
-    /// **Both transitions close every connection**, and unlock is the one worth explaining. Closing
-    /// at lock is obvious: a socket thread must not be reading a database the user interface thread
-    /// is closing, and that race needs a real gate because the lock fires on the user interface
-    /// thread. Closing at unlock is about privilege. A connection that completed its handshake
-    /// against the responder certificate was authenticated against nothing, because validating a
-    /// client certificate needs the authority, which was not loaded. Letting it survive into the
-    /// unlocked state would promote a connection to an authority it never proved anything to.
+    /// **A lock closes every connection, and a close or an unlock only that database's**, the
+    /// operator's ruling R1. Closing at lock is obvious: a socket thread must not be reading a
+    /// database the user interface thread is closing, that race needs a real gate because the lock
+    /// fires on the user interface thread, and KeePass locks every database at once. A close is
+    /// the same race for the one database it empties. An unlock lifts the lock on one database, and
+    /// closes the connections its responder was answering, so that a client part way through a
+    /// handshake with the responder connects again rather than being told `503 locked` by a
+    /// database that no longer is.
+    ///
+    /// **Both used to close every connection**, the other databases' too, so unlocking or closing
+    /// a second database reset every request to the first, and closed the connection of a pairing
+    /// waiting on that database's dialog, which the operator then approved into a closed socket.
+    /// The unlock's was argued as privilege, a responder's connection promoted to an authority it
+    /// never proved anything to, and nothing promotes such a connection: it keeps the target it
+    /// resolved, and a responder's is answered `503 locked` before a request is read.
     ///
     /// **An unlock that lifts no lock closes nothing**, and that is a refinement the first end to
     /// end run forced. KeePass announces a database being opened and a database being unlocked the
     /// same way, so a KeePass starting with a database on its command line raised an unlock while a
     /// client was already connecting, and closed a connection that had never seen a responder. The
-    /// privilege argument only applies where there was a responder to be promoted from, so the
-    /// close now follows a lock actually being lifted rather than the event that announces both.
+    /// close is for the responder's connections, so it follows a lock actually being lifted rather
+    /// than the event that announces both.
     ///
     /// Order matters at a lock, and what it buys is narrower than it looks. The material is let go
     /// **before** the connections are closed, but letting go is releasing a reference, not wiping:
@@ -261,9 +274,10 @@ namespace KeePassGate.Gate
                     return;
                 }
 
-                if (_targets.Unlock(e.Path))
+                var lifted = _targets.Unlock(e.Path);
+                if (lifted.Count > 0)
                 {
-                    Close("a database was unlocked", false);
+                    Close(lifted, "a database was unlocked");
                 }
             }
             // codeql[cs/catch-of-all-exceptions] a handler of KeePass's own events, a kind of catch-all DESIGN.md §141 lists
@@ -347,28 +361,38 @@ namespace KeePassGate.Gate
                         // parked pairings belonging to databases that are still perfectly open.
                         if (_targets.Lock(e.Path))
                         {
-                            Close("a database was locked", true);
+                            CloseAllButAwaiting("a database was locked");
                         }
                     }
 
                     return;
                 }
 
+                IReadOnlyCollection<string> closed = null;
                 try
                 {
-                    // An approval waiting to be written goes with the database, as at a lock: one
-                    // held across a close would be written into whatever is opened under that
-                    // authority next.
-                    if (_screen != null)
-                    {
-                        _screen.Closed();
-                    }
+                    closed = _targets.Forget(e.Path);
                 }
                 finally
                 {
-                    if (_targets.Forget(e.Path))
+                    try
                     {
-                        Close("a database was closed", false);
+                        // An approval waiting to be written goes with its database, as at a lock:
+                        // an approval held across a close would be written into whatever is opened
+                        // under that authority next. Only its database's, R1, since every other
+                        // database is still open, and every approval when forgetting it failed and
+                        // nothing can tell which database went.
+                        if (_screen != null)
+                        {
+                            _screen.Closed(closed);
+                        }
+                    }
+                    finally
+                    {
+                        if (closed != null && closed.Count > 0)
+                        {
+                            Close(closed, "a database was closed");
+                        }
                     }
                 }
             }
@@ -381,7 +405,19 @@ namespace KeePassGate.Gate
             }
         }
 
-        private void Close(string why, bool spareAwaiting)
+        /// <summary>Closes the connections to the databases with these authorities.</summary>
+        private void Close(IReadOnlyCollection<string> databaseIds, string why)
+        {
+            Closing(connections => connections.Close(databaseIds, why), why);
+        }
+
+        /// <summary>Closes every connection but those waiting on the operator.</summary>
+        private void CloseAllButAwaiting(string why)
+        {
+            Closing(connections => connections.CloseAllButAwaiting(why), why);
+        }
+
+        private void Closing(Func<IConnections, int> close, string why)
         {
             if (_connections == null)
             {
@@ -391,18 +427,9 @@ namespace KeePassGate.Gate
             try
             {
                 var connections = _connections();
-                if (connections == null)
+                if (connections != null)
                 {
-                    return;
-                }
-
-                if (spareAwaiting)
-                {
-                    connections.CloseAllButAwaiting(why);
-                }
-                else
-                {
-                    connections.CloseAll(why);
+                    close(connections);
                 }
             }
             catch (Exception error) when (Expected.OfConnection(error))

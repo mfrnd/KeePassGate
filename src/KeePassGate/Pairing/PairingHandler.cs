@@ -120,8 +120,8 @@ namespace KeePassGate.Pairing
 
         /// <summary>The same, with the plugin's one book of approvals waiting to be written.</summary>
         /// <param name="held">
-        /// The approvals held for a retry, which a lock, a close and an exit clear, or null for a
-        /// book of this handler's own.
+        /// The approvals held for a retry, which a lock, a close of their database and an exit
+        /// clear, or null for a book of this handler's own.
         /// </param>
         public PairingHandler(
             IInvitations invitations, IPairingApproval approval, ApprovalBook held, AdmissionAudit audit, IGateLog log)

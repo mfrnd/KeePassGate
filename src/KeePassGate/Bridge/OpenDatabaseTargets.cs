@@ -484,22 +484,22 @@ namespace KeePassGate.Bridge
         /// when KeePass is already opening a database: a few milliseconds, and the first in a
         /// process some tens of them.
         ///
-        /// **It answers whether a lock was lifted, and nothing else.** A database being opened for
-        /// the first time can have been read already, by a connection that got there before the
-        /// event did, and dropping that reading lifts no lock: `LockWatch` closes every connection
-        /// on a lifted lock, and closing them over a first open is what `LockWatch` says the first
-        /// end to end run found.
+        /// **It answers the lock it lifted, and nothing else.** A database being opened for the
+        /// first time can have been read already, by a connection that got there before the event
+        /// did, and dropping that reading lifts no lock: `LockWatch` closes the connections of a
+        /// lifted lock, and closing them over a first open is what `LockWatch` records the first
+        /// end to end run finding.
         /// </remarks>
-        public bool Unlock(string path)
+        public IReadOnlyCollection<string> Unlock(string path)
         {
-            bool lifted;
+            string lifted;
             LetGo(path, out lifted);
 
             // Reading them all is what builds the target, and building it is what mints the
             // responder. Which database was unlocked does not matter: the rest are cached.
             Refresh();
 
-            return lifted;
+            return lifted == null ? Array.Empty<string>() : new[] { lifted };
         }
 
         /// <summary>
@@ -595,89 +595,102 @@ namespace KeePassGate.Bridge
         }
 
         /// <summary>
-        /// A database was closed for real. Nothing is kept, and nothing answers for it. True when
-        /// anything was held for it, which is when a connection may still be reading it: what it
-        /// was served with, what a lock would have answered with, or what a lock was answering with.
+        /// A database was closed for real. Nothing is kept, and nothing answers for it. Answers
+        /// every authority something was held for, which is when a connection may still be
+        /// reading it: what it was served with, what a lock would have answered with, or what a
+        /// lock was answering with.
         /// </summary>
         /// <remarks>
         /// It answered only for a lock, so closing a database that was being served and never
         /// locked closed no connection, and one resolved before the close ran on to its deadline
         /// against a database KeePass had already emptied. `LockWatch` closes them for the reason
         /// it closes them at a lock: a socket thread must not be reading a database the user
-        /// interface thread is closing.
+        /// interface thread is closing. By authority, so that it closes this database's and leaves
+        /// every other database's, and all of them, a database holding several authorities
+        /// answering for each.
         /// </remarks>
-        public bool Forget(string path)
+        public IReadOnlyCollection<string> Forget(string path)
         {
-            bool lifted;
+            string lifted;
             return LetGo(path, out lifted);
         }
 
         /// <summary>
-        /// Lets go of everything held for this path, and says whether there was anything.
+        /// Lets go of everything held for this path, and answers the authorities it was held for.
         /// </summary>
-        /// <param name="lifted">Whether a lock was among it, which is all an unlock is asked.</param>
-        private bool LetGo(string path, out bool lifted)
+        /// <param name="lifted">
+        /// The authority of a lock among it, which is all an unlock is asked.
+        /// </param>
+        private IReadOnlyCollection<string> LetGo(string path, out string lifted)
         {
-            lifted = false;
+            lifted = null;
+            var held = new List<string>();
             if (string.IsNullOrEmpty(path))
             {
-                return false;
+                return held;
             }
 
             lock (_cacheLock)
             {
                 lifted = Release(path);
+                held.Add(lifted);
 
                 // The cache too. A close that was never a lock still has to drop the authority's
                 // private key, and the only other reaper is `DropClosed`, which runs inside
                 // `Current` and so never runs again for a database nobody will ask about.
-                var dropped = DropCached(path);
+                held.AddRange(DropCached(path));
 
                 // And whatever was kept in case this turned out to be a lock. This is the event
                 // that says it was not. It counts all the same, because it is kept only for a
                 // database that was being served until a connection found it shut, and whatever
                 // was reading it then may be reading it still.
-                var discarded = Discard(path);
+                held.Add(Discard(path));
 
-                return lifted || dropped || discarded;
+                return held.Where(id => id != null).Distinct(StringComparer.Ordinal).ToList();
             }
         }
 
-        /// <summary>Lets go of whatever was answering for this path while it was locked.</summary>
-        private bool Release(string path)
+        /// <summary>
+        /// Lets go of whatever was answering for this path while it was locked, and answers its
+        /// authority, or null when nothing was.
+        /// </summary>
+        private string Release(string path)
         {
             LockedTarget locked;
             if (!_locked.TryGetValue(path, out locked))
             {
-                return false;
+                return null;
             }
 
             _locked.Remove(path);
+            var released = locked.DatabaseId;
             locked.Dispose();
-            return true;
+            return released;
         }
 
         /// <summary>
-        /// Lets go of what was kept in case this path turned out to be a lock, and says whether
-        /// anything was.
+        /// Lets go of what was kept in case this path turned out to be a lock, and answers its
+        /// authority, or null when nothing was.
         /// </summary>
-        private bool Discard(string path)
+        private string Discard(string path)
         {
             LockedTarget kept;
             if (string.IsNullOrEmpty(path) || !_closing.TryGetValue(path, out kept))
             {
-                return false;
+                return null;
             }
 
             _closing.Remove(path);
+            var discarded = kept.DatabaseId;
             kept.Dispose();
-            return true;
+            return discarded;
         }
 
         /// <summary>
-        /// Drops the served material for this path, if any is still held, and says whether it was.
+        /// Drops the served material for this path, if any is still held, and answers the
+        /// authorities it answered for, empty when none was.
         /// </summary>
-        private bool DropCached(string path)
+        private IReadOnlyList<string> DropCached(string path)
         {
             foreach (var pair in _cache)
             {
@@ -686,12 +699,13 @@ namespace KeePassGate.Bridge
                     continue;
                 }
 
+                var dropped = pair.Value.DatabaseIds.ToList();
                 pair.Value.Dispose();
                 _cache.Remove(pair.Key);
-                return true;
+                return dropped;
             }
 
-            return false;
+            return Array.Empty<string>();
         }
 
         /// <summary>Called with the lock held.</summary>
@@ -998,6 +1012,26 @@ namespace KeePassGate.Bridge
             public bool IsUndecided
             {
                 get { return _target == null; }
+            }
+
+            /// <summary>
+            /// The authority of every target this database answers with, which is what its
+            /// connections resolved to.
+            /// </summary>
+            public IEnumerable<string> DatabaseIds
+            {
+                get
+                {
+                    if (_target != null)
+                    {
+                        yield return _target.DatabaseId;
+                    }
+
+                    foreach (var candidate in _undecided)
+                    {
+                        yield return candidate.DatabaseId;
+                    }
+                }
             }
 
             /// <summary>

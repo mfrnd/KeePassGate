@@ -65,17 +65,44 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void A_lock_or_a_close_lets_go_of_every_approval_and_says_so_on_each()
+        public void A_lock_lets_go_of_every_approval_and_says_so_on_each()
         {
             var one = Hold("one");
-            ((IApprovalScreen)_book).Locked();
+            var two = Hold("two", "another db");
 
-            var two = Hold("two");
-            ((IApprovalScreen)_book).Closed();
+            ((IApprovalScreen)_book).Locked();
 
             Assert.That(_book.Count, Is.Zero);
             Assert.That(one.Cleared && two.Cleared, Is.True);
             Assert.That(_book.Take(one), Is.False);
+        }
+
+        [Test]
+        public void A_close_lets_go_of_its_own_database_s_approvals_and_no_others()
+        {
+            // The operator's ruling R1. It let every approval go, so closing a database told a
+            // pairing approved for another database that its database was locked.
+            var closing = Hold("one");
+            var open = Hold("two", "another db");
+
+            ((IApprovalScreen)_book).Closed(new[] { "db" });
+
+            Assert.That(closing.Cleared, Is.True);
+            Assert.That(_book.Holds(closing), Is.False);
+            Assert.That(open.Cleared, Is.False);
+            Assert.That(_book.Find("two", "another db"), Is.SameAs(open));
+        }
+
+        [Test]
+        public void A_close_that_names_no_database_lets_go_of_every_approval()
+        {
+            var one = Hold("one");
+            var two = Hold("two", "another db");
+
+            ((IApprovalScreen)_book).Closed(null);
+
+            Assert.That(_book.Count, Is.Zero);
+            Assert.That(one.Cleared && two.Cleared, Is.True);
         }
 
         [Test]
@@ -88,9 +115,10 @@ namespace KeePassGate.Tests
             Assert.That(_book.Find("key", "db"), Is.SameAs(second));
         }
 
-        private HeldApproval Hold(string key)
+        private HeldApproval Hold(string key, string databaseId = "db")
         {
-            return _book.Hold(key, "db", new[] { "ops" }, TimeSpan.FromDays(30), new[] { "ops" }, null, _now.AddMinutes(6));
+            return _book.Hold(
+                key, databaseId, new[] { "ops" }, TimeSpan.FromDays(30), new[] { "ops" }, null, _now.AddMinutes(6));
         }
     }
 }

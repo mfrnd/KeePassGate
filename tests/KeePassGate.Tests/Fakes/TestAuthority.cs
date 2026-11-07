@@ -570,6 +570,12 @@ namespace KeePassGate.Tests.Fakes
 
         public int Asked { get; private set; }
 
+        /// <summary>
+        /// Run each time a connection asks, before it is answered, so a test can hold a name
+        /// part way through resolving. Null for nothing.
+        /// </summary>
+        public Action Asking { get; set; }
+
         public void Add(IGateTarget target)
         {
             _targets.Add(target);
@@ -583,6 +589,12 @@ namespace KeePassGate.Tests.Fakes
         public IReadOnlyList<IGateTarget> Current()
         {
             Asked++;
+
+            var asking = Asking;
+            if (asking != null)
+            {
+                asking();
+            }
 
             if (Throws != null)
             {

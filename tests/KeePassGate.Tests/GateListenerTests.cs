@@ -1097,6 +1097,76 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void Closing_one_database_s_connections_leaves_another_s_to_be_answered()
+        {
+            // The operator's ruling R1, which a close and an unlock carry out. Every connection
+            // used to close, so closing or unlocking a second database reset every request to the
+            // first, a pairing waiting on its dialog among them.
+            _targets.Add(_second);
+            var handler = new HeldHandler();
+            using (var listener = new GateListener(
+                new GateOptions { Port = 0 }, new GateResolver(_targets, _log), handler, _log))
+            {
+                Assert.That(listener.Start(), Is.True);
+
+                var first = System.Threading.Tasks.Task.Run(
+                    () => GateClient.Get(listener.Port, _first.NewName(), null, GateOperations.StatusPath));
+                var second = System.Threading.Tasks.Task.Run(
+                    () => GateClient.Get(listener.Port, _second.NewName(), null, GateOperations.StatusPath));
+                Assert.That(Waited(() => handler.Entered == 2), Is.True, "both requests reached the handler");
+
+                Assert.That(listener.Close(new[] { _second.DatabaseId }, "a database was closed"), Is.EqualTo(1));
+                handler.Release();
+
+                Assert.That(first.Result.Status, Is.EqualTo(200), first.Result.Failure);
+                Assert.That(second.Result.Answered, Is.False, "the closed database's request was answered");
+            }
+        }
+
+        [Test]
+        public void A_name_that_resolves_as_its_database_closes_is_not_served()
+        {
+            // A close finds a database's connections by the authority each connection's name
+            // resolved to, and a name that resolved just before the close is recorded just after
+            // it: missed, it would go on reading a database KeePass had emptied.
+            var handler = new ThreadHandler();
+            using (var resolving = new ManualResetEventSlim())
+            using (var resume = new ManualResetEventSlim())
+            using (var listener = new GateListener(
+                new GateOptions { Port = 0 }, new GateResolver(_targets, _log), handler, _log))
+            {
+                _targets.Asking = delegate
+                {
+                    resolving.Set();
+                    resume.Wait(TimeSpan.FromSeconds(30));
+                };
+
+                try
+                {
+                    Assert.That(listener.Start(), Is.True);
+
+                    var reply = System.Threading.Tasks.Task.Run(
+                        () => GateClient.Get(listener.Port, _first.NewName(), null, GateOperations.StatusPath));
+                    Assert.That(resolving.Wait(TimeSpan.FromSeconds(10)), Is.True, "the name was never asked about");
+
+                    Assert.That(listener.Close(new[] { _first.DatabaseId }, "a database was closed"), Is.Zero,
+                        "nothing had resolved to it yet");
+                    resume.Set();
+
+                    Assert.That(reply.Result.Answered, Is.False, reply.Result.ToString());
+                    Assert.That(handler.OnThePool, Is.Null, "the request was served");
+                    Assert.That(_log.Entries.Select(entry => entry.Message), Has.Some.Contains("closed as it resolved"));
+                }
+                finally
+                {
+                    // Taken off before the events go, so nothing still resolving waits on one.
+                    _targets.Asking = null;
+                    resume.Set();
+                }
+            }
+        }
+
+        [Test]
         public void A_connection_is_served_on_a_thread_of_its_own_rather_than_the_pool()
         {
             // KeePass waits on the thread pool from its own thread: its managed Argon2 queues its
@@ -1207,6 +1277,30 @@ namespace KeePassGate.Tests
             {
                 Volatile.Write(ref _culture, CultureInfo.CurrentCulture.Name);
                 Volatile.Write(ref _onThePool, Thread.CurrentThread.IsThreadPoolThread ? 1 : 0);
+                context.Respond(200, "{}");
+            }
+        }
+
+        /// <summary>A handler that holds every request until the test lets them go.</summary>
+        private sealed class HeldHandler : IGateHandler
+        {
+            private readonly ManualResetEventSlim _released = new ManualResetEventSlim();
+            private int _entered;
+
+            public int Entered
+            {
+                get { return Volatile.Read(ref _entered); }
+            }
+
+            public void Release()
+            {
+                _released.Set();
+            }
+
+            public void Handle(IGateContext context)
+            {
+                Interlocked.Increment(ref _entered);
+                _released.Wait(TimeSpan.FromSeconds(30));
                 context.Respond(200, "{}");
             }
         }

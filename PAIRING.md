@@ -149,7 +149,8 @@ burned, and the record is written and saved. All that is lost is the answer, lea
 disk for a certificate the client never received and cannot ask for again. That is the peer hanging
 up, or its deadline running out. A lock is the other thing that closes connections, and it spares
 this one: it closes the dialog as unanswered instead, nothing is issued or spent, and the client is
-told `503 locked`, §308.
+told `503 locked`, §308. A close or an unlock closes only its own database's connections, so a
+close or an unlock of another database leaves this connection alone.
 
 **One pairing is put to the operator at a time.** Two connections can reach phase 4 together, and
 each asks the user interface thread to show a dialog. The second would open inside the first one's
@@ -393,20 +394,29 @@ stateDiagram-v2
     Cold --> Unlocked: first unlock mints the responder certificate
     Cold --> [*]: never unlocked, so nothing to answer with
     Unlocked --> Locked: close an open approval dialog, re-mint the responder,<br/>then drop the authority key, the records and the normal host key.<br/>close every connection but the one waiting on that dialog.
-    Locked --> Unlocked: reload, re-mint.<br/>close every connection.
+    Locked --> Unlocked: reload, re-mint.<br/>close that database's connections.
     Locked --> Locked: answer 503, naming nothing but the lock
 ```
 
 Pairing while locked is refused the same way: issuing needs the authority private key and the
 admission write, and neither exists in this state.
 
-**Both transitions close every connection, but for the one below, and unlock is the interesting
-one.** Closing at lock is obvious: a socket thread must not be reading a database the UI thread is
-closing, and that race needs a real gate because the lock fires on the UI thread. Closing at unlock
-is about privilege. A connection that completed its handshake against the responder certificate was
-authenticated against nothing, because validating a client certificate needs the authority, which
-was not loaded. Letting it survive into the unlocked state would promote a connection to an
-authority it never proved anything to.
+**A lock closes every connection but the ones below, and an unlock only that database's**, the
+operator's ruling of 2026-11-01. Closing at lock is obvious: a socket thread must not be reading a
+database the UI thread is closing, that race needs a real gate because the lock fires on the UI
+thread, and KeePass locks every database at once. An unlock lifts the lock on one database, the
+database in front, and closes the connections its responder was answering, so that a client part way
+through a handshake with the responder connects again rather than being told `503 locked` by a
+database that no longer is.
+
+**An unlock used to close every connection**, the other databases' too, so unlocking a second
+database reset every request to the first, which had been unlocked all along, and closed the
+connection of a pairing waiting on the first database's dialog, which the operator then approved
+into a closed socket. It was argued as privilege: a connection that completed its handshake
+against the responder was authenticated against nothing, and surviving into the unlocked state
+would promote it to an authority it never proved anything to. Nothing promotes such a
+connection, since a connection keeps the target it resolved, and a responder's is answered `503
+locked` before a request is read.
 
 **A lock closes an open pairing or renewal dialog as unanswered**, and its client is told `503
 locked`. Neither dialog holds a lock off, since a dialog that did would let a client that raises one
@@ -419,21 +429,25 @@ answer for themselves: the dialog's, and any still waiting for the screen, which
 with `503 locked`, and one the lock caught before it asked, with `503 busy`, as a database that
 cannot be written answers. Their deadline still bounds them. Nothing is written and nothing is
 spent: an invitation is still good after the unlock, and a renewing client's old certificate still
-works. **A lock lets go of every approval held for a retry**, §303, and a close of the database
-does too, so an approval still waiting for a busy KeePass when the lock comes is answered `503
-locked` at once and never written into the database the unlock opens again.
+works. **A lock lets go of every approval held for a retry**, §303, and a close of a database lets
+go of that database's, so an approval still waiting for a busy KeePass when the lock comes is
+answered `503 locked` at once and never written into the database the unlock opens again.
 
 **An unlock that lifts no lock closes nothing**, which is a refinement the end to end tier forced
 rather than a weakening. KeePass announces a database being opened and a database being unlocked
 with the same event, so a KeePass starting with a database on its command line raised an unlock
 while a client was already connecting, and killed a handshake that had never seen a responder. The
-privilege argument only applies where there was a responder to be promoted from, so the close
-follows a lock actually being lifted rather than the event that announces both.
+close is for the responder's connections, so it follows a lock actually being lifted rather than
+the event that announces both.
 
-**A database closed for real closes every connection too**, for the reason a lock does: a socket
+**A database closed for real closes its connections too**, for the reason a lock does: a socket
 thread must not be reading a database the UI thread is emptying. It closed none while the database
 had never been locked, so a connection resolved before File > Close, or before KeePass closes every
-database on exit, ran on to its deadline against a database with nothing left in it.
+database on exit, ran on to its deadline against a database with nothing left in it. **Only its
+own**, as an unlock: it closed every connection and let every approval go, so closing a second
+database cost the first a request in flight, and a pairing waiting on its dialog its connection.
+A connection is that database's when its name resolved to an authority of the database, and a
+connection whose name resolves as the database closes is ended as soon as the name has resolved.
 
 **The responder is minted when the database opens, not when a connection arrives.** Minting it
 lazily looks equivalent and is not: a database nobody happened to connect to between an unlock and
@@ -540,9 +554,11 @@ dialog the operator had just answered in front of them again.
 served, and for each approved profile whether the list holds it exactly as it did when the operator
 answered, since the write would otherwise put a name back that was taken off in between. The
 approval is used up there, and the invitation spent there, last, so nothing that can still answer
-busy comes after the burn. **A lock, a close and KeePass exiting let go of every approval held**,
-and one still settling when KeePass locks is answered `503 locked` rather than written into the
-database an unlock opens again.
+busy comes after the burn. **A lock and KeePass exiting let go of every approval held, and a close
+of a database lets go of that database's**, and an approval still settling when KeePass locks is
+answered `503 locked` rather than written into the database an unlock opens again. A close let go
+of every database's until the operator's ruling of 2026-11-01, which told a pairing approved for a
+database still open that its database was locked.
 
 **Every `503` is raised before the invitation is spent, and that is what makes it honest.** The
 dialog check and the wait for the screen both happen before the burn, so a caller that starts again

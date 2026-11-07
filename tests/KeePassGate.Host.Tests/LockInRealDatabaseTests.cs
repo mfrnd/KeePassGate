@@ -49,7 +49,7 @@ namespace KeePassGate.Host.Tests
 
             // What the plugin does when KeePass says a database has been opened, and what mints the
             // responder that a later lock will answer with.
-            Assert.That(_targets.Unlock(_database.Path), Is.False, "a first open lifts no lock");
+            Assert.That(_targets.Unlock(_database.Path), Is.Empty, "a first open lifts no lock");
         }
 
         [TearDown]
@@ -231,13 +231,14 @@ namespace KeePassGate.Host.Tests
         [Test]
         public void Closing_a_database_for_real_leaves_nothing_to_serve()
         {
-            _targets.Current();
+            var served = _targets.Current().Single().DatabaseId;
 
             _open.Clear();
 
-            // True, so that the connections still reading it are closed, as they are at a lock. It
-            // answered only for a lock, and a served database closed without one closed nothing.
-            Assert.That(_targets.Forget(_database.Path), Is.True, "there was something being served");
+            // Its authority, so that the connections still reading it are closed, as they are at a
+            // lock, and no other database's. It answered only for a lock, and a served database
+            // closed without a lock closed nothing.
+            Assert.That(_targets.Forget(_database.Path), Is.EqualTo(new[] { served }), "there was something being served");
             Assert.That(_targets.Current(), Is.Empty, "a closed database answers nothing, unlike a locked one");
         }
 
@@ -255,7 +256,7 @@ namespace KeePassGate.Host.Tests
 
                 Assume.That(_targets.Current().Count, Is.EqualTo(2), "a connection read it before the event");
 
-                Assert.That(_targets.Unlock(later.Path), Is.False);
+                Assert.That(_targets.Unlock(later.Path), Is.Empty);
             }
         }
 
@@ -317,7 +318,7 @@ namespace KeePassGate.Host.Tests
             _open.Clear();
             _targets.Current();
 
-            Assert.That(_targets.Forget(path), Is.True,
+            Assert.That(_targets.Forget(path), Is.Not.Empty,
                 "it was served until that connection found it shut, and what was reading it then may still be");
             Assert.That(_targets.Current(), Is.Empty, "a closed database answers nothing, unlike a locked one");
         }
@@ -328,7 +329,7 @@ namespace KeePassGate.Host.Tests
             // Locked before anything reached it, or with no authority at all. There is nothing to
             // answer with and nothing to drop.
             Assert.DoesNotThrow(() => _targets.Lock("C:\\invented\\never-served.kdbx"));
-            Assert.That(_targets.Forget("C:\\invented\\never-served.kdbx"), Is.False,
+            Assert.That(_targets.Forget("C:\\invented\\never-served.kdbx"), Is.Empty,
                 "and closing one holds nothing either, so no connection is closed for it");
             Assert.That(_targets.Current().Count, Is.EqualTo(1));
         }
@@ -366,7 +367,7 @@ namespace KeePassGate.Host.Tests
                         _database.Database.Close();
                         open.Remove(_database.Database);
                         Assert.That(targets.Lock("C:\\invented\\Ideas.kdbx"), Is.True);
-                        Assert.That(targets.Forget("C:\\invented\\ideas.kdbx"), Is.True, "the other one closes");
+                        Assert.That(targets.Forget("C:\\invented\\ideas.kdbx"), Is.Not.Empty, "the other database closes");
 
                         var answering = targets.Current().Where(target => target.IsLocked).ToList();
                         Assert.That(answering, Has.Count.EqualTo(1), "and the lock of the first still answers");
@@ -413,7 +414,7 @@ namespace KeePassGate.Host.Tests
             _targets.Refresh();
             _database.Database.Close();
             _open.Clear();
-            Assert.That(_targets.Forget(moved), Is.True, "it was served under the path it has now");
+            Assert.That(_targets.Forget(moved), Is.Not.Empty, "it was served under the path it has now");
 
             Assert.That(_targets.Current(), Is.Empty);
             Assert.That(_targets.Lock(original), Is.False,
@@ -500,7 +501,7 @@ namespace KeePassGate.Host.Tests
                     "the file this unlock reopened has no authority in it: " + string.Join("; ", reading.Problems));
             }
 
-            Assert.That(_targets.Unlock(_database.Path), Is.True, "an unlock after a lock lifts it");
+            Assert.That(_targets.Unlock(_database.Path), Is.Not.Empty, "an unlock after a lock lifts it");
         }
 
         private System.Security.Cryptography.X509Certificates.X509Certificate2 IssueAndAdmit()

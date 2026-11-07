@@ -2277,8 +2277,9 @@ components:
         again. The approval is used once, by the write that lands, and what it was approved
         against is compared at that write: the authority served, which of the approved names the
         list holds, and for a renewal the record being renewed, still there and unrevoked, so a
-        revocation that lands in between is never overtaken. A lock, a close and KeePass exiting
-        let go of every approval held, and then the next request raises the dialog again too.
+        revocation that lands in between is never overtaken. A lock and KeePass exiting let go of
+        every approval held, and a close of a database lets go of that database's, and then the
+        next request raises the dialog again too.
         `heldUntil` is there only while an approval is held; every other `503` here is
         `Unavailable`'s.
       headers:

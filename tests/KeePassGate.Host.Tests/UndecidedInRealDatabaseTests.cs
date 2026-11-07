@@ -64,6 +64,16 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void Closing_it_answers_every_candidate_its_clients_reached()
+        {
+            // So that a close ends the connections of either candidate, which is how they resolved,
+            // and no other database's.
+            _open.Clear();
+
+            Assert.That(_targets.Forget(_database.Path), Is.EquivalentTo(_candidates));
+        }
+
+        [Test]
         public void A_lock_answers_nothing_because_no_responder_was_minted()
         {
             var path = _database.Path;
