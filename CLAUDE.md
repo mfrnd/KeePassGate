@@ -609,6 +609,15 @@ Run them from
   line was counted as a defect. `GateListener.Opened` reads the socket once, and null is a
   connection that ended.
   `GateListenerTests.A_connection_closed_before_its_thread_starts_is_one_that_ended`.
+- **KeePass's managed Argon2 waits on the CLR thread pool from KeePass's own thread.** Without its
+  native library, or with native key transformations turned off, `Argon2Kdf.FillMemoryBlocks`
+  queues every lane with `ThreadPool.QueueUserWorkItem` and blocks the caller on them without
+  pumping, and the caller is KeePass's thread, in every save and every unlock. The pool hands out
+  as many threads at once as there are processors and adds about a thread a second past that, so
+  connections served from it left a save waiting on threads they held: thirty-one writes froze the
+  first save for seventeen to twenty-two seconds, and on four processors answered some of them
+  `503 busy`. `GateListener.Started` serves each connection on a thread of its own for that reason.
+  `GateListenerTests.Connections_that_send_nothing_leave_the_thread_pool_free`.
 - **Under TLS 1.3 a refused handshake's alert can lose the race to the reset behind it.** The gate
   refuses and closes with the client's request unread, so the client's first read after the
   handshake meets either the alert or the reset: a client half a second late to read lost the

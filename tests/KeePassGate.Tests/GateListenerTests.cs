@@ -1060,15 +1060,15 @@ namespace KeePassGate.Tests
         {
             // KeePass's dictionaries look a key up in the culture of the thread asking, and the
             // plugin makes the listener on KeePass's thread, which runs in its translation's
-            // culture. A pool thread keeps the regional format's, and a tree sorted in one and
-            // searched in the other misses keys that are there: a Danish KeePass on an English
-            // format refused an admitted client whose record's key began `aa`. So a connection
-            // has to be served in the culture the listener was made in.
+            // culture. A new thread starts in the regional format's, and a tree sorted in either
+            // culture and searched in the other misses keys that are there: a Danish KeePass on an
+            // English format refused an admitted client whose record's key began `aa`. So a
+            // connection has to be served in the culture the listener was made in.
             var made = CultureInfo.GetCultureInfo("da-DK");
             Assume.That(CultureInfo.CurrentCulture.Name, Is.Not.EqualTo(made.Name),
                 "a machine whose own format is Danish cannot tell the two apart");
 
-            var handler = new CultureHandler();
+            var handler = new ThreadHandler();
             var thread = Thread.CurrentThread;
             var own = thread.CurrentCulture;
             GateListener listener;
@@ -1092,23 +1092,121 @@ namespace KeePassGate.Tests
 
                 Assert.That(reply.Answered, Is.True, reply.Failure);
                 Assert.That(handler.Culture, Is.EqualTo(made.Name),
-                    "the request was served in the culture of the pool thread rather than KeePass's");
+                    "the request was served in the culture its thread started in rather than KeePass's");
             }
         }
 
-        /// <summary>A handler that notes the culture it was called in.</summary>
-        private sealed class CultureHandler : IGateHandler
+        [Test]
+        public void A_connection_is_served_on_a_thread_of_its_own_rather_than_the_pool()
+        {
+            // KeePass waits on the thread pool from its own thread: its managed Argon2 queues its
+            // lanes there and blocks a save on them. A conversation holds its thread through every
+            // wait it makes, so a conversation served from the pool is a thread a save of KeePass's
+            // can be left waiting for.
+            var handler = new ThreadHandler();
+            using (var listener = new GateListener(
+                new GateOptions { Port = 0 }, new GateResolver(_targets, _log), handler, _log))
+            {
+                Assert.That(listener.Start(), Is.True);
+
+                var reply = GateClient.Get(listener.Port, _first.NewName(), null, GateOperations.StatusPath);
+
+                Assert.That(reply.Answered, Is.True, reply.Failure);
+                Assert.That(handler.OnThePool, Is.False, "the request was served on a thread of the pool");
+            }
+        }
+
+        [Test]
+        public void Connections_that_send_nothing_leave_the_thread_pool_free()
+        {
+            // The pool hands out as many threads at once as its minimum, which is the number of
+            // processors, and adds about a thread a second past that. Served from it, connections
+            // that sent nothing held every item queued behind them until they timed out, KeePass's
+            // own work among them: thirty-one held it for ten seconds. So this opens more of them
+            // than the minimum and asks the pool for a thread while they are all still waiting.
+            int workers;
+            int ports;
+            ThreadPool.GetMinThreads(out workers, out ports);
+            var silent = workers + 8;
+
+            var options = new GateOptions
+            {
+                Port = 0,
+                MaxConnections = silent + 1,
+                Timeout = TimeSpan.FromSeconds(30)
+            };
+
+            using (var listener = new GateListener(
+                options, new GateResolver(_targets, _log), GateOperations.Router("9.9.9"), _log))
+            {
+                Assert.That(listener.Start(), Is.True);
+
+                var peers = new List<TcpClient>();
+                try
+                {
+                    for (var i = 0; i < silent; i++)
+                    {
+                        var peer = new TcpClient();
+                        peers.Add(peer);
+                        peer.Connect("127.0.0.1", listener.Port);
+                    }
+
+                    Assert.That(Waited(() => Conversations(listener) == silent), Is.True,
+                        Conversations(listener) + " of " + silent + " connections were taken");
+
+                    using (var ran = new ManualResetEventSlim())
+                    {
+                        Assert.That(ThreadPool.QueueUserWorkItem(delegate { ran.Set(); }), Is.True);
+                        Assert.That(ran.Wait(TimeSpan.FromSeconds(3)), Is.True,
+                            "an item queued on the pool behind " + silent + " silent connections did not run");
+                    }
+                }
+                finally
+                {
+                    foreach (var peer in peers)
+                    {
+                        peer.Close();
+                    }
+                }
+            }
+        }
+
+        /// <summary>How many conversations the listener counts as holding a slot.</summary>
+        private static int Conversations(GateListener listener)
+        {
+            var field = typeof(GateListener).GetField(
+                "_conversations", BindingFlags.Instance | BindingFlags.NonPublic);
+            return (int)field.GetValue(listener);
+        }
+
+        /// <summary>
+        /// A handler that notes the thread it was called on: its culture, and whether it is the
+        /// pool's.
+        /// </summary>
+        private sealed class ThreadHandler : IGateHandler
         {
             private string _culture;
+            private int _onThePool = -1;
 
             public string Culture
             {
                 get { return Volatile.Read(ref _culture); }
             }
 
+            /// <summary>Null until a request arrives.</summary>
+            public bool? OnThePool
+            {
+                get
+                {
+                    var noted = Volatile.Read(ref _onThePool);
+                    return noted < 0 ? (bool?)null : noted == 1;
+                }
+            }
+
             public void Handle(IGateContext context)
             {
                 Volatile.Write(ref _culture, CultureInfo.CurrentCulture.Name);
+                Volatile.Write(ref _onThePool, Thread.CurrentThread.IsThreadPoolThread ? 1 : 0);
                 context.Respond(200, "{}");
             }
         }

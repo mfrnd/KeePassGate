@@ -52,9 +52,11 @@ namespace KeePassGate.Transport
         /// queued.
         /// </summary>
         /// <remarks>
-        /// The gate runs inside the password manager and borrows its thread pool, so a connection
-        /// that is waiting is a thread KeePass is not using. Far more than any agent needs, and far
-        /// fewer than it takes to make the application wait on somebody who proved nothing.
+        /// The gate runs inside the password manager, and each connection holds a thread of the
+        /// gate's own for as long as it is served, never a thread of KeePass's thread pool, which
+        /// KeePass waits on from its own thread: `GateListener.Started` has the measurement. So
+        /// this bounds the threads the gate holds, and leaves the pool alone however many a peer
+        /// that proved nothing opens. Far more than any agent needs.
         /// </remarks>
         public int MaxConnections { get; set; }
 
