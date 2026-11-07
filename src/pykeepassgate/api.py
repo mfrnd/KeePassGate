@@ -19,6 +19,7 @@ from pathlib import Path
 from .client import ROOT, GateClient, Renewal, Status
 from .credentials import Credentials, Prepared, default_directory, forget, load, prepare, save
 from .errors import (
+    AmbiguousName,
     AuthorityUndecided,
     DatabaseLocked,
     GateBusy,
@@ -87,6 +88,7 @@ __all__ = [
     "ROOT",
     "SHORTEST_LIFETIME",
     "Access",
+    "AmbiguousName",
     "Attachment",
     "AuthorityUndecided",
     "Credentials",

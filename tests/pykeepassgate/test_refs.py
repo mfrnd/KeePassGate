@@ -21,7 +21,7 @@ import pytest
 
 from pykeepassgate import refs
 from pykeepassgate.client import GateClient
-from pykeepassgate.errors import GateBusy, RouteRefused, Unresolved, Withheld
+from pykeepassgate.errors import AmbiguousName, GateBusy, RouteRefused, Unresolved, Withheld
 from pykeepassgate.model import Entry
 from pykeepassgate.testing import FakeGate
 from test_reference import REPOSITORY
@@ -93,7 +93,8 @@ def test_the_resolver_gives_what_keepass_gives_or_refuses(case: dict[str, Any]) 
     entry = database.entry(case["entry"])
 
     if case["resolver"] == "refuses":
-        with pytest.raises(Unresolved):
+        # Either refusal: which of the two each case is, the tests below pin by name.
+        with pytest.raises((Unresolved, AmbiguousName)):
             refs.resolve(database, entry, case["value"])
     elif case["resolver"] == "keeps":
         assert case["keepass"] != case["value"], "KeePass changes it, which is why it is said"
@@ -122,7 +123,7 @@ def test_a_spelling_only_keepass_can_compare_is_refused(name: str, value: str) -
     # alone finds only the second. Neither can be answered without KeePass's own comparison.
     entry = Entry.read(answer(SERVICE, {"Title": "Invented Service", name: "an invented value"}))
 
-    with pytest.raises(Unresolved, match="its own comparison"):
+    with pytest.raises(AmbiguousName, match="its own comparison"):
         refs.resolve(Database([]), entry, value)
 
 
@@ -143,7 +144,7 @@ def test_a_standard_string_held_under_a_look_alike_name_is_refused_rather_than_e
     entry = Entry.read(answer("A2000000000000000000000000000002", held))
     database = Database([{"uuid": "A2000000000000000000000000000002", "fields": held}])
 
-    with pytest.raises(Unresolved, match="beyond ASCII"):
+    with pytest.raises(AmbiguousName, match="beyond ASCII"):
         refs.resolve(database, entry, value)
 
 
@@ -153,6 +154,30 @@ def test_a_standard_string_an_entry_of_ascii_names_does_not_hold_is_empty() -> N
     entry = Entry.read(answer(SERVICE, {"Title": "Invented Service"}))
 
     assert refs.resolve(Database([]), entry, "[{PASSWORD}]") == "[]"
+
+
+@pytest.mark.parametrize("withheld", [False, True], ids=["read", "withheld"])
+@pytest.mark.parametrize("standard", ["title", "username", "password", "url", "notes"])
+def test_the_read_model_refuses_a_standard_string_held_under_a_look_alike_name(
+    withheld: bool, standard: str
+) -> None:
+    # The resolver's rule on the read model. `entry.password` answered "" for this entry, where
+    # KeePass shows a value, and where the gate withheld a value, which this client never reads as
+    # empty; the soft hyphen is invisible, which is the whole of the trap.
+    names = {"title": "Title", "username": "UserName", "password": "Password", "url": "URL"}
+    name = names.get(standard, "Notes")
+    held: dict[str, str | None] = {} if standard == "title" else {"Title": "Invented Look-alike"}
+    held[name[:2] + chr(0xAD) + name[2:]] = None if withheld else "an invented value"
+    entry = Entry.read(answer("A2000000000000000000000000000002", held))
+
+    with pytest.raises(AmbiguousName, match="beyond ASCII"):
+        getattr(entry, standard)
+
+
+def test_the_read_model_reads_a_standard_string_ascii_names_leave_out_as_empty() -> None:
+    entry = Entry.read(answer(SERVICE, {"Title": "Invented Service"}))
+
+    assert (entry.username, entry.password, entry.url, entry.notes) == ("", "", "", "")
 
 
 def _case(name: str) -> dict[str, Any]:
