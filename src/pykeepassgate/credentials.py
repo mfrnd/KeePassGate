@@ -713,6 +713,41 @@ def refuse_link(path: Path) -> None:
         )
 
 
+def write_owner_only(path: Path, content: bytes) -> None:
+    """Write a file only its owner may read, as the identity's own files are written.
+
+    For what the command line fetches out of a database, which is as often a key as anything:
+    `Path.write_bytes` creates with the process umask, readable by every account under the usual
+    umask, follows a link already at the name, and leaves a file already there as open as it was.
+    This creates at `0600`, refuses a link at the name rather than following it, by `O_NOFOLLOW`
+    where the platform has it and by holding the file opened to the file at the name, as
+    `Prepared.open` does, and narrows a file already there through the handle before anything is
+    written into it. On Windows the mode means nothing and the file takes its directory's ACL, as
+    the identity's files do. A failure is a `StorageError` naming the path.
+    """
+    flags = os.O_WRONLY | os.O_CREAT | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_BINARY", 0)
+    try:
+        descriptor = os.open(path, flags, _OWNER_ONLY)
+    except OSError as error:
+        raise StorageError(f"{path} could not be opened for writing: {error}") from error
+
+    try:
+        try:
+            opened, there = os.fstat(descriptor), path.lstat()
+        except OSError as error:
+            raise StorageError(f"{path} could not be opened for writing: {error}") from error
+
+        if _linked(there) or (opened.st_dev, opened.st_ino) != (there.st_dev, there.st_ino):
+            raise StorageError(
+                f"{path} could not be opened for writing: it is a link, which is not followed"
+            )
+
+        _own(path, _OWNER_ONLY, descriptor)
+        _write(path, descriptor, content)
+    finally:
+        os.close(descriptor)
+
+
 def _linked(status: os.stat_result) -> bool:
     """Whether what `lstat` described is a link: a symbolic one, or a junction on Windows.
 

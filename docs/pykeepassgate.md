@@ -647,6 +647,11 @@ that is not there or will not read is exit code 2 with nothing sent, as a place 
 write to is. Adding needs `C` and replacing `U`, each with `A`; stripping needs `S` alone, as
 stripping a field does.
 
+**`fetch` writes the file as the identity's own files are written**: only its owner may read it,
+`0600`, a file already there is narrowed before the attachment goes in, and a link at the name is
+refused, exit 2, rather than followed. An attachment is as often a key as anything. On Windows the
+file takes its directory's ACL, as the identity's do.
+
 ## Write against what was read
 
 A program that reads an entry, works on it, and writes it back carries what it read over whatever

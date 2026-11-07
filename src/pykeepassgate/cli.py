@@ -43,7 +43,7 @@ from pathlib import Path
 from typing import Literal, TypedDict
 
 from . import api, pairing, refs, transport
-from .credentials import IDENTITY_FILE
+from .credentials import IDENTITY_FILE, write_owner_only
 from .errors import GateError, ProtocolError, StorageError
 from .model import TITLE, URL
 
@@ -1854,14 +1854,18 @@ def _fetch(arguments: argparse.Namespace) -> int:
     if content is None:
         raise ProtocolError("the gate sent an attachment with no content")
 
+    # Owner read and write only, never through a link at the name, and a file already there
+    # narrowed before the content goes in, as the identity's own files are written: what a
+    # database holds is as often a key as anything, and `write_bytes` left it readable by every
+    # account under the usual umask.
     try:
-        arguments.to.write_bytes(content)
-    except OSError as error:
+        write_owner_only(arguments.to, content)
+    except StorageError as error:
         # The gate has answered by now. What failed is the place the file was to go: a
-        # directory, a file that may not be replaced, a folder that is not there. That is an
-        # argument that cannot be done as given, which is what exit code 2 says, where the
-        # exception escaping `main` would read as a gate failure after a traceback. The
-        # operating system's sentence names the path.
+        # directory, a file that may not be replaced, a folder that is not there, a link. That is
+        # an argument that cannot be done as given, which is what exit code 2 means, where the
+        # exception reaching `main` would read as a failure of the gate's. The sentence names the
+        # path.
         print(str(error), file=sys.stderr)
         return 2
 

@@ -222,6 +222,11 @@ none, since it releases both.
   they wrote and reported done, exit 0. An empty line is still the empty value it was sent as.
   `pair` given no invitation that way is refused the same way, where it was refused as a
   malformed token, exit 1.
+- **`fetch` writes an attachment only its owner may read**, `0600`, narrowing a file already
+  there before writing into it and refusing a link at the name, exit 2, as the identity's own
+  files are written. It wrote through `Path.write_bytes`, which created the file readable by every
+  account under the usual umask, left a file already there as open as it was, and followed a
+  link to wherever it pointed.
 
 ## 0.1.0, 2026-10-25
 
