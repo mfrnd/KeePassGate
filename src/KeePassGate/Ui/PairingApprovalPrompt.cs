@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
 using KeePassGate.Diagnostics;
@@ -170,9 +171,9 @@ namespace KeePassGate.Ui
 
         /// <summary>
         /// A database closed for real. Nothing here: a dialog about it finds the database gone
-        /// when its answer is acted on, and the approval book lets go of what it held.
+        /// when its answer is acted on, and the approval book lets go of what it held for it.
         /// </summary>
-        public void Closed()
+        public void Closed(IReadOnlyCollection<string> databaseIds)
         {
         }
 

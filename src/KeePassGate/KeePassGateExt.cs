@@ -67,7 +67,8 @@ namespace KeePassGate
 
         /// <summary>
         /// The approvals the operator gave that KeePass was too busy to write, held for the client's
-        /// retry, which pairing and renewal share and a lock, a close and an exit clear.
+        /// retry, which pairing and renewal share and a lock, a close of their database and an exit
+        /// clear.
         /// </summary>
         private readonly ApprovalBook _approvals = new ApprovalBook();
         private JsonLinesAudit _audit;

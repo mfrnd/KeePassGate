@@ -98,13 +98,10 @@ namespace KeePassGate.Transport
         /// Every connection being served right now, so that all of them can be closed at once.
         /// </summary>
         /// <remarks>
-        /// `PAIRING.md` §308 requires this on **both** lock transitions, and unlock is the
-        /// interesting one. Closing at lock is obvious: a socket thread must not be reading a
-        /// database the user interface thread is closing. Closing at unlock is about privilege, and
-        /// it is the half that is easy to miss: a connection that completed its handshake against
-        /// the responder certificate was authenticated against nothing, because validating a client
-        /// certificate needs the authority, which was not loaded. Letting it survive into the
-        /// unlocked state would promote it to an authority it never proved anything to.
+        /// `PAIRING.md` §308: a lock closes all of them but those waiting on the operator, since a
+        /// socket thread must not be reading a database the user interface thread is closing and
+        /// KeePass locks every database at once. A close and an unlock close only their own
+        /// database's, by <see cref="_servedFor"/>.
         /// </remarks>
         private readonly HashSet<TcpClient> _live = new HashSet<TcpClient>();
 
@@ -113,6 +110,24 @@ namespace KeePassGate.Transport
         /// and which a lock spares: see <see cref="CloseAllButAwaiting"/>.
         /// </summary>
         private readonly HashSet<TcpClient> _awaiting = new HashSet<TcpClient>();
+
+        /// <summary>
+        /// The authority each live connection's name resolved to, which is how a close or an unlock
+        /// finds that database's connections and no others: see
+        /// <see cref="Close(IReadOnlyCollection{string}, string)"/>.
+        /// </summary>
+        private readonly Dictionary<TcpClient, string> _servedFor = new Dictionary<TcpClient, string>();
+
+        /// <summary>
+        /// When each authority's connections were last closed, counted in <see cref="_closings"/>,
+        /// for a connection whose name resolved just before: see <see cref="Serving"/>.
+        /// </summary>
+        private readonly Dictionary<string, long> _closedAt = new Dictionary<string, long>(StringComparer.Ordinal);
+
+        /// <summary>
+        /// How many closes by authority there have been, under <see cref="_stateLock"/>.
+        /// </summary>
+        private long _closings;
 
         public GateListener(GateOptions options, GateResolver resolver, IGateHandler handler, IGateLog log)
             : this(options, resolver, handler, null, log)
@@ -271,18 +286,17 @@ namespace KeePassGate.Transport
         }
 
         /// <summary>
-        /// Closes every connection being served, without stopping the listener. What a lock and an
-        /// unlock both do.
+        /// Closes every connection being served, without stopping the listener. What a stop does.
         /// </summary>
         /// <remarks>
         /// Closing the socket is what ends the conversation: the thread serving it is blocked in a
         /// read, and it wakes with a failure it already knows how to treat as a client that hung
-        /// up. Nothing is joined, because this runs on the user interface thread during a lock and
-        /// waiting on a socket thread there is how a password manager stops responding.
+        /// up. Nothing is joined, because a lock runs on the user interface thread and waiting on a
+        /// socket thread there is how a password manager stops responding.
         /// </remarks>
         public int CloseAll(string why)
         {
-            return Close(why, false);
+            return Close(client => true, why);
         }
 
         /// <summary>
@@ -292,31 +306,72 @@ namespace KeePassGate.Transport
         /// `PAIRING.md` §308. The lock has already closed the dialog such a connection waits on, or
         /// kept one from being shown, so what is left to it is answering `503 locked`; closing it
         /// here was what left the client with no answer at all. It reads nothing more of the
-        /// database, which writes nothing while locked, and its deadline still bounds it. An
-        /// unlock and a stop close it with the rest.
+        /// database, which writes nothing while locked, and its deadline still bounds it. A stop
+        /// closes it with the rest.
         /// </remarks>
         public int CloseAllButAwaiting(string why)
         {
-            return Close(why, true);
+            return Close(client => !_awaiting.Contains(client), why);
         }
 
-        private int Close(string why, bool spareAwaiting)
+        /// <summary>
+        /// Closes every connection to a database with any of these authorities, a pairing's and a
+        /// renewal's included, and leaves every other database's.
+        /// </summary>
+        /// <remarks>
+        /// What a close and an unlock do, the operator's ruling R1. Both used to close every
+        /// connection: closing or unlocking a second database reset every request to the first,
+        /// which was open all along, and closed the connection of a pairing waiting on the first
+        /// database's dialog, which the operator then approved into a closed socket. A connection
+        /// whose name has not resolved yet is about no database, and is left alone, unless it
+        /// resolves to any of these before it is recorded: see <see cref="Serving"/>.
+        /// </remarks>
+        public int Close(IReadOnlyCollection<string> databaseIds, string why)
+        {
+            if (databaseIds == null || databaseIds.Count == 0)
+            {
+                return 0;
+            }
+
+            var closed = new HashSet<string>(databaseIds, StringComparer.Ordinal);
+            return Close(
+                client =>
+                {
+                    string served;
+                    return _servedFor.TryGetValue(client, out served) && closed.Contains(served);
+                },
+                why,
+                closed);
+        }
+
+        /// <summary>
+        /// Closes the live connections this chooses, which it is asked about under the lock.
+        /// </summary>
+        /// <param name="closedFor">
+        /// The authorities this closes for, noted so that a connection resolving to any of them as
+        /// this runs is ended too, or null when the close is not by authority.
+        /// </param>
+        private int Close(Func<TcpClient, bool> chosen, string why, ISet<string> closedFor = null)
         {
             TcpClient[] closing;
 
             lock (_stateLock)
             {
-                var chosen = new List<TcpClient>();
-                foreach (var client in _live.Where(client => !spareAwaiting || !_awaiting.Contains(client)))
+                if (closedFor != null)
                 {
-                    chosen.Add(client);
+                    _closings++;
+                    foreach (var databaseId in closedFor)
+                    {
+                        _closedAt[databaseId] = _closings;
+                    }
                 }
 
-                closing = chosen.ToArray();
+                closing = _live.Where(chosen).ToArray();
                 foreach (var client in closing)
                 {
                     _live.Remove(client);
                     _awaiting.Remove(client);
+                    _servedFor.Remove(client);
                 }
             }
 
@@ -679,6 +734,7 @@ namespace KeePassGate.Transport
                             // In a `using`, because a resolved target arrives holding a reference
                             // taken for this connection. Giving it back here is what lets the cache
                             // release the material the moment nothing is serving from it.
+                            var since = Closings();
                             using (var resolution = Resolve(peek.ServerName))
                             {
                                 if (resolution == null)
@@ -692,6 +748,12 @@ namespace KeePassGate.Transport
                                     _log.Info(
                                         "dropped a connection: " +
                                         resolution.Outcome.ToString().ToLowerInvariant());
+                                    return;
+                                }
+
+                                if (!Serving(client, resolution.Target.DatabaseId, since))
+                                {
+                                    _log.Info("dropped a connection whose database was closed as it resolved");
                                     return;
                                 }
 
@@ -756,6 +818,7 @@ namespace KeePassGate.Transport
                         {
                             _live.Remove(client);
                             _awaiting.Remove(client);
+                            _servedFor.Remove(client);
                         }
                     }
                 }
@@ -983,6 +1046,45 @@ namespace KeePassGate.Transport
             {
                 // A socket that has already gone has no address to report.
                 return string.Empty;
+            }
+        }
+
+        /// <summary>How many closes by authority there have been so far.</summary>
+        private long Closings()
+        {
+            lock (_stateLock)
+            {
+                return _closings;
+            }
+        }
+
+        /// <summary>
+        /// Records the authority a live connection's name resolved to, and answers whether it is
+        /// still to be served.
+        /// </summary>
+        /// <remarks>
+        /// **Not when its database was closed or unlocked while the name was resolving.** A close
+        /// by authority finds a connection by what is recorded here, and a name that resolved just
+        /// before the close, to a target taken before the database was let go, is recorded just
+        /// after it: the close missed it, and it would go on reading a database KeePass had
+        /// emptied. <paramref name="since"/> is how many closes there had been before the name was
+        /// asked about, so a close of this authority after that ends the connection here instead.
+        /// Nor when something has closed it already, which a lock and a stop do to every live
+        /// connection whatever it resolved to.
+        /// </remarks>
+        private bool Serving(TcpClient client, string databaseId, long since)
+        {
+            lock (_stateLock)
+            {
+                long closedAt;
+                if (!_live.Contains(client) ||
+                    (_closedAt.TryGetValue(databaseId ?? string.Empty, out closedAt) && closedAt > since))
+                {
+                    return false;
+                }
+
+                _servedFor[client] = databaseId;
+                return true;
             }
         }
 

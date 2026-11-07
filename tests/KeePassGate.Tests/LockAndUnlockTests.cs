@@ -222,14 +222,42 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void A_close_whose_question_could_not_be_taken_away_still_forgets_the_database()
+        public void A_close_whose_question_could_not_be_taken_away_still_closes_its_connections()
         {
             _screen.Refusal = new NullReferenceException("a defect taking the question away");
 
             _events.RaiseClosed("C:\\invented\\one.kdbx", false);
 
             Assert.That(_targets.Forgotten, Is.EqualTo(new[] { "C:\\invented\\one.kdbx" }));
+            Assert.That(_connections.ClosedFor, Is.EqualTo(new[] { RecordingTargets.IdOf("C:\\invented\\one.kdbx") }));
             Assert.That(_incidents.Recent, Has.Exactly(1).Contains(nameof(NullReferenceException)));
+        }
+
+        [Test]
+        public void A_close_that_cannot_name_its_database_lets_every_approval_go()
+        {
+            // Forgetting it is what answers which authorities went, so when that fails nothing can
+            // tell the closed database's approvals from the others, and every approval goes, as a
+            // close used to let them all go: an approval held across a close could be written into
+            // whatever is opened under that authority next.
+            _targets.Throws = new InvalidOperationException("the targets fell over");
+
+            Assert.DoesNotThrow(() => _events.RaiseClosed("C:\\invented\\one.kdbx", false));
+
+            Assert.That(_screen.ClosedFor, Is.EqualTo(new IReadOnlyCollection<string>[] { null }));
+            Assert.That(_connections.Closed, Is.Zero, "and nothing names a connection to close");
+            Assert.That(_incidents.Count, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void A_close_of_a_database_nothing_served_closes_nothing()
+        {
+            _targets.HeldSomething = false;
+
+            _events.RaiseClosed("C:\\invented\\one.kdbx", false);
+
+            Assert.That(_connections.Closed, Is.Zero);
+            Assert.That(_screen.ClosedFor.Single(), Is.Empty, "no approval was held for it either");
         }
 
         [Test]
@@ -269,27 +297,35 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void An_unlock_and_a_close_spare_nobody_and_close_no_dialog()
+        public void An_unlock_and_a_close_end_only_their_own_database_and_close_no_dialog()
         {
+            // The operator's ruling R1. Both used to close every connection and the close every
+            // approval, so unlocking or closing a second database reset the first database's
+            // requests, a pairing waiting on its dialog among them, and told an approval held for
+            // it that its database was locked.
             _targets.LiftsALock = true;
 
             _events.RaiseOpened("C:\\invented\\one.kdbx");
-            Assert.That(_screen.Closed, Is.Zero, "an unlock lets go of nothing");
+            Assert.That(_screen.ClosedFor, Is.Empty, "an unlock lets go of no approval");
 
             _events.RaiseClosed("C:\\invented\\two.kdbx", false);
 
-            Assert.That(_connections.Closed, Is.EqualTo(2));
+            Assert.That(_connections.ClosedFor, Is.EqualTo(new[]
+            {
+                RecordingTargets.IdOf("C:\\invented\\one.kdbx"), RecordingTargets.IdOf("C:\\invented\\two.kdbx")
+            }));
             Assert.That(_connections.Spared, Is.Zero);
             Assert.That(_screen.Locked, Is.Zero);
-            Assert.That(_screen.Closed, Is.EqualTo(1), "a close lets go of every approval held, as a lock does");
+            Assert.That(_screen.ClosedFor.Single(), Is.EqualTo(new[] { RecordingTargets.IdOf("C:\\invented\\two.kdbx") }),
+                "a close lets go of its own database's approvals");
         }
 
         [Test]
         public void A_database_merely_being_opened_closes_nothing()
         {
             // KeePass announces an open and an unlock the same way. A database that was never
-            // locked has no responder to promote a connection from, so there is nothing to protect
-            // against and no reason to drop somebody's connection.
+            // locked had no responder answering for it, so none of its connections was being told
+            // it is locked, and there is no reason to drop somebody's connection.
             //
             // Found by the end to end tier: a KeePass starting with a database on its command line
             // raised this while a client was already connecting, and killed its handshake.
@@ -312,16 +348,16 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void Unlocking_serves_it_again_and_closes_every_connection()
+        public void Unlocking_serves_it_again_and_closes_its_connections()
         {
-            // The interesting half. A connection that shook hands with the responder was authenticated
-            // against nothing, so it must not survive into the unlocked state.
+            // The ones its responder was answering, so that a client part way through a handshake
+            // with the responder connects again rather than being told it is locked.
             _targets.LiftsALock = true;
 
             _events.RaiseOpened("C:\\invented\\one.kdbx");
 
             Assert.That(_targets.Unlocked, Is.EqualTo(new[] { "C:\\invented\\one.kdbx" }));
-            Assert.That(_connections.Closed, Is.EqualTo(1));
+            Assert.That(_connections.ClosedFor, Is.EqualTo(new[] { RecordingTargets.IdOf("C:\\invented\\one.kdbx") }));
         }
 
         [Test]
@@ -331,7 +367,7 @@ namespace KeePassGate.Tests
 
             Assert.That(_targets.Forgotten, Is.EqualTo(new[] { "C:\\invented\\one.kdbx" }));
             Assert.That(_targets.Locked, Is.Empty, "a closed database is not a locked one");
-            Assert.That(_connections.Closed, Is.EqualTo(1));
+            Assert.That(_connections.ClosedFor, Is.EqualTo(new[] { RecordingTargets.IdOf("C:\\invented\\one.kdbx") }));
         }
 
         [Test]
@@ -534,7 +570,13 @@ namespace KeePassGate.Tests
             /// <summary>True when a lock was really lifted, which is what a test decides here.</summary>
             public bool LiftsALock { get; set; }
 
-            public bool Unlock(string path)
+            /// <summary>The authority a test's database at this path is served under.</summary>
+            public static string IdOf(string path)
+            {
+                return "the authority of " + path;
+            }
+
+            public IReadOnlyCollection<string> Unlock(string path)
             {
                 _order.Add("unlock");
                 if (Throws != null)
@@ -543,10 +585,10 @@ namespace KeePassGate.Tests
                 }
 
                 _unlocked.Add(path);
-                return LiftsALock;
+                return LiftsALock ? new[] { IdOf(path) } : Array.Empty<string>();
             }
 
-            public bool Forget(string path)
+            public IReadOnlyCollection<string> Forget(string path)
             {
                 _order.Add("forget");
                 if (Throws != null)
@@ -555,7 +597,7 @@ namespace KeePassGate.Tests
                 }
 
                 _forgotten.Add(path);
-                return true;
+                return HeldSomething ? new[] { IdOf(path) } : Array.Empty<string>();
             }
 
             public int Refreshed { get; private set; }
@@ -588,7 +630,22 @@ namespace KeePassGate.Tests
             /// <summary>How many of the closes spared the connections waiting on the operator.</summary>
             public int Spared { get; private set; }
 
-            public int CloseAll(string why)
+            /// <summary>Every authority a close by authority was for, in order.</summary>
+            public List<string> ClosedFor { get; } = new List<string>();
+
+            public int Close(IReadOnlyCollection<string> databaseIds, string why)
+            {
+                ClosedFor.AddRange(databaseIds);
+                return Closing();
+            }
+
+            public int CloseAllButAwaiting(string why)
+            {
+                Spared++;
+                return Closing();
+            }
+
+            private int Closing()
             {
                 Closed++;
                 _order.Add("close");
@@ -599,12 +656,6 @@ namespace KeePassGate.Tests
                 }
 
                 return 0;
-            }
-
-            public int CloseAllButAwaiting(string why)
-            {
-                Spared++;
-                return CloseAll(why);
             }
         }
 
@@ -619,7 +670,10 @@ namespace KeePassGate.Tests
 
             public int Locked { get; private set; }
 
-            public int Closed { get; private set; }
+            /// <summary>
+            /// What each close let go of, null for a close that named no database.
+            /// </summary>
+            public List<IReadOnlyCollection<string>> ClosedFor { get; } = new List<IReadOnlyCollection<string>>();
 
             /// <summary>What taking the question away throws, or null for one that goes.</summary>
             public Exception Refusal { get; set; }
@@ -634,9 +688,9 @@ namespace KeePassGate.Tests
                 }
             }
 
-            void IApprovalScreen.Closed()
+            void IApprovalScreen.Closed(IReadOnlyCollection<string> databaseIds)
             {
-                Closed++;
+                ClosedFor.Add(databaseIds);
                 _order.Add("screen closed");
                 if (Refusal != null)
                 {

@@ -146,11 +146,30 @@ namespace KeePassGate.Tests
             using (var listener = Listening(operatorAt, new GateOptions { Port = 0 }))
             using (var old = _authority.IssueAdmittedClient("reader"))
             {
-                operatorAt.Meanwhile = () => listener.CloseAll("a database was unlocked");
+                operatorAt.Meanwhile = () => listener.Close(new[] { _authority.DatabaseId }, "a database was unlocked");
 
                 var reply = Renew(listener, old);
 
                 Assert.That(reply.Answered, Is.False, reply.ToString());
+            }
+        }
+
+        [Test]
+        public void A_close_of_another_database_under_the_dialog_leaves_its_connection_to_answer()
+        {
+            // The operator's ruling R1. Closing every connection closed this connection too, so the
+            // operator approved into a closed socket: the record was written, and the certificate
+            // never reached the client.
+            var operatorAt = FakeRenewalApproval.Approving();
+
+            using (var listener = Listening(operatorAt, new GateOptions { Port = 0 }))
+            using (var old = _authority.IssueAdmittedClient("reader"))
+            {
+                operatorAt.Meanwhile = () => listener.Close(new[] { "another database's authority" }, "a database was closed");
+
+                var reply = Renew(listener, old);
+
+                Assert.That(reply.Status, Is.EqualTo(200), reply.ToString());
             }
         }
 

@@ -273,6 +273,13 @@ none, since it releases both.
   the first save for seventeen to twenty-two seconds and answered some of them `503 busy`, and
   thirty-one connections that sent nothing, from a peer that proved nothing, held KeePass's own
   background work back for about ten seconds.
+- **Closing or unlocking a database ends only that database's connections, and closing it lets go
+  of only its own approvals.** Both ended every connection, so closing or unlocking a second
+  database reset every request to the first, and closed the connection of a pairing or a renewal
+  waiting on the first database's dialog, which the operator then approved into a closed socket:
+  the record was written and the certificate never reached the client. A close also let go of
+  every approval kept for a busy KeePass, so a pairing approved for a database still open was told
+  that its database was locked.
 
 ## 0.1.0, 2026-10-25
 

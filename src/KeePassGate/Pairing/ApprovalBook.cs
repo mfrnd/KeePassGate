@@ -163,9 +163,9 @@ namespace KeePassGate.Pairing
     ///
     /// **Single use**: the write that lands takes the entry, under the writer's lock, before it
     /// changes anything. **Bounded by the pairing budget** the request arrived in, and **cleared by
-    /// a lock, a close and KeePass exiting**, so an approval never outlives the session of the
-    /// database it was given in, and one still settling when KeePass locks is never written after
-    /// the unlock for a client whose connection the unlock closed.
+    /// a lock, a close of its database and KeePass exiting**, so an approval never outlives the
+    /// session of the database it was given in, and an approval still settling when KeePass locks
+    /// is never written after the unlock for a client whose connection the unlock closed.
     ///
     /// **Every approval passes through here**, the ones written at once included, because the
     /// same three things decide whether any of them may still be written: the entry is still
@@ -314,18 +314,10 @@ namespace KeePassGate.Pairing
             }
         }
 
-        /// <summary>Lets go of every approval held, which a lock, a close and an exit do.</summary>
+        /// <summary>Lets go of every approval held, which a lock and an exit do.</summary>
         public void Clear()
         {
-            lock (_lock)
-            {
-                foreach (var held in _held.Values)
-                {
-                    held.Cleared = true;
-                }
-
-                _held.Clear();
-            }
+            Clear(held => true);
         }
 
         /// <summary>A lock: nothing held survives it.</summary>
@@ -334,10 +326,38 @@ namespace KeePassGate.Pairing
             Clear();
         }
 
-        /// <summary>A database closed for real, which takes every approval with it as a lock does.</summary>
-        void IApprovalScreen.Closed()
+        /// <summary>
+        /// A database closed for real, which takes its own approvals with it as a lock does, and
+        /// leaves every other database's, the operator's ruling R1.
+        /// </summary>
+        /// <remarks>
+        /// It took every approval, so closing a database told a pairing approved for another
+        /// database that its database was locked, and the operator had to answer it again. Null
+        /// is a close whose database nothing could name, and lets every approval go, as a close
+        /// used to.
+        /// </remarks>
+        void IApprovalScreen.Closed(IReadOnlyCollection<string> databaseIds)
         {
-            Clear();
+            if (databaseIds == null)
+            {
+                Clear();
+                return;
+            }
+
+            Clear(held => databaseIds.Contains(held.DatabaseId, StringComparer.Ordinal));
+        }
+
+        /// <summary>Lets go of every approval held that this chooses.</summary>
+        private void Clear(Func<HeldApproval, bool> chosen)
+        {
+            lock (_lock)
+            {
+                foreach (var pair in _held.Where(pair => chosen(pair.Value)).ToList())
+                {
+                    pair.Value.Cleared = true;
+                    _held.Remove(pair.Key);
+                }
+            }
         }
 
         /// <summary>Drops whatever has run out. Called with the lock held.</summary>

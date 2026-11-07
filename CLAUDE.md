@@ -179,11 +179,11 @@ designing around them.
   burn cannot be reverted. **So are approvals KeePass was too busy to write**, in `ApprovalBook`
   beside it, the operator's ruling of 2026-10-14 over an HMAC token on the wire: keyed by a digest of
   exactly the approved request, held for the rest of the pairing budget, used once, let go by a
-  lock, a close and an exit, and compared under the writer's lock at the write with the authority,
-  the profile list and the renewed record it was approved against. The client is told
-  `heldUntil` in its `503 busy`. And the settings dialog a token was made on withdraws it unless
-  that dialog is accepted, so Cancel means Cancel for the one thing on the tab the database does
-  not hold.
+  lock, a close of its database and an exit, and compared under the writer's lock at the write
+  with the authority, the profile list and the renewed record it was approved against. The client
+  is told `heldUntil` in its `503 busy`. And the settings dialog a token was made on withdraws it
+  unless that dialog is accepted, so Cancel means Cancel for the one thing on the tab the database
+  does not hold.
 - **The approval dialogs are not registered with `GlobalWindowManager`**, and that is the reverse of
   every dialog KeePass shows. A registered dialog holds KeePass's inactivity lock off and drops a
   Windows lock, a session switch or a suspend asked for while it stands, and a dialog a client can
