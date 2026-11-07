@@ -423,12 +423,24 @@ function Invoke-Client {
         # distribution nobody can install: a packaging table that reads the working tree's layout
         # and ships a different one passes every other check here. Into .tmp, which is ignored,
         # because the artifacts are the gate's business and not the repository's.
+        #
+        # Built as the release builds it, with the hatchling `uv.lock` holds in `pyproject.toml`'s
+        # `build` group, exported with its hashes so that `uv build` refuses a backend matching
+        # none of them. The uv is this machine's own, and in CI the uv the lock holds.
+        #
+        # A part at a time, for the reason the helper above is joined that way: these go to `uv`,
+        # which reads a backslash on Linux as part of a name.
+        $staging = Join-Path $root '.tmp'
+        $constraints = Join-Path $staging 'build-constraints.txt'
+        $distribution = Join-Path $staging 'dist'
+        Invoke-Step 'client build constraints' {
+            uv export --frozen --only-group build --no-emit-project --format requirements.txt `
+                --quiet --output-file $constraints
+        }
+
         Invoke-Step 'client package' {
-            # A part at a time, for the reason the helper above is joined that way: this one goes
-            # to `uv`, which reads a backslash on Linux as part of a name.
-            $distribution = Join-Path (Join-Path $root '.tmp') 'dist'
             if (Test-Path $distribution) { Remove-Item $distribution -Recurse -Force }
-            uv build --out-dir $distribution
+            uv build --out-dir $distribution --build-constraints $constraints --require-hashes
         }
     }
     finally {

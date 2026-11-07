@@ -25,6 +25,9 @@ pykeepassgate = "pykeepassgate.cli:main"
 [project.urls]
 Homepage = "https://github.com/mfrnd/KeePassGate"
 
+# No version here, because this is what builds the client wherever its source distribution is
+# built, and a pin here would hold everybody who builds it to that version. What this repository
+# builds it with is the `build` group below.
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
@@ -73,6 +76,18 @@ dev = [
     "tree-sitter>=0.26",
     "tree-sitter-c-sharp>=0.23.5",
     "tree-sitter-python>=0.25",
+]
+# What the client is built with, so that a release is built with what the gate built with rather
+# than with whatever was newest that day. Locked and never installed, since `uv sync` installs the
+# `dev` group alone. `build.ps1` and `release.yml` hold `uv build` to the hatchling locked here,
+# exported with its hashes, and every workflow's setup-uv installs the uv locked here through
+# `version-file: uv.lock`, while a machine of somebody's own keeps the uv it has. Each setup-uv
+# has to name the lock, because without it setup-uv finds the floor below and takes the newest
+# release above it. Dependabot moves both with the rest of the lock, a week after a release, and
+# the floors are where the pins started.
+build = [
+    "hatchling>=1.33",
+    "uv>=0.13.6",
 ]
 
 # ---------------------------------------------------------------------------------------------

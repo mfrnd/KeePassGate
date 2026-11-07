@@ -1,8 +1,8 @@
 # Keeps every pinned dependency current, in a pull request the gate checks like any other.
 #
-# **Everything here is pinned on purpose**: the actions by commit, the client's tools by `uv.lock`,
-# the prose tools by `package-lock.json`, and the plugin's libraries by an exact version in its
-# project. A pin is what keeps a run reproducible, and it is also what keeps a fix from arriving:
+# **Everything here is pinned on purpose**: the actions by commit, the client's tools and the uv
+# and hatchling it is built with by `uv.lock`, the prose tools by `package-lock.json`, and the
+# plugin's libraries by an exact version in its project. A pin is what keeps a run reproducible, and it is also what keeps a fix from arriving:
 # nothing moves one unless somebody does. This is that somebody, once a week, so a security fix in
 # a pinned action or library reaches a pull request rather than waiting to be noticed.
 #
@@ -19,8 +19,8 @@
 # be. The prose tools only read this repository's Markdown. An action does more: one merged this
 # way runs in the next release with that job's access, which is why only a minor or a patch
 # version merges itself, a week after its release, and why every action stays pinned by commit.
-# The plugin's libraries ship inside the release zip and the lock holds what the client installs,
-# so those wait for a person.
+# The plugin's libraries ship inside the release zip, and the lock holds what the client installs
+# and what builds the package PyPI is handed, so those wait for a person.
 #
 # **KeePass is not here.** It is downloaded and pinned by `keepass.version` and `keepass.sha256`,
 # which no ecosystem below reads, so `keepass-watch.yml` watches for a new release of it instead.

@@ -1041,6 +1041,13 @@ the tools this branch carries.
   versions. The tools written in Python are held to the same checks and the same floor, with their
   tests in `tests/tools`, and imported by those as the scripts they are.
 
+  **The lock pins what builds the client as well**, in a `build` group that nothing installs:
+  every workflow's setup-uv installs the uv it holds, through `version-file: uv.lock`, and
+  `build.ps1` and `release.yml` hold `uv build` to its hatchling by hash, so a release is built
+  with what the gate built with rather than with whatever was newest that day. Dependabot moves
+  both with the rest of the lock, `uv` included, each a week after its release. A machine of
+  somebody's own keeps its own uv, because nothing sets `required-version`.
+
   **`ruff check` is the gate and `ruff format` is not**, which is a decision rather than an
   omission: thirteen files have never been through the formatter and running it would rewrite them
   all. What is enforced is what a formatter cannot decide for you, and `pycodestyle` is in the
