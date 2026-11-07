@@ -479,7 +479,9 @@ def test_a_renewed_identity_an_earlier_renewal_left_is_never_written_over(
     # the same program again and leave a record nobody holds the key to.
     where = paired.credentials.directory
     staging = where.with_name("default.renewing")
-    credentials_module.save(staging, gate.port, renewing.renewed)
+    credentials_module.save(
+        staging, gate.port, renewing.renewed, client_key=paired.credentials.client_key
+    )
 
     with pytest.raises(StorageError, match="Finish that renewal") as refused:
         paired.renew()
@@ -487,6 +489,29 @@ def test_a_renewed_identity_an_earlier_renewal_left_is_never_written_over(
     assert f"pykeepassgate revoke --directory {staging}" in str(refused.value)
     assert gate.requests == []
     assert api.load(staging).expires == "2127-01-02T03:04:05Z", "left exactly as it was"
+    assert api.load(where).expires == "2126-08-15T09:00:00Z"
+
+
+@pytest.mark.parametrize("purpose", ["renewing", "retired"])
+def test_another_clients_identity_beside_this_one_stops_a_renewal_untouched(
+    gate: FakeGate, paired: GateClient, renewing: Gate, purpose: str
+) -> None:
+    # Paired there with a directory naming that path: taken for this client's own, an identity
+    # at `.retired` was revoked on the gate and its files removed, and an identity at `.renewing`
+    # turned every renewal of this client away with advice to copy it over this client's files.
+    where = paired.credentials.directory
+    beside = where.with_name(f"default.{purpose}")
+    other = credentials_module.save(beside, gate.port, renewing.renewed)
+    assert other.client_key != paired.credentials.client_key
+    held = {name: (beside / name).read_bytes() for name in credentials_module.FILES}
+
+    with pytest.raises(StorageError, match="another client's identity") as refused:
+        paired.renew()
+
+    assert str(beside) in str(refused.value)
+    assert other.client_key in str(refused.value)
+    assert gate.requests == []
+    assert {name: (beside / name).read_bytes() for name in credentials_module.FILES} == held
     assert api.load(where).expires == "2126-08-15T09:00:00Z"
 
 

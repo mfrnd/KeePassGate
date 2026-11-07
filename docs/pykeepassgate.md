@@ -97,10 +97,13 @@ which the XDG specification says to ignore. `--profile` picks the name, `default
 unless given, and `--directory` names the directory outright; every command takes one or the other,
 never both. From a program, `api.pair` and `GateClient.open` take `profile=` and `directory=`.
 
-**A profile is a name and not a path**, so one holding a separator or a colon, `..`, or a name
-ending in a dot or a space is refused, exit 2 or `ValueError`, rather than stored somewhere nobody
-named. Windows drops a trailing dot or space from a name, which would make `work.` the same
-identity as `work`. A path is what `--directory` is for.
+**A profile is a name and not a path: ASCII letters, digits, hyphens and underscores**, and
+anything else is refused, exit 2 or `ValueError`, rather than stored somewhere nobody named. That
+keeps out a separator, a colon and `..`, what Windows would change or refuse in a directory's
+name, a trailing dot or space among it, and a device name such as `CON` or `NUL`, on every
+platform. **A dot above all**, because a dot names what this client keeps beside a profile, as a
+renewal of `work` keeps `work.renewing` and `work.retired`. An identity stored under another name
+by 0.1.0 is reached with `--directory` naming its directory, which is what a path is for.
 
 **The directory is checked before the invitation is used**, because afterwards is too late: once the
 gate has answered, the invitation is spent and the record is written, and an identity that could not
@@ -274,6 +277,11 @@ operator approved, before the new identity is in place, leaves it whole in `.ren
 already admits it: `renew` says so, and a later renewal refuses to start rather than write over the
 only key for it, and says how to finish, by copying its four files over the identity's, or giving it
 up with `revoke --directory`.
+
+**What either directory holds is taken for this client's only when it carries this client's key**,
+as everything a renewal leaves there does. Another client's identity kept there, by a
+`--directory` naming that path, stops the renewal with nothing asked and nothing there touched,
+since presenting it would revoke it on the gate and forgetting it would remove its files.
 
 **Renew before the certificate runs out.** The gate renews only a certificate it still admits, and
 one that has expired by the gate's clock is refused as it refuses a stranger. So this client asks

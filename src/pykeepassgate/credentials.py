@@ -45,6 +45,7 @@ import contextlib
 import hashlib
 import json
 import os
+import re
 import stat
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
@@ -81,10 +82,22 @@ _LINK_TAGS = (0xA000000C, 0xA0000003)
 #: inherited ACL is what actually decides, so it is applied anyway and relied on nowhere.
 _OWNER_ONLY = stat.S_IRUSR | stat.S_IWUSR
 
-#: What a profile's name cannot hold, because it is joined as one directory: either separator, on
-#: every platform so that a name means the same wherever it is used, the colon that names a drive,
-#: and the one character no file name anywhere can carry.
-_NOT_IN_A_PROFILE = frozenset("/\\:\0")
+#: What a profile's name is made of, and nothing else: ASCII letters, digits, hyphens and
+#: underscores, which every file system takes as they are and every shell passes without quoting.
+_PROFILE = re.compile(r"[A-Za-z0-9_-]+")
+
+#: The names Windows reads as a device rather than a file, whatever their case, refused on every
+#: platform so that a name means the same wherever it is used.
+_DEVICES = frozenset(
+    (
+        "CON",
+        "PRN",
+        "AUX",
+        "NUL",
+        *(f"COM{digit}" for digit in range(10)),
+        *(f"LPT{digit}" for digit in range(10)),
+    )
+)
 
 
 def default_directory(name: str = "default") -> Path:
@@ -93,17 +106,35 @@ def default_directory(name: str = "default") -> Path:
     Per profile rather than one place, because a client that has paired with two databases holds
     two identities and they are not interchangeable.
 
-    **A profile is one directory's name**, and anything else is refused with `ValueError` rather
-    than joined. A separator or `..` would put the identity beside or above the others, an absolute
-    path would replace the place altogether, and `identity` would read it back from there as though
-    it were a profile. A name ending in a dot or a space is refused on every platform because
-    Windows stores it without them, which makes `work.` and `work` one identity and `...` the
-    directory every profile lives in. A path is what a `directory` is for.
+    **A profile is ASCII letters, digits, hyphens and underscores**, and anything else is refused
+    with `ValueError` rather than joined. That keeps out everything that made a name other than
+    one directory's: a separator or `..` would put the identity beside or above the others, an
+    absolute path would replace the place altogether, and `identity` would read it back from
+    there as though it were a profile. It keeps out what a file system would change or refuse as
+    well, which Windows does to a trailing dot or space, making `work.` and `work` one identity,
+    and to `<`, `>`, `"`, `|`, `?`, `*` and the control characters, which would fail only once
+    the directory is being made. A path is what a `directory` is for.
+
+    **A dot above all**, because a dot names what this client keeps beside a profile's own
+    directory: a renewal of `work` keeps `work.renewing` and `work.retired`, and a profile called
+    either would stand where that renewal keeps its own. Every name with a dot is kept for that,
+    including whatever a later version keeps there. **Nor is a profile a device name**, `CON`,
+    `NUL`, `COM1` and the rest, which Windows reads as the device. An identity stored under a name
+    refused here before this rule is reached by naming its directory.
     """
-    if not name or name[-1] in ". " or not _NOT_IN_A_PROFILE.isdisjoint(name):
+    if _PROFILE.fullmatch(name) is None:
         raise ValueError(
-            f"profile {name!r} is not one directory's name: a profile holds no separator, colon "
-            "or null and ends in neither a dot nor a space"
+            f"profile {name!r} is not a profile's name, which is ASCII letters, digits, hyphens "
+            "and underscores alone: a path is what a directory is for, and a dot names what this "
+            "client keeps beside a profile, as a renewal of 'work' keeps 'work.renewing' and "
+            "'work.retired'. An identity already stored under such a name is reached by naming "
+            "its directory"
+        )
+
+    if name.upper() in _DEVICES:
+        raise ValueError(
+            f"profile {name!r} is a name Windows reads as a device rather than a directory, which "
+            "no profile is, on any platform"
         )
 
     # `os.name` rather than `sys.platform`, which a type checker narrows to whichever platform it
