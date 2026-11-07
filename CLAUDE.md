@@ -988,9 +988,11 @@ version of the actions merge themselves, through `dependabot-auto-merge.yml`, si
 shows that an update breaks nothing and not that it is what it claims to be; the libraries and the
 lock wait for a person. **Every head is judged on its own**, since auto-merge stays on through a
 push by anybody with write access, Dependabot included: each run switches it off first, and only
-a head that qualifies switches it back on. KeePass is pinned where no such service reads, so
-`keepass-watch.yml` opens an issue when it releases a newer version, and moving that pin stays a
-person's job, since `tools/KeePass.ps1` refuses a version until its hash is written down.
+a head that qualifies switches it back on. A security update, which GitHub opens as soon as an
+advisory is out under two settings `RELEASING.md` lists, waits for a person as well. KeePass is
+pinned where no such service reads, so `keepass-watch.yml` opens an issue when it releases a newer
+version, and moving that pin stays a person's job, since `tools/KeePass.ps1` refuses a version
+until its hash is written down.
 
 **CodeQL reads what the gate does not.** `codeql.yml` analyzes the C#, the Python and the workflows
 on every pull request, every push to `master` and once a week, with what

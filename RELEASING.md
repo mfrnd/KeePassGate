@@ -47,6 +47,12 @@ fails at the step that needs it until it is done.
 6. **No API token on PyPI**, for the account or the project. Publishing needs none, and one made
    later would be a second way to publish that passes by the tag, the checks before it and the
    reviewer on `pypi`.
+7. **GitHub**, under Settings then Advanced Security: **Dependabot alerts** and **Dependabot
+   security updates**. `dependabot.yml` moves each pin a week after its release, grouped by kind,
+   and a security update is what arrives sooner: a pull request of its own as soon as an advisory
+   names a version pinned here, with no cooldown, which GitHub opens only with both settings on.
+   A release does not fail without them either. An advisory against a library the zip ships or an
+   action the release runs then raises nothing, and its fix waits for the weekly update.
 
 ## A rehearsal
 

@@ -2,13 +2,14 @@
 #
 # **Everything here is pinned on purpose**: the actions by commit, the client's tools and the uv
 # and hatchling it is built with by `uv.lock`, the prose tools by `package-lock.json`, and the
-# plugin's libraries by an exact version in its project. A pin is what keeps a run reproducible, and it is also what keeps a fix from arriving:
-# nothing moves one unless somebody does. This is that somebody, once a week, so a security fix in
-# a pinned action or library reaches a pull request rather than waiting to be noticed.
+# plugin's libraries by an exact version in its project. A pin is what keeps a run reproducible,
+# and it is also what keeps a fix from arriving: nothing moves a pin unless somebody does. This is
+# that somebody, once a week, so a security fix in a pinned action or library reaches a pull
+# request rather than waiting to be noticed.
 #
 # **One pull request per kind a week**, each kind grouped, because a dozen pull requests a week
 # would be read less carefully than four. A security update is never grouped or delayed: GitHub
-# opens it on its own as soon as the advisory is out.
+# opens it on its own as soon as the advisory is out, under two settings `RELEASING.md` lists.
 #
 # **A version is proposed once it is a week old**, the cooldown below. A compromised release is
 # usually found and pulled within days, and a week costs nothing a security update needs, since
