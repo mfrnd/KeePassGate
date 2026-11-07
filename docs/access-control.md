@@ -180,6 +180,17 @@ to that program. And with a URL override switched on, under **Tools**, **Options
 the override names them. KeePass asks first only before it runs a command line, and that question
 can be switched off. So don't open a URL a program may have written.
 
+**Global auto-type chooses an entry by its title.** When you press KeePass's global auto-type
+hot key, an entry matches if its title is contained in the title of the window in front, and when
+only one entry matches, KeePass types its user name and password into that window without asking.
+So a program with `U` on an entry can rename it after a window whose title the program chooses,
+such as a web page it serves, and your next press of the hot key there types a password the rules
+never let it read. KeePass resolves a reference in what it types, so a reference in the user name
+types another entry's password as well. Where you've also told KeePass to match on an entry's URL,
+the URL can do the same.
+To see which entry is about to be typed, turn on **Always show global auto-type entry selection
+dialog** under **Tools**, **Options**, **Advanced**.
+
 **A write verb can also push an entry's older versions out of its history.** Every change the gate
 makes to an entry first keeps the entry as it was, as an edit in KeePass does, and KeePass keeps
 only as many of those versions as **Database Settings**, **Advanced**, allows, so a program that

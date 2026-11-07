@@ -70,8 +70,19 @@ password among them. A client allowed to update an entry and not to read its pas
 associate the entry with a window of its own, or write a sequence that types the password into a
 field it reads, and the next time the operator auto-types there, KeePass would hand the client the
 value the rules withhold, while the audit records an update and nothing more. The `protected` switch cannot
-govern it either, since the value never crosses the gate. So auto-type stays the operator's, set in
-KeePass's own entry dialog.
+govern it either, since the value never crosses the gate. So an entry's auto-type settings stay the
+operator's, set in KeePass's own entry dialog.
+
+**That does not keep auto-type the operator's, which is what this used to conclude.** KeePass's
+global auto-type needs no association to choose an entry: by default an entry matches when its
+title is contained in the title of the window in front, and a single match is typed at once, with
+the default sequence of the user name, a tab, the password and Enter. The title is a field
+`update` may change. So a client allowed to update an entry and not to read its password can give
+the entry the title of a window it controls, a web page it serves among them, and the operator's
+next press of the hotkey there types the password into it. Refusing a title change to a client
+without `protected` would change what `update` means across the API, so the operator's ruling of
+2026-11-01 leaves that to a step of its own, and `docs/access-control.md` warns the operator
+beside the warning about URLs.
 
 **The database's name, description and default username**, and which group is its recycle bin,
 are neither served nor accepted. The name and the description are what the operator wrote in
