@@ -27,7 +27,10 @@ namespace KeePassGate.Bridge
     /// **Three dialogs are about a group whose place in the tree is still being decided**, and a
     /// node the dialog holds cannot say so. Add Entry and the TAN wizard fill a group on OK that
     /// they hold nothing of, which `BlockingRemoval` answers, and Add Group has put a group into
-    /// the tree that its Cancel takes back out, which `BlockingAdditions` answers.
+    /// the tree that its Cancel takes back out, which `BlockingAdditions` answers. **The TAN
+    /// wizard is answered for its whole database as well**, because it adds those entries from
+    /// inside its own OK, which can be handled part way through a save of the plugin's own, and
+    /// `BlockingSaves` is that question.
     ///
     /// **KeePass's attachment editor holds an attachment and not the entry it came from.** The main
     /// window keeps the entry while the editor is open and writes the edited bytes back onto it
@@ -68,6 +71,7 @@ namespace KeePassGate.Bridge
         private readonly Dictionary<Form, PwGroup> _open = new Dictionary<Form, PwGroup>();
         private readonly HashSet<Form> _creating = new HashSet<Form>();
         private readonly Dictionary<Form, PwGroup> _filling = new Dictionary<Form, PwGroup>();
+        private readonly HashSet<Form> _wizards = new HashSet<Form>();
         private readonly Dictionary<Form, PwEntry> _openEntries = new Dictionary<Form, PwEntry>();
         private readonly Dictionary<Form, string> _editing = new Dictionary<Form, string>();
         private readonly Dictionary<Form, PwDatabase> _openBulk = new Dictionary<Form, PwDatabase>();
@@ -300,6 +304,61 @@ namespace KeePassGate.Bridge
                     if (ReferenceEquals(pair.Value, group))
                     {
                         return "a dialog is open that adds to this group when it is accepted";
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Why nothing may be saved to this database right now, or null when something may.
+        /// </summary>
+        /// <remarks>
+        /// **A dialog's OK can run inside the plugin's own save.** `MainForm.SaveDatabase` pumps
+        /// KeePass's messages while it runs, as it blocks interaction and then while it writes the
+        /// entries, so a modal dialog's OK pressed meanwhile is handled part way through the save.
+        /// Most dialogs change only the node they hold, or change the tree after their own modal
+        /// loop has returned, which is after the save.
+        ///
+        /// **The TAN wizard adds its entries to its group from inside its own OK**, so a save
+        /// walking that group's entries at that moment meets a list that moved under it: the save
+        /// throws, KeePass shows its save warning, and the write is answered `500 not saved`. So
+        /// nothing is saved to the wizard's database while it is open, whatever the write is
+        /// about. The database refused is the database whose tree holds the group it fills, and
+        /// a wizard whose group could not be read refuses every database.
+        /// </remarks>
+        public string BlockingSaves(PwDatabase database)
+        {
+            if (database == null)
+            {
+                return null;
+            }
+
+            lock (_lock)
+            {
+                if (!_started)
+                {
+                    return "the dialogs are not being watched";
+                }
+
+                if (_unnoted.Count > 0)
+                {
+                    return Unnoted;
+                }
+
+                foreach (var form in _wizards)
+                {
+                    PwGroup filled;
+                    if (!_filling.TryGetValue(form, out filled) || filled == null)
+                    {
+                        return "the TAN wizard dialog is open, and which database it adds to could not be read";
+                    }
+
+                    if (ReferenceEquals(Top(filled), database.RootGroup))
+                    {
+                        return "the TAN wizard dialog is open on this database, and its OK adds entries inside "
+                               + "whatever save is running when it is pressed";
                     }
                 }
             }
@@ -598,18 +657,19 @@ namespace KeePassGate.Bridge
         /// </remarks>
         private static bool Within(PwDatabase database, PwEntry entry)
         {
-            var top = entry.ParentGroup;
-            if (top == null)
-            {
-                return true;
-            }
+            return entry.ParentGroup == null || ReferenceEquals(Top(entry.ParentGroup), database.RootGroup);
+        }
 
+        /// <summary>The top of the tree this group is in, a database's root group.</summary>
+        private static PwGroup Top(PwGroup group)
+        {
+            var top = group;
             while (top.ParentGroup != null)
             {
                 top = top.ParentGroup;
             }
 
-            return ReferenceEquals(top, database.RootGroup);
+            return top;
         }
 
         /// <summary>
@@ -660,6 +720,7 @@ namespace KeePassGate.Bridge
                 _open.Clear();
                 _creating.Clear();
                 _filling.Clear();
+                _wizards.Clear();
                 _openEntries.Clear();
                 _editing.Clear();
                 _openBulk.Clear();
@@ -718,6 +779,7 @@ namespace KeePassGate.Bridge
                     lock (_lock)
                     {
                         _filling[form] = filled;
+                        _wizards.Add(form);
                     }
 
                     return;
@@ -840,6 +902,7 @@ namespace KeePassGate.Bridge
                     _open.Remove(form);
                     _creating.Remove(form);
                     _filling.Remove(form);
+                    _wizards.Remove(form);
                     _openEntries.Remove(form);
                     _editing.Remove(form);
                     _openBulk.Remove(form);

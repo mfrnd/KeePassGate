@@ -251,6 +251,11 @@ none, since it releases both.
   answered as done came back, and an update was overwritten, with nothing to show for it. Since the
   editor does not tell which entry it came from, every entry holding an attachment of that name
   is refused while it is open.
+- **Nothing is written to a database while KeePass's TAN wizard is open on it**, and a write
+  answers `503 busy`, pairing and renewal included. The wizard adds its entries from inside its
+  own OK, and KeePass's save handles messages as it goes, so an OK pressed during the save a
+  write makes added to the list the save was walking: the save threw, KeePass showed its save
+  warning, and the write was answered `500 not saved`.
 
 ## 0.1.0, 2026-10-25
 

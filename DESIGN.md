@@ -951,6 +951,20 @@ So the rules here:
   either**: an API write still saves what is in memory, the operator's own edits included, which is
   a documented consequence rather than something to guard against.
 
+  **A dialog of KeePass's own is answered inside this plugin's save too.** The save pumps
+  KeePass's messages as it blocks interaction, again once the key is derived, and then after
+  each entry it writes once fifty milliseconds have passed since the last time, and a modal
+  dialog is not part of the window it blocks, so that dialog's OK can be handled part way through
+  the save. Nearly every dialog changes only the node it holds there, or changes the tree once its
+  own modal loop has returned, which is after the save. The TAN wizard adds its entries to its
+  group from inside its OK, and an OK handled while the save walks that group moves the list the
+  walk is in. Measured on a running KeePass with twenty thousand entries in the group and OK
+  pressed through UI automation: the save threw, KeePass showed its save warning, and the write
+  was answered `500 not saved`. An OK waiting while the key was derived is handled before the
+  walk and goes into the save harmlessly, which was measured too, so the window is as long as the
+  group takes to write. So nothing is saved to a database the wizard is open on, which §124 lists
+  with the other windows watched.
+
   **An approval dialog is a turn too**, and while it was posted it was delivered inside a save the
   same way: the dialog then held the save, the writer's lock and KeePass's interaction block for as
   long as the operator took, every other write was refused after its twenty seconds, and a
@@ -1396,7 +1410,9 @@ lacks any of them starts no watch, and every write and every pairing is refused.
   attachments and custom data back on OK, so a write to that entry is refused, and under Edit
   Entries a write to any entry of that database. Add Entry fills its group on OK, so that group is
   not removed.
-- **The TAN wizard** fills its group on OK, so that group is not removed.
+- **The TAN wizard** fills its group on OK, so that group is not removed, and adds those entries
+  from inside its OK, which can be handled part way through a save of the plugin's own (§119), so
+  nothing is saved to its database while it is open.
 - **Database Maintenance** puts its copy of the database's own custom data back as it closes,
   whatever the operator did, so no record, revocation or profile is written while it is open.
 - **Database Settings** puts its recycle bin choice back on OK, so a removal that would make the

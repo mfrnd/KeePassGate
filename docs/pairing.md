@@ -168,7 +168,10 @@ again.
 **The Database Maintenance dialog refuses the whole thing before anybody is disturbed.** That
 dialog takes a copy of the database's plugin data when it opens and writes the copy back when it
 closes, which would silently destroy a record written while it was open. If a pairing is reported
-refused for that reason, close the dialog and let the program ask again.
+refused for that reason, close the dialog and let the program ask again. **So does KeePass's TAN
+wizard**, under Tools, open on the same database: it adds its entries from inside its own OK,
+which can land part way through the save a pairing ends in and stop it, so nothing is saved to
+that database until the wizard is closed.
 
 ## What the program gets
 
