@@ -165,6 +165,29 @@ def test_a_503_carries_the_retry_after_the_plugin_sends_unless_told_otherwise(
     assert [line for line in head if line.startswith("Retry-After")] == ([sent] if sent else [])
 
 
+@pytest.mark.parametrize("method", ["GET", "HEAD"])
+@pytest.mark.parametrize(
+    ("status", "answer", "sent"),
+    [
+        (503, '{"error":"locked"}', ["KPG-Unavailable: locked"]),
+        (503, '{"error":"busy","heldUntil":"2026-11-07T10:00:00Z"}', ["KPG-Unavailable: busy"]),
+        (503, '{"error":"not a word"}', []),
+        (404, '{"error":"busy"}', []),
+    ],
+)
+def test_a_503_names_its_word_in_a_field_as_the_plugin_does(
+    gate: FakeGate, authority: Authority, method: str, status: int, answer: str, sent: list[str]
+) -> None:
+    # The answer to a HEAD has no body, so the field is where a client reads which refusal it
+    # was; a GET carries it too, as the plugin's does.
+    gate.handler = lambda path, body, client: (status, answer)
+    request = f"{method} /gate/status HTTP/1.1\r\nHost: abc.def.kpg\r\n\r\n".encode("ascii")
+
+    head = answered(gate, authority, request).split(b"\r\n\r\n")[0].decode("ascii").split("\r\n")
+
+    assert [line for line in head if line.startswith("KPG-Unavailable")] == sent
+
+
 def test_a_handler_can_ask_which_method_it_is_answering(
     gate: FakeGate, tmp_path: Path, bundle: dict[str, object]
 ) -> None:

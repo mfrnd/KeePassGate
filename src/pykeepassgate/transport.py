@@ -460,6 +460,10 @@ class Response:
     #: When the gate said to come back, in seconds, if it said. Only a `503` carries it.
     retry_after: float | None = None
 
+    #: The word a `503` names in `KPG-Unavailable` as well as in its body, or `None` when it named
+    #: none there, which is all the answer to a HEAD, having no body, names its refusal by.
+    unavailable_word: str | None = None
+
     #: The `ETag` the gate answered with, quotes and all, or `None` when it sent none. A read about
     #: one group or one entry carries one, to a client whose rule may read everything it covers,
     #: and nothing else does: a write hands back the tag it left in its body, as `etag`.
@@ -498,10 +502,16 @@ def unavailable(reply: Response, *, busy: str, locked: str, undecided: str) -> G
     because what to do next differs: a busy pairing starts again from a hello, where a busy write
     is asked again as it was.
 
+    **The body's word, or the field's where the body names none**, which is the answer to a
+    HEAD: it carries no body, and the gate names the word in `KPG-Unavailable` as well, so a HEAD
+    is waited out on the same budgets as its GET. The gate writes both from the one word, so the
+    two never disagree, and the body is read first because every answer but a HEAD's has a
+    body.
+
     A word this client does not know, or a `503` that names none, is `GateUnavailable` itself,
     which no budget waits out.
     """
-    word = reply.error()
+    word = reply.error() or reply.unavailable_word or ""
 
     if word == DatabaseLocked.word:
         return DatabaseLocked(locked, reply.retry_after)
@@ -978,6 +988,7 @@ def _parse(raw: bytes) -> Response:
         status=status,
         body=body.decode("utf-8", "replace"),
         retry_after=_retry_after(head),
+        unavailable_word=_header(head, "kpg-unavailable") or None,
         etag=_etag(head),
     )
 

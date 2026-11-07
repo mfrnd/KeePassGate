@@ -680,6 +680,41 @@ class TestWaitingOutARefusal:
         with pytest.raises(GateBusy):
             self._client(stored, retry_locked_timeout=30.0).status()
 
+    @pytest.mark.parametrize(
+        ("word", "refusal"),
+        [("busy", GateBusy), ("locked", DatabaseLocked), ("undecided", AuthorityUndecided)],
+    )
+    def test_a_head_refused_for_now_is_read_and_waited_out_as_its_get_is(
+        self,
+        tmp_path: Path,
+        bundle: dict[str, Any],
+        gate: FakeGate,
+        waited: list[float],
+        word: str,
+        refusal: type[GateUnavailable],
+    ) -> None:
+        # The answer to a HEAD has no body to name its word in, so every `503` to a HEAD was a
+        # wordless `GateUnavailable`, and the three budgets `head` takes were never spent. The
+        # gate names the word in `KPG-Unavailable` as well.
+        stored = credentials_module.save(tmp_path / "kept", gate.port, bundle)
+        client = self._client(stored)
+        self._refusing(gate, 1, word)
+        with pytest.raises(refusal):
+            client.head("/gate/status")
+        assert waited == []
+
+        self._refusing(gate, 1, word)
+        budgets: dict[str, float | None] = {"busy": None, "locked": None, "undecided": None}
+        budgets[word] = 30.0
+        client.head(
+            "/gate/status",
+            retry_busy_timeout=budgets["busy"],
+            retry_locked_timeout=budgets["locked"],
+            retry_undecided_timeout=budgets["undecided"],
+        )
+        assert waited == [2.0]
+        assert [method for method, _ in gate.requests] == ["HEAD"] * 3
+
     def test_an_undecided_database_is_waited_out_on_its_own_budget(
         self, tmp_path: Path, bundle: dict[str, Any], gate: FakeGate, waited: list[float]
     ) -> None:
