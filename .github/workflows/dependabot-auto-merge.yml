@@ -8,6 +8,14 @@
 # for a person, as does any pull request Dependabot opens outside a group, a security update
 # among them.
 #
+# **Every head is judged on its own.** Auto-merge stays on through a push by anybody with write
+# access, Dependabot included, and merges whatever head the pull request has by the time the
+# ruleset is satisfied. So a pull request Dependabot rewrites after auto-merge went on would merge
+# a head nothing here looked at, a major version of an action put into the group among them, or a
+# head whose release check fails. A run therefore switches auto-merge off first, before anything
+# that could fail, and only a head that passes everything below switches it back on, bound to that
+# head. A run still waiting on an older head's release check is canceled by the next.
+#
 # **The merge still waits for everything a merge waits for.** Auto-merge holds until the ruleset
 # on `master` is satisfied, which is `gate passed`. The release workflow's check is not required,
 # since it runs only on the pull requests that touch what a release is built from, so when this
@@ -16,6 +24,10 @@
 name: dependabot-auto-merge
 
 on: pull_request
+
+concurrency:
+  group: dependabot-auto-merge-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -31,6 +43,16 @@ jobs:
       contents: write
       pull-requests: write
     steps:
+      # First, so that a run stopping anywhere below leaves auto-merge off, and without
+      # tolerating a failure, which would leave on whatever an earlier head switched on. With
+      # auto-merge already off this changes nothing and succeeds.
+      - name: auto-merge off until this head earns it
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          NUMBER: ${{ github.event.pull_request.number }}
+        run: gh pr merge "$NUMBER" --disable-auto
+
       - id: meta
         uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
 
