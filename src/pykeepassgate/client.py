@@ -882,9 +882,12 @@ class GateClient:
         A refusal is an exception here as it is everywhere else in this client, so reaching the
         next line is the answer. What a refusal cannot carry is the gate's word, since that is
         written in a body and this answer has none: a `RouteRefused` from here holds the status and
-        an empty `error`. The gate omits `Content-Length` on these, which RFC 9110 section 9.3.2
-        permits for a value determined only while generating content, so this one reads to the
-        close the gate sends anyway. With `if_match`, a node that has changed since is
+        an empty `error`. **A `503` is the exception**, since the gate names its word in a field
+        as well, so a `503` here is `GateBusy`, `DatabaseLocked` or `AuthorityUndecided` as it is
+        from any route, and is waited out on the three budgets this takes as a `get` is. The gate
+        omits `Content-Length` on these, which RFC 9110 section 9.3.2 permits for a value
+        determined only while generating content, so this method reads to the close the gate
+        sends anyway. With `if_match`, a node that has changed since is
         `PreconditionFailed`, which is a way to ask whether a tag is still current without reading
         anything.
         """

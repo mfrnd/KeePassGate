@@ -207,8 +207,9 @@ none, since it releases both.
   `--directory` naming its directory.
 - **A `503` names its word in a field as well as in its body**, `KPG-Unavailable: busy`, `locked`
   or `undecided`, which the routing document declares, and so does PyKeePassGate's stand-in gate.
-  The answer to a `head` carries no body, and the field is where a client reads which refusal
-  it was.
+  The answer to a `head` carries no body, so `GateClient.head` met every `503` as a
+  `GateUnavailable` with no word and never spent the three retry budgets it takes. It now reads
+  the field and waits a `head` out as it does a `get`.
 
 ## 0.1.0, 2026-10-25
 
