@@ -70,7 +70,8 @@ namespace KeePassGate.Transport
             }
 
             byte[] head;
-            switch (ReadUntilBlankLine(stream, options.MaxHeadBytes, out head))
+            var outcome = ReadUntilBlankLine(stream, options.MaxHeadBytes, out head);
+            switch (outcome)
             {
                 case HeadOutcome.Silence:
                     return HttpReadResult.Nothing();
@@ -81,12 +82,19 @@ namespace KeePassGate.Transport
                     // connection that said nothing at all, because that is the one signal the gate
                     // uses to look like a port with nothing behind it.
                     return HttpReadResult.Refused(BadRequest, "the head ended early");
+            }
 
-                case HeadOutcome.TooLong:
-                    // With the method, read off what arrived, so that a HEAD is answered without
-                    // content here as it is everywhere else: RFC 9110 section 9.3.2.
-                    return HttpReadResult.Refused(
-                        HeadersTooLarge, "the head is over " + options.MaxHeadBytes + " bytes", MethodIn(head));
+            // Before anything in the head is judged, so that every refusal below carries it: the
+            // request line comes before the length, and so may a header that is refused.
+            var announced = AnnouncedBy(head, outcome == HeadOutcome.TooLong ? stream : null, options.MaxHeadBytes);
+
+            if (outcome == HeadOutcome.TooLong)
+            {
+                // With the method, read off what arrived, so that a HEAD is answered without
+                // content here as it is everywhere else: RFC 9110 section 9.3.2.
+                return HttpReadResult.Refused(
+                    HeadersTooLarge, "the head is over " + options.MaxHeadBytes + " bytes", MethodIn(head),
+                    announced);
             }
 
             // Before anything is decoded. `Encoding.ASCII` substitutes a question mark for every
@@ -101,7 +109,7 @@ namespace KeePassGate.Transport
                 {
                     // The method too, for the reason above: the request line is in the buffer
                     // whatever the bytes after it are.
-                    return HttpReadResult.Refused(BadRequest, "the head is not ascii", MethodIn(head));
+                    return HttpReadResult.Refused(BadRequest, "the head is not ascii", MethodIn(head), announced);
                 }
             }
 
@@ -110,7 +118,7 @@ namespace KeePassGate.Transport
 
             string method;
             string target;
-            var lineResult = ParseRequestLine(lines[0], out method, out target);
+            var lineResult = ParseRequestLine(lines[0], announced, out method, out target);
             if (lineResult != null)
             {
                 return lineResult;
@@ -120,7 +128,8 @@ namespace KeePassGate.Transport
             IReadOnlyDictionary<string, string> query;
             if (!TrySplitTarget(target, out path, out query))
             {
-                return HttpReadResult.Refused(BadRequest, "the target is not a path this server accepts", method);
+                return HttpReadResult.Refused(
+                    BadRequest, "the target is not a path this server accepts", method, announced);
             }
 
             var headers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -137,19 +146,19 @@ namespace KeePassGate.Transport
                 {
                     // Obsolete line folding. Refused rather than joined, because two parsers that
                     // disagree about a folded header is exactly how a request gets smuggled.
-                    return Refuse(BadRequest, "folded headers are not accepted", method, headers);
+                    return HttpReadResult.Refused(BadRequest, "folded headers are not accepted", method, announced);
                 }
 
                 var colon = line.IndexOf(':');
                 if (colon <= 0)
                 {
-                    return Refuse(BadRequest, "a header line has no name", method, headers);
+                    return HttpReadResult.Refused(BadRequest, "a header line has no name", method, announced);
                 }
 
                 var name = line.Substring(0, colon);
                 if (!IsToken(name))
                 {
-                    return Refuse(BadRequest, "a header name is not a token", method, headers);
+                    return HttpReadResult.Refused(BadRequest, "a header name is not a token", method, announced);
                 }
 
                 var value = line.Substring(colon + 1).Trim(' ', '\t');
@@ -162,12 +171,14 @@ namespace KeePassGate.Transport
                 // next. https://www.rfc-editor.org/rfc/rfc9110#section-5.5
                 if (!IsFieldValue(value))
                 {
-                    return Refuse(BadRequest, "a header value holds a control character", method, headers);
+                    return HttpReadResult.Refused(
+                        BadRequest, "a header value holds a control character", method, announced);
                 }
 
                 if (string.Equals(name, "Transfer-Encoding", StringComparison.OrdinalIgnoreCase))
                 {
-                    return Refuse(NotImplemented, "transfer encodings are not accepted", method, headers);
+                    return HttpReadResult.Refused(
+                        NotImplemented, "transfer encodings are not accepted", method, announced);
                 }
 
                 // Every name, not only `Content-Length`. Keeping the last of a repeated field is a
@@ -175,7 +186,7 @@ namespace KeePassGate.Transport
                 // in front of this would have to make the same way to agree with it.
                 if (headers.ContainsKey(name))
                 {
-                    return Refuse(BadRequest, "a header is repeated", method, headers);
+                    return HttpReadResult.Refused(BadRequest, "a header is repeated", method, announced);
                 }
 
                 headers[name] = value;
@@ -188,22 +199,21 @@ namespace KeePassGate.Transport
                 if (!long.TryParse(lengthHeader, NumberStyles.None, CultureInfo.InvariantCulture, out length) ||
                     length < 0)
                 {
-                    return Refuse(BadRequest, "the content length is not a number", method, headers);
+                    return HttpReadResult.Refused(BadRequest, "the content length is not a number", method, announced);
                 }
 
                 if (length > options.MaxBodyBytes)
                 {
-                    return Refuse(
-                        PayloadTooLarge, "the body is over " + options.MaxBodyBytes + " bytes", method, headers);
+                    return HttpReadResult.Refused(
+                        PayloadTooLarge, "the body is over " + options.MaxBodyBytes + " bytes", method, announced);
                 }
             }
             else if (TakesABody(method))
             {
-                return Refuse(LengthRequired, "a body needs a content length", method, headers);
+                return HttpReadResult.Refused(LengthRequired, "a body needs a content length", method, announced);
             }
 
-            return HttpReadResult.Read(
-                new HttpRequestHead(method, path, query, headers, length), AnnouncedBy(headers));
+            return HttpReadResult.Read(new HttpRequestHead(method, path, query, headers, length), announced);
         }
 
         /// <summary>
@@ -356,43 +366,152 @@ namespace KeePassGate.Transport
             }
         }
 
-        /// <summary>A refusal that carries whatever the head has already said it was sending.</summary>
-        private static HttpReadResult Refuse(
-            int status, string reason, string method, IDictionary<string, string> headers)
-        {
-            return HttpReadResult.Refused(status, reason, method, AnnouncedBy(headers));
-        }
-
         /// <summary>
-        /// How much body the peer is sending without waiting to be asked, read off as much of the
-        /// head as arrived.
+        /// How much body the peer is sending without waiting to be asked, read off every header
+        /// line of the head, and for a head over the cap off the rest of it as well.
         /// </summary>
         /// <remarks>
         /// One place, so that what a refusal drains and what a served request reads are the same
-        /// question answered once. A client that sent `Expect` announces nothing here whatever its
-        /// length says, because it has sent nothing and is waiting to be told to.
+        /// question answered once. Read off the whole head rather than the headers parsed so far,
+        /// because a refusal can be decided before the length is reached, on the request line or
+        /// on a header ahead of it, and a refusal that announced nothing left the body unread:
+        /// closing over it brings the reset that discards the answer.
+        ///
+        /// Lenient where the parser is strict, because all this decides is how much to take off
+        /// the wire before closing, and taking more than arrives costs only the wait for a peer
+        /// that has finished to hang up. So a length given twice counts as the larger, and a line
+        /// the parser would refuse still counts if it gives a length. A client that sent `Expect`
+        /// announces nothing whatever length it gives, because it has sent nothing and is waiting
+        /// to be told to.
+        ///
+        /// A head over the cap is read on from <paramref name="stream"/> to its blank line, with
+        /// no line held past the cap, so that its body can be taken too. What bounds that read is
+        /// what bounds <see cref="Discard"/>: the socket's read timeout for a peer that stops, and
+        /// `GateOptions.Budget` for a peer that keeps sending. With no stream the head is all
+        /// there is, which is every head that ended within the cap, so a body is never read here.
         /// </remarks>
-        private static long AnnouncedBy(IDictionary<string, string> headers)
+        private static long AnnouncedBy(byte[] head, Stream stream, int cap)
         {
-            string expectation;
-            if (headers.TryGetValue("Expect", out expectation) && !string.IsNullOrEmpty(expectation))
+            var length = 0L;
+            var expecting = false;
+            var line = new StringBuilder();
+            var overlong = false;
+            var requestLine = true;
+            var carriageReturn = false;
+            var position = 0;
+            var single = new byte[1];
+
+            while (true)
             {
-                return 0;
+                int b;
+                if (position < head.Length)
+                {
+                    b = head[position++];
+                }
+                else
+                {
+                    b = stream == null ? -1 : ReadByte(stream, single);
+                    if (b < 0)
+                    {
+                        // The head in hand ended, or the connection stopped, before a blank line.
+                        break;
+                    }
+                }
+
+                if (carriageReturn && b == 0x0A)
+                {
+                    // CR LF, the only line ending a head is split on, as `LineBreak` is.
+                    carriageReturn = false;
+                    if (line.Length == 0 && !requestLine)
+                    {
+                        break;
+                    }
+
+                    if (!requestLine && !overlong)
+                    {
+                        Note(line.ToString(), ref length, ref expecting);
+                    }
+
+                    requestLine = false;
+                    overlong = false;
+                    line.Clear();
+                    continue;
+                }
+
+                if (carriageReturn)
+                {
+                    // A bare CR, which is part of the line here as it is to the parser.
+                    overlong = Append(line, 0x0D, cap) || overlong;
+                }
+
+                carriageReturn = b == 0x0D;
+                if (!carriageReturn)
+                {
+                    overlong = Append(line, b, cap) || overlong;
+                }
             }
 
-            string lengthHeader;
-            long length;
-            if (!headers.TryGetValue("Content-Length", out lengthHeader) ||
-                !long.TryParse(lengthHeader, NumberStyles.None, CultureInfo.InvariantCulture, out length) ||
-                length < 0)
-            {
-                return 0;
-            }
-
-            return length;
+            return expecting ? 0 : length;
         }
 
-        private static HttpReadResult ParseRequestLine(string line, out string method, out string target)
+        /// <summary>
+        /// A header line's part in <see cref="AnnouncedBy"/>, whose remarks give the reason it is
+        /// lenient.
+        /// </summary>
+        private static void Note(string line, ref long length, ref bool expecting)
+        {
+            var colon = line.IndexOf(':');
+            if (colon <= 0)
+            {
+                return;
+            }
+
+            var name = line.Substring(0, colon);
+            var value = line.Substring(colon + 1).Trim(' ', '\t');
+
+            long given;
+            if (string.Equals(name, "Expect", StringComparison.OrdinalIgnoreCase))
+            {
+                expecting = expecting || value.Length > 0;
+            }
+            else if (string.Equals(name, "Content-Length", StringComparison.OrdinalIgnoreCase) &&
+                     long.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out given))
+            {
+                length = Math.Max(length, given);
+            }
+        }
+
+        /// <summary>Adds a byte to a line, or reports the line ran past the cap instead.</summary>
+        private static bool Append(StringBuilder line, int b, int cap)
+        {
+            if (line.Length >= cap)
+            {
+                return true;
+            }
+
+            line.Append((char)b);
+            return false;
+        }
+
+        /// <summary>The next byte, or -1 once the connection has stopped giving.</summary>
+        private static int ReadByte(Stream stream, byte[] single)
+        {
+            try
+            {
+                return stream.Read(single, 0, 1) <= 0 ? -1 : single[0];
+            }
+            catch (IOException)
+            {
+                return -1;
+            }
+            catch (ObjectDisposedException)
+            {
+                return -1;
+            }
+        }
+
+        private static HttpReadResult ParseRequestLine(
+            string line, long announced, out string method, out string target)
         {
             method = null;
             target = null;
@@ -400,12 +519,12 @@ namespace KeePassGate.Transport
             var parts = line.Split(' ');
             if (parts.Length != 3)
             {
-                return HttpReadResult.Refused(BadRequest, "the request line is not three parts");
+                return HttpReadResult.Refused(BadRequest, "the request line is not three parts", null, announced);
             }
 
             if (!IsToken(parts[0]))
             {
-                return HttpReadResult.Refused(BadRequest, "the method is not a token");
+                return HttpReadResult.Refused(BadRequest, "the method is not a token", null, announced);
             }
 
             // Settled as soon as it is read rather than once the whole line has been believed, so
@@ -418,19 +537,19 @@ namespace KeePassGate.Transport
             {
                 // Only origin form. An absolute URI or an authority is somebody treating this as a
                 // proxy, which it is not.
-                return HttpReadResult.Refused(BadRequest, "the target is not an absolute path", method);
+                return HttpReadResult.Refused(BadRequest, "the target is not an absolute path", method, announced);
             }
 
             if (parts[1].Length > 2048)
             {
-                return HttpReadResult.Refused(UriTooLong, "the target is over 2048 characters", method);
+                return HttpReadResult.Refused(UriTooLong, "the target is over 2048 characters", method, announced);
             }
 
             if (!string.Equals(parts[2], "HTTP/1.1", StringComparison.Ordinal) &&
                 !string.Equals(parts[2], "HTTP/1.0", StringComparison.Ordinal))
             {
                 return HttpReadResult.Refused(
-                    VersionNotSupported, "only HTTP/1.1 and HTTP/1.0 are accepted", method);
+                    VersionNotSupported, "only HTTP/1.1 and HTTP/1.0 are accepted", method, announced);
             }
 
             target = parts[1];

@@ -261,6 +261,12 @@ none, since it releases both.
   to lock for it. KeePass drops such a lock while it is saving, so it was lost for good and the
   gate went on serving the database. The plugin now makes it through KeePass's own lock, which
   still keeps the workspace unlocked while a dialog of KeePass's is open.
+- **A request refused for its request line, its target, its version, a byte that is not ASCII or
+  a header ahead of its length is answered with a status the client can read**, `400`, `414` or
+  `505`, and so is a head over its ceiling, `431`, and a locked database's `503` to any of them.
+  The body behind such a request was left unread, so closing the connection brought a reset that
+  discarded the answer, and a client whose body did not arrive with its head saw the connection
+  fail as though no gate were there.
 
 ## 0.1.0, 2026-10-25
 

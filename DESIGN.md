@@ -285,6 +285,13 @@ is the one to answer first, because the fit was never in doubt.
 | Anything the OpenAPI document does not declare | terminal stage, 404 |
 | Any route but `/pair/*` without a client certificate and a matching admission record | pipeline, first stage |
 
+**A client can read every refusal written back to it.** A socket closed while the peer's bytes
+are still unread is answered by the stack with a reset, which discards the answer already sent,
+so the body a refused head announced is taken off the wire and dropped before the connection
+closes, and a head over 8 KB is read on to its end first. What the head announced is read off
+the whole of it, whatever the refusal was decided on, because the request line comes before the
+length and so may a header that is refused.
+
 The listener binds `https://127.0.0.1:<port>/` only. Nothing binds off loopback, by construction;
 reaching it from elsewhere is a tunnel's job. Binding off loopback would put a password
 manager's API on a network interface, and no amount of authentication makes that worth doing inside

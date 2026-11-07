@@ -378,15 +378,99 @@ namespace KeePassGate.Tests
             Assert.That(result.Announced, Is.Zero);
         }
 
-        [Test]
-        public void A_refusal_decided_before_the_headers_announces_nothing()
+        [TestCase("BOGUS-VERSION /thing HTTP/9.9\r\nContent-Length: 5\r\n\r\n", 505)]
+        [TestCase("POST /thing|x HTTP/1.1\r\nContent-Length: 5\r\n\r\n", 400)]
+        [TestCase("POST thing HTTP/1.1\r\nContent-Length: 5\r\n\r\n", 400)]
+        [TestCase("POST /thing HTTP/1.1\r\nBad Name: x\r\nContent-Length: 5\r\n\r\n", 400)]
+        [TestCase("POST /thing HTTP/1.1\r\n folded\r\nContent-Length: 5\r\n\r\n", 400)]
+        [TestCase("POST /thing HTTP/1.1\r\nTransfer-Encoding: chunked\r\nContent-Length: 5\r\n\r\n", 501)]
+        public void A_refusal_decided_before_the_length_was_parsed_announces_it_all_the_same(
+            string request, int status)
         {
-            // Nothing was parsed, so there is no length to bound a read by. Said here because it is
-            // a limit of the answer rather than an oversight in it.
-            var result = Read("BOGUS-VERSION /thing HTTP/9.9\r\nContent-Length: 5\r\n\r\nhello");
+            // The whole head is in hand by the time anything in it is judged, the length line
+            // among it, so a refusal on the request line or on a header ahead of the length still
+            // takes the body off the wire. It announced nothing, and the reset that closing over
+            // the body brought discarded the answer.
+            var result = Read(request + "hello");
 
-            Assert.That(result.Status, Is.EqualTo(505));
+            Assert.That(result.Status, Is.EqualTo(status), result.Reason);
+            Assert.That(result.Announced, Is.EqualTo(5));
+        }
+
+        [Test]
+        public void A_refusal_for_a_byte_that_is_not_ascii_announces_the_length_too()
+        {
+            var request = new List<byte>();
+            request.AddRange(Encoding.ASCII.GetBytes("POST /thing HTTP/1.1\r\nX-Note: "));
+            request.Add(0x80);
+            request.AddRange(Encoding.ASCII.GetBytes("\r\nContent-Length: 5\r\n\r\nhello"));
+
+            using (var stream = new MemoryStream(request.ToArray()))
+            {
+                var result = HttpRequestReader.ReadHead(stream, _options);
+
+                Assert.That(result.Status, Is.EqualTo(400), result.Reason);
+                Assert.That(result.Announced, Is.EqualTo(5));
+            }
+        }
+
+        [Test]
+        public void A_length_given_twice_announces_the_larger()
+        {
+            // Refused for being repeated, and all that is left to decide is how much to take off
+            // the wire before closing. Taking more than arrives costs the wait for a peer that has
+            // finished to hang up, and taking less is the reset.
+            var result = Read("POST /thing HTTP/1.1\r\nContent-Length: 9\r\nContent-Length: 5\r\n\r\n");
+
+            Assert.That(result.Status, Is.EqualTo(400));
+            Assert.That(result.Announced, Is.EqualTo(9));
+        }
+
+        [Test]
+        public void An_expect_after_the_refused_line_still_announces_nothing()
+        {
+            // A client that asked first is waiting wherever in the head it asked.
+            var result = Read("POST /thing|x HTTP/1.1\r\nContent-Length: 5\r\nExpect: 100-continue\r\n\r\n");
+
+            Assert.That(result.Status, Is.EqualTo(400));
             Assert.That(result.Announced, Is.Zero);
+        }
+
+        [Test]
+        public void A_head_over_the_cap_is_read_on_to_its_end_for_the_length_it_announces()
+        {
+            // The answer is read only if what follows the cap is taken off the wire as well, and
+            // its body with it. The body is left on the stream for the drain that follows.
+            var padding = new string('a', _options.MaxHeadBytes);
+            var stream = Stream("POST /thing HTTP/1.1\r\nX-Thing: " + padding + "\r\nContent-Length: 5\r\n\r\nhello");
+
+            var result = HttpRequestReader.ReadHead(stream, _options);
+
+            Assert.That(result.Status, Is.EqualTo(431));
+            Assert.That(result.Announced, Is.EqualTo(5));
+            Assert.That(Encoding.ASCII.GetString(Remaining(stream)), Is.EqualTo("hello"));
+        }
+
+        [Test]
+        public void A_head_within_the_cap_is_never_read_past()
+        {
+            // The body is the drain's to take, or the handler's, and never this reader's.
+            var stream = Stream("POST /thing|x HTTP/1.1\r\nContent-Length: 5\r\n\r\nhello");
+
+            HttpRequestReader.ReadHead(stream, _options);
+
+            Assert.That(Encoding.ASCII.GetString(Remaining(stream)), Is.EqualTo("hello"));
+        }
+
+        [Test]
+        public void A_head_over_the_cap_that_never_ends_is_read_until_the_connection_stops()
+        {
+            // Which is what the connection's deadline makes of a head that goes on for ever: the
+            // socket is closed under the read, and the refusal is still the 431.
+            var padding = new string('a', 2 * _options.MaxHeadBytes);
+            var result = Read("POST /thing HTTP/1.1\r\nContent-Length: 5\r\nX-Thing: " + padding);
+
+            Assert.That(result.Status, Is.EqualTo(431));
         }
 
         [Test]
