@@ -68,13 +68,14 @@ namespace KeePassGate.Transport
         /// data, an entry's strings and its attachments are each a `SortedDictionary` under the
         /// default comparer, which collates in the calling thread's culture, and KeePass's thread
         /// runs in its translation's, which `MainForm` sets from the language file. A connection
-        /// is served on a pool thread, and that thread keeps the culture of the regional format:
-        /// KeePass.exe declares no target framework, and .NET Framework then lets no culture flow
-        /// to a new thread or a pool item. Where the two collate differently, a tree KeePass's
-        /// thread built is searched in the other's order, and a key that is there is not found. A
-        /// KeePass translated to Danish on an English format answered an admitted client `401`
-        /// because its record's key began `aa`, and served an empty value for a field it listed;
-        /// one translated to Lithuanian walked past a node's own seal to the grant above it.
+        /// is served on a thread of its own, and that thread starts in the culture of the regional
+        /// format: KeePass.exe declares no target framework, and .NET Framework then lets no
+        /// culture flow to a new thread or a pool item. Where the two collate differently, a tree
+        /// KeePass's thread built is searched in the other's order, and a key that is there is not
+        /// found. A KeePass translated to Danish on an English format answered an admitted client
+        /// `401` because its record's key began `aa`, and served an empty value for a field it
+        /// listed; a KeePass translated to Lithuanian walked past a node's own seal to the grant
+        /// above it.
         ///
         /// **Taken once, when this is made, as `KeePassPaths` takes it**, because the plugin makes
         /// the listener on KeePass's thread and KeePass takes a new language only at a restart.
@@ -422,7 +423,7 @@ namespace KeePassGate.Transport
                         return;
                     }
 
-                    if (!ThreadPool.QueueUserWorkItem(delegate { Converse(accepted); }))
+                    if (!Started(accepted))
                     {
                         // Nothing will run, so nothing will give the place back.
                         Interlocked.Decrement(ref _conversations);
@@ -446,6 +447,46 @@ namespace KeePassGate.Transport
         }
 
         /// <summary>
+        /// Starts the thread a conversation is served on, or reports that none could be started.
+        /// </summary>
+        /// <remarks>
+        /// **A thread of the gate's own, never a thread of KeePass's thread pool**, because a
+        /// conversation holds its thread through every wait it makes: a ClientHello that never
+        /// comes, the writer's lock, a save on KeePass's thread, the pacing of a client's lines.
+        /// The pool hands out only as many threads at once as there are processors and adds about
+        /// a thread a second past that, and KeePass waits on it from its own thread: its managed
+        /// Argon2, which it falls back to without its native library, queues its lanes there and
+        /// blocks the save or the unlock on them without pumping. Thirty-one writes held on the
+        /// pool froze the first save for seventeen to twenty-two seconds and answered some of them
+        /// `503 busy`, and thirty-one silent sockets from a peer that proved nothing held KeePass's
+        /// own pool work back for about ten seconds, seventeen on four processors. On threads of
+        /// their own the pool stays KeePass's, and the ceiling bounds the threads.
+        ///
+        /// Background, so a connection still being served never keeps KeePass from exiting, and
+        /// started at the accept, so a connection's deadline counts from there rather than from
+        /// whenever a pool thread came free. Total, as everything on the accept thread has to be,
+        /// see `Drop`: starting a thread fails only for want of memory to give it.
+        /// </remarks>
+        private bool Started(TcpClient client)
+        {
+            var thread = new Thread(delegate() { Converse(client); })
+            {
+                IsBackground = true,
+                Name = "KeePassGate connection"
+            };
+
+            try
+            {
+                thread.Start();
+                return true;
+            }
+            catch (OutOfMemoryException)
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
         /// Whether there is room for another conversation. A connection past the ceiling is closed
         /// at once rather than queued, because queuing it is what would hold the thread.
         /// </summary>
@@ -465,11 +506,13 @@ namespace KeePassGate.Transport
         /// Closing it means reserving slots for connections whose name has resolved, or evicting
         /// the oldest that has not, and that is a design decision rather than a fix.
         ///
-        /// What it costs is availability and nothing else: no secret is reachable from a slot and
-        /// no write, and the ceiling goes on doing what it is for, which is keeping KeePass's
-        /// thread pool out of a stranger's hands. The peer it leaves is one under another Windows
-        /// account, or a user on the far end of the tunnel the documentation recommends, since
-        /// local code running as the operator is conceded throughout anyway.
+        /// What it costs is the gate's availability and nothing else: no secret is reachable from a
+        /// slot and no write, and since each slot holds a thread of the gate's own, see `Started`,
+        /// none of them holds anything KeePass is waiting on. The ceiling goes on doing what it is
+        /// for, which is bounding how many of those threads a stranger can make. The peer it leaves
+        /// is somebody under another Windows account, or a user on the far end of the tunnel the
+        /// documentation recommends, since local code running as the operator is conceded
+        /// throughout anyway.
         /// </remarks>
         private bool Take(TcpClient client)
         {
@@ -576,11 +619,9 @@ namespace KeePassGate.Transport
 
         private void Converse(TcpClient client)
         {
-            // In KeePass's culture, see `_culture`, and the pool thread's own given back at the
-            // end, since the pool lends the thread to whatever runs on it next.
-            var thread = Thread.CurrentThread;
-            var own = thread.CurrentCulture;
-            thread.CurrentCulture = _culture;
+            // In KeePass's culture, see `_culture`. The thread is this conversation's alone and
+            // ends with it, so there is nothing to give back.
+            Thread.CurrentThread.CurrentCulture = _culture;
 
             try
             {
@@ -740,16 +781,16 @@ namespace KeePassGate.Transport
             // codeql[cs/catch-of-all-exceptions] the connection thread, a kind of catch-all DESIGN.md §141 lists
             catch (Exception error)
             {
-                // A kind of catch-all `DESIGN.md` §141 lists. This runs on a thread pool thread, so
-                // an exception that escapes it is an unhandled exception in the password manager's
-                // process, and the process is what would end. A client chooses when this happens,
-                // which is why what it caught is counted where the operator can see it.
+                // A kind of catch-all `DESIGN.md` §141 lists. This is the top of a thread with
+                // nothing above it, so an exception that escapes it is an unhandled exception in
+                // the password manager's process, and the process is what would end. A client
+                // chooses when this happens, which is why what it caught is counted where the
+                // operator can see it.
                 _incidents.Record("a connection failed", error);
             }
             finally
             {
                 Interlocked.Decrement(ref _conversations);
-                thread.CurrentCulture = own;
             }
         }
 

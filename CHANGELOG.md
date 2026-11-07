@@ -267,6 +267,12 @@ none, since it releases both.
   The body behind such a request was left unread, so closing the connection brought a reset that
   discarded the answer, and a client whose body did not arrive with its head saw the connection
   fail as though no gate were there.
+- **Each connection is served on a thread of the gate's own, never a thread of KeePass's thread
+  pool**, which KeePass waits on from its own thread: its managed Argon2, used without its native
+  library, blocks a save or an unlock on lanes it queues there. Thirty-one writes at once froze
+  the first save for seventeen to twenty-two seconds and answered some of them `503 busy`, and
+  thirty-one connections that sent nothing, from a peer that proved nothing, held KeePass's own
+  background work back for about ten seconds.
 
 ## 0.1.0, 2026-10-25
 

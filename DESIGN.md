@@ -123,9 +123,16 @@ internal HttpConnection (Socket socket, EndPointListener listener) {
 It is not one. `EndPointListener.onAccept` restarts `BeginAccept` before constructing the
 connection, so accepts overlap and mutating a shared property between them is a race.
 
-Owning the accept loop means owning its ceiling on concurrent connections, and that ceiling keeps
-KeePass's thread pool out of a stranger's hands without defending the gate's availability. §110
-says what that leaves open, and why it is conceded.
+Owning the accept loop means owning its ceiling on concurrent connections, and the threads they
+are served on. **Each connection has a thread of the gate's own, which reverses borrowing
+KeePass's thread pool**, and with it the claim that the ceiling kept that pool out of a stranger's
+hands. The pool hands out only as many threads at once as there are processors, so thirty-two
+connections could hold more than it had, and KeePass waits on that pool from its own thread: its
+managed Argon2, which it falls back to without its native library, queues its lanes there and
+blocks a save or an unlock on them. Measured, thirty-one writes held on the pool froze the first
+save for seventeen to twenty-two seconds, and thirty-one silent sockets held KeePass's own pool
+work back for about ten. The ceiling bounds the gate's threads now, without defending the gate's
+availability: §110 sets out what that leaves open, and why it is conceded.
 
 ### What we do instead §105
 
@@ -232,9 +239,9 @@ Against it: middleboxes reap idle connections after thirty to a hundred and twen
 introduces "connection reset on reuse" as a new failure, and a `POST` that may already have been
 received is not safe to retry, which connection-per-request never has to think about. A tunnel
 usually wraps the stream again, so two idle policies would have to agree. Connections are served by
-thread pool threads doing blocking reads inside the KeePass process, so N idle clients would hold N
-of them. And `Connection: close` is what keeps message boundaries from mattering to a hand-written
-parser.
+threads doing blocking reads inside the KeePass process, so N idle clients would hold N of them,
+and N of the connection slots with them. And `Connection: close` is what keeps message boundaries
+from mattering to a hand-written parser.
 
 **If handshake latency is ever measured to matter, the answer is TLS session resumption**, not
 keep-alive, with two caveats: the ticket cache is flushed on both lock transitions for the same
@@ -809,9 +816,9 @@ So the rules here:
   ran in whatever culture the pool thread had. Every dictionary KeePass keeps by name, custom data
   and an entry's strings and attachments, is a sorted tree under the default comparer, which
   collates in the culture of the thread asking. KeePass's thread runs in its translation's, which
-  `MainForm` sets from the language file, and a pool thread in the regional format's, because
-  KeePass.exe declares no target framework and .NET Framework then lets no culture flow to a new
-  thread or a pool item. Where the two collate differently, Danish and English among them, a tree
+  `MainForm` sets from the language file, and a connection's thread in the regional format's,
+  because KeePass.exe declares no target framework and .NET Framework then lets no culture flow to
+  a new thread or a pool item. Where the two collate differently, Danish and English among them, a tree
   sorted in one is searched in the other's order and a key that is there is missed: an admitted
   client was refused `401`, a listed field was served empty and a listed attachment answered `404`,
   a seal was walked past to the grant above it, and two authorities were read as one. So
