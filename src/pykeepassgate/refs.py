@@ -405,7 +405,8 @@ class _Resolution:
         if len(inner) <= 4 or inner[1] != "@" or inner[3] != ":":
             return None
 
-        # As `char.ToUpperInvariant` reads them, which leaves every letter beyond ASCII as it is.
+        # As `char.ToUpperInvariant` reads them, which never turns a letter beyond ASCII into an
+        # ASCII letter, so only an ASCII letter can name what a reference asks for or searches by.
         wanted, scan, search = _upper(inner[0]), _upper(inner[2]), inner[4:]
         if scan not in (*_SEARCHES, "I") or wanted not in (*WANTED, "I"):
             return None
@@ -462,7 +463,12 @@ _SEARCHES = {
 
 
 def _upper(letter: str) -> str:
-    """One letter as `char.ToUpperInvariant` gives it, for the letters a reference can hold."""
+    """One letter of a reference, upper cased where it is ASCII, as `char.ToUpperInvariant` does.
+
+    A letter beyond ASCII is left as it is. `ToUpperInvariant` changes many of them, `ü` to `Ü`
+    among them, but never into an ASCII letter, and what this gives is only ever compared with
+    ASCII letters, so leaving it alone gives the same answer.
+    """
     return letter.upper() if letter.isascii() else letter
 
 
