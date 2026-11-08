@@ -1860,6 +1860,37 @@ namespace KeePassGate.Ui
         }
 
         /// <summary>
+        /// Takes away a value stored under the record prefix with no certificate digest after it,
+        /// which the listing names as an unreadable record with an empty key.
+        /// </summary>
+        /// <remarks>
+        /// Only a file written by hand or by another program holds one. It admits nobody, and the
+        /// clients page lists it with an X like any record that will not read, which promised to
+        /// take it away and could not: there is no certificate to revoke, so the key itself goes,
+        /// with no revocation beside it, since a revocation names a certificate.
+        /// </remarks>
+        private string TakeTheBareRecord()
+        {
+            try
+            {
+                var store = _database.PluginCustomData;
+                if (store.Get(AuthorityKeys.ClientPrefix) == null)
+                {
+                    return "there is no client to revoke";
+                }
+
+                store.Remove(AuthorityKeys.ClientPrefix);
+                _database.MarkModified();
+                return null;
+            }
+            catch (Exception error) when (Expected.OfCustomData(error))
+            {
+                _log.Error("a record with no certificate could not be removed", error);
+                return error.Message;
+            }
+        }
+
+        /// <summary>
         /// Every client this database has admitted, newest first.
         /// </summary>
         /// <remarks>
@@ -2058,7 +2089,7 @@ namespace KeePassGate.Ui
         /// </remarks>
         public string Revoke(string admissionKey)
         {
-            if (string.IsNullOrEmpty(admissionKey))
+            if (admissionKey == null)
             {
                 return "there is no client to revoke";
             }
@@ -2066,6 +2097,11 @@ namespace KeePassGate.Ui
             if (_database == null || !_database.IsOpen)
             {
                 return "the database is not open";
+            }
+
+            if (admissionKey.Length == 0)
+            {
+                return TakeTheBareRecord();
             }
 
             try

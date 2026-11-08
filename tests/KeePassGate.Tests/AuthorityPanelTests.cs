@@ -808,6 +808,24 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_record_stored_with_no_certificate_after_its_prefix_can_be_taken_away()
+        {
+            // Listed as an unreadable record with an empty key, and its X answered that there was
+            // no client to revoke, so the row could never go.
+            using (var panel = NewPanel(true))
+            {
+                _database.Store.Plant(AuthorityKeys.ClientPrefix, "x");
+                Assume.That(panel.AdmittedClients().Unreadable, Is.EqualTo(new[] { string.Empty }));
+
+                Assert.That(panel.Revoke(string.Empty), Is.Null);
+
+                Assert.That(_database.Store.Get(AuthorityKeys.ClientPrefix), Is.Null);
+                Assert.That(panel.AdmittedClients().Unreadable, Is.Empty);
+                Assert.That(panel.Revoke(string.Empty), Is.EqualTo("there is no client to revoke"));
+            }
+        }
+
+        [Test]
         public void A_revocation_pressed_on_the_tab_is_not_logged_before_OK_lands_it()
         {
             // The log said an admission record was removed as X was pressed, and a Cancel left the
