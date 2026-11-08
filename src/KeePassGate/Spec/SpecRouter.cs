@@ -499,9 +499,14 @@ namespace KeePassGate.Spec
             {
                 // Written down when the certificate is one this database's authority issued, which
                 // is a revoked or expired client still trying and exactly what an operator opens the
-                // audit to see. Here and not at the two refusals above: those name no operation,
-                // and an admitted client asking for one is not written down either.
-                if (_access != null)
+                // audit to see, or an admitted client asking on an invitation's connection for what
+                // its own name gives it. Here and not at the two refusals above: those name no
+                // operation, so nobody refused there is written down, an admitted client included.
+                if (_access != null && context.Client.IsPaired)
+                {
+                    _access.RefuseOnInvitation(context.Client, operation.OperationId);
+                }
+                else if (_access != null)
                 {
                     _access.Refuse(context.Client, operation.OperationId);
                 }

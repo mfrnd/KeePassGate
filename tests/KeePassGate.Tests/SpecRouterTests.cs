@@ -411,6 +411,41 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void An_admitted_certificate_turned_away_on_an_invitation_s_connection_is_written_down()
+        {
+            // The audit promises a line for every certificate this database issued that an
+            // operation turns away, and this refusal left none: only the plugin's log saw a client
+            // using an invitation's name for what its own name gives it.
+            var audit = new RecordingAudit();
+            var router = GateOperations.Router("9.9.9", null, new AccessCheck(audit));
+
+            using (var target = TestAuthority.New())
+            using (var book = new InvitationBook(TimeSpan.FromMinutes(10), null, NullGateLog.Instance))
+            {
+                var client = Paired(target.DatabaseId);
+                var context = Request("GET", GateOperations.StatusPath, client);
+
+                new PairingConnection(
+                    book.Invite(target.DatabaseId),
+                    target,
+                    PairingProof.Binding(target.Host.CertificateDer),
+                    new byte[SniName.NonceLength],
+                    "127.0.0.1:60001").PutOn(context);
+
+                router.Handle(context);
+
+                Assert.That(context.Status, Is.EqualTo(404), "refused as before");
+                var line = audit.Entries.Single();
+                Assert.That(line.Permitted, Is.False);
+                Assert.That(line.Reason, Is.EqualTo(AccessCheck.ArrivedOnInvitation));
+                Assert.That(line.OperationId, Is.EqualTo(GateOperations.Status));
+                Assert.That(line.AdmissionKey, Is.EqualTo(client.AdmissionKey));
+                Assert.That(line.ClientKey, Is.EqualTo(client.ClientKey), "the certificate is admitted, so both keys");
+                Assert.That(line.Node, Is.Null);
+            }
+        }
+
+        [Test]
         public void A_query_parameter_the_document_does_not_declare_makes_the_target_undeclared()
         {
             // The transport splits a query off and parses it, and nothing read the answer, so

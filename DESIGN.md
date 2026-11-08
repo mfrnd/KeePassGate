@@ -1410,6 +1410,12 @@ exactly what the operator who revoked it opens this file to see, and until this 
 names nobody the operator issued and is not written down, because a line for it would let anybody
 who reaches the port grow the file.
 
+**And an admitted certificate turned away on an invitation's connection is written down too**, by
+both its keys, with the reason `this connection arrived on an invitation` and no node. That
+connection reaches the pairing routes alone, and a client holding an invitation beside its
+certificate that asks there for anything else gains no permission by it, but gets the pairing
+budget on the thread; the line is how the operator sees it.
+
 **What the caller is told is less than what is recorded.** A node it may not reach and a node that
 is not there answer the same 404, because telling them apart would let a client that may reach
 nothing map the database by asking, one identifier at a time, which is what `list` exists to be able
