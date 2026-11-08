@@ -176,9 +176,24 @@ jobs:
             if (-not $found -or -not $previous) {
               throw "v$version is a patch, and no tag before it shows what it patches."
             }
+            # A half's files are what it is built from and what its package holds. The plugin's are
+            # its own directory, the SDK `global.json` picks, the KeePass it compiles against, the
+            # notices and the license its zip carries, and the build settings in
+            # `Directory.Build.props`, less the `<Version>` line every release moves. The client's
+            # are its own directory, `pyproject.toml`, and the license its source distribution
+            # carries. `build.ps1` is neither, though `Package` is in it: most of what changes
+            # there is how things are checked, so a patch whose only change to the plugin is there
+            # is refused below, and goes out as a minor version instead.
             $changed = @(& git diff --name-only "$previous" HEAD)
-            $plugin = [bool] @($changed | Where-Object { $_ -like 'src/KeePassGate/*' }).Count
-            $client = [bool] @($changed | Where-Object { $_ -like 'src/pykeepassgate/*' -or $_ -eq 'pyproject.toml' }).Count
+            $settings = @(& git diff --unified=0 "$previous" HEAD -- Directory.Build.props | Where-Object {
+              $_ -match '^[-+]' -and $_ -notmatch '^(\+\+\+|---) ' -and $_ -notmatch '^[-+]\s*<Version>[^<]*</Version>\s*$'
+            })
+            $plugin = $settings.Count -gt 0 -or [bool] @($changed | Where-Object {
+              $_ -like 'src/KeePassGate/*' -or $_ -in 'global.json', 'keepass.version', 'THIRD-PARTY-NOTICES.md', 'LICENSE'
+            }).Count
+            $client = [bool] @($changed | Where-Object {
+              $_ -like 'src/pykeepassgate/*' -or $_ -in 'pyproject.toml', 'LICENSE'
+            }).Count
             Write-Host "Changed since ${previous}: $($changed.Count) file(s); the plugin $(if ($plugin) { 'ships' } else { 'does not' }), the client $(if ($client) { 'ships' } else { 'does not' })."
             if (-not $plugin -and -not $client) {
               throw "v$version is a patch that changed neither half since $previous, so it has nothing to release."
