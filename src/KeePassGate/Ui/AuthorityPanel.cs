@@ -1526,16 +1526,20 @@ namespace KeePassGate.Ui
         }
 
         /// <summary>
-        /// Draws a set of facts this database does not hold.
+        /// Draws the widest facts the table can ever hold, which this database does not.
         /// </summary>
         /// <remarks>
         /// For measurement. What has to fit the tab is the longest each value can ever be, and a
         /// database created a moment ago holds none of them. The next reading replaces whatever is
         /// put here, so this cannot leave anything on screen that outlives it.
+        ///
+        /// **Composed here, in the font the values are drawn in**, because the widest fingerprint
+        /// is a question about that font: <see cref="AuthorityDescription.LongestFacts"/> spells it
+        /// in whichever digit is widest there.
         /// </remarks>
-        public void DrawFacts(IReadOnlyList<Fact> facts)
+        public void DrawLongestFacts()
         {
-            Draw(facts);
+            Draw(AuthorityDescription.LongestFacts(_valueFont));
         }
 
         /// <summary>
@@ -2270,11 +2274,11 @@ namespace KeePassGate.Ui
         /// The longest line the band under the pages can ever hold.
         /// </summary>
         /// <remarks>
-        /// For measurement, like <see cref="DrawFacts"/>. What has to fit the tab is the longest
-        /// this band can be, which is a refusal carrying somebody else's exception message, rather
-        /// than a sentence a third of that. A band measured against the short one fits while the
-        /// long one arrives on somebody's screen, and the room for the long one is what the gate's
-        /// address and the version leaving this tab pay for.
+        /// For measurement, like <see cref="DrawLongestFacts"/>. What has to fit the tab is the
+        /// longest this band can be, which is a refusal carrying somebody else's exception message,
+        /// rather than a sentence a third of that. A band measured against the short one fits while
+        /// the long one arrives on somebody's screen, and the room for the long one is what the
+        /// gate's address and the version leaving this tab pay for.
         ///
         /// The words are ordinary words in ordinary lengths rather than a run of one character,
         /// because what is being measured is how many lines the band wraps to and a string with

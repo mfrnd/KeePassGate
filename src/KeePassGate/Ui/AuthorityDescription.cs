@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Drawing;
 using System.Security.Cryptography.X509Certificates;
+using System.Windows.Forms;
 using KeePassGate.Authority;
 
 namespace KeePassGate.Ui
@@ -384,10 +386,19 @@ namespace KeePassGate.Ui
             warnings.Add(Longest(clients => Expiring(clients, (int)LongestClientWarning.TotalDays)));
             warnings.Add(new[] { Longest(Unreadable), CouldNotList }.OrderByDescending(line => line.Length).First());
 
+            // In the font the tab draws the values in until a dialog hands it another, since which
+            // fingerprint is widest is a question about a font and nothing here has another to ask.
+            // `AuthorityPanel.DrawLongestFacts` asks the font the tab really has.
+            IReadOnlyList<Fact> facts;
+            using (var values = new Font(Control.DefaultFont, FontStyle.Bold))
+            {
+                facts = LongestFacts(values);
+            }
+
             return new List<AuthorityDescription>
             {
                 new AuthorityDescription(DamagedHeadline, null, damage, false, true, true),
-                new AuthorityDescription(PresentHeadline, LongestFacts(), OneLine(warnings), false, true, true),
+                new AuthorityDescription(PresentHeadline, facts, OneLine(warnings), false, true, true),
                 new AuthorityDescription(UndecidedHeadline, null, new[] { Longest(UndecidedLine) }, false, true, true)
                 {
                     CanChoose = true
@@ -622,15 +633,37 @@ namespace KeePassGate.Ui
                 : Records(records) + " cannot be read and admit nobody. The Clients page lists them.";
         }
 
-        /// <summary>The widest the table can be, for the same reason.</summary>
-        public static IReadOnlyList<Fact> LongestFacts()
+        /// <summary>The widest the table can be, in the font its values are drawn in.</summary>
+        /// <remarks>
+        /// **The fingerprint is sixteen of whichever hex digit is widest in that font.** A real
+        /// fingerprint is the start of a random digest, so it can be all wide digits, and every
+        /// digit once is narrower: in bold Microsoft Sans Serif, Segoe UI and Tahoma,
+        /// `0123456789abcdef` measured 115 or 116 pixels where sixteen zeros measured 119. Which
+        /// digit is widest depends on the font, so the font is asked, as `GateTabFitsTests` asks
+        /// the invitation line's. The count shares the column and is narrower at any count.
+        /// </remarks>
+        // cspell:ignore Tahoma
+        public static IReadOnlyList<Fact> LongestFacts(Font values)
         {
+            if (values == null)
+            {
+                throw new ArgumentNullException(nameof(values));
+            }
+
+            // As long as a shortened digest is, asked of the shortening rather than written down.
+            var length = CertificateDigest.Shorten(CertificateDigest.Of(Array.Empty<byte>())).Length;
+            var widest = HexDigits.OrderByDescending(
+                digit => TextRenderer.MeasureText(new string(digit, length), values).Width).First();
+
             return new List<Fact>
             {
-                new Fact("Fingerprint", "0123456789abcdef"),
+                new Fact("Fingerprint", new string(widest, length)),
                 new Fact("Admission records", "16")
             };
         }
+
+        /// <summary>The digits a fingerprint is spelled in, as `Hex` writes them.</summary>
+        private const string HexDigits = "0123456789abcdef";
 
         /// <summary>The count on its own, for the table, where the noun is the column heading.</summary>
         private static string Count(int count)

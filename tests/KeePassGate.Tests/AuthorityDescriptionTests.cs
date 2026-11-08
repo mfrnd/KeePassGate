@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
+using System.Windows.Forms;
 using KeePassGate.Authority;
 using KeePassGate.Tests.Fakes;
 using KeePassGate.Ui;
@@ -642,6 +644,31 @@ namespace KeePassGate.Tests
             Assert.That(whole.DetailText, Does.Not.Contain("Authority"),
                 "the authority and its host certificate are not warned about, CA.md §219");
             Assert.That(whole.Facts, Is.Not.Empty);
+        }
+
+        [TestCase("Microsoft Sans Serif", 8.25f)]
+        [TestCase("Segoe UI", 9f)]
+        [TestCase("Tahoma", 8.25f)]
+        // cspell:ignore Tahoma
+        public void The_widest_fingerprint_is_as_wide_as_a_real_fingerprint_can_be_in_the_values_font(
+            string family, float size)
+        {
+            // T070: the table was measured with every hex digit once, three or four pixels short of
+            // sixteen zeros in each of these fonts, and a real fingerprint is the start of a random
+            // digest, so it can be sixteen of whichever digit is widest.
+            using (var values = new Font(family, size, FontStyle.Bold))
+            {
+                var fingerprint = AuthorityDescription.LongestFacts(values)
+                    .Single(fact => fact.Name == "Fingerprint").Value;
+
+                Assert.That(fingerprint.Length, Is.EqualTo(CertificateDigest.Shorten(new string('0', 64)).Length),
+                    "as long as a fingerprint the tab shows");
+
+                var widest = "0123456789abcdef".Max(
+                    digit => TextRenderer.MeasureText(new string(digit, fingerprint.Length), values).Width);
+                Assert.That(TextRenderer.MeasureText(fingerprint, values).Width, Is.GreaterThanOrEqualTo(widest),
+                    "a fingerprint of nothing but one digit is wider than the fingerprint measured in " + family);
+            }
         }
 
         [Test]

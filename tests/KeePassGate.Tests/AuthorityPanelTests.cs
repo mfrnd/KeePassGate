@@ -1524,12 +1524,12 @@ namespace KeePassGate.Tests
             using (var larger = new System.Drawing.Font(panel.Font.FontFamily, 12f))
             {
                 panel.CreateAuthority();
-                panel.DrawFacts(AuthorityDescription.LongestFacts());
+                panel.DrawLongestFacts();
 
                 panel.Font = larger;
                 AssertFactsIn(panel, larger, "the facts drawn before the change");
 
-                panel.DrawFacts(AuthorityDescription.LongestFacts());
+                panel.DrawLongestFacts();
                 AssertFactsIn(panel, larger, "the facts drawn after it");
             }
         }

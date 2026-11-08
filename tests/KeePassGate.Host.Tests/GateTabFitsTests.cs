@@ -234,7 +234,7 @@ namespace KeePassGate.Host.Tests
                 using (var panel = NewPanel(true, false))
                 {
                     panel.Scale(scale);
-                    panel.DrawFacts(AuthorityDescription.LongestFacts());
+                    panel.DrawLongestFacts();
 
                     var facts = ControlTree.FindByName<TableLayoutPanel>(panel, GateTab.FactsTableName);
                     var name = facts.GetControlFromPosition(0, 0);
@@ -941,7 +941,7 @@ namespace KeePassGate.Host.Tests
 
             Set(panel, GateTab.StatusLabelName, longest.Headline);
             Set(panel, GateTab.DetailLabelName, longest.DetailText);
-            panel.DrawFacts(AuthorityDescription.LongestFacts());
+            panel.DrawLongestFacts();
             Set(panel, GateTab.ResultLabelName, AuthorityPanel.LongestResult());
 
             // Written again whenever a page is brought forward, which every measurement of the
