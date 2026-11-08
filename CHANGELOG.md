@@ -11,6 +11,10 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **The routing document names the transport's answers before routing as the transport gives
+  them.** It promised a `501` for a method the gate does not implement, which the router answers
+  instead, and named no `501` for a `Transfer-Encoding`, the only reason a `501` is sent; it
+  called every such `error` a sentence, where the `417`'s is the one word `expectation`.
 - **A request without a `Host` header is refused with `400`**, as RFC 9112 requires of HTTP/1.1.
   It was served, so a request every other server refuses worked against this gate alone. The
   gate still routes by the name the TLS was made under and reads nothing in the header, and
