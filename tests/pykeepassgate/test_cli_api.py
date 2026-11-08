@@ -204,6 +204,42 @@ def test_groups_under_one_group_walks_a_level(gate: FakeGate, kept: Path) -> Non
     assert gate.requests[-1] == ("GET", f"/groups/{UUID}/groups")
 
 
+@pytest.mark.parametrize(
+    "command",
+    [
+        ["groups", "--under", ""],
+        ["entries", "--group", ""],
+        ["access", "--entry", ""],
+        ["show", ""],
+        ["field", UUID, ""],
+        ["field", UUID, "caf\udce9"],
+        ["fetch", "\udcff", "key.pem", "--to", "x"],
+    ],
+    ids=[
+        "an empty group to walk",
+        "an empty group to list",
+        "an empty entry to ask about",
+        "an empty entry to read",
+        "an empty field name",
+        "a field name that is not UTF-8",
+        "an entry that is not UTF-8",
+    ],
+)
+def test_an_argument_that_names_nothing_is_refused_before_anything_is_dialed(
+    gate: FakeGate, kept: Path, capsys: pytest.CaptureFixture[str], command: list[str]
+) -> None:
+    # An empty `--under` from a variable nobody set listed the whole database, which is another
+    # question and another grant, and a lone surrogate from argv that was not UTF-8 left `main`
+    # as a traceback. Each is an argument that cannot work, exit 2.
+    with pytest.raises(SystemExit) as exited:
+        cli.main([*command, "--directory", str(kept)])
+
+    refused = capsys.readouterr().err
+    assert exited.value.code == 2
+    assert "names nothing" in refused or "never empty" in refused
+    assert gate.names == [], "nothing was dialed"
+
+
 def test_entries_are_printed_and_can_be_scoped(
     gate: FakeGate, kept: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:

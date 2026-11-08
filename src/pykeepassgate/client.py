@@ -70,12 +70,25 @@ AUTO = "auto"
 
 
 def _segment(text: str) -> str:
-    """One path segment, escaped.
+    """One path segment, escaped, or a refusal of text that addresses nothing.
 
     Nothing is left unescaped, the separator least of all: the gate splits a path before it decodes
     it, so an attachment called `a/b` is addressable exactly because its slash arrives escaped.
+
+    **Refused rather than sent**, as `transport._check` refuses a path it will not send: an empty
+    segment, which made `/groups//entries` of a group given as `""`, and text UTF-8 cannot encode,
+    a lone surrogate such as a name taken from argv that was not UTF-8 brings on POSIX, which left
+    `quote` as `UnicodeEncodeError`, a `ValueError` and no `GateError`.
     """
-    return quote(text, safe="")
+    if not text:
+        raise ProtocolError("an identifier or a name in a path is never empty, and this is empty")
+
+    try:
+        return quote(text, safe="", errors="strict")
+    except UnicodeEncodeError:
+        raise ProtocolError(
+            f"{text!r} is text UTF-8 cannot encode, so it names nothing the gate holds"
+        ) from None
 
 
 @dataclass(frozen=True)

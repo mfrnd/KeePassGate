@@ -99,6 +99,36 @@ def test_a_list_of_profiles_that_will_not_read_is_read_as_the_gate_answers_it(
     assert found.client_key == "3a" * 32
 
 
+@pytest.mark.parametrize(
+    "call",
+    [
+        lambda c: c.entries(""),
+        lambda c: c.subgroups(""),
+        lambda c: c.entry(""),
+        lambda c: c.field(UUID, ""),
+        lambda c: c.field(UUID, "caf\udce9"),
+        lambda c: c.attachment("\udcff", "key.pem"),
+    ],
+    ids=[
+        "an empty group",
+        "an empty group to walk",
+        "an empty entry",
+        "an empty field name",
+        "a field name UTF-8 cannot encode",
+        "an entry UTF-8 cannot encode",
+    ],
+)
+def test_a_segment_that_names_nothing_is_refused_before_anything_is_dialed(
+    gate: FakeGate, paired: GateClient, call: Callable[[GateClient], object]
+) -> None:
+    # An empty group asked for `/groups//entries`, and a lone surrogate left `quote` as
+    # `UnicodeEncodeError`, a `ValueError` past `except GateError`.
+    with pytest.raises(ProtocolError):
+        call(paired)
+
+    assert gate.names == [], "nothing was dialed"
+
+
 def test_the_gate_says_what_each_profile_may_do_at_a_node(
     gate: FakeGate, paired: GateClient, document: dict[str, Any]
 ) -> None:

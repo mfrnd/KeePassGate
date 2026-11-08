@@ -11,6 +11,12 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **An identifier or a name that names nothing is refused before anything is dialed**: an empty
+  identifier or name, and text UTF-8 cannot encode, such as a lone surrogate from argv. The
+  library raises `ProtocolError`, and the command line refuses the argument, exit 2. `groups
+  --under ""` listed the whole database, which is another question and another grant, `entries
+  --group ""` asked for `/groups//entries`, and a surrogate left as a `UnicodeEncodeError`
+  traceback.
 - **A pairing waits at least six minutes for the operator's answer, whatever
   `connection_timeout` is**, as a renewal already did. `pair --connection-timeout 30` hung up on
   an operator who took longer, after the invitation was spent and the record written, leaving a

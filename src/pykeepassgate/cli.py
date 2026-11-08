@@ -279,8 +279,8 @@ def _parser() -> argparse.ArgumentParser:
         ),
     )
     node = access.add_mutually_exclusive_group(required=True)
-    node.add_argument("--group", help="a group identifier, or root")
-    node.add_argument("--entry", help="an entry identifier")
+    node.add_argument("--group", type=_addressed, help="a group identifier, or root")
+    node.add_argument("--entry", type=_addressed, help="an entry identifier")
     _shared(access)
     _dialed(access)
     access.set_defaults(run=_access)
@@ -294,7 +294,9 @@ def _parser() -> argparse.ArgumentParser:
         ),
     )
 
-    groups.add_argument("--under", help="a group identifier, or root, to list one level below")
+    groups.add_argument(
+        "--under", type=_addressed, help="a group identifier, or root, to list one level below"
+    )
     _shared(groups)
     _dialed(groups)
     groups.set_defaults(run=_groups)
@@ -304,7 +306,7 @@ def _parser() -> argparse.ArgumentParser:
         help="read one group, its notes included",
         description="Needs `read` on the group, where listing it needs `list` on the one above.",
     )
-    group.add_argument("uuid", help="the group's identifier, or root")
+    group.add_argument("uuid", type=_addressed, help="the group's identifier, or root")
     _shared(group)
     _dialed(group)
     group.set_defaults(run=_group_read)
@@ -312,7 +314,7 @@ def _parser() -> argparse.ArgumentParser:
     add_group = commands.add_parser("add-group", help="create a group inside another")
     add_group.add_argument("--name", required=True, help="what to call it")
     add_group.add_argument(
-        "--parent", default=api.ROOT, help="where to put it, by identifier or root"
+        "--parent", type=_addressed, default=api.ROOT, help="where to put it, by identifier or root"
     )
     add_group.add_argument("--notes", help="the notes")
     _shared(add_group)
@@ -322,7 +324,7 @@ def _parser() -> argparse.ArgumentParser:
     update_group = commands.add_parser(
         "update-group", help="rename a group, or change its notes"
     )
-    update_group.add_argument("uuid", help="the group's identifier, or root")
+    update_group.add_argument("uuid", type=_addressed, help="the group's identifier, or root")
     update_group.add_argument("--name", help="what to call it from now on")
     update_group.add_argument("--notes", help="the notes")
     _conditioned(update_group)
@@ -334,7 +336,7 @@ def _parser() -> argparse.ArgumentParser:
         "remove-group",
         help="delete a group, which the gate refuses while it holds anything",
     )
-    remove_group.add_argument("uuid", help="the group's identifier")
+    remove_group.add_argument("uuid", type=_addressed, help="the group's identifier")
     _conditioned(remove_group)
     _shared(remove_group)
     _dialed(remove_group)
@@ -347,6 +349,7 @@ def _parser() -> argparse.ArgumentParser:
 
     entries.add_argument(
         "--group",
+        type=_addressed,
         help="a group identifier, or root, for that group's own entries",
     )
     entries.add_argument(
@@ -373,7 +376,7 @@ def _parser() -> argparse.ArgumentParser:
         ),
     )
 
-    show.add_argument("uuid", help="the entry's identifier")
+    show.add_argument("uuid", type=_addressed, help="the entry's identifier")
     show.add_argument(
         "--resolve",
         action="store_true",
@@ -389,7 +392,12 @@ def _parser() -> argparse.ArgumentParser:
     show.set_defaults(run=_show)
 
     add = commands.add_parser("add", help="create an entry in a group")
-    add.add_argument("--group", default=api.ROOT, help="where to put it, by identifier or root")
+    add.add_argument(
+        "--group",
+        type=_addressed,
+        default=api.ROOT,
+        help="where to put it, by identifier or root",
+    )
     add.add_argument("--title", help="what to call it")
     add.add_argument("--username", help="the user name")
     add.add_argument("--url", help="the address")
@@ -416,7 +424,7 @@ def _parser() -> argparse.ArgumentParser:
     add.set_defaults(run=_add)
 
     update = commands.add_parser("update", help="change an entry's standard fields")
-    update.add_argument("uuid", help="the entry's identifier")
+    update.add_argument("uuid", type=_addressed, help="the entry's identifier")
     update.add_argument("--title", help="what to call it")
     update.add_argument("--username", help="the user name")
     update.add_argument("--url", help="the address")
@@ -443,7 +451,7 @@ def _parser() -> argparse.ArgumentParser:
     update.set_defaults(run=_update)
 
     remove = commands.add_parser("remove", help="delete an entry")
-    remove.add_argument("uuid", help="the entry's identifier")
+    remove.add_argument("uuid", type=_addressed, help="the entry's identifier")
     _conditioned(remove)
     _shared(remove)
     _dialed(remove)
@@ -452,7 +460,7 @@ def _parser() -> argparse.ArgumentParser:
     fields = commands.add_parser(
         "fields", help="list the names of an entry's strings, and which are protected"
     )
-    fields.add_argument("uuid", help="the entry's identifier")
+    fields.add_argument("uuid", type=_addressed, help="the entry's identifier")
     _shared(fields)
     _dialed(fields)
     fields.set_defaults(run=_fields)
@@ -466,15 +474,15 @@ def _parser() -> argparse.ArgumentParser:
             "`protected`, and one it withholds fails the command rather than printing anything."
         ),
     )
-    field.add_argument("uuid", help="the entry's identifier")
-    field.add_argument("name", help="the string's name, such as Password")
+    field.add_argument("uuid", type=_addressed, help="the entry's identifier")
+    field.add_argument("name", type=_addressed, help="the string's name, such as Password")
     _shared(field)
     _dialed(field)
     field.set_defaults(run=_field)
 
     add_field = commands.add_parser("add-field", help="add a string the entry does not have")
-    add_field.add_argument("uuid", help="the entry's identifier")
-    add_field.add_argument("name", help="what to call it")
+    add_field.add_argument("uuid", type=_addressed, help="the entry's identifier")
+    add_field.add_argument("name", type=_addressed, help="what to call it")
     _valued(add_field)
     add_field.add_argument(
         "--protected",
@@ -492,8 +500,8 @@ def _parser() -> argparse.ArgumentParser:
     update_field = commands.add_parser(
         "update-field", help="change a string the entry already has"
     )
-    update_field.add_argument("uuid", help="the entry's identifier")
-    update_field.add_argument("name", help="the string's name")
+    update_field.add_argument("uuid", type=_addressed, help="the entry's identifier")
+    update_field.add_argument("name", type=_addressed, help="the string's name")
     _valued(update_field)
     _conditioned(update_field)
     _shared(update_field)
@@ -504,22 +512,22 @@ def _parser() -> argparse.ArgumentParser:
         "strip-field",
         help="take a string off an entry; the five standard ones are emptied with update instead",
     )
-    strip_field.add_argument("uuid", help="the entry's identifier")
-    strip_field.add_argument("name", help="the string's name")
+    strip_field.add_argument("uuid", type=_addressed, help="the entry's identifier")
+    strip_field.add_argument("name", type=_addressed, help="the string's name")
     _conditioned(strip_field)
     _shared(strip_field)
     _dialed(strip_field)
     strip_field.set_defaults(run=_strip_field)
 
     files = commands.add_parser("attachments", help="list an entry's attachments")
-    files.add_argument("uuid", help="the entry's identifier")
+    files.add_argument("uuid", type=_addressed, help="the entry's identifier")
     _shared(files)
     _dialed(files)
     files.set_defaults(run=_attachments)
 
     fetch = commands.add_parser("fetch", help="write one attachment to a file")
-    fetch.add_argument("uuid", help="the entry's identifier")
-    fetch.add_argument("name", help="the attachment's name")
+    fetch.add_argument("uuid", type=_addressed, help="the entry's identifier")
+    fetch.add_argument("name", type=_addressed, help="the attachment's name")
     fetch.add_argument("--to", type=Path, required=True, help="where to write it")
     _shared(fetch)
     _dialed(fetch)
@@ -529,8 +537,8 @@ def _parser() -> argparse.ArgumentParser:
     add_attachment = commands.add_parser(
         "add-attachment", help="add an attachment the entry does not have, from a file"
     )
-    add_attachment.add_argument("uuid", help="the entry's identifier")
-    add_attachment.add_argument("name", help="what to call it")
+    add_attachment.add_argument("uuid", type=_addressed, help="the entry's identifier")
+    add_attachment.add_argument("name", type=_addressed, help="what to call it")
     add_attachment.add_argument(
         "--from", dest="source", type=Path, required=True, help="the file to read it from"
     )
@@ -542,8 +550,8 @@ def _parser() -> argparse.ArgumentParser:
     update_attachment = commands.add_parser(
         "update-attachment", help="replace an attachment the entry already has, from a file"
     )
-    update_attachment.add_argument("uuid", help="the entry's identifier")
-    update_attachment.add_argument("name", help="the attachment's name")
+    update_attachment.add_argument("uuid", type=_addressed, help="the entry's identifier")
+    update_attachment.add_argument("name", type=_addressed, help="the attachment's name")
     update_attachment.add_argument(
         "--from", dest="source", type=Path, required=True, help="the file to read it from"
     )
@@ -555,8 +563,8 @@ def _parser() -> argparse.ArgumentParser:
     strip_attachment = commands.add_parser(
         "strip-attachment", help="take an attachment off an entry"
     )
-    strip_attachment.add_argument("uuid", help="the entry's identifier")
-    strip_attachment.add_argument("name", help="the attachment's name")
+    strip_attachment.add_argument("uuid", type=_addressed, help="the entry's identifier")
+    strip_attachment.add_argument("name", type=_addressed, help="the attachment's name")
     _conditioned(strip_attachment)
     _shared(strip_attachment)
     _dialed(strip_attachment)
@@ -769,6 +777,28 @@ def _dialed(parser: argparse.ArgumentParser) -> None:
             "answer over it fails whole rather than arriving cut short."
         ),
     )
+
+
+def _addressed(text: str) -> str:
+    """A node's identifier, or a field's or an attachment's name, refused here if it names none.
+
+    Empty is no identifier: `groups --under ""`, from a variable that was not set, listed the
+    whole database, and `entries --group ""` asked for `/groups//entries`. Nor is text UTF-8
+    cannot encode, which argv that was not UTF-8 brings on POSIX as a lone surrogate, and which
+    left `main` as a traceback. Both are arguments that cannot work, exit 2 before anything is
+    dialed, as the library refuses them with `ProtocolError`.
+    """
+    if not text:
+        raise argparse.ArgumentTypeError("an identifier or a name is never empty")
+
+    try:
+        text.encode("utf-8")
+    except UnicodeEncodeError:
+        raise argparse.ArgumentTypeError(
+            f"{text!r} is text UTF-8 cannot encode, so it names nothing the gate holds"
+        ) from None
+
+    return text
 
 
 def _host(text: str) -> str:
@@ -1466,7 +1496,7 @@ def _groups(arguments: argparse.Namespace) -> int:
         key_password=_key_password(arguments),
         **_dialing(arguments),
     )
-    found = client.subgroups(arguments.under) if arguments.under else client.groups()
+    found = client.subgroups(arguments.under) if arguments.under is not None else client.groups()
 
     _emit(
         arguments,
