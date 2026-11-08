@@ -10,8 +10,10 @@ namespace KeePassGate.Authority
     /// An interface rather than the KeePass type, for the usual reason and one particular one. The
     /// usual reason is that everything above it becomes testable without KeePass. The particular
     /// one is that this store has a hazard the type does not express: a dialog can be holding a
-    /// copy of it, and writing here while that is true is a write that a later OK destroys. Naming
-    /// the seam is what lets that be reasoned about in one place.
+    /// copy of it, and writing here while that is true is a write the dialog's close destroys.
+    /// That dialog is Database Maintenance, whose one button is its accept and its cancel button
+    /// alike and which writes its copy back whenever the number of keys differs, whatever the
+    /// operator did. Naming the seam is what lets that be reasoned about in one place.
     /// </remarks>
     public interface IKeyValueStore
     {
