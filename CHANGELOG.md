@@ -215,6 +215,12 @@ none, since it releases both.
   leaves the KPG tab on the group and entry dialogs read only**, with its reason, as a KeePass that
   renamed either does. The tab looked editable and refused every rule chosen on it as a copy the
   dialog had not made yet.
+- **An authority the operator chose while another write held the plugin's writer is kept once
+  that write is done**, however long its save takes. It was tried for three seconds, while a save
+  of a large database takes a minute and more, and the operator was then told it was not kept and
+  sent to the KPG tab to choose again. A refusal that does not end by itself, Database Maintenance
+  left open or KeePass busy with an operation of its own, is still tried for a few seconds and
+  then told.
 - **A protected field is kept from a strip whenever any profile could put an unprotected value
   back.** The guard asked whether some profile could create there and whether some profile could
   create a protected value there, so a program holding one profile that could put an unprotected

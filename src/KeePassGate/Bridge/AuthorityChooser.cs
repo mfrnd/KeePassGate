@@ -47,15 +47,18 @@ namespace KeePassGate.Bridge
         public static readonly TimeSpan Retry = TimeSpan.FromSeconds(1);
 
         /// <summary>
-        /// How long a choice the writer refused is tried again before the operator is told to
-        /// choose again.
+        /// How long a choice the writer refused for a reason that does not end by itself is tried
+        /// again before the operator is told to choose again.
         /// </summary>
         /// <remarks>
-        /// The operator's ruling of 2026-10-14. The usual refusal is another client's write holding
-        /// the writer, or KeePass part way through a save, both of which end in a moment, and
-        /// telling the operator at once that their answer was not kept asked them to come back
-        /// and give it again for a busy spell they could not see. A few seconds covers those;
-        /// Database Maintenance left open does not end by itself, and is told after them.
+        /// The operator's rulings of 2026-10-14 and 2026-11-08. **Another write holding the writer
+        /// is waited out, however long it takes**, since it lets go once its save ends and a save is
+        /// a whole-database write: eight seconds and more were measured for one, and 80.6 for a
+        /// database of 201 MiB of attachments, so a few seconds told the operator their answer was
+        /// not kept for a wait that would have ended by itself a moment later. **What this bounds is
+        /// a refusal that does not end by itself**, Database Maintenance left open or KeePass busy
+        /// with an operation of its own, counted from the last time another write held the writer,
+        /// and told once it has passed.
         /// </remarks>
         public static readonly TimeSpan KeepTrying = TimeSpan.FromSeconds(3);
 
@@ -245,12 +248,12 @@ namespace KeePassGate.Bridge
                 var kept = _writer.Keep(database, chosen);
                 if (!kept.Succeeded)
                 {
-                    // Tried again for a moment rather than told at once: the writer refuses while
-                    // another write holds it or KeePass is saving, and neither is something the
-                    // operator should have to choose again for. The database stays marked as being
-                    // asked about, so nothing asks it again in the meantime.
-                    _log.Info("the authority the operator chose could not be kept yet, so it is tried again " +
-                              "for a moment: " + kept.Message);
+                    // Tried again rather than told at once: the writer refuses while another write
+                    // holds it or KeePass is busy, and neither is something the operator should
+                    // have to choose again for. The database stays marked as being asked about, so
+                    // nothing asks it again in the meantime.
+                    _log.Info("the authority the operator chose could not be kept yet, so it is tried again: " +
+                              kept.Message);
                     trying = true;
                     TryAgain(database, chosen, kept, System.Diagnostics.Stopwatch.StartNew());
                 }
@@ -273,13 +276,20 @@ namespace KeePassGate.Bridge
         internal Action<TimeSpan, Action> After { get; set; }
 
         /// <summary>
-        /// Tries once more to keep the authority the operator chose, until it is kept or
-        /// <see cref="KeepTrying"/> has passed, and then tells the operator.
+        /// Tries once more to keep the authority the operator chose, until it is kept, its
+        /// database closes, or a refusal that does not end by itself has outlasted
+        /// <see cref="KeepTrying"/>, and then tells the operator.
         /// </summary>
         private void TryAgain(
             PwDatabase database, string chosen, AuthorityChange last, System.Diagnostics.Stopwatch trying)
         {
-            if (trying.Elapsed >= KeepTrying || !database.IsOpen)
+            if (last.IsBehindAnotherWrite)
+            {
+                // Waited out, and the bound counts from the moment the writer is free.
+                trying.Restart();
+            }
+
+            if (!database.IsOpen || trying.Elapsed >= KeepTrying)
             {
                 NotKept(database, last);
                 return;

@@ -259,14 +259,15 @@ audit holds it, when it last made a request. Keeping an authority retires every 
 through the single writer's guard, and marks the database modified without saving it; the records of
 the authorities not kept stay, admitting nobody, and the clients page names them for what they are.
 Cancel serves nothing, and the KPG tab's authority page asks again, waiting for the settings
-dialog's OK like everything else there. **A choice the writer refuses is tried again for a few
-seconds** before the operator is told to choose again, which is the operator's ruling of 2026-10-14:
-another client's write holding the writer, or KeePass part way through a save, is over in a moment,
-and only a refusal that outlasts that, Database Maintenance left open among them, is put back in
-front of the operator. **A lock closes the dialog unanswered**, as it closes a pairing or a renewal
-dialog and for their reason: KeePass locks under a dialog the plugin does not register, and this
-one lists every authority's clients. An answer given as the lock lands is not written, and the
-unlock asks again.
+dialog's OK like everything else there. **A choice the writer refuses is tried again** before the
+operator is told to choose again, which is the operator's rulings of 2026-10-14 and 2026-11-08:
+another client's write holding the writer is waited out however long its save takes, which can be
+a minute and more for a large database, and a refusal that does not end by itself, Database
+Maintenance left open or KeePass busy with an operation of its own, is tried again for a few
+seconds and then put back in front of the operator. **A lock closes the dialog unanswered**, as it
+closes a pairing or a renewal dialog and for their reason: KeePass locks under a dialog the plugin
+does not register, and this dialog lists every authority's clients. An answer given as the lock
+lands is not written, and the unlock asks again.
 
 **Copies that keep different authorities retire every authority.** Each copy asks on its own, and
 the last requests it shows come from that machine's own audit, so copies asked before any answer is

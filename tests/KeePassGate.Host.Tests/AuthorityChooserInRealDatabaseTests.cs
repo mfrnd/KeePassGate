@@ -423,8 +423,68 @@ namespace KeePassGate.Host.Tests
                 spent.Stop();
 
                 Assert.That(kept.Succeeded, Is.False);
-                Assert.That(kept.Message, Does.Contain("choose again"));
+                Assert.That(kept.IsBehindAnotherWrite, Is.True, "and as a refusal that ends by itself");
                 Assert.That(spent.Elapsed, Is.LessThan(TimeSpan.FromSeconds(2)), "refused at once rather than waited");
+            }
+            finally
+            {
+                release.Set();
+                other.Join(TimeSpan.FromSeconds(10));
+            }
+        }
+
+        [Test]
+        public void A_choice_behind_another_write_is_kept_once_that_write_is_done_however_long_it_takes()
+        {
+            // A save is a whole-database write and a large one takes a minute and more. Tried for
+            // three seconds and then given up, the choice was reported as not kept, and the
+            // operator sent to the tab, for a wait that would have ended by itself.
+            var held = new ManualResetEventSlim(false);
+            var release = new ManualResetEventSlim(false);
+            var ui = new HoldingUi(held, release);
+            var writer = new DatabaseWriter(ui, database => { }, null, null, null, _dialogs, NullGateLog.Instance);
+
+            var other = new Thread(() =>
+            {
+                ui.Holding = Thread.CurrentThread;
+                writer.Change(_database.Database, () => null);
+            });
+
+            other.IsBackground = true;
+            other.Start();
+
+            var tries = 0;
+            var chooser = new AuthorityChooser(
+                new NoEvents(), _targets, writer, _owner, null, null, _prompt, null, NullGateLog.Instance)
+            {
+                AskWhichToKeep = (choice, name) => _candidates[0],
+                After = (delay, work) =>
+                {
+                    Thread.Sleep(delay);
+
+                    // Past the bound a refusal that does not end by itself is given.
+                    if (++tries * delay.TotalMilliseconds > AuthorityChooser.KeepTrying.TotalMilliseconds + 1000)
+                    {
+                        release.Set();
+                        other.Join(TimeSpan.FromSeconds(10));
+                    }
+
+                    work();
+                },
+            };
+
+            try
+            {
+                Assume.That(held.Wait(TimeSpan.FromSeconds(10)), Is.True, "the other write has the lock");
+
+                using (chooser)
+                {
+                    chooser.Ask(_database.Database);
+                }
+
+                Assert.That(_prompt.Told, Is.Null, "the operator is not sent back to choose again");
+                Assert.That(_database.Database.CustomData.Exists(AuthorityKeys.RetirementKey(_candidates[1])), Is.True,
+                    "and the choice is kept");
             }
             finally
             {

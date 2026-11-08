@@ -11,12 +11,14 @@ namespace KeePassGate.Authority
         private readonly bool _succeeded;
         private readonly string _message;
         private readonly int _recordsRemoved;
+        private readonly bool _behindAnotherWrite;
 
-        private AuthorityChange(bool succeeded, string message, int recordsRemoved)
+        private AuthorityChange(bool succeeded, string message, int recordsRemoved, bool behindAnotherWrite)
         {
             _succeeded = succeeded;
             _message = message ?? string.Empty;
             _recordsRemoved = recordsRemoved;
+            _behindAnotherWrite = behindAnotherWrite;
         }
 
         public bool Succeeded
@@ -36,24 +38,44 @@ namespace KeePassGate.Authority
             get { return _recordsRemoved; }
         }
 
+        /// <summary>
+        /// Whether this was refused because another write held the writer, which lets it go once
+        /// its save ends, so that asking again is all it takes.
+        /// </summary>
+        public bool IsBehindAnotherWrite
+        {
+            get { return _behindAnotherWrite; }
+        }
+
         public static AuthorityChange Done(string message)
         {
-            return new AuthorityChange(true, message, 0);
+            return new AuthorityChange(true, message, 0, false);
         }
 
         public static AuthorityChange Done(string message, int recordsRemoved)
         {
-            return new AuthorityChange(true, message, recordsRemoved);
+            return new AuthorityChange(true, message, recordsRemoved, false);
         }
 
         public static AuthorityChange Refused(string reason)
+        {
+            return new AuthorityChange(false, Reason(reason), 0, false);
+        }
+
+        /// <summary>Refused because another write held the writer, <see cref="IsBehindAnotherWrite"/>.</summary>
+        public static AuthorityChange BehindAnotherWrite(string reason)
+        {
+            return new AuthorityChange(false, Reason(reason), 0, true);
+        }
+
+        private static string Reason(string reason)
         {
             if (string.IsNullOrEmpty(reason))
             {
                 throw new ArgumentException("A refusal says why.", nameof(reason));
             }
 
-            return new AuthorityChange(false, reason, 0);
+            return reason;
         }
     }
 }

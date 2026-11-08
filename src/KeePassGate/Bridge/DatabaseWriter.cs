@@ -1129,7 +1129,7 @@ namespace KeePassGate.Bridge
             // wait here is the two waiting on each other until the timeout, with KeePass frozen.
             if (!Monitor.TryEnter(_writing, TimeSpan.Zero))
             {
-                return AuthorityChange.Refused("another change is being written, so choose again in a moment");
+                return AuthorityChange.BehindAnotherWrite("another change is being written");
             }
 
             try
