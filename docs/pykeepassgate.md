@@ -1091,7 +1091,9 @@ def entry(path: str, body: str, client: bytes | None) -> tuple[int, str]:
 `gate.if_match()` is the request's `If-Match`, as its value arrived, or `None`. `gate.tag(etag)`
 puts an `ETag` on the read being answered, as the plugin tags a read, and `written(etag)` is the
 answer to a write that landed, with the tag it left in the body as `etag`, which is where the
-plugin puts a write's. So a test can play an entry that changes under a program holding its tag.
+plugin puts a write's. Each takes any entity tag, visible ASCII between two quotes and no quote
+inside, though the plugin's own are 32 hex digits, and refuses anything else with `ValueError`.
+So a test can play an entry that changes under a program holding its tag.
 Which tag matches is the handler's to decide, since this gate holds no node, and so is whether
 the program is one the plugin would hand a tag to at all, since it holds no rule either: a test of
 one it would not answers without `tag` and answers every `If-Match` with `412`.
@@ -1125,8 +1127,8 @@ accepts, a `..` segment or a character RFC 3986 escapes, `400`, a version other 
 character `400`, and a body over 1 MiB `413`, among others, and a refused `HEAD` has no content.
 So a name of `..`, or an attachment whose encoding is over the body's limit, is refused here as
 the gate refuses it.
-A handler that raises, `tag` refusing a tag
-the plugin could not have sent among the causes, is answered `500 internal error`, as the plugin
+A handler that raises, `tag` or `written` refusing what is no entity tag among the causes, is
+answered `500 internal error`, as the plugin
 answers a defect of its own, and what it raised is kept in `gate.failures`. It imports no test
 framework, and the client's own tests build it through fixtures of their own.
 

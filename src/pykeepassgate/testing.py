@@ -209,13 +209,32 @@ def written(etag: str | None = None, uuid: str | None = None) -> tuple[int, str]
     `200` and `{"ok":true}`, or `201` and the `uuid` that addresses what a create made, with
     `etag` beside either when there is one: the plugin puts a write's tag in the body, quoted as
     `ETag` writes one, and only for a client whose rule reads everything the tag covers. A
-    handler returns it, as it would any answer.
+    handler returns it, as it would any answer. A tag that is not an entity tag, as `FakeGate.tag`
+    holds a tag to, is refused with `ValueError`.
     """
     document: dict[str, object] = {"ok": True} if uuid is None else {"uuid": uuid}
     if etag is not None:
-        document["etag"] = etag
+        document["etag"] = _entity_tag(etag)
 
     return (200 if uuid is None else 201), json.dumps(document, separators=(",", ":"))
+
+
+def _entity_tag(etag: str) -> str:
+    """An entity tag as given, or `ValueError` where RFC 9110 section 8.8.3 would call it none.
+
+    A strong tag only, since the plugin gives no other: a quote, visible ASCII but a quote, which
+    is the section's tag characters less the bytes beyond ASCII a header cannot carry here, and a
+    quote.
+    """
+    if (
+        len(etag) < 2
+        or etag[0] != '"'
+        or etag[-1] != '"'
+        or any(not "!" <= character <= "~" or character == '"' for character in etag[1:-1])
+    ):
+        raise ValueError(f"that is not a tag the gate could send: {etag!r}")
+
+    return etag
 
 
 def identified(
@@ -404,18 +423,14 @@ class FakeGate:
         body, as `etag`, which `written` makes. Called from inside the handler, before it
         returns, and for that answer alone.
 
-        Refused with `ValueError` unless it is one header value the plugin could have written,
-        visible ASCII in quotes: anything else could not be sent, and the refusal is answered as
-        the plugin answers a defect, so a test sees it in `failures` rather than in a connection
-        that closed without a word.
+        Refused with `ValueError` unless it is an entity tag, visible ASCII between two quotes and
+        no quote inside, RFC 9110 section 8.8.3: the plugin's own are 32 hex digits, and a test may
+        give any other, since a client holds a tag as it arrived. The refusal is answered as the
+        plugin answers a defect, so a test sees it in `failures` rather than in a connection that
+        closed without a word.
         """
         self._in_handler()
-        if len(etag) < 2 or etag[0] != '"' or etag[-1] != '"' or any(
-            not "!" <= character <= "~" for character in etag
-        ):
-            raise ValueError(f"that is not a tag the gate could send: {etag!r}")
-
-        self._answering.etag = etag
+        self._answering.etag = _entity_tag(etag)
 
     def _in_handler(self) -> None:
         """Refuse a question about the request being answered from outside a handler."""

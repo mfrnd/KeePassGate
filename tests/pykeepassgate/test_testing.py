@@ -70,12 +70,24 @@ def test_a_held_approval_is_answered_as_the_plugin_answers_it() -> None:
     assert json.loads(body) == {"error": "busy", "heldUntil": "2026-10-14T09:06:00Z"}
 
 
+#: What no entity tag is: beyond ASCII, without its quotes, a header break, past its last quote,
+#: and a quote inside, which RFC 9110 section 8.8.3 leaves out of a tag's characters.
+NO_TAGS = ['"é"', "0a1b", '"a\r\nX-Invented: 1"', '""x', '"a"b"']
+
+
 def test_a_write_is_answered_with_its_tag_in_the_body_as_the_plugin_answers_it() -> None:
     # `VaultHandlers.Answer`: `ok`, or what a create made, with `etag` beside it when there is one.
     assert written() == (200, '{"ok":true}')
     assert written('"0a1b"') == (200, '{"ok":true,"etag":"\\"0a1b\\""}')
     assert written('"0a1b"', uuid="Account") == (201, '{"uuid":"Account","etag":"\\"0a1b\\""}')
     assert written(uuid="7b1c") == (201, '{"uuid":"7b1c"}')
+
+
+@pytest.mark.parametrize("tag", NO_TAGS)
+def test_a_write_is_not_answered_with_what_is_no_tag(tag: str) -> None:
+    # Held as `tag` holds a header's, since the plugin writes one tag in both places.
+    with pytest.raises(ValueError, match="not a tag the gate could send"):
+        written(tag)
 
 
 def test_a_gate_nobody_scripted_answers_that_it_has_no_such_route(
@@ -406,8 +418,8 @@ def test_what_the_library_sends_and_the_plugin_refuses_is_refused_here_too(
     assert gate.requests == []
 
 
-@pytest.mark.parametrize("tag", ['"é"', "0a1b", '"a\r\nX-Invented: 1"', '""x'])
-def test_a_tag_the_plugin_could_not_send_is_answered_as_a_defect(
+@pytest.mark.parametrize("tag", NO_TAGS)
+def test_what_is_no_tag_is_answered_as_a_defect(
     gate: FakeGate, authority: Authority, tag: str
 ) -> None:
     # Raised inside the handler, which used to end the thread answering it, so the client saw a

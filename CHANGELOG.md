@@ -11,6 +11,9 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **The stand-in's `tag` and `written` take an entity tag and nothing else**: visible ASCII
+  between two quotes, with no quote inside. `tag` took a quote inside, and `written` took
+  anything, though its tag is the tag a later `If-Match` sends back.
 - **The stand-in gate refuses what the plugin refuses before any route**, with the plugin's
   status and reason: a head over 8 KiB, a target over 2048 characters or a target that is no
   path the plugin takes, `..` among them, a version other than HTTP/1.1, a request without a
