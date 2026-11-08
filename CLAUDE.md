@@ -383,11 +383,13 @@ designing around them.
   `spikes/json-reading`.
 - **The JSON grammar is `Newtonsoft.Json`'s and the policy is ours**, which is the split worth
   keeping. `JsonBody` decides what this wire may carry, which is one flat object of strings and
-  arrays of strings, with no NUL anywhere in it and no string a `.kdbx` would not give back:
-  nothing XML 1.0 cannot represent, and nothing that is whitespace alone. `JsonWriter` shapes what a
-  handler writes, and neither owns a parser. Three
-  alternatives were measured and refused, on assembly count and on license. The counts are on
-  `spikes/json-reading`, and re-proposing one means arguing with them.
+  arrays of strings, with no NUL anywhere in it and no string a `.kdbx` would not give back: nothing
+  XML 1.0 cannot represent, and nothing that is whitespace alone. A carriage return is the one
+  change it lets through: it is stored as sent, and reads back as a line feed once KeePass has
+  opened the file again, which is KeePass's own behavior. `JsonWriter` shapes what a handler writes,
+  and neither owns a parser. Three alternatives were measured and refused, on assembly count and on
+  license. The counts are on `spikes/json-reading`, and re-proposing an alternative means arguing
+  with them.
 
   **And nothing here escapes a JSON string.** A response, an audit line, an ACL document, a
   profile list, a pairing bundle: every value this plugin writes as one goes out through that
@@ -625,9 +627,10 @@ Run them from
   `GateListenerTests.Connections_that_send_nothing_leave_the_thread_pool_free`.
 - **Under TLS 1.3 a refused handshake's alert can lose the race to the reset behind it.** The gate
   refuses and closes with the client's request unread, so the client's first read after the
-  handshake meets either the alert or the reset: a client half a second late to read lost the
-  alert five times in five. A test that asks why a handshake was refused reads the gate's log,
-  never what the client read, which is how the tests over `BouncyCastleGateClient` ask it.
+  handshake meets either the alert or the reset: a client half a second late to read lost the alert
+  five times in five. A test that asks why a handshake was refused reads the gate's log, never what
+  the client read, which is how `GateListenerTests` asks it of a handshake refused to
+  `BouncyCastleGateClient`.
 - **A locked document's close carries no path, and the document is what still knows it.** The lock
   ran `PwDatabase.Close` already, which resets the connection, so both `FileClosingPre` and
   `FileClosed` announce that document with an empty path. `PwDocument.LockedIoc` is where KeePass
@@ -1067,13 +1070,13 @@ the tools this branch carries.
   somebody's own keeps its own uv, because nothing sets `required-version`.
 
   **`ruff check` is the gate and `ruff format` is not**, which is a decision rather than an
-  omission: thirteen files have never been through the formatter and running it would rewrite them
-  all. What is enforced is what a formatter cannot decide for you, and `pycodestyle` is in the
+  omission: most of the Python files have never been through the formatter, and running it would
+  rewrite them. What is enforced is what a formatter cannot decide, and `pycodestyle` is in the
   selected rules, so a line too long or a space in the wrong place still fails. What is left to the
   author is where a line breaks, which is a judgment this project spends deliberately, including
-  inside the fenced examples in `docs/`, where the formatter would take the alignment out of a
-  block written to be read. Adopting it means reformatting everything in one commit that changes
-  nothing else, not letting it arrive a file at a time under other work.
+  inside the fenced examples in `docs/`, where the formatter would take the alignment out of a block
+  written to be read. Adopting it means reformatting everything in one commit that changes nothing
+  else, not letting it arrive a file at a time under other work.
 - **Docs stay with code.** A behavior or architecture change updates the design documents in the
   same pass, and reversals are recorded rather than edited away.
 - **A CodeQL finding is fixed, or suppressed where it is, with the reason.** The one spelling is a
@@ -1338,8 +1341,11 @@ rather than through the file.
 **One thing to know before touching the transport.** An `EphemeralKeySet` certificate signs happily
 and SChannel will not do TLS with it in either direction. That is why `Org.BouncyCastle.Tls`
 terminates the transport, so that every key the plugin loads can stay off the disk.
-`HostCertificateHandshakeTests` pins both halves, including the SChannel refusal, so a tidy-up that
-goes back to `SslStream` fails loudly rather than quietly writing keys to somebody's profile. That
+`HostCertificateHandshakeTests` pins both halves, including the SChannel refusal, over handshakes it
+makes for itself: it records why the transport is not `SslStream`, and does not watch the
+listener's. A tidy-up back to `SslStream` that kept the key ephemeral fails loudly, in
+`GateListenerTests`; a tidy-up that gave the key a file so that SChannel would serve with it would
+serve, and write the host key to somebody's profile at every connection, with nothing failing. That
 no key of the plugin's own is handed to Windows at all is a later decision with another reason: the
 issuer moved to Bouncy Castle because Mono has no ECDSA and no `CertificateRequest` a .NET Framework
 build can reach, `CA.md` §203 and its row in §221.
