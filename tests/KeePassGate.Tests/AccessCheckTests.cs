@@ -347,6 +347,27 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_refusal_profiles_lost_to_a_damaged_list_would_have_permitted_names_the_damage()
+        {
+            // Nobody removed `ops`: the list would not read, so it names none of the record's
+            // profiles. The line still names what would have permitted it, under the other reason.
+            var entry = TestNode.Root("root").Holding(Rules.Granting(("ops", "R"))).Child("an entry");
+            ClientIdentity damaged;
+            using (var authority = TestAuthority.New())
+            using (var certificate = authority.IssueClient("agent-fictitious"))
+            {
+                damaged = ClientIdentity.Paired(
+                    "d1e2f3", certificate, Array.Empty<string>(), new[] { "ops" }, null, true);
+            }
+
+            _check.Decide(damaged, "readEntry", AclVerb.Read, AclReach.Fields, entry);
+
+            var recorded = _audit.Entries.Single();
+            Assert.That(recorded.Reason, Is.EqualTo(AccessCheck.ProfilesUnreadable));
+            Assert.That(recorded.RemovedProfiles, Is.EqualTo(new[] { "ops" }));
+        }
+
+        [Test]
         public void A_refusal_no_removed_profile_would_have_permitted_is_the_rules_refusing()
         {
             var entry = TestNode.Root("root").Granting("reader", AclVerb.List).Child("an entry");

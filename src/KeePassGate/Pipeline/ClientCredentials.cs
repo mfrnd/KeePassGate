@@ -116,6 +116,12 @@ namespace KeePassGate.Pipeline
                 // taken away. Read first, a lock after it is met by the record's read, which
                 // answers a shut database as one.
                 var named = target.KnownProfiles;
+
+                // Whether it read whole, asked beside it and first for the same reason, so that
+                // names a damaged list lost are told apart from names the operator removed. A
+                // database shut by then answers that its list reads, so nothing is called damaged
+                // that was not.
+                var unreadable = target.ProfilesUnreadable != null;
                 var record = target.Admission(admissionKey);
 
                 if (record == null)
@@ -130,7 +136,8 @@ namespace KeePassGate.Pipeline
                     presented,
                     Effective(record.Profiles, named),
                     Removed(record.Profiles, named),
-                    record.ClientKey);
+                    record.ClientKey,
+                    unreadable);
             }
             catch (DatabaseShut error)
             {

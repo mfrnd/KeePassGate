@@ -478,6 +478,10 @@ none, since it releases both.
   a name of a few hundred characters beyond ASCII, inside the 512 the body allows, took the route
   naming it past the 2048 characters of a target the transport reads, so it was made with `201`
   and could never be read, changed or stripped by name, every request for it answered `414`.
+- **A refusal that profiles a damaged list lost would have allowed is written down as
+  `profile list unreadable`**, with `removedProfiles` naming them, where it was `profile removed`.
+  A list of profiles that will not read names fewer than it held, and nobody had removed them, so
+  the line sent the operator to name again profiles nobody took off.
 
 ## 0.1.0, 2026-10-25
 

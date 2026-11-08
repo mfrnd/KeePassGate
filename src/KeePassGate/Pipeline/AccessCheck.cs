@@ -72,13 +72,26 @@ namespace KeePassGate.Pipeline
         public const string ProfileRemoved = "profile removed";
 
         /// <summary>
+        /// The reason the same refusal gives when nobody removed them: the database's list of
+        /// profiles would not read, so the names it lost count as removed.
+        /// </summary>
+        /// <remarks>
+        /// The operator's ruling of 2026-11-08. Written as <see cref="ProfileRemoved"/>, it sent
+        /// an operator to name again profiles nobody took off, over a list that a copy of the
+        /// database from before the damage still holds whole.
+        /// </remarks>
+        public const string ProfilesUnreadable = "profile list unreadable";
+
+        /// <summary>
         /// Whether this client may do this to this node, with what answered it, recorded either way.
         /// </summary>
         /// <remarks>
         /// **A refusal is asked a second time when the client's record holds a removed name**,
-        /// this time with the record's whole list. If that would have permitted it, the line says
+        /// this time with the record's whole list. If that would have permitted it, the line holds
         /// <see cref="ProfileRemoved"/> and names the removed profiles that would have done it,
-        /// and the node whose rule would have; otherwise it is written as the rules refused it.
+        /// and the node whose rule would have, or <see cref="ProfilesUnreadable"/> when the names
+        /// were lost to a list that would not read; otherwise it is written as the rules refused
+        /// it.
         /// Without this the two read alike, and an operator who took a name away and then finds a
         /// client refused goes looking for a rule that is not the reason.
         ///
@@ -180,7 +193,8 @@ namespace KeePassGate.Pipeline
             }
             else
             {
-                Write(client, operationId, name, restored.DecidedAt, false, ProfileRemoved, removed, requested);
+                var reason = client.ProfilesUnreadable ? ProfilesUnreadable : ProfileRemoved;
+                Write(client, operationId, name, restored.DecidedAt, false, reason, removed, requested);
             }
         }
 

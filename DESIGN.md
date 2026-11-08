@@ -1397,7 +1397,9 @@ client has is in the database already, and a log repeating them is a second copy
 stealing. A refusal that the client's whole record would have permitted names the profiles the
 operator removed, under the reason `profile removed`, and that is not the copy: a removed name
 grants nothing, so writing it down says why a request failed without saying what anybody can
-reach.
+reach. Where nobody removed them, because the database's list of profiles would not read and so
+named fewer than it held, the reason is `profile list unreadable` instead, the operator's ruling
+of 2026-11-08, so the line points at the damage rather than at a removal nobody made.
 
 **A certificate this authority issued is written down when an operation refuses it**, by its admission key,
 with the reason the credential check gave and no node. It has no admission record, or is outside
