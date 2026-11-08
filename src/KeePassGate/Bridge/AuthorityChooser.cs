@@ -6,6 +6,7 @@ using KeePassLib;
 using KeePassGate.Audit;
 using KeePassGate.Authority;
 using KeePassGate.Diagnostics;
+using KeePassGate.Gate;
 using KeePassGate.Ui;
 
 namespace KeePassGate.Bridge
@@ -32,8 +33,15 @@ namespace KeePassGate.Bridge
     ///
     /// **A choice goes through `DatabaseWriter`**, whose guard refuses it while Database
     /// Maintenance is open, and marks the database modified without saving it.
+    ///
+    /// **A lock closes the question unanswered**, as it closes a pairing or a renewal dialog,
+    /// and for their reasons: the chooser is not registered with `GlobalWindowManager`, so
+    /// KeePass's own lock goes through under it, and left standing it went on listing every
+    /// authority's clients, their profiles and when they last connected over a locked KeePass,
+    /// modal over the window the operator has to unlock in. An answer given as the lock lands is
+    /// not written. The unlock asks again, since the lock let go of the state that was asked about.
     /// </remarks>
-    public sealed class AuthorityChooser : IDisposable
+    public sealed class AuthorityChooser : IDisposable, IApprovalScreen
     {
         /// <summary>How long to wait before asking again while KeePass is busy with something.</summary>
         public static readonly TimeSpan Retry = TimeSpan.FromSeconds(1);
@@ -69,6 +77,15 @@ namespace KeePassGate.Bridge
         private Timer _later;
         private bool _started;
         private bool _disposed;
+
+        /// <summary>The database a question is standing for, or null when none is.</summary>
+        private PwDatabase _standing;
+
+        /// <summary>The dialog standing, when the question is the real one rather than a test's.</summary>
+        private Form _showing;
+
+        /// <summary>Whether the question standing was closed by a lock or a close.</summary>
+        private bool _withdrawn;
 
         public AuthorityChooser(
             IDatabaseEvents events,
@@ -288,6 +305,16 @@ namespace KeePassGate.Bridge
         private void NotKept(PwDatabase database, AuthorityChange kept)
         {
             _asking.Remove(database);
+
+            if (!database.IsOpen)
+            {
+                // Locked or closed while the choice was being tried again. A box sending the
+                // operator to the tab would be about a question the unlock puts again by itself.
+                _log.Info("the database closed before the authority the operator chose could be kept, " +
+                          "so it is asked about again when it is open");
+                return;
+            }
+
             _log.Warn("the authority the operator chose could not be kept: " + kept.Message);
             _prompt.Tell(
                 GateName.Full,
@@ -360,13 +387,65 @@ namespace KeePassGate.Bridge
                     reading, new AdmissionStore(store, _log).All(), LastSeen, _log);
             }
 
-            var chosen = AskWhichToKeep(choice, new OpenDatabase(database).Name);
+            string chosen;
+            _standing = database;
+            _withdrawn = false;
+            try
+            {
+                chosen = AskWhichToKeep(choice, new OpenDatabase(database).Name);
+            }
+            finally
+            {
+                _standing = null;
+            }
+
+            if (_withdrawn)
+            {
+                _log.Info("the question of which authority to keep was closed by a lock or a close, " +
+                          "so it is asked again when the database is open");
+                return null;
+            }
+
             if (chosen == null)
             {
                 _log.Info("the operator kept no authority, so the database is still not served");
             }
 
             return chosen;
+        }
+
+        /// <summary>
+        /// KeePass locked: the question standing closes unanswered, and an answer it gave as the
+        /// lock landed is not written.
+        /// </summary>
+        void IApprovalScreen.Locked()
+        {
+            Withdraw();
+        }
+
+        /// <summary>
+        /// A database was closed: the question standing for it closes unanswered, as at a lock.
+        /// </summary>
+        void IApprovalScreen.Closed(IReadOnlyCollection<string> databaseIds)
+        {
+            if (_standing != null && !_standing.IsOpen)
+            {
+                Withdraw();
+            }
+        }
+
+        private void Withdraw()
+        {
+            if (_standing == null)
+            {
+                return;
+            }
+
+            _withdrawn = true;
+            if (_showing != null)
+            {
+                _showing.Close();
+            }
         }
 
         /// <summary>
@@ -379,7 +458,16 @@ namespace KeePassGate.Bridge
         {
             using (var form = new AuthorityChooserForm(choice, databaseName))
             {
-                form.ShowDialog(_owner);
+                _showing = form;
+                try
+                {
+                    form.ShowDialog(_owner);
+                }
+                finally
+                {
+                    _showing = null;
+                }
+
                 return form.Chosen;
             }
         }

@@ -9,6 +9,7 @@ using KeePassLib;
 using KeePassGate.Authority;
 using KeePassGate.Bridge;
 using KeePassGate.Diagnostics;
+using KeePassGate.Gate;
 using KeePassGate.Ui;
 using NUnit.Framework;
 
@@ -131,6 +132,46 @@ namespace KeePassGate.Host.Tests
             Assert.That(_asked, Is.Zero, "nobody was asked");
             Assert.That(log.Lines, Has.None.Contains("kept no authority"),
                 "and the log does not credit the operator with a choice nobody put to them");
+        }
+
+        [Test]
+        public void A_lock_closes_the_question_and_an_answer_given_as_it_lands_is_not_written()
+        {
+            // The chooser is not registered with KeePass's window manager, so KeePass locks under
+            // it, and it went on listing every authority's clients over a locked KeePass.
+            _chooser.AskWhichToKeep = (choice, name) =>
+            {
+                _asked++;
+                ((IApprovalScreen)_chooser).Locked();
+                return _candidates[0];
+            };
+
+            Assert.That(_chooser.Ask(_database.Database), Is.Null);
+            Assert.That(_asked, Is.EqualTo(1));
+            Assert.That(_database.Database.CustomData.Exists(AuthorityKeys.RetirementKey(_candidates[1])), Is.False,
+                "nothing was kept");
+            Assert.That(_prompt.Told, Is.Null);
+
+            ((IApprovalScreen)_chooser).Locked();
+            Assert.That(_chooser.Ask(_database.Database), Is.Null, "a lock with no question standing closes nothing");
+        }
+
+        [Test]
+        public void A_choice_its_database_closed_under_is_not_sent_back_to_the_tab()
+        {
+            // The unlock asks again by itself, so a box sending the operator to the settings tab
+            // was about a question already on its way back.
+            _chooser.AskWhichToKeep = (choice, name) =>
+            {
+                _asked++;
+                _database.Database.Close();
+                return _candidates[0];
+            };
+
+            _chooser.Ask(_database.Database);
+
+            Assert.That(_asked, Is.EqualTo(1));
+            Assert.That(_prompt.Told, Is.Null);
         }
 
         [Test]

@@ -263,7 +263,10 @@ dialog's OK like everything else there. **A choice the writer refuses is tried a
 seconds** before the operator is told to choose again, which is the operator's ruling of 2026-10-14:
 another client's write holding the writer, or KeePass part way through a save, is over in a moment,
 and only a refusal that outlasts that, Database Maintenance left open among them, is put back in
-front of the operator.
+front of the operator. **A lock closes the dialog unanswered**, as it closes a pairing or a renewal
+dialog and for their reason: KeePass locks under a dialog the plugin does not register, and this
+one lists every authority's clients. An answer given as the lock lands is not written, and the
+unlock asks again.
 
 **Copies that keep different authorities retire every authority.** Each copy asks on its own, and
 the last requests it shows come from that machine's own audit, so copies asked before any answer is

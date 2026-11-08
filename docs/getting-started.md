@@ -273,7 +273,8 @@ save it to keep the choice.
 
 **Cancel** serves nothing. The Certificate Authority page then says the database holds more than
 one authority, and **Choose authority** there asks again; a choice made from there waits for OK
-like everything else on that tab.
+like everything else on that tab. KeePass locking closes the window as **Cancel** does, and
+unlocking asks again.
 
 **Copies that keep different authorities retire every authority.** Every copy synchronized before
 anybody answered asks on its own, and the clients each copy lists are those that machine has seen,

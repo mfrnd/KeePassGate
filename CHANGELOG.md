@@ -198,6 +198,11 @@ none, since it releases both.
   route tells it. A lock between the gate reading its record and reading the database's profiles
   left the list naming nothing, and `whoami` answered that the operator had taken every profile
   away.
+- **A lock closes the window asking which authority to keep**, as it closes a pairing or a renewal
+  dialog, and unlocking asks again. KeePass locked under it, and it went on listing every
+  authority's clients over the locked KeePass, modal over the window the operator unlocks in; and a
+  choice whose database locked while it was being kept sent the operator to the KPG tab for a
+  question the unlock was about to put again.
 - **A protected field is kept from a strip whenever any profile could put an unprotected value
   back.** The guard asked whether some profile could create there and whether some profile could
   create a protected value there, so a program holding one profile that could put an unprotected
