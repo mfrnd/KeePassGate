@@ -454,6 +454,9 @@ none, since it releases both.
 - **No client is paced where the audit has no file to write**, as on an account with no local
   application data and no `KEEPASSGATE_AUDIT_FILE`. The pace keeps a client from rolling the file
   away, and with no file a client past its first thousand decisions was still held to ten a second.
+- **An audit line's `at` is when it was decided, for a paced client too.** It was read once the
+  client's wait was over, so a client past its allowance had its decisions and refused renewals
+  stamped up to seconds after the rules or the operator's earlier answer had decided them.
 
 ## 0.1.0, 2026-10-25
 

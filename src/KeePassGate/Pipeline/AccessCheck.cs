@@ -191,6 +191,11 @@ namespace KeePassGate.Pipeline
             IReadOnlyList<string> removedProfiles,
             string requested)
         {
+            // When it was decided, which is now and not once the wait below is over: `at` is the
+            // moment the rules answered, and a paced client's lines would otherwise be stamped up
+            // to seconds late, which is exactly the client somebody reading them is looking at.
+            var at = _clock();
+
             // Before the line, so the wait is paid by the request that would have written it. By
             // the client key, so a renewal keeps the allowance spent; a refused certificate has no
             // client and shares one allowance with every refused certificate of its database, for
@@ -202,7 +207,7 @@ namespace KeePassGate.Pipeline
             }
 
             _audit.Record(new AuditEntry(
-                _clock(),
+                at,
                 client == null ? null : client.DatabaseId,
                 client == null ? null : client.AdmissionKey,
                 client == null ? null : client.ClientKey,

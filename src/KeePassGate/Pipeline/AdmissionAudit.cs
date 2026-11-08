@@ -270,11 +270,15 @@ namespace KeePassGate.Pipeline
 
         private void Renewal(string databaseId, string client, string clientKey, string decision, string reason)
         {
+            // Stamped as it is answered, and not once the wait below is over, for the reason
+            // `AccessCheck` stamps a decision before its wait.
+            var at = _clock();
+
             // By the client, which the renewal leaves as it was, so the certificate it ends with
             // spends the allowance the one that asked had spent.
             Pace(clientKey);
 
-            Write(databaseId, client, clientKey, GateOperations.RenewCertificate, decision, reason, null);
+            Write(at, databaseId, client, clientKey, GateOperations.RenewCertificate, decision, reason, null);
         }
 
         /// <summary>
@@ -299,8 +303,22 @@ namespace KeePassGate.Pipeline
             string reason,
             string issued)
         {
+            Write(_clock(), databaseId, client, clientKey, operation, decision, reason, issued);
+        }
+
+        /// <summary>The same, stamped with a moment taken earlier.</summary>
+        private void Write(
+            DateTimeOffset at,
+            string databaseId,
+            string client,
+            string clientKey,
+            string operation,
+            string decision,
+            string reason,
+            string issued)
+        {
             _audit.Record(AuditEntry.Admission(
-                _clock(), databaseId, client, clientKey, operation, decision, reason, null, issued));
+                at, databaseId, client, clientKey, operation, decision, reason, null, issued));
         }
     }
 }
