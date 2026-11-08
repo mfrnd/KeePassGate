@@ -1203,6 +1203,11 @@ def _secret(prompt: str) -> str:
         except EOFError:
             raise _Refused(_NO_LINE) from None
 
+    if sys.stdin is None:
+        # A process started with no standard input at all, as `pythonw` and a detached process
+        # are, which is input that ended before it began.
+        raise _Refused(_NO_LINE)
+
     try:
         line = sys.stdin.readline()
     except UnicodeDecodeError:
@@ -1225,9 +1230,9 @@ def _console() -> bool:
     get past every refusal for having no terminal into `getpass`, which reads the console rather
     than standard input and so waits for good, or spins with no console at all. So there the
     descriptor is asked whether it is a console. A stream with no descriptor of its own is taken
-    at its word, as every stream is elsewhere.
+    at its word, as every stream is elsewhere, and no standard input at all is no terminal.
     """
-    if not sys.stdin.isatty():
+    if sys.stdin is None or not sys.stdin.isatty():
         return False
 
     if os.name != "nt":
@@ -1239,6 +1244,69 @@ def _console() -> bool:
         return True
 
     return _windows_console(descriptor)
+
+
+def _terminal() -> bool:
+    """Whether `getpass` has a terminal a person can type at, whatever standard input is.
+
+    `getpass` does not read standard input: on POSIX it opens `/dev/tty`, the terminal the process
+    belongs to, and on Windows it reads the console. So a value piped into a command can sit
+    beside a key password typed at the terminal, and asking standard input refused the key
+    password whenever the value was piped, though a person was there to type it. What is asked is
+    whether the terminal `getpass` uses is there.
+
+    **Input from the null device is no terminal**, whatever is there: automation points a
+    command's input at it, and `getpass` would then wait for good on a console nobody is at. A
+    stream with no descriptor of its own is taken at its word, as `_console` takes it.
+    """
+    stdin = sys.stdin
+    if stdin is not None:
+        try:
+            descriptor = stdin.fileno()
+        except (AttributeError, OSError, ValueError):
+            return bool(stdin.isatty())
+
+        if _null_device(descriptor):
+            return False
+
+    return _getpass_terminal()
+
+
+def _null_device(descriptor: int) -> bool:
+    """Whether a descriptor is the null device, or on Windows any character device but a console.
+
+    On Windows `isatty` is true for every character device, NUL among them, and only a console
+    answers `GetConsoleMode`. Elsewhere the device is compared with `os.devnull` itself.
+    """
+    if os.name == "nt":
+        return os.isatty(descriptor) and not _windows_console(descriptor)
+
+    try:
+        return os.path.samestat(os.fstat(descriptor), Path(os.devnull).stat())
+    except OSError:
+        return False
+
+
+def _getpass_terminal() -> bool:
+    """Whether the terminal `getpass` asks on opens: `/dev/tty`, or on Windows a console."""
+    # The platforms' own names: cspell:ignore pythonw fstat CONIN RDWR NOCTTY
+    windows = os.name == "nt"
+    if windows:
+        name, flags = "CONIN$", os.O_RDWR
+    else:
+        # Looked up for the reason `_windows_console` looks its names up: Windows has no
+        # `O_NOCTTY`, and a type checker told it runs there calls the name undefined.
+        name, flags = "/dev/tty", os.O_RDWR | os.__dict__["O_NOCTTY"]
+
+    try:
+        descriptor = os.open(name, flags)
+    except OSError:
+        return False
+
+    try:
+        return not windows or _windows_console(descriptor)
+    finally:
+        os.close(descriptor)
 
 
 def _windows_console(descriptor: int) -> bool:
@@ -1304,14 +1372,15 @@ def _key_password(arguments: argparse.Namespace) -> Callable[[], str]:
     Handed to every command that loads the key, and called only when the key turns out to be
     encrypted, so an identity stored without a password is never asked about. There is no other
     way to give it to the command line, deliberately: never as an argument, which the process
-    list shows, and not from standard input, which may be carrying something else. A program
-    passes `key_password=` instead.
+    list shows, and not from standard input, which may be carrying something else, a value piped
+    in for the command among them, since `getpass` asks the terminal and not standard input. A
+    program passes `key_password=` instead.
     """
     where = arguments.directory or api.default_directory(arguments.profile)
     identity = where / IDENTITY_FILE
 
     def ask() -> str:
-        if not _console():
+        if not _terminal():
             raise StorageError(
                 f"{identity} holds an encrypted key, and its password is asked for only at a "
                 "terminal: a program passes key_password= instead"
@@ -1329,8 +1398,9 @@ def _key_password(arguments: argparse.Namespace) -> Callable[[], str]:
 def _pair(arguments: argparse.Namespace) -> int:
     # Before anything is read or sent: the password is asked for at a terminal and nowhere else,
     # so without one this pairing could not be what it says, and it is refused as an argument
-    # that cannot be done as given, with nothing spent.
-    if arguments.key_password and not _console():
+    # that cannot be done as given, with nothing spent. The terminal, not standard input, which
+    # may be bringing the invitation.
+    if arguments.key_password and not _terminal():
         print(
             "--key-password asks for the password at a terminal, and there is none here: a "
             "program passes key_password= to api.pair instead",

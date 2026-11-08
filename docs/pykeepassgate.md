@@ -135,9 +135,11 @@ command that uses the key afterwards asks for it at a terminal, once, and only w
 encrypted, which `identity` says without asking. **The command line has no other way to take it,
 by design**: never as an argument, which the process list shows, and not from standard input
 either, so with no terminal `pair --key-password` is refused, exit 2 with nothing spent, and a
-command that needs the password fails with `StorageError`, exit 1. Standard input from the null
-device is no terminal, on Windows as well, where it claims to be one: a command run with its input
-from `NUL` is refused at once rather than left waiting on a console nobody is at. A program passes
+command that needs the password fails with `StorageError`, exit 1. The terminal is where the
+password is typed, `/dev/tty`, or the console on Windows, and not standard input, so a value or
+an invitation piped in sits beside a password typed there. Standard input from the null device is
+no terminal, on Windows as well, where it claims to be one: a command run with its input from
+`NUL` is refused at once rather than left waiting on a console nobody is at. A program passes
 `key_password=` instead, to `api.pair`, `GateClient` and `GateClient.open`: the password as text
 or bytes, or a callable returning it, which is asked once, and only when the key turns out to be
 encrypted.

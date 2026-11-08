@@ -9,11 +9,12 @@ from __future__ import annotations
 
 import base64
 import json
+import os
 import subprocess
 import sys
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from pathlib import Path
-from typing import Any, cast
+from typing import Any, TextIO, cast
 
 import pytest
 from cryptography import x509
@@ -23,7 +24,7 @@ from pykeepassgate import __version__, api, cli
 from pykeepassgate import credentials as credentials_module
 from pykeepassgate.client import GateClient
 from pykeepassgate.errors import MalformedToken, PairingError, StorageError
-from pykeepassgate.testing import Authority, FakeGate, Issued
+from pykeepassgate.testing import Authority, FakeGate, Issued, written
 from test_pairing import INVITATION
 from test_pairing import Gate as PairingGate
 from test_renewal import Gate as RenewalGate
@@ -34,6 +35,9 @@ from test_renewal import bundle_for
 
 #: Invented, and looked for in everything printed.
 PASSWORD = "an invented key password"
+
+#: An entry a command is pointed at, which the gate here holds nothing of.
+ENTRY = "7b1c" * 8
 
 STATUS = json.dumps({"ok": True, "database": "abcdef01", "version": __version__, "revision": ""})
 
@@ -715,6 +719,141 @@ class TestTheCommandLine:
         assert ended.returncode == 1, ended.stderr
         assert "asked for only at a terminal" in ended.stderr
         assert gate.names == []
+
+    def test_a_value_piped_in_sits_beside_a_key_password_typed_at_the_terminal(
+        self,
+        kept: Path,
+        gate: FakeGate,
+        monkeypatch: pytest.MonkeyPatch,
+        piped: Callable[[str], None],
+    ) -> None:
+        # `getpass` asks the terminal rather than standard input, so a value piped in leaves the
+        # terminal to the key's password, which asking standard input refused.
+        sent: list[tuple[str, str, str]] = []
+
+        def updated(path: str, body: str, client: bytes | None) -> tuple[int, str]:
+            sent.append((gate.method(), path, body))
+            return written()
+
+        gate.handler = updated
+        piped("a piped value\n")
+        monkeypatch.setattr(cli, "_getpass_terminal", lambda: True)
+        prompts = typing(monkeypatch, PASSWORD)
+
+        assert cli.main(["update", ENTRY, "--password", "--directory", str(kept)]) == 0
+
+        assert prompts == ["Key password: "]
+        assert [(method, path) for method, path, _ in sent] == [("PUT", f"/entries/{ENTRY}")]
+        assert json.loads(sent[0][2]) == {"Password": "a piped value"}
+
+    def test_an_invitation_piped_in_sits_beside_a_key_password_typed_at_the_terminal(
+        self,
+        gate: FakeGate,
+        host: Issued,
+        tmp_path: Path,
+        bundle: dict[str, Any],
+        monkeypatch: pytest.MonkeyPatch,
+        piped: Callable[[str], None],
+    ) -> None:
+        gate.handler = PairingGate(gate, host, bundle=bundle)
+        piped(INVITATION + "\n")
+        monkeypatch.setattr(cli, "_getpass_terminal", lambda: True)
+        prompts = typing(monkeypatch, PASSWORD, PASSWORD)
+        where = tmp_path / "kept"
+
+        assert cli.main(
+            [
+                "pair", "--port", str(gate.port), "--name", "agent-invented",
+                "--directory", str(where), "--key-password",
+            ]
+        ) == 0
+
+        assert prompts == ["Key password: ", "The same again: "]
+        assert opens_with(where / credentials_module.IDENTITY_FILE, PASSWORD.encode())
+
+    def test_a_value_piped_in_with_no_terminal_to_type_at_is_refused_as_before(
+        self,
+        kept: Path,
+        gate: FakeGate,
+        monkeypatch: pytest.MonkeyPatch,
+        piped: Callable[[str], None],
+        capsys: pytest.CaptureFixture[str],
+    ) -> None:
+        piped("a piped value\n")
+        monkeypatch.setattr(cli, "_getpass_terminal", lambda: False)
+        prompts = typing(monkeypatch)
+
+        assert cli.main(["update", ENTRY, "--password", "--directory", str(kept)]) == 1
+
+        assert "asked for only at a terminal" in capsys.readouterr().err
+        assert prompts == []
+        assert gate.names == []
+
+    def test_no_standard_input_at_all_leaves_the_terminal_to_decide(
+        self,
+        kept: Path,
+        gate: FakeGate,
+        monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str],
+    ) -> None:
+        # As `pythonw` and a detached process start, which `getpass` asks the terminal about too.
+        # cspell:ignore pythonw
+        monkeypatch.setattr("sys.stdin", None)
+        monkeypatch.setattr(cli, "_getpass_terminal", lambda: False)
+
+        assert cli.main(["status", "--directory", str(kept)]) == 1
+
+        assert "asked for only at a terminal" in capsys.readouterr().err
+        assert gate.names == []
+
+
+@pytest.fixture
+def piped(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[Callable[[str], None]]:
+    """Point standard input at a file holding a text, with a real descriptor, as a pipe has.
+
+    Neither a terminal nor the null device, which is what a value piped into a command is.
+    """
+    opened: list[TextIO] = []
+
+    def pipe(text: str) -> None:
+        path = tmp_path / "piped"
+        path.write_text(text, encoding="utf-8")
+        opened.append(path.open(encoding="utf-8"))
+        monkeypatch.setattr("sys.stdin", opened[-1])
+
+    yield pipe
+    for handle in opened:
+        handle.close()
+
+
+def test_the_null_device_is_told_apart_from_a_file(tmp_path: Path) -> None:
+    # On Windows by its being a character device that is no console, elsewhere by `os.devnull`.
+    (tmp_path / "file").write_text("x", encoding="utf-8")
+    with Path(os.devnull).open("rb") as null, (tmp_path / "file").open("rb") as file:
+        assert cli._null_device(null.fileno())
+        assert not cli._null_device(file.fileno())
+
+
+def test_a_terminal_that_will_not_open_is_no_terminal(monkeypatch: pytest.MonkeyPatch) -> None:
+    def refused(name: str, flags: int) -> int:
+        raise OSError(f"{name} will not open")
+
+    monkeypatch.setattr(os, "open", refused)
+
+    assert not cli._getpass_terminal()
+
+
+def test_a_terminal_that_opens_is_asked_whether_it_is_one(monkeypatch: pytest.MonkeyPatch) -> None:
+    # The null device opened in its place: a terminal elsewhere, since what opens there is the
+    # terminal the process belongs to, and no console on Windows, where it has to be a console.
+    opened = os.open
+
+    def null(name: str, flags: int) -> int:
+        return opened(os.devnull, os.O_RDWR)  # cspell:ignore RDWR
+
+    monkeypatch.setattr(os, "open", null)
+
+    assert cli._getpass_terminal() == (os.name != "nt")
 
 
 def test_the_password_is_printed_by_nothing_that_refuses_it(

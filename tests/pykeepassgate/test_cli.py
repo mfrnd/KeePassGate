@@ -395,6 +395,23 @@ def test_a_locked_database_is_reported_as_something_to_wait_for(
     assert "locked" in printed
 
 
+def test_no_standard_input_at_all_is_input_that_ended(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # As `pythonw` and a detached process start, with `sys.stdin` set to `None`: refused as input
+    # cspell:ignore pythonw
+    # that ended before a line, and nothing dialed, rather than an `AttributeError` out of `main`.
+    monkeypatch.setattr("sys.stdin", None)
+
+    code = cli.main(
+        ["pair", "--port", "1", "--name", "agent-invented", "--directory", str(tmp_path / "kept")]
+    )
+
+    assert code == 2
+    assert "input ended before a line was read" in capsys.readouterr().err
+    assert not (tmp_path / "kept").exists()
+
+
 def test_an_invitation_can_be_read_from_standard_input(
     tmp_path: Path,
     gate: FakeGate,

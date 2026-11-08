@@ -11,6 +11,11 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **A key password is asked for at the terminal whatever standard input is**, so a value or an
+  invitation piped into a command sits beside a key password typed at the terminal, where every
+  pipe was refused as no terminal. Input from the null device is still no terminal, and a process
+  started with no standard input at all is refused as input that ended, where it raised
+  `AttributeError`.
 - **`status` answered `ok: false` prints `not serving`** where it printed `serving`, and a
   sentence on standard error, where it printed nothing there and exited 1.
 - **Ctrl+C ends a command with exit code 130 and the line `interrupted`**, a pairing's wait on
