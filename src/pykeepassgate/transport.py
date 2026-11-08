@@ -329,8 +329,9 @@ class Budget:
     mix the two into one number that answers for neither. **A refusal is not always quick**: a
     pairing's or a renewal's `503 busy` comes after the gate waited up to two minutes for the
     screen, and a write's after up to twenty seconds for its turn at the database, so a busy
-    budget of ten seconds can hold a pairing for five attempts of up to two minutes each. The
-    budget bounds the pauses between attempts, and the call is the caller's to bound.
+    budget of ten seconds can hold a pairing for six attempts of up to two minutes each, the first
+    and five more, with the gate's two seconds between each. The budget bounds the pauses between
+    attempts, and the call is the caller's to bound.
 
     A budget of `None` is no retry at all, which is the default everywhere: the refusal is raised
     exactly as it was before any of this existed.
