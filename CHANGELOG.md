@@ -293,6 +293,12 @@ none, since it releases both.
 - **The stand-in gate answers the status route itself**, with `FakeGate.version`, the client's own
   version unless a test sets another, so a script need not answer the request the client now makes
   first. `None` hands the route to the handler as before.
+- **A write that loses sight of its entry while asking which strings are protected writes nothing
+  either.** Changing an entry, writing a field and stripping a field ask a second lookup which of
+  the entry's strings carry their own protection, and that lookup answered "none" when it missed,
+  so the write went ahead: a rule without `protected` could overwrite, or strip, a string protected
+  by its own flag rather than by the database. Such a write is answered `404` now, or `503 locked`
+  when the database locked, as a miss of the first lookup is.
 
 ## 0.1.0, 2026-10-25
 

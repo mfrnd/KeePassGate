@@ -1824,6 +1824,54 @@ namespace KeePassGate.Tests
             Assert.That(Written(), Is.EqualTo(before), "nothing is written that the rules were not asked about");
         }
 
+        [TestCase("PUT", "/entries/{0}", "{\"UserName\":\"not-a-real-name\"}", "UserName",
+                  TestName = "an entry's user name, protected by its own flag, while its fields could not be found")]
+        [TestCase("PUT", "/entries/{0}/fields/PIN", "{\"value\":\"not-a-real-pin\"}", "PIN",
+                  TestName = "a field protected by its own flag, written while the entry's fields could not be found")]
+        [TestCase("DELETE", "/entries/{0}/fields/PIN", null, "PIN",
+                  TestName = "a field protected by its own flag, stripped while the entry's fields could not be found")]
+        public void A_write_whose_protection_lookup_misses_writes_nothing(
+            string method, string template, string body, string name)
+        {
+            // The handler finds the entry, and the lookup asking which of its strings carry their
+            // own protection does not: the same move, one lookup later. That lookup answered
+            // "nothing is protected", and the write, finding the entry again, set or took away a
+            // string protected by its own flag for a rule without `protected`. The database here
+            // protects `Password` alone, so the flag is the only thing standing in the way.
+            _vault.CreateField(_entry, name, "the stored value", true, VaultTagging.None);
+            _vault.Granting(_vault.RootAlias, AllButProtected);
+            var before = Written();
+            _vault.After(2, () => _vault.Vanishes = _entry);
+
+            var answer = Send(method, string.Format(CultureInfo.InvariantCulture, template, _entry), body);
+            _vault.Vanishes = null;
+
+            Assert.That(answer.Status, Is.EqualTo(404), answer.Json);
+            Assert.That(answer.Json, Does.Contain(SpecRouter.UnreachableError));
+            Assert.That(Written(), Is.EqualTo(before), "nothing is written that the rules were not asked about");
+        }
+
+        [TestCase("PUT", "/entries/{0}", "{\"UserName\":\"not-a-real-name\"}", "UserName",
+                  TestName = "an entry's user name, in a database locked as its strings were asked about")]
+        [TestCase("PUT", "/entries/{0}/fields/PIN", "{\"value\":\"not-a-real-pin\"}", "PIN",
+                  TestName = "a field written, in a database locked as the entry's strings were asked about")]
+        [TestCase("DELETE", "/entries/{0}/fields/PIN", null, "PIN",
+                  TestName = "a field stripped, in a database locked as the entry's strings were asked about")]
+        public void A_write_whose_protection_lookup_meets_a_lock_is_told_it_is_locked(
+            string method, string template, string body, string name)
+        {
+            // The same miss, from a lock rather than a move, answered as a handler's own lookup
+            // answers a lock: the node has not gone, and nothing was attempted.
+            _vault.CreateField(_entry, name, "the stored value", true, VaultTagging.None);
+            _vault.Granting(_vault.RootAlias, AllButProtected);
+            _vault.After(2, _vault.Lock);
+
+            var answer = Send(method, string.Format(CultureInfo.InvariantCulture, template, _entry), body);
+
+            Assert.That(answer.Status, Is.EqualTo(503), answer.Json);
+            Assert.That(answer.Json, Is.EqualTo("{\"error\":\"locked\"}"));
+        }
+
         [Test]
         public void A_value_the_database_would_drop_is_refused_rather_than_reported_as_stored()
         {
@@ -2014,7 +2062,7 @@ namespace KeePassGate.Tests
         }
 
         [TestCase("PUT", "/groups/{0}", "{\"Name\":\"Renamed\"}", 1, TestName = "a group renamed in a database locked after the router decided")]
-        [TestCase("PUT", "/entries/{1}", "{\"Title\":\"renamed\"}", 2, TestName = "an entry changed in a database locked after its handler looked")]
+        [TestCase("PUT", "/entries/{1}", "{\"Title\":\"renamed\"}", 3, TestName = "an entry changed in a database locked after its handler looked")]
         [TestCase("POST", "/groups/{0}/entries", "{\"Title\":\"invented\"}", 2, TestName = "an entry made in a database locked after its handler looked")]
         public void A_write_meeting_a_database_locked_after_its_handler_looked_still_fails_on_this_side(
             string method, string template, string body, int lookups)
@@ -2022,7 +2070,8 @@ namespace KeePassGate.Tests
             // The one exception, which `openapi.yaml` §502 keeps: a write's handler hands the
             // change to the writer, which finds nothing open to change and answers that this side
             // failed. It could not be attempted, so a retry duplicates nothing. A handler that
-            // looks its node up first does so after the router, so the lock lands after both.
+            // looks its node up first does so after the router, so the lock lands after both, and
+            // an entry's change asks a third time, for which of its strings are protected.
             _vault.Granting(_vault.RootAlias, AllButProtected);
             _vault.After(lookups, _vault.Lock);
 
