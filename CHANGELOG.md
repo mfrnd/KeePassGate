@@ -211,6 +211,10 @@ none, since it releases both.
   Until those were answered, the database and the certificate answering for it while locked both
   answered to its name, so every connection was dropped and the log claimed two databases were
   open.
+- **A KeePass that keeps a dialog's copy of a node's settings, or its database, as another type
+  leaves the KPG tab on the group and entry dialogs read only**, with its reason, as a KeePass that
+  renamed either does. The tab looked editable and refused every rule chosen on it as a copy the
+  dialog had not made yet.
 - **A protected field is kept from a strip whenever any profile could put an unprotected value
   back.** The guard asked whether some profile could create there and whether some profile could
   create a protected value there, so a program holding one profile that could put an unprotected
