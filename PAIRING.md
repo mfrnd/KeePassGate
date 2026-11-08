@@ -496,13 +496,13 @@ there went on being answered for.
 
 ## 9. What is on the wire §311
 
-Built in step 8, and small enough to state completely. Two routes, reachable only on a connection
-that arrived on an invitation and presented no certificate the database admits. Any other is refused
-the way an undeclared path is: `404 no such route` to a client the database admits, and
-`401 unpaired` to anybody else. This used to be a plain `404` for everybody, on the argument that a
-paired client had no business learning that these exist; they are declared in a document that ships
-inside the plugin, so their existence was never the secret, and what is kept instead is that a
-caller which may not use a route is refused as it is refused everywhere.
+Small enough to state completely. Two routes, reachable only on a connection that arrived on an
+invitation and presented no certificate the database admits. Any other is refused the way an
+undeclared path is: `404 no such route` to a client the database admits, and `401 unpaired` to
+anybody else. This used to be a plain `404` for everybody, on the argument that a paired client had
+no business learning that these exist; they are declared in a document that ships inside the
+plugin, so their existence was never the secret, and what is kept instead is that a caller which
+may not use a route is refused as it is refused everywhere.
 
 Bodies are one flat JSON object of strings and arrays of strings, read strictly: nesting, numbers,
 booleans, `null`, a repeated name or anything after the closing brace is not a body, it is a

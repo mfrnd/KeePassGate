@@ -81,7 +81,7 @@ the default sequence of the user name, a tab, the password and Enter. The title 
 the entry the title of a window it controls, a web page it serves among them, and the operator's
 next press of the hotkey there types the password into it. Refusing a title change to a client
 without `protected` would change what `update` means across the API, so the operator's ruling of
-2026-11-01 leaves that to a step of its own, and `docs/access-control.md` warns the operator
+2026-11-01 leaves that to a change of its own, and `docs/access-control.md` warns the operator
 beside the warning about URLs.
 
 **The database's name, description and default username**, and which group is its recycle bin, are
