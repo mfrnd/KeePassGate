@@ -829,6 +829,14 @@ def connect(
         # a database not open, or not unlocked since KeePass started; two copies of one open at
         # once; and an authority recreated or deleted since this client paired, which takes away
         # the key every name this client sends is built from, so pairing again is what mends it.
+        #
+        # And it closes a connection it has no room for, while it already serves the 32 it takes
+        # at once, `GateOptions.MaxConnections`, which ends the handshake here as a reset:
+        # `[WinError 10054]` or `[WinError 10053]` on Windows, and `ECONNRESET` elsewhere. That
+        # clears as those connections end, so asking again shortly mends it, and the plugin's log
+        # has a line for the refusal.
+        #
+        # The error a reset carries outside Windows, as POSIX names it: cspell:ignore ECONNRESET
         raise TransportError(f"the handshake failed: {error}") from error
 
     connection = Connection(wrapped, max_response_bytes)

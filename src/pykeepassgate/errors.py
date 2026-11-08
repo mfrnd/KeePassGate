@@ -28,8 +28,9 @@ class TransportError(GateError):
 
     A handshake that failed carries the reason the TLS library gave, because the reasons want
     different things done: a certificate that does not chain to the authority pinned at pairing,
-    one that has expired, and a connection the gate dropped because no open database answers to
-    this client are three of them.
+    a certificate that has expired, a connection the gate dropped because no open database
+    answers to this client, and a connection it reset because it already serves as many as it
+    takes at once, which clears as they end, are four of them.
     """
 
 
