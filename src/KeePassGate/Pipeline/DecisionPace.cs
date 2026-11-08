@@ -11,10 +11,11 @@ namespace KeePassGate.Pipeline
     /// <remarks>
     /// **The audit is bounded by size, and a size is something the caller can spend.** The file
     /// rolls at eight megabytes and keeps one previous file, and every request an admitted client
-    /// sends writes a line, a lookup of a node that is not there included. With nothing holding it back, one client sent
-    /// enough of those to roll the file twice in under two minutes, and everything written before,
-    /// its own earlier reads among it, was gone from both files. The threat model includes the
-    /// caller, and a caller covering its tracks is exactly the one the audit is for.
+    /// sends writes a line, a lookup of a node that is not there included. With nothing holding it
+    /// back, one client sent enough of those to roll the file twice in under two minutes, and
+    /// everything written before, its own earlier reads among it, was gone from both files. The
+    /// threat model includes the caller, and a caller covering its tracks is exactly the caller
+    /// the audit is for.
     ///
     /// **Waited, never dropped and never refused.** A line left out is the loss this exists to
     /// prevent, and a refusal would be a status the API does not have for a client doing nothing

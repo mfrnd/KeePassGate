@@ -158,7 +158,9 @@ namespace KeePassGate.Audit
         /// The client that certificate belongs to, from its admission record; on an approved
         /// pairing the key it issued, and null on a pairing nobody approved, which admitted nobody.
         /// </param>
-        /// <param name="operationId">What was asked for, or null for the operator's revocation, which no route asked for.</param>
+        /// <param name="operationId">
+        /// What was asked for, or null for the operator's revocation, which no route asked for.
+        /// </param>
         /// <param name="invitation">The invitation a pairing arrived on, or null on anything else.</param>
         /// <param name="issued">The admission key an approval admitted, or null on anything else.</param>
         internal static AuditEntry Admission(

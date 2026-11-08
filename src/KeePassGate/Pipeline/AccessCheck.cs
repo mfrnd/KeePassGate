@@ -164,11 +164,12 @@ namespace KeePassGate.Pipeline
         /// **Not a decision about the rules, and written down beside them anyway.** No rule was
         /// asked, because a certificate with no admission record has no profiles to ask with. But
         /// the operator who revokes a client opens this file to see whether it keeps trying, and a
-        /// revoked client hammering the gate otherwise looked exactly like one that stopped. What
-        /// is written is the key the Clients page revoked and the reason the credential check
-        /// gave, and no client key, since no record stands behind the certificate to carry one:
-        /// `docs/audit.md` says why it is not looked for. A caller that proved nothing, or proved it to another authority, names nobody the
-        /// operator issued and is not written down: see <see cref="ClientIdentity.Refusal"/>.
+        /// revoked client hammering the gate otherwise looked exactly like a client that stopped.
+        /// What is written is the key the Clients page revoked and the reason the credential check
+        /// gave, and no client key, since no record stands behind the certificate to carry it:
+        /// `docs/audit.md` gives the reason it is not looked for. A caller that proved nothing, or
+        /// proved it to another authority, names nobody the operator issued and is not written
+        /// down: see <see cref="ClientIdentity.Refusal"/>.
         /// </remarks>
         public void Refuse(ClientIdentity client, string operationId)
         {
