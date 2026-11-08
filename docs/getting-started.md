@@ -10,6 +10,11 @@ an older KeePass cannot load it. Make a directory named `KeePassGate` inside the
 of the KeePass installation, copy `KeePassGate.dll` **and every DLL beside it** into that, then
 restart KeePass. KeePass looks for plugins in the directories under `plugins` as well.
 
+**Windows is the only platform the plugin is made for.** KeePass 2.x also runs under Mono, on Linux
+and macOS, and the plugin does not: under Mono 6.8, as Ubuntu 24.04 ships it, the plugin could not
+create an authority, and opening a database's settings with it loaded brought down KeePass's
+window.
+
 Copying only `KeePassGate.dll` is the mistake worth naming. KeePass loads a plugin with
 `Assembly.LoadFrom`, which looks for what that plugin needs in the plugin's own directory rather
 than beside `KeePass.exe`. Without one of the DLLs `KeePassGate.dll` refers to directly, KeePass
