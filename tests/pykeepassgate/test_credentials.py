@@ -658,8 +658,8 @@ def test_a_file_that_will_not_be_replaced_is_refused_before_anything_is_spent(
 
 
 def test_a_directory_another_account_could_write_into_is_not_this_clients() -> None:
-    # Pure, so that the refusal is pinned on the one platform CI runs on, where the check
-    # itself is not asked.
+    # Pure, so that the refusal is pinned on Windows as well, where `geteuid` does not exist and
+    # the check itself is never asked; the test below asks it where the platform has modes.
     assert credentials._shared(stat.S_IFDIR | 0o700, 1000, 1000) == ""
     assert credentials._shared(stat.S_IFDIR | 0o755, 1000, 1000) == ""
     assert "another account" in credentials._shared(stat.S_IFDIR | 0o700, 0, 1000)
