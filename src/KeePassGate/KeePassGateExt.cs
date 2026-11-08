@@ -727,6 +727,18 @@ namespace KeePassGate
                 }
             });
 
+            Attempt("failed to wait for the lines still queued", () =>
+            {
+                // Last, once every step above has logged what it did, and briefly: the writers are
+                // background threads, and `PluginFiles.ExitWait` is how long the process is held
+                // for them before it is let end anyway.
+                var log = _log as TraceGateLog;
+                PluginFiles.WaitForQueuedLines(
+                    PluginFiles.ExitWait,
+                    _audit == null ? null : (Func<TimeSpan, bool>)_audit.Drain,
+                    log == null ? null : (Func<TimeSpan, bool>)log.Drain);
+            });
+
             _incidents = null;
             _log = null;
 

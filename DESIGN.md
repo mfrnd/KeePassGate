@@ -1318,8 +1318,10 @@ does the operator's revocation the settings dialog's OK applies, so each line re
 queued before anything else is done with it and written by a thread of the audit's own: written in
 place, an audit on slow or unreachable storage held KeePass's window for that file's I/O and for the
 line of every connection waiting on its lock. A line recorded anywhere else first writes every line
-queued before it, so the file keeps them in order, and a process that ends before the audit's writer
-reaches a line loses it.
+queued before it, so the file keeps them in order. The writer is a background thread, so storage
+that does not answer never keeps KeePass's process alive or holds up a logoff, and KeePass's exit
+waits for it, and for the plugin log's, two seconds at most, `PluginFiles.ExitWait`, so that what is
+recorded as KeePass closes is not lost; a line still queued when the process ends is lost.
 
 Three things are settled about it. It defaults to this user's own application data rather than
 beside the `.kdbx`, because a database is often on a share or in a cloud folder and a record of

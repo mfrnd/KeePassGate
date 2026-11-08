@@ -9,7 +9,7 @@ namespace KeePassGate.Diagnostics
     /// <summary>
     /// Where the plugin keeps a file it writes for itself: the one the environment names, or one
     /// in a directory of its own under this account's application data. And how such a file is
-    /// set aside once it has grown.
+    /// set aside once it has grown, and how long an exit waits for what is queued for it.
     /// </summary>
     /// <remarks>
     /// **One answer for every such file**, so that whoever has found one has found them all, and
@@ -136,5 +136,47 @@ namespace KeePassGate.Diagnostics
 
         /// <summary>`ERROR_ACCESS_DENIED`, which a refusing ACL and a reader holding a file both answer.</summary>
         private const int AccessDenied = 5;
+
+        /// <summary>
+        /// How long KeePass's exit waits, at most, for what the audit and the log still have
+        /// queued, both together: two seconds.
+        /// </summary>
+        /// <remarks>
+        /// **Long enough for the normal case to lose nothing.** What KeePass records and logs as it
+        /// closes, the gate stopping among it, reaches a local disk or a share that answers in
+        /// milliseconds, and the writers are background threads that the process would otherwise
+        /// end wherever they had got to.
+        ///
+        /// **Short enough that a share that does not answer costs no more than a pause.** Waited
+        /// out, storage that never answers would keep KeePass's process alive with its window gone,
+        /// and hold up a logoff behind it, for whatever the network's timeout was. Two seconds is a
+        /// pause somebody closing KeePass barely notices, and what is still queued past it is lost,
+        /// as the documents state.
+        /// </remarks>
+        public static readonly TimeSpan ExitWait = TimeSpan.FromSeconds(2);
+
+        /// <summary>
+        /// Waits for each writer's queued lines in turn, all of them within
+        /// <paramref name="within"/>, and answers whether every one was written.
+        /// </summary>
+        /// <param name="drains">Each writer's own wait, given what is left of the bound.</param>
+        public static bool WaitForQueuedLines(TimeSpan within, params Func<TimeSpan, bool>[] drains)
+        {
+            var waited = System.Diagnostics.Stopwatch.StartNew();
+            var written = true;
+
+            foreach (var drain in drains ?? Array.Empty<Func<TimeSpan, bool>>())
+            {
+                if (drain == null)
+                {
+                    continue;
+                }
+
+                var left = within - waited.Elapsed;
+                written &= left > TimeSpan.Zero && drain(left);
+            }
+
+            return written;
+        }
     }
 }

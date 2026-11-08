@@ -63,9 +63,10 @@ namespace KeePassGate.Diagnostics
         private readonly Func<bool> _mayNotWait;
 
         // The lines a thread that may not wait has logged, with when each was, for the log's own
-        // writer to take, under a lock of their own.
+        // writer to take, and whether a writer is running to take them, under a lock of their own.
         private readonly object _queueLock = new object();
         private readonly Queue<KeyValuePair<DateTime, string>> _queued = new Queue<KeyValuePair<DateTime, string>>();
+        private bool _writing;
 
         /// <summary>
         /// Writes to the file the environment names, or to one beside the audit, which is also
@@ -96,17 +97,24 @@ namespace KeePassGate.Diagnostics
         /// lines and holds for these for the same reason: a log on slow or unreachable storage
         /// held KeePass's window for every line it wrote there, and for every connection's line
         /// ahead of it on the lock. So a line logged on a thread that may not wait goes to the
-        /// trace at once and is queued for a thread of the log's own, started here and kept for as
-        /// long as the process runs, so that logging never has a thread to start. A line logged on
-        /// any other thread first writes every line queued before it, under the file's lock that
-        /// the log's writer takes too, so every line keeps its place. A line still queued when the
-        /// process ends is lost, which `docs/getting-started.md` states.
+        /// trace at once and is queued for a thread of the log's own, which runs while anything is
+        /// queued and ends once nothing is. A line logged on any other thread first writes every
+        /// line queued before it, under the file's lock that the log's writer takes too, so every
+        /// line keeps its place.
+        ///
+        /// **An ordinary exit waits for it, briefly**: what KeePass logs as it closes, the gate
+        /// stopping among it, is queued just before the process ends, and the writer is a background
+        /// thread, ended with the process wherever it had got to. So `Terminate` waits for it,
+        /// <see cref="Drain"/>, for `PluginFiles.ExitWait` at most, and then lets the process end
+        /// anyway, so that storage that does not answer never keeps KeePass's process alive or holds
+        /// up a logoff. A line still queued when the process ends is lost, which
+        /// `docs/getting-started.md` states.
         ///
         /// **The writer is a root**, in the sense `GateIncidents` means: its thread has nothing
         /// above it, and an exception escaping it ends the process. It is safe the way the accept
-        /// thread is, `DESIGN.md` §141: it waits on a lock nothing interrupts, and what it writes
-        /// goes through <see cref="AppendToFile"/>, whose every call is filtered or guarded as the
-        /// rest of this log is. Anything added there has to keep that true.
+        /// thread is, `DESIGN.md` §141: what it writes goes through <see cref="AppendToFile"/>,
+        /// whose every call is filtered or guarded like the rest of this log, and the locks it takes
+        /// throw nothing. Anything added there has to keep that true.
         /// </remarks>
         /// <param name="refused">
         /// What <see cref="LogFileVariable"/> held when it named no path, which the first line
@@ -114,18 +122,13 @@ namespace KeePassGate.Diagnostics
         /// </param>
         /// <param name="mayNotWait">
         /// Whether the thread logging a line may not wait for the file, or null when every thread
-        /// may, which starts no writer.
+        /// may.
         /// </param>
         internal TraceGateLog(string filePath, string refused, Func<DateTime> clock, Func<bool> mayNotWait)
         {
             _filePath = string.IsNullOrEmpty(filePath) ? null : filePath;
             _clock = clock ?? (() => DateTime.UtcNow);
             _mayNotWait = mayNotWait ?? (() => false);
-
-            if (mayNotWait != null && _filePath != null)
-            {
-                new Thread(WriteInTurn) { IsBackground = true, Name = "KeePassGate log" }.Start();
-            }
 
             if (refused != null)
             {
@@ -191,12 +194,7 @@ namespace KeePassGate.Diagnostics
 
             if (_mayNotWait())
             {
-                lock (_queueLock)
-                {
-                    _queued.Enqueue(new KeyValuePair<DateTime, string>(at, line));
-                    Monitor.Pulse(_queueLock);
-                }
-
+                Queue(at, line);
                 return;
             }
 
@@ -207,22 +205,89 @@ namespace KeePassGate.Diagnostics
             }
         }
 
-        /// <summary>The log's own writer: every queued line, as each arrives, for good.</summary>
+        /// <summary>
+        /// Puts a line in the queue, and starts the log's own writer unless it is already running.
+        /// </summary>
+        private void Queue(DateTime at, string line)
+        {
+            lock (_queueLock)
+            {
+                _queued.Enqueue(new KeyValuePair<DateTime, string>(at, line));
+                if (_writing)
+                {
+                    return;
+                }
+
+                _writing = true;
+            }
+
+            try
+            {
+                // A background thread, so that storage that does not answer never keeps KeePass's
+                // process alive: an exit waits for it no longer than `PluginFiles.ExitWait`.
+                new Thread(WriteInTurn) { IsBackground = true, Name = "KeePassGate log" }.Start();
+            }
+            // codeql[cs/catch-of-all-exceptions] the log the catch-alls report to, which may not throw
+            catch (Exception)
+            {
+                // A thread that could not be started, which only a process out of memory meets.
+                // The line stays queued for the next line logged on another thread, which writes
+                // what is queued first, and the next line logged here asks for a writer again.
+                lock (_queueLock)
+                {
+                    _writing = false;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Waits until every line queued so far is written, or <paramref name="within"/> has passed,
+        /// and answers whether they were.
+        /// </summary>
+        /// <remarks>
+        /// For KeePass exiting, the one moment its thread waits for this file, and only briefly:
+        /// `PluginFiles.ExitWait` states for how long and why.
+        /// </remarks>
+        internal bool Drain(TimeSpan within)
+        {
+            var waited = Stopwatch.StartNew();
+            lock (_queueLock)
+            {
+                while (_writing || _queued.Count > 0)
+                {
+                    var left = within - waited.Elapsed;
+                    if (left <= TimeSpan.Zero)
+                    {
+                        return false;
+                    }
+
+                    Monitor.Wait(_queueLock, left);
+                }
+
+                return true;
+            }
+        }
+
+        /// <summary>The log's own writer: every queued line, until the queue stays empty.</summary>
         private void WriteInTurn()
         {
             while (true)
             {
-                lock (_queueLock)
-                {
-                    while (_queued.Count == 0)
-                    {
-                        Monitor.Wait(_queueLock);
-                    }
-                }
-
                 lock (_fileLock)
                 {
                     WriteQueued();
+                }
+
+                lock (_queueLock)
+                {
+                    // Asked under the queue's lock, where a line queued after the last one written
+                    // either finds this still running or starts another writer.
+                    if (_queued.Count == 0)
+                    {
+                        _writing = false;
+                        Monitor.PulseAll(_queueLock);
+                        return;
+                    }
                 }
             }
         }

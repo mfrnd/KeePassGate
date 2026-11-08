@@ -166,8 +166,9 @@ an account with no local application data directory for the plugin to find, that
 it goes. A `KEEPASSGATE_LOG_FILE` that is no path at all, such as one holding a `|`, leaves the log
 where it would have been, and the log's first line names the value it refused. A line KeePass's own
 window writes is handed to a writer of the plugin's own rather than written there, so a log on slow
-or unreachable storage costs KeePass nothing; the lines still reach the file in order, and one still
-waiting when KeePass ends is lost.
+or unreachable storage costs KeePass nothing; the lines still reach the file in order. Closing
+KeePass waits two seconds at most for the lines still waiting, and loses any that are still waiting
+after that.
 
 ## Find the tab
 

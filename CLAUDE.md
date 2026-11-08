@@ -184,7 +184,8 @@ designing around them.
   for a writer of the audit's own**, as every line KeePass's thread records is, the operator's
   revocation at the settings dialog's OK among them, so that KeePass's thread never waits on the
   file, and the plugin's log does the same with the lines KeePass's thread logs; every line keeps
-  its place, and a process that ends before its writer reaches a line loses it. A defect
+  its place, KeePass's exit waits for both writers for two seconds at most, `PluginFiles.ExitWait`,
+  and a line still queued when the process ends is lost. A defect
   in the save itself, which runs every other plugin's handlers, is settled by a `finally` as the
   database leaves it, and still reaches the connection thread: a change the file received is
   written down, and a change it never received is taken back out.

@@ -195,8 +195,9 @@ namespace KeePassGate.Audit
         /// slow or unreachable audit path held KeePass's window for that file's I/O and for every
         /// connection's line queued on the lock ahead of it. So such a line is queued before
         /// anything else is done with it, which nothing after it can undo, and a thread of the
-        /// audit's own writes it. A process that ends in that moment, before the writer reaches
-        /// it, loses it, which `docs/audit.md` states.
+        /// audit's own writes it. An ordinary exit waits for that writer, <see cref="Drain"/>, for
+        /// `PluginFiles.ExitWait` at most, and a process that ends with a line still queued loses
+        /// it, which `docs/audit.md` states.
         ///
         /// **Every line keeps its place.** A line written here first writes every line queued
         /// before it, under the same lock the audit's own writer takes, so a pairing's line is
@@ -248,7 +249,37 @@ namespace KeePassGate.Audit
                 _writing = true;
             }
 
+            // A background thread, so that storage that does not answer never keeps KeePass's
+            // process alive: an exit waits for it no longer than `PluginFiles.ExitWait`.
             new Thread(WriteInTurn) { IsBackground = true, Name = "KeePassGate audit" }.Start();
+        }
+
+        /// <summary>
+        /// Waits until every line queued so far is written, or <paramref name="within"/> has passed,
+        /// and answers whether they were.
+        /// </summary>
+        /// <remarks>
+        /// For KeePass exiting, the one moment its thread waits for this file, and only briefly:
+        /// `PluginFiles.ExitWait` states for how long and why.
+        /// </remarks>
+        internal bool Drain(TimeSpan within)
+        {
+            var waited = System.Diagnostics.Stopwatch.StartNew();
+            lock (_queueLock)
+            {
+                while (_writing || _queued.Count > 0)
+                {
+                    var left = within - waited.Elapsed;
+                    if (left <= TimeSpan.Zero)
+                    {
+                        return false;
+                    }
+
+                    Monitor.Wait(_queueLock, left);
+                }
+
+                return true;
+            }
         }
 
         /// <summary>The audit's own writer: every queued line, until the queue stays empty.</summary>
@@ -268,6 +299,7 @@ namespace KeePassGate.Audit
                     if (_queued.Count == 0)
                     {
                         _writing = false;
+                        Monitor.PulseAll(_queueLock);
                         return;
                     }
                 }
