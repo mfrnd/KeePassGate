@@ -211,21 +211,8 @@ namespace KeePassGate.Host.Tests
                                 scaling.ToString("0.00", CultureInfo.InvariantCulture) + " scaling");
                         }
 
-                        foreach (var column in Columns(panel))
-                        {
-                            Show(column);
-
-                            var room = Room(column);
-                            var needed = Needed(column);
-                            var where = state.Description + ", " + Where(column) + ", at " +
-                                        scaling.ToString("0.00", CultureInfo.InvariantCulture) + " scaling";
-
-                            Assert.That(needed.Width, Is.LessThanOrEqualTo(room.Width),
-                                where + ", is " + needed.Width + " wide in " + room.Width + ".");
-                            Assert.That(needed.Height, Is.LessThanOrEqualTo(room.Height),
-                                where + ", is " + needed.Height + " tall in " + room.Height +
-                                ". Shorten what is on the tab rather than scrolling it.");
-                        }
+                        AssertEveryColumnFits(panel, state.Description + " at " +
+                            scaling.ToString("0.00", CultureInfo.InvariantCulture) + " scaling");
                     }
                 }
 
@@ -806,34 +793,106 @@ namespace KeePassGate.Host.Tests
                         }
 
                         LayOut(panel, area);
-
-                        var box = ControlTree.FindByName<TextBox>(panel, GateTab.InvitationBoxName);
-                        Assert.That(box, Is.Not.Null);
-                        Show(box);
-
-                        // Any code will do in a monospaced font, since every one is as wide as
-                        // every other, and a letter this wide makes one whatever the font.
-                        box.Text = new string('W', PairingToken.TextLength);
-                        box.Select(0, 0);
-                        box.ScrollToCaret();
-
-                        var room = new User32.Rect();
-                        User32.SendMessage(box.Handle, GetRect, IntPtr.Zero, ref room);
-
-                        var first = PositionOf(box, 0);
-                        var last = PositionOf(box, box.TextLength - 1) + (PositionOf(box, 1) - first);
-
-                        TestContext.Out.WriteLine(state.Description + where + ": the code runs from " + first +
-                                                  " to " + last + " in a box drawing text from " +
-                                                  room.Left + " to " + room.Right);
-
-                        Assert.That(first, Is.GreaterThanOrEqualTo(room.Left),
-                            state.Description + where + ": the box has scrolled the start of the code away.");
-                        Assert.That(last, Is.LessThanOrEqualTo(room.Right),
-                            state.Description + where + ": the invitation box cuts the code off at " +
-                            room.Right + ", where its last character ends at " + last + ".");
+                        AssertShowsWholeCode(panel, state.Description + where);
                     }
                 }
+            }
+        }
+
+        [Test]
+        [TestCase(1.00f)]
+        [TestCase(1.25f)]
+        [TestCase(1.50f)]
+        [TestCase(2.00f)]
+        public void Everything_fits_in_the_code_font_a_Windows_without_Consolas_shows(float scaling)
+        {
+            // S190: the code falls back to the generic monospaced family where Consolas is not
+            // installed, and every machine this runs on has Consolas, so the fallback was measured
+            // by a remark alone, whose own numbers put a whole code in Courier New past the page.
+            using (var scaled = scaling > 1.00f ? ScaledDialog(scaling) : null)
+            {
+                var area = scaled == null ? _page.DisplayRectangle.Size : PageOf(scaled.Dialog);
+                var where = " in the fallback at " + scaling.ToString("0.00", CultureInfo.InvariantCulture) + " scaling";
+
+                foreach (var state in States())
+                {
+                    using (var panel = state.Panel)
+                    {
+                        if (scaled != null)
+                        {
+                            panel.Scale(Spacing.ScaleOf(scaled.Dialog));
+                            panel.Font = scaled.Font;
+                        }
+
+                        panel.CodeFamily = NoSuchFamily;
+                        LayOut(panel, area);
+
+                        using (var generic = FontFamily.GenericMonospace)
+                        {
+                            Assert.That(ControlTree.FindByName<TextBox>(panel, GateTab.InvitationBoxName).Font.Name,
+                                Is.EqualTo(generic.Name), "the code is not in the font the fallback gives it");
+                        }
+
+                        AssertEveryColumnFits(panel, state.Description + where);
+                        AssertShowsWholeCode(panel, state.Description + where);
+                    }
+                }
+            }
+        }
+
+        /// <summary>A family no machine has, which gives the invitation box the fallback.</summary>
+        private const string NoSuchFamily = "KeePassGate No Such Family";
+
+        /// <summary>
+        /// Asks the edit control, with a code in it, where it puts the last character, against the
+        /// room it draws text in.
+        /// </summary>
+        private static void AssertShowsWholeCode(Control panel, string where)
+        {
+            var box = ControlTree.FindByName<TextBox>(panel, GateTab.InvitationBoxName);
+            Assert.That(box, Is.Not.Null);
+            Show(box);
+
+            // Any code will do in a monospaced font, since every code is as wide as every other,
+            // and a letter this wide makes a wide code whatever the font.
+            box.Text = new string('W', PairingToken.TextLength);
+            box.Select(0, 0);
+            box.ScrollToCaret();
+
+            var room = new User32.Rect();
+            User32.SendMessage(box.Handle, GetRect, IntPtr.Zero, ref room);
+
+            var first = PositionOf(box, 0);
+            var last = PositionOf(box, box.TextLength - 1) + (PositionOf(box, 1) - first);
+
+            TestContext.Out.WriteLine(where + ": the code runs from " + first + " to " + last +
+                                      " in a box drawing text from " + room.Left + " to " + room.Right);
+
+            Assert.That(first, Is.GreaterThanOrEqualTo(room.Left),
+                where + ": the box has scrolled the start of the code away.");
+            Assert.That(last, Is.LessThanOrEqualTo(room.Right),
+                where + ": the invitation box cuts the code off at " + room.Right +
+                ", where its last character ends at " + last + ".");
+        }
+
+        /// <summary>Every stack on a laid out panel, each in the room its page gives it.</summary>
+        private static void AssertEveryColumnFits(Control panel, string where)
+        {
+            foreach (var column in Columns(panel))
+            {
+                Show(column);
+
+                var room = Room(column);
+                var needed = Needed(column);
+                var which = where + ", " + Where(column);
+
+                TestContext.Out.WriteLine(which + ": needs " + needed + " of " + room);
+
+                Assert.That(needed.Width, Is.LessThanOrEqualTo(room.Width),
+                    which + ", is " + needed.Width + " wide in " + room.Width + ".");
+                Assert.That(needed.Height, Is.LessThanOrEqualTo(room.Height),
+                    which + ", is " + needed.Height + " tall in " + room.Height +
+                    ". Shorten what is on the tab rather than scrolling it.");
             }
         }
 

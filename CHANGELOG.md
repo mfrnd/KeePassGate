@@ -11,6 +11,10 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **On a Windows without Consolas the invitation code goes under the Invite button rather than past
+  the page.** The code falls back to Courier New there, and at 100 percent a whole code no longer
+  fits beside the button once it reads Renew invite, so the row ran 12 pixels past the tab. The box
+  now takes a line of its own wherever a whole code does not fit beside the button.
 - **The KPG tab's facts and the access editor's masks take the font of the dialog they are on.**
   Both were drawn in fonts made once, at the size the tab was built at, so on a dialog whose font
   is not the system's the bold values were smaller than the names beside them, and the masks

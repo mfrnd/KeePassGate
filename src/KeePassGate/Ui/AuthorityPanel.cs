@@ -82,6 +82,9 @@ namespace KeePassGate.Ui
         /// <summary>The invitation box's own font, built again whenever the panel's changes.</summary>
         private Font _tokenFont;
 
+        /// <summary>The family that font is asked for in: <see cref="CodeFamily"/>.</summary>
+        private string _codeFamily = PreferredCodeFamily;
+
         private readonly TabControl _tabs;
         private readonly FlowLayoutPanel _inviting;
 
@@ -346,7 +349,7 @@ namespace KeePassGate.Ui
             // code is a different width every time it is minted, so a box that held one would cut
             // the next. Fixed width makes the widest code the only code, which is a width the box
             // can be built for.
-            _tokenFont = CodeFont(Font.Size);
+            _tokenFont = CodeFont(_codeFamily, Font.Size);
 
             _token = new TextBox
             {
@@ -1246,14 +1249,7 @@ namespace KeePassGate.Ui
                     return;
                 }
 
-                var before = _tokenFont;
-                _tokenFont = CodeFont(Font.Size);
-                _token.Font = _tokenFont;
-
-                if (before != null)
-                {
-                    before.Dispose();
-                }
+                TakeCodeFont();
 
                 // The values already drawn as well as those drawn next, since a reading draws the
                 // table again and a change of font draws nothing.
@@ -1270,11 +1266,49 @@ namespace KeePassGate.Ui
         }
 
         /// <summary>
+        /// The family the invitation code is asked for in: Consolas, unless a test names another.
+        /// </summary>
+        /// <remarks>
+        /// **A seam for measuring the fallback.** <see cref="CodeFont"/> falls back to the generic
+        /// monospaced family where the family asked for is not installed, and every machine the
+        /// fit tests run on has Consolas, so what the tab looks like without it was worked out in a
+        /// remark and measured by nothing. Naming a family no machine has is how `GateTabFitsTests`
+        /// lays the tab out in the font a Windows without Consolas shows the code in.
+        /// </remarks>
+        internal string CodeFamily
+        {
+            get
+            {
+                return _codeFamily;
+            }
+
+            set
+            {
+                _codeFamily = value;
+                TakeCodeFont();
+            }
+        }
+
+        /// <summary>Gives the invitation box its monospaced font, at the panel's size.</summary>
+        private void TakeCodeFont()
+        {
+            var before = _tokenFont;
+            _tokenFont = CodeFont(_codeFamily, Font.Size);
+            _token.Font = _tokenFont;
+
+            if (before != null)
+            {
+                before.Dispose();
+            }
+        }
+
+        /// <summary>
         /// Keeps everything inside the width the tab actually has, whatever that turns out to be.
         /// </summary>
         /// <remarks>
         /// Wrapping labels are given a maximum width rather than a fixed one, so they grow
-        /// downwards instead of sideways, and the token box takes the width left beside its button.
+        /// downwards instead of sideways, and the token box takes the width left beside its button,
+        /// or a line of its own under the button where a whole code does not fit beside it.
         /// Sizes are read from the panel rather than written into it, because a number chosen here
         /// is a number that is wrong at another font size, another display scaling, or on a KeePass
         /// whose dialog is not the size this one is.
@@ -1320,18 +1354,31 @@ namespace KeePassGate.Ui
                 }
 
                 var available = RoomAround(_inviting) - _inviting.Margin.Horizontal;
+                var code = CodeWidth();
 
-                var width = available
-                            - _invite.Width - _invite.Margin.Horizontal
-                            - _copy.Width - _copy.Margin.Horizontal
-                            - _token.Margin.Horizontal;
+                var line = available
+                           - _copy.Width - _copy.Margin.Horizontal
+                           - _token.Margin.Horizontal;
+                var beside = line - _invite.Width - _invite.Margin.Horizontal;
 
-                // **Never narrower than a whole code.** What the row leaves is enough at every
-                // scaling `GateTabFitsTests` measures, and where it is not, the row runs past the
-                // page, which that test sees, rather than the box cutting the code off, which no
-                // test saw: at 100 percent the last character was missing whenever there was a
-                // code in the box, since that is when the button beside it says "Renew invite".
-                width = Math.Max(width, CodeWidth());
+                // **Under the button where a whole code does not fit beside it.** In Consolas it
+                // fits at every scaling `GateTabFitsTests` measures. In the family a Windows
+                // without Consolas falls back to, it does not at 100 percent while the button
+                // reads "Renew invite", which is whenever there is a code in the box, and the row
+                // ran 12 pixels past the page. A line of its own gives the box the page's width.
+                var under = beside < code;
+                if (_inviting.GetFlowBreak(_invite) != under)
+                {
+                    // Both, since a row that does not wrap takes no notice of a break.
+                    _inviting.WrapContents = under;
+                    _inviting.SetFlowBreak(_invite, under);
+                }
+
+                // **Never narrower than a whole code.** Where even a line of its own is too
+                // narrow, the row runs past the page, which that test sees, rather than the box
+                // cutting the code off, which no test saw: at 100 percent the last character was
+                // missing whenever there was a code in the box.
+                var width = Math.Max(under ? line : beside, code);
 
                 if (width > 0 && _token.Width != width)
                 {
@@ -1461,32 +1508,33 @@ namespace KeePassGate.Ui
         }
 
         /// <summary>
-        /// The font an invitation code is shown in, at a size.
+        /// The font an invitation code is shown in, asked for in a family and at a size.
         /// </summary>
         /// <remarks>
         /// **Consolas where it is installed, and the generic monospaced family where it is not.**
         /// Both are monospaced, which is what the box needs, and Consolas is narrower, which is
         /// what the row needed. In Courier New, the generic family on Windows, a code at the size
         /// of the rest of the page is 301 pixels wide at 100 percent, and the box beside "Renew
-        /// invite" has 294 inside its frame, so the last character was cut off. Consolas sets the
-        /// same code in 258, and it tells `0` from `O` and `1` from `l` and `I`, which a code read
-        /// off the screen needs and Courier New barely does.
+        /// invite" has 294 inside its frame, so the box goes under the button there, as
+        /// `FitToWidth` sets out. Consolas sets the same code in 258, and it tells `0` from `O` and
+        /// `1` from `l` and `I`, which a code read off the screen needs and Courier New barely
+        /// does.
         ///
         /// **Asked for by name and checked**, because GDI+ answers a family it does not have with
         /// Microsoft Sans Serif rather than a refusal, and a proportional code is what this font is
         /// here to prevent. Windows has shipped Consolas since Vista.
         /// </remarks>
-        private static Font CodeFont(float size)
+        private static Font CodeFont(string family, float size)
         {
             // codeql[cs/missed-using-statement] disposed only when it is not kept, which no `using` can do
-            var font = new Font(CodeFamily, size, FontStyle.Regular);
+            var font = new Font(family, size, FontStyle.Regular);
 
             // Let go of on every way out but the return, a throw while GDI+ is asked for the name
             // among them.
             var handedOver = false;
             try
             {
-                if (string.Equals(font.Name, CodeFamily, StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(font.Name, family, StringComparison.OrdinalIgnoreCase))
                 {
                     handedOver = true;
                     return font;
@@ -1503,8 +1551,8 @@ namespace KeePassGate.Ui
             return new Font(FontFamily.GenericMonospace, size, FontStyle.Regular);
         }
 
-        /// <summary>The family <see cref="CodeFont"/> asks for first.</summary>
-        private const string CodeFamily = "Consolas";
+        /// <summary>The family a code is asked for in unless a test names another.</summary>
+        private const string PreferredCodeFamily = "Consolas";
 
         /// <summary>
         /// How wide the box has to be to show a whole code, its frame included.
