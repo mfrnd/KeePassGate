@@ -298,6 +298,22 @@ namespace KeePassGate.Ui
 
             if (_store != null)
             {
+                // An authority made and then retired on this one dialog, by a create and a delete
+                // or by two recreates, never reached the database. Its retirement would: a key the
+                // file keeps for good, naming an authority it never held, and reading as a
+                // database that retired every authority it had.
+                var underneath = _database.PluginCustomData;
+                if (underneath != null)
+                {
+                    _store.Withdraw(key =>
+                    {
+                        var fingerprint = AuthorityKeys.FingerprintInRetirement(key);
+                        return fingerprint != null
+                               && underneath.Get(AuthorityKeys.AuthorityKey(fingerprint)) == null
+                               && underneath.Get(key) == null;
+                    });
+                }
+
                 changed |= _store.Apply();
             }
 
@@ -632,6 +648,25 @@ namespace KeePassGate.Ui
             }
 
             _written[key] = value ?? string.Empty;
+        }
+
+        /// <summary>
+        /// Takes back the writes the dialog holds for every key <paramref name="which"/> picks,
+        /// as though they had never been made. Nothing is removed by it.
+        /// </summary>
+        public void Withdraw(Func<string, bool> which)
+        {
+            if (which == null)
+            {
+                throw new ArgumentNullException(nameof(which));
+            }
+
+            foreach (var key in _written.Keys.Where(which).ToList())
+            {
+                _written.Remove(key);
+                _order.Remove(key);
+                _before.Remove(key);
+            }
         }
 
         public void Remove(string key)

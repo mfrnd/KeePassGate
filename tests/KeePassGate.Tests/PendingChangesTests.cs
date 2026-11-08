@@ -176,6 +176,43 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_create_and_a_delete_on_one_dialog_leave_the_database_as_it_was()
+        {
+            // Delete retires what it deletes, and an authority made on this dialog was retired
+            // into the database at OK: a key the file kept for good, for an authority it never
+            // held, reading as a database that had retired every authority it had.
+            var live = new InMemoryKeyValueStore();
+            var pending = new PendingDatabase(new FakeGateDatabase(live), null);
+            var service = new AuthorityService(pending.PluginCustomData, null);
+
+            Assume.That(service.Create().Succeeded, Is.True);
+            Assume.That(service.Delete().Succeeded, Is.True);
+
+            Assert.That(pending.Apply(), Is.False, "nothing was written, so nothing is to be saved");
+            Assert.That(live.Keys, Is.Empty);
+        }
+
+        [Test]
+        public void Two_recreates_on_one_dialog_retire_only_the_authority_the_database_held()
+        {
+            var live = new InMemoryKeyValueStore();
+            Assume.That(new AuthorityService(live, null).Create().Succeeded, Is.True);
+            var held = live.Keys.Single(key => AuthorityKeys.FingerprintInAuthority(key) != null);
+
+            var pending = new PendingDatabase(new FakeGateDatabase(live), null);
+            var service = new AuthorityService(pending.PluginCustomData, null);
+            Assume.That(service.Recreate().Succeeded, Is.True);
+            Assume.That(service.Recreate().Succeeded, Is.True);
+
+            Assert.That(pending.Apply(), Is.True);
+
+            var retired = live.Keys.Select(AuthorityKeys.FingerprintInRetirement).Where(fingerprint => fingerprint != null);
+            Assert.That(retired, Is.EqualTo(new[] { AuthorityKeys.FingerprintInAuthority(held) }),
+                "the authority made between the two was never in the database, and is retired nowhere");
+            Assert.That(live.Keys.Count(key => AuthorityKeys.FingerprintInAuthority(key) != null), Is.EqualTo(1));
+        }
+
+        [Test]
         public void What_OK_took_away_is_listed_beside_what_it_stored()
         {
             // So that what a lift landed can be logged as it lands, rather than at the press.

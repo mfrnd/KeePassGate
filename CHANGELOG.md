@@ -11,6 +11,10 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **Creating and deleting an authority on one settings dialog leaves the database as it was.** The
+  delete retired the authority the create had made, and OK wrote that retirement for an authority
+  the file never held, a key kept for good that made the database read as one that had retired
+  every authority it had. Two recreates on one dialog did the same to the authority between them.
 - **The clients page names a revocation and a lifted answer as waiting for OK**, which they do. The
   line under the list stated that the client could no longer reach the database, or that its next
   renewal raised the dialog again, while the dialog had changed nothing yet, and the plugin's log
