@@ -19,7 +19,7 @@ import pytest
 from cryptography import x509
 from cryptography.hazmat.primitives import serialization
 
-from pykeepassgate import api, cli
+from pykeepassgate import __version__, api, cli
 from pykeepassgate import credentials as credentials_module
 from pykeepassgate.client import GateClient
 from pykeepassgate.errors import MalformedToken, PairingError, StorageError
@@ -35,7 +35,7 @@ from test_renewal import bundle_for
 #: Invented, and looked for in everything printed.
 PASSWORD = "an invented key password"
 
-STATUS = json.dumps({"ok": True, "database": "abcdef01", "version": "0.1.0", "revision": ""})
+STATUS = json.dumps({"ok": True, "database": "abcdef01", "version": __version__, "revision": ""})
 
 
 def serving_status(gate: FakeGate) -> None:

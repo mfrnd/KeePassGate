@@ -186,3 +186,31 @@ there is nothing unsaved. A `200` that meant "in memory, maybe" would be a lie a
 detect. What a client sees of that, a read meeting a change before its save lands and the revision
 a change leaves, is said to the client in the routing document's own description, `openapi.yaml`
 §501.
+
+## The version is the contract's §411
+
+The plugin, PyKeePassGate and the routing document carry one version, and it is the version of
+this API's contract, which is what makes it something a client can compare. **A change a client
+may rely on moves the minor version, a change that breaks an existing client moves the major, and
+a patch changes no contract.** Breaking is a program that worked before having to change: a route,
+a status or a body on the wire, what a certificate or an admission record carries, or what the
+client raises or returns. That is a design rule, written here as part of the contract, and not a
+convention a release checks: nothing enforces it but whoever makes the change.
+
+**A client works with a gate when their major versions are equal and the client's major and minor
+do not lead the gate's.** Patches are released on each side on their own, so they are not
+compared, and a gate ahead of its client is a working pair, since everything the client relies on
+is still served. A `0.1` client works with a `0.2` gate, and a `0.2` client does not work with a
+`0.1` gate.
+
+**And the client refuses any other gate, before it sends anything else.** A paired client asks
+the status route before its first request, and the pairing hello carries the version beside the
+gate's proof, since a connection that arrived on an invitation reaches no other route: the client
+reads it once the proof verifies and stops before the request that puts it in front of the
+operator. Either raises an error naming both versions, and the command line exits with it. A
+version that does not read as three whole numbers is refused as well, since nothing about it can
+be compared.
+
+**Under 0.x the rule has a consequence.** With the major versions required to be equal, a change
+that breaks an existing client can no longer be a 0.x minor version, since the client it breaks
+would still take the gate for a gate it works with. So the next such change is 1.0.

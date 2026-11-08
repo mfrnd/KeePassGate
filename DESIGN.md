@@ -1882,7 +1882,9 @@ Each step is refusable, and each ends with something that runs.
     zip and its `SHA256SUMS` as a GitHub release and PyKeePassGate on PyPI, PyPI last, through
     Trusted Publishing so that no token is kept anywhere. The tag has to name the version
     `Directory.Build.props` holds, and the changelog has to call that version released. A minor
-    version moves both halves together, and a patch publishes only the half it fixes. Every job
+    version moves both halves together, and a patch publishes only the half it fixes. Which number
+    a change moves is the API's contract, and so is which client works with which gate, which the
+    client checks before anything else: [`API.md`](API.md) §411. Every job
     that publishes is rehearsed by hand first, against a target that costs nothing: a draft
     release that is deleted again, and TestPyPI under a development version.
     **Done.** Until here nothing published either half, and the name on PyPI was held by a

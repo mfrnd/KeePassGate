@@ -25,7 +25,7 @@ from dataclasses import dataclass
 from datetime import timedelta
 from typing import Any
 
-from . import proofs, sni, transport
+from . import compatibility, proofs, sni, transport
 from . import token as token_text
 from .errors import (
     DatabaseLocked,
@@ -156,6 +156,11 @@ class Pairing:
         issuance and no write. Each attempt mints a fresh nonce and a fresh name and takes a
         fresh challenge, so a retry is a new phase 3 rather than the same one sent twice: there
         is no message being replayed and nothing carried over from the attempt that was refused.
+
+        **A gate this client does not work with ends the pairing here**, with `IncompatibleGate`
+        naming both versions, before the request that puts it in front of the operator: the
+        answer carries the gate's version beside its proof, `API.md` §411. Read once the proof
+        verifies, since until then nothing shows the answer came from the gate at all.
         """
         retry = transport.Retry(
             busy=self._retry_busy_timeout,
@@ -185,6 +190,12 @@ class Pairing:
                     "the gate's proof did not verify, so this is not the right KeePass"
                 )
 
+            # Absent from a gate older than the member, which this client leads.
+            version = body.get("version", "")
+            if not isinstance(version, str):
+                raise ProtocolError("the gate answered the hello with a version that is not text")
+
+            compatibility.refuse_incompatible(version)
             return Exchange(challenge=challenge, binding=bound, nonce=nonce)
 
     def _hello_once(self) -> tuple[bytes, bytes, transport.Response]:

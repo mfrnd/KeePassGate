@@ -16,8 +16,6 @@ it does not do is a statement too: a route with no method here is a route the ga
 
 from __future__ import annotations
 
-from importlib.metadata import version
-
 from .api import (
     Access,
     AmbiguousName,
@@ -30,6 +28,7 @@ from .api import (
     GateError,
     GateUnavailable,
     Identity,
+    IncompatibleGate,
     MalformedToken,
     NotAdmitted,
     NotPaired,
@@ -55,11 +54,11 @@ from .api import (
     Withheld,
     pair,
 )
+from .compatibility import CLIENT_VERSION
 
-#: The version this client was installed as, which the plugin and the routing document carry too.
-#: It is written in one place, `Directory.Build.props`, and an installed package keeps it in its
-#: metadata, so it is read from there rather than written a second time here.
-__version__ = version("pykeepassgate")
+#: The version this client was installed as, which the plugin and the routing document carry too,
+#: and which `compatibility` compares with the version a gate reports.
+__version__ = CLIENT_VERSION
 
 __all__ = [
     "Access",
@@ -73,6 +72,7 @@ __all__ = [
     "GateError",
     "GateUnavailable",
     "Identity",
+    "IncompatibleGate",
     "MalformedToken",
     "NotAdmitted",
     "NotPaired",

@@ -1,9 +1,8 @@
 # Changelog
 
 What each version of KeePassGate changes. The plugin, PyKeePassGate and the routing document carry
-one version and move together, and [`CONVENTIONS.md`](CONVENTIONS.md#versions) says how the number
-moves: at 0.x, a minor version for anything added to or broken in either half, and a patch for a
-fix that changes no interface.
+one version and move together. Which number a change moves is the API's contract, [`API.md`](API.md)
+§411, and what each kind of release publishes is [`CONVENTIONS.md`](CONVENTIONS.md#versions).
 
 Newest first. A version is written here before it is released, under its own heading, and says
 **unreleased** until it is. A patch releases only what it fixes, so its heading names the halves
@@ -280,6 +279,20 @@ none, since it releases both.
   the record was written and the certificate never reached the client. A close also let go of
   every approval kept for a busy KeePass, so a pairing approved for a database still open was told
   that its database was locked.
+- **PyKeePassGate refuses a gate it does not work with, before it sends anything else**, with
+  `IncompatibleGate` naming both versions, and the command line exits `1` with it. A client works
+  with a gate of its own major version whose major and minor it does not lead, and the patch is
+  never compared, as [`API.md`](API.md) §411 now states as part of the API's contract. The
+  documents promised that the same major and minor make a pair, and neither half checked it. A
+  paired client asks the status route once, before its first request, under the budgets of that
+  request.
+- **The pairing hello carries the gate's version beside its proof**, as `version`, so that a
+  client refuses a gate it does not work with before the request that puts it in front of the
+  operator. A connection that arrived on an invitation reaches no other route, so the status route
+  was out of reach.
+- **The stand-in gate answers the status route itself**, with `FakeGate.version`, the client's own
+  version unless a test sets another, so a script need not answer the request the client now makes
+  first. `None` hands the route to the handler as before.
 
 ## 0.1.0, 2026-10-25
 

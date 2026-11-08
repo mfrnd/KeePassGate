@@ -1110,7 +1110,8 @@ the tools this branch carries.
   `src/KeePassGate`, so that every patch released the plugin. Moving the version is that one
   line; `CONVENTIONS.md` has when, and `CHANGELOG.md` what moved.
   A minor version releases both halves and a patch only the half it fixes, so a patch number may
-  exist on one side only, and the same major and minor version is what makes two halves a pair.
+  exist on one side only. Which number a change moves, and which client works with which gate,
+  is the API's contract, `API.md` §411, and the client refuses a gate it does not work with.
 
 ## Security posture
 

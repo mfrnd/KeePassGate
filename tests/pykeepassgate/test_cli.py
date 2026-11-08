@@ -16,7 +16,7 @@ from typing import Any
 import pytest
 from cryptography.hazmat.primitives import serialization
 
-from pykeepassgate import api, cli, transport
+from pykeepassgate import __version__, api, cli, transport
 from pykeepassgate import credentials as credentials_module
 from pykeepassgate.errors import StorageError
 from pykeepassgate.testing import FakeGate, Issued
@@ -212,10 +212,11 @@ def test_status_prints_what_the_gate_said(
     tmp_path: Path, bundle: dict[str, Any], gate: FakeGate, capsys: pytest.CaptureFixture[str]
 ) -> None:
     credentials_module.save(tmp_path / "kept", gate.port, bundle)
+    gate.version = None
     gate.handler = lambda path, body, client: (
         200,
         json.dumps(
-            {"ok": True, "database": "abcdef01", "version": "0.1.0", "revision": "0123abcd"}
+            {"ok": True, "database": "abcdef01", "version": __version__, "revision": "0123abcd"}
         ),
     )
 
@@ -231,10 +232,11 @@ def test_a_gate_that_says_it_is_not_ok_exits_with_the_number_a_script_reads(
     # docstring promises a script. `ok: false` is the one failure no exception carries, so this
     # also reads it all the way from the body to the exit code.
     credentials_module.save(tmp_path / "kept", gate.port, bundle)
+    gate.version = None
     gate.handler = lambda path, body, client: (
         200,
         json.dumps(
-            {"ok": False, "database": "abcdef01", "version": "0.1.0", "revision": "0123abcd"}
+            {"ok": False, "database": "abcdef01", "version": __version__, "revision": "0123abcd"}
         ),
     )
 
@@ -261,6 +263,7 @@ def test_a_locked_database_is_reported_as_something_to_wait_for(
     tmp_path: Path, bundle: dict[str, Any], gate: FakeGate, capsys: pytest.CaptureFixture[str]
 ) -> None:
     credentials_module.save(tmp_path / "kept", gate.port, bundle)
+    gate.version = None
     gate.handler = lambda path, body, client: (503, json.dumps({"error": "locked"}))
 
     assert cli.main(["status", "--directory", str(tmp_path / "kept")]) == cli.FAILED

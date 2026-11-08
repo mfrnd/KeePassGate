@@ -23,7 +23,7 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.serialization import pkcs12
 
-from pykeepassgate import api, cli, transport
+from pykeepassgate import __version__, api, cli, transport
 from pykeepassgate import client as client_module
 from pykeepassgate import credentials as credentials_module
 from pykeepassgate.client import GateClient
@@ -93,7 +93,7 @@ class Gate:
             return self.revocation
 
         return 200, json.dumps(
-            {"ok": True, "database": "abcdef01", "version": "0.1.0", "revision": "0123abcd"}
+            {"ok": True, "database": "abcdef01", "version": __version__, "revision": "0123abcd"}
         )
 
 
@@ -163,7 +163,7 @@ def test_the_client_carries_on_as_the_new_identity(
     gate: FakeGate, paired: GateClient, renewing: Gate, renewed_certificate: Issued
 ) -> None:
     paired.renew()
-    paired.status()
+    paired.get("/gate/whoami")
 
     assert renewing.seen[-1][2] == der(renewed_certificate)
     assert paired.credentials.expires == "2127-01-02T03:04:05Z"
@@ -669,8 +669,10 @@ def test_a_certificate_that_has_expired_is_not_offered_for_renewal(
 def test_a_renewal_dials_the_way_its_client_does(
     tmp_path: Path, gate: FakeGate, bundle: dict[str, Any], renewing: Gate
 ) -> None:
-    # Both requests: the renewal, and giving the old certificate up, which is made by a client
-    # built for the old identity and has to reach the same KeePass the same way.
+    # Every request: the comparison of the gate's version with this client's, the renewal, and
+    # giving the old certificate up, which is made by a client built for the old identity and
+    # has to reach the same KeePass the same way. That client compares nothing again, since the
+    # gate it reaches is the gate the renewal was just answered by.
     asked: list[str] = []
 
     def dial(host: str, port: int, timeout: float) -> socket.socket:
@@ -681,16 +683,23 @@ def test_a_renewal_dials_the_way_its_client_does(
 
     GateClient(stored, connection_timeout=10.0, host="relay", dial=dial).renew()
 
-    assert asked == ["relay", "relay"]
+    assert asked == ["relay", "relay", "relay"]
     assert [path for path, _, _ in renewing.seen] == ["/gate/renew", "/gate/certificate"]
 
 
 @pytest.mark.parametrize(
     ("given", "waited"),
     [
-        (None, [transport.PAIRING_CONNECTION_TIMEOUT, transport.DEFAULT_CONNECTION_TIMEOUT]),
-        (10.0, [transport.PAIRING_CONNECTION_TIMEOUT, 10.0]),
-        (600.0, [600.0, 600.0]),
+        (
+            None,
+            [
+                transport.DEFAULT_CONNECTION_TIMEOUT,
+                transport.PAIRING_CONNECTION_TIMEOUT,
+                transport.DEFAULT_CONNECTION_TIMEOUT,
+            ],
+        ),
+        (10.0, [10.0, transport.PAIRING_CONNECTION_TIMEOUT, 10.0]),
+        (600.0, [600.0, 600.0, 600.0]),
     ],
 )
 def test_a_renewal_waits_as_long_as_a_pairing_and_gives_up_on_the_ordinary_timeout(
@@ -705,7 +714,8 @@ def test_a_renewal_waits_as_long_as_a_pairing_and_gives_up_on_the_ordinary_timeo
     # The renewal waits on a person, and the gate gives it the six minutes a pairing gets, since
     # its own worst case is the same 305 seconds: the screen, the dialog and its grace, the turn at
     # the writer and the write. A client that hangs up first leaves an approval saved for a
-    # certificate nobody holds. Giving the old one up asks nobody, so it waits the ordinary time.
+    # certificate nobody holds. Giving the old certificate up asks nobody, so it waits the usual
+    # time, and so does the comparison of the gate's version that comes before both.
     timeouts: list[float] = []
     connect = transport.connect
 
@@ -722,7 +732,7 @@ def test_a_renewal_waits_as_long_as_a_pairing_and_gives_up_on_the_ordinary_timeo
     client.renew()
 
     assert timeouts == waited
-    assert timeouts[0] > 120.0 + 120.0 + 15.0 + 20.0 + 30.0
+    assert timeouts[1] > 120.0 + 120.0 + 15.0 + 20.0 + 30.0
 
 
 def test_a_renewal_nobody_answered_is_read_after_the_ordinary_timeout_would_have_ended(

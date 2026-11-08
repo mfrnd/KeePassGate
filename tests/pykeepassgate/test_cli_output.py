@@ -18,7 +18,7 @@ from typing import Any
 
 import pytest
 
-from pykeepassgate import cli
+from pykeepassgate import __version__, cli
 from pykeepassgate import credentials as credentials_module
 from pykeepassgate.testing import FakeGate
 
@@ -212,7 +212,8 @@ def test_access_prints_the_grants_by_profile(
 def test_status_prints_what_the_gate_said_and_keeps_its_exit_code(
     gate: FakeGate, kept: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    body = {"ok": False, "database": "abcdef01", "version": "0.1.0", "revision": "0123abcd"}
+    gate.version = None
+    body = {"ok": False, "database": "abcdef01", "version": __version__, "revision": "0123abcd"}
     answering(gate, body)
 
     assert cli.main(["status", "--directory", str(kept), "-o", "json"]) == 1

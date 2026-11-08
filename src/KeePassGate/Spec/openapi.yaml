@@ -226,6 +226,10 @@ paths:
                       without naming it.
                   version:
                     type: string
+                    description: |
+                      The plugin's release, which is the version of this API's contract: a client
+                      works with a gate of its own major version whose major and minor it does not
+                      lead, API.md §411, and asks this before its first request.
                   revision:
                     type: string
                     description: |
@@ -476,7 +480,8 @@ paths:
       description: |
         The client speaks first, so a captured name replayed at the gate is refused here rather than
         in front of the operator. The answer carries the gate's own proof, which is the only thing a
-        client with no trust anchor has to go on.
+        client with no trust anchor has to go on, and the gate's version, so that a client refuses a
+        gate it does not work with before the request that puts it in front of the operator.
       x-kpg-unauthenticated: true
       x-kpg-verb: none
       requestBody:
@@ -501,7 +506,7 @@ paths:
             application/json:
               schema:
                 type: object
-                required: [challenge, proof, expires]
+                required: [challenge, proof, expires, version]
                 additionalProperties: false
                 properties:
                   challenge:
@@ -510,6 +515,11 @@ paths:
                     type: string
                   expires:
                     type: string
+                  version:
+                    type: string
+                    description: |
+                      The version the status route reports, which is the version of this API's
+                      contract, API.md §411.
         "400":
           $ref: "#/components/responses/Malformed"
         "401":

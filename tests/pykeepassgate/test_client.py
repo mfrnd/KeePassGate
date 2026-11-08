@@ -13,8 +13,8 @@ from typing import Any, cast
 
 import pytest
 
+from pykeepassgate import __version__, sni, transport
 from pykeepassgate import credentials as credentials_module
-from pykeepassgate import sni, transport
 from pykeepassgate.client import GateClient
 from pykeepassgate.errors import (
     AuthorityUndecided,
@@ -40,17 +40,18 @@ def paired(tmp_path: Path, bundle: dict[str, Any], gate: FakeGate) -> GateClient
 def test_the_status_route_says_what_the_gate_and_the_database_are(
     gate: FakeGate, paired: GateClient
 ) -> None:
+    gate.version = None
     gate.handler = lambda path, body, client: (
         200,
         json.dumps(
-            {"ok": True, "database": "abcdef01", "version": "0.1.0", "revision": "0123abcd"}
+            {"ok": True, "database": "abcdef01", "version": __version__, "revision": "0123abcd"}
         ),
     )
 
     status = paired.status()
 
     assert (status.ok, status.database, status.version, status.revision) == (
-        True, "abcdef01", "0.1.0", "0123abcd"
+        True, "abcdef01", __version__, "0123abcd"
     )
     assert gate.requests == [("GET", "/gate/status")]
 
@@ -60,9 +61,10 @@ def test_a_build_carrying_no_commit_is_read_as_an_empty_revision(
 ) -> None:
     # Empty is an answer, and the member is still required: a gate leaving it out is answering in
     # a form the document does not declare.
+    gate.version = None
     gate.handler = lambda path, body, client: (
         200,
-        json.dumps({"ok": True, "database": "abcdef01", "version": "0.1.0", "revision": ""}),
+        json.dumps({"ok": True, "database": "abcdef01", "version": __version__, "revision": ""}),
     )
 
     assert paired.status().revision == ""
@@ -129,11 +131,12 @@ def test_a_busy_gate_is_waited_out_before_a_revocation_is_given_up(
 def test_every_request_is_named_from_the_gate_key(gate: FakeGate, paired: GateClient) -> None:
     gate.handler = lambda path, body, client: (200, "{}")
 
-    paired.get("/gate/status")
-    paired.get("/gate/status")
+    paired.get("/gate/whoami")
+    paired.get("/gate/whoami")
 
-    assert len(gate.names) == 2
-    assert gate.names[0] != gate.names[1], "a passive observer would see the same name twice"
+    # Three, since the first is the client comparing the gate's version with its own.
+    assert len(gate.names) == 3
+    assert len(set(gate.names)) == 3, "a passive observer would see the same name twice"
 
     for name in gate.names:
         assert name is not None
@@ -151,7 +154,7 @@ def test_the_client_certificate_is_offered_on_every_request(
         return 200, "{}"
 
     gate.handler = answer
-    paired.get("/gate/status")
+    paired.get("/gate/whoami")
 
     assert seen and seen[0], "the gate would have refused this as unpaired"
 
@@ -173,7 +176,7 @@ def test_an_empty_answer_is_an_empty_object_rather_than_a_failure(
     gate: FakeGate, paired: GateClient
 ) -> None:
     gate.handler = lambda path, body, client: (200, "")
-    assert paired.get("/gate/status") == {}
+    assert paired.get("/gate/whoami") == {}
 
 
 @pytest.mark.parametrize(
@@ -202,6 +205,7 @@ def test_every_refusal_becomes_something_a_caller_can_act_on(
     # The four at the end are what the client's documentation tells a caller not to wait out:
     # `400` and `409` are about the request, `413` about what was asked for, and `500` is the
     # gate failing. A mapping that sent one of them to `GateBusy` would tell a caller to retry.
+    gate.version = None
     gate.handler = lambda path, body, client: (status, json.dumps({"error": error}))
 
     with pytest.raises(expected) as raised:
@@ -218,6 +222,7 @@ def test_a_503_keeps_the_word_and_the_delay_the_gate_gave(
 ) -> None:
     # The word is what a caller catching the base reads, which a word this client does not know
     # needs most of all: it is the whole of what that refusal says.
+    gate.version = None
     gate.handler = lambda path, body, client: (503, json.dumps({"error": error}))
     gate.retry_after = "2"
 
@@ -231,6 +236,7 @@ def test_a_503_keeps_the_word_and_the_delay_the_gate_gave(
 def test_a_503_that_names_no_word_is_the_family_itself(
     gate: FakeGate, paired: GateClient, body: str
 ) -> None:
+    gate.version = None
     gate.handler = lambda path, sent, client: (503, body)
 
     with pytest.raises(GateUnavailable) as raised:
@@ -267,6 +273,7 @@ def test_a_revoked_client_and_one_that_never_paired_look_the_same(
     # The record is read from the live database on every connection and never cached, so revocation
     # is immediate and, from here, indistinguishable from never having been admitted. That is the
     # point rather than an omission.
+    gate.version = None
     gate.handler = lambda path, body, client: (401, json.dumps({"error": "unpaired"}))
 
     with pytest.raises(NotAdmitted, match="never admitted, it was revoked, or it has expired"):
@@ -308,7 +315,8 @@ def test_a_certificate_expired_only_by_a_clock_ahead_of_the_gate_s_is_still_offe
 ) -> None:
     # The gate judges by its own clock, and serves, and renews, a certificate it holds current: a
     # minute past by this machine's clock may be a minute before by the gate's.
-    status = {"ok": True, "database": "abcdef01", "version": "0.1.0", "revision": ""}
+    gate.version = None
+    status = {"ok": True, "database": "abcdef01", "version": __version__, "revision": ""}
     gate.handler = lambda path, body, client: (200, json.dumps(status))
     moment = datetime.now(UTC) - timedelta(minutes=1)
     stored = credentials_module.save(
@@ -328,14 +336,15 @@ def test_an_expiry_this_client_cannot_read_leaves_the_gate_to_say(
     stored = credentials_module.save(tmp_path / "kept", gate.port, {**bundle, "expires": expires})
     gate.handler = lambda path, body, client: (200, "{}")
 
-    GateClient(stored, connection_timeout=10.0).get("/gate/status")
+    GateClient(stored, connection_timeout=10.0).get("/gate/whoami")
 
-    assert gate.requests == [("GET", "/gate/status")]
+    assert gate.requests == [("GET", "/gate/whoami")]
 
 
 def test_a_refusal_carries_the_status_and_the_word_the_gate_used(
     gate: FakeGate, paired: GateClient
 ) -> None:
+    gate.version = None
     gate.handler = lambda path, body, client: (418, json.dumps({"error": "teapot"}))
 
     with pytest.raises(RouteRefused) as raised:
@@ -363,10 +372,11 @@ def test_a_client_is_one_identity_for_as_long_as_it_lives(
     stored = credentials_module.save(tmp_path / "kept", gate.port, bundle)
     paired_with = stored.gate_key
     client = GateClient(stored, connection_timeout=10.0)
+    gate.version = None
     gate.handler = lambda path, body, certificate: (
         200,
         json.dumps(
-            {"ok": True, "database": "abcdef01", "version": "0.1.0", "revision": "0123abcd"}
+            {"ok": True, "database": "abcdef01", "version": __version__, "revision": "0123abcd"}
         ),
     )
 
@@ -415,10 +425,10 @@ def test_a_client_dials_the_host_it_was_given(
     client = GateClient(stored, connection_timeout=10.0, host="localhost")
     gate.handler = lambda path, body, client: (200, "{}")
 
-    client.get("/gate/status")
+    client.get("/gate/whoami")
 
     assert client.host == "localhost"
-    assert gate.requests == [("GET", "/gate/status")]
+    assert gate.requests == [("GET", "/gate/whoami")]
 
 
 def test_a_client_that_dials_nowhere_says_where_it_tried(
@@ -452,11 +462,13 @@ def test_a_client_connects_through_the_dial_it_was_given(
     dialing = Dialing(gate)
 
     client = GateClient(stored, connection_timeout=10.0, host="gate.invalid", dial=dialing)
-    client.get("/gate/status")
-    GateClient.open(stored.directory, host="gate.invalid", dial=dialing).get("/gate/status")
+    client.get("/gate/whoami")
+    GateClient.open(stored.directory, host="gate.invalid", dial=dialing).get("/gate/whoami")
 
-    assert dialing.asked == [("gate.invalid", gate.port, 10.0), ("gate.invalid", gate.port, 120.0)]
-    assert gate.requests == [("GET", "/gate/status")] * 2
+    # Twice each, since each client compares the gate's version with its own first.
+    first, second = ("gate.invalid", gate.port, 10.0), ("gate.invalid", gate.port, 120.0)
+    assert dialing.asked == [first, first, second, second]
+    assert gate.requests == [("GET", "/gate/whoami")] * 2
 
 
 def test_a_client_dials_with_the_standard_library_unless_told_otherwise(
@@ -518,7 +530,7 @@ def test_a_cap_raised_past_an_answer_takes_it(
         tmp_path / "kept", connection_timeout=10.0, max_response_bytes=8192
     )
 
-    assert client.get("/gate/status")["ok"] is True
+    assert client.get("/gate/whoami")["ok"] is True
 
 
 @pytest.mark.parametrize("cap", [0, -1])
@@ -578,8 +590,16 @@ class TestWaitingOutARefusal:
         return recorded
 
     @staticmethod
-    def _refusing(gate: FakeGate, times: int, error: str = "busy") -> None:
-        """Refuse that many requests with that `503`, then answer the next one."""
+    def _refusing(
+        gate: FakeGate, times: int, error: str = "busy", *, status: bool = True
+    ) -> None:
+        """Refuse that many requests with that `503`, then answer the next request.
+
+        The status route among them, unless `status` is false, which leaves it to the gate.
+        """
+        if status:
+            gate.version = None
+
         left = [times]
 
         def answer(path: str, body: str, client: bytes | None) -> tuple[int, str]:
@@ -588,7 +608,7 @@ class TestWaitingOutARefusal:
                 return 503, json.dumps({"error": error})
 
             return 200, json.dumps(
-                {"ok": True, "database": "abcdef01", "version": "0.1.0", "revision": "0123abcd"}
+                {"ok": True, "database": "abcdef01", "version": __version__, "revision": "0123abcd"}
             )
 
         gate.handler = answer
@@ -698,12 +718,12 @@ class TestWaitingOutARefusal:
         # gate names the word in `KPG-Unavailable` as well.
         stored = credentials_module.save(tmp_path / "kept", gate.port, bundle)
         client = self._client(stored)
-        self._refusing(gate, 1, word)
+        self._refusing(gate, 1, word, status=False)
         with pytest.raises(refusal):
             client.head("/gate/status")
         assert waited == []
 
-        self._refusing(gate, 1, word)
+        self._refusing(gate, 1, word, status=False)
         budgets: dict[str, float | None] = {"busy": None, "locked": None, "undecided": None}
         budgets[word] = 30.0
         client.head(
@@ -769,6 +789,7 @@ class TestWaitingOutARefusal:
         self, tmp_path: Path, bundle: dict[str, Any], gate: FakeGate, waited: list[float]
     ) -> None:
         stored = credentials_module.save(tmp_path / "kept", gate.port, bundle)
+        gate.version = None
         gate.handler = lambda path, body, client: (500, json.dumps({"error": "internal error"}))
         gate.retry_after = "2"
 
@@ -872,11 +893,11 @@ def test_an_identity_cut_short_opens_no_client_and_says_which_file(
 @pytest.mark.parametrize(
     "answer",
     [
-        {"ok": "false", "database": "abcdef01", "version": "0.1.0", "revision": "0123abcd"},
-        {"ok": True, "database": None, "version": "0.1.0", "revision": "0123abcd"},
+        {"ok": "false", "database": "abcdef01", "version": __version__, "revision": "0123abcd"},
+        {"ok": True, "database": None, "version": __version__, "revision": "0123abcd"},
         {"ok": True, "database": "abcdef01", "revision": "0123abcd"},
-        {"ok": True, "database": "abcdef01", "version": "0.1.0"},
-        {"ok": True, "database": "abcdef01", "version": "0.1.0", "revision": None},
+        {"ok": True, "database": "abcdef01", "version": __version__},
+        {"ok": True, "database": "abcdef01", "version": __version__, "revision": None},
     ],
     ids=["ok as text", "a null database", "no version", "no revision", "a null revision"],
 )
@@ -885,6 +906,7 @@ def test_a_status_this_client_cannot_read_is_a_protocol_error(
 ) -> None:
     # `bool` read the text "false" as true, so a script reading the exit code was told the gate
     # was serving, and `str` made a `null` database the word "None".
+    gate.version = None
     gate.handler = lambda path, body, client: (200, json.dumps(answer))
 
     with pytest.raises(ProtocolError, match="status"):

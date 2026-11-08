@@ -25,7 +25,7 @@ from typing import Any, cast
 import pytest
 from cryptography.x509.oid import ExtendedKeyUsageOID
 
-from pykeepassgate import api, proofs, sni, transport
+from pykeepassgate import __version__, api, proofs, sni, transport
 from pykeepassgate import pairing as pairing_module
 from pykeepassgate import token as token_module
 from pykeepassgate.errors import (
@@ -82,6 +82,11 @@ class Gate:
         #: Swapped for something else to play an impostor that cannot prove the token.
         self.server_proof: bytes | None = None
 
+        #: The version the hello answers with beside its proof, this client's own unless a test
+        #: plays a gate it does not work with, or a gate answering what is not text. `None` leaves
+        #: the member out, as a gate older than it does.
+        self.version: object = __version__
+
     def __call__(self, path: str, body: str, client: bytes | None) -> tuple[int, str]:
         parsed = json.loads(body)
 
@@ -112,13 +117,15 @@ class Gate:
             self.token, self.binding, nonce, self.challenge
         )
 
-        return 200, json.dumps(
-            {
-                "challenge": base64.b64encode(self.challenge).decode(),
-                "proof": base64.b64encode(proof).decode(),
-                "expires": "2026-08-15T09:02:00Z",
-            }
-        )
+        answer: dict[str, object] = {
+            "challenge": base64.b64encode(self.challenge).decode(),
+            "proof": base64.b64encode(proof).decode(),
+            "expires": "2026-08-15T09:02:00Z",
+        }
+        if self.version is not None:
+            answer["version"] = self.version
+
+        return 200, json.dumps(answer)
 
     def _request(self, body: dict[str, Any]) -> tuple[int, str]:
         if self.challenge is None or self.nonce is None:

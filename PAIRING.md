@@ -102,8 +102,9 @@ sequenceDiagram
     CL->>KPG: POST /pair/hello + clientProof
     Note right of CL: bound to the channel AND<br/>the SNI nonce, so the proof<br/>is fresh per connection
     KPG->>KPG: verify in fixed time
-    KPG-->>CL: serverChallenge + serverProof
+    KPG-->>CL: serverChallenge + serverProof + version
     CL->>CL: verify, or abort: possible interception
+    CL->>CL: a version it does not work with, abort: §311
 
     Note over OP,CL: Phase 4. Approval, on the KeePass screen
     CL->>KPG: POST /pair/request + wanted profiles, and a lifetime if it wants one
@@ -481,7 +482,8 @@ POST /pair/hello
   { "proof": "<HMAC-SHA256(token, "kpg-client-proof" | binding | nonce)>" }
 ->  200 { "challenge": "<32 bytes>",
           "proof": "<HMAC-SHA256(token, "kpg-server-proof" | binding | nonce | challenge)>",
-          "expires": "<when the challenge stops being usable>" }
+          "expires": "<when the challenge stops being usable>",
+          "version": "<the plugin's release, as the status route reports it>" }
 
 POST /pair/request
   { "name": "agent-fictitious",
@@ -499,6 +501,14 @@ POST /pair/request
 
 Every part is length prefixed before it is signed, so no two different sets of parts produce the
 same bytes, and each proof carries its own label, so none of them can be replayed as another.
+
+**The hello carries the gate's version so that a client can refuse before anybody is asked.** A
+client works with a gate of its own major version whose major and minor it does not lead,
+[`API.md`](API.md) §411, and refuses any other. A paired client learns the version from the status
+route before its first request, and a pairing connection reaches no route but these two, so the
+version travels beside the server's proof: the client reads it once that proof verifies and stops
+there, before the request that puts it in front of the operator. The proof does not cover it and
+does not need to, since it binds the channel and the version arrives on the same channel.
 
 **`lifetime` is optional, and signed for whether it is there or not.** It is an ISO 8601 duration
 of whole days from one to 365, in one spelling: `P`, the number with no leading zero, and `D`.

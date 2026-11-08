@@ -278,14 +278,21 @@ namespace KeePassGate.Pairing
                 _log.Info("pairing proof accepted on invitation " + connection.Invitation.Id +
                           " from " + connection.Peer);
 
-                // Written by `Json.NET`, as the bundle is, rather than spliced between quotes. Every
-                // value here is base64 or a timestamp and needs no escaping, which is true of these
-                // three and says nothing about the next member somebody adds.
+                // Written by `Json.NET`, as the bundle is, rather than spliced between quotes. The
+                // version is whatever the build stamped, which needs it, and the other three are
+                // base64 or a timestamp, which do not.
+                //
+                // **The version is here so that a client can refuse before the operator is asked**,
+                // `API.md` §411: a pairing connection reaches no route but the two pairing routes,
+                // so the status route that tells a paired client is not a route it can ask.
+                // Beside the proof rather than covered by it, since the proof binds this channel
+                // to the token and the version arrives on the same channel.
                 var answer = new JObject
                 {
                     ["challenge"] = Convert.ToBase64String(challenge.Value),
                     ["proof"] = Convert.ToBase64String(proof),
-                    ["expires"] = Moment(challenge.Expires)
+                    ["expires"] = Moment(challenge.Expires),
+                    ["version"] = GateVersion.Current
                 };
 
                 context.Respond(200, answer.ToString(Formatting.None));
