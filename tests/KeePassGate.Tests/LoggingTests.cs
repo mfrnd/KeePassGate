@@ -357,6 +357,49 @@ namespace KeePassGate.Tests
             Assert.That(File.ReadAllText(path), Does.Contain("KPG INFO one"));
         }
 
+        // Alone, because the variable it sets names the log for the whole process.
+        [Test]
+        [NonParallelizable]
+        public void A_variable_naming_no_path_keeps_the_log_where_it_would_be_and_the_audit_nowhere()
+        {
+            // `GetFullPath` refuses a name holding a character no path can, and the log went on
+            // with no file and not a word about why, while every pointer to it led nowhere. The
+            // log takes its default instead; the audit, which nobody looks for anywhere else,
+            // still takes none and states that it records nothing.
+            const string named = "bad|name.log";
+            var was = Environment.GetEnvironmentVariable(TraceGateLog.LogFileVariable);
+            try
+            {
+                Environment.SetEnvironmentVariable(TraceGateLog.LogFileVariable, named);
+
+                string refused;
+                var resolved = PluginFiles.Resolve(TraceGateLog.LogFileVariable, TraceGateLog.DefaultFileName, out refused);
+                var local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+
+                Assert.That(refused, Is.EqualTo(named));
+                Assert.That(resolved, Is.EqualTo(Paths.Join(local, "KeePassGate", TraceGateLog.DefaultFileName)));
+                Assert.That(PluginFiles.Resolve(TraceGateLog.LogFileVariable, TraceGateLog.DefaultFileName), Is.Null,
+                    "the audit's answer");
+            }
+            finally
+            {
+                Environment.SetEnvironmentVariable(TraceGateLog.LogFileVariable, was);
+            }
+        }
+
+        [Test]
+        public void A_log_kept_in_place_of_a_name_refused_begins_by_naming_both()
+        {
+            var path = Paths.Join(_directory, "gate.log");
+
+            new TraceGateLog(path, "bad|name.log", null).Info("one");
+
+            var lines = File.ReadAllLines(path);
+            Assert.That(lines[0], Does.Contain(
+                "KPG WARN " + TraceGateLog.LogFileVariable + " names bad|name.log, which is not a path, so the log is kept at " + path));
+            Assert.That(lines[1], Does.Contain("KPG INFO one"));
+        }
+
         [Test]
         public void Without_a_name_the_log_is_kept_beside_the_audit()
         {

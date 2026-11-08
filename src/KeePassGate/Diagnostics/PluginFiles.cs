@@ -34,17 +34,46 @@ namespace KeePassGate.Diagnostics
         /// </remarks>
         public static string Resolve(string variable, string fileName)
         {
+            string refused;
+            var resolved = Resolve(variable, fileName, out refused);
+            return refused == null ? resolved : null;
+        }
+
+        /// <summary>
+        /// The same, except that a variable naming something that is not a path gives
+        /// <paramref name="fileName"/> in the plugin's own directory, with what the variable named
+        /// in <paramref name="refused"/>, and null there otherwise.
+        /// </summary>
+        /// <remarks>
+        /// **Two callers, two answers to a name that is not a path, and both report it.** The audit
+        /// takes none, since a record written somewhere the operator did not name is a record
+        /// nobody looks for, and states in the log that nothing is being recorded. The log takes
+        /// its default, since a log is somewhere to look first, and its first line there names
+        /// what the variable held: kept nowhere instead, it reached debug output alone, and every
+        /// pointer the plugin gives to its log led to a file that was never written.
+        /// </remarks>
+        public static string Resolve(string variable, string fileName, out string refused)
+        {
+            refused = null;
+
             try
             {
                 // Inside the guard with the rest of it. Reading an environment variable is a
                 // permission a policy can withhold, and this runs from a constructor on the way
                 // into KeePass, where an exception is not a missing file but a plugin that did not
-                // load. A name `GetFullPath` cannot make sense of is refused by the same guard, and
-                // whoever asked says so rather than writing nowhere quietly.
+                // load.
                 var named = Environment.GetEnvironmentVariable(variable);
                 if (!string.IsNullOrEmpty(named))
                 {
-                    return Path.GetFullPath(named);
+                    try
+                    {
+                        return Path.GetFullPath(named);
+                    }
+                    catch (Exception error) when (Expected.OfStorage(error))
+                    {
+                        // A name `GetFullPath` cannot make sense of, which the caller reports.
+                        refused = named;
+                    }
                 }
 
                 var local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);

@@ -55,21 +55,40 @@ namespace KeePassGate.Diagnostics
         private bool _failing;
         private int _missed;
 
-        /// <summary>Writes to the file the environment names, or to one beside the audit.</summary>
+        /// <summary>
+        /// Writes to the file the environment names, or to one beside the audit, which is also
+        /// where it writes when the environment names something that is not a path.
+        /// </summary>
         public TraceGateLog()
-            : this(PluginFiles.Resolve(LogFileVariable, DefaultFileName), null)
+            : this(PluginFiles.Resolve(LogFileVariable, DefaultFileName, out var refused), refused, null)
         {
         }
 
         public TraceGateLog(string filePath)
-            : this(filePath, null)
+            : this(filePath, null, null)
         {
         }
 
         internal TraceGateLog(string filePath, Func<DateTime> clock)
+            : this(filePath, null, clock)
+        {
+        }
+
+        /// <summary>The log at this path, by this clock, beginning with a name refused in its place.</summary>
+        /// <param name="refused">
+        /// What <see cref="LogFileVariable"/> held when it named no path, which the first line
+        /// names beside where the log is kept instead, or null when nothing was refused.
+        /// </param>
+        internal TraceGateLog(string filePath, string refused, Func<DateTime> clock)
         {
             _filePath = string.IsNullOrEmpty(filePath) ? null : filePath;
             _clock = clock ?? (() => DateTime.UtcNow);
+
+            if (refused != null)
+            {
+                Warn(LogFileVariable + " names " + refused + ", which is not a path, so the log is kept " +
+                     (_filePath == null ? "in no file and reaches debug output alone" : "at " + _filePath));
+            }
         }
 
         public void Info(string message)

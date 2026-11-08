@@ -138,6 +138,9 @@ none, since it releases both.
   sealed for an append-only audit, which it shares by default. With the backup and restore
   privileges enabled it was given up for the session at its first roll there, and wherever its
   own ACL let it be removed, its previous file was deleted for nothing.
+- **A `KEEPASSGATE_LOG_FILE` that is no path at all leaves the plugin's log where it would have
+  been**, and the log's first line names the value. The log went on with no file, and nothing
+  told the operator why.
 - **The plugin's log is written again once it can be**, as the audit is, beginning with a line
   naming how many lines went unwritten. A single write it could not make, such as one made while
   a program held the file without letting anybody write to it, ended the file for the session.
