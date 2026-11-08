@@ -2285,9 +2285,12 @@ components:
         it different, is written without the dialog, and a pairing's retry starts from a hello as
         every pairing retry does. A request that differs in anything is put to the operator
         again. The approval is used once, by the write that lands, and what it was approved
-        against is compared at that write: the authority served, which of the approved names the
-        list holds, and for a renewal the record being renewed, still there and unrevoked, so a
-        revocation that lands in between is never overtaken. A lock and KeePass exiting let go of
+        against is compared at that write: the authority served, which of the names the answer
+        rested on the list holds as the dialog showed it, and for a renewal the record being
+        renewed, still there and unrevoked, so a revocation that lands in between is never
+        overtaken. An approval that no longer matches is used up and answered `503 busy` with no
+        `heldUntil`, nothing is spent, and the next request puts the dialog in front of the
+        operator again. A lock and KeePass exiting let go of
         every approval held, and a close of a database lets go of that database's, and then the
         next request raises the dialog again too.
         `heldUntil` is there only while an approval is held; every other `503` here is

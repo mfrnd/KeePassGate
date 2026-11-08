@@ -1433,6 +1433,17 @@ does not come is answered `503 busy`.
 **What is added** is the one race that can be closed cheaply: a plugin-wide write lock, so two
 requests cannot interleave mutations of the same entry.
 
+**And whatever a record is written with is read again under that lock**, the operator's ruling R11
+for a value read off KeePass's thread. A pairing and a renewal read the database's list of profiles
+on the connection's thread to build their dialog, and the operator answers what the dialog showed;
+two reads made apart can disagree, and a lookup that meets the list as KeePass's thread changes the
+dictionary it sits in answers a miss rather than an exception. So the write, on KeePass's thread
+and under the writer's lock, reads the list again and compares every name the answer rested on with
+what the dialog showed, a renewal's dropped names included. A name put on or taken off the list
+while the dialog stood, or a read that missed it as the dialog was built, makes the approval stale
+rather than part of a record: it is used up, the request answers `503 busy`, and the next request
+is put to the operator again, `PAIRING.md` §311.
+
 **And a write that a dialog would take back is refused rather than raced.** A dialog open on a node
 puts its copy back on OK, so a write to that node answers `503 busy` while it is open. A dialog that
 is adding something is about a group it does not hold, and is answered for there: a group that Add

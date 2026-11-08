@@ -168,27 +168,74 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void A_profile_taken_off_the_list_while_the_operator_decided_is_not_carried_over_or_put_back()
+        public void A_profile_taken_off_the_list_while_the_operator_decided_is_asked_about_again()
         {
             // The write adds every name a record holds that the list does not, so carrying it
             // over would have put the name back on the list, and with it every rule naming it and
-            // every client holding it.
+            // every client holding it. It was dropped instead, from a second read of the list on
+            // this connection's thread, which dropped every name a read that missed did not find.
+            // Now the write reads the list again under the writer's lock, finds it is not the list
+            // the operator answered, and the operator is asked again with the list as it is.
             var operatorAt = FakeRenewalApproval.Approving();
 
             using (var old = _authority.IssueAdmittedClient("reader", "ops"))
             {
+                var before = _authority.Admitted;
                 operatorAt.Meanwhile = () => _authority.Forget("ops");
 
-                var context = Renew(operatorAt, old, "{}");
+                var stale = Renew(operatorAt, old, "{}");
 
-                Assert.That(context.Status, Is.EqualTo(200), context.Json);
-                using (var renewed = Identity(context.Json))
+                Assert.That(stale.Status, Is.EqualTo(503), stale.Json);
+                Assert.That(stale.Json, Does.Contain("busy"));
+                Assert.That(_authority.Admitted, Is.SameAs(before), "nothing was written");
+                Assert.That(_authority.KnownProfiles, Does.Not.Contain("ops"), "the name stays off the list");
+
+                operatorAt.Meanwhile = null;
+                var again = Renew(operatorAt, old, "{}");
+
+                Assert.That(again.Status, Is.EqualTo(200), again.Json);
+                Assert.That(operatorAt.Asked, Is.EqualTo(2));
+                Assert.That(operatorAt.LastRequest.Dropped, Is.EqualTo(new[] { "ops" }), "shown as dropped this time");
+                using (var renewed = Identity(again.Json))
                 {
                     Assert.That(_authority.Admission(CertificateDigest.Of(renewed)).Profiles, Is.EqualTo(new[] { "reader" }));
                 }
 
-                Assert.That(_authority.KnownProfiles, Does.Not.Contain("ops"), "the name stays off the list");
-                Assert.That(_log.Warnings.Select(entry => entry.Message), Has.Some.Contains("stopped naming"));
+                Assert.That(_authority.KnownProfiles, Does.Not.Contain("ops"), "and stays off it");
+            }
+        }
+
+        [Test]
+        public void A_dialog_built_from_a_read_that_missed_the_list_writes_no_record_without_profiles()
+        {
+            // R11, DESIGN.md §124: what a record holds is read again under the writer's lock. A
+            // lookup of the list racing a change of the database's custom data answers a miss, not
+            // an exception, so the list passed the guard and then read as naming nothing: the
+            // dialog offered no profile and showed every profile the record holds as dropped, and
+            // an approval wrote a record that carried none of them.
+            var operatorAt = FakeRenewalApproval.Approving();
+
+            using (var old = _authority.IssueAdmittedClient("reader", "ops"))
+            {
+                var before = _authority.Admitted;
+                _authority.ListMisses = 1;
+
+                var stale = Renew(operatorAt, old, "{}");
+
+                Assert.That(operatorAt.LastRequest.Profiles, Is.Empty, "the dialog was built from the read that missed");
+                Assert.That(stale.Status, Is.EqualTo(503), stale.Json);
+                Assert.That(stale.Json, Does.Contain("busy"));
+                Assert.That(_authority.Admitted, Is.SameAs(before), "nothing was written");
+
+                var again = Renew(operatorAt, old, "{}");
+
+                Assert.That(again.Status, Is.EqualTo(200), again.Json);
+                Assert.That(operatorAt.Asked, Is.EqualTo(2), "asked again, with the list read whole");
+                using (var renewed = Identity(again.Json))
+                {
+                    Assert.That(_authority.Admission(CertificateDigest.Of(renewed)).Profiles,
+                        Is.EquivalentTo(new[] { "reader", "ops" }));
+                }
             }
         }
 

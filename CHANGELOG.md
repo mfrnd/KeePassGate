@@ -299,6 +299,15 @@ none, since it releases both.
   so the write went ahead: a rule without `protected` could overwrite, or strip, a string protected
   by its own flag rather than by the database. Such a write is answered `404` now, or `503 locked`
   when the database locked, as a miss of the first lookup is.
+- **A renewal or a pairing writes its record only from the list of profiles the dialog showed,
+  read again under the writer's lock.** A renewal read the list a second time after the dialog, on
+  the connection's thread, and dropped every approved profile that read did not find, so a lookup
+  that missed the list wrote a record carrying none of them; a lookup that missed it as the dialog
+  was built offered nothing and did the same. A pairing compared the write against a read taken
+  after its dialog, so a name the dialog showed as new, put on the list meanwhile, was written as
+  though it had been listed. Each is now answered `503 busy` with the approval used up and the
+  operator asked again, and so is a renewal whose profile was taken off the list while the dialog
+  stood, which used to renew without that profile.
 
 ## 0.1.0, 2026-10-25
 

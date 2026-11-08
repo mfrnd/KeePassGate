@@ -448,6 +448,32 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_name_put_on_the_list_while_the_dialog_showed_it_as_new_is_not_written_as_approved()
+        {
+            // The dialog showed the name as "(new)", and the operator answered that. A read of the
+            // list after the dialog took in the name another approval put on it meanwhile, so the
+            // write found the list agreeing with it and wrote the record as though the name had
+            // been listed all along. What the write compares now is the list the dialog was built
+            // from, which is what the operator answered.
+            Hello(ClientProof());
+            PairingRequest shown = null;
+            var approval = new FakePairingApproval(request =>
+            {
+                shown = request;
+                _target.KnownProfiles = _target.KnownProfiles.Concat(new[] { "ops" }).ToArray();
+                return PairingApproval.Approved(new[] { "ops" });
+            });
+
+            var context = Request("agent-fictitious", new[] { "ops" }, approval);
+
+            Assert.That(shown.IsNew("ops"), Is.True, "the operator was told the name was new");
+            Assert.That(context.Status, Is.EqualTo(503), context.Json);
+            Assert.That(context.Json, Does.Contain("busy"));
+            Assert.That(_target.Admitted, Is.Null, "nothing is recorded for an approval of what is no longer so");
+            Assert.That(_book.Outstanding().Count, Is.EqualTo(1), "and the invitation is whole");
+        }
+
+        [Test]
         public void A_dialog_that_throws_is_a_refusal_to_serve_rather_than_a_failed_request()
         {
             Hello(ClientProof());

@@ -380,30 +380,24 @@ namespace KeePassGate.Pairing
             var offered = new HashSet<string>(request.Profiles, StringComparer.Ordinal);
             var profiles = decision.Profiles.Where(offered.Contains).Distinct(StringComparer.Ordinal).ToList();
 
-            // And never wider than the list as it is now. What was offered was read before the
-            // dialog, and a name the operator took off the list since would be put back by the
-            // write, which adds every name a record holds that the list does not: every rule
-            // naming it and every client holding it would come back with nobody told. The write
-            // compares the list again under the writer's lock, for a name taken off after this.
-            var named = new HashSet<string>(target.KnownProfiles ?? Array.Empty<string>(), StringComparer.Ordinal);
-            var gone = profiles.Count(profile => !named.Contains(profile));
-            if (gone > 0)
-            {
-                _log.Warn("a renewal by " + CertificateDigest.Shorten(key) + " was approved for " + gone +
-                          (gone == 1 ? " profile" : " profiles") + " this database stopped naming while the " +
-                          "operator decided, which the new certificate does not carry");
-                profiles = profiles.Where(named.Contains).ToList();
-            }
-
-            // Held from here until it is written, with the record it renews as the operator saw it.
+            // Held from here until it is written, with the record it renews as the operator saw it,
+            // and the list as the dialog showed it: which of the record's names it offered as
+            // listed and which it showed as dropped. The write reads the list again under the
+            // writer's lock and compares each of those names, `DESIGN.md` §124, so a name put on
+            // or taken off the list while the operator decided, or a read that missed the list as
+            // the dialog was built, makes this stale rather than part of the record. A record is
+            // written from the write's read and never from this thread's: a second read here
+            // could miss the list as well, and dropped every profile it did not find, with a
+            // warning blaming the operator.
             return _held.Hold(
                 approval,
                 target.DatabaseId,
                 profiles,
                 decision.Lifetime,
-                profiles,
+                request.Profiles,
                 ApprovalBook.Digest(record.Save()),
-                arrived + _options.ApprovalHeld);
+                arrived + _options.ApprovalHeld,
+                request.Profiles.Concat(request.Dropped));
         }
 
         /// <summary>
@@ -656,7 +650,7 @@ namespace KeePassGate.Pairing
                     if (stale != HeldStaleness.None)
                     {
                         refused = "stale";
-                        return "a profile it approved is not on the list as it was when the operator answered";
+                        return "a profile the answer rested on is not on the list as the dialog showed it";
                     }
 
                     return null;

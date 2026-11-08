@@ -79,13 +79,35 @@ namespace KeePassGate.Tests.Fakes
         /// </remarks>
         public IReadOnlyList<string> KnownProfiles
         {
-            get { return _named.ToArray(); }
+            get
+            {
+                if (ListMisses > 0)
+                {
+                    ListMisses--;
+                    return Array.Empty<string>();
+                }
+
+                return _named.ToArray();
+            }
             set
             {
                 _named.Clear();
                 Name(value);
             }
         }
+
+        /// <summary>
+        /// How many of the next reads of <see cref="KnownProfiles"/> miss the list and answer it as
+        /// naming nothing, while the store a write reads under the writer's lock still holds it.
+        /// </summary>
+        /// <remarks>
+        /// What a connection thread's lookup of `KPG.Profiles` meets when it races a change of the
+        /// database's custom data on KeePass's thread: a dictionary lookup that answers a miss
+        /// rather than throwing, which reads as a list that is there and names nothing. Apart
+        /// from <see cref="ProfilesUnreadable"/>, which is the list read and refused, so a test can
+        /// have the read pass the guard and miss afterwards.
+        /// </remarks>
+        public int ListMisses { get; set; }
 
         /// <summary>Set to say the list of profiles will not read, as a damaged value would.</summary>
         public string ProfilesUnreadable { get; set; }
