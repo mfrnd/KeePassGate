@@ -929,16 +929,28 @@ $msbuild = & $vswhere -latest -requires Microsoft.Component.MSBuild -find "MSBui
 
 **KeePass is provided, not found.** `keepass.version` at the root pins the release, `keepass.sha256`
 pins the archive it must arrive as, and `tools/KeePass.ps1` fetches it into `.keepass\<version>\`,
-which is gitignored. `Directory.Build.props` reads the same file, so an editor build compiles
-against the same one. Override with `-KeePassDir` or `-p:KeePassDevDir=` for a machine that keeps
-its own somewhere else.
+which is gitignored, and keeps the archive beside it. `Directory.Build.props` reads the same file,
+so an editor build compiles against the same KeePass. Override with `-KeePassDir` or
+`-p:KeePassDevDir=` for a machine that keeps its own somewhere else.
 
 Three things about it that are decisions rather than details. The directory is **named after the
-version**, so changing the pin cannot silently reuse the old one. The archive is verified twice,
-once against the pinned hash and once by checking that `KeePass.exe` carries a valid Authenticode
-signature from KeePass's author, which is the check that does not depend on where the bytes came
-from. And a version with no line in `keepass.sha256` is **refused**, with the hash that arrived
-printed so it can be pinned deliberately.
+version**, so changing the pin cannot silently reuse the old directory. **The pinned hash is the
+whole of the verification**, and nothing is extracted from an archive that does not match it: CI
+caches the archive rather than the directory and extracts it afresh on every run once its hash has
+matched, in under a second, so nothing a cache brings back is believed as it came, while a
+directory already on somebody's own machine is taken as it is, being code running as them. And a
+version with no line in `keepass.sha256` is **refused** whether its directory is there or not,
+with the hash that arrived printed and the archive kept, so that whoever moves `keepass.version`
+checks by hand that its `KeePass.exe` carries a valid Authenticode signature of KeePass's author
+before writing that hash down.
+
+**This reverses a second check, of that signature, on every build**, which was described as the
+check that does not depend on where the bytes came from. It checked less than that: the signer by
+a substring of the certificate's subject, which any certificate carrying KeePass's author's name
+inside a longer name passed, and the version by a prefix, so that 2.61.1 took 2.61.10; and on a
+restored cache it judged `KeePass.exe` alone, with every other file beside it believed unchecked.
+Asked again of bytes whose hash matched the pin, a signature settles nothing the hash had not, so
+it is asked once, by a person, when the hash is written down.
 
 A KeePass launched from there writes its own `KeePass.config.xml` next to the exe, which is why
 testing there cannot damage the real configuration.
@@ -983,7 +995,8 @@ nothing merges itself. A security update, which GitHub opens as soon as an
 advisory is out under two settings `RELEASING.md` lists, waits for a person as well. KeePass is
 pinned where no such service reads, so `keepass-watch.yml` opens an issue when it releases a newer
 version, and moving that pin stays a person's job, since `tools/KeePass.ps1` refuses a version
-until its hash is written down.
+until its hash is written down, and the person writing it checks the new archive's signature by
+hand first.
 
 **CodeQL reads what the gate does not.** `codeql.yml` analyzes the C#, the Python and the workflows
 on every pull request, every push to `master` and once a week, with what

@@ -140,12 +140,18 @@ jobs:
 
       # Windows only, because only there is KeePass provided: a check on another system has no
       # KeePass to build against, and a cache of nothing is a warning on every run.
+      #
+      # **The archive, and not the directory.** `tools/KeePass.ps1` hashes the archive against the
+      # pin and extracts it afresh on every run, so nothing a cache brings back is believed until
+      # its hash has matched, where a restored directory would be taken as it came. Keyed on the
+      # version as well as the hashes, since `keepass.sha256` may pin more than one version and the
+      # archive kept is of the version `keepass.version` names.
       - name: the pinned KeePass, where one is pinned
         if: runner.os == 'Windows' && hashFiles('keepass.sha256') != ''
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: .keepass
-          key: keepass-${{ hashFiles('keepass.sha256') }}
+          path: .keepass/KeePass-*.zip
+          key: keepass-${{ hashFiles('keepass.version', 'keepass.sha256') }}
 
       # A forward slash, which both PowerShells read as a separator on every system.
       - name: ${{ matrix.task }}

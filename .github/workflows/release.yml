@@ -213,11 +213,13 @@ jobs:
         with:
           fetch-depth: 0
 
+      # Its archive, which is hashed against the pin before anything is extracted from it, as
+      # `gate.yml` explains.
       - name: the pinned KeePass
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: .keepass
-          key: keepass-${{ hashFiles('keepass.sha256') }}
+          path: .keepass/KeePass-*.zip
+          key: keepass-${{ hashFiles('keepass.version', 'keepass.sha256') }}
 
       # `Package` reads the zip and its sums back before it reports them; what is asked here is
       # only that the zip is the version this run decided, beside its sums and nothing else.

@@ -85,7 +85,7 @@ words:
   - Authenticode
   - pscustomobject
 
-  # KeePass's author, whose Authenticode signature is what a download is checked against
+  # KeePass's author, whose Authenticode signature a new version is checked for by hand
   - Dominik
   - Reichl
 
