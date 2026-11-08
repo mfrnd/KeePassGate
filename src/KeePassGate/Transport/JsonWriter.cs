@@ -26,6 +26,7 @@ namespace KeePassGate.Transport
         private readonly JsonTextWriter _writer;
 
         private string _done;
+        private bool _disposed;
 
         public JsonWriter()
         {
@@ -42,9 +43,24 @@ namespace KeePassGate.Transport
                 return _done;
             }
 
-            // Whatever is still open is closed here, so a handler that describes something and
-            // stops does not have to count its own brackets.
-            _writer.WriteEndObject();
+            if (_disposed)
+            {
+                // Asked rather than left to Json.NET, whose own disposal closes everything that is
+                // open, so the loop below would find nothing to close and hand back a document
+                // nobody finished.
+                throw new ObjectDisposedException(nameof(JsonWriter), "Done comes before Dispose.");
+            }
+
+            // Whatever is still open is closed here, innermost first, so a handler that describes
+            // something and stops does not have to count its own brackets. One at a time, because
+            // Json.NET closes only as far as the nearest object when asked to end an object: an
+            // object left open inside an array was closed and the array and the root were not, and
+            // the answer was text that is not JSON.
+            while (_writer.WriteState != WriteState.Start)
+            {
+                _writer.WriteEnd();
+            }
+
             _writer.Flush();
 
             _done = _text.ToString();
@@ -126,6 +142,7 @@ namespace KeePassGate.Transport
         /// </remarks>
         public void Dispose()
         {
+            _disposed = true;
             ((IDisposable)_writer).Dispose();
             _text.Dispose();
         }
