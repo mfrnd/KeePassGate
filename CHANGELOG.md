@@ -11,6 +11,10 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **Ctrl+C ends a command with exit code 130 and the line `interrupted`**, a pairing's wait on
+  the operator among them, and a reader that stops reading, as `head -1` does, ends it with exit
+  code 1 and nothing on standard error. Both ended in a traceback, and the second with exit code
+  120 besides.
 - **The stand-in's `tag` and `written` take an entity tag and nothing else**: visible ASCII
   between two quotes, with no quote inside. `tag` took a quote inside, and `written` took
   anything, though its tag is the tag a later `If-Match` sends back.

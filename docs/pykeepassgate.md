@@ -844,6 +844,9 @@ entry never expires. Members are named as the gate names them, so
 
 **A failure is never a document.** It is the sentence on standard error and the exit code, `1` or
 `2`, whichever format was asked for, so a pipe into `jq` reads nothing rather than half an answer.
+Ctrl+C, the way out of the wait `pair` and `renew` spend on the operator, ends a command with the
+line `interrupted` and exit code 130, as a shell has it, and a reader that stops reading, as
+`head -1` does, ends it with exit code 1 and nothing more on standard error.
 
 ## What to catch
 

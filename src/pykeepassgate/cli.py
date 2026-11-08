@@ -11,7 +11,9 @@ it, which is when the rule granted `P`. When it did not, `show` prints `(withhel
 fails, since what `field` prints is taken by a script for the value.
 
 Exit codes are the point of a command line: `0` worked, `1` the gate refused or could not be
-reached, `2` the arguments were wrong. A script can branch on that without reading English.
+reached, `2` the arguments were wrong, and `130` Ctrl+C, as a shell has it, with the line
+`interrupted` rather than a traceback. A reader that stops reading, as `head` does, ends a command
+with `1` and nothing more. A script can branch on that without reading English.
 
 **What a command prints is chosen with `-o`/`--output`**, on every command: `plain`, lines for a
 person, and `json`, one document for a program such as `jq`. A choice rather than a `--json`
@@ -29,6 +31,7 @@ from __future__ import annotations
 
 import argparse
 import ctypes
+import errno
 import getpass
 import importlib
 import io
@@ -51,6 +54,9 @@ from .model import TITLE, URL
 #: Everything went wrong that this program knows how to be wrong about.
 FAILED = 1
 
+#: What a shell reports for a program ended by Ctrl+C: 128 and the number of SIGINT.
+INTERRUPTED = 130
+
 #: Where `pair` dials without `--port`: the library's own default, so the two cannot differ.
 DEFAULT_PORT = api.DEFAULT_PORT
 
@@ -66,7 +72,17 @@ def main(argv: list[str] | None = None) -> int:
     arguments = parser.parse_args(argv)
 
     try:
-        return int(arguments.run(arguments))
+        code = int(arguments.run(arguments))
+        # Flushed inside the `try`, so that a reader that has gone is met where it is answered,
+        # rather than at exit, where the interpreter's own flush reports an exception it ignored.
+        sys.stdout.flush()
+        return code
+    except KeyboardInterrupt:
+        # Ctrl+C, which is the way out of the minutes a pairing or a renewal waits on the operator,
+        # and of a prompt: a line and the shell's number for an interrupt, 128 and SIGINT's 2,
+        # rather than a traceback. Whatever the library was doing has run its own cleanup by now.
+        print("interrupted", file=sys.stderr)
+        return INTERRUPTED
     except _Refused as refusal:
         # Found inside a reader a command calls, where returning 2 is not possible, and the same
         # answer a command gives an argument it cannot use: nothing has been sent.
@@ -78,6 +94,51 @@ def main(argv: list[str] | None = None) -> int:
         # covers a profile nothing has paired under, which is `NotPaired`.
         print(f"{type(error).__name__}: {error}", file=sys.stderr)
         return FAILED
+    except OSError as error:
+        if not _reader_gone(error):
+            raise
+
+        # A reader that stopped reading, `entries | head -1`. What is left goes to the null device,
+        # as Python's documentation on SIGPIPE has it, because the interpreter flushes standard
+        # output again at exit and would meet the same closed pipe.
+        # The platform's names for signals and errors: cspell:ignore SIGPIPE EINVAL
+        _silenced()
+        return FAILED
+
+
+def _reader_gone(error: OSError) -> bool:
+    """Whether an error is standard output's reader having gone, as `head` goes once it has read.
+
+    A broken pipe, or on Windows an invalid argument, which is what a write to a pipe whose reader
+    has closed raises there, measured on Python 3.14. Asked again of standard output itself, which
+    still holds what it could not write, so that the same error raised by anything else is not
+    taken for it: a flush that works is a reader still there.
+    """
+    if not isinstance(error, BrokenPipeError) and error.errno != errno.EINVAL:
+        return False
+
+    try:
+        sys.stdout.flush()
+    except OSError as again:
+        return isinstance(again, BrokenPipeError) or again.errno == errno.EINVAL
+
+    return False
+
+
+def _silenced() -> None:
+    """Point standard output at the null device, for a reader that has closed its end."""
+    try:
+        descriptor = sys.stdout.fileno()
+    except (OSError, ValueError):
+        # A stream that is no file, as a test's capture is, has no descriptor to point elsewhere,
+        # and nothing at exit flushes it into a pipe.
+        return
+
+    null = os.open(os.devnull, os.O_WRONLY)
+    try:
+        os.dup2(null, descriptor)
+    finally:
+        os.close(null)
 
 
 class _Refused(Exception):

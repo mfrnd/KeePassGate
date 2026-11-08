@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 import base64
+import errno
 import hashlib
 import inspect
+import io
 import json
+import os
 import re
 import subprocess
 import sys
@@ -39,6 +42,111 @@ def test_the_command_line_names_its_own_version(capsys: pytest.CaptureFixture[st
 
     assert raised.value.code == 0
     assert capsys.readouterr().out == f"pykeepassgate {__version__}\n"
+
+
+def test_ctrl_c_ends_a_command_with_the_shell_s_number_and_a_line(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # The way out of a pairing's wait on the operator, or a prompt, and once a traceback.
+    def interrupted(arguments: object) -> int:
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr(cli, "_identity", interrupted)
+
+    assert cli.main(["identity"]) == 130
+    assert capsys.readouterr() == ("", "interrupted\n")
+
+
+def test_a_reader_that_stops_reading_ends_the_command_without_a_traceback() -> None:
+    # `entries | head -1`, over a real pipe, since what goes wrong is what the interpreter does
+    # with the closed pipe at exit: a listing longer than a pipe holds, and a reader that takes
+    # a line and goes. On Windows the write raises `EINVAL` rather than `EPIPE`. Every argument
+    # is this test's own, which is what `S603` asks about. cspell:ignore EINVAL EPIPE
+    script = (
+        "import sys\n"
+        "from pykeepassgate import cli\n"
+        "def listed(arguments):\n"
+        "    for _ in range(100000):\n"
+        "        print('a row of a long listing')\n"
+        "    return 0\n"
+        "cli._identity = listed\n"
+        "sys.exit(cli.main(['identity']))\n"
+    )
+    command = subprocess.Popen(  # noqa: S603
+        [sys.executable, "-c", script], stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
+    assert command.stdout is not None
+    assert command.stderr is not None
+
+    assert command.stdout.readline().strip() == b"a row of a long listing"
+    command.stdout.close()
+    error = command.stderr.read()
+
+    assert command.wait(timeout=60) == 1
+    assert error == b""
+
+
+@pytest.mark.parametrize(
+    "raised", [BrokenPipeError(errno.EPIPE, "pipe"), OSError(errno.EINVAL, "invalid")]
+)
+def test_the_same_error_raised_while_the_reader_is_there_is_not_taken_for_it_going(
+    monkeypatch: pytest.MonkeyPatch, raised: OSError
+) -> None:
+    # What a closed pipe raises, raised by something else while standard output still writes,
+    # which is a defect to be seen rather than a reader to be quiet for.
+    def failed(arguments: object) -> int:
+        raise raised
+
+    monkeypatch.setattr(cli, "_identity", failed)
+
+    with pytest.raises(OSError) as escaped:
+        cli.main(["identity"])
+
+    assert escaped.value is raised
+
+
+class _Gone:
+    """Standard output over a pipe whose reader has closed, held to a file of the test's own."""
+
+    def __init__(self, held: int | None, raised: OSError) -> None:
+        self.held = held
+        self.raised = raised
+
+    def write(self, text: str) -> int:
+        raise self.raised
+
+    def flush(self) -> None:
+        raise self.raised
+
+    def fileno(self) -> int:
+        if self.held is None:
+            raise io.UnsupportedOperation("fileno")
+
+        return self.held
+
+
+@pytest.mark.parametrize(
+    "raised", [BrokenPipeError(errno.EPIPE, "pipe"), OSError(errno.EINVAL, "invalid")]
+)
+@pytest.mark.parametrize("file", [True, False], ids=["file", "no file"])
+def test_a_reader_gone_points_standard_output_at_the_null_device(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, raised: OSError, file: bool
+) -> None:
+    # In process, for what the pipe above decides out of sight: the descriptor standard output
+    # writes to is the null device afterwards, and a stream with no descriptor is left as it is.
+    def listed(arguments: object) -> int:
+        print("a row")
+        return 0
+
+    with (tmp_path / "out").open("wb") as held:
+        monkeypatch.setattr(sys, "stdout", _Gone(held.fileno() if file else None, raised))
+        monkeypatch.setattr(cli, "_identity", listed)
+
+        assert cli.main(["identity"]) == 1
+        if file:
+            os.write(held.fileno(), b"after")
+
+    assert (tmp_path / "out").read_bytes() == b""
 
 
 def test_pairing_without_a_port_dials_the_one_the_gate_listens_on_by_default() -> None:
