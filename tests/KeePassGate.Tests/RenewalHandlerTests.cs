@@ -844,6 +844,37 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_standing_answer_that_cannot_be_read_on_the_retry_keeps_the_held_approval()
+        {
+            // S022. A read that failed once was taken for a standing answer, so the approval the
+            // operator gave was let go, and the next retry put the same dialog in front of them.
+            var operatorAt = FakeRenewalApproval.Approving();
+
+            using (var old = _authority.IssueAdmittedClient("reader"))
+            {
+                _authority.AdmitAnswers = AdmissionWrite.Busy("KeePass is saving");
+                Assume.That(Renew(operatorAt, old, "{}").Status, Is.EqualTo(503));
+                _authority.AdmitAnswers = null;
+
+                _authority.StandingRefusalThrows = new InvalidOperationException("the custom data would not read");
+                var unread = Renew(operatorAt, old, "{}");
+
+                Assert.That(unread.Status, Is.EqualTo(503), unread.Json);
+                Assert.That(JsonBody.Read(unread.Json).Text("heldUntil"),
+                    Is.EqualTo(Moments.Wire(_now + GateOptions.DefaultPairingBudget)),
+                    "still held, and the client is told until when");
+                Assert.That(_held.Count, Is.EqualTo(1));
+                Assert.That(_authority.Admitted, Is.Null, "nothing is written past an answer that would not read");
+
+                _authority.StandingRefusalThrows = null;
+                var retry = Renew(operatorAt, old, "{}");
+
+                Assert.That(retry.Status, Is.EqualTo(200), retry.Json);
+                Assert.That(operatorAt.Asked, Is.EqualTo(1), "the operator answered once");
+            }
+        }
+
+        [Test]
         public void A_held_approval_runs_out_with_the_pairing_budget_and_the_dialog_comes_up_again()
         {
             var operatorAt = FakeRenewalApproval.Approving();

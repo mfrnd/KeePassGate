@@ -318,6 +318,10 @@ none, since it releases both.
   `409 no invitation`**, and the log states that another request took the approval. It was logged
   as held until its time ran out and answered `503 busy`, inviting a retry on an invitation that
   was already spent.
+- **A renewal held for a busy KeePass keeps its approval when the retry cannot read the
+  operator's standing answers**, and is told `503 busy` with `heldUntil` again. A read that failed
+  once let go of the approval, so the next retry put the same dialog in front of the operator
+  again.
 
 ## 0.1.0, 2026-10-25
 

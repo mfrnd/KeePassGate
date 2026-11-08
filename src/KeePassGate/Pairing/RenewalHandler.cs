@@ -227,7 +227,16 @@ namespace KeePassGate.Pairing
                 // lifetime, which is a request of its own. The approval is let go, so the next
                 // renewal after the answer is lifted asks the operator rather than using it.
                 RenewalRefusal stored;
-                if (Standing(context, target, key, record, out stored))
+                var standing = Standing(context, target, key, record, out stored);
+                if (standing == StandingAnswer.Unreadable)
+                {
+                    // Not an answer, so the approval stays held and the client is told until when:
+                    // a read that failed once is no reason to put the dialog up again.
+                    PairingHandler.Busy(context, held, what, "a standing answer to it could not be read", _log);
+                    return;
+                }
+
+                if (standing == StandingAnswer.Refused)
                 {
                     _held.Take(held);
                     return;
@@ -303,7 +312,16 @@ namespace KeePassGate.Pairing
             var mark = _held.Mark();
 
             RenewalRefusal stored;
-            if (Standing(context, target, key, record, out stored))
+            var standing = Standing(context, target, key, record, out stored);
+            if (standing == StandingAnswer.Unreadable)
+            {
+                // A dialog is the one thing a standing answer exists to stop, so a read that fails
+                // raises none, and nothing is held yet to keep.
+                context.Respond(503, HttpResponse.ErrorBody("busy"));
+                return null;
+            }
+
+            if (standing == StandingAnswer.Refused)
             {
                 return null;
             }
@@ -405,8 +423,22 @@ namespace KeePassGate.Pairing
                 request.Profiles.Concat(request.Dropped));
         }
 
+        /// <summary>What asking for the operator's standing answer to a renewal came to.</summary>
+        private enum StandingAnswer
+        {
+            /// <summary>Nothing refuses it now.</summary>
+            None,
+
+            /// <summary>An answer refuses it, and the client has been told so.</summary>
+            Refused,
+
+            /// <summary>The database's answer would not read, and the client has been told nothing.</summary>
+            Unreadable,
+        }
+
         /// <summary>
-        /// Answers a renewal the operator has already answered, and says whether it did.
+        /// Answers a renewal the operator has already answered, and tells whether it did, or that
+        /// the database's answer would not read.
         /// </summary>
         /// <remarks>
         /// **The database's answer is asked first, and the session's after it.** The dialog is
@@ -416,9 +448,14 @@ namespace KeePassGate.Pairing
         /// answer about this session would leave it to find out after KeePass next starts. A
         /// stored until-date is told there too, and once its day begins the session's answer
         /// takes over, so its `notBefore` is not then a moment the operator is asked again.
+        ///
+        /// **An answer that will not read is no answer**, and the caller tells the client what
+        /// comes of it: before the dialog nothing is held yet, and on the retry of an approval
+        /// held for a busy KeePass the approval is kept. It used to be answered here and counted
+        /// as an answer, so a read that failed once let go of an approval the operator had given.
         /// </remarks>
         /// <param name="record">The record being renewed, whose client key the audit line names.</param>
-        private bool Standing(
+        private StandingAnswer Standing(
             IGateContext context, IGateTarget target, string key, AdmissionRecord record, out RenewalRefusal stored)
         {
             RenewalRefusal standing;
@@ -429,9 +466,8 @@ namespace KeePassGate.Pairing
             catch (Exception error) when (Expected.OfCustomData(error))
             {
                 _log.Error("a standing answer to a renewal could not be read", error);
-                context.Respond(503, HttpResponse.ErrorBody("busy"));
                 stored = null;
-                return true;
+                return StandingAnswer.Unreadable;
             }
 
             // What the database holds, whether or not it still refuses, for an answer the
@@ -449,7 +485,7 @@ namespace KeePassGate.Pairing
 
             if (standing == null)
             {
-                return false;
+                return StandingAnswer.None;
             }
 
             // Written down like the dialog's refusals, and paced: nobody is asked, so a client can
@@ -461,7 +497,7 @@ namespace KeePassGate.Pairing
                 _log.Info("a renewal by " + CertificateDigest.Shorten(key) +
                           " was refused without asking: the operator refused it forever");
                 context.Respond(409, HttpResponse.ErrorBody("forever"));
-                return true;
+                return StandingAnswer.Refused;
             }
 
             if (standing.IsThisSession)
@@ -469,14 +505,14 @@ namespace KeePassGate.Pairing
                 _log.Info("a renewal by " + CertificateDigest.Shorten(key) +
                           " was refused without asking: the operator refused it in this session");
                 context.Respond(409, HttpResponse.ErrorBody("this session"));
-                return true;
+                return StandingAnswer.Refused;
             }
 
             var notBefore = Moments.Wire(standing.NotBefore.Value);
             _log.Info("a renewal by " + CertificateDigest.Shorten(key) +
                       " was refused without asking: the operator said not before " + notBefore);
             context.Respond(409, TooEarly(notBefore));
-            return true;
+            return StandingAnswer.Refused;
         }
 
         /// <summary>The body of `409 too early`, which carries the moment to ask again from.</summary>

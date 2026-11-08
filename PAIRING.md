@@ -697,7 +697,9 @@ yet, the audit has its line when the write lands, and the renewal asked again be
 written without the dialog, **unless an answer refusing it stands by then**: a merge can bring one
 in, and so can the dialog of a renewal of the same certificate that asked for another lifetime.
 That answer is what the retry is told, as it would be told before any dialog, and the approval is
-let go. What pairing asks again about its invitation a renewal asks about its
+let go. A stored answer that will not read is no answer: the approval stays held, and the retry is
+told `503 busy` with `heldUntil` again.
+What pairing asks again about its invitation a renewal asks about its
 record: one revoked while the operator was deciding, or left behind by an authority recreated or
 deleted in that time, is answered `401 unpaired` and nothing is issued. **And the write asks it
 once more, under the writer's lock**, comparing the record with the one the operator approved, so a
