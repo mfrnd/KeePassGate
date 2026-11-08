@@ -11,6 +11,11 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **A group read without its notes is an answer PyKeePassGate cannot read**, `ProtocolError`, as
+  the document requires the member. `Group.of` told a read from a listing by whether the notes
+  were there, so such a read came back as a listed group with its tag dropped, and `group` ended
+  in an `AttributeError` traceback advising the call it had just made. `Group.read` and
+  `Group.listed` take its place.
 - **An expiry whose instant in UTC falls outside the years 1 to 9999 is refused as such**, a
   `ValueError` from the library and exit 2 from `--expires`. `9999-12-31T23:00:00-05:00` parsed,
   and moving it to UTC raised `OverflowError`, which the library's documents do not name and

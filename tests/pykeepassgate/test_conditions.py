@@ -135,9 +135,9 @@ def test_a_listed_node_has_no_tag_and_says_where_to_get_one(
 def test_two_reads_of_one_node_are_equal_whatever_tag_each_came_with() -> None:
     # A tag says which version a write may be made against, not what the node holds, and a read
     # without one is what a client the gate hands none to gets.
-    assert Group.of(GROUP, TAG) == Group.of(GROUP, None)
+    assert Group.read(GROUP, TAG) == Group.read(GROUP, None)
     assert Entry.read(ENTRY, TAG) == Entry.read(ENTRY, NEXT)
-    assert hash(Group.of(GROUP, TAG)) == hash(Group.of(GROUP, NEXT))
+    assert hash(Group.read(GROUP, TAG)) == hash(Group.read(GROUP, NEXT))
 
 
 @pytest.mark.parametrize(

@@ -645,7 +645,7 @@ class GateClient:
 
     def group(self, uuid: str = ROOT) -> Group:
         """One group's own settings, which needs `read` rather than `list`, and its `etag`."""
-        return Group.of(*self._read_tagged(f"/groups/{_segment(uuid)}"))
+        return Group.read(*self._read_tagged(f"/groups/{_segment(uuid)}"))
 
     def subgroups(self, uuid: str = ROOT) -> list[Group]:
         """The groups directly inside this one."""

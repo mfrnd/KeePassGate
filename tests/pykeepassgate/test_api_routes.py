@@ -234,7 +234,7 @@ def test_a_listed_group_has_no_notes_rather_than_empty_ones(
 
 def test_a_group_defaults_to_the_root_by_name(gate: FakeGate, paired: GateClient) -> None:
     # Which is what lets a client granted only `create` put something somewhere.
-    answering(gate, {"uuid": UUID, "name": "Invented", "parent": None})
+    answering(gate, {"uuid": UUID, "name": "Invented", "parent": None, "notes": ""})
 
     paired.group()
 
@@ -819,6 +819,7 @@ ANY_ANSWER: dict[str, Any] = {
     "uuid": UUID,
     "name": "an invented name",
     "parent": None,
+    "notes": "",
     "group": OTHER,
     "fields": {},
     "protected": [],
@@ -1116,6 +1117,9 @@ def test_an_expiry_the_gate_would_refuse_is_never_sent(
 #: reads it. Only a plugin defect or a plugin and a client of different versions sends one.
 UNREADABLE: list[tuple[str, dict[str, Any], Callable[[GateClient], object]]] = [
     ("a create with no uuid", {}, lambda c: c.create_entry(title="x")),
+    # Read as a listed group, with its tag dropped, whose notes then advised reading it.
+    ("a group read with no notes", {"uuid": UUID, "name": "x", "parent": None},
+     lambda c: c.group(UUID)),
     ("a null uuid", {"uuid": None}, lambda c: c.create_group("x")),
     ("a uuid that is a number", {"uuid": 7}, lambda c: c.create_group("x")),
     ("names rather than groups", {"groups": ["root"]}, lambda c: c.groups()),

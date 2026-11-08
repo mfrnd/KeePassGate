@@ -356,24 +356,39 @@ class Group:
         return self.read_notes
 
     @classmethod
-    def of(cls, body: dict[str, Any], etag: str | None = None) -> Group:
-        """Read one out of an answer, with the tag that answer carried, if it carried one."""
+    def read(cls, body: dict[str, Any], etag: str | None = None) -> Group:
+        """One out of a read, notes and all, with the tag that answer carried, if it carried one.
+
+        **The notes are required**, as the document requires them on every read: told apart by
+        whether they were there, a read without them came back as a group that was listed, with
+        its tag dropped, and asking it for the notes raised `AttributeError` advising the very
+        call that made it, where an answer this client cannot read is a `ProtocolError`.
+        """
         return cls(
             uuid=_text(body, "uuid"),
             name=_text(body, "name"),
             parent=_optional(body, "parent"),
             created=_moment(body.get("created")),
             modified=_moment(body.get("modified")),
-            read_notes=_text(body, "notes") if "notes" in body else None,
-            # Kept only with the notes, which only a read carries, so that a group either was read,
-            # notes and tag alike, or was listed and has neither.
-            read_etag=etag if "notes" in body else None,
+            read_notes=_text(body, "notes"),
+            read_etag=etag,
+        )
+
+    @classmethod
+    def listed(cls, body: dict[str, Any]) -> Group:
+        """One out of a listing, which carries no notes and no tag, whatever else it holds."""
+        return cls(
+            uuid=_text(body, "uuid"),
+            name=_text(body, "name"),
+            parent=_optional(body, "parent"),
+            created=_moment(body.get("created")),
+            modified=_moment(body.get("modified")),
         )
 
     @classmethod
     def listing(cls, body: dict[str, Any]) -> list[Group]:
         """Every group a listing answered with."""
-        return [cls.of(item) for item in _objects(body, "groups")]
+        return [cls.listed(item) for item in _objects(body, "groups")]
 
 
 def _standard(strings: Fields, name: str) -> str:

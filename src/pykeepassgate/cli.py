@@ -1646,7 +1646,12 @@ def _show(arguments: argparse.Namespace) -> int:
         **_dialing(arguments),
     )
     entry = client.entry(arguments.uuid)
-    strings = entry.fields if entry.fields is not None else api.Fields()
+    # `GateClient.entry` never answers without the strings: `Entry.read` refuses such an answer.
+    # Narrowed here the same way, as `fetch` narrows an attachment's bytes, because a fallback to
+    # none would print an entry holding nothing, which is the guess refused there.
+    strings = entry.fields
+    if strings is None:
+        raise ProtocolError("the gate sent an entry with no strings")
 
     # A withheld value is not a value, and reading one raises, so it is asked about by name rather
     # than read. Every other one is worked out before anything is printed, so a value `--resolve`
