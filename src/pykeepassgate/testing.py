@@ -11,17 +11,22 @@ against its own script, and the plugin's own tests are where the rules are held.
 So the parts worth testing against it are the ones a script can say: that a program sends what it
 means to, and does what it should with each answer and each refusal this client raises for one.
 
-**Two refusals it makes on its own, as the plugin makes them**: a header sent twice, and a header
-value holding a control character, each answered `400` with the plugin's reason before the handler
-is asked anything. And a handler that raises is answered `500 internal error`, as the plugin
-answers a defect of its own, with what it raised kept in `FakeGate.failures`.
+**The refusals it makes on its own, as the plugin makes them**: every request the plugin's reader
+refuses before any route sees it, answered with the plugin's status and reason before the handler
+is asked anything. Among them a head over 8 KiB, `431`; a target over 2048 characters, `414`; a
+target that is no path the plugin accepts, a `..` segment or a character RFC 3986 escapes, `400`;
+a version other than HTTP/1.1, `505`; a request without a `Host`, a header sent twice or a header
+value holding a control character, `400`; and a body over 1 MiB, `413`. A refused `HEAD` is
+answered without content, as the plugin's is. And a handler that raises is answered `500
+internal error`, as the plugin answers a defect of its own, with what it raised kept in
+`FakeGate.failures`.
 
 **And one route it answers on its own, unless told not to**: `GET /gate/status`, which a paired
 client asks before its first request to compare the gate's version with its own. It answers with
 `FakeGate.version`, this client's own unless a test sets another, so a program's script need not
 answer for it, and a test of what the program does with a gate it is refused sets an older version.
 Set to `None`, the route goes to the handler like any other. Answered before the handler is asked,
-it is no more in `FakeGate.requests` than the two refusals are.
+it is no more in `FakeGate.requests` than a refusal is.
 
 **One refusal it makes on its own, and differently from the plugin.** A client certificate that is
 offered is verified in the handshake, chain and dates, since `ssl` cannot ask for one without: an
@@ -49,10 +54,11 @@ import hashlib
 import json
 import socket
 import ssl
+import string
 import threading
 import time
 from collections.abc import Callable, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from http import HTTPStatus
 from pathlib import Path
 from types import TracebackType
@@ -73,6 +79,22 @@ CURVE = ec.SECP256R1()
 #: status and the body to answer it with. The method is asked of the gate, with `FakeGate.method`,
 #: so that one path answered differently for `GET` and `DELETE` needs no counting of calls.
 Handler = Callable[[str, str, bytes | None], tuple[int, str]]
+
+#: The plugin's `GateOptions.MaxHeadBytes`, the blank line that ends a head counted in it.
+_MAX_HEAD = 8192
+
+#: The plugin's `GateOptions.MaxBodyBytes`.
+_MAX_BODY = 1048576
+
+#: The longest target the plugin's reader takes, in characters.
+_MAX_TARGET = 2048
+
+#: What a method or a header name is made of, RFC 9110 section 5.6.2's `tchar`.
+_TOKEN = frozenset(string.ascii_letters + string.digits + "!#$%&'*+-.^_`|~")
+
+#: What stands for itself in a path segment, as the plugin's `PercentEncoding` takes it: RFC
+#: 3986's `pchar` less the escape, with `/` and `?` beside them in a query.
+_SEGMENT = frozenset(string.ascii_letters + string.digits + "-._~!$&'()*+,;=:@")
 
 
 @dataclass(frozen=True)
@@ -448,14 +470,20 @@ class FakeGate:
     def _answer(self, raw: socket.socket) -> None:
         try:
             with self._context.wrap_socket(raw, server_side=True) as wrapped:
-                head, body, headers = _read_request(wrapped)
-                if head is None:
+                read = _read_request(wrapped)
+                if read is None:
                     return
 
-                method, path = head
-                if isinstance(headers, str):
-                    # Refused as the plugin refuses the head, before any route sees it.
-                    wrapped.sendall(_response(400, json.dumps({"error": headers})))
+                method, path, body, headers = read.method, read.path, read.body, read.headers
+                if read.refused is not None:
+                    # Refused as the plugin refuses it, before any route sees it, and a HEAD
+                    # without content, as everywhere else. What the request still has on its way
+                    # is taken after the answer, as the plugin takes it, since a socket closed over
+                    # unread bytes is reset and the reset can throw the refusal away unread.
+                    status, reason = read.refused
+                    refusal = "" if method == "HEAD" else json.dumps({"error": reason})
+                    wrapped.sendall(_response(status, refusal, "" if method == "HEAD" else None))
+                    _discard(wrapped, read.unread)
                     return
 
                 version = self.version
@@ -501,63 +529,232 @@ class FakeGate:
             return
 
 
-def _read_request(
-    wrapped: ssl.SSLSocket,
-) -> tuple[tuple[str, str] | None, str, dict[str, str] | str]:
-    """The method and path, the body, and every header by its name in lower case.
+@dataclass(frozen=True)
+class _Read:
+    """A request as it arrived, or the status and reason the plugin's reader refuses it with.
 
-    In place of the headers, the reason the plugin's reader would refuse the head, for the two it
-    refuses a client of this library could send: a header given twice, which it will not guess
-    between, and a value holding a control character. Answered `400` with that reason, as the
-    plugin answers it, so a client tested here is not tested against a gate that takes more.
+    `method` is empty where the request never got as far as naming a method, and `unread` is how
+    much of the body the request announced is still on its way when it is refused.
+    """
+
+    method: str
+    path: str = ""
+    body: str = ""
+    headers: dict[str, str] = field(default_factory=dict)
+    refused: tuple[int, str] | None = None
+    unread: int = 0
+
+
+def _read_request(wrapped: ssl.SSLSocket) -> _Read | None:
+    """The request, with every header by its name in lower case, or `None` when none arrived.
+
+    Refused where the plugin's `HttpRequestReader` refuses it, in the same order and with the same
+    status and reason, so that a program tested here is not tested against a gate that takes
+    more than the plugin does. The whole head is read before it is judged, where the plugin stops
+    at its cap: what the peer meets is the same answer either way.
     """
     buffer = bytearray()
     while b"\r\n\r\n" not in buffer:
         chunk = wrapped.recv(4096)
         if not chunk:
-            return None, "", {}
+            return None
 
         buffer += chunk
 
     head, rest = bytes(buffer).split(b"\r\n\r\n", 1)
-    lines = head.decode("ascii", "replace").split("\r\n")
-    parts = lines[0].split(" ")
-    if len(parts) < 2:
-        return None, "", {}
+    lines = head.decode("latin-1").split("\r\n")
+    first = lines[0].split(" ")
+    named = first[0] if len(first) > 1 and _is_token(first[0]) else ""
+    unread = max(_announced(lines[1:]) - len(rest), 0)
+
+    def refuse(status: int, reason: str, method: str = named) -> _Read:
+        return _Read(method, refused=(status, reason), unread=unread)
+
+    if len(head) + 4 > _MAX_HEAD:
+        return refuse(431, f"the head is over {_MAX_HEAD} bytes")
+
+    if not head.isascii():
+        return refuse(400, "the head is not ascii")
+
+    if len(first) != 3:
+        return refuse(400, "the request line is not three parts", "")
+
+    method, target, version = first
+    if not _is_token(method):
+        return refuse(400, "the method is not a token", "")
+
+    if not target.startswith("/"):
+        return refuse(400, "the target is not an absolute path")
+
+    if len(target) > _MAX_TARGET:
+        return refuse(414, f"the target is over {_MAX_TARGET} characters")
+
+    if version != "HTTP/1.1":
+        return refuse(505, "only HTTP/1.1 is accepted")
+
+    if not _usable_target(target):
+        return refuse(400, "the target is not a path this server accepts")
 
     headers: dict[str, str] = {}
     for line in lines[1:]:
-        name, _, value = line.partition(":")
-        name = name.strip().lower()
+        if line[:1] in (" ", "\t"):
+            return refuse(400, "folded headers are not accepted")
+
+        name, colon, value = line.partition(":")
+        if not colon or not name:
+            return refuse(400, "a header line has no name")
+
+        if not _is_token(name):
+            return refuse(400, "a header name is not a token")
+
         value = value.strip(" \t")
         if any(
             character != "\t" and (character < " " or character == "\x7f") for character in value
         ):
-            return (parts[0], parts[1]), "", "a header value holds a control character"
+            return refuse(400, "a header value holds a control character")
+
+        name = name.lower()
+        if name == "transfer-encoding":
+            return refuse(501, "transfer encodings are not accepted")
 
         if name in headers:
-            return (parts[0], parts[1]), "", "a header is repeated"
+            return refuse(400, "a header is repeated")
 
         headers[name] = value
 
+    if "host" not in headers:
+        return refuse(400, "a request needs a host header")
+
     length = 0
     if "content-length" in headers:
-        try:
-            length = int(headers["content-length"])
-        except ValueError:
-            # Answered rather than raised. A `ValueError` here escapes the thread, where the
-            # client sees only a connection closed without a word and a test says nothing
-            # about why. `_answer` treats a head of `None` as nothing to serve.
-            return None, "", {}
+        given = headers["content-length"]
+        if not given.isascii() or not given.isdigit() or int(given) >= 2**63:
+            return refuse(400, "the content length is not a number")
+
+        length = int(given)
+        if length > _MAX_BODY:
+            return refuse(413, f"the body is over {_MAX_BODY} bytes")
+    elif method in ("POST", "PUT", "PATCH"):
+        return refuse(411, "a body needs a content length")
 
     while len(rest) < length:
         chunk = wrapped.recv(4096)
         if not chunk:
-            break
+            return _Read(method, refused=(400, "the body ended early"))
 
         rest += chunk
 
-    return (parts[0], parts[1]), rest.decode("utf-8", "replace"), headers
+    try:
+        body = rest[:length].decode("utf-8")
+    except UnicodeDecodeError:
+        return _Read(method, refused=(400, "the body is not utf-8"))
+
+    return _Read(method, target, body, headers)
+
+
+def _is_token(text: str) -> bool:
+    """Whether a method or a header name is RFC 9110's `token`, one character or more."""
+    return bool(text) and all(character in _TOKEN for character in text)
+
+
+def _usable_target(target: str) -> bool:
+    """Whether the plugin's reader takes a target as a path and a query it can split.
+
+    Each segment of the path, and each name and value of the query, decoded as `PercentEncoding`
+    decodes them: a character that does not stand for itself, an escape that is not two hex digits
+    or stands for a control, and what is not UTF-8 once decoded, all refused, and so is a segment
+    of `.` or `..`, a query name that is empty, and a query name given twice.
+    """
+    path, _, query = target.partition("?")
+    segments = [_decoded(raw, in_query=False) for raw in path[1:].split("/")]
+    if any(segment is None or segment in (".", "..") for segment in segments):
+        return False
+
+    names: set[str] = set()
+    for pair in query.split("&") if query else []:
+        if not pair:
+            continue
+
+        raw_name, _, raw_value = pair.partition("=")
+        name = _decoded(raw_name, in_query=True)
+        if not name or _decoded(raw_value, in_query=True) is None or name in names:
+            return False
+
+        names.add(name)
+
+    return True
+
+
+def _decoded(text: str, *, in_query: bool) -> str | None:
+    """A segment or a query part with its escapes decoded, or `None` where the plugin refuses it."""
+    octets = bytearray()
+    at = 0
+    while at < len(text):
+        character = text[at]
+        if character == "+" and in_query:
+            octets += b" "
+        elif character != "%":
+            if character not in _SEGMENT and not (in_query and character in "/?"):
+                return None
+
+            octets += character.encode("ascii")
+        else:
+            escape = text[at + 1 : at + 3]
+            if len(escape) != 2 or any(digit not in string.hexdigits for digit in escape):
+                return None
+
+            value = int(escape, 16)
+            if value < 0x20 or value == 0x7F:
+                return None
+
+            octets.append(value)
+            at += 2
+
+        at += 1
+
+    try:
+        decoded = octets.decode("utf-8")
+    except UnicodeDecodeError:
+        return None
+
+    # `char.IsControl`, which is the C0 and C1 controls and DEL, what the plugin refuses.
+    if any(character < " " or "\x7f" <= character <= "\x9f" for character in decoded):
+        return None
+
+    return decoded
+
+
+def _announced(lines: list[str]) -> int:
+    """How much body a head announced, read as leniently as the plugin's `AnnouncedBy` reads it.
+
+    The largest `Content-Length` that is digits alone, from every header line whether or not the
+    line is refused, and nothing for a request that sent `Expect`, which is waiting to be asked
+    for its body rather than sending it.
+    """
+    length = 0
+    for line in lines:
+        name, colon, value = line.partition(":")
+        value = value.strip(" \t")
+        if not colon:
+            continue
+
+        if name.lower() == "expect" and value:
+            return 0
+
+        if name.lower() == "content-length" and value.isascii() and value.isdigit():
+            length = max(length, int(value))
+
+    return length
+
+
+def _discard(wrapped: ssl.SSLSocket, count: int) -> None:
+    """Take what a refused request still has on its way off the wire, up to `count` bytes."""
+    while count > 0:
+        chunk = wrapped.recv(min(count, 65536))
+        if not chunk:
+            return
+
+        count -= len(chunk)
 
 
 def _response(

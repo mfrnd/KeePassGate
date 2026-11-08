@@ -11,6 +11,13 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **The stand-in gate refuses what the plugin refuses before any route**, with the plugin's
+  status and reason: a head over 8 KiB, a target over 2048 characters or a target that is no
+  path the plugin takes, `..` among them, a version other than HTTP/1.1, a request without a
+  `Host`, and a body over 1 MiB, beside the repeated header and the control character it already
+  refused, and a refused `HEAD` comes without content. It used to hand all of them to the
+  handler, so a program that sent a name of `..` or an attachment too large passed its tests and
+  met the refusal only against KeePass.
 - **The command line has a command for every route, heads included.** `pykeepassgate head`
   asks any route a read command asks, `head entry <uuid>` and the rest, with HEAD, reading
   nothing, and prints the tag it answered with, as `etag` under `-o json`. The reads of one group

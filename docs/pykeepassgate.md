@@ -1118,8 +1118,14 @@ the reason phrase, `Content-Type: application/json; charset=utf-8`, `Cache-Contr
 or takes away when it is `None`, and `KPG-Unavailable` naming the body's word, and an `ETag`
 wherever `tag` put one. The one header it cannot
 give is the `Allow` the plugin puts on a `405`. **And it refuses what the plugin refuses before any
-route sees it**: a header sent twice, or one whose value holds a control character, is `400` with
-the plugin's reason and never reaches the handler. A handler that raises, `tag` refusing a tag
+route sees it**, with the plugin's status and reason, and the handler is never asked: a head over
+8 KiB is `431`, a target over 2048 characters `414`, a target that is no path the plugin
+accepts, a `..` segment or a character RFC 3986 escapes, `400`, a version other than HTTP/1.1
+`505`, a request without a `Host`, a header sent twice or a header value holding a control
+character `400`, and a body over 1 MiB `413`, among others, and a refused `HEAD` has no content.
+So a name of `..`, or an attachment whose encoding is over the body's limit, is refused here as
+the gate refuses it.
+A handler that raises, `tag` refusing a tag
 the plugin could not have sent among the causes, is answered `500 internal error`, as the plugin
 answers a defect of its own, and what it raised is kept in `gate.failures`. It imports no test
 framework, and the client's own tests build it through fixtures of their own.
