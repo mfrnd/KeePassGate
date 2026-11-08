@@ -126,7 +126,10 @@ whose record still holds a profile this database no longer names, and that profi
 allowed the request, `reason` is `profile removed`, `decidedAt` is the node whose rule would have
 allowed it, and one more member, `removedProfiles`, lists the removed profiles that would have.
 Every other line leaves that member out. A removed profile grants nothing, so naming it says why a
-request failed without saying what anybody can reach.
+request failed without saying what anybody can reach. A profile list the database cannot read
+names fewer profiles than it held, none at all when it does not read, so the profiles it lost read
+here as removed, though nobody removed them:
+[Naming profiles](access-control.md#naming-profiles) covers what to do then.
 
 **A revoked client is still written down.** A certificate this database issued and the gate
 refuses, because its record has been taken away, it has expired, or it is not a client certificate,

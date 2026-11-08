@@ -190,9 +190,10 @@ which a renewal changes. A renewed identity no longer holds the certificate it p
 client key is stored beside it when it is paired and copied at every renewal, and `identity`
 prints the stored one. `profiles` are the ones the rules are asked about now, and `removed
 profiles` are the ones its record holds that the database no longer names, which grant nothing
-until the operator names them again. What `identity` prints is what the operator approved when this
-identity was issued, at pairing or at its last renewal, so the two differ once a profile has been
-removed since then.
+until the operator names them again, or until a damaged list reads again, which
+[Naming profiles](access-control.md#naming-profiles) is about. What `identity` prints is what the
+operator approved when this identity was issued, at pairing or at its last renewal, so the two
+differ once a profile has been removed since then.
 
 ```python
 from pykeepassgate import GateClient

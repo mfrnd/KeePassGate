@@ -56,6 +56,16 @@ profile removed only on the dropped copy comes back into force, and a profile ad
 dropped copy is lost, which the clients page then shows as removed on every client holding it.
 After merging two copies that both changed their profiles, check this page.
 
+**A damaged list takes profiles away that nobody removed.** The list is one value in the
+database's own data, and a hand edit, or another program writing under its key, can leave it
+unreadable. A list that does not read at all names nothing, and a list holding a name it cannot
+hold names only the rest. Either way every client stays admitted and reaches only the profiles
+still named: a program asking who the gate takes it for is told the others are removed, and the
+audit writes each refusal they would have allowed as `profile removed`, though nobody took a name
+off. Pairing and renewal are answered `503 busy` until the list reads again, so that neither
+writes over it, and the plugin's log has a warning naming the damage each time. A copy of the
+database from before the damage holds the names the list held.
+
 **Adding a profile back is a full undo.** Every rule still naming it applies again, and every client
 still holding it regains it, so the page asks first: it says how many rules come back into force and
 names every client that regains the profile, each once by its client key, the fingerprint of the
