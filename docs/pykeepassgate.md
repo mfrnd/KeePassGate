@@ -8,6 +8,8 @@
 <!-- cspell:ignore NEWPASSWORD -->
 <!-- The encryption scheme PKCS#5 names for a key under a password. -->
 <!-- cspell:ignore PBES -->
+<!-- The error a reset connection carries outside Windows, named the way POSIX names it. -->
+<!-- cspell:ignore ECONNRESET -->
 
 PyKeePassGate is the reference client: a Python library and a command line over it. This page is
 worked examples. [`../src/pykeepassgate/README.md`](../src/pykeepassgate/README.md) is the package's
@@ -646,6 +648,12 @@ it, a create, an update or a new field, is refused with `413` and changes nothin
 client can write it can read back. Stripping a field is never refused for it, which is how an
 entry over it is brought back under.
 
+**Each string has a ceiling of its own as well**, which a write is held to: 65536 characters for a
+password, notes, a group's notes and the value of a field of the entry's own, 8192 for a URL, and
+512 for a title, a user name, a group's name and the name of a field or an attachment. A value over
+its ceiling is refused as `400 malformed`, like any body the routing table does not allow, well
+before a body comes near the 1 MiB that is answered `413`.
+
 Attachments need the `A` switch on the rule as well as the verb, which is what makes "read this
 entry" and "read the files inside it" two separate decisions.
 
@@ -908,6 +916,12 @@ database is not open in KeePass, or has not been unlocked since KeePass started;
 are open and the gate cannot tell them apart; or **the authority this client paired with has been
 recreated or deleted since**, which takes away the key every name this client sends is built from.
 Open or unlock the database, or close the copy; after a recreate or a delete, pair again.
+
+**A connection reset before any certificate**, `[WinError 10054]` or `[WinError 10053]` on Windows
+and `ECONNRESET` elsewhere, can be the gate already serving the 32 connections it takes at once: it
+closes the next connection as it arrives rather than queuing it, and the plugin's log has a line
+for the refusal. That clears as those connections end, so asking again shortly mends it. It is a
+`TransportError` all the same, which no budget waits out.
 
 ## Wait out a refusal instead of reporting it
 
