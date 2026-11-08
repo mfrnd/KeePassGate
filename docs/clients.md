@@ -130,14 +130,16 @@ the line with them: revoking another client, pairing or renewing one, a client r
 keeping, recreating or deleting the authority.
 
 The mark stays until the client's certificate expires. After that the certificate is refused on its
-dates anyway, and the next revocation takes the mark away, and the emptied record with it.
+dates anyway, and the next revocation takes the mark away, and the emptied record with it. **A
+record that could not be read is the exception**: it gives no date, so the mark its removal writes
+carries none, and that mark and the emptied record stay until the authority is recreated or deleted.
 
-**All of that holds in KeePass 2.48 or later with the plugin in it, and only there.** Other programs
-can open the database, KeePassXC and KeePass before 2.48 among them, but saving or merging in one of
-them can quietly bring back a revoked client, a replaced authority or a removed profile, because
-their merges replace or drop what the plugin keeps. So save and merge a paired database only in
-KeePass 2.48 or later with the plugin, and after any change made anywhere else, look at this list
-and at the Certificate Authority page.
+**All of that holds in KeePass with the plugin in it, which is 2.61.1 or later, and only there.**
+Other programs can open the database, KeePassXC and KeePass before 2.48 among them, but saving or
+merging in any of them can quietly bring back a revoked client, a replaced authority or a removed
+profile, because their merges replace or drop what the plugin keeps. So save and merge a paired
+database only in KeePass with the plugin in it, and after any change made anywhere else, look at
+this list and at the Certificate Authority page.
 
 **Nor is anything here managed from KeePass's own Database Maintenance dialog.** Its **Plugin Data**
 tab lists what the plugin keeps, each revocation's mark among it, and deletes a row on request.
