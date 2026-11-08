@@ -127,6 +127,11 @@ info:
     everything else here. A removal skips the protected switch for the same reason, so `strip`
     takes a protected field off without it.
 
+    **These three are the only `x-kpg-` extensions, and each is read on an operation alone.** Any
+    other key beginning `x-kpg-`, or any of the three on a path, stops the plugin loading, because
+    a key nothing reads is read as absent, and absent is the permissive answer for
+    `x-kpg-attachments`.
+
     **Protected values are a scope too, and no operation declares it.** A password does not have a
     route of its own: it arrives inside the answer to a read that is already allowed, so the switch
     is answered while that answer is written rather than before dispatch. A caller whose rule does

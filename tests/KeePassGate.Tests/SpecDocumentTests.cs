@@ -402,6 +402,55 @@ namespace KeePassGate.Tests
             Assert.That(raised.Message, Does.Contain("readA"));
         }
 
+        [TestCase("x-kpg-attachment", TestName = "the attachment switch spelled singular")]
+        [TestCase("x-kpg-Attachments", TestName = "the attachment switch in another case")]
+        [TestCase("x-KPG-attachments", TestName = "the namespace in another case")]
+        [TestCase("x-kpg-verbs", TestName = "a key that is none of the three")]
+        public void An_extension_of_ours_this_does_not_read_stops_the_document_being_read(string key)
+        {
+            // The other half of the switch that will not read. The three keys are read by name,
+            // so a key that is none of them was read as absent, and absent is the permissive
+            // answer for the attachment switch: `x-kpg-attachment: true` loaded as an operation
+            // reaching only the fields, served to a rule holding `read` and not `A`.
+            var raised = Assert.Throws<InvalidOperationException>(() => SpecDocument.Parse(Document(
+                "\"/a\":{\"get\":{\"operationId\":\"readA\",\"x-kpg-verb\":\"read\"," +
+                "\"" + key + "\":true,\"responses\":{\"200\":{\"description\":\"o\"}}}," +
+                "\"head\":{\"operationId\":\"headA\",\"x-kpg-verb\":\"read\"," +
+                "\"" + key + "\":true,\"responses\":{\"200\":{\"description\":\"o\"}}}}")));
+
+            Assert.That(raised.Message, Does.Contain(key));
+            Assert.That(raised.Message, Does.Contain("readA"));
+        }
+
+        [Test]
+        public void An_extension_of_ours_on_a_path_stops_the_document_being_read_too()
+        {
+            // Nothing reads an extension there, well spelled or not, so the switch an author put on
+            // the path for every operation under it would have been read as absent on each of them.
+            var raised = Assert.Throws<InvalidOperationException>(() => SpecDocument.Parse(Document(
+                "\"/a\":{\"x-kpg-attachments\":true," +
+                "\"get\":{\"operationId\":\"readA\",\"x-kpg-verb\":\"read\"," +
+                "\"responses\":{\"200\":{\"description\":\"o\"}}}," +
+                "\"head\":{\"operationId\":\"headA\",\"x-kpg-verb\":\"read\"," +
+                "\"responses\":{\"200\":{\"description\":\"o\"}}}}")));
+
+            Assert.That(raised.Message, Does.Contain("x-kpg-attachments"));
+            Assert.That(raised.Message, Does.Contain("/a"));
+        }
+
+        [Test]
+        public void An_extension_outside_the_namespace_is_left_to_whoever_gives_it_a_meaning()
+        {
+            // Only this document's own keys are refused: an extension another tool reads has no
+            // bearing on what the router does.
+            Assert.DoesNotThrow(() => SpecDocument.Parse(Document(
+                "\"/a\":{\"x-other\":true," +
+                "\"get\":{\"operationId\":\"readA\",\"x-kpg-verb\":\"read\",\"x-other\":\"o\"," +
+                "\"responses\":{\"200\":{\"description\":\"o\"}}}," +
+                "\"head\":{\"operationId\":\"headA\",\"x-kpg-verb\":\"read\"," +
+                "\"responses\":{\"200\":{\"description\":\"o\"}}}}")));
+        }
+
         [Test]
         public void An_unauthenticated_switch_that_is_not_a_boolean_stops_it_too()
         {

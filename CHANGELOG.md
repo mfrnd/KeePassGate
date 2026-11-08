@@ -11,6 +11,11 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **The plugin refuses to load a routing document carrying an `x-kpg-` extension it does not
+  read**, on an operation or on a path. The three it reads were looked up by name and nothing else
+  was looked at, so a misspelled `x-kpg-attachments` loaded as absent, and the route was served to
+  a rule granting `read` without `A`. The document the plugin ships carries none, so nothing it
+  serves changes.
 - **A port the gate could not take, and a gate that stops, leave no socket open behind them.** On
   .NET Framework a refused listener kept the socket it was made with, and a stopped listener
   opened a new socket, each held by the password manager until a collection.

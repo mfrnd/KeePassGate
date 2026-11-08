@@ -179,6 +179,15 @@ namespace KeePassGate.Spec
         /// <summary>Marks an operation that reaches the attachments inside an entry.</summary>
         public const string AttachmentsExtension = "x-kpg-attachments";
 
+        /// <summary>What every extension this document gives a meaning to begins with.</summary>
+        private const string ExtensionPrefix = "x-kpg-";
+
+        /// <summary>Every extension this document reads, each on an operation alone.</summary>
+        private static readonly string[] Extensions =
+        {
+            UnauthenticatedExtension, VerbExtension, AttachmentsExtension,
+        };
+
         /// <summary>The only body this API speaks.</summary>
         public const string MediaType = "application/json";
 
@@ -305,6 +314,18 @@ namespace KeePassGate.Spec
 
                 templates.Add(template);
 
+                var onThePath = Ours(path.Value.Extensions);
+                if (onThePath != null)
+                {
+                    // Nothing reads an extension on a path item, the three this document knows
+                    // included, so even a well spelled extension meant for every operation under it
+                    // would be read as absent, and absent is the permissive answer for the
+                    // attachment switch.
+                    throw new InvalidOperationException(
+                        path.Key + " declares " + onThePath + " on the path rather than on an operation," +
+                        " and an extension is read only where an operation declares it.");
+                }
+
                 foreach (var pair in path.Value.Operations)
                 {
                     var operation = pair.Value;
@@ -392,6 +413,20 @@ namespace KeePassGate.Spec
                             operation.OperationId + " declares " + UnauthenticatedExtension +
                             " with a verb of " + written + ", which only a caller with a certificate" +
                             " can be granted.");
+                    }
+
+                    var unknown = Ours(operation.Extensions, Extensions);
+                    if (unknown != null)
+                    {
+                        // The three above are read by name, so a key that is none of them was
+                        // read as absent: `x-kpg-attachment: true` loaded as an operation reaching
+                        // no further than the fields, and a rule granting `read` without `A` was
+                        // handed the attachment it was written to keep back. Refused for the reason
+                        // a schema keyword nothing enforces is.
+                        throw new InvalidOperationException(
+                            operation.OperationId + " declares " + unknown + ", which is no extension" +
+                            " this document reads, so it would be read as absent whatever it was meant for." +
+                            " The extensions it reads are " + string.Join(", ", Extensions) + ".");
                     }
 
                     OpenApiSchema body = null;
@@ -896,6 +931,35 @@ namespace KeePassGate.Spec
             }
 
             return boolean.Value;
+        }
+
+        /// <summary>
+        /// The first key here in this document's namespace that is none of these, or null when
+        /// there is none.
+        /// </summary>
+        /// <remarks>
+        /// The namespace is compared without case, so `x-KPG-attachments` is a key of ours and is
+        /// refused, while each key it may hold is compared exactly: a spelling of a switch that
+        /// is not the switch is the misspelling this exists to catch. An extension outside the
+        /// namespace is somebody else's to give a meaning to, and is left alone.
+        /// </remarks>
+        private static string Ours(IDictionary<string, Microsoft.OpenApi.Interfaces.IOpenApiExtension> extensions,
+            params string[] read)
+        {
+            if (extensions == null)
+            {
+                return null;
+            }
+
+            foreach (var key in extensions.Keys)
+            {
+                if (key.StartsWith(ExtensionPrefix, StringComparison.OrdinalIgnoreCase) && Array.IndexOf(read, key) < 0)
+                {
+                    return key;
+                }
+            }
+
+            return null;
         }
 
         private static string Extension(IDictionary<string, Microsoft.OpenApi.Interfaces.IOpenApiExtension> extensions,
