@@ -11,6 +11,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Security.Cryptography.X509Certificates;
 using KeePassLib;
+using KeePassLib.Cryptography.KeyDerivation;
 using KeePassLib.Keys;
 using KeePassLib.Security;
 using KeePassLib.Serialization;
@@ -141,6 +142,29 @@ namespace KeePassGate.Host.Tests.Live
         }
 
         /// <summary>
+        /// The directory this KeePass is given for its temporary files, or null when it is given
+        /// the account's own.
+        /// </summary>
+        public string TemporaryDirectory { get; private set; }
+
+        /// <summary>
+        /// From the next start on, gives this KeePass a temporary directory inside the
+        /// installation rather than the account's own.
+        /// </summary>
+        /// <remarks>
+        /// For a fixture that watches what KeePass writes there, which a directory every program
+        /// of the account shares cannot tell apart from what anything else writes. Named through
+        /// `TEMP` and `TMP`, which are what `Path.GetTempPath` reads, and inside the installation,
+        /// so that it goes with the session and sits on the volume the database does.
+        /// </remarks>
+        public void KeepTemporaryFilesInside()
+        {
+            var directory = Paths.Join(_root, "temp");
+            Directory.CreateDirectory(directory);
+            TemporaryDirectory = directory;
+        }
+
+        /// <summary>
         /// Builds the installation. The KeePass to copy is the one this test assembly was built
         /// against, so the live test and the in process tests can never drift onto two builds.
         /// </summary>
@@ -228,6 +252,12 @@ namespace KeePassGate.Host.Tests.Live
             info.EnvironmentVariables[KeePassGate.Audit.JsonLinesAudit.AuditFileVariable] = AuditPath;
             info.EnvironmentVariables[KeePassGate.Transport.GateOptions.PortVariable] =
                 _port.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+            if (TemporaryDirectory != null)
+            {
+                info.EnvironmentVariables["TEMP"] = TemporaryDirectory;
+                info.EnvironmentVariables["TMP"] = TemporaryDirectory;
+            }
 
             // The one before it is dealt with first. This fixture is started twice, once to
             // create the authority and once to read it back after a restart, and simply
@@ -1288,6 +1318,35 @@ namespace KeePassGate.Host.Tests.Live
                     database.RootGroup.AddEntry(entry, true);
                 }
 
+                database.Save(null);
+            }
+            finally
+            {
+                database.Close();
+            }
+        }
+
+        /// <summary>
+        /// Makes deriving the database's key take about <paramref name="time"/> on this machine,
+        /// before KeePass is started.
+        /// </summary>
+        /// <remarks>
+        /// For a save that is still running a known while after it has begun, since a save derives
+        /// the key once the file it writes is open and before it writes the tree. Calibrated with
+        /// KeePassLib's own benchmark rather than given as a number of rounds, which one machine
+        /// gets through in no time and another takes far longer over. AES-KDF, whose rounds were
+        /// measured to go at the same speed with KeePass's native library beside KeePassLib and
+        /// without it, so that what this process calibrates is what KeePass spends. **Every open
+        /// and save of the file after this takes that long as well**, this process's own among
+        /// them, so a fixture reads what it needs from the file first.
+        /// </remarks>
+        public void DeriveTheKeyFor(TimeSpan time)
+        {
+            var database = new PwDatabase();
+            try
+            {
+                database.Open(IOConnectionInfo.FromPath(DatabasePath), NewKey(), null);
+                database.KdfParameters = new AesKdf().GetBestParameters((uint)time.TotalMilliseconds);
                 database.Save(null);
             }
             finally
