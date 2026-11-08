@@ -965,16 +965,34 @@ def _header(head: str, wanted: str) -> str | None:
     return None
 
 
+def _digits(value: str) -> int | None:
+    """A number in a status or a header as RFC 9110 writes it, `1*DIGIT`, or `None` otherwise.
+
+    Python's `int` reads more than that: a sign, an underscore between digits, white space around
+    them and digits beyond ASCII, so `-5`, `+5` and `1_0` were each read as numbers the grammar
+    does not allow, and a negative `Content-Length` counted as already met. More digits than `int`
+    reads from text is no number a header means either.
+    """
+    if not value.isascii() or not value.isdigit():
+        return None
+
+    try:
+        return int(value)
+    except ValueError:
+        return None
+
+
 def _declared_length(head: str) -> int | None:
     """What the answer said its body would be, if it said."""
     value = _header(head, "content-length")
     if value is None:
         return None
 
-    try:
-        return int(value)
-    except ValueError:
-        raise ProtocolError(f"that is not a content length: {value!r}") from None
+    length = _digits(value)
+    if length is None:
+        raise ProtocolError(f"that is not a content length: {value!r}")
+
+    return length
 
 
 def _parse(raw: bytes) -> Response:
@@ -1003,10 +1021,10 @@ def _parse(raw: bytes) -> Response:
     if len(parts) < 2 or not parts[0].startswith("HTTP/"):
         raise ProtocolError(f"that is not a status line: {line!r}")
 
-    try:
-        status = int(parts[1])
-    except ValueError as error:
-        raise ProtocolError(f"that is not a status: {parts[1]!r}") from error
+    # Three digits, RFC 9112 section 4, and nothing `int` would read as a number besides.
+    status = _digits(parts[1]) if len(parts[1]) == 3 else None
+    if status is None:
+        raise ProtocolError(f"that is not a status: {parts[1]!r}")
 
     body = raw[blank + 4 :]
     head = raw[:blank].decode("ascii", "replace")
@@ -1046,14 +1064,19 @@ def _retry_after(head: str) -> float | None:
 
     Nothing is trusted beyond the number itself. What gets waited is bounded by the budget the
     caller gave, so a peer asking for a day gets no more than the caller was prepared to spend.
+    **A number is digits and nothing else**, as `_digits` reads a number, and a number of seconds
+    too large for a `float` to hold is no delay this reads either: converting such a number raised
+    `OverflowError`, which is no `GateError`, from an answer any peer of a pairing could send.
     """
     value = _header(head, "retry-after")
     if value is None:
         return None
 
-    try:
-        seconds = int(value)
-    except ValueError:
+    seconds = _digits(value)
+    if seconds is None:
         return None
 
-    return None if seconds < 0 else float(seconds)
+    try:
+        return float(seconds)
+    except OverflowError:
+        return None

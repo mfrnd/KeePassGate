@@ -116,6 +116,23 @@ class TestParsing:
         with pytest.raises(ProtocolError, match="header block"):
             transport._parse(b"HTTP/1.1 200 OK\r\n")
 
+    @pytest.mark.parametrize("status", ["2_00", "+200", " 200", "20", "2000", "٢٠٠"])
+    def test_a_status_is_three_digits_and_nothing_int_reads_besides(self, status: str) -> None:
+        # `int` takes an underscore, a sign, white space and digits beyond ASCII, and each was
+        # read as the status a peer never wrote. cspell:ignore ٢٠٠
+        raw = f"HTTP/1.1 {status} OK\r\nContent-Length: 2\r\n\r\n{{}}".encode()
+
+        with pytest.raises(ProtocolError, match="not a status"):
+            transport._parse(raw)
+
+    @pytest.mark.parametrize("length", ["-5", "+2", "1_0", "٢", "9" * 5000])
+    def test_a_length_is_digits_and_nothing_int_reads_besides(self, length: str) -> None:
+        # A negative length counted as already met, so a short body could never be found short.
+        raw = f"HTTP/1.1 200 OK\r\nContent-Length: {length}\r\n\r\n".encode()
+
+        with pytest.raises(ProtocolError, match="not a content length"):
+            transport._parse(raw)
+
 
 class TestConnecting:
     def test_nothing_listening_is_a_transport_error_rather_than_an_os_error(self) -> None:
@@ -698,6 +715,18 @@ class TestWhenToComeBack:
     def test_a_delay_that_is_not_a_delay_says_nothing_either(self) -> None:
         assert self._answer("Retry-After: soon\r\n").retry_after is None
         assert self._answer("Retry-After: -5\r\n").retry_after is None
+
+    @pytest.mark.parametrize("delay", ["+1_0", "+10", "1_0"])
+    def test_a_delay_is_digits_and_nothing_int_reads_besides(self, delay: str) -> None:
+        assert self._answer(f"Retry-After: {delay}\r\n").retry_after is None
+
+    @pytest.mark.parametrize("digits", [400, 5000], ids=["past a float", "past what int reads"])
+    def test_a_delay_too_long_to_hold_says_nothing_rather_than_overflowing(
+        self, digits: int
+    ) -> None:
+        # Four hundred digits raised `OverflowError` out of the parse, which is no `GateError`,
+        # from an answer any peer of a pairing could send.
+        assert self._answer(f"Retry-After: {'9' * digits}\r\n").retry_after is None
 
     def test_a_refusal_the_certificate_gave_carries_no_delay(
         self, gate: FakeGate, responder: Issued, authority: Authority, client_certificate: Issued

@@ -117,9 +117,27 @@ def test_a_client_ahead_of_its_gate_is_told_which_client_would_do(
 
 @pytest.mark.parametrize(
     "gate",
-    ["unknown", "2.3", "2.3.4.5", "2.3.4-beta", "v2.3.4", " 2.3.4", "2.3.4\n", "٢.3.4"],
+    [
+        "unknown",
+        "2.3",
+        "2.3.4.5",
+        "2.3.4-beta",
+        "v2.3.4",
+        " 2.3.4",
+        "2.3.4\n",
+        "٢.3.4",
+        "2." + "3" * 5000 + ".4",
+    ],
     ids=[
-        "a word", "two parts", "four parts", "a suffix", "a prefix", "a space", "a line", "a digit"
+        "a word",
+        "two parts",
+        "four parts",
+        "a suffix",
+        "a prefix",
+        "a space",
+        "a line",
+        "a digit",
+        "more digits than int reads",
     ],
 )
 def test_a_version_that_is_not_three_whole_numbers_is_refused(

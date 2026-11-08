@@ -11,6 +11,13 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **PyKeePassGate reads the numbers in an answer as digits and nothing else**: the status as
+  three of them, and `Content-Length` and `Retry-After` as RFC 9110 writes them. Python's `int`
+  took a sign, an underscore and digits of any script, so a negative `Content-Length` counted as
+  met and a body cut short of it as whole, and a `Retry-After` of more digits than a `float`
+  holds raised `OverflowError`, which is no `GateError`, from any peer of a pairing. A version
+  part of more digits than `int` reads raised `ValueError` the same way, and is now a version the
+  client cannot compare.
 - **PyKeePassGate refuses a socket its `dial` hands back that TLS cannot use, and closes it**: a
   datagram socket is a `TypeError`, as anything but a connected stream socket is, and a socket
   never connected is a `TransportError`, as a closed socket is. The first raised
