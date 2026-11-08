@@ -420,6 +420,13 @@ namespace KeePassGate.Ui
             _profiles = new ProfileList(profiles ?? new NoProfiles(), _prompt);
             _tabs.TabPages[1].Controls.Add(_profiles);
 
+            // A name put on the list or taken off it waits for OK, and the code made on this
+            // dialog goes at once rather than when the clients page is next brought forward.
+            _profiles.Edited += delegate
+            {
+                WindowHandlers.Run("the KPG tab could not answer a profile edit", Describe);
+            };
+
             // What the last press did, below all three pages rather than on one of them. Every page has
             // something to say here: the authority page has three buttons and the clients page has
             // an invitation, a copy and a revocation, and while this label lived on the authority
@@ -594,10 +601,10 @@ namespace KeePassGate.Ui
         /// Creates an invitation and shows the token.
         /// </summary>
         /// <remarks>
-        /// Nothing is written to the database, so this is the one button on the tab that Cancel
-        /// does not undo: the invitation lives in `InvitationBook`, which is plugin memory, and
-        /// `AuthorityPanelFactory.Commit` never touches it. An invitation that outlives a canceled
-        /// dialog is a token somebody can still pair with, until its own expiry or KeePass exits.
+        /// Nothing is written to the database: the invitation lives in `InvitationBook`, which is
+        /// plugin memory, and is good for pairing from the moment it is made. It is made through
+        /// `PendingInvitations`, so `AuthorityPanelFactory.Commit` withdraws it when the dialog
+        /// closes without OK, and a profile edit waiting for that OK withdraws it at once.
         /// </remarks>
         public void InviteClient()
         {
@@ -800,6 +807,7 @@ namespace KeePassGate.Ui
                 // by name was a deleted authority, where the box kept a code for something that no
                 // longer exists.
                 _offered = reading != null && reading.IsPresent ? reading.Material.AuthorityDigest : null;
+                WithdrawForProfiles();
                 ShowOutstanding(OutstandingCodes(DateTimeOffset.UtcNow));
             }
             catch (Exception error) when (Expected.OfCustomData(error)
@@ -874,6 +882,34 @@ namespace KeePassGate.Ui
             }
 
             return ProfilesAreWaiting ? GateTab.PendingProfilesNotice : string.Empty;
+        }
+
+        /// <summary>
+        /// Takes back the code made on this dialog while a profile edit waits for its OK, as
+        /// Cancel takes it back, and clears it from the box.
+        /// </summary>
+        /// <remarks>
+        /// The operator's ruling of 2026-11-08, for the reason the invite button is dead while the
+        /// edit waits: a client approved for a profile the operator is part way through removing
+        /// is admitted to a name OK takes off the list, where it grants nothing. The dead button
+        /// stopped a new code, and a code made before the edit stayed in the box, copyable and
+        /// good, under a band telling the operator to press OK and reopen the dialog to pair. A
+        /// code made on an earlier dialog that was accepted is not this dialog's to take back.
+        /// </remarks>
+        private void WithdrawForProfiles()
+        {
+            var made = _invitations as PendingInvitations;
+            if (made == null || !ProfilesAreWaiting)
+            {
+                return;
+            }
+
+            if (made.Discard() > 0)
+            {
+                _token.Text = string.Empty;
+                _log.Info("the invitation made on the " + GateName.OnATab +
+                          " tab was withdrawn: a profile edit waits for the dialog's OK");
+            }
         }
 
         /// <summary>Whether a profile edit is buffered and the list is about to change under a client.</summary>

@@ -11,6 +11,9 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **A profile edit on the KPG tab takes back the code made on the dialog**, as Cancel does. The edit
+  killed the invite button, but a code made before it stayed on screen, copyable and good, so a
+  program could still pair against a list OK was about to change.
 - **What the KPG tab and the authority chooser call clients are the clients the gate lets in.** The
   Recreate and Delete confirmations, the Profiles page's counts and the chooser counted every
   readable record, among them records of another authority, not for client use, not yet valid or

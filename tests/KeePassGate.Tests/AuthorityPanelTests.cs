@@ -1535,6 +1535,62 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_code_made_before_a_profile_edit_is_withdrawn_by_the_edit()
+        {
+            // The operator's ruling of 2026-11-08. The dead button stopped a new code, and a code
+            // made before the edit stayed in the box, copyable and good, under a band telling the
+            // operator to press OK and reopen the dialog to pair: a client could still pair against
+            // a list OK is about to change. The edit takes it back, as Cancel does.
+            var pending = new PendingDatabase(_database, null);
+
+            using (var book = new InvitationBook(_log))
+            using (var panel = new AuthorityPanel(
+                pending, new FakePrompt(true), _log, new PendingInvitations(book),
+                new DatabaseProfiles(pending, null)))
+            {
+                panel.CreateAuthority();
+                pending.Apply();
+                panel.Describe();
+                var digest = Digest();
+
+                panel.InviteClient();
+                Assume.That(book.For(digest), Is.Not.Empty);
+                Assume.That(TextBox(panel, GateTab.InvitationBoxName).Text, Is.Not.Empty);
+
+                Assert.That(ControlTree.FindByName<ProfileList>(panel, ProfileList.ControlName).Add("ops"),
+                    Does.Contain("available to grant"));
+
+                Assert.That(panel.ProfilesAreWaiting, Is.True);
+                Assert.That(book.For(digest), Is.Empty, "the code made on this dialog still pairs");
+                Assert.That(TextBox(panel, GateTab.InvitationBoxName).Text, Is.Empty);
+                Assert.That(Button(panel, GateTab.CopyButtonName).Enabled, Is.False);
+            }
+        }
+
+        [Test]
+        public void A_code_from_an_accepted_dialog_is_not_the_profile_edit_s_to_take_back()
+        {
+            // What the edit takes back is what Cancel would: the codes made on this dialog.
+            var pending = new PendingDatabase(_database, null);
+
+            using (var book = new InvitationBook(_log))
+            using (var panel = new AuthorityPanel(pending, new FakePrompt(true), _log, new PendingInvitations(book), null))
+            {
+                panel.CreateAuthority();
+                pending.Apply();
+                var digest = Digest();
+                var earlier = book.Invite(digest);
+
+                var names = ProfileNames.Read(null);
+                Assume.That(names.Add("ops"), Is.Null);
+                pending.PluginCustomData.Set(ProfileNames.CustomDataKey, names.Write());
+                panel.Describe();
+
+                Assert.That(book.For(digest).Select(invitation => invitation.Id), Is.EqualTo(new[] { earlier.Id }));
+            }
+        }
+
+        [Test]
         public void Nobody_can_be_invited_while_a_profile_name_is_still_waiting()
         {
             // `KPG.Profiles` is the one key this tab and pairing both write, and they write it
@@ -1879,6 +1935,13 @@ namespace KeePassGate.Tests
             var button = ControlTree.FindByName<Button>(panel, name);
             Assert.That(button, Is.Not.Null, "no button called " + name);
             return button;
+        }
+
+        private static TextBox TextBox(Control panel, string name)
+        {
+            var box = ControlTree.FindByName<TextBox>(panel, name);
+            Assert.That(box, Is.Not.Null, "no box called " + name);
+            return box;
         }
 
         private static TextBox Box(Control panel, string name)

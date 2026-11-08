@@ -93,6 +93,12 @@ namespace KeePassGate.Ui
 
         /// <summary>The name the last gesture said is available to grant, while the line says so.</summary>
         private string _added;
+
+        /// <summary>
+        /// Raised once a name has gone onto the list or off it, which is a change waiting for the
+        /// dialog's OK that the rest of the tab answers to.
+        /// </summary>
+        public event EventHandler Edited;
         private readonly List<string> _shown = new List<string>();
 
         /// <summary>
@@ -355,6 +361,7 @@ namespace KeePassGate.Ui
             Describe();
             var said = Said("The profile " + wanted + " is available to grant.");
             _added = wanted;
+            OnEdited();
             return said;
         }
 
@@ -377,7 +384,18 @@ namespace KeePassGate.Ui
             }
 
             Describe();
-            return Said(_profiles.LastRemoval ?? ("The profile " + name + " is gone."));
+            var gone = Said(_profiles.LastRemoval ?? ("The profile " + name + " is gone."));
+            OnEdited();
+            return gone;
+        }
+
+        private void OnEdited()
+        {
+            var edited = Edited;
+            if (edited != null)
+            {
+                edited(this, EventArgs.Empty);
+            }
         }
 
         /// <summary>Reads the database again and redraws. Safe to call at any time.</summary>

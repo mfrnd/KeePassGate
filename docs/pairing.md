@@ -59,8 +59,11 @@ can pair while the dialog is still open, but **Cancel**, or closing the dialog a
 back a code made on it that nobody has used yet. After **OK** it stays good until it runs out or
 KeePass closes, and the page shows it counting down when the dialog is opened again. To take one
 back sooner, open the dialog, press **Renew invite** and then **Cancel**: the old code stops working
-when it is replaced, and Cancel takes back the new one. A code a program has already used stays
-used, and the client it admitted is taken back by revoking it.
+when it is replaced, and Cancel takes back the new code. Adding or removing a profile on the
+**Profiles** page takes back a code made on the dialog too, since the list a program would be
+approved against is about to change, and a new code waits for **OK** and the dialog opened again. A
+code a program has already used stays used, and the client it admitted is taken back by revoking
+it.
 
 **Send it over a second channel.** Whoever holds the code may ask to pair, and the answer to the
 dialog below is the only thing standing there.

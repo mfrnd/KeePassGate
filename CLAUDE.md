@@ -217,7 +217,8 @@ designing around them.
   left out, said on the page as it goes and named in the log at OK, however the list was edited in
   between. What no merge can decide is left where it is: a client approved for
   a profile the operator is part way through removing is admitted to a name OK takes off the list,
-  where it grants nothing, which is why a buffered profile edit kills the invite button.
+  where it grants nothing, which is why a buffered profile edit kills the invite button and
+  withdraws the code made on the dialog, as Cancel does.
 
   **A standing answer to a renewal is the other key with a second writer that matters.** The
   clients page's **Allow renewal** takes one away in the buffer, and the renewal dialog writes one
