@@ -366,8 +366,8 @@ def _parser() -> argparse.ArgumentParser:
         description=(
             "Prints every string the entry holds, one to a line, with a line break inside one "
             "written as \\n. A protected one arrives only when the rule grants `protected`. "
-            "Redirect it or read it directly: this is the one command that puts a password on "
-            "a terminal."
+            "Redirect it or read it directly: this and field are the two commands that put a "
+            "password on a terminal."
         ),
     )
 
