@@ -9,6 +9,7 @@ import json
 import os
 import stat
 import sys
+import threading
 from pathlib import Path
 from typing import Any
 
@@ -877,3 +878,102 @@ def test_a_link_where_the_key_goes_is_refused_rather_than_followed(
     with pytest.raises(StorageError, match="could not be opened for writing"):
         credentials.save(where, 45678, bundle)
     assert victim.read_text() == "old contents"
+
+
+def test_a_hard_link_where_the_key_goes_is_refused_rather_than_written_through(
+    tmp_path: Path, bundle: dict[str, Any]
+) -> None:
+    # It shares the device and the inode, so holding the file opened to the file at the name
+    # passed it, and the key went into the file it names. Any account may make a hard link, on
+    # Windows as well, where `os.link` takes no privilege on Microsoft's file system.
+    where = tmp_path / "kept"
+    where.mkdir(mode=0o700)
+    victim = tmp_path / "victim"
+    victim.write_text("old contents")
+    os.link(victim, where / credentials.IDENTITY_FILE)
+
+    with pytest.raises(StorageError, match="it is a link"):
+        credentials.save(where, 45678, bundle)
+
+    assert victim.read_text() == "old contents"
+
+
+def test_a_file_another_account_owns_is_refused_before_the_key_goes_in(
+    tmp_path: Path, bundle: dict[str, Any], stranger: None
+) -> None:
+    # In a directory shared on purpose: the account owning the file reads it whatever its mode,
+    # and narrowing it was refused only once the key was in it.
+    stored = credentials.save(tmp_path / "kept", 45678, bundle, allow_shared_directory=True)
+    held = stored.identity.read_bytes()
+
+    with pytest.raises(StorageError, match="belongs to another account"):
+        credentials.save(stored.directory, 45679, bundle, allow_shared_directory=True)
+
+    assert stored.identity.read_bytes() == held
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="Windows decides this with an ACL instead")
+def test_a_file_already_there_is_narrowed_and_its_key_with_it(
+    tmp_path: Path, bundle: dict[str, Any]
+) -> None:
+    # A file created here is owner-only from the start whatever `_write` does, so only a file
+    # that was already there, as a re-pair writes over, shows the narrowing at all, each of the
+    # four.
+    stored = credentials.save(tmp_path / "kept", 45678, bundle)
+    for name in credentials.FILES:
+        (stored.directory / name).chmod(0o644)
+
+    credentials.save(stored.directory, 45679, bundle)
+
+    for name in credentials.FILES:
+        assert stat.S_IMODE((stored.directory / name).stat().st_mode) == 0o600, name
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="Windows decides this with an ACL instead")
+def test_a_file_that_will_not_narrow_is_refused_before_the_key_goes_in(
+    tmp_path: Path, bundle: dict[str, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Narrowed after the write, a refusal came with the key already sitting at the old mode.
+    stored = credentials.save(tmp_path / "kept", 45678, bundle)
+    held = stored.identity.read_bytes()
+    chmod = os.chmod
+
+    def refusing(path: Any, mode: int, **named: Any) -> None:
+        if isinstance(path, int):
+            raise PermissionError("not this account's to narrow")
+        chmod(path, mode, **named)
+
+    monkeypatch.setattr(os, "chmod", refusing)
+
+    with pytest.raises(StorageError, match="could not be made owner-only"):
+        credentials.save(stored.directory, 45679, bundle)
+
+    assert stored.identity.read_bytes() == held
+
+
+@pytest.mark.skipif(not hasattr(os, "mkfifo"), reason="a FIFO in the file system is POSIX's")
+def test_a_fifo_swapped_in_after_the_look_is_refused_rather_than_waited_on(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Opened for writing alone, a FIFO with no reader blocks until a reader appears, so `prepare`
+    # in a directory another account may write to hung rather than refusing.
+    where = tmp_path / "kept"
+    where.mkdir(mode=0o700)
+    # Looked up rather than named, as `geteuid` is: a type checker told it runs on Windows calls
+    # the name undefined there. cspell:ignore mkfifo
+    os.__dict__["mkfifo"](where / credentials.DETAILS_FILE)
+    monkeypatch.setattr(credentials, "_replaceable", lambda path: None)
+    raised: list[BaseException] = []
+
+    def preparing() -> None:
+        try:
+            credentials.prepare(where)
+        except StorageError as error:
+            raised.append(error)
+
+    thread = threading.Thread(target=preparing, daemon=True)
+    thread.start()
+    thread.join(timeout=10)
+
+    assert not thread.is_alive(), "prepare is still waiting on the FIFO"
+    assert len(raised) == 1

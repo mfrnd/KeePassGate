@@ -108,7 +108,9 @@ by 0.1.0 is reached with `--directory` naming its directory, which is what a pat
 gate has answered, the invitation is spent and the record is written, and an identity that could not
 be stored cannot be asked for again. A directory that cannot be made or written to, or a file name
 taken by a link or by anything but a regular file, is refused with `StorageError`, and nothing is
-spent.
+spent. A hard link at a file's name is a link as well, and a file already there that another
+account owns is refused too, where the platform has owners. A file already there is narrowed to
+its owner before the key goes into it.
 
 **So is a directory another account can reach**, where the platform has file modes: one that already
 existed and belongs to another account, or that another account may write to. That account could

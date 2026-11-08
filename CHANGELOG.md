@@ -11,6 +11,14 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **PyKeePassGate writes a key only into a regular file of its own, narrowed first.** A file
+  already there was narrowed after the key went in, so a re-pair over a widened identity held the
+  new key at the old mode until then, and a narrowing refused came with the key already written.
+  A hard link at a file's name passed the check that holds the file to its name, and the key went
+  into the file it named; a file another account owns, in a directory shared on purpose, received
+  the key before the narrowing failed; and a FIFO swapped in after the look made `prepare` wait
+  for a reader forever. Each is now refused before anything is written, and `fetch` writes the
+  same way.
 - **A renewal refusing a shared directory beside the identity names what mends it**: removing
   `<dir>.renewing` or `<dir>.retired`, or making it this account's alone. The refusal named
   `--allow-shared-directory` on `pair`, which never waives either, and under `renew` named only
