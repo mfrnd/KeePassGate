@@ -650,7 +650,9 @@ def _optional(bundle: dict[str, Any], key: str) -> str:
     return value if isinstance(value, str) else ""
 
 
-def prepare(directory: Path, allow_shared_directory: bool = False) -> Prepared:
+def prepare(
+    directory: Path, allow_shared_directory: bool = False, *, beside: bool = False
+) -> Prepared:
     """Make the directory and open the four files, so that `save` can write into them later.
 
     **Called before the exchange, because afterwards is too late.** Once the gate has answered,
@@ -676,6 +678,11 @@ def prepare(directory: Path, allow_shared_directory: bool = False) -> Prepared:
     are refused whatever it says, and opening still refuses to follow a link: the flag says
     others can reach this directory, not that nothing should be checked.
 
+    **`beside` is a directory a renewal keeps beside an identity's own**, `<dir>.renewing` or
+    `<dir>.retired`, which is this client's alone and is never waived, so its refusal names what
+    mends it, removing the directory or making it this account's alone, rather than a flag that
+    would not apply.
+
     **The directory itself is no link either**, a symbolic link or a junction, asked before it is
     made and again after, so one planted between the two is refused as well: every other check
     here would follow it, and the identity would be written into whichever directory it named.
@@ -691,13 +698,20 @@ def prepare(directory: Path, allow_shared_directory: bool = False) -> Prepared:
     # Looked up rather than named: Windows has no `geteuid`, and a type checker told which
     # platform it runs on calls a branch on `os.name` unreachable or its call undefined.
     me = getattr(os, "geteuid", None)
-    if me is not None and not allow_shared_directory:
+    if me is not None and (beside or not allow_shared_directory):
         status = directory.stat()
         reason = _shared(status.st_mode, status.st_uid, me())
+        if reason and beside:
+            raise StorageError(
+                f"{directory} cannot hold credentials: {reason}. It is a directory a renewal "
+                "keeps beside the identity's own, which nothing accepts shared: remove it or "
+                "make it this account's alone, and renew again"
+            )
+
         if reason:
             raise StorageError(
                 f"{directory} cannot hold credentials: {reason}. If that is intended, "
-                "allow_shared_directory, or --allow-shared-directory on pair, accepts it"
+                "allow_shared_directory, or --allow-shared-directory on pair or renew, accepts it"
             )
 
     for name in FILES:

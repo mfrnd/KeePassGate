@@ -419,12 +419,16 @@ class GateClient:
 
         prepared: list[credentials_module.Prepared] = []
         try:
-            for where, shared in (
-                (staging, False),
-                (retired, False),
-                (directory, allow_shared_directory),
+            for where, shared, beside in (
+                (staging, False, True),
+                (retired, False, True),
+                (directory, allow_shared_directory, False),
             ):
-                prepared.append(credentials_module.prepare(where, allow_shared_directory=shared))
+                prepared.append(
+                    credentials_module.prepare(
+                        where, allow_shared_directory=shared, beside=beside
+                    )
+                )
 
             renewing, keeping, live = prepared
             bundle = self._request(

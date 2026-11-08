@@ -10,6 +10,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import json
+import os
 import re
 import socket
 import time
@@ -665,6 +666,21 @@ def test_an_approval_the_gate_holds_is_asked_for_again_until_it_is_written(
 
     assert renewal.credentials.expires == "2127-01-02T03:04:05Z"
     assert waited == [2.0, 2.0]
+
+
+def test_a_shared_directory_beside_the_identity_is_refused_with_what_mends_it(
+    paired: GateClient, renewing: Gate, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Pretended rather than arranged, as `stranger` pretends it in the credentials tests, so that
+    # it runs on Windows as well. The flag waives the identity's own directory and never the two
+    # beside it, so the refusal names removing the directory rather than the flag.
+    monkeypatch.setattr(os, "geteuid", lambda: 4242, raising=False)
+
+    with pytest.raises(StorageError, match=r"default\.renewing cannot hold") as refused:
+        paired.renew(allow_shared_directory=True)
+
+    assert "remove it or make it this account's alone" in str(refused.value)
+    assert [path for path, _, _ in renewing.seen] == [], "nothing was asked"
 
 
 def test_a_certificate_that_has_expired_is_not_offered_for_renewal(

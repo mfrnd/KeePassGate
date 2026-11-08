@@ -11,6 +11,10 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **A renewal refusing a shared directory beside the identity names what mends it**: removing
+  `<dir>.renewing` or `<dir>.retired`, or making it this account's alone. The refusal named
+  `--allow-shared-directory` on `pair`, which never waives either, and under `renew` named only
+  `pair` for the identity's own directory, where `renew` takes the flag as well.
 - **A `gate.key` of the wrong length is a `StorageError` naming the file**, as `identity.pem` and
   `authority.pem` already are. HMAC takes a key of any length, so a gate key a re-pair cut short
   named every connection under the wrong key, and every call failed as an EOF in the handshake,

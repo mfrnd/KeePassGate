@@ -712,7 +712,19 @@ def test_the_shared_directory_refusal_names_the_way_past_it(tmp_path: Path, stra
         credentials.prepare(tmp_path)
 
     assert "allow_shared_directory" in str(refused.value)
-    assert "--allow-shared-directory" in str(refused.value)
+    assert "--allow-shared-directory on pair or renew" in str(refused.value)
+
+
+def test_a_directory_a_renewal_keeps_beside_names_what_mends_it_and_no_flag(
+    tmp_path: Path, stranger: None
+) -> None:
+    # The flag never waives one of these, so naming it sent a person round in a circle.
+    for waived in (False, True):
+        with pytest.raises(StorageError, match="another account") as refused:
+            credentials.prepare(tmp_path, allow_shared_directory=waived, beside=True)
+
+        assert "remove it or make it this account's alone" in str(refused.value)
+        assert "allow" not in str(refused.value)
 
 
 def test_a_caller_who_says_so_may_keep_credentials_in_a_shared_directory(
