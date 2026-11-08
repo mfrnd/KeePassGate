@@ -92,6 +92,19 @@ namespace KeePassGate.Host.Tests
             Assert.That(_saves, Is.Zero, "nothing was saved");
         }
 
+        [Test]
+        public void An_attachment_that_failed_to_decrypt_once_is_tagged_once_it_decrypts()
+        {
+            _entry.Binaries.Set("later.txt", new ProtectedBinary(true, Encoding.UTF8.GetBytes("made through the hook")));
+
+            _refusing = true;
+            Assert.Throws<CryptographicException>(() => _vault.EntryTag(Uuid(_entry)));
+            _refusing = false;
+
+            Assert.That(_vault.EntryTag(Uuid(_entry)), Does.Match("^[0-9a-f]{32}$"),
+                "the failure is not what the next tag is answered with");
+        }
+
         private static string Uuid(PwEntry entry)
         {
             return entry.Uuid.ToHexString();

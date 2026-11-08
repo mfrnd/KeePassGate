@@ -153,6 +153,9 @@ none, since it releases both.
   anything could undo the change, so a decryption that failed while the tag was taken left the
   change and its history revision in memory behind a `500`, unsaved and unmarked, for the next
   save to write.
+- **An attachment that failed to decrypt once is tagged the next time a tag is asked for.** The
+  failure was kept in place of its digest, so every tag of every entry holding that attachment
+  failed again, answered `500` and counted under Tools, until KeePass let the attachment go.
 - **A protected field is kept from a strip whenever any profile could put an unprotected value
   back.** The guard asked whether some profile could create there and whether some profile could
   create a protected value there, so a program holding one profile that could put an unprotected

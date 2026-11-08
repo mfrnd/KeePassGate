@@ -59,9 +59,15 @@ namespace KeePassGate.Bridge
     /// itself, keeping the object's own hash code in it once asked.
     /// <see cref="ConditionalWeakTable{TKey,TValue}"/> keys by the object itself and holds it
     /// weakly, so a digest goes when KeePass lets the attachment go and nothing here keeps one
-    /// alive, and the digest is a <see cref="Lazy{T}"/> so that two readers asking at once decrypt
-    /// it once between them. `KeePassContractTests` pins the immutability, because a KeePass that
-    /// changed bytes in place would leave a tag standing over content it no longer describes.
+    /// alive. `KeePassContractTests` pins the immutability, because a KeePass that changed bytes in
+    /// place would leave a tag standing over content it no longer describes.
+    ///
+    /// **A digest is kept and a failure is not.** The digest is a <see cref="Lazy{T}"/> that
+    /// publishes the first value made and caches no exception, so a decryption that fails once,
+    /// through memory protection, another plugin's `ProtectedBinary.ExtCrypt` or an allocation, is
+    /// tried again by the next tag. Kept, it failed every tag of every entry holding that
+    /// attachment until KeePass let the object go. The price is that two readers asking at once may
+    /// each decrypt it, and one digest of the two stands.
     ///
     /// **A new hasher per tag, and a part at a time**, which was measured against the obvious
     /// economies and kept: reusing the hasher saved a fifth of a microsecond, and buffering the
@@ -212,7 +218,7 @@ namespace KeePassGate.Bridge
 
         private static Lazy<byte[]> Deferred(ProtectedBinary binary)
         {
-            return new Lazy<byte[]>(() => Digest(binary), LazyThreadSafetyMode.ExecutionAndPublication);
+            return new Lazy<byte[]>(() => Digest(binary), LazyThreadSafetyMode.PublicationOnly);
         }
 
         /// <summary>One attachment's SHA-256, from a copy of its bytes that is wiped afterwards.</summary>
