@@ -35,7 +35,7 @@ namespace KeePassGate.Tests
             foreach (var write in writes)
             {
                 Assert.That(write.Body.Properties["content"].MaxLength, Is.EqualTo(longest),
-                    write.OperationId + " accepts a different size from the one a read hands out");
+                    write.OperationId + " accepts a size other than the largest a read hands out");
             }
         }
 
