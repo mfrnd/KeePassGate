@@ -186,6 +186,10 @@ none, since it releases both.
   database before the save returns, and the close cleared what the plugin reads to know that the
   file holds the change, so the write was answered as saved and verified whatever the save had
   done.
+- **A pairing or a renewal whose record the file did not keep leaves the database marked unsaved**
+  whatever the file reads as afterwards. Taking the record back out read the file a second time,
+  and a file part way through a copy at the first read and whole at the second cleared the mark,
+  over a record memory no longer held and the file might.
 - **A protected field is kept from a strip whenever any profile could put an unprotected value
   back.** The guard asked whether some profile could create there and whether some profile could
   create a protected value there, so a program holding one profile that could put an unprotected

@@ -1870,8 +1870,10 @@ namespace KeePassGate.Bridge
 
             // Everything this write touched, put back as it was, for every ending below that
             // leaves the record out of the database.
-            Func<string, AdmissionWrite> undo = reason => Undo(
-                store, database, record, before, namesBefore, pruned, owing, wasModified, reason);
+            // `raised` keeps the flag up whatever the file then reads as, for the one path that
+            // raises it on purpose.
+            Func<string, bool, AdmissionWrite> undo = (reason, raised) => Undo(
+                store, database, record, before, namesBefore, pruned, owing, wasModified || raised, reason);
 
             // True until the save ends in a way this method expects, as in `ChangeOnTheUiThread`.
             var escaped = true;
@@ -1901,7 +1903,7 @@ namespace KeePassGate.Bridge
                 if (database.Modified)
                 {
                     _log.Error("the database could not be saved after an admission record was written", error);
-                    return undo(error.Message);
+                    return undo(error.Message, false);
                 }
 
                 _log.Error("the record was saved and something after the save failed, which is " +
@@ -1942,18 +1944,18 @@ namespace KeePassGate.Bridge
             string written,
             Owing owing,
             Action audit,
-            Func<string, AdmissionWrite> undo)
+            Func<string, bool, AdmissionWrite> undo)
         {
             if (!string.Equals(store.Get(record.StorageKey), written, StringComparison.Ordinal))
             {
-                return undo("the record did not survive being written");
+                return undo("the record did not survive being written", false);
             }
 
             if (database.Modified)
             {
                 // KeePass tells a caller nothing about whether a save worked. This is what it does
                 // say: a database it has saved has no unsaved changes left.
-                return undo("the database still has unsaved changes, so nothing is on disk");
+                return undo("the database still has unsaved changes, so nothing is on disk", false);
             }
 
             if (!TheFileHoldsWhatWasWritten(database))
@@ -1965,13 +1967,17 @@ namespace KeePassGate.Bridge
                 // API's write leaves it, because refusing a pairing costs an invitation and
                 // admitting one that was never stored costs a client nobody can take away.
                 //
-                // The flag goes up whatever it was before, which is more than `Undo` does on its
-                // own: a database that arrived with unsaved edits has just had them written to a
-                // file that did not keep them either, so this is the one path where leaving it
-                // clear would be wrong about somebody else's work as well as about this record.
+                // The flag goes up whatever it was before, and stays up, which is more than `Undo`
+                // does on its own: a database that arrived with unsaved edits has just had them
+                // written to a file that did not keep them either, so this is the one path where
+                // leaving it clear would be wrong about somebody else's work as well as about this
+                // record. `Undo` would otherwise decide the flag again from a second read of the
+                // file, against the hash this save left, and a file that was unreadable or part
+                // way through a copy at the first read and whole at the second cleared it, over a
+                // record memory no longer holds and the file may.
                 database.Modified = true;
 
-                return undo("the file on disk does not hold what KeePass wrote to it");
+                return undo("the file on disk does not hold what KeePass wrote to it", true);
             }
 
             Owing.Settle(owing, Owed);
@@ -2073,7 +2079,8 @@ namespace KeePassGate.Bridge
         /// still waiting, and clearing one over a file the failed save damaged would tell it there
         /// is nothing to save while the only undamaged copy is the one in memory.
         /// <see cref="TheFileIsAsKeePassLeftIt"/> is that second question, in the same words as
-        /// `PutBack` asks it.
+        /// `PutBack` asks it. A file that does not hold what was written is undone with the flag
+        /// kept up whatever it was, for the reason `RecordConcluded` gives there.
         /// </remarks>
         private AdmissionWrite Undo(
             CustomDataStore store,
