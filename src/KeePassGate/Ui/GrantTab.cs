@@ -225,5 +225,8 @@ namespace KeePassGate.Ui
         /// <summary>What the page says when it is on a dialog with no node behind it.</summary>
         public const string NoNodeScope =
             "This dialog is not about a group or an entry, so there is nothing here to grant.";
+
+        /// <summary>Why nothing can be changed on that page, under the line above.</summary>
+        public const string NothingToChange = "Nothing here can be changed.";
     }
 }

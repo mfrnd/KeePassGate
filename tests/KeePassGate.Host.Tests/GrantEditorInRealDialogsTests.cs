@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Windows.Forms;
@@ -8,6 +9,7 @@ using KeePassGate;
 using KeePassGate.Acl;
 using KeePassGate.Authority;
 using KeePassGate.Bridge;
+using KeePassGate.Diagnostics;
 using KeePassGate.Ui;
 using KeePassLib;
 using KeePassLib.Collections;
@@ -108,7 +110,7 @@ namespace KeePassGate.Host.Tests
                 Assert.That(node.ReadOnlyReason, Is.Not.Null.And.Contains("Several entries"));
                 Assert.That(node.Store(), Is.Null,
                     "no store, or the tab would offer to discard rules it must not touch");
-                Assert.That(new NodeDialogs(null).SheetFor(dialog).Rows.Any(row => row.Local), Is.False,
+                Assert.That(new NodeDialogs(null).TabFor(dialog).Sheet.Rows.Any(row => row.Local), Is.False,
                     "the merge is no entry's rules, so none are shown as this one's");
             }
         }
@@ -150,7 +152,7 @@ namespace KeePassGate.Host.Tests
             {
                 dialog.InitEx(revision, PwEditMode.ViewReadOnlyEntry, _database.Database, _icons, false, false);
 
-                var sheet = new NodeDialogs(null).SheetFor(dialog);
+                var sheet = new NodeDialogs(null).TabFor(dialog).Sheet;
 
                 Assert.That(sheet.CanEdit, Is.False);
                 Assert.That(sheet.Default, Is.EqualTo(AclDefault.Deny), "the revision's own seal");
@@ -174,10 +176,62 @@ namespace KeePassGate.Host.Tests
                 Assume.That(node.Store(), Is.Null);
                 Assume.That(node.ReadOnlyReason, Does.Contain("can be read but not changed"));
 
-                var sheet = new NodeDialogs(null).SheetFor(dialog);
+                var sheet = new NodeDialogs(null).TabFor(dialog).Sheet;
 
                 Assert.That(sheet.CanEdit, Is.False);
                 Assert.That(sheet.Rows.Single(row => row.Local).Mask, Is.EqualTo(".R...L.P"));
+            }
+        }
+
+        [Test]
+        public void A_dialog_is_read_once_for_its_tab_so_a_field_KeePass_renamed_is_logged_once()
+        {
+            // The sheet, the store and the top line were asked for apart, and each read the dialog
+            // again: a renamed field was logged three times for every dialog opened.
+            var group = GroupUnderRoot("Fictitious");
+            var log = new WarningLog();
+
+            using (var dialog = GroupFormWithoutACopy(group))
+            using (new GrantPanelFactory(new NodeDialogs(log), log).CreatePanel(dialog))
+            {
+                Assert.That(log.Warnings, Has.Count.EqualTo(1), string.Join(" | ", log.Warnings));
+            }
+        }
+
+        [Test]
+        public void A_dialog_about_no_node_states_its_reason_once()
+        {
+            // Its top line and its warning band held the same sentence, one under the other.
+            using (var dialog = new Form())
+            using (var panel = new GrantPanelFactory(new NodeDialogs(null), null).CreatePanel(dialog))
+            {
+                var scope = ControlTree.FindByName<Label>(panel, GrantTab.ScopeLabelName).Text;
+                var warning = ControlTree.FindByName<Label>(panel, GrantTab.WarningLabelName).Text;
+
+                Assert.That(scope, Is.EqualTo(GrantTab.NoNodeScope));
+                Assert.That(warning, Is.Not.EqualTo(scope));
+            }
+        }
+
+        private sealed class WarningLog : IGateLog
+        {
+            public List<string> Warnings { get; } = new List<string>();
+
+            public void Info(string message)
+            {
+            }
+
+            public void Warn(string message)
+            {
+                Warnings.Add(message);
+            }
+
+            public void Error(string message, Exception error)
+            {
+            }
+
+            public void Unexpected(string message, Exception error)
+            {
             }
         }
 
@@ -226,7 +280,7 @@ namespace KeePassGate.Host.Tests
                 Assert.That(node, Is.Not.Null);
                 Assert.That(node.ReadOnlyReason, Does.Contain("can be read but not changed"));
                 Assert.That(node.Store(), Is.Null);
-                Assert.That(new NodeDialogs(null).SheetFor(dialog).Rows.Single(row => row.Local).Mask,
+                Assert.That(new NodeDialogs(null).TabFor(dialog).Sheet.Rows.Single(row => row.Local).Mask,
                     Is.EqualTo(".R......"), "and the rules are still shown");
             }
         }
@@ -293,7 +347,7 @@ namespace KeePassGate.Host.Tests
 
                 Assert.That(node.ReadOnlyReason, Does.Contain("can be read but not changed"));
                 Assert.That(node.Store(), Is.Null);
-                Assert.That(new NodeDialogs(null).SheetFor(dialog).Rows.Single(row => row.Local).Mask,
+                Assert.That(new NodeDialogs(null).TabFor(dialog).Sheet.Rows.Single(row => row.Local).Mask,
                     Is.EqualTo(".R......"), "and the rules are still shown");
             }
         }
@@ -374,7 +428,7 @@ namespace KeePassGate.Host.Tests
 
                 Assert.That(node.ReadOnlyReason, Does.Contain("which database"));
                 Assert.That(node.Store(), Is.Null);
-                Assert.That(new NodeDialogs(null).SheetFor(dialog).Rows.Single(row => row.Local).Mask,
+                Assert.That(new NodeDialogs(null).TabFor(dialog).Sheet.Rows.Single(row => row.Local).Mask,
                     Is.EqualTo(".R......"), "and the rules are still shown");
             }
         }
@@ -417,7 +471,7 @@ namespace KeePassGate.Host.Tests
                 dialog.InitEx(group, false, null, _database.Database);
                 var node = NodeDialog.Of(dialog, null);
 
-                using (var panel = new GrantPanel(new NodeDialogs(null).SheetFor(dialog), node.Store(), node.Scope, null))
+                using (var panel = new GrantPanel(new NodeDialogs(null).TabFor(dialog).Sheet, node.Store(), node.Scope, null))
                 {
                     Load(dialog, group.CustomData);
                     Assume.That(panel.Lines, Has.Some.StartsWith("reader"));
@@ -738,7 +792,7 @@ namespace KeePassGate.Host.Tests
             {
                 dialog.InitEx(group, false, null, _database.Database);
 
-                var sheet = new NodeDialogs(null).SheetFor(dialog);
+                var sheet = new NodeDialogs(null).TabFor(dialog).Sheet;
 
                 Assert.That(sheet, Is.Not.Null);
                 Assert.That(sheet.CanEdit, Is.True);
@@ -776,7 +830,7 @@ namespace KeePassGate.Host.Tests
             {
                 dialog.InitEx(entry, PwEditMode.EditExistingEntry, _database.Database, _icons, false, false);
 
-                var sheet = new NodeDialogs(null).SheetFor(dialog);
+                var sheet = new NodeDialogs(null).TabFor(dialog).Sheet;
                 var row = sheet.Rows.Single();
 
                 Assert.That(row.Profile, Is.EqualTo("reader"));
@@ -795,7 +849,7 @@ namespace KeePassGate.Host.Tests
                 var node = NodeDialog.Of(dialog, null);
 
                 Assert.That(node.Above, Is.Null);
-                Assert.That(new NodeDialogs(null).SheetFor(dialog).Rows.Where(row => !row.Local), Is.Empty);
+                Assert.That(new NodeDialogs(null).TabFor(dialog).Sheet.Rows.Where(row => !row.Local), Is.Empty);
             }
         }
 
@@ -810,7 +864,7 @@ namespace KeePassGate.Host.Tests
             {
                 dialog.InitEx(GroupUnderRoot("Fictitious"), false, null, _database.Database);
 
-                var sheet = new NodeDialogs(null).SheetFor(dialog);
+                var sheet = new NodeDialogs(null).TabFor(dialog).Sheet;
 
                 Assert.That(sheet.Offered, Is.EqualTo(new[] { "editor", "reader" }));
             }
@@ -829,7 +883,7 @@ namespace KeePassGate.Host.Tests
             {
                 dialog.InitEx(GroupUnderRoot("Fictitious"), false, null, _database.Database);
 
-                var sheet = new NodeDialogs(null).SheetFor(dialog);
+                var sheet = new NodeDialogs(null).TabFor(dialog).Sheet;
 
                 Assert.That(sheet.Offered, Is.EqualTo(new[] { "reader" }));
                 Assert.That(sheet.Available, Does.Not.Contain("ops"));
@@ -850,7 +904,7 @@ namespace KeePassGate.Host.Tests
             {
                 dialog.InitEx(group, false, null, _database.Database);
 
-                var sheet = new NodeDialogs(null).SheetFor(dialog);
+                var sheet = new NodeDialogs(null).TabFor(dialog).Sheet;
 
                 Assert.That(sheet.Rows.Select(row => row.Profile + (row.Named ? "" : " (not named)")),
                     Is.EqualTo(new[] { "ops (not named)", "reader" }));
