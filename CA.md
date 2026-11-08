@@ -838,12 +838,15 @@ certificate=<base64 DER>
 
 Small and strict rather than general, and that is a decision rather than laziness. Everything in a
 record has already been through issuance, which refuses a subject or a profile that is not a plain
-name, so a reader can be total in eighty lines. **Anything that is not exactly a record is refused**:
+name, so a reader can be total in eighty lines. **Anything that is not a record is refused**:
 a missing field, a repeated one, an unknown version, a client key that is not a digest, a date that
 will not parse, a certificate that will not decode, or a certificate whose digest is not the key the
 record is filed under. A record that cannot be read admits nobody, which is the same answer as no
 record at all. A record with no `client` line is one of those: the field arrived with no record
-written before it anywhere, so there is no older record to read kindly.
+written before it anywhere, so there is no older record to read kindly. The reader is strict about
+what a record holds and not about how it is spelled: fields in another order, blank lines, either
+line ending and whitespace inside the certificate's base64 all read, and the plugin writes a record
+back in its own form.
 
 Profile names that could not have been issued as claims are dropped when a record is read, so a
 record edited by hand into something strange grants nothing strange.
