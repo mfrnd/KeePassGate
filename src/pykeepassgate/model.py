@@ -24,7 +24,7 @@ entry holds is still told truthfully, and `withheld` says which values are kept 
 from __future__ import annotations
 
 import base64
-from collections.abc import Container, Iterator, Mapping
+from collections.abc import Container, Iterable, Iterator, Mapping
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from types import MappingProxyType
@@ -406,21 +406,34 @@ def _standard(strings: Fields, name: str) -> str:
     the culture's collation, under which a name holding a character the collation ignores, a soft
     hyphen in `Pass­word` among them, is the same name as `Password`, and a file another
     program wrote can hold such a name. So an entry that holds the string under no name spelled
-    exactly so, while it holds a name beyond ASCII, raises `AmbiguousName`: "" could stand where
+    exactly so, while it holds a name beyond ASCII or with a null in it, which `_collation_may_join`
+    asks, raises `AmbiguousName`: "" could stand where
     KeePass shows a value, or where the gate withheld a value, and a withheld value is never
     empty here.
     """
     if name in strings:
         return strings[name]
 
-    if not all(held.isascii() for held in strings):
+    if _collation_may_join(strings):
         raise AmbiguousName(
             f"this entry holds no string named exactly {name!r}, and it holds a name beyond "
-            f"ASCII that KeePass's own comparison may read as {name!r}, which this will not "
-            "guess at"
+            f"ASCII or holding a null that KeePass's own comparison may read as {name!r}, which "
+            "this will not guess at"
         )
 
     return ""
+
+
+def _collation_may_join(names: Iterable[str]) -> bool:
+    """Whether a name here could be another to KeePass's collation: beyond ASCII, or with a null.
+
+    .NET Framework's collation gives some characters no weight, so a name holding such a
+    character is the same name as the name without it. Beyond ASCII that is a soft hyphen among
+    others, and within it the null alone, measured over every ASCII character at every place in
+    the five standard names under eight cultures: `Password` with a null inside it is `Password`
+    to KeePass's string dictionary.
+    """
+    return any(not held.isascii() or "\0" in held for held in names)
 
 
 @dataclass(frozen=True)

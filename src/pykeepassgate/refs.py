@@ -27,7 +27,8 @@ that value as empty, keeping the text around it: this refuses the whole value ra
 that. **And what it refuses with `AmbiguousName`**: a placeholder whose name matches a field
 only when letters beyond ASCII are compared without their case, which is a comparison KeePass
 makes its own way, and a standard string the entry holds under no name spelled exactly so while
-it holds a name beyond ASCII, which KeePass's collation may read as that string. A value it may not
+it holds a name beyond ASCII or with a null in it, which KeePass's collation may read as that
+string. A value it may not
 read, behind a reference or a placeholder, raises `Withheld`.
 
 **What it leaves as it is.** Braces that name nothing KeePass knows, which are ordinary in a
@@ -49,7 +50,17 @@ from __future__ import annotations
 from typing import Protocol
 
 from .errors import AmbiguousName, RouteRefused, Unresolved, Withheld
-from .model import NOTES, PASSWORD, STANDARD, TITLE, URL, USERNAME, Entry, Fields
+from .model import (
+    NOTES,
+    PASSWORD,
+    STANDARD,
+    TITLE,
+    URL,
+    USERNAME,
+    Entry,
+    Fields,
+    _collation_may_join,
+)
 
 #: How deep KeePass compiles a value before it gives up and answers that value as empty, which is
 #: where a cycle ends in KeePass: `SprEngine.MaxRecursionDepth`. Each value a placeholder or a
@@ -337,19 +348,20 @@ class _Resolution:
         under which a name holding a character that collation ignores, a soft hyphen in
         `Pass­word` for one, is the same name as `Password`. A file another program wrote can
         hold one, and the gate answers it under the name it is stored by. So a standard string the
-        entry holds under no name spelled exactly so, while it holds a name beyond ASCII, which is
-        the only way such a spelling can arise, is refused rather than read as empty: empty could
-        stand where KeePass has a value, or where the gate withheld one.
+        entry holds under no name spelled exactly so, while it holds a name beyond ASCII or a name
+        with a null in it, the only ways such a spelling can arise, which `_collation_may_join`
+        asks, is refused rather than read as empty: empty could stand where KeePass has a value,
+        or where the gate withheld one.
         """
         fields = _fields(entry)
         if name in entry.withheld:
             raise Withheld(name, through=through)
 
-        if name in STANDARD and name not in fields and not all(held.isascii() for held in fields):
+        if name in STANDARD and name not in fields and _collation_may_join(fields):
             raise AmbiguousName(
                 f"{through} stands for {name!r}, which this entry holds under no name spelled "
-                "exactly so, and it holds a name beyond ASCII that KeePass's own comparison may "
-                f"read as {name!r}, which this will not guess at"
+                "exactly so, and it holds a name beyond ASCII or holding a null that KeePass's own "
+                f"comparison may read as {name!r}, which this will not guess at"
             )
 
         held = fields.get(name, "")

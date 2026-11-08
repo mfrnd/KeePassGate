@@ -127,6 +127,14 @@ def test_a_spelling_only_keepass_can_compare_is_refused(name: str, value: str) -
         refs.resolve(Database([]), entry, value)
 
 
+#: What the culture's collation gives no weight to, so that a name holding such a character is the
+#: name without it: a soft hyphen beyond ASCII, and the null, the only such character within it.
+IGNORED = pytest.mark.parametrize(
+    "ignored", [chr(0xAD), "\0"], ids=["a soft hyphen", "a null"]
+)
+
+
+@IGNORED
 @pytest.mark.parametrize("withheld", [False, True], ids=["read", "withheld"])
 @pytest.mark.parametrize(
     "value",
@@ -134,17 +142,18 @@ def test_a_spelling_only_keepass_can_compare_is_refused(name: str, value: str) -
     ids=["a placeholder", "a reference"],
 )
 def test_a_standard_string_held_under_a_look_alike_name_is_refused_rather_than_empty(
-    value: str, withheld: bool
+    value: str, withheld: bool, ignored: str
 ) -> None:
     # KeePass reads `Password` out of a dictionary ordered by the culture's collation, which gives
-    # the soft hyphen no weight, so to it this entry holds a password. Empty would stand where
-    # KeePass has a value, and where the gate withholds one, where a value never may.
-    look_alike = "Pass" + chr(0xAD) + "word"
+    # the soft hyphen no weight, nor the null, so to it this entry holds a password. Empty would
+    # stand where KeePass has a value, and where the gate withholds one, where a value never may.
+    # The null is ASCII, so a refusal asking only for a name beyond ASCII let it through.
+    look_alike = "Pass" + ignored + "word"
     held = {"Title": "Invented Look-alike", look_alike: None if withheld else "an invented value"}
     entry = Entry.read(answer("A2000000000000000000000000000002", held))
     database = Database([{"uuid": "A2000000000000000000000000000002", "fields": held}])
 
-    with pytest.raises(AmbiguousName, match="beyond ASCII"):
+    with pytest.raises(AmbiguousName, match="beyond ASCII or holding a null"):
         refs.resolve(database, entry, value)
 
 
@@ -156,10 +165,11 @@ def test_a_standard_string_an_entry_of_ascii_names_does_not_hold_is_empty() -> N
     assert refs.resolve(Database([]), entry, "[{PASSWORD}]") == "[]"
 
 
+@IGNORED
 @pytest.mark.parametrize("withheld", [False, True], ids=["read", "withheld"])
 @pytest.mark.parametrize("standard", ["title", "username", "password", "url", "notes"])
 def test_the_read_model_refuses_a_standard_string_held_under_a_look_alike_name(
-    withheld: bool, standard: str
+    withheld: bool, standard: str, ignored: str
 ) -> None:
     # The resolver's rule on the read model. `entry.password` answered "" for this entry, where
     # KeePass shows a value, and where the gate withheld a value, which this client never reads as
@@ -167,10 +177,10 @@ def test_the_read_model_refuses_a_standard_string_held_under_a_look_alike_name(
     names = {"title": "Title", "username": "UserName", "password": "Password", "url": "URL"}
     name = names.get(standard, "Notes")
     held: dict[str, str | None] = {} if standard == "title" else {"Title": "Invented Look-alike"}
-    held[name[:2] + chr(0xAD) + name[2:]] = None if withheld else "an invented value"
+    held[name[:2] + ignored + name[2:]] = None if withheld else "an invented value"
     entry = Entry.read(answer("A2000000000000000000000000000002", held))
 
-    with pytest.raises(AmbiguousName, match="beyond ASCII"):
+    with pytest.raises(AmbiguousName, match="beyond ASCII or holding a null"):
         getattr(entry, standard)
 
 

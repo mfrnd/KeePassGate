@@ -11,6 +11,10 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **A standard string held under a name with a null in it is refused with `AmbiguousName`**, as
+  a string under a name beyond ASCII is, by the read model and by `refs.resolve`. .NET Framework's
+  collation gives the null no weight, so KeePass reads such a name as `Password`, and the client
+  answered empty, where KeePass has a value or the gate withheld a value.
 - **An entry read without `expires` is an answer PyKeePassGate cannot read**, `ProtocolError`, as
   the document requires the member on every read and the client refuses any other required member
   missing. It was read as a gate answering nothing about the expiry, an `AttributeError` from

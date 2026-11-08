@@ -522,10 +522,10 @@ entry decide whether this client may follow it, and the operator's audit records
 
 **And it refuses a name only KeePass can match**, with `AmbiguousName`: a placeholder that names a
 field only when letters beyond ASCII are compared without their case, and a standard string the
-entry holds under no name spelled exactly so, while it holds a name beyond ASCII, because KeePass
-reads the five standard strings through the culture's collation, under which a name with a soft
-hyphen in it can be the password, and empty could stand for a value. An entry's `title`,
-`username`, `password`, `url` and `notes` refuse that second case the same way.
+entry holds under no name spelled exactly so, while it holds a name beyond ASCII or with a null in
+it, because KeePass reads the five standard strings through the culture's collation, under which a
+name with a soft hyphen or a null in it can be the password, and empty could stand for a value. An
+entry's `title`, `username`, `password`, `url` and `notes` refuse that second case the same way.
 
 A value behind a reference or a placeholder that the rule withholds raises `Withheld`, naming the
 reference or the placeholder that stood for it.
@@ -877,7 +877,7 @@ except api.RouteRefused:
 | `RouteRefused` | The gate refused it. `.status` tells which: `404` is absent or not reachable and nothing can be done, while `400` and `409` are about the request itself, and `413` is something too large to carry, an attachment bigger than this gate hands out, an entry whose strings come to more than it hands out or keeps, or a body bigger than it takes, which `.error` tells in a sentence. `500` is none of those: the gate failed, and the operator's KeePass is where to look. After `500 not saved` or `500 internal error` nothing was left written that sending it again would duplicate; after `500 not verified` the change may be on the disk, so look first, and until the operator saves the database in KeePass every write to it is `GateBusy`, as [Wait out a refusal](#wait-out-a-refusal-instead-of-reporting-it) explains. `500 not recorded` is told only to `pair` and `renew`: the operator approved, the record did not reach the disk and was taken back out, and nothing was handed over, so asking again puts the dialog in front of the operator again; a renewing client's certificate still works, and a pairing's invitation is spent. |
 | `Withheld` | A protected value this client may not read, from every way of reading one: the database protects it, and the rule that lets this client read or list the entry does not grant `P`. The message names the field; the operator can add `P` to that rule. The rest of the answer stands, and `entry.withheld` or `field.withheld` says the same without a `try`: `{name: entry.fields[name] for name in entry.fields if name not in entry.withheld}` reads every value this client may read. |
 | `Unresolved` | From `refs.resolve` alone: a value it will not give as KeePass would, and the message tells why. A reference searching by anything but a whole identifier, a reference to an entry this client cannot read, a placeholder KeePass replaces and the resolver does not, or references going round in a circle or deeper than KeePass follows. Use the value as stored, refer by identifier, or ask the operator to let this client read the entry referred to. |
-| `AmbiguousName` | A name only KeePass's own comparison can match, which this client will not guess at: an entry's `title`, `username`, `password`, `url` or `notes`, or a placeholder or a reference standing for such a string, when the entry holds the string under no name spelled exactly so beside a name beyond ASCII, and from `refs.resolve` a placeholder that names a field only in another case beyond ASCII. The message names the string or the placeholder. Rename the field in KeePass to the name spelled exactly, in ASCII. |
+| `AmbiguousName` | A name only KeePass's own comparison can match, which this client will not guess at: an entry's `title`, `username`, `password`, `url` or `notes`, or a placeholder or a reference standing for such a string, when the entry holds the string under no name spelled exactly so beside a name beyond ASCII or with a null in it, and from `refs.resolve` a placeholder that names a field only in another case beyond ASCII. The message names the string or the placeholder. Rename the field in KeePass to the name spelled exactly, in ASCII. |
 | `ProofRefused` | While pairing: the code is wrong, or whatever answered is not the KeePass whose operator holds it. Stop. |
 | `PairingRefused` | The operator said no. The invitation is spent, so ask for another. |
 | `PairingUnanswered` | Nobody answered the dialog. The invitation is **not** spent, so this can be tried again. |

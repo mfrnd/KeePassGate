@@ -347,7 +347,8 @@ class AmbiguousName(GateError):
     standard name. And it compares placeholders without their case in .NET Framework's terms,
     which beyond ASCII are not Python's. So an entry's `title`, `username`, `password`, `url` and
     `notes`, and a placeholder or a reference standing for such a string, raise this when the
-    entry holds the string under no name spelled exactly so beside a name beyond ASCII, and
+    entry holds the string under no name spelled exactly so beside a name beyond ASCII or with a
+    null in it, and
     `refs.resolve` raises it for a placeholder that names a field only when letters beyond ASCII
     are compared without their case. Empty or another field's value could stand where KeePass
     reads a value, or where the gate withheld a value. The message names the string or the
