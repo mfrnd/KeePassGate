@@ -16,6 +16,7 @@ from typing import Any, cast
 import pytest
 
 from pykeepassgate import __version__, api, sni, transport
+from pykeepassgate import client as client_module
 from pykeepassgate import credentials as credentials_module
 from pykeepassgate.client import GateClient
 from pykeepassgate.errors import (
@@ -339,6 +340,42 @@ def test_a_certificate_expired_only_by_a_clock_ahead_of_the_gate_s_is_still_offe
     assert stored.expired, "identity still says so"
     assert GateClient(stored, connection_timeout=10.0).status().ok
     assert gate.names != [], "the gate was asked"
+
+
+def test_the_leeway_is_the_five_minutes_the_documents_promise() -> None:
+    # The authority backdates a certificate by five minutes for a clock behind the gate's, and
+    # the client grants the same the other way; the pages give the number, so it is held here.
+    assert timedelta(minutes=5) == client_module.CLOCK_LEEWAY
+
+
+@pytest.mark.parametrize(
+    ("past", "dialed"),
+    [(timedelta(minutes=-1), True), (timedelta(minutes=1), False)],
+    ids=["a minute inside it", "a minute beyond it"],
+)
+def test_a_certificate_is_offered_until_the_leeway_has_passed_and_not_after(
+    past: timedelta, dialed: bool, tmp_path: Path, bundle: dict[str, Any], gate: FakeGate
+) -> None:
+    # Either side of the leeway, rather than a minute past and a quarter of a century: a leeway
+    # widened by mistake dials with a certificate the gate refuses as a stranger, and a leeway
+    # narrowed refuses a clock a few minutes ahead for nothing.
+    gate.version = None
+    status = {"ok": True, "database": "abcdef01", "version": __version__, "revision": ""}
+    gate.handler = lambda path, body, client: (200, json.dumps(status))
+    moment = datetime.now(UTC) - client_module.CLOCK_LEEWAY - past
+    stored = credentials_module.save(
+        tmp_path / "kept", gate.port, {**bundle, "expires": f"{moment:%Y-%m-%dT%H:%M:%SZ}"}
+    )
+
+    if dialed:
+        assert GateClient(stored, connection_timeout=10.0).status().ok
+        assert gate.names != [], "the gate was asked"
+        return
+
+    with pytest.raises(NotAdmitted, match="expired at"):
+        GateClient(stored, connection_timeout=10.0).status()
+
+    assert gate.names == [], "nothing was dialed to learn it"
 
 
 @pytest.mark.parametrize("expires", ["", "whenever", "2001-02-03"], ids=["none", "a word", "a day"])
