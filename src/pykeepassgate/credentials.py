@@ -499,9 +499,11 @@ def load(directory: Path) -> Credentials:
             "the pairing used"
         )
 
+    # `RecursionError` as well, which a file nested deeper than the decoder's stack allows raises,
+    # and which is no `ValueError`.
     try:
         details = json.loads(details_path.read_text("utf-8"))
-    except (OSError, ValueError) as error:
+    except (OSError, ValueError, RecursionError) as error:
         raise StorageError(f"{details_path} will not read: {error}") from error
 
     if not isinstance(details, dict):

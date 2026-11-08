@@ -11,6 +11,11 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **PyKeePassGate refuses a body that is not UTF-8, or that is nested past the decoder's stack, as
+  a body it cannot read**, with `ProtocolError`. A body that was not UTF-8 was decoded leniently,
+  so a value came back holding U+FFFD where its bytes were, as though it were the value stored,
+  and a hundred thousand bytes of `[` raised `RecursionError` out of every call, past `except
+  GateError`. A `client.json` nested that deep is the `StorageError` any unreadable file is.
 - **PyKeePassGate reads the numbers in an answer as digits and nothing else**: the status as
   three of them, and `Content-Length` and `Retry-After` as RFC 9110 writes them. Python's `int`
   took a sign, an underscore and digits of any script, so a negative `Content-Length` counted as

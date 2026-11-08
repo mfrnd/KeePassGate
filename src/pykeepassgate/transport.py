@@ -476,10 +476,15 @@ class Response:
     etag: str | None = None
 
     def json(self) -> dict[str, Any]:
-        """The body as an object, or a refusal if it is not one."""
+        """The body as an object, or a refusal if it is not one.
+
+        A body nested deeper than the decoder's stack allows raises `RecursionError` there, which
+        is no `ValueError`, and a hundred thousand bytes of `[` is far under any cap; it is refused
+        as any other body that will not read, so `except GateError` still catches it.
+        """
         try:
             parsed = json.loads(self.body)
-        except ValueError as error:
+        except (ValueError, RecursionError) as error:
             raise ProtocolError(
                 f"the gate answered {self.status} with something that is not JSON"
             ) from error
@@ -1034,9 +1039,19 @@ def _parse(raw: bytes) -> Response:
             f"the answer stopped {declared - len(body)} bytes short of its own content length"
         )
 
+    # Strictly, because a body decoded leniently hands a value over with U+FFFD where its bytes
+    # were, a password among them, as though it were the value stored: wrong data is worse than an
+    # error, as `model._content` holds of an attachment. The plugin writes nothing but UTF-8, so
+    # only a defect or an unverified peer of a pairing reaches this. Not chained, because what
+    # could not be decoded holds the whole body.
+    try:
+        text = body.decode("utf-8")
+    except UnicodeDecodeError:
+        raise ProtocolError(f"the gate answered {status} with a body that is not UTF-8") from None
+
     return Response(
         status=status,
-        body=body.decode("utf-8", "replace"),
+        body=text,
         retry_after=_retry_after(head),
         unavailable_word=_header(head, "kpg-unavailable") or None,
         etag=_etag(head),

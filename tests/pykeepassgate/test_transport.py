@@ -43,6 +43,18 @@ class TestResponse:
         with pytest.raises(ProtocolError, match="not an object"):
             transport.Response(200, "[1, 2]").json()
 
+    def test_a_body_nested_past_the_decoder_s_stack_is_refused_as_one_that_will_not_read(
+        self,
+    ) -> None:
+        # `RecursionError` in the decoder, which is no `ValueError`, and which escaped `json` and
+        # `error` alike, out of every refusal's handling and past `except GateError`.
+        deep = transport.Response(503, "[" * 100_000)
+
+        with pytest.raises(ProtocolError, match="not JSON"):
+            deep.json()
+
+        assert deep.error() == ""
+
     def test_the_word_a_refusal_carries_is_readable(self) -> None:
         assert transport.Response(503, '{"error":"locked"}').error() == "locked"
 
@@ -115,6 +127,16 @@ class TestParsing:
     def test_an_answer_with_no_header_block_is_refused(self) -> None:
         with pytest.raises(ProtocolError, match="header block"):
             transport._parse(b"HTTP/1.1 200 OK\r\n")
+
+    def test_a_body_that_is_not_utf_8_is_refused_rather_than_patched(self) -> None:
+        # Decoded leniently, it was a value holding U+FFFD where the byte was, handed over as
+        # though it were the value stored.
+        raw = b'HTTP/1.1 200 OK\r\nContent-Length: 13\r\n\r\n{"value":"\xff"}'
+
+        with pytest.raises(ProtocolError, match="not UTF-8") as refused:
+            transport._parse(raw)
+
+        assert refused.value.__cause__ is None, "what would not decode is the whole body"
 
     @pytest.mark.parametrize("status", ["2_00", "+200", " 200", "20", "2000", "٢٠٠"])
     def test_a_status_is_three_digits_and_nothing_int_reads_besides(self, status: str) -> None:

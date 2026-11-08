@@ -462,6 +462,8 @@ WRITTEN = {
     ("written", "because"),
     [
         ("{not json at all", "will not read"),
+        # Nested deeper than the decoder's stack allows, which is `RecursionError` there.
+        ("[" * 100_000, "will not read"),
         ("[]", "not what this client wrote"),
         ('{"subject": "x"}', "names no port"),
         ('{"port": "not a number"}', "names no port"),
