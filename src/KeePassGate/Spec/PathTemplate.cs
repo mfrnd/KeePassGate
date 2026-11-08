@@ -20,8 +20,8 @@ namespace KeePassGate.Spec
     /// **The path arrives as it was sent, and is decoded one segment at a time here**, which is
     /// what RFC 3986 section 2.2 asks for and the only place it can be done correctly: a `%2F`
     /// decoded before the split stops being part of a name and becomes a separator, so an
-    /// attachment called `a/b` could never be addressed. Splitting first leaves the escape meaning a
-    /// slash inside one segment, which is what escaping it was for.
+    /// attachment called `a/b` could never be addressed. Splitting first leaves the escape meaning
+    /// a slash inside one segment, which is what escaping it was for.
     ///
     /// The reader has already refused a path with a segment that will not decode, one that carries
     /// a control character, and one that *is* a climb. It cannot have refused a segment that

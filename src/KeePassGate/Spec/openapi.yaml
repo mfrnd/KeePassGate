@@ -594,9 +594,9 @@ paths:
                   pattern: "^P([1-9]|[1-9][0-9]|[12][0-9][0-9]|3[0-5][0-9]|36[0-5])D$"
                   description: |
                     How long the certificate should last, as an ISO 8601 duration in whole days from
-                    one to 365, `P30D` for thirty, and in that spelling alone. A proposal rather than
-                    a grant: the dialog preselects it and the operator picks, and a request without
-                    it is offered a year. The proof covers it as written.
+                    one to 365, `P30D` for thirty, and in that spelling alone. A proposal rather
+                    than a grant: the dialog preselects it and the operator picks, and a request
+                    without it is offered a year. The proof covers it as written.
                 proof:
                   type: string
                   maxLength: 64
@@ -1125,9 +1125,9 @@ paths:
       description: |
         A protected value arrives only when the same rule carries `protected`, and is `null`
         otherwise, which is what the `fields` schema says and what `read` alone does not buy:
-        `protected` is a scope rather than something a verb implies. Attachments are not here, because
-        reaching those needs the attachment switch as well and a response whose contents depend on
-        a second permission is a response nobody can predict.
+        `protected` is a scope rather than something a verb implies. Attachments are not here,
+        because reaching those needs the attachment switch as well and a response whose contents
+        depend on a second permission is a response nobody can predict.
       x-kpg-verb: read
       parameters:
         - $ref: "#/components/parameters/EntryUuid"
@@ -2348,9 +2348,9 @@ components:
         window the write would land under, until the operation is over.
       # What a write delivered inside one of KeePass's own operations did, while writes were posted
       # to KeePass's thread rather than queued for it, was nothing a client could see as a conflict:
-      # the operator's own save committed the copy it took before the change and the write the client
-      # was told had landed was gone from the disk, or half an import was written with nothing left
-      # saying the rest never was, or an export threw and left a truncated file.
+      # the operator's own save committed the copy it took before the change and the write the
+      # client was told had landed was gone from the disk, or half an import was written with
+      # nothing left to show the rest never was, or an export threw and left a truncated file.
       headers:
         Retry-After:
           $ref: "#/components/headers/RetryAfter"
@@ -2503,9 +2503,9 @@ components:
       description: |
         Either the proof did not verify, in which case the invitation is not spent, or this
         connection may not pair at all and is being told what every caller without a certificate is
-        told on every path there is. `proof` is the first and `unpaired` the second, and they are not
-        told apart on purpose: a caller the database does not admit cannot tell a pairing route from
-        a path nobody declared.
+        told on every path there is. `proof` is the first and `unpaired` the second, and they are
+        not told apart on purpose: a caller the database does not admit cannot tell a pairing route
+        from a path nobody declared.
       content:
         application/json:
           schema:
@@ -2527,9 +2527,9 @@ components:
     # mistake.
     NotPairing:
       description: |
-        This connection may not pair: it arrived on no invitation, or it already holds a certificate.
-        Only a client the database already admits is told this much, and it is told exactly what an
-        undeclared path tells it. Everybody else gets the `401` above instead.
+        This connection may not pair: it arrived on no invitation, or it already holds a
+        certificate. Only a client the database already admits is told this much, and it is told
+        exactly what an undeclared path tells it. Everybody else gets the `401` above instead.
       content:
         application/json:
           schema:
