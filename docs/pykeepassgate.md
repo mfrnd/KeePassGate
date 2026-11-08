@@ -580,7 +580,8 @@ pykeepassgate remove <uuid>
 an expiry off. `--password` reads from standard input rather than taking a value, so the secret
 stays out of the process list. At a terminal it is asked for, and each character typed or pasted
 shows as a `*`; piped in, it is the one line as sent, spaces and all, read as UTF-8 whatever the
-code page, with a byte order mark at its start dropped. Input that is not UTF-8 is refused, exit 2,
+code page, with a byte order mark at its start dropped, and its line ending taken off, a carriage
+return before the line feed as well on every platform. Input that is not UTF-8 is refused, exit 2,
 rather than stored as other text, and so is input that ends before a line, piped or typed: an
 empty value is an empty line, which a pipe sends as a line break and a person as Enter on its own.
 

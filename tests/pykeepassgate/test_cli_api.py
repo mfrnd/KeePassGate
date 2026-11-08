@@ -471,6 +471,36 @@ def test_a_value_piped_in_that_is_not_utf8_is_refused_before_anything_is_sent(
     assert sent == []
 
 
+@pytest.mark.parametrize("newline", [None, "\n"], ids=["as on Windows", "as elsewhere"])
+@pytest.mark.parametrize(
+    "command",
+    [
+        (["add", "--title", "x", "--password"], "Password"),
+        (["update", UUID, "--password"], "Password"),
+        (["add-field", UUID, "Token"], "value"),
+        (["update-field", UUID, "Token"], "value"),
+    ],
+    ids=["add", "update", "add-field", "update-field"],
+)
+def test_a_line_a_windows_program_wrote_is_read_without_its_carriage_return(
+    gate: FakeGate,
+    kept: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    newline: str | None,
+    command: tuple[list[str], str],
+) -> None:
+    # Python reads standard input with universal newlines on Windows alone, so elsewhere a line
+    # ending in a carriage return and a line feed kept the carriage return, and was stored with
+    # it: every later use of the password failed, and on the same machine nothing looked amiss.
+    arguments, member = command
+    sent = _created(gate)
+    piped = io.TextIOWrapper(io.BytesIO(b"rotated\r\n"), encoding="utf-8", newline=newline)
+    monkeypatch.setattr("sys.stdin", piped)
+
+    assert cli.main([*arguments, "--directory", str(kept)]) == 0
+    assert sent[-1][member] == "rotated"
+
+
 @pytest.mark.parametrize(
     "command",
     [

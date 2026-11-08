@@ -1181,11 +1181,13 @@ def _dialing(arguments: argparse.Namespace) -> _Dialing:
 def _secret(prompt: str) -> str:
     """One line of standard input, asked for with a `*` per character when a person is typing it.
 
-    Piped in, it is the line as it was sent. At a terminal a bare read would print nothing, so
-    the command would look hung, and would echo what was typed onto the screen, into scrollback
-    and into any recording of the session, which is what reading it rather than taking it as an
-    argument is meant to avoid. `getpass` asks on the terminal itself, so the prompt reaches
-    neither of the two streams a script reads.
+    Piped in, it is the line as it was sent, less its line ending, a line feed or a carriage return
+    and a line feed alike. Python reads standard input with universal newlines on Windows alone,
+    so elsewhere a line a Windows program wrote kept its carriage return, and was stored with it.
+    At a terminal a bare read would print nothing, so the command would look hung, and would echo
+    what was typed onto the screen, into scrollback and into any recording of the session, which
+    is what reading it rather than taking it as an argument is meant to avoid. `getpass` asks on
+    the terminal itself, so the prompt reaches neither of the two streams a script reads.
 
     A `*` stands in for each character because a value is pasted as often as typed, and a prompt
     that stays blank after a paste looks as if the paste did not land. That says how long the
@@ -1219,7 +1221,7 @@ def _secret(prompt: str) -> str:
     if not line:
         raise _Refused(_NO_LINE)
 
-    return line
+    return line.removesuffix("\n").removesuffix("\r")
 
 
 def _console() -> bool:
@@ -1942,7 +1944,7 @@ def _add(arguments: argparse.Namespace) -> int:
     if arguments.password:
         # Read rather than argued, for the same reason the invitation is: an argument is in the
         # process list, where anything running as this user can read it.
-        password = _secret("Password for the new entry: ").rstrip("\n")
+        password = _secret("Password for the new entry: ")
 
     uuid = client.create_entry(
         group=arguments.group,
@@ -1983,7 +1985,7 @@ def _update(arguments: argparse.Namespace) -> int:
     password = None
     if arguments.password:
         # Read rather than argued, as `add` reads one.
-        password = _secret("New password: ").rstrip("\n")
+        password = _secret("New password: ")
 
     etag = client.update_entry(
         arguments.uuid,
@@ -2065,7 +2067,7 @@ def _value(arguments: argparse.Namespace, prompt: str) -> str:
     if arguments.value is not None:
         return str(arguments.value)
 
-    return _secret(prompt).rstrip("\n")
+    return _secret(prompt)
 
 
 def _add_field(arguments: argparse.Namespace) -> int:

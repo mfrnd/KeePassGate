@@ -11,6 +11,9 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **A value piped in loses its carriage return on every platform**, as it did on Windows alone:
+  elsewhere a line a Windows program wrote reached the gate with the carriage return still on it,
+  and a password was stored with it.
 - **`revoke` whose files will not all go still reports the revocation**: what it gave up and the
   admission key, with the directory to remove named on standard error and exit code 1. It printed
   only the file's `StorageError`, so a revocation that landed read as refused.
