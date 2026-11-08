@@ -584,6 +584,11 @@ code page, with a byte order mark at its start dropped, and its line ending take
 return before the line feed as well on every platform. Input that is not UTF-8 is refused, exit 2,
 rather than stored as other text, and so is input that ends before a line, piped or typed: an
 empty value is an empty line, which a pipe sends as a line break and a person as Enter on its own.
+Input holding more than a line is refused too, exit 2 with nothing sent, rather than cut to its
+first: a value over several lines, such as a key in PEM, is a program's to send, which takes any
+string. **So a value piped in is read to the end of input**, and whatever sends it must close the
+pipe: a producer that sends its line and holds the pipe open holds the command with it. The same
+holds for every value read this way, an invitation and a field's value among them.
 
 **`expires` is when the entry expires**: a moment with its time zone, `"auto"` on a create for
 whatever KeePass's options give every new entry, or `False` for none, which on an update takes an

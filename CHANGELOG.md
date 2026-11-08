@@ -11,6 +11,10 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **A value piped in over more than a line is refused**, exit 2 with nothing sent. It was cut to
+  its first line and stored, so a key in PEM was stored as its `BEGIN` line and reported done. A
+  value piped in is read to the end of input now, so whatever sends it must close the pipe, which
+  the help of each command that reads a value names.
 - **A value piped in loses its carriage return on every platform**, as it did on Windows alone:
   elsewhere a line a Windows program wrote reached the gate with the carriage return still on it,
   and a password was stored with it.

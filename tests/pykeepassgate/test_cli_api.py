@@ -502,6 +502,44 @@ def test_a_line_a_windows_program_wrote_is_read_without_its_carriage_return(
 
 
 @pytest.mark.parametrize(
+    "piped",
+    [
+        "-----BEGIN OPENSSH PRIVATE KEY-----\ninvented\n-----END OPENSSH PRIVATE KEY-----\n",
+        "rotated\n\n",
+        "rotated\r\nmore",
+    ],
+    ids=["a key over three lines", "a blank line after it", "more after a carriage return"],
+)
+def test_input_holding_more_than_a_line_is_refused_rather_than_cut_to_its_first(
+    gate: FakeGate,
+    kept: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    piped: str,
+) -> None:
+    # A key piped in was stored as its `BEGIN` line, reported done with exit 0, and found useless
+    # only when something tried it.
+    sent = _created(gate)
+    monkeypatch.setattr("sys.stdin", io.StringIO(piped))
+
+    assert cli.main(["add-field", UUID, "Deploy key", "--directory", str(kept)]) == 2
+    assert "more than a line" in capsys.readouterr().err
+    assert sent == []
+    assert gate.requests == []
+
+
+def test_a_line_with_no_line_ending_is_read_without_waiting_for_more(
+    gate: FakeGate, kept: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Input that ends inside its only line has nothing after it to ask about.
+    sent = _created(gate)
+    monkeypatch.setattr("sys.stdin", io.StringIO("rotated"))
+
+    assert cli.main(["update", UUID, "--password", "--directory", str(kept)]) == 0
+    assert sent[-1]["Password"] == "rotated"
+
+
+@pytest.mark.parametrize(
     "command",
     [
         ["add", "--title", "x", "--password"],
@@ -921,6 +959,10 @@ class _Line:
 
     def readline(self) -> str:
         return self._text
+
+    def read(self, size: int = -1) -> str:
+        # Nothing after the line, which is what a pipe that has sent a line and closed holds.
+        return ""
 
 
 class _Terminal:

@@ -150,6 +150,14 @@ class _Refused(Exception):
     """What a command cannot do as given, found where it cannot return exit code 2 itself."""
 
 
+#: The sentence each help text that reads standard input ends on: `_secret` reads to
+#: the end of input, since what comes after the line is refused rather than left unread, so a
+#: producer that sends its line and holds the pipe open holds the command with it.
+_PIPED = (
+    "piped in, it is one line and is read to the end of input, so whatever sends it must "
+    "close the pipe"
+)
+
 #: What `_secret` refuses input that ended before a line with.
 _NO_LINE = (
     "input ended before a line was read, so there is no value to send: an empty value is an "
@@ -235,7 +243,7 @@ def _parser() -> argparse.ArgumentParser:
         "--invitation",
         help=(
             "the invitation from the tab. Omit it and it is read from standard input instead, "
-            "asked for at a terminal, showing a * for each character."
+            f"asked for at a terminal, showing a * for each character; {_PIPED}."
         ),
     )
     pairing.add_argument(
@@ -489,7 +497,7 @@ def _parser() -> argparse.ArgumentParser:
         action="store_true",
         help=(
             "read the password from standard input, so it stays out of the process list; at a "
-            "terminal it is asked for, showing a * for each character"
+            f"terminal it is asked for, showing a * for each character; {_PIPED}"
         ),
     )
 
@@ -516,7 +524,7 @@ def _parser() -> argparse.ArgumentParser:
         action="store_true",
         help=(
             "read the new password from standard input, so it stays out of the process list; at "
-            "a terminal it is asked for, showing a * for each character"
+            f"a terminal it is asked for, showing a * for each character; {_PIPED}"
         ),
     )
     _conditioned(update)
@@ -769,7 +777,7 @@ def _valued(parser: argparse.ArgumentParser) -> None:
         help=(
             "the value. Left off, it is read from standard input, which keeps it out of the "
             "process list and is the way to give a secret; at a terminal it is asked for, "
-            "showing a * for each character"
+            f"showing a * for each character; {_PIPED}"
         ),
     )
 
@@ -1198,6 +1206,12 @@ def _secret(prompt: str) -> str:
     value: a producer that printed nothing, a closed standard input and `< /dev/null` end so, and
     so does the end of input typed at the prompt. An empty value is an empty line, which a pipe
     sends as a line break and a person as Enter on its own.
+
+    **And input holding more than a line is refused**, rather than cut to its first line: a key
+    in PEM piped in was stored as its `BEGIN` line, reported done, and found useless only when
+    something tried it. A value over several lines is a program's to send, which takes any
+    string. Asked by reading a character past the line, so a producer that never stops is
+    refused at once rather than read for good.
     """
     if _console():
         try:
@@ -1212,6 +1226,7 @@ def _secret(prompt: str) -> str:
 
     try:
         line = sys.stdin.readline()
+        more = sys.stdin.read(1) if line.endswith("\n") else ""
     except UnicodeDecodeError:
         raise _Refused(
             "standard input is not UTF-8, so what it holds would be stored as other text; "
@@ -1220,6 +1235,12 @@ def _secret(prompt: str) -> str:
 
     if not line:
         raise _Refused(_NO_LINE)
+
+    if more:
+        raise _Refused(
+            "standard input holds more than a line, and a value read from it is a line: only the "
+            "first would be sent, so nothing was"
+        )
 
     return line.removesuffix("\n").removesuffix("\r")
 
