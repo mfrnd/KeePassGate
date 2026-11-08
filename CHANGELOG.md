@@ -465,6 +465,10 @@ none, since it releases both.
 - **A change to an entry that reached the disk is never answered `503 busy`.** Its answer reads the
   entry again to confirm the tag it hands back, and a read that could not hold KeePass's thread was
   answered `busy`, so a client retried a change already made. It is answered without the tag.
+- **A read too large to serve is `413` whatever its `If-Match`**, for an attachment, an entry and a
+  field alike, as RFC 9110 section 13.2.1 orders it and the routing document already stated. The
+  condition was asked first, so a stale tag was told `412`, and a client handed no tag was told
+  `412` every time and never that the read was too large.
 
 ## 0.1.0, 2026-10-25
 

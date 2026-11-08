@@ -227,16 +227,9 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            // Asked again of what was read, which says whether the entry holds a protected value
-            // as of after the tag was taken.
-            tag = MayTag(context, entry.Entry) ? tag : null;
-            if (PreconditionFails(context, tag))
-            {
-                return;
-            }
-
             // Measured again on what came back, because a vault handing over more than it was
-            // asked for must not be the way past the ceiling either.
+            // asked for must not be the way past the ceiling either. Before the condition, for the
+            // reason `ReadAttachment` gives.
             if (entry.Fields == null || entry.Characters > MaxEntryCharacters)
             {
                 context.Respond(413, HttpResponse.ErrorBody(string.Format(
@@ -244,6 +237,14 @@ namespace KeePassGate.Pipeline
                     "this entry holds {0} characters of names and values, and this gate hands out at most {1}",
                     entry.Characters,
                     MaxEntryCharacters)));
+                return;
+            }
+
+            // Asked again of what was read, which says whether the entry holds a protected value
+            // as of after the tag was taken.
+            tag = MayTag(context, entry.Entry) ? tag : null;
+            if (PreconditionFails(context, tag))
+            {
                 return;
             }
 
@@ -483,14 +484,7 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            // Asked of this lookup, which is after the tag, so it is the entry as of then that
-            // decides whether this caller may still be handed it.
-            tag = MayTag(context, entry) ? tag : null;
-            if (PreconditionFails(context, tag))
-            {
-                return;
-            }
-
+            // Before the condition, for the reason `ReadAttachment` gives.
             var value = held.Value;
             if (value == null || held.Characters > MaxEntryCharacters)
             {
@@ -499,6 +493,14 @@ namespace KeePassGate.Pipeline
                     "this field holds {0} characters with its name, and this gate hands out at most {1}",
                     held.Characters,
                     MaxEntryCharacters)));
+                return;
+            }
+
+            // Asked of this lookup, which is after the tag, so it is the entry as of then that
+            // decides whether this caller may still be handed it.
+            tag = MayTag(context, entry) ? tag : null;
+            if (PreconditionFails(context, tag))
+            {
                 return;
             }
 
@@ -761,14 +763,11 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            tag = Confirmed(context, vault, uuid, tag);
-            if (PreconditionFails(context, tag))
-            {
-                return;
-            }
-
             // Measured again on what came back, because a vault handing over more than it was
-            // asked for must not be the way past the ceiling either.
+            // asked for must not be the way past the ceiling either. Before the condition, which
+            // RFC 9110 section 13.2.1 orders after every refusal that does not depend on the tag:
+            // asked first, an attachment over the ceiling answered a stale tag `412`, and a client
+            // never handed a tag was told `412` every time and never that it was too large.
             var content = attachment.Content;
             var size = content == null ? attachment.Size : content.Length;
             if (content == null || size > MaxAttachmentBytes)
@@ -778,6 +777,12 @@ namespace KeePassGate.Pipeline
                     "this attachment is {0} bytes, and this gate hands out at most {1}",
                     size,
                     MaxAttachmentBytes)));
+                return;
+            }
+
+            tag = Confirmed(context, vault, uuid, tag);
+            if (PreconditionFails(context, tag))
+            {
                 return;
             }
 

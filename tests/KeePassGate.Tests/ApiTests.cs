@@ -1407,6 +1407,38 @@ namespace KeePassGate.Tests
                 "a field under it in the same entry is still read");
         }
 
+        [TestCase("/attachments/big.bin", "\"00000000000000000000000000000000\"", false, TestName = "An attachment over the ceiling asked for under a stale tag is too large")]
+        [TestCase("/attachments/big.bin", "*", true, TestName = "An attachment over the ceiling asked for by a client handed no tag is too large")]
+        [TestCase("", "\"00000000000000000000000000000000\"", false, TestName = "An entry over the ceiling asked for under a stale tag is too large")]
+        [TestCase("/fields/Big", "\"00000000000000000000000000000000\"", false, TestName = "A field over the ceiling asked for under a stale tag is too large")]
+        public void A_read_over_the_ceiling_is_too_large_whatever_its_condition(
+            string under, string ifMatch, bool holdsProtected)
+        {
+            // RFC 9110 section 13.2.1 asks the condition only of a request that would otherwise
+            // succeed, and the size does not depend on the tag. Asked first, a stale tag was told
+            // `412`, read again, and only then told the read could not be served, and a client
+            // handed no tag, whose condition nothing meets, was told `412` every time.
+            _vault.Granting(_group, AllButProtected);
+            if (holdsProtected)
+            {
+                _vault.CreateField(_entry, "Password", "not-a-real-password", true, VaultTagging.None);
+            }
+
+            if (under.StartsWith("/attachments/", StringComparison.Ordinal))
+            {
+                Assume.That(_vault.CreateAttachment(
+                    _entry, "big.bin", new byte[VaultHandlers.MaxAttachmentBytes + 1], VaultTagging.None).Ok, Is.True);
+            }
+            else
+            {
+                _vault.Plant(_entry, "Big", new string('x', VaultHandlers.MaxEntryCharacters));
+            }
+
+            var read = Conditioned("GET", "/entries/" + _entry + under, null, ifMatch);
+
+            Assert.That(read.Status, Is.EqualTo(413), read.Json);
+        }
+
         [Test]
         public void A_write_taking_an_entry_over_the_ceiling_is_refused_and_changes_nothing()
         {
