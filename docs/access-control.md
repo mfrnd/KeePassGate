@@ -215,6 +215,14 @@ holding the characters that reorder how text is displayed, so a program cannot s
 document's name on something that ends in `.exe`, but a name that says `.exe` plainly is still one it
 may choose. Whatever a program may create, the operator's KeePass may open.
 
+**A field is filled in by its name too.** The gate refuses a field or attachment name holding a
+character drawn as nothing at all, a zero-width space, a joiner, a soft hyphen or a byte order mark
+among them, so a program holding `C` cannot add a second field drawn exactly as `Password`, beside
+the real `Password` and holding what the program chose, for the operator to type a credential into
+or copy from. A name is not checked for looking like another in any other way: a letter from
+another script, or a space at the end, still makes a name of its own, which the entry's
+**Advanced** tab shows beside the others.
+
 **What counts as protected is KeePass's own answer**, not this plugin's. KeePass keeps some fields
 encrypted in memory, the password by default, and an operator can mark any field or unmark one. A
 field nobody protected is not a secret here however secret it reads, so a program given `R` and not

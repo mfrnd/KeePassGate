@@ -1118,12 +1118,11 @@ namespace KeePassGate.Pipeline
         /// holding only `create` could write beside an existing protected field, be answered
         /// `201`, and find its own value there in clear once the file was reopened.
         ///
-        /// **And a name that would be shown in another order than it is written**, which
-        /// <see cref="Reorders"/> says why.
+        /// **And a name holding a format character**, for the reasons <see cref="Formats"/> gives.
         /// </remarks>
         private static bool Unnameable(IGateContext context, string name)
         {
-            if (PathTemplate.IsCapture(name) && !Reorders(name))
+            if (PathTemplate.IsCapture(name) && !Formats(name))
             {
                 return false;
             }
@@ -1133,7 +1132,7 @@ namespace KeePassGate.Pipeline
         }
 
         /// <summary>
-        /// Whether a name holds a character that changes the order the text around it is shown in.
+        /// Whether a name holds a Unicode format character, a character of general category Cf.
         /// </summary>
         /// <remarks>
         /// **Refused in a name, because KeePass acts on what a name says.** It lists an attachment
@@ -1142,22 +1141,37 @@ namespace KeePassGate.Pipeline
         /// right to left override and then `fdp.exe` is listed as ending in `.pdf` and started as a
         /// program, and a client allowed to create attachments could offer the operator a program
         /// dressed as a document. A field name is refused the same way, since the same dialog
-        /// shows those.
+        /// shows those. Every bidirectional control Unicode has, the Arabic letter mark, the two
+        /// directional marks, the five embeddings and overrides and the four isolates, is a format
+        /// character.
         ///
-        /// These twelve are every character Unicode classes as a bidirectional control: the Arabic
-        /// letter mark, the two directional marks, the five embeddings and overrides, and the four
-        /// isolates. A value is not a name and keeps them, because right to left text is ordinary
-        /// in a note.
+        /// **The rest of the category is drawn as nothing at all**: the zero-width space, the
+        /// joiners, the soft hyphen, the byte order mark, the tag characters. A name holding any of
+        /// them is drawn exactly as the name without it, so a client allowed to create fields could
+        /// put a second `Password` on an entry, unprotected and holding what the client chose,
+        /// beside the real `Password`, for the operator to type a credential into or copy from. The
+        /// database cannot be left to refuse it: it tells names apart by the culture's collation,
+        /// which weighs some of these and not others, so `Pass` and `word` around a zero-width
+        /// space were a second name to KeePass and the same name to the eye.
+        ///
+        /// Asked of each character as Unicode classes it, a pair of surrogates as the character it
+        /// encodes, so that a format character beyond the first plane is refused as well. A value
+        /// is not a name and keeps them, because right to left text is ordinary in a note. A name
+        /// that looks like another in any other way, a letter of another script or a space at its
+        /// end, is not asked about here.
         /// </remarks>
-        private static bool Reorders(string name)
+        private static bool Formats(string name)
         {
-            foreach (var character in name)
+            for (var at = 0; at < name.Length; at++)
             {
-                if (character == '\u061C' || character == '\u200E' || character == '\u200F'
-                    || (character >= '\u202A' && character <= '\u202E')
-                    || (character >= '\u2066' && character <= '\u2069'))
+                if (CharUnicodeInfo.GetUnicodeCategory(name, at) == UnicodeCategory.Format)
                 {
                     return true;
+                }
+
+                if (char.IsHighSurrogate(name[at]) && at + 1 < name.Length && char.IsLowSurrogate(name[at + 1]))
+                {
+                    at++;
                 }
             }
 

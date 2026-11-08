@@ -42,7 +42,8 @@ namespace KeePassGate.Tests
         /// U+00AD, the soft hyphen. KeePass keeps an entry's strings under the default comparer,
         /// which compares by the current culture, and that collation gives it no weight at all, so
         /// this name addresses the entry's `Password`. It is a format character rather than a
-        /// control one, so nothing in the path or the body refuses it on the way in.
+        /// control character, so nothing in the path refuses it on the way in; a body making a
+        /// name holding it is refused, as every name holding a format character is.
         /// </remarks>
         private const string PasswordAlias = "Pass\u00ADword";
 
@@ -903,7 +904,7 @@ namespace KeePassGate.Tests
             Assert.That(Send("DELETE", aliased, null).Status, Is.EqualTo(404));
             Assert.That(Send("POST", "/entries/" + _entry + "/fields",
                 Bodies.Of(("name", PasswordAlias), ("value", "chosen-by-the-caller"))).Status,
-                Is.EqualTo(404));
+                Is.EqualTo(400), "and a name holding a format character is not made at all");
 
             Assert.That(_vault.Field(_entry, "Password"), Is.EqualTo("not-a-real-password"));
         }
@@ -2147,6 +2148,40 @@ namespace KeePassGate.Tests
             Assert.That(attachment.Json, Does.Contain("malformed"));
             Assert.That(_vault.Field(_entry, name), Is.Null);
             Assert.That(_vault.Attachment(_entry, name), Is.Null);
+        }
+
+        [TestCase("Pass\\u200Bword", "Pass\u200Bword", TestName = "a zero-width space")]
+        [TestCase("Pass\\u200Cword", "Pass\u200Cword", TestName = "a zero-width non-joiner")]
+        [TestCase("Pass\\u200Dword", "Pass\u200Dword", TestName = "a zero-width joiner")]
+        [TestCase("Pass\\u2060word", "Pass\u2060word", TestName = "a word joiner")]
+        [TestCase("Pass\\u00ADword", "Pass\u00ADword", TestName = "a soft hyphen")]
+        [TestCase("Pass\\uFEFFword", "Pass\uFEFFword", TestName = "a byte order mark")]
+        [TestCase("Pass\\u180Eword", "Pass\u180Eword", TestName = "the Mongolian vowel separator")]
+        [TestCase("Pass\\uDB40\\uDC41word", "Pass\uDB40\uDC41word", TestName = "a tag character beyond the first plane")]
+        public void A_name_holding_a_character_drawn_as_nothing_is_not_made(string spelled, string name)
+        {
+            // Each of these is drawn as nothing at all, so the name is drawn as `Password`: a
+            // client holding `create` and not `protected` put a second, unprotected `Password`
+            // beside the real `Password`, holding what it chose, for the operator to type into or
+            // copy from. The database tells names apart by the culture, which weighs some of these
+            // and not others, so the zero-width space was a second name to it and the same name to
+            // the eye.
+            _vault.Granting(_group, AllButProtected);
+            _vault.CreateField(_entry, "Password", "not-a-real-password", true, VaultTagging.None);
+            var content = Convert.ToBase64String(new byte[] { 1, 2, 3 });
+            var fields = _vault.Fields(_entry).Count;
+
+            var field = Send("POST", "/entries/" + _entry + "/fields",
+                             "{\"name\":\"" + spelled + "\",\"value\":\"chosen-by-the-caller\"}");
+            var attachment = Send("POST", "/entries/" + _entry + "/attachments",
+                                  "{\"name\":\"" + spelled + "\",\"content\":\"" + content + "\"}");
+
+            Assert.That(field.Status, Is.EqualTo(400), field.Json);
+            Assert.That(field.Json, Does.Contain("malformed"));
+            Assert.That(attachment.Status, Is.EqualTo(400), attachment.Json);
+            Assert.That(_vault.Fields(_entry).Count, Is.EqualTo(fields), "nothing was made");
+            Assert.That(_vault.Attachment(_entry, name), Is.Null);
+            Assert.That(_vault.Field(_entry, "Password"), Is.EqualTo("not-a-real-password"));
         }
 
         [Test]

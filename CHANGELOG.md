@@ -469,6 +469,11 @@ none, since it releases both.
   field alike, as RFC 9110 section 13.2.1 orders it and the routing document already stated. The
   condition was asked first, so a stale tag was told `412`, and a client handed no tag was told
   `412` every time and never that the read was too large.
+- **A new field or attachment name holding a Unicode format character is `400 malformed`**, the
+  zero-width spaces and joiners, the soft hyphen and the byte order mark among them, beside the
+  bidirectional controls already refused. A name holding such a character is drawn as the name
+  without it, so a program holding `C` could add a second, unprotected `Password` beside the real
+  `Password`.
 
 ## 0.1.0, 2026-10-25
 

@@ -1293,17 +1293,23 @@ paths:
                 # unlock and one after it, and a client holding only `create` could write beside a
                 # protected field and find its own value there, in clear. The bidirectional
                 # controls are refused because KeePass acts on what a name says, as the attachment
-                # name beside `createAttachment` explains.
+                # name beside `createAttachment` explains, and the rest of the format characters
+                # because a name holding them is drawn as the name without them: a client could
+                # put a second, unprotected `Password` beside the real `Password`.
                 name:
                   type: string
                   minLength: 1
                   maxLength: 512
                   description: |
-                    A name the routes can name again: one holding any control character, line
-                    breaks and tabs included, one that decodes into a climb such as `a/../b`, or
-                    one holding any of the twelve characters Unicode classes as bidirectional
-                    controls is `400 malformed`. A name the entry carries, or one the database
-                    cannot tell from a name it carries, is `409`.
+                    A name the routes can name again: a name holding any control character, line
+                    breaks and tabs included, a name that decodes into a climb such as `a/../b`, or
+                    a name holding any Unicode format character, general category Cf, is
+                    `400 malformed`. The format characters are the bidirectional controls and
+                    every character drawn as nothing at all, such as the zero-width spaces and
+                    joiners, the soft hyphen and the byte order mark. A name the entry carries, or
+                    a name the database cannot tell from a name it carries, is `409`. Looking like
+                    another name in any other way, by a letter of another script or a space at
+                    its end, is not refused.
                 value:
                   type: string
                   maxLength: 65536
@@ -1573,11 +1579,15 @@ paths:
                   minLength: 1
                   maxLength: 512
                   description: |
-                    A name the routes can name again: one holding any control character, line
-                    breaks and tabs included, one that decodes into a climb such as `a/../b`, or
-                    one holding any of the twelve characters Unicode classes as bidirectional
-                    controls is `400 malformed`. A name the entry carries, or one the database
-                    cannot tell from a name it carries, is `409`.
+                    A name the routes can name again: a name holding any control character, line
+                    breaks and tabs included, a name that decodes into a climb such as `a/../b`, or
+                    a name holding any Unicode format character, general category Cf, is
+                    `400 malformed`. The format characters are the bidirectional controls and
+                    every character drawn as nothing at all, such as the zero-width spaces and
+                    joiners, the soft hyphen and the byte order mark. A name the entry carries, or
+                    a name the database cannot tell from a name it carries, is `409`. Looking like
+                    another name in any other way, by a letter of another script or a space at
+                    its end, is not refused.
                 content:
                   type: string
                   maxLength: 699052
