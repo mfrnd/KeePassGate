@@ -214,8 +214,9 @@ jobs:
           $python = if ($mode -eq 'rehearsal') { "$version.dev$dev" } else { $version }
 
           Write-Host "mode $mode, version $version, plugin $plugin, client $client as $python"
-          # Without a byte order mark, which Windows PowerShell's own UTF-8 writes first, and which
-          # would then be part of the first name.
+          # As UTF-8 without a byte order mark, which is tidier rather than needed: Windows
+          # PowerShell's own UTF-8 writes a mark first, and the runner strips it, as the output
+          # `gate.yml` writes that way shows.
           $lines = "mode=$mode", "version=$version", "python=$python",
             "plugin=$($plugin.ToString().ToLowerInvariant())", "client=$($client.ToString().ToLowerInvariant())"
           [System.IO.File]::AppendAllText($env:GITHUB_OUTPUT, (($lines -join "`n") + "`n"), (New-Object System.Text.UTF8Encoding $false))
