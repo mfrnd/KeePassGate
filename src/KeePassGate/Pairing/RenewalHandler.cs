@@ -649,6 +649,8 @@ namespace KeePassGate.Pairing
             }
             catch (Exception error) when (Expected.OfIssuance(error))
             {
+                // The approval goes with it, as pairing's does.
+                _held.Take(held);
                 _log.Error("a renewed client certificate could not be issued", error);
                 context.Respond(500, HttpResponse.ErrorBody("internal error"));
                 return;

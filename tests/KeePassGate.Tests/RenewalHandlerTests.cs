@@ -1203,6 +1203,34 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void An_approval_whose_certificate_could_not_be_issued_is_not_kept_for_a_retry()
+        {
+            // S015, as pairing has it: the book holds an approval KeePass was too busy to write,
+            // and nothing told the client this approval was held, yet the same renewal asked again
+            // was issued without the dialog once the issuer worked again.
+            var issuing = DateTimeOffset.UtcNow + AuthorityIssuer.AuthorityLifetime + TimeSpan.FromDays(1);
+            var operatorAt = FakeRenewalApproval.Approving();
+            var handler = new RenewalHandler(
+                operatorAt, _options, new AuthorityIssuer(() => issuing), () => _now, _session,
+                new AdmissionAudit(_audit), _log, _held);
+
+            using (var old = _authority.IssueAdmittedClient("reader"))
+            {
+                var failed = Context(old, "{}");
+                Router(handler).Handle(failed);
+                Assume.That(failed.Status, Is.EqualTo(500), failed.Json);
+                Assert.That(_held.Count, Is.Zero);
+
+                issuing = DateTimeOffset.UtcNow;
+                var retry = Context(old, "{}");
+                Router(handler).Handle(retry);
+
+                Assert.That(retry.Status, Is.EqualTo(200), retry.Json);
+                Assert.That(operatorAt.Asked, Is.EqualTo(2), "the operator is asked again");
+            }
+        }
+
+        [Test]
         public void A_certificate_revoked_in_the_meantime_is_told_what_every_connection_will_be()
         {
             var operatorAt = FakeRenewalApproval.Approving();

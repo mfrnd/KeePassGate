@@ -322,6 +322,10 @@ none, since it releases both.
   operator's standing answers**, and is told `503 busy` with `heldUntil` again. A read that failed
   once let go of the approval, so the next retry put the same dialog in front of the operator
   again.
+- **A pairing or a renewal answered `500 internal error` is put to the operator again when it is
+  asked for again**, as [`PAIRING.md`](PAIRING.md) §311 states for a certificate that could not be
+  issued. The approval was kept for the rest of the pairing budget with nothing telling the client
+  so, and the same request asked again was issued without the dialog.
 
 ## 0.1.0, 2026-10-25
 

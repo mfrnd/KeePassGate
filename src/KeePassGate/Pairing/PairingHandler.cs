@@ -689,6 +689,11 @@ namespace KeePassGate.Pairing
                 // a database that outlived its own runs out, as well as a key that would not sign;
                 // left unnamed it escaped the handler to the catch-all on the connection thread,
                 // which counts anything a handler throws as a defect in this plugin.
+                //
+                // **The approval goes with it**, `PAIRING.md` §311: the book holds what KeePass was
+                // too busy to write, and nothing on this answer tells the client an approval is
+                // held, so asking again asks the operator again.
+                _held.Take(held);
                 _log.Error("a client certificate could not be issued", error);
                 context.Respond(500, HttpResponse.ErrorBody("internal error"));
                 return;

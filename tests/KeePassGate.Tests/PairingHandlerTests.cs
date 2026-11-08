@@ -650,6 +650,27 @@ namespace KeePassGate.Tests
             Assert.That(_log.Errors.Any(e => e.Message.Contains("could not be issued")), Is.True);
             Assert.That(_log.Surprises, Is.Empty);
             Assert.That(_audit.Entries, Is.Empty, "an approval that admitted nobody is not written down");
+            Assert.That(_held.Count, Is.Zero, "and the approval is lost, `PAIRING.md` §311");
+        }
+
+        [Test]
+        public void An_approval_whose_certificate_could_not_be_issued_is_not_kept_for_a_retry()
+        {
+            // S015. Nothing was issued, so the approval is lost and the invitation is not. It
+            // was kept held, with nothing telling the client so, and the same request from a
+            // fresh hello was issued without the dialog once the issuer worked again.
+            var issuing = DateTimeOffset.UtcNow + AuthorityIssuer.AuthorityLifetime + TimeSpan.FromDays(1);
+            _issuer = new AuthorityIssuer(() => issuing);
+            var approval = Approving();
+            Hello(ClientProof());
+            Assume.That(Request("agent-fictitious", Array.Empty<string>(), approval).Status, Is.EqualTo(500));
+
+            issuing = DateTimeOffset.UtcNow;
+            Hello(ClientProof());
+            var retry = Request("agent-fictitious", Array.Empty<string>(), approval);
+
+            Assert.That(retry.Status, Is.EqualTo(200), retry.Json);
+            Assert.That(approval.Asked, Is.EqualTo(2), "the operator is asked again");
         }
 
         [Test]
