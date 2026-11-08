@@ -61,6 +61,25 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void The_attachment_writes_name_the_ceiling_their_bytes_are_held_to()
+        {
+            // The same number in words for whoever writes a body, beside the length that spells it
+            // in base64, and nothing else relates the words to the constant.
+            var writes = SpecDocument.Embedded().Operations
+                .Where(o => o.Body != null && o.Body.Properties.ContainsKey("content"))
+                .ToList();
+
+            Assert.That(writes, Is.Not.Empty, "the attachment writes are what this is about");
+
+            foreach (var write in writes)
+            {
+                Assert.That(write.Body.Properties["content"].Description, Does.Contain(
+                    VaultHandlers.MaxAttachmentBytes.ToString(System.Globalization.CultureInfo.InvariantCulture)),
+                    write.OperationId + " names a ceiling other than the largest attachment a read hands out");
+            }
+        }
+
+        [Test]
         public void The_largest_attachment_write_fits_the_body_the_transport_reads()
         {
             // The third number in the round trip. The transport refuses a body over its cap by

@@ -1630,6 +1630,11 @@ paths:
                 content:
                   type: string
                   maxLength: 699052
+                  description: |
+                    The bytes, base64 encoded as `readAttachment` answers them: at most 524288,
+                    the largest attachment a read hands out, which is the length above in base64.
+                    A string that does not decode as base64, or decodes to more bytes than that,
+                    is `400 malformed`.
       responses:
         "201":
           $ref: "#/components/responses/Made"
@@ -1732,6 +1737,9 @@ paths:
                 content:
                   type: string
                   maxLength: 699052
+                  description: |
+                    As `createAttachment` takes it: the bytes, base64 encoded, at most 524288 of
+                    them, and `400 malformed` for a string that does not decode or decodes to more.
       responses:
         "200":
           $ref: "#/components/responses/Done"

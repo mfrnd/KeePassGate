@@ -11,6 +11,9 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **The routing document states what an attachment write takes**: the bytes base64 encoded, at
+  most 524288 of them, and `400 malformed` for a string that does not decode or decodes to more.
+  Only the read side stated the encoding.
 - **The routing document's access routes describe a mask as what the rules grant at the node**,
   asked of the node alone, as the design documents and the `Access` schema already did. They
   described it as each operation's own answer, which a removal, asking the group above as well, is
