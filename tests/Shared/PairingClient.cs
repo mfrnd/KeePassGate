@@ -9,6 +9,7 @@ using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using KeePassGate.Gate;
 using KeePassGate.Pairing;
+using KeePassGate.Spec;
 using KeePassGate.Transport;
 
 namespace KeePassGate.Testing
@@ -97,7 +98,7 @@ namespace KeePassGate.Testing
             var name = NewName(out nonce);
             byte[] serverDer = null;
 
-            var reply = Send(name, PairingHandler.HelloPath, der =>
+            var reply = Send(name, GateOperations.PathOf(GateOperations.PairHello), der =>
             {
                 serverDer = der;
                 var binding = PairingProof.Binding(der);
@@ -154,7 +155,7 @@ namespace KeePassGate.Testing
             byte[] unused;
             var serverName = NewName(out unused);
 
-            var reply = Send(serverName, PairingHandler.RequestPath, der =>
+            var reply = Send(serverName, GateOperations.PathOf(GateOperations.PairRequest), der =>
             {
                 var proof = WrongProof ?? PairingProof.Request(
                     _token, _binding, _nonce, _challenge, PairingProof.Asked(name, asked, Lifetime));

@@ -29,6 +29,10 @@ namespace KeePassGate.Tests
     [TestFixture]
     public sealed class PairingHandlerTests
     {
+        // Where the document declares the two operations, which is how the router chooses them.
+        private static readonly string HelloPath = GateOperations.PathOf(GateOperations.PairHello);
+        private static readonly string RequestPath = GateOperations.PathOf(GateOperations.PairRequest);
+
         private TestAuthority _target;
         private InvitationBook _book;
         private Invitation _invitation;
@@ -139,7 +143,7 @@ namespace KeePassGate.Tests
         [TestCase("{\"proof\":[\"AAAA\"]}")]
         public void A_hello_that_is_not_a_hello_is_refused(string body)
         {
-            var context = Send("POST", PairingHandler.HelloPath, body, _connection, Approving());
+            var context = Send("POST", HelloPath, body, _connection, Approving());
 
             Assert.That(context.Status, Is.EqualTo(400));
         }
@@ -147,7 +151,7 @@ namespace KeePassGate.Tests
         [Test]
         public void A_connection_that_did_not_arrive_on_an_invitation_is_told_what_every_route_tells_it()
         {
-            var context = Send("POST", PairingHandler.HelloPath, "{}", null, Approving());
+            var context = Send("POST", HelloPath, "{}", null, Approving());
 
             // 401, which is what the router answers an unadmitted caller about every path there
             // is, rather than the 404 this used to give. What that buys is one refusal for one
@@ -165,7 +169,7 @@ namespace KeePassGate.Tests
             {
                 var context = Send(
                     "POST",
-                    PairingHandler.HelloPath,
+                    HelloPath,
                     "{}",
                     _connection,
                     Approving(),
@@ -179,7 +183,7 @@ namespace KeePassGate.Tests
         public void A_request_with_no_hello_before_it_is_refused()
         {
             var context = Send(
-                "POST", PairingHandler.RequestPath, RequestBody("agent-fictitious", Array.Empty<string>(), null, new byte[32]),
+                "POST", RequestPath, RequestBody("agent-fictitious", Array.Empty<string>(), null, new byte[32]),
                 _connection, Approving());
 
             Assert.That(context.Status, Is.EqualTo(409));
@@ -191,7 +195,7 @@ namespace KeePassGate.Tests
             Hello(ClientProof());
 
             var wrong = Send(
-                "POST", PairingHandler.RequestPath, RequestBody("agent-fictitious", Array.Empty<string>(), null, new byte[32]),
+                "POST", RequestPath, RequestBody("agent-fictitious", Array.Empty<string>(), null, new byte[32]),
                 _connection, Approving());
 
             Assert.That(wrong.Status, Is.EqualTo(401));
@@ -214,7 +218,7 @@ namespace KeePassGate.Tests
                     _invitation, _target, PairingProof.Binding(elsewhere.Host.CertificateDer), _nonce, "peer");
 
                 var context = Send(
-                    "POST", PairingHandler.RequestPath,
+                    "POST", RequestPath,
                     RequestBody("agent-fictitious", Array.Empty<string>(), null, new byte[32]), other, Approving());
 
                 Assert.That(context.Status, Is.EqualTo(409));
@@ -1230,7 +1234,7 @@ namespace KeePassGate.Tests
             Hello(ClientProof());
 
             var context = Send(
-                "POST", PairingHandler.RequestPath, RequestBody(name, Array.Empty<string>(), null, new byte[32]),
+                "POST", RequestPath, RequestBody(name, Array.Empty<string>(), null, new byte[32]),
                 _connection, Approving());
 
             Assert.That(context.Status, Is.EqualTo(400));
@@ -1244,7 +1248,7 @@ namespace KeePassGate.Tests
             Hello(ClientProof());
 
             var context = Send(
-                "POST", PairingHandler.RequestPath, RequestBody("agent-fictitious", new[] { profile }, null, new byte[32]),
+                "POST", RequestPath, RequestBody("agent-fictitious", new[] { profile }, null, new byte[32]),
                 _connection, Approving());
 
             Assert.That(context.Status, Is.EqualTo(400));
@@ -1256,7 +1260,7 @@ namespace KeePassGate.Tests
             Hello(ClientProof());
 
             Send(
-                "POST", PairingHandler.RequestPath, RequestBody("", Array.Empty<string>(), null, new byte[32]),
+                "POST", RequestPath, RequestBody("", Array.Empty<string>(), null, new byte[32]),
                 _connection, Approving());
 
             Assert.That(_book.Outstanding().Count, Is.EqualTo(1));
@@ -1287,16 +1291,6 @@ namespace KeePassGate.Tests
             Assert.Throws<ArgumentNullException>(() => Handler(Approving()).Request(null));
         }
 
-        [Test]
-        public void The_two_operations_are_declared_where_this_answers_them()
-        {
-            // Which paths belong to pairing is the document's answer rather than this class's, and
-            // the startup assertion is what stops the two disagreeing. What is asserted here is the
-            // half that assertion cannot see: that these are the paths the exchange is written for.
-            Assert.That(GateOperations.PathOf(GateOperations.PairHello), Is.EqualTo(PairingHandler.HelloPath));
-            Assert.That(GateOperations.PathOf(GateOperations.PairRequest), Is.EqualTo(PairingHandler.RequestPath));
-        }
-
         private PairingHandler Handler(IPairingApproval approval)
         {
             // The default issuer unless a test named one, which is how a clock that moves between
@@ -1320,7 +1314,7 @@ namespace KeePassGate.Tests
         {
             return Send(
                 "POST",
-                PairingHandler.HelloPath,
+                HelloPath,
                 Bodies.Of(("proof", Convert.ToBase64String(proof))),
                 _connection,
                 Approving());
@@ -1352,7 +1346,7 @@ namespace KeePassGate.Tests
                     _token, _binding, _nonce, challenge, PairingProof.Asked(name, profiles, signed));
 
             return Send(
-                "POST", PairingHandler.RequestPath, RequestBody(name, profiles, sent, proof), _connection, approval);
+                "POST", RequestPath, RequestBody(name, profiles, sent, proof), _connection, approval);
         }
 
         private static string RequestBody(string name, string[] profiles, string lifetime, byte[] proof)
@@ -1412,7 +1406,7 @@ namespace KeePassGate.Tests
             // What the router would have chosen, chosen here by the same rule: the path the
             // document declares the operation at.
             var handler = Handler(approval);
-            if (string.Equals(path, PairingHandler.RequestPath, StringComparison.Ordinal))
+            if (string.Equals(path, RequestPath, StringComparison.Ordinal))
             {
                 handler.Request(context);
             }
@@ -1421,7 +1415,7 @@ namespace KeePassGate.Tests
                 handler.Hello(context);
             }
 
-            if (context.Status == 200 && path == PairingHandler.HelloPath)
+            if (context.Status == 200 && path == HelloPath)
             {
                 var parsed = JsonBody.Read(context.Json);
                 _lastChallenge = parsed == null ? null : Convert.FromBase64String(parsed.Text("challenge"));

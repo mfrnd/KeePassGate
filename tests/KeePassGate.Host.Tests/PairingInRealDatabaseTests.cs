@@ -15,6 +15,7 @@ using KeePassGate.Diagnostics;
 using KeePassGate.Gate;
 using KeePassGate.Pairing;
 using KeePassGate.Pipeline;
+using KeePassGate.Spec;
 using KeePassGate.Testing;
 using KeePassGate.Transport;
 using KeePassGate.Ui;
@@ -1135,7 +1136,7 @@ namespace KeePassGate.Host.Tests
             var handler = new PairingHandler(book, operatorAt, null, _log);
 
             var hello = Post(
-                PairingHandler.HelloPath,
+                GateOperations.PathOf(GateOperations.PairHello),
                 Bodies.Of(("proof", Convert.ToBase64String(PairingProof.Client(token, binding, nonce)))),
                 connection);
 
@@ -1164,7 +1165,7 @@ namespace KeePassGate.Host.Tests
 
             body.Append("],\"proof\":\"").Append(Convert.ToBase64String(proof)).Append("\"}");
 
-            var request = Post(PairingHandler.RequestPath, body.ToString(), connection);
+            var request = Post(GateOperations.PathOf(GateOperations.PairRequest), body.ToString(), connection);
             handler.Request(request);
             return request;
         }

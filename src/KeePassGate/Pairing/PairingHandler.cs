@@ -96,10 +96,6 @@ namespace KeePassGate.Pairing
     /// </remarks>
     public sealed class PairingHandler
     {
-        public const string HelloPath = "/pair/hello";
-
-        public const string RequestPath = "/pair/request";
-
         private readonly IInvitations _invitations;
         private readonly IPairingApproval _approval;
         private readonly PairingOptions _options;
