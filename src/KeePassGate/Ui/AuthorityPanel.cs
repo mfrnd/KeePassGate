@@ -1847,13 +1847,13 @@ namespace KeePassGate.Ui
                 return "no answer to its renewals stands";
             }
 
+            // Nothing logged here: the lift waits for the dialog's OK, which logs what it lands, and
+            // a line at the press stayed in the log after a Cancel that lifted nothing.
             if (stored)
             {
                 _database.MarkModified();
             }
 
-            _log.Info("the operator lifted the standing answer to renewing "
-                      + CertificateDigest.Shorten(admissionKey));
             return null;
         }
 
@@ -2093,8 +2093,9 @@ namespace KeePassGate.Ui
                 return error.Message;
             }
 
+            // Nothing logged here either, for the same reason: `AuthorityPanelFactory` logs and
+            // audits the revocation as the dialog's OK lands it.
             _database.MarkModified();
-            _log.Info("an admission record was removed by the operator");
             return null;
         }
 

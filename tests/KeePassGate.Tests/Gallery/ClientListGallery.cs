@@ -151,8 +151,8 @@ namespace KeePassGate.Tests.Gallery
         {
             // What the page says when something has just happened. The line under the table is
             // shared, so this is also the state that used to say one thing twice: the last client
-            // is gone, and both "that client can no longer reach this database" and "no client has
-            // been admitted" were true at once.
+            // is gone, and both "that client loses its admission when OK is pressed" and "no client
+            // has been admitted" were on it at once.
             using (var list = new ClientList(key => null))
             {
                 list.Fill(Listing(Client("agent-invented", "reader")), null, null);

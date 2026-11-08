@@ -11,6 +11,11 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **The clients page names a revocation and a lifted answer as waiting for OK**, which they do. The
+  line under the list stated that the client could no longer reach the database, or that its next
+  renewal raised the dialog again, while the dialog had changed nothing yet, and the plugin's log
+  wrote the revocation and the lift down as they were pressed, where a Cancel left the lines
+  standing. The log now names each as the dialog's OK lands it.
 - **The Profiles page shows a stored list that will not read, and writes over it only when told
   to.** It showed such a list as naming nothing, with no warning, and its first Add or Remove at OK
   replaced the damaged value and every name it held. Add and Remove now stay off under a line stating

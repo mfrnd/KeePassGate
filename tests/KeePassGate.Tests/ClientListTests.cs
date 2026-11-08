@@ -53,11 +53,12 @@ namespace KeePassGate.Tests
                 var said = list.Revoke(1);
 
                 Assert.That(said, Does.Contain("other certificate still reaches this database"));
-                Assert.That(said, Does.Not.Contain("can no longer reach"));
+                Assert.That(said, Does.Contain("when OK is pressed"), "nothing has happened to the database yet");
+                Assert.That(said, Does.Not.Contain("loses its admission"));
                 Assert.That(list.Clients, Is.EqualTo(new[] { renewed }));
 
                 said = list.Revoke(0);
-                Assert.That(said, Does.Contain("agent-fictitious can no longer reach this database"),
+                Assert.That(said, Does.Contain("agent-fictitious loses its admission when OK is pressed"),
                     "the last of them is the client going");
             }
         }
@@ -76,7 +77,7 @@ namespace KeePassGate.Tests
                 var said = list.Revoke(1);
 
                 Assert.That(said, Is.EqualTo(
-                    "agent (" + second.ClientKey.Substring(0, ClientList.ShortKeyLength) + ") can no longer reach this database."));
+                    "agent (" + second.ClientKey.Substring(0, ClientList.ShortKeyLength) + ") loses its admission when OK is pressed."));
                 Assert.That(list.Clients, Is.EqualTo(new[] { first }));
             }
         }
@@ -125,7 +126,7 @@ namespace KeePassGate.Tests
 
             using (var list = ListOf(Allows, record, Record("agent-invented", "ops")))
             {
-                Assume.That(list.Revoke(1), Does.Contain("can no longer reach"));
+                Assume.That(list.Revoke(1), Does.Contain("loses its admission"));
 
                 list.Fill(new AdmissionListing(new[] { record, Record("agent-invented", "ops") }, true), null, null);
 
@@ -202,7 +203,8 @@ namespace KeePassGate.Tests
                 list.Revoke(0);
 
                 Assert.That(list.Result, Does.Contain("agent-fictitious"));
-                Assert.That(list.Result, Does.Contain("no longer"));
+                Assert.That(list.Result, Does.Contain("loses its admission when OK is pressed"),
+                    "the revocation waits for the dialog's OK, and the line names it as waiting");
             }
         }
 
@@ -314,7 +316,7 @@ namespace KeePassGate.Tests
                 // And the row stays, because it is still a record and taking it away is still the
                 // operator's to do. That is why it is marked rather than hidden.
                 Assert.That(list.Clients.Count, Is.EqualTo(1));
-                Assert.That(list.Revoke(0), Does.Contain("no longer"));
+                Assert.That(list.Revoke(0), Does.Contain("loses its admission"));
             }
 
             using (var list = new ClientList(Allows))
@@ -585,7 +587,7 @@ namespace KeePassGate.Tests
                 var line = list.AllowRenewal(0);
 
                 Assert.That(lifted, Is.EqualTo(new[] { record.AdmissionKey }), "by the certificate's key");
-                Assert.That(line, Does.Contain("agent-fictitious").And.Contain("raises the dialog again"));
+                Assert.That(line, Does.Contain("agent-fictitious").And.Contain("raises the dialog again once OK is pressed"));
                 Assert.That(list.StandingAt(0), Is.Null);
                 Assert.That(Grid(list).Rows[0].Cells[0].Style.ForeColor, Is.EqualTo(Color.Empty));
                 Assert.That(Plain(Grid(list).Rows[0].Cells[0].ToolTipText), Is.EqualTo(Keys(null, record)));

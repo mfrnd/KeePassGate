@@ -253,6 +253,14 @@ namespace KeePassGate.Ui
             get { return _store == null ? Array.Empty<string>() : _store.Stored; }
         }
 
+        /// <summary>
+        /// The keys the last <see cref="Apply"/> took away: see <see cref="PendingStore.Taken"/>.
+        /// </summary>
+        public IReadOnlyList<string> Taken
+        {
+            get { return _store == null ? Array.Empty<string>() : _store.Taken; }
+        }
+
         /// <summary>Whether any key of a kind is waiting.</summary>
         public bool WaitingOn(Func<string, bool> kind)
         {
@@ -463,6 +471,17 @@ namespace KeePassGate.Ui
         /// client's own made meanwhile, is not written down a second time.
         /// </remarks>
         public IReadOnlyList<string> Stored { get; private set; } = Array.Empty<string>();
+
+        /// <summary>
+        /// The keys the last <see cref="Apply"/> took away, which the removals it asked for and
+        /// found there are. Nothing is after a Cancel.
+        /// </summary>
+        /// <remarks>
+        /// For the same reader, about the other kind of edit: a standing answer to a renewal the
+        /// clients page lifted is taken away as the dialog's OK lands it, and the log names it then
+        /// rather than at the press.
+        /// </remarks>
+        public IReadOnlyList<string> Taken { get; private set; } = Array.Empty<string>();
 
         /// <summary>Whether one key in particular has been written here and not there.</summary>
         public bool WaitingOn(string key)
@@ -717,13 +736,20 @@ namespace KeePassGate.Ui
             // A removal is an edit like any other, so it is reconciled like one: an operator who
             // took the last name out of a list a pairing has since added to is asking for their
             // name to go, not for the pairing's to go with it.
+            var taken = new List<string>();
             foreach (var key in _removed)
             {
-                changed |= Land(store, key, null);
+                var landed = Land(store, key, null);
+                changed |= landed;
+                if (landed)
+                {
+                    taken.Add(key);
+                }
             }
 
             Discard();
             Stored = stored.AsReadOnly();
+            Taken = taken.AsReadOnly();
             return changed;
         }
 
@@ -795,6 +821,7 @@ namespace KeePassGate.Ui
             _removed.Clear();
             _before.Clear();
             Stored = Array.Empty<string>();
+            Taken = Array.Empty<string>();
         }
     }
 

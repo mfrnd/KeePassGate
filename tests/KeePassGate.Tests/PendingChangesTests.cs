@@ -176,6 +176,28 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void What_OK_took_away_is_listed_beside_what_it_stored()
+        {
+            // So that what a lift landed can be logged as it lands, rather than at the press.
+            var live = new InMemoryKeyValueStore();
+            live.Set("KPG.RenewalRefused.aaa", "forever");
+            live.Set("KPG.RenewalRefused.bbb", "forever");
+            var pending = new PendingDatabase(new FakeGateDatabase(live), null);
+
+            pending.PluginCustomData.Remove("KPG.RenewalRefused.aaa");
+            pending.PluginCustomData.Remove("KPG.Nothing.There");
+            pending.PluginCustomData.Set("KPG.Written", "x");
+
+            Assert.That(pending.Apply(), Is.True);
+
+            Assert.That(pending.Taken, Is.EqualTo(new[] { "KPG.RenewalRefused.aaa" }), "a removal of nothing took nothing");
+            Assert.That(pending.Stored, Is.EqualTo(new[] { "KPG.Written" }));
+
+            pending.Discard();
+            Assert.That(pending.Taken, Is.Empty);
+        }
+
+        [Test]
         public void A_list_that_turned_damaged_under_the_dialog_is_left_as_it_is()
         {
             // The operator's ruling of 2026-11-08. Merged, a list that will not read read as one

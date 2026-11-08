@@ -808,6 +808,27 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_revocation_pressed_on_the_tab_is_not_logged_before_OK_lands_it()
+        {
+            // The log said an admission record was removed as X was pressed, and a Cancel left the
+            // line standing over a client still admitted. OK logs what it lands.
+            var pending = new PendingDatabase(_database, null);
+            using (var panel = new AuthorityPanel(pending, new FakePrompt(true), _log))
+            {
+                var going = Admit("agent-fictitious", DateTimeOffset.UtcNow);
+                var before = _log.Entries.Count;
+
+                Assume.That(panel.Revoke(going.AdmissionKey), Is.Null);
+
+                Assert.That(_log.Entries.Skip(before).Select(entry => entry.Message), Is.Empty);
+
+                pending.Discard();
+                Assert.That(new AdmissionStore(_database.Store, null).All().Records, Has.Count.EqualTo(1),
+                    "and the client is still admitted");
+            }
+        }
+
+        [Test]
         public void A_revocation_the_store_swallows_is_reported_rather_than_announced()
         {
             // The one wrong answer on this page that nothing notices until the client connects

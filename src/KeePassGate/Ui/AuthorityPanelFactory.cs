@@ -223,6 +223,7 @@ namespace KeePassGate.Ui
                                 Log().Info("what the " + GateName.Product + " tab held was put into "
                                     + "the database, which KeePass now says has changes to save");
                                 Revoked(database, clients ?? new Dictionary<string, string>(StringComparer.Ordinal));
+                                Lifted(database);
                             }
                         }
 
@@ -323,6 +324,23 @@ namespace KeePassGate.Ui
                 string clientKey;
                 clients.TryGetValue(key, out clientKey);
                 _audit.RevokedByOperator(databaseId, key, clientKey);
+                Log().Info("the operator's revocation of " + CertificateDigest.Shorten(key) + " reached the database");
+            }
+        }
+
+        /// <summary>
+        /// Writes down each standing answer to a renewal the dialog's OK took out of the database.
+        /// </summary>
+        /// <remarks>
+        /// Here rather than at the press on the clients page, which logged a lift that a Cancel
+        /// then left standing, with nothing written to take the line back.
+        /// </remarks>
+        private void Lifted(PendingDatabase database)
+        {
+            foreach (var key in database.Taken.Where(AuthorityKeys.IsRenewalRefusal))
+            {
+                Log().Info("renewals of " + CertificateDigest.Shorten(AuthorityKeys.AdmissionKeyInRenewalRefusal(key))
+                    + " are asked about again: the operator lifted the standing answer");
             }
         }
 

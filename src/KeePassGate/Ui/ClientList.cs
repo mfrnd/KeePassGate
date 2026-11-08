@@ -550,7 +550,9 @@ namespace KeePassGate.Ui
                 Mark(_grid.Rows[at], record, null);
             }
 
-            return Said("The next renewal of " + name + " raises the dialog again.");
+            // Worded as waiting, which it is until the dialog is accepted: the answer goes on
+            // refusing until then, as the tooltip on the menu item states.
+            return Said("The next renewal of " + name + " raises the dialog again once OK is pressed.");
         }
 
         /// <summary>
@@ -602,14 +604,16 @@ namespace KeePassGate.Ui
 
             // A renewed client is two rows with one client key until it gives the older up, and
             // taking one of them away leaves the client reaching the database through the other,
-            // so the sentence says which certificate went rather than that the client did.
+            // so the sentence names which certificate goes rather than the client. Both are worded
+            // as waiting for OK, which they are: the client still reaches the database until then,
+            // and a sentence stating otherwise was the one place on the page that did.
             if (_records.Exists(other => string.Equals(other.ClientKey, record.ClientKey, StringComparison.Ordinal)))
             {
                 return Said("The certificate admitted for " + name + " at " + Stamp(record.Admitted) +
-                            " is revoked; its other certificate still reaches this database.");
+                            " is revoked when OK is pressed; its other certificate still reaches this database.");
             }
 
-            return Said(name + " can no longer reach this database.");
+            return Said(name + " loses its admission when OK is pressed.");
         }
 
         /// <summary>
@@ -663,7 +667,7 @@ namespace KeePassGate.Ui
 
             UpdateEmptiness();
 
-            return Said("The record that could not be read is taken away.");
+            return Said("The record that could not be read is taken away when OK is pressed.");
         }
 
         /// <summary>
@@ -707,9 +711,9 @@ namespace KeePassGate.Ui
             _filling = true;
 
             // A listing read from the database is the newer answer than whatever the last press
-            // said about it: a redraw a landing caused, a renewal or a client revoking itself,
-            // could otherwise leave a client listed under a line saying it can no longer reach
-            // the database. A press says its line after the redraw it causes, so it keeps it.
+            // stated about it: a redraw a landing caused, a renewal or a client revoking itself,
+            // could otherwise leave a client listed under a line naming it as losing its
+            // admission. A press writes its line after the redraw it causes, so it keeps it.
             _said = string.Empty;
 
             try
