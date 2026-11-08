@@ -175,9 +175,18 @@ that database until the wizard is closed.
 
 ## What the program gets
 
-A certificate, and the name it should use to reach this database. Nothing else. The profiles in the
-record are the ones left checked, not the ones it asked for, and the program is told which it
-got.
+What it needs to come back as itself, and nothing about any other client:
+
+- **Its certificate, with the private key that goes with it**, both made by the plugin.
+- **The authority's certificate**, which the program checks the gate against from then on.
+- **The gate key**, from which it makes a new name for every connection it opens, the name the
+  gate finds this database by.
+- **Its subject, the database's fingerprint, when the certificate expires, and its profiles**, to
+  show and to keep beside the rest.
+
+The profiles in the record are the ones left checked, not the ones it asked for, and that list is
+how the program is told which it got. Whoever holds the first three can act as this client until
+the certificate expires or is revoked.
 
 From here it connects, and every request it makes is checked against that record and against the
 rules on the node it is asking about. [`clients.md`](clients.md) is how it is seen afterwards and
