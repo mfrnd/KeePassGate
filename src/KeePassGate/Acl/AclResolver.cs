@@ -38,7 +38,10 @@ namespace KeePassGate.Acl
     /// <summary>How far into an entry an operation reaches, which a rule answers separately.</summary>
     public enum AclReach
     {
-        /// <summary>The entry itself. What an operation reaches unless it says otherwise.</summary>
+        /// <summary>
+        /// The node itself, a group or an entry with its fields. What an operation reaches unless
+        /// it declares otherwise.
+        /// </summary>
         Fields = 0,
 
         /// <summary>

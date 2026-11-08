@@ -58,14 +58,16 @@ namespace KeePassGate.Acl
         /// <summary>Touches no data. Not a permission and not grantable.</summary>
         None = 0,
 
-        /// <summary>Adds an entry to a group.</summary>
+        /// <summary>Adds a group or an entry to a group, or a field or an attachment to an entry.</summary>
         Create,
 
-        /// <summary>Reads what an entry holds, except the values the database protects, which
-        /// the <see cref="Protected"/> switch adds.</summary>
+        /// <summary>Reads what a group or an entry holds, except the values the database
+        /// protects, which the <see cref="Protected"/> switch adds.</summary>
         Read,
 
-        /// <summary>Changes an entry that already exists.</summary>
+        /// <summary>
+        /// Changes a group or an entry that already exists, or a field or an attachment of an entry.
+        /// </summary>
         Update,
 
         /// <summary>
@@ -80,7 +82,8 @@ namespace KeePassGate.Acl
         Delete,
 
         /// <summary>
-        /// Sees that an entry exists, and what it is called, without reading what it holds.
+        /// Sees that a group or an entry exists, and what it is called, without reading what it
+        /// holds.
         /// </summary>
         List,
 
