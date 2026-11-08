@@ -715,10 +715,16 @@ it names is `PreconditionFailed`, `412`, with nothing changed. A refusal that do
 the tag comes first: a node that is not there, or not reachable, is the `404` it always is, a name
 taken or a group still holding something is `409`, and a dialog open on the node is `503 busy`.
 Left out, nothing is asked, and the write goes ahead whatever changed. `"*"` asks only that the
-node is there. `get`, `head` and `send` take it as well, for a route this client has no method
-for, and `head` answers with the tag the route carries, which is a way to ask whether a tag is
-still current without reading anything. One that could not be sent as a header is refused with
-`ProtocolError` before anything is dialed.
+node is there. An `if_match` that could not be sent as a header is refused with `ProtocolError`
+before anything is dialed.
+
+**A read made on the same condition goes through `get` or `head`.** The typed reads, `group`,
+`entry`, `fields`, `field`, `attachments` and `attachment`, take no `if_match` and read whatever is
+there. `get`, `head` and `send` take it, and on the six paths that declare it, which are the paths
+those reads ask, a tag that no longer matches is `PreconditionFailed` with nothing read:
+`client.get(f"/entries/{uuid}", if_match=entry.etag)` reads the entry only if it is unchanged, and
+answers with the body as the gate sent it. `head` answers with the tag the route carries, which is a
+way to ask whether a tag is still current without reading anything.
 
 **A write answers with the tag it left**, so a second write can name it without reading in
 between. The gate puts it in the body of its answer, as `etag`, and each method returns it: every
@@ -919,20 +925,25 @@ pykeepassgate pair --name agent-invented --retry-locked-timeout 300
 ```python
 client = GateClient.open(retry_busy_timeout=30)
 
-# Or for one call, which overrides what the client was built with. `send` is where a call says
-# so, and every route's method above is one call to it. `renew` is several, and `refs.resolve`
-# one read for each reference it follows: both wait with the client's own budgets.
+# Or for one call, which overrides what the client was built with: `send`, `get` and `head` take
+# the three budgets, and every other method waits with the client's own, `renew` and
+# `refs.resolve` included.
 client.send("POST", "/groups/root/entries", {"Title": "Nightly"}, retry_busy_timeout=120)
 ```
 
-**They are separate because the three refusals end differently.** A busy KeePass is in the middle
-of something of its own and will finish: saving, importing, a dialog open on what the write would
-change. A locked one is waiting for a person to come back to their desk, and the lock can have
-arrived on its own from an idle timeout, a minimize, a Windows lock or a suspend. An undecided one
-is waiting for a person to keep one of several authorities, which is rare, and can end with this
-client's authority not kept, after which nothing it waits for will come. An agent willing to wait
-thirty seconds for the first may want to wait an hour for the second, and not at all for the
-third.
+**`send` and `get` hand back the body alone.** A read's tag travels in a header beside the body,
+so a group, an entry, a field or an attachment read through them carries no `etag`: a read whose
+tag is wanted for a later `if_match` is made with its own method, on the client's budgets. A write
+is not affected, since the gate puts the tag it leaves in the body.
+
+**The three budgets are separate because the three refusals end differently.** A busy KeePass is
+in the middle of something of its own and will finish: saving, importing, a dialog open on what the
+write would change. A locked one is waiting for a person to come back to their desk, and the lock
+can have arrived on its own from an idle timeout, a minimize, a Windows lock or a suspend. An
+undecided one is waiting for a person to keep one of several authorities, which is rare, and can
+end with this client's authority not kept, after which nothing it waits for will come. An agent
+willing to wait thirty seconds for the first may want to wait an hour for the second, and not at
+all for the third.
 
 **Nothing else is retried.** A `404`, a `409`, a `400`, a `500` or a `TransportError` is raised the
 moment it arrives: waiting cannot fix any of them, and after two of them a write may have landed,
