@@ -1,3 +1,4 @@
+using KeePassGate.Spec;
 using KeePassGate.Transport;
 
 namespace KeePassGate.Pipeline
@@ -11,6 +12,11 @@ namespace KeePassGate.Pipeline
     /// An admitted client gets the `404` an undeclared route gets. Anybody else gets the `401`
     /// every route gets before a certificate is proved, so a caller the database does not admit
     /// cannot tell a route that exists from one that does not.
+    ///
+    /// **The `404` is the router's own words for a node it may not reach**, read from
+    /// <see cref="SpecRouter.UnreachableError"/> rather than spelled again here, since an admitted
+    /// client is meant to be unable to tell an undeclared path from a refused node, and two
+    /// spellings of the answer are two chances for one of them to be changed alone.
     /// </remarks>
     public static class Undeclared
     {
@@ -22,7 +28,7 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            context.Respond(404, HttpResponse.ErrorBody("no such route"));
+            context.Respond(404, HttpResponse.ErrorBody(SpecRouter.UnreachableError));
         }
     }
 }

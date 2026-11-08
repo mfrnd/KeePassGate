@@ -1996,6 +1996,21 @@ namespace KeePassGate.Tests
             Assert.That(refused.Json, Is.EqualTo(absent.Json));
         }
 
+        [Test]
+        public void An_undeclared_path_answers_an_admitted_client_as_a_refused_node_does()
+        {
+            // The router answers the two from two places, the authorization refusal and
+            // `Undeclared`, and the property is that an admitted client cannot tell them apart.
+            _vault.Granting(_vault.RootAlias, Rules.Granting(("agent", "RL")));
+
+            var refused = Send("PUT", "/groups/" + _group, "{\"Name\":\"Renamed\"}");
+            var undeclared = Get("/groups/" + _group + "/nothing-is-declared-here");
+
+            Assert.That(refused.Status, Is.EqualTo(404), refused.Json);
+            Assert.That(undeclared.Status, Is.EqualTo(refused.Status), undeclared.Json);
+            Assert.That(undeclared.Json, Is.EqualTo(refused.Json));
+        }
+
         [TestCase("/groups/{0}/groups", TestName = "the groups in a group removed after the router decided")]
         [TestCase("/groups/{0}/entries", TestName = "the entries in a group removed after the router decided")]
         [TestCase("/groups/{0}", TestName = "a group removed after the router decided")]
