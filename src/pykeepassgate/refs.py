@@ -146,8 +146,10 @@ REFUSED = (
     "{TIMEOTP}",
 )
 
-#: What KeePass replaces once more after the entry's strings, with the URL compiled again, so that a
-#: `{URL}` made by putting one of them next to the text around it is replaced there too.
+#: What is looked for again after each replacement, since a replacement can make a placeholder out
+#: of the text around it: every placeholder in `REFUSED`, which KeePass replaces or leaves as text
+#: by where in its own order that placeholder's step falls, and `{URL}`, which KeePass compiles
+#: again after the entry's strings, so that a `{URL}` a replacement made is replaced there too.
 LATE = (*REFUSED, "{URL}")
 
 
