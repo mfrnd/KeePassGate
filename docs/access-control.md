@@ -299,6 +299,33 @@ is the one that answers.
 
 Use it on a group holding things no program should reach.
 
+## When the tab changes nothing
+
+**The tab shows the rules and will not change them** in three cases, and the line over the table
+gives the reason:
+
+- **Several entries edited together.** What KeePass's dialog holds for them is no single entry's
+  rules, so open one entry at a time to read or change its rules.
+- **An earlier version of an entry**, opened from its **History** tab. The rules shown are the ones
+  that version had, not the ones in force, and KeePass keeps nothing changed on that dialog.
+- **A KeePass this plugin cannot reach into**: a KeePass that keeps a dialog's settings somewhere
+  the plugin does not find them, or that does not tell it which database, group or entry the dialog
+  is about. The rules can be read and not changed, and
+  [the plugin's log](getting-started.md#the-plugins-log) names what was missing.
+
+**Rules that cannot be read are refused rather than skipped.** A rule damaged by a merge, edited by
+hand or written by a later version of the plugin is still there, and nobody can tell what it was
+taking away, so every profile is refused at that group or entry and everything under it unless a
+nearer rule admits it, and the tab cannot be edited while they stand. **Discard the unreadable
+rules** throws away that node's own rules, with the **Refuse any profile not named here** check
+mark, and lets the tab be edited again: it is the only way past them. Like every other change on the
+tab, it is kept by OK and undone by Cancel. What the rules held is shown nowhere, since it could not
+be read, so write the rules the node should have before pressing OK.
+
+**A rule above that cannot be read** is named on the tab as well: nothing beyond it arrives here, so
+a profile that neither this node nor a group in between names is refused. Its rules are discarded on
+the group that holds them, not here.
+
 ## Press OK
 
 **A rule is kept by the dialog's OK and discarded by its Cancel**, like everything else on those
