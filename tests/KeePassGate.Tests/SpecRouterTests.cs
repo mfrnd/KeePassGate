@@ -337,6 +337,42 @@ namespace KeePassGate.Tests
             Assert.That(raised.Message, Does.Contain("nothing can reach it"));
         }
 
+        [TestCase("handler")]
+        [TestCase("guard")]
+        [TestCase("node selector")]
+        public void A_name_bound_to_nothing_stops_the_plugin_loading(string kind)
+        {
+            // The assertions asked which names are bound, and null counted, so a handler, guard
+            // or selector bound to nothing loaded and its first request threw and was answered
+            // `500` as a defect: the operation with nothing behind it, found on a connection.
+            var handlers = GateOperations.Handlers("9.9.9", string.Empty, null)
+                .ToDictionary(p => p.Key, p => p.Value, StringComparer.Ordinal);
+            var guards = new Dictionary<string, OperationGuard>(StringComparer.Ordinal);
+            var nodes = GateOperations.Nodes().ToDictionary(p => p.Key, p => p.Value, StringComparer.Ordinal);
+
+            string named;
+            if (kind == "handler")
+            {
+                named = GateOperations.Status;
+                handlers[named] = null;
+            }
+            else if (kind == "guard")
+            {
+                named = GateOperations.PairHello;
+                guards[named] = null;
+            }
+            else
+            {
+                named = GateOperations.ReadEntry;
+                nodes[named] = null;
+            }
+
+            var raised = Assert.Throws<InvalidOperationException>(() => new SpecRouter(
+                GateOperations.Document, handlers, guards, nodes, new AccessCheck(NullGateAudit.Instance)));
+
+            Assert.That(raised.Message, Does.Contain(named).And.Contain("bound to no " + kind));
+        }
+
         private static void Nothing(IGateContext context)
         {
             context.Respond(200, "{}");

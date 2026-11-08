@@ -11,6 +11,10 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **A router refuses to be built with a route bound to nothing**: a handler, a guard or a node
+  selector given as null counted as bound, so it loaded and the route's first request was answered
+  `500` as a defect. The plugin binds none to nothing, so only a router assembled outside it
+  changes.
 - **A router built without renewal refuses the renewal route before looking at the body**, as a
   router built without pairing refuses the pairing routes. A malformed body was answered `400` and
   only a well formed body was told the route is not served. The plugin always serves renewal, so

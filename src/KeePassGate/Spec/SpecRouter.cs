@@ -163,7 +163,7 @@ namespace KeePassGate.Spec
 
             foreach (var pair in handlers)
             {
-                _handlers[pair.Key] = pair.Value;
+                _handlers[pair.Key] = Bound(pair.Key, pair.Value, "handler");
             }
 
             _nodes = new Dictionary<string, NodeSelector>(StringComparer.Ordinal);
@@ -173,7 +173,7 @@ namespace KeePassGate.Spec
             {
                 foreach (var pair in guards)
                 {
-                    _guards[pair.Key] = pair.Value;
+                    _guards[pair.Key] = Bound(pair.Key, pair.Value, "guard");
                 }
             }
 
@@ -181,12 +181,32 @@ namespace KeePassGate.Spec
             {
                 foreach (var pair in nodes)
                 {
-                    _nodes[pair.Key] = pair.Value;
+                    _nodes[pair.Key] = Bound(pair.Key, pair.Value, "node selector");
                 }
             }
 
             Assert();
             AssertAuthorized();
+        }
+
+        /// <summary>The delegate bound under a name, refusing a binding to nothing.</summary>
+        /// <remarks>
+        /// A name bound to null counted as bound: every assertion below asks which names are
+        /// bound, and for a pair whether the two delegates are the same, so a null handler, guard
+        /// or selector loaded, and its first request threw where the router calls it and was
+        /// answered `500` as a defect. That is the operation with nothing behind it, found on a
+        /// connection, which the assertions exist to find as the plugin loads.
+        /// </remarks>
+        private static T Bound<T>(string name, T bound, string kind) where T : class
+        {
+            if (bound == null)
+            {
+                throw new InvalidOperationException(
+                    name + " is bound to no " + kind + ", so its first request would be a defect" +
+                    " rather than an answer.");
+            }
+
+            return bound;
         }
 
         /// <summary>
