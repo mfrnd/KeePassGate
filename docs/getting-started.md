@@ -214,9 +214,11 @@ That is what the notice on the page says, and it is worth reading once carefully
 steps, and skipping either one loses the work:
 
 1. **OK** on the settings dialog puts the changes into the database KeePass is holding. Cancel
-   discards it, on every page of this tab, with one exception: an invitation already handed out
-   lives in KeePass's memory rather than in the database, and [`pairing.md`](pairing.md) says how
-   to take one back.
+   discards them, on every page of this tab. An invitation is the one thing that does not wait:
+   it works from the moment it is shown, so a program can pair while the dialog is still open, and
+   an invitation a program has used stays used whichever button closes the dialog. Cancel takes
+   back an invitation made on the dialog that nobody has used, and [`pairing.md`](pairing.md)
+   describes taking an invitation back after OK.
 2. **Saving** writes that database to disk. Until it is saved, the file does not have it, and closing
    KeePass without saving throws it away.
 
