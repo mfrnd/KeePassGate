@@ -36,10 +36,12 @@ namespace KeePassGate.Host.Tests
         [SetUp]
         public void SetUp()
         {
+            _refusing = false;
+            _saves = 0;
             _database = TemporaryDatabase.New();
             _vault = new KdbxVault(
                 _database.Database,
-                new DatabaseWriter(CurrentThread.Instance, database => { _saves++; database.Save(null); }, null, null, null),
+                new DatabaseWriter(CurrentThread.Instance, Save, null, null, null),
                 TestTags.Fixed,
                 null);
 
@@ -66,8 +68,15 @@ namespace KeePassGate.Host.Tests
         [TearDown]
         public void TearDown()
         {
-            _database.Dispose();
-            ProtectedBinary.ExtCrypt = null;
+            _refusing = false;
+            try
+            {
+                _database.Dispose();
+            }
+            finally
+            {
+                ProtectedBinary.ExtCrypt = null;
+            }
         }
 
         [Test]
@@ -103,6 +112,51 @@ namespace KeePassGate.Host.Tests
 
             Assert.That(_vault.EntryTag(Uuid(_entry)), Does.Match("^[0-9a-f]{32}$"),
                 "the failure is not what the next tag is answered with");
+        }
+
+        [Test]
+        public void A_change_takes_no_tag_that_neither_its_condition_nor_its_answer_reads()
+        {
+            // An attachment that will not decrypt, so that any tag taken of the entry throws, and a
+            // write that takes one where nothing reads it is a write that fails for nothing.
+            _entry.Binaries.Set("later.txt", new ProtectedBinary(true, Encoding.UTF8.GetBytes("made through the hook")));
+            _refusing = true;
+
+            var taken = _vault.DeleteAttachment(Uuid(_entry), "later.txt", new VaultTagging(null, true));
+            Assert.That(taken.Ok, Is.True, "no condition, and an answer tagging what is left: " + taken.Reason);
+            Assert.That(taken.Tag, Does.Match("^[0-9a-f]{32}$"));
+
+            _entry.Binaries.Set("later.txt", new ProtectedBinary(true, Encoding.UTF8.GetBytes("made through the hook")));
+
+            var any = _vault.UpdateField(
+                Uuid(_entry), PwDefs.TitleField, "renamed", new VaultTagging(VaultPrecondition.Read("*"), false));
+            Assert.That(any.Ok, Is.True, "a condition every entry that is there meets: " + any.Reason);
+
+            var none = _vault.UpdateField(
+                Uuid(_entry), PwDefs.TitleField, "renamed again", new VaultTagging(VaultPrecondition.Read("W/\"0\""), false));
+            Assert.That(none.IsPreconditionFailed, Is.True, "a condition naming no tag, which no entry meets: " + none.Reason);
+            Assert.That(_entry.Strings.ReadSafe(PwDefs.TitleField), Is.EqualTo("renamed"));
+        }
+
+        /// <summary>A save, with decryption going through while the file is written.</summary>
+        /// <remarks>
+        /// What is asked here is the tag, and a save reads every attachment the database holds,
+        /// history included, so a decryption refused there would fail the save rather than the tag.
+        /// </remarks>
+        private void Save(PwDatabase database)
+        {
+            _saves++;
+
+            var refusing = _refusing;
+            _refusing = false;
+            try
+            {
+                database.Save(null);
+            }
+            finally
+            {
+                _refusing = refusing;
+            }
         }
 
         private static string Uuid(PwEntry entry)

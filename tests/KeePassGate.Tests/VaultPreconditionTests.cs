@@ -56,10 +56,10 @@ namespace KeePassGate.Tests
         public void No_precondition_refuses_nothing_and_one_refuses_what_it_does_not_admit()
         {
             Assert.That(VaultPrecondition.Fails(null, Tag), Is.False);
-            Assert.That(VaultPrecondition.Fails(null, null), Is.False, "not even a node with no tag");
+            Assert.That(VaultPrecondition.Fails(null, (string)null), Is.False, "not even a node with no tag");
             Assert.That(VaultPrecondition.Fails(VaultPrecondition.Read("\"" + Tag + "\""), Tag), Is.False);
             Assert.That(VaultPrecondition.Fails(VaultPrecondition.Read("\"0000\""), Tag), Is.True);
-            Assert.That(VaultPrecondition.Fails(VaultPrecondition.Read("*"), null), Is.True);
+            Assert.That(VaultPrecondition.Fails(VaultPrecondition.Read("*"), (string)null), Is.True);
         }
 
         [Test]

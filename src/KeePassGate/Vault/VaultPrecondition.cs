@@ -110,6 +110,31 @@ namespace KeePassGate.Vault
             return precondition != null && !precondition.Admits(tag);
         }
 
+        /// <summary>
+        /// <see cref="Fails(VaultPrecondition, string)"/> for a node that is there, whose tag
+        /// <paramref name="tag"/> takes, asked only when the answer depends on it.
+        /// </summary>
+        /// <remarks>
+        /// **For a change, which asks under the writer's lock on KeePass's thread**, where a tag is
+        /// a digest over every string and attachment the node holds. Three answers need none: no
+        /// precondition refuses nothing, `*` is met by every node that is there, and a precondition
+        /// naming no tag, which a field that will not read asks, is met by none.
+        /// </remarks>
+        public static bool Fails(VaultPrecondition precondition, Func<string> tag)
+        {
+            if (tag == null)
+            {
+                throw new ArgumentNullException(nameof(tag));
+            }
+
+            if (precondition == null || precondition._any)
+            {
+                return false;
+            }
+
+            return precondition._tags.Count == 0 || !precondition.Admits(tag());
+        }
+
         /// <summary>Whether a node carrying this tag meets the precondition. A node not there never does.</summary>
         public bool Admits(string tag)
         {

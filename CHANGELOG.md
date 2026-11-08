@@ -156,6 +156,10 @@ none, since it releases both.
 - **An attachment that failed to decrypt once is tagged the next time a tag is asked for.** The
   failure was kept in place of its digest, so every tag of every entry holding that attachment
   failed again, answered `500` and counted under Tools, until KeePass let the attachment go.
+- **A write digests its node only where something reads the digest**: an `If-Match` naming a
+  tag, and an answer carrying one. Every write asked either took the node's tag on KeePass's
+  thread, under the writer's lock, including a write under `*`, a condition naming no tag, and a
+  change answering with the tag it leaves, which took a second.
 - **A protected field is kept from a strip whenever any profile could put an unprotected value
   back.** The guard asked whether some profile could create there and whether some profile could
   create a protected value there, so a program holding one profile that could put an unprotected

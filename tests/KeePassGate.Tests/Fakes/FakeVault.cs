@@ -975,7 +975,7 @@ namespace KeePassGate.Tests.Fakes
                 return VaultWrite.Busy(Busy);
             }
 
-            return VaultPrecondition.Fails(tagging.Precondition, tagging.NeedsTag ? tag() : null)
+            return VaultPrecondition.Fails(tagging.Precondition, tag)
                 ? VaultWrite.PreconditionFailed()
                 : null;
         }

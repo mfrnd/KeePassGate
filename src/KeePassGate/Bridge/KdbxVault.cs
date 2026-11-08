@@ -439,7 +439,7 @@ namespace KeePassGate.Bridge
                     return VaultWrite.Busy(blocked);
                 }
 
-                var tag = Before(tagging, group);
+                var tag = Before(group);
                 if (VaultPrecondition.Fails(tagging.Precondition, tag))
                 {
                     return VaultWrite.PreconditionFailed();
@@ -449,9 +449,9 @@ namespace KeePassGate.Bridge
                     && (notes == null || string.Equals(group.Notes, notes, StringComparison.Ordinal)))
                 {
                     // The group already holds what was asked for, which a body naming nothing asks
-                    // as well, and `VaultChange.Unchanged` says why that writes nothing. The tag
-                    // taken for the precondition is the tag the group still has.
-                    return VaultChange.Unchanged(VaultWrite.Done(tagging.Answers ? tag : null));
+                    // as well, and `VaultChange.Unchanged` states why that writes nothing. The tag
+                    // the precondition read, when it read one, is the tag the group still has.
+                    return VaultChange.Unchanged(VaultWrite.Done(tagging.Answers ? tag() : null));
                 }
 
                 var wasName = group.Name;
@@ -509,7 +509,7 @@ namespace KeePassGate.Bridge
                     return VaultWrite.Busy(blocked);
                 }
 
-                if (VaultPrecondition.Fails(tagging.Precondition, Before(tagging, group)))
+                if (VaultPrecondition.Fails(tagging.Precondition, Before(group)))
                 {
                     return VaultWrite.PreconditionFailed();
                 }
@@ -679,7 +679,7 @@ namespace KeePassGate.Bridge
                     return VaultWrite.TooLarge(characters);
                 }
 
-                var tag = Before(tagging, entry);
+                var tag = Before(entry);
                 if (VaultPrecondition.Fails(tagging.Precondition, tag))
                 {
                     return VaultWrite.PreconditionFailed();
@@ -689,7 +689,7 @@ namespace KeePassGate.Bridge
                 {
                     // Before `Backing`, which is the history revision this would otherwise take of
                     // an entry nothing is about to change. A body naming nothing lands here too.
-                    return VaultChange.Unchanged(VaultWrite.Done(tagging.Answers ? tag : null));
+                    return VaultChange.Unchanged(VaultWrite.Done(tagging.Answers ? tag() : null));
                 }
 
                 var restore = Restoring(entry);
@@ -776,7 +776,7 @@ namespace KeePassGate.Bridge
                     return VaultWrite.Busy(blocked);
                 }
 
-                if (VaultPrecondition.Fails(tagging.Precondition, Before(tagging, entry)))
+                if (VaultPrecondition.Fails(tagging.Precondition, Before(entry)))
                 {
                     return VaultWrite.PreconditionFailed();
                 }
@@ -823,7 +823,7 @@ namespace KeePassGate.Bridge
                     return VaultWrite.TooLarge(characters);
                 }
 
-                if (VaultPrecondition.Fails(tagging.Precondition, Before(tagging, entry)))
+                if (VaultPrecondition.Fails(tagging.Precondition, Before(entry)))
                 {
                     return VaultWrite.PreconditionFailed();
                 }
@@ -867,7 +867,7 @@ namespace KeePassGate.Bridge
                 }
 
                 // The entry's tag, since the entry is what answers for the field.
-                var tag = Before(tagging, entry);
+                var tag = Before(entry);
                 if (VaultPrecondition.Fails(tagging.Precondition, tag))
                 {
                     return VaultWrite.PreconditionFailed();
@@ -882,7 +882,7 @@ namespace KeePassGate.Bridge
 
                 if (existing != null && existing.Equals(replacement, false))
                 {
-                    return VaultChange.Unchanged(VaultWrite.Done(tagging.Answers ? tag : null));
+                    return VaultChange.Unchanged(VaultWrite.Done(tagging.Answers ? tag() : null));
                 }
 
                 var restore = Restoring(entry);
@@ -932,7 +932,7 @@ namespace KeePassGate.Bridge
                     return VaultWrite.Busy(blocked);
                 }
 
-                if (VaultPrecondition.Fails(tagging.Precondition, Before(tagging, entry)))
+                if (VaultPrecondition.Fails(tagging.Precondition, Before(entry)))
                 {
                     return VaultWrite.PreconditionFailed();
                 }
@@ -984,7 +984,7 @@ namespace KeePassGate.Bridge
                     return VaultWrite.Busy(blocked);
                 }
 
-                if (VaultPrecondition.Fails(tagging.Precondition, Before(tagging, entry)))
+                if (VaultPrecondition.Fails(tagging.Precondition, Before(entry)))
                 {
                     return VaultWrite.PreconditionFailed();
                 }
@@ -1022,7 +1022,7 @@ namespace KeePassGate.Bridge
                     return VaultWrite.Busy(blocked);
                 }
 
-                var tag = Before(tagging, entry);
+                var tag = Before(entry);
                 if (VaultPrecondition.Fails(tagging.Precondition, tag))
                 {
                     return VaultWrite.PreconditionFailed();
@@ -1036,7 +1036,7 @@ namespace KeePassGate.Bridge
                 // asks the lengths before it decrypts either side.
                 if (was != null && was.Equals(replacement, false))
                 {
-                    return VaultChange.Unchanged(VaultWrite.Done(tagging.Answers ? tag : null));
+                    return VaultChange.Unchanged(VaultWrite.Done(tagging.Answers ? tag() : null));
                 }
 
                 var restore = Restoring(entry);
@@ -1072,7 +1072,7 @@ namespace KeePassGate.Bridge
                     return VaultWrite.Busy(blocked);
                 }
 
-                if (VaultPrecondition.Fails(tagging.Precondition, Before(tagging, entry)))
+                if (VaultPrecondition.Fails(tagging.Precondition, Before(entry)))
                 {
                     return VaultWrite.PreconditionFailed();
                 }
@@ -1343,24 +1343,28 @@ namespace KeePassGate.Bridge
         }
 
         /// <summary>
-        /// The node's tag as a change finds it, when the change has to take one, and null when it
-        /// does not.
+        /// The node's tag as a change finds it, taken the first time something reads it and never
+        /// again.
         /// </summary>
         /// <remarks>
-        /// Taken once, under the writer's lock, after every refusal that does not depend on it,
-        /// and used twice where the change turns out to change nothing: for the precondition and
-        /// for the answer, which is the tag the node still has. A tag is a digest over every
-        /// string and attachment the node holds, so taking it on a write that asks for neither is
-        /// work on KeePass's thread that nothing reads.
+        /// Read under the writer's lock, after every refusal that does not depend on it, by the
+        /// precondition when its answer depends on the tag, and by the answer where the change
+        /// turns out to change nothing, which is the tag the node still has. A tag is a digest over
+        /// every string and attachment the node holds, so a write that reads it in neither place
+        /// takes none: taken whenever a precondition or an answer was asked for, it was work on
+        /// KeePass's thread that nothing read on every change that cannot leave its node unchanged,
+        /// and on every write asking `*` or naming no tag.
         /// </remarks>
-        private string Before(VaultTagging tagging, PwGroup group)
+        private Func<string> Before(PwGroup group)
         {
-            return tagging.NeedsTag ? _tags.Of(group) : null;
+            string tag = null;
+            return () => tag ?? (tag = _tags.Of(group));
         }
 
-        private string Before(VaultTagging tagging, PwEntry entry)
+        private Func<string> Before(PwEntry entry)
         {
-            return tagging.NeedsTag ? Tag(entry) : null;
+            string tag = null;
+            return () => tag ?? (tag = Tag(entry));
         }
 
         /// <summary>The tag a change left, when its answer is to carry one, and null otherwise.</summary>

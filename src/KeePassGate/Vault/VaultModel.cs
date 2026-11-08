@@ -244,12 +244,6 @@ namespace KeePassGate.Vault
 
         /// <summary>Whether the answer carries the tag the change left.</summary>
         public bool Answers { get; private set; }
-
-        /// <summary>Whether the node's tag has to be taken at all, for the precondition or for the answer.</summary>
-        public bool NeedsTag
-        {
-            get { return Precondition != null || Answers; }
-        }
     }
 
     /// <summary>What happened to a change, and whether it is worth trying again.</summary>
