@@ -2647,20 +2647,5 @@ namespace KeePassGate.Tests
             /// <summary>The tag a change answered with in its body, quotes and all, or null.</summary>
             public string Written { get; private set; }
         }
-
-        private sealed class RecordingAudit : IGateAudit
-        {
-            private readonly List<AuditEntry> _entries = new List<AuditEntry>();
-
-            public IReadOnlyList<AuditEntry> Entries
-            {
-                get { return _entries; }
-            }
-
-            public void Record(AuditEntry entry)
-            {
-                _entries.Add(entry);
-            }
-        }
     }
 }

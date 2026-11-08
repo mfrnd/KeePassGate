@@ -384,6 +384,11 @@ namespace KeePassGate.Host.Tests
                 get { return _lines; }
             }
 
+            public bool Keeps
+            {
+                get { return true; }
+            }
+
             public void Note(string line)
             {
                 _lines.Enqueue(line);

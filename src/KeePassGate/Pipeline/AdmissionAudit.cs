@@ -218,7 +218,7 @@ namespace KeePassGate.Pipeline
         /// <param name="clientKey">The client the line was about, by its client key.</param>
         public void TakeTurn(string clientKey)
         {
-            _pace.Take(clientKey);
+            Pace(clientKey);
         }
 
         /// <summary>
@@ -272,9 +272,21 @@ namespace KeePassGate.Pipeline
         {
             // By the client, which the renewal leaves as it was, so the certificate it ends with
             // spends the allowance the one that asked had spent.
-            _pace.Take(clientKey);
+            Pace(clientKey);
 
             Write(databaseId, client, clientKey, GateOperations.RenewCertificate, decision, reason, null);
+        }
+
+        /// <summary>
+        /// Waits for this client's turn, unless the audit keeps nothing, which the pace has nothing
+        /// to protect in.
+        /// </summary>
+        private void Pace(string clientKey)
+        {
+            if (_audit.Keeps)
+            {
+                _pace.Take(clientKey);
+            }
         }
 
         /// <summary>A line about a client's own admission, written without waiting for its turn.</summary>

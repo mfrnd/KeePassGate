@@ -194,8 +194,12 @@ namespace KeePassGate.Pipeline
             // Before the line, so the wait is paid by the request that would have written it. By
             // the client key, so a renewal keeps the allowance spent; a refused certificate has no
             // client and shares one allowance with every refused certificate of its database, for
-            // the reason `DecisionPace` gives.
-            _pace.Take(Allowance(client));
+            // the reason `DecisionPace` gives. Not at all where the audit keeps nothing, since the
+            // pace exists to protect a file and there is none.
+            if (_audit.Keeps)
+            {
+                _pace.Take(Allowance(client));
+            }
 
             _audit.Record(new AuditEntry(
                 _clock(),

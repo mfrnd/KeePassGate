@@ -52,7 +52,9 @@ namespace KeePassGate.Pipeline
     ///
     /// A decision with no key at all is not paced. The only lines written without a key are
     /// pairings, whose pace is the operator answering the dialog, and anything else without a key
-    /// is a defect.
+    /// is a defect. **Nor is anything paced for an audit that keeps nothing**, `IGateAudit.Keeps`,
+    /// which is a machine where no audit file could be named: the pace protects a file, and with
+    /// none a client held to it would be slowed for nothing.
     /// </remarks>
     public sealed class DecisionPace
     {

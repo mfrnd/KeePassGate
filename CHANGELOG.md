@@ -451,6 +451,9 @@ none, since it releases both.
   than each counting against its own. A client keeps the certificates it renewed out of, and each
   brought a whole burst and rate of its own once it was revoked or had expired, so a client that
   kept them could write as many times the pace as it had certificates.
+- **No client is paced where the audit has no file to write**, as on an account with no local
+  application data and no `KEEPASSGATE_AUDIT_FILE`. The pace keeps a client from rolling the file
+  away, and with no file a client past its first thousand decisions was still held to ten a second.
 
 ## 0.1.0, 2026-10-25
 

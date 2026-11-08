@@ -121,6 +121,16 @@ namespace KeePassGate.Audit
             get { return _path; }
         }
 
+        /// <summary>Whether anything recorded here is kept, which is whether a file was named.</summary>
+        /// <remarks>
+        /// A file that cannot be written for now still keeps what it can, so a failing write leaves
+        /// this true: having nowhere at all is the one case that keeps nothing.
+        /// </remarks>
+        public bool Keeps
+        {
+            get { return _path != null; }
+        }
+
         /// <summary>How many decisions could not be written down. Zero, on a working machine.</summary>
         public int Lost
         {
