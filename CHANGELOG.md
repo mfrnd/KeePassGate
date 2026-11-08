@@ -166,6 +166,9 @@ none, since it releases both.
   without a word and the renewal dialog stayed unanswered.
 - **A retry of keeping the authority the operator chose stops when the plugin is let go.** It
   ticked once more as KeePass closed, and told the operator the authority was not kept.
+- **Recreating or deleting the authority that fails part way tells the operator what may be
+  gone.** The authority is retired before the records are taken away, and a failure in between
+  was refused as though nothing had been removed, from a database that already served nobody.
 - **The message at exit names the standing answers it lets go, and gives no cause.** It counted
   them and blamed KeePass being busy whenever they were given and nothing being written after
   them, which was untrue after a save that failed or a save made since, and promised a dialog for

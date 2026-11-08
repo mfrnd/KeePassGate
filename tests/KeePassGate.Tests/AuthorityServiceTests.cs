@@ -363,6 +363,82 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_recreation_whose_clearing_fails_part_way_says_what_it_already_took_away()
+        {
+            // The authorities are retired before anything else is taken away, so a failure later
+            // in the clearing comes from a database that already serves nobody. Counted as cleared
+            // only once the clearing returned, it was refused as though nothing had been removed.
+            _service.Create();
+            _values.Plant(AuthorityKeys.ClientPrefix + "aaa", "record");
+            ListingFailsOnceRetired();
+
+            var result = _service.Recreate();
+
+            Assert.That(result.Succeeded, Is.False);
+            Assert.That(result.Message, Does.Contain("could not be removed"));
+            Assert.That(result.Message, Does.Contain("may be gone as well"));
+            Assert.That(Served(), Is.False, "the old authority is retired");
+        }
+
+        [Test]
+        public void A_deletion_that_fails_part_way_says_some_of_it_may_have_landed()
+        {
+            _service.Create();
+            _values.Plant(AuthorityKeys.ClientPrefix + "aaa", "record");
+            ListingFailsOnceRetired();
+
+            var result = _service.Delete();
+
+            Assert.That(result.Succeeded, Is.False);
+            Assert.That(result.Message, Does.Contain("could not be deleted"));
+            Assert.That(result.Message, Does.Contain("may have landed"));
+            Assert.That(Served(), Is.False, "the authority is retired");
+        }
+
+        [Test]
+        public void A_clearing_refused_before_it_wrote_anything_claims_nothing_was_taken()
+        {
+            // The authorities could not be listed, so none of them was touched, and saying what
+            // may be gone would send the operator looking for damage that is not there.
+            _service.Create();
+            _values.ThrowOnList = true;
+
+            var recreated = _service.Recreate();
+            var deleted = _service.Delete();
+
+            Assert.That(recreated.Succeeded, Is.False);
+            Assert.That(recreated.Message, Does.Not.Contain("may be gone as well"));
+            Assert.That(deleted.Succeeded, Is.False);
+            Assert.That(deleted.Message, Does.Not.Contain("may have landed"));
+
+            _values.ThrowOnList = false;
+            Assert.That(Served(), Is.True, "and the authority is still served");
+        }
+
+        /// <summary>Makes listing the store fail from the moment an authority is retired.</summary>
+        private void ListingFailsOnceRetired()
+        {
+            _values.WhenSet = key =>
+            {
+                if (AuthorityKeys.FingerprintInRetirement(key) != null)
+                {
+                    _values.ThrowOnList = true;
+                }
+            };
+        }
+
+        /// <summary>Whether the store serves an authority, read with the store answering again.</summary>
+        private bool Served()
+        {
+            _values.WhenSet = null;
+            _values.ThrowOnList = false;
+            using (var reading = _service.Read())
+            {
+                return reading.IsPresent;
+            }
+        }
+
+        [Test]
         public void A_creation_that_fails_says_nothing_about_an_old_authority()
         {
             // Creating clears nothing, so the sentence recreation adds would be a lie here.

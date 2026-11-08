@@ -113,8 +113,9 @@ namespace KeePassGate.Authority
             {
                 try
                 {
-                    removed = _store.DeleteEverything();
-                    cleared = true;
+                    // Cleared from the first write rather than once the clearing returns, so that
+                    // the clearing failing part way is reported as the change it already made.
+                    removed = _store.DeleteEverything(() => cleared = true);
                     return null;
                 }
                 catch (Exception error) when (Expected.OfCustomData(error))
@@ -126,7 +127,7 @@ namespace KeePassGate.Authority
             });
             if (!result.Succeeded)
             {
-                // Once the clearing has run, a refusal is not a database that was left alone, and
+                // Once the clearing has begun, a refusal is not a database that was left alone, and
                 // the message has to say so or the operator reads "it did not happen" and goes
                 // back to whatever they were doing with a database that now serves nobody. The
                 // sentence describes what recreation does rather than asserting what landed,
@@ -147,14 +148,19 @@ namespace KeePassGate.Authority
         public AuthorityChange Delete()
         {
             int removed;
+            var deleting = false;
             try
             {
-                removed = _store.DeleteEverything();
+                removed = _store.DeleteEverything(() => deleting = true);
             }
             catch (Exception error) when (Expected.OfCustomData(error))
             {
+                // Once the deletion has begun, a failure is not a database that was left alone,
+                // for the reason a recreation that fails once its clearing has begun tells the
+                // operator so.
                 _log.Error("the authority could not be deleted", error);
-                return AuthorityChange.Refused("The authority could not be deleted: " + error.Message);
+                return AuthorityChange.Refused(
+                    "The authority could not be deleted: " + error.Message + (deleting ? PartlyDeletedNote : string.Empty));
             }
 
             using (var check = Read())
@@ -220,7 +226,7 @@ namespace KeePassGate.Authority
         }
 
         /// <summary>
-        /// What a recreation that failed after the clearing step has to add, whatever it failed
+        /// What a recreation that failed once its clearing had begun has to add, whatever it failed
         /// at. The old authority and the records are asked for before the replacement is written,
         /// so every refusal from that point on is about a database that has already been changed.
         /// </summary>
@@ -229,6 +235,13 @@ namespace KeePassGate.Authority
             return " Recreating removes the old authority and every admission record before writing " +
                    "the replacement, so what was there before may be gone as well.";
         }
+
+        /// <summary>
+        /// What a deletion that failed once it had begun has to add: the authority may already be
+        /// retired, and the records gone with it.
+        /// </summary>
+        private const string PartlyDeletedNote =
+            " Some of the deletion may have landed, so read the page again before pressing anything else.";
 
         private static byte[] NewSniKey()
         {

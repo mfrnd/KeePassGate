@@ -195,7 +195,30 @@ namespace KeePassGate.Authority
         /// <returns>How many admission records were removed.</returns>
         public int DeleteEverything()
         {
-            foreach (var pair in Listed("deleted"))
+            return DeleteEverything(null);
+        }
+
+        /// <summary>The same, telling the caller once the database is about to change.</summary>
+        /// <remarks>
+        /// **So that a refusal after that point can say the database may have changed.** Listing
+        /// the authorities is the step that fails with nothing written; every step after it writes,
+        /// and the records are listed again last of all, so a failure there comes after every
+        /// authority was retired and its document taken away, leaving a database that serves
+        /// nothing under a refusal that read as nothing having happened.
+        /// </remarks>
+        /// <param name="changing">
+        /// Called once the authorities are listed and before the first of them is retired, or null.
+        /// </param>
+        /// <returns>How many admission records were removed.</returns>
+        public int DeleteEverything(Action changing)
+        {
+            var live = Listed("deleted");
+            if (changing != null)
+            {
+                changing();
+            }
+
+            foreach (var pair in live)
             {
                 Retire(pair.Key);
             }

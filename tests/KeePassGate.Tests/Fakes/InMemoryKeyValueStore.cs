@@ -66,7 +66,18 @@ namespace KeePassGate.Tests.Fakes
             }
 
             _values[key] = DamageWritesTo ?? value;
+
+            if (WhenSet != null)
+            {
+                WhenSet(key);
+            }
         }
+
+        /// <summary>
+        /// Called with the key of each write once it has landed, for a test whose store has to
+        /// start refusing part way through a change.
+        /// </summary>
+        public Action<string> WhenSet { get; set; }
 
         public void Remove(string key)
         {
