@@ -623,7 +623,8 @@ namespace KeePassGate.Bridge
         /// reason. A save that recorded no hash at all is a different case and answers true: the
         /// value is written by `PwDatabase.Save` itself, one statement before it clears the flag
         /// this is reached through, so inside KeePass there is no save that cleared one and not the
-        /// other. Outside it there is no save either.
+        /// other. Outside it there is no save either. A database closed after its save has no hash
+        /// either, since `PwDatabase.Close` clears it, and that case is asked before this is.
         /// </remarks>
         private static bool TheFileHoldsWhatWasWritten(PwDatabase database)
         {
@@ -1347,6 +1348,27 @@ namespace KeePassGate.Bridge
                         ? "the database still has unsaved changes, so nothing is on disk"
                         : failed.Message),
                     failed);
+            }
+
+            if (!database.IsOpen)
+            {
+                // **Closed as its save ended**, which a lock or a close does when KeePass handles
+                // one among the messages `MainForm.SaveDatabase` pumps once it has lifted its own
+                // block. `PwDatabase.Close` clears the flag, the file's hashes and the connection,
+                // so the flag above read as a save that worked, whether it had or not, and the hash
+                // below would read as verified on its null. Nothing knows whether the file holds
+                // the change, which is what this answer is: not taken back out, there being no
+                // database left in memory to take it out of, written down as a change left in place
+                // is, and the standing answers the save carried kept owed.
+                _log.Error("the database closed as its save ended, so whether the file holds the " +
+                           "change is not known", failed);
+
+                if (landed != null)
+                {
+                    landed();
+                }
+
+                return VaultWrite.Unverified("the database closed as its save ended");
             }
 
             if (failed != null)

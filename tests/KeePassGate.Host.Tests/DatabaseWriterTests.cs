@@ -173,6 +173,29 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void A_database_closed_as_its_save_ended_is_not_reported_as_verified()
+        {
+            // `MainForm.SaveDatabase` lifts its block and then pumps, and a lock handled there
+            // closes the database before the save returns. The close clears the flag and the hash
+            // the verification compares against, and the change read as saved and verified.
+            _database.Save();
+
+            var undone = 0;
+            var writer = Writer(new RunsUiThread(), db =>
+            {
+                db.Save(null);
+                db.Close();
+            });
+
+            var outcome = writer.Change(
+                _database.Database,
+                () => new VaultChange(VaultWrite.Created("abcd"), () => undone++));
+
+            Assert.That(outcome.IsUnverified, Is.True, outcome.Reason);
+            Assert.That(undone, Is.Zero, "nothing is left in memory to take it out of");
+        }
+
+        [Test]
         public void A_save_that_wrote_the_file_and_then_threw_is_left_where_it_landed()
         {
             // `MainForm.SaveDatabase` catches everything `PwDatabase.Save` throws and then, outside

@@ -181,6 +181,11 @@ none, since it releases both.
   tree nor the entry list**, which show neither, and the rebuild replaced any search results the
   operator had on screen. A standing answer that lands tells the Clients page, which draws the
   client's name red from it and went on showing it black until something else redrew the page.
+- **A write whose database KeePass closed as the save ended is answered `500 not verified`.** A
+  lock handled among the messages KeePass's save pumps once it has lifted its own block closes the
+  database before the save returns, and the close cleared what the plugin reads to know that the
+  file holds the change, so the write was answered as saved and verified whatever the save had
+  done.
 - **A protected field is kept from a strip whenever any profile could put an unprotected value
   back.** The guard asked whether some profile could create there and whether some profile could
   create a protected value there, so a program holding one profile that could put an unprotected
