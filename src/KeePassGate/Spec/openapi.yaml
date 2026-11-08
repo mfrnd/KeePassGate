@@ -2637,7 +2637,8 @@ components:
         the database's own host key, which no client holds, so nothing outside the gate can compute
         a tag for a guess. One content gives one tag for as long as the database's authority
         stands, across a lock, a restart and a reload, and recreating the authority changes every
-        tag. A listing carries none, since it answers about a collection.
+        tag. A listing of groups or entries carries none, since it answers about a collection,
+        while a listing of an entry's fields or attachments carries the entry's.
       required: false
       schema:
         type: string

@@ -11,6 +11,8 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **The routing document's `ETag` no longer claims that no listing carries a tag**: a listing of
+  an entry's fields or attachments carries the entry's, as the routes already declared.
 - **The routing document states what the group and entry listings leave out and in what order
   the groups come.** The sweeps of every group and every entry, and a group's own groups, leave out
   the recycle bin and what it holds, which nothing on those routes stated.
