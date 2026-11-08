@@ -193,16 +193,19 @@ class _Expiry:
     when: datetime | None
 
 
-def _expiry(body: dict[str, Any]) -> _Expiry | None:
-    """What a read said about when the entry expires, or None when it said nothing about it.
+def _expiry(body: dict[str, Any]) -> _Expiry:
+    """The expiry a read carries for the entry.
 
     `null` is an entry that does not expire, so a value this cannot read is refused rather than
     read as one: that would report a credential the operator retired as a live one, which is the
     one direction a reader of this must not be wrong in. `_moment` answers `None` for a time it
-    cannot read, which is right for `created` and wrong here.
+    cannot read, which is right for `created` and wrong here. **A read always carries it**, as
+    the document requires, so a read without it is an answer this client cannot read, as
+    `_nullable` holds of every member declared on every answer, rather than a gate that answered
+    nothing about the expiry.
     """
     if EXPIRES not in body:
-        return None
+        raise ProtocolError("the gate's answer has no expiry this client can read")
 
     said = body[EXPIRES]
     if said is None:
@@ -481,8 +484,6 @@ class Entry:
             raise AttributeError(
                 "this entry was listed rather than read, so it says nothing about when it expires. "
                 "Read it with GateClient.entry() first."
-                if self.fields is None
-                else "the gate said nothing about when this entry expires"
             )
 
         return self.expiry.when

@@ -308,6 +308,7 @@ def test_a_read_entry_carries_its_fields_and_says_which_are_protected(
                 "Invented": "a custom one",
             },
             "protected": ["Password"],
+            "expires": None,
         },
     )
 
@@ -338,6 +339,7 @@ def test_a_withheld_protected_value_stays_withheld(
                 "Password": None,
             },
             "protected": ["Password"],
+            "expires": None,
         },
     )
 
@@ -365,6 +367,7 @@ WITHHOLDING = {
         "Deploy key": None,
     },
     "protected": ["Password", "Deploy key"],
+    "expires": None,
 }
 
 #: Every path a caller has to a withheld value, each of which has to raise rather than hand back
@@ -682,7 +685,14 @@ def test_a_moment_the_gate_did_not_write_is_absent_rather_than_wrong(
 ) -> None:
     answering(
         gate,
-        {"uuid": UUID, "group": OTHER, "fields": {}, "protected": [], "created": "not a time"},
+        {
+            "uuid": UUID,
+            "group": OTHER,
+            "fields": {},
+            "protected": [],
+            "created": "not a time",
+            "expires": None,
+        },
     )
 
     entry = paired.entry(UUID)
@@ -820,6 +830,7 @@ ANY_ANSWER: dict[str, Any] = {
     "name": "an invented name",
     "parent": None,
     "notes": "",
+    "expires": None,
     "group": OTHER,
     "fields": {},
     "protected": [],
@@ -1012,14 +1023,18 @@ def test_a_listed_entry_says_nothing_about_when_it_expires(
         _ = listed.expired
 
 
-def test_a_read_that_says_nothing_about_expiry_has_none(gate: FakeGate, paired: GateClient) -> None:
-    """Not never, which is what `None` means here, and not the listing's message either."""
+def test_a_read_without_its_expiry_is_an_answer_this_client_cannot_read(
+    gate: FakeGate, paired: GateClient
+) -> None:
+    """Not never, which is what `None` means here, and not a gate that served no expiry.
+
+    The document requires the member on every read, as it requires the title or a field's value,
+    and an absent one of those is a `ProtocolError` too.
+    """
     answering(gate, {"uuid": UUID, "group": OTHER, "fields": {}, "protected": []})
 
-    entry = paired.entry(UUID)
-
-    with pytest.raises(AttributeError, match="said nothing"):
-        _ = entry.expires
+    with pytest.raises(ProtocolError, match="no expiry"):
+        paired.entry(UUID)
 
 
 @pytest.mark.parametrize("said", ["not a time", "", 20310203, "2031-02-03T04:05:06+01:00"])
@@ -1127,12 +1142,12 @@ UNREADABLE: list[tuple[str, dict[str, Any], Callable[[GateClient], object]]] = [
     ("an entry with no group", {"entries": [{"uuid": UUID, "title": "x"}]}, lambda c: c.entries()),
     (
         "fields that are a list",
-        {"uuid": UUID, "group": OTHER, "fields": ["Title"], "protected": []},
+        {"uuid": UUID, "group": OTHER, "fields": ["Title"], "protected": [], "expires": None},
         lambda c: c.entry(UUID),
     ),
     (
         "a value that is a number",
-        {"uuid": UUID, "group": OTHER, "fields": {"Title": 7}, "protected": []},
+        {"uuid": UUID, "group": OTHER, "fields": {"Title": 7}, "protected": [], "expires": None},
         lambda c: c.entry(UUID),
     ),
     ("a field listed as unprotected by saying nothing", {"fields": [{"name": "x"}]},
@@ -1212,7 +1227,15 @@ def test_a_moment_that_is_not_text_is_absent_rather_than_a_crash(
     # A time the gate did not write is `None`, as one it wrote wrongly already was. A number used
     # to reach `strptime` and leave as a `TypeError`.
     answering(
-        gate, {"uuid": UUID, "group": OTHER, "fields": {}, "protected": [], "created": 20260304}
+        gate,
+        {
+            "uuid": UUID,
+            "group": OTHER,
+            "fields": {},
+            "protected": [],
+            "created": 20260304,
+            "expires": None,
+        },
     )
 
     assert paired.entry(UUID).created is None
@@ -1271,6 +1294,7 @@ def test_a_title_a_read_withholds_raises_and_one_it_does_not_carry_is_empty(
             "created": "2026-03-04T05:06:07Z",
             "fields": {"Title": None, "URL": None},
             "protected": ["Title", "URL"],
+            "expires": None,
         },
     )
 
@@ -1283,7 +1307,7 @@ def test_a_title_a_read_withholds_raises_and_one_it_does_not_carry_is_empty(
         _ = withheld.url
     assert withheld.created == datetime(2026, 3, 4, 5, 6, 7, tzinfo=UTC), "in UTC, and aware"
 
-    answering(gate, {"uuid": UUID, "group": OTHER, "fields": {}, "protected": []})
+    answering(gate, {"uuid": UUID, "group": OTHER, "fields": {}, "protected": [], "expires": None})
 
     bare = paired.entry(UUID)
 

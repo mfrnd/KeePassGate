@@ -145,19 +145,15 @@ def test_show_prints_the_values_it_may_and_names_the_rest(
     }
 
 
-def test_show_says_nothing_about_an_expiry_the_gate_said_nothing_about(
+def test_show_prints_no_document_for_an_entry_read_without_its_expiry(
     gate: FakeGate, kept: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    answering(
-        gate,
-        {"uuid": UUID, "group": GROUP, "fields": {"Title": "Invented"}, "protected": []},
-    )
+    # A failure is never a document, and this client cannot read the answer.
+    read = {"uuid": UUID, "group": GROUP, "fields": {"Title": "Invented"}, "protected": []}
+    answering(gate, read)
 
-    assert cli.main(["show", UUID, "--directory", str(kept), "-o", "json"]) == 0
-
-    shown = printed(capsys)
-    assert "expires" not in shown
-    assert "expired" not in shown
+    assert cli.main(["show", UUID, "--directory", str(kept), "-o", "json"]) == cli.FAILED
+    assert capsys.readouterr().out == ""
 
 
 def test_show_prints_an_expiry_as_the_gate_writes_one(

@@ -11,6 +11,10 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **An entry read without `expires` is an answer PyKeePassGate cannot read**, `ProtocolError`, as
+  the document requires the member on every read and the client refuses any other required member
+  missing. It was read as a gate answering nothing about the expiry, an `AttributeError` from
+  `entry.expires`, and `show` left the line out.
 - **A group read without its notes is an answer PyKeePassGate cannot read**, `ProtocolError`, as
   the document requires the member. `Group.of` told a read from a listing by whether the notes
   were there, so such a read came back as a listed group with its tag dropped, and `group` ended

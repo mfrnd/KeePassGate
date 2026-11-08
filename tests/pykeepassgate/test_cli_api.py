@@ -289,6 +289,7 @@ def test_show_prints_every_string_and_says_which_are_protected(
             "group": "g",
             "fields": {"Title": "an invented service", "Password": "not-a-real-password"},
             "protected": ["Password"],
+            "expires": None,
         },
     )
 
@@ -311,6 +312,7 @@ def test_show_says_a_value_the_rule_withholds_is_withheld(
             "group": "g",
             "fields": {"Title": "an invented service", "Password": None},
             "protected": ["Password"],
+            "expires": None,
         },
     )
 
@@ -324,7 +326,7 @@ def test_show_says_a_value_the_rule_withholds_is_withheld(
 #: An entry whose password is another's, by reference, and the other entry, as the gate reads each.
 BORROWING = "A1" * 16
 LENDING = "B2" * 16
-READS = {
+READS: dict[str, dict[str, Any]] = {
     BORROWING: {
         "uuid": BORROWING,
         "group": "g",
@@ -334,12 +336,14 @@ READS = {
             "Notes": None,
         },
         "protected": ["Password", "Notes"],
+        "expires": None,
     },
     LENDING: {
         "uuid": LENDING,
         "group": "g",
         "fields": {"Title": "an invented vault", "Password": "not-a-real-password"},
         "protected": ["Password"],
+        "expires": None,
     },
 }
 
@@ -640,7 +644,13 @@ def test_attachments_are_listed_with_their_sizes(
         ),
         (
             ["show", UUID],
-            {"uuid": UUID, "group": "g", "fields": {"Real\n\x85Forged": "x"}, "protected": []},
+            {
+                "uuid": UUID,
+                "group": "g",
+                "fields": {"Real\n\x85Forged": "x"},
+                "protected": [],
+                "expires": None,
+            },
             "Real\\n\\x85Forged: x",
         ),
         (
@@ -702,6 +712,7 @@ def test_show_keeps_a_value_on_the_line_of_the_field_it_belongs_to(
                 "Password": "not-a-real-password",
             },
             "protected": ["Password"],
+            "expires": None,
         },
     )
 
@@ -1248,14 +1259,17 @@ def test_show_says_when_an_entry_expires(
     assert printed in capsys.readouterr().out
 
 
-def test_show_says_nothing_about_an_expiry_the_gate_said_nothing_about(
+def test_show_refuses_an_entry_read_without_its_expiry(
     gate: FakeGate, kept: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    # Not "never", which would be this client answering for the gate.
+    # Not "never", which would be this client answering for the gate, and not a line left out
+    # either: the document requires the member, so this cannot read an answer without it.
     answering(gate, {"uuid": UUID, "group": UUID, "fields": {}, "protected": []})
 
-    assert cli.main(["show", UUID, "--directory", str(kept)]) == 0
-    assert "expires" not in capsys.readouterr().out
+    assert cli.main(["show", UUID, "--directory", str(kept)]) == cli.FAILED
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert "ProtocolError" in captured.err
 
 
 @pytest.mark.parametrize(

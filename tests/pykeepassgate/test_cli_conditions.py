@@ -90,7 +90,13 @@ def test_an_attachment_from_a_file_is_written_under_the_tag_too(
         (["group", UUID], {"uuid": UUID, "name": "x", "parent": None, "notes": ""}),
         (
             ["show", UUID],
-            {"uuid": UUID, "group": UUID, "fields": {"Title": "x"}, "protected": []},
+            {
+                "uuid": UUID,
+                "group": UUID,
+                "fields": {"Title": "x"},
+                "protected": [],
+                "expires": None,
+            },
         ),
         (["field", UUID, "Title"], {"name": "Title", "value": "x", "protected": False}),
     ],

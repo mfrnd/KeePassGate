@@ -1667,12 +1667,11 @@ def _show(arguments: argparse.Namespace) -> int:
     _said(document, "created", entry.created)
     _said(document, "modified", entry.modified)
 
-    # `hasattr` is how the read model says whether the gate said anything at all, and a gate that
-    # said nothing about an expiry has not said the entry never expires.
-    if hasattr(entry, "expires"):
-        lines.append(f"expires: {_shown(entry.expires, entry.expired)}")
-        document["expires"] = None if entry.expires is None else _moment(entry.expires)
-        document["expired"] = entry.expired
+    # Every read carries the entry's expiry, `None` for never, since `Entry.read` refuses a read
+    # without it.
+    lines.append(f"expires: {_shown(entry.expires, entry.expired)}")
+    document["expires"] = None if entry.expires is None else _moment(entry.expires)
+    document["expired"] = entry.expired
 
     for name in sorted(strings):
         guarded = " (protected)" if name in entry.protected else ""
