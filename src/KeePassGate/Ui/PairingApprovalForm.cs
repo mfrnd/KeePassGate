@@ -322,7 +322,7 @@ namespace KeePassGate.Ui
             _allowed = timeout;
 
             Name = GateTab.ApprovalFormName;
-            Text = "KeePassGate: a client is asking to pair";
+            Text = GateName.Product + ": a client is asking to pair";
             FormBorderStyle = FormBorderStyle.FixedDialog;
             StartPosition = FormStartPosition.CenterScreen;
             MinimizeBox = false;

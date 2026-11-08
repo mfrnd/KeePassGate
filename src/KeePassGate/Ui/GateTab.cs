@@ -202,7 +202,7 @@ namespace KeePassGate.Ui
         public const string CopyButtonName = "KpgCopyButton";
 
         /// <summary>What a screen reader calls the tab's contents, which have no caption.</summary>
-        public const string PanelAccessibleLabel = "KeePassGate settings for this database";
+        public const string PanelAccessibleLabel = GateName.Product + " settings for this database";
 
         /// <summary>What a screen reader calls the box holding an invitation code.</summary>
         public const string InvitationBoxLabel = "Invitation code";

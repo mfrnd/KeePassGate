@@ -190,7 +190,7 @@ namespace KeePassGate.Ui
             _allowed = timeout;
 
             Name = GateTab.RenewalFormName;
-            Text = "KeePassGate: a client is asking to renew its certificate";
+            Text = GateName.Product + ": a client is asking to renew its certificate";
             FormBorderStyle = FormBorderStyle.FixedDialog;
             StartPosition = FormStartPosition.CenterScreen;
             MinimizeBox = false;

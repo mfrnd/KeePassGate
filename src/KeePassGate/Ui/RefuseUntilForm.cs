@@ -52,7 +52,7 @@ namespace KeePassGate.Ui
             }
 
             Name = GateTab.RefuseUntilFormName;
-            Text = "KeePassGate: refuse renewals until a day";
+            Text = GateName.Product + ": refuse renewals until a day";
             FormBorderStyle = FormBorderStyle.FixedDialog;
             StartPosition = FormStartPosition.CenterParent;
             MinimizeBox = false;
