@@ -896,6 +896,53 @@ namespace KeePassGate.Tests
             }
         }
 
+        [TestCase("locked")]
+        [TestCase("closed")]
+        public void A_lock_or_a_close_between_the_operators_answer_and_its_hold_lets_the_answer_go(string how)
+        {
+            // S083 and D005: the dialog had answered, and the book was emptied before the answer
+            // was held, which held it all the same. The client was told `503 busy` until when, and
+            // the same renewal once the database was open again was written without the dialog.
+            var operatorAt = FakeRenewalApproval.Approving();
+            var cleared = false;
+            operatorAt.Meanwhile = () =>
+            {
+                if (cleared)
+                {
+                    return;
+                }
+
+                cleared = true;
+                if (how == "locked")
+                {
+                    ((IApprovalScreen)_held).Locked();
+                }
+                else
+                {
+                    ((IApprovalScreen)_held).Closed(new[] { _authority.DatabaseId });
+                }
+
+                _authority.AdmissionBlocked = "the database is not open";
+            };
+
+            using (var old = _authority.IssueAdmittedClient("reader"))
+            {
+                var before = _authority.Admitted;
+                var context = Renew(operatorAt, old, "{}");
+
+                Assert.That(context.Status, Is.EqualTo(503), context.Json);
+                Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody(LockedTarget.Error)));
+                Assert.That(_held.Count, Is.Zero);
+                Assert.That(_authority.Admitted, Is.SameAs(before), "nothing was written");
+
+                _authority.AdmissionBlocked = null;
+                var retry = Renew(operatorAt, old, "{}");
+
+                Assert.That(retry.Status, Is.EqualTo(200), retry.Json);
+                Assert.That(operatorAt.Asked, Is.EqualTo(2), "the operator is asked again");
+            }
+        }
+
         [Test]
         public void A_busy_that_clears_within_the_retry_window_does_not_cost_the_approval()
         {

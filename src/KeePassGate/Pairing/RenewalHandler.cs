@@ -298,6 +298,10 @@ namespace KeePassGate.Pairing
             string approval,
             DateTimeOffset arrived)
         {
+            // Before anything is put to the operator, for pairing's reason: a lock or a close of
+            // this database between the question and the answer lets the answer go.
+            var mark = _held.Mark();
+
             RenewalRefusal stored;
             if (Standing(context, target, key, record, out stored))
             {
@@ -397,6 +401,7 @@ namespace KeePassGate.Pairing
                 request.Profiles,
                 ApprovalBook.Digest(record.Save()),
                 arrived + _options.ApprovalHeld,
+                mark,
                 request.Profiles.Concat(request.Dropped));
         }
 

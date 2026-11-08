@@ -439,7 +439,12 @@ cannot be written answers. Their deadline still bounds them. Nothing is written 
 spent: an invitation is still good after the unlock, and a renewing client's old certificate still
 works. **A lock lets go of every approval held for a retry**, §303, and a close of a database lets
 go of that database's, so an approval still waiting for a busy KeePass when the lock comes is
-answered `503 locked` at once and never written into the database the unlock opens again.
+answered `503 locked` at once and never written into the database the unlock opens again. **So is
+an answer the lock or the close overtook**: an approval the operator gave as KeePass locked, which
+had not reached the plugin's memory when the lock let go of what was there, or an approval given on
+a dialog left standing over a database closed for real, which nothing takes down. The plugin notes
+where it stood before the operator was asked, and an approval arriving after a lock, or after a
+close of its own database, is let go as it arrives and answered `503 locked`.
 
 **An unlock that lifts no lock closes nothing**, which is a refinement the end to end tier forced
 rather than a weakening. KeePass announces a database being opened and a database being unlocked
@@ -573,9 +578,10 @@ answered, since the write would otherwise put a name back that was taken off in 
 approval is used up there, and the invitation spent there, last, so nothing that can still answer
 busy comes after the burn. **A lock and KeePass exiting let go of every approval held, and a close
 of a database lets go of that database's**, and an approval still settling when KeePass locks is
-answered `503 locked` rather than written into the database an unlock opens again. A close let go
-of every database's until the operator's ruling of 2026-11-01, which told a pairing approved for a
-database still open that its database was locked.
+answered `503 locked` rather than written into the database an unlock opens again. So is an
+approval the operator gave across the lock or the close, which arrives after it, §308. A close let
+go of every database's until the operator's ruling of 2026-11-01, which told a pairing approved for
+a database still open that its database was locked.
 
 **Every `503` is raised before the invitation is spent, and that is what makes it honest.** The
 dialog check and the wait for the screen both happen before the burn, so a caller that starts again

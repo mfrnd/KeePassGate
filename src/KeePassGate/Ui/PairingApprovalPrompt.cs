@@ -171,7 +171,8 @@ namespace KeePassGate.Ui
 
         /// <summary>
         /// A database closed for real. Nothing here: a dialog about it finds the database gone
-        /// when its answer is acted on, and the approval book lets go of what it held for it.
+        /// when its answer is acted on, since the approval book lets go of what it held for it and
+        /// of an approval given on that dialog once the close is over.
         /// </summary>
         public void Closed(IReadOnlyCollection<string> databaseIds)
         {

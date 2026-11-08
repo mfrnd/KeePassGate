@@ -309,6 +309,11 @@ none, since it releases both.
   though it had been listed. Each is now answered `503 busy` with the approval used up and the
   operator asked again, and so is a renewal whose profile was taken off the list while the dialog
   stood, which used to renew without that profile.
+- **An approval the operator gives as KeePass locks, or on a dialog left standing over a database
+  closed for real, is let go and answered `503 locked`.** It reached the plugin's memory after the
+  lock or the close had let go of what was there, so the client was told `503 busy` with
+  `heldUntil`, and the same pairing or renewal asked again once the database was open again was
+  written without the dialog.
 
 ## 0.1.0, 2026-10-25
 

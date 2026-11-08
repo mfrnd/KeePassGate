@@ -115,10 +115,74 @@ namespace KeePassGate.Tests
             Assert.That(_book.Find("key", "db"), Is.SameAs(second));
         }
 
+        [Test]
+        public void An_answer_a_lock_overtook_is_let_go_as_it_arrives()
+        {
+            // S083: the operator answered, and KeePass locked before the answer was held. The
+            // book the lock had emptied took it all the same.
+            var mark = _book.Mark();
+            ((IApprovalScreen)_book).Locked();
+
+            var held = Hold("key", "db", mark);
+
+            Assert.That(held.Cleared, Is.True, "answered as the lock it is");
+            Assert.That(_book.Count, Is.Zero);
+            Assert.That(_book.Find("key", "db"), Is.Null);
+        }
+
+        [Test]
+        public void An_answer_given_after_its_database_closed_is_let_go_and_another_database_s_is_held()
+        {
+            // D005 and D017 for the database that closed, and the operator's ruling R1 for every
+            // other: a close takes its own database's approvals and no others.
+            var mark = _book.Mark();
+            ((IApprovalScreen)_book).Closed(new[] { "db" });
+
+            var closed = Hold("one", "db", mark);
+            var open = Hold("two", "another db", mark);
+
+            Assert.That(closed.Cleared, Is.True);
+            Assert.That(_book.Find("one", "db"), Is.Null);
+            Assert.That(open.Cleared, Is.False);
+            Assert.That(_book.Find("two", "another db"), Is.SameAs(open));
+        }
+
+        [Test]
+        public void A_question_asked_after_a_clear_is_held_as_any_other()
+        {
+            ((IApprovalScreen)_book).Locked();
+            ((IApprovalScreen)_book).Closed(new[] { "db" });
+            var mark = _book.Mark();
+
+            var held = Hold("key", "db", mark);
+
+            Assert.That(held.Cleared, Is.False);
+            Assert.That(_book.Find("key", "db"), Is.SameAs(held));
+        }
+
+        [Test]
+        public void An_answer_let_go_as_it_arrives_leaves_what_the_book_already_held()
+        {
+            // A later question for the same request, asked after the clear, was held under the same
+            // key: the answer the clear overtook takes nothing from it.
+            var before = _book.Mark();
+            ((IApprovalScreen)_book).Locked();
+            var later = Hold("key");
+
+            Hold("key", "db", before);
+
+            Assert.That(_book.Find("key", "db"), Is.SameAs(later));
+        }
+
         private HeldApproval Hold(string key, string databaseId = "db")
         {
+            return Hold(key, databaseId, _book.Mark());
+        }
+
+        private HeldApproval Hold(string key, string databaseId, long mark)
+        {
             return _book.Hold(
-                key, databaseId, new[] { "ops" }, TimeSpan.FromDays(30), new[] { "ops" }, null, _now.AddMinutes(6));
+                key, databaseId, new[] { "ops" }, TimeSpan.FromDays(30), new[] { "ops" }, null, _now.AddMinutes(6), mark);
         }
     }
 }

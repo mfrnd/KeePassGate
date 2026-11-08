@@ -435,6 +435,11 @@ namespace KeePassGate.Pairing
             var target = connection.Target;
             var invitation = connection.Invitation;
 
+            // Before anything is put to the operator, so that a lock or a close of this database
+            // between the question and the answer lets the answer go rather than holding it for a
+            // database opened again since.
+            var mark = _held.Mark();
+
             // Before the operator is disturbed. The challenge is already spent by now, so a
             // client turned away here needs a fresh hello rather than a second try. Database
             // Maintenance open on this database would take the record straight back off again.
@@ -541,7 +546,8 @@ namespace KeePassGate.Pairing
                 decision.Lifetime,
                 approved.Where(listed.Contains),
                 null,
-                arrived + _options.ApprovalHeld);
+                arrived + _options.ApprovalHeld,
+                mark);
         }
 
         /// <summary>
