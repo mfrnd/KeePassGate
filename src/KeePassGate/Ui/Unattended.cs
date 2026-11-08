@@ -11,10 +11,12 @@ namespace KeePassGate.Ui
     /// **`ControlUiThread`'s turns are deliberately not reused, and the difference is the
     /// caller.** A turn catches everything its work throws and holds it for `Rethrow`, so the
     /// failure lands on the thread that asked for the work and can be named or counted there.
-    /// Here there is no such thread. The post is made from the user interface thread itself, in a
-    /// handler of one of KeePass's own events, and it returns before the queue is pumped: a stored
-    /// exception would have nowhere to be thrown and would simply be lost, and waiting for the
-    /// work instead would hold the one thread that has to run it.
+    /// Here there is no such thread. The post is made from the user interface thread itself: in a
+    /// handler of one of KeePass's own events, the main window's `Shown` for the entry point's
+    /// refusal and the database events for the authority chooser, or in the tick of a timer of the
+    /// plugin's own, which is how the chooser asks again later. It returns before the queue is
+    /// pumped: a stored exception would have nowhere to be thrown and would simply be lost, and
+    /// waiting for the work instead would hold the one thread that has to run it.
     ///
     /// So the failure is reported where it happens rather than carried to somebody. That is what
     /// keeps this from being a kind of catch-all of its own, `DESIGN.md` §141: it is the catch-all

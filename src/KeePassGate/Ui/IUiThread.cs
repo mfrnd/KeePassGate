@@ -226,7 +226,11 @@ namespace KeePassGate.Ui
 
             if (!_control.InvokeRequired)
             {
-                // Already there, which is what happens when a test drives this directly.
+                // Already there, which is what a test driving this directly does, and what the
+                // authority chooser does whenever it keeps an authority: it asks on KeePass's own
+                // thread, from a post or a timer's tick, and `DatabaseWriter.Keep` runs through
+                // here. Inline is safe for it because Keep takes the writer's lock without
+                // waiting, so the work never waits on the thread it is running on.
                 work();
                 return true;
             }
