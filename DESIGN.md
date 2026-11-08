@@ -668,10 +668,13 @@ with a permission the broken rule may have been taking away.
 and the switch from the same rule, so a rule granting `read` without the switch refuses where it is
 found rather than sending the walk up to a rule that would have allowed it. `protected` is answered
 the same way and at a different moment: an attachment is a route of its own, so the router asks
-before dispatch, while a protected value arrives inside an answer to a route that is allowed. That
-one question is asked on the way out, in a single place between the handler and the response, for
-the reason every other question is asked once: twenty-five call sites write field values, and a
-check each of them has to remember is a check one of them will not.
+before dispatch, while a protected value arrives inside an answer to a route that is allowed. So
+that question is asked by the handlers rather than the router: each one that writes a field value
+into an answer or takes one from a body asks it, reading an entry or a field, the listings, creating
+or updating either, and stripping a field, through one helper that puts it to the resolver and
+records a refusal. That is the arrangement every other question is kept out of, a check each site
+has to remember, and it is where this one has to be, since only the handler holds the values in
+question. A route added later that handles field values has to ask it as well.
 
 The verb comes from the routing table, as `x-kpg-verb`, and **an operation that declares none stops
 the plugin loading**. That is what keeps authorization from being something a new route can be added
@@ -742,13 +745,13 @@ separately and bound to one handler, which is what makes RFC 9110 section 9.3.2'
 GET, except no content" true by construction rather than by two implementations agreeing.
 Deriving it instead would have left this document an incomplete account of what the API answers,
 which is the one thing it is for; refusing it would have left an HTTP requirement unmet for no
-gain. **A pair carries one verb between them**, one reach, one answer about needing a certificate,
-one about carrying a body, one set of query parameters and one guard. The plugin refuses to load a
-`get` with no `head`, or a pair that disagrees about any of them, because a `head` governed
-differently would answer whether
-a node exists to a caller its own `get` would have refused, which is an oracle rather than a
-route. The answer carries no length, which section 9.3.2 permits: it asks for the same header
-fields as GET and allows omitting the ones determined while generating the content.
+gain. **A pair carries one verb between them**, one reach, one node it asks about, one answer about
+needing a certificate, one about carrying a body, one set of query parameters, one about taking
+`If-Match` and one guard. The plugin refuses to load a `get` with no `head`, or a pair that
+disagrees about any of them, because a `head` governed differently would answer whether a node
+exists to a caller its own `get` would have refused, which is an oracle rather than a route. The
+answer carries no length, which section 9.3.2 permits: it asks for the same header fields as GET
+and allows omitting the ones determined while generating the content.
 
 **And a refusal to a HEAD carries none either, which is the part that was left implicit and was
 therefore wrong.** RFC 9112 section 6.3 forbids content on a response to HEAD, and a refusal is a

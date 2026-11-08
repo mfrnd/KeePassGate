@@ -442,12 +442,12 @@ designing around them.
 
   **`protected` is a scope and not a verb**, like `attachments`, and it is the one scope a handler
   asks about rather than the router. An attachment is a route of its own, so the router asks before
-  dispatch; a protected value arrives inside the answer to a route that is allowed, so the question
-  is asked once between the handler and the response. It governs writing as well as reading, and
-  what counts as protected is `IVault.Protects`, which is KeePass's own `MemoryProtection` rather
-  than a list kept here. **Both sides ask it now**: a read used to trust the stored string's own
-  flag, so a standard field the database protects and the string did not was handed out as though
-  nothing protected it.
+  dispatch; a protected value arrives inside the answer to a route that is allowed, so each handler
+  that writes or takes a field value asks it, through one helper, `DESIGN.md` §137. It governs
+  writing as well as reading, and what counts as protected is `IVault.Protects`, which is KeePass's
+  own `MemoryProtection` rather than a list kept here. **Both sides ask it now**: a read used to
+  trust the stored string's own flag, so a standard field the database protects and the string did
+  not was handed out as though nothing protected it.
 
   **Nearest wins, per profile**, and profiles are combined with or. An empty array is a rule
   granting nothing from there down; a profile the document does not name is silence, answered by
