@@ -533,8 +533,13 @@ machine it runs on, which is a fact about that machine rather than about the dat
 as text here. A placeholder another KeePass plugin adds is unknown here, and stays as text too.
 
 **It is pinned against KeePass's own compiler.** `tests/Shared/ReferenceVectors.json` holds what
-the placeholder engine of the KeePass this repository pins makes of every value the resolver is
-tested on, and the file is regenerated from KeePass, never from this client.
+the placeholder engine of the KeePass this repository pins makes of every value in it, and the file
+is regenerated from KeePass, never from this client. Not everything the resolver is tested on is
+in it. A placeholder that acts when KeePass compiles it, running a command, generating a password
+or showing a dialog, is kept out of a test that compiles, and so is a placeholder whose answer is
+the machine's, a time, a path or the clipboard, and so is what only the gate decides, a value the
+rule withholds among it. What the resolver does with those is held to this repository's reading of
+KeePass rather than to KeePass's compiler.
 
 ## Write
 
