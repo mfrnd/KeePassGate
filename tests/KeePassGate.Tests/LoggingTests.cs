@@ -184,9 +184,36 @@ namespace KeePassGate.Tests
             Assert.DoesNotThrow(() => log.Info("one"));
             Assert.DoesNotThrow(() => log.Info("two"));
 
-            Assert.That(_listener.Lines.Any(l => l.Contains("log file disabled")), Is.True);
-            // Reported once, then dropped: a broken log must not cost a line of work per event.
-            Assert.That(_listener.Lines.Count(l => l.Contains("log file disabled")), Is.EqualTo(1));
+            Assert.That(_listener.Lines.Any(l => l.Contains("log file not written")), Is.True);
+            // Reported once for as long as it lasts, rather than once a line.
+            Assert.That(_listener.Lines.Count(l => l.Contains("log file not written")), Is.EqualTo(1));
+        }
+
+        [Test]
+        public void A_file_that_could_not_be_written_for_a_while_is_written_again_with_what_it_missed()
+        {
+            // A program reading the log without letting anybody write to it stops every line for
+            // exactly as long as it holds the file, and then the next one works. Given up on after
+            // the first failure, the file took nothing more for the rest of the session.
+            var path = Paths.Join(_directory, "gate.log");
+            var log = new TraceGateLog(path);
+            log.Info("before");
+
+            using (new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
+            {
+                log.Info("while held");
+                log.Info("still held");
+            }
+
+            log.Info("after");
+
+            var lines = File.ReadAllLines(path);
+            Assert.That(lines.Length, Is.EqualTo(3), string.Join(Environment.NewLine, lines));
+            Assert.That(lines[0], Does.Contain("KPG INFO before"));
+            Assert.That(lines[1], Does.Contain("KPG WARN the log file is being written again, and 2 lines"));
+            Assert.That(lines[2], Does.Contain("KPG INFO after"));
+            Assert.That(_listener.Lines.Count(l => l.Contains("log file not written")), Is.EqualTo(1),
+                "the trace is told once as the failure begins");
         }
 
         [Test]
@@ -252,7 +279,7 @@ namespace KeePassGate.Tests
                 Assert.That(File.ReadAllText(path), Does.Contain("KPG INFO one").And.Contain("KPG INFO two"));
                 Assert.That(_listener.Lines.Count(l => l.Contains("not set aside")), Is.EqualTo(1),
                     "said once rather than at every line");
-                Assert.That(_listener.Lines.Any(l => l.Contains("log file disabled")), Is.False);
+                Assert.That(_listener.Lines.Any(l => l.Contains("log file not written")), Is.False);
             }
         }
 
@@ -307,7 +334,7 @@ namespace KeePassGate.Tests
             Assert.That(File.ReadAllText(path), Does.Contain("KPG INFO one").And.Contain("KPG INFO two"));
             Assert.That(_listener.Lines.Count(l => l.Contains("not set aside")), Is.EqualTo(1),
                 "the trace is told once that the log grows past its bound");
-            Assert.That(_listener.Lines.Any(l => l.Contains("log file disabled")), Is.False);
+            Assert.That(_listener.Lines.Any(l => l.Contains("log file not written")), Is.False);
             Assert.That(File.ReadAllText(path + ".1"), Is.EqualTo("older\n"), "and the previous file is as it was");
         }
 

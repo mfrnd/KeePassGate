@@ -22,7 +22,8 @@ namespace KeePassGate.Diagnostics
     /// as the plugin is used.
     ///
     /// Nothing here throws. A log that cannot be written is worth less than a running password
-    /// manager, so a failed write is dropped after one attempt to report it to <see cref="Trace"/>.
+    /// manager, so a line the file will not take is dropped, the failure is reported to
+    /// <see cref="Trace"/> once as it begins, and the file is tried again at the next line.
     /// </remarks>
     public sealed class TraceGateLog : IGateLog
     {
@@ -45,13 +46,14 @@ namespace KeePassGate.Diagnostics
         private readonly object _fileLock = new object();
         private readonly string _filePath;
         private readonly Func<DateTime> _clock;
-        // Volatile because it is read before the lock is taken and written in a catch after it
-        // has been released, from whichever thread logged: the gate reads on a connection
-        // thread while the UI thread writes.
-        private volatile bool _fileFailed;
 
         // Under the lock, like the setting aside it is about.
         private bool _rollReported;
+
+        // Under the lock too: whether the last line could not be written, and how many have not
+        // been since the file last took one.
+        private bool _failing;
+        private int _missed;
 
         /// <summary>Writes to the file the environment names, or to one beside the audit.</summary>
         public TraceGateLog()
@@ -92,10 +94,12 @@ namespace KeePassGate.Diagnostics
 
         private void Write(string level, string message, Exception error)
         {
+            DateTime at;
             string line;
             try
             {
-                line = GateLogFormat.Line(_clock(), level, message, error);
+                at = _clock();
+                line = GateLogFormat.Line(at, level, message, error);
             }
             // codeql[cs/catch-of-all-exceptions] the log the catch-alls report to, which may not throw
             catch (Exception)
@@ -118,19 +122,32 @@ namespace KeePassGate.Diagnostics
                 // throw anything at all. Losing the line is the lesser failure.
             }
 
-            AppendToFile(line);
+            AppendToFile(at, line);
         }
 
-        private void AppendToFile(string line)
+        /// <summary>
+        /// Adds a line to the file, after a line naming how many went unwritten when the last of
+        /// them could not be written.
+        /// </summary>
+        /// <remarks>
+        /// **Tried again at every line, as the audit is**, because not every failure lasts. A
+        /// program reading the file without letting anybody write to it stops every append for
+        /// exactly as long as it holds the file, and then the next one works: given up on after one
+        /// failure, the file stayed silent for the rest of the session behind a single line to the
+        /// trace, while everything the plugin shows sends the operator to it. The failure is
+        /// reported to the trace once when it begins, since a line written through this log would
+        /// come straight back here, and its end goes into the file, with what it cost.
+        /// </remarks>
+        private void AppendToFile(DateTime at, string line)
         {
-            if (_filePath == null || _fileFailed)
+            if (_filePath == null)
             {
                 return;
             }
 
-            try
+            lock (_fileLock)
             {
-                lock (_fileLock)
+                try
                 {
                     Prepare();
 
@@ -138,32 +155,55 @@ namespace KeePassGate.Diagnostics
                     using (var stream = new FileStream(_filePath, FileMode.Append, FileAccess.Write, FileShare.ReadWrite))
                     using (var writer = new StreamWriter(stream, new UTF8Encoding(false)))
                     {
+                        if (_failing)
+                        {
+                            writer.WriteLine(GateLogFormat.Line(
+                                at,
+                                GateLogFormat.WarnLevel,
+                                "the log file is being written again, and " + Lines(_missed) +
+                                " written while it could not be are not in it",
+                                null));
+                        }
+
                         writer.WriteLine(line);
+                    }
+
+                    _failing = false;
+                    _missed = 0;
+                }
+                catch (Exception error) when (Expected.OfStorage(error))
+                {
+                    // Every way a path can be unusable: gone, locked, forbidden, or not a path at
+                    // all, named once in `Expected` now that the audit needs the same list. Two
+                    // spellings of one list can only ever be found to disagree by a failure neither
+                    // anticipated.
+                    _missed++;
+                    if (_failing)
+                    {
+                        return;
+                    }
+
+                    _failing = true;
+                    try
+                    {
+                        Trace.WriteLine(GateLogFormat.Line(
+                            _clock(), GateLogFormat.WarnLevel,
+                            "log file not written, so lines reach the trace alone until it can be", error));
+                    }
+                    // codeql[cs/catch-of-all-exceptions] the log the catch-alls report to, which may not throw
+                    catch (Exception)
+                    {
+                        // As above: there is nowhere left to report a logger that cannot report.
                     }
                 }
             }
-            catch (Exception error) when (Expected.OfStorage(error))
-            {
-                // Every way a path can be unusable: gone, locked, forbidden, or not a path at all,
-                // named once in `Expected` now that the audit needs the same list. Two spellings of
-                // one list can only ever be found to disagree by a failure neither anticipated.
-                //
-                // The file is given up on rather than retried, because a log that fails once on a
-                // socket thread will fail on every connection after it. The audit deliberately does
-                // the opposite: it counts and keeps trying, because a lost decision is worth more
-                // than a lost log line and a lock that clears should start recording again.
-                _fileFailed = true;
-                try
-                {
-                    Trace.WriteLine(GateLogFormat.Line(
-                        _clock(), GateLogFormat.WarnLevel, "log file disabled after a failed write", error));
-                }
-                // codeql[cs/catch-of-all-exceptions] the log the catch-alls report to, which may not throw
-                catch (Exception)
-                {
-                    // As above: there is nowhere left to report a logger that cannot report.
-                }
-            }
+        }
+
+        private static string Lines(int count)
+        {
+            return count == 1
+                ? "1 line"
+                : count.ToString(System.Globalization.CultureInfo.InvariantCulture) + " lines";
         }
 
         /// <summary>
@@ -171,11 +211,11 @@ namespace KeePassGate.Diagnostics
         /// <see cref="RollAt"/>, keeping one previous file. Called under the lock.
         /// </summary>
         /// <remarks>
-        /// A directory that cannot be made throws, and the file is given up on as it is for any
-        /// write that fails. Setting the file aside is an attempt of its own, as the audit's is: it
-        /// bounds the file and is no condition for writing to it, and a viewer holding the previous
-        /// file, which is how anything following a log holds it, would otherwise end the log for
-        /// the rest of the session. It is tried again at the next line.
+        /// A directory that cannot be made throws, and the line is lost as it is for any write that
+        /// fails, the next being tried again. Setting the file aside is an attempt of its own, as
+        /// the audit's is: it bounds the file and is no condition for writing to it, and a viewer
+        /// holding the previous file, which is how anything following a log holds it, would
+        /// otherwise end the log for the rest of the session. It is tried again at the next line.
         ///
         /// **And it goes by what the ACLs allow, as the audit's does**, through
         /// `PluginFiles.SetAside`. The log is beside the audit by default, so a directory sealed

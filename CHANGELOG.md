@@ -138,6 +138,9 @@ none, since it releases both.
   sealed for an append-only audit, which it shares by default. With the backup and restore
   privileges enabled it was given up for the session at its first roll there, and wherever its
   own ACL let it be removed, its previous file was deleted for nothing.
+- **The plugin's log is written again once it can be**, as the audit is, beginning with a line
+  naming how many lines went unwritten. A single write it could not make, such as one made while
+  a program held the file without letting anybody write to it, ended the file for the session.
 - **A debugger attached stops wherever the plugin records a failure it did not foresee**, with the
   exception in hand, and continuing carries on as it would with no debugger: every such failure is
   caught, so a debugger was told nothing.
