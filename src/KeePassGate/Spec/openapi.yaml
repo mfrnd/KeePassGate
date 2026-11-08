@@ -163,7 +163,11 @@ info:
     naming only what the node already holds, and the expiry when it names one. The values are
     compared as KeePass compares its own, a string by its text and an attachment by its bytes, and
     not by whether either is protected, which is not something a request names, and a name the
-    entry does not carry is a change, since writing it adds a string. Such a request is checked
+    entry does not carry is a change, since writing it adds a string. An expiry is compared
+    exactly, which is to the second for every moment a `.kdbx` kept, since the file keeps no
+    fraction of a second. An `auto` expiry set since KeePass last opened the file still carries
+    the fraction the wire leaves off, so writing back the moment a read served for it writes the
+    expiry once more, to the second, the first time. Such a request is checked
     as any update is, so a dialog open on the node still makes it `503 busy`, and then it writes
     nothing: no modification time, no usage count, no history revision, no save, and the same
     `200`, because the node holds what the request asked it to hold. The comparison is made on
@@ -2567,7 +2571,10 @@ components:
             $ref: "#/components/schemas/Error"
 
     Done:
-      description: The change is made and the database is saved.
+      description: |
+        The change is made and the database saved before this was answered. An update that asks
+        for nothing the node does not already hold makes no change and saves nothing, and is
+        answered the same, as the description at the top explains.
       content:
         application/json:
           schema:

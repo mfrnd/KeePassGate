@@ -11,6 +11,10 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **The routing document no longer promises a save behind every `200 ok`**: an update asking for
+  nothing the node does not already hold changes and saves nothing and is answered the same. It
+  states too that an `auto` expiry set since KeePass last opened the file is written once more,
+  to the second, the first time a client writes back the moment it read.
 - **The routing document's `ETag` no longer claims that no listing carries a tag**: a listing of
   an entry's fields or attachments carries the entry's, as the routes already declared.
 - **The routing document states what the group and entry listings leave out and in what order
