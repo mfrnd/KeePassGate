@@ -321,6 +321,44 @@ namespace KeePassGate.Tests
             }
         }
 
+        [TestCase(true)]
+        [TestCase(false)]
+        public void The_answer_to_a_gesture_stays_above_the_standing_line_whatever_the_list_began_with(bool beganEmpty)
+        {
+            // On a database naming no profile, the standing line was made visible before the page
+            // had a window, and was moved ahead of the gesture's line when the window came: every
+            // later answer then docked under it. A list that began with a name kept the order the
+            // page was built in.
+            var profiles = new FakeProfiles();
+            if (!beganEmpty)
+            {
+                profiles.Add("ops");
+            }
+
+            using (var form = OffScreenForm.New())
+            {
+                var list = new ProfileList(profiles, null) { Dock = DockStyle.Fill };
+                form.Controls.Add(list);
+                form.Show();
+                OffScreenForm.Pump();
+
+                if (beganEmpty)
+                {
+                    list.Add("ops");
+                }
+
+                list.Remove(0);
+                OffScreenForm.Pump();
+                list.PerformLayout();
+
+                var said = ControlTree.FindByName<Label>(list, ProfileList.ResultLabelName);
+                var empty = ControlTree.FindByName<Label>(list, "KpgProfileEmptyLabel");
+                Assume.That(said.Visible && empty.Visible, Is.True, "both lines are up once the last name is gone");
+
+                Assert.That(said.Bottom, Is.LessThanOrEqualTo(empty.Top), "the answer docked under the standing line");
+            }
+        }
+
         /// <summary>
         /// A shown window holding the page, with the two buttons a dialog has and a count of what
         /// pressed them.

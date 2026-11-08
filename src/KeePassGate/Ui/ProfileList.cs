@@ -87,6 +87,7 @@ namespace KeePassGate.Ui
         private readonly IProfiles _profiles;
         private readonly IOperatorPrompt _prompt;
         private readonly DataGridView _grid;
+        private readonly FlowLayoutPanel _adding;
         private readonly TextBox _name;
         private readonly Label _empty;
         private readonly Label _result;
@@ -197,7 +198,7 @@ namespace KeePassGate.Ui
                 WindowHandlers.Run("a key in the profile's name could not be handled", () => Typing(typed));
             };
 
-            var adding = new FlowLayoutPanel
+            var adding = _adding = new FlowLayoutPanel
             {
                 Name = "KpgProfileAddingRow",
                 Dock = DockStyle.Top,
@@ -516,6 +517,39 @@ namespace KeePassGate.Ui
             grid.CellPainting += (sender, e) =>
                 WindowHandlers.Run("the profiles could not be drawn", () => OnCellPainting(sender, e));
             return grid;
+        }
+
+        /// <summary>
+        /// Puts the table and the lines around it back in the order docking reads, before it
+        /// reads it.
+        /// </summary>
+        /// <remarks>
+        /// **WinForms moves a child in `Controls` to match its window**, the hazard
+        /// `ClientList.OnLayout` measured on the clients page. On a database naming no profile the
+        /// line saying so is made visible before the page has a window, is given a window there and
+        /// then, and when the page's window arrives is moved ahead of the gesture's line, which
+        /// has none yet: every later answer then docked under the standing sentence rather than
+        /// above it, the reverse of the order this page was built in. Docking reads that order
+        /// and nothing else here does, so it is put back where it is about to be read.
+        /// </remarks>
+        protected override void OnLayout(LayoutEventArgs e)
+        {
+            WindowHandlers.Run("the Profiles page could not be laid out", () =>
+            {
+                // Every child that has been added so far, since the constructor lays this out as it
+                // adds them.
+                var order = new Control[] { _grid, _adding, _result, _empty };
+                for (var at = 0; at < order.Length; at++)
+                {
+                    var child = order[at];
+                    if (child != null && child.Parent == this && Controls.GetChildIndex(child) != at)
+                    {
+                        Controls.SetChildIndex(child, at);
+                    }
+                }
+
+                base.OnLayout(e);
+            });
         }
 
         /// <summary>
