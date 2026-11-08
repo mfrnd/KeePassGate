@@ -7,8 +7,9 @@ programs in; until then it can do nothing at all.
 
 KeePassGate is a plain DLL, built against KeePass 2.61.1, and it needs that release or a later one:
 an older KeePass cannot load it. Make a directory named `KeePassGate` inside the `plugins` directory
-of the KeePass installation, copy `KeePassGate.dll` **and every DLL beside it** into that, then
-restart KeePass. KeePass looks for plugins in the directories under `plugins` as well.
+of the KeePass installation, copy `KeePassGate.dll` **and every DLL beside it** into that, with
+`KeePassGate.pdb` where it is there too, then restart KeePass. KeePass looks for plugins in the
+directories under `plugins` as well.
 
 **Windows is the only platform the plugin is made for.** KeePass 2.x also runs under Mono, on Linux
 and macOS, and the plugin does not: under Mono 6.8, as Ubuntu 24.04 ships it, the plugin could not
@@ -46,14 +47,34 @@ other plugin to a Bouncy Castle at least as new mends it, and so does removing t
 [the releases page](https://github.com/mfrnd/KeePassGate/releases) carries
 `KeePassGate-<version>.zip` and a `SHA256SUMS`, and so does the release it marks the latest,
 since a release of the client alone carries neither and is never marked so. The zip holds the
-whole set, the license and `THIRD-PARTY-NOTICES.md`, under `KeePassGate`. The sums name each file
-under `KeePassGate/` and the zip by its own name, so they are checked where the zip lies: put both
-in one directory, extract the zip there, run `sha256sum -c SHA256SUMS` in that directory, and only
-then copy the folder into `plugins`.
+whole set under `KeePassGate`: the DLLs, `KeePassGate.pdb`, the license and
+`THIRD-PARTY-NOTICES.md`. The sums name each file under `KeePassGate/` and the zip by its own name,
+so they are checked where the zip lies: put both in one directory, extract the zip there, check the
+sums in that directory, and only then copy the folder into `plugins`. In PowerShell, in that
+directory, with the zip's own name in the first line:
+
+```powershell
+Expand-Archive KeePassGate-0.1.0.zip -DestinationPath .
+Get-Content SHA256SUMS | ForEach-Object {
+    $hash, $name = $_ -split '  ', 2
+    $found = (Get-FileHash -LiteralPath $name -Algorithm SHA256).Hash
+    if ($found -eq $hash) { "OK      $name" } else { "FAILED  $name" }
+}
+```
+
+Every line has to read `OK`. In Git Bash or WSL, `sha256sum -c SHA256SUMS` makes the same check.
+Explorer's **Extract All** offers a folder named after the zip: take that last part off the path it
+offers, or `KeePassGate` lands a level below the sums and none of its files is found.
+
+**`KeePassGate.pdb` is the plugin's symbols.** The plugin runs without it, and with it beside
+`KeePassGate.dll` a failure nobody foresaw is written into [the plugin's log](#the-plugins-log)
+with the file and the line it happened at, which is what makes such a line worth reporting.
 
 When building from source, `.\build.ps1 -Task Deploy` copies the whole set into
-`plugins\KeePassGate`, with `THIRD-PARTY-NOTICES.md` beside it, which holds the licenses of the DLLs
-this project did not write. `.\run-debug.ps1` deploys and starts the KeePass this repository pins.
+`plugins\KeePassGate` of the KeePass this repository pins, which the build fetches into
+`.keepass\<version>`, or of the KeePass `-KeePassDir` names: never into another KeePass by itself.
+`THIRD-PARTY-NOTICES.md`, which holds the licenses of the DLLs this project did not write, goes
+beside the set. `.\run-debug.ps1` deploys and starts the KeePass this repository pins.
 From a clone of the repository with no change left uncommitted, `.\build.ps1 -Task Package` puts
 the same set and the license into one zip under `dist`, with a `SHA256SUMS` beside it to check every
 file against; extracted into `plugins`, the zip makes `plugins\KeePassGate`. A source download has

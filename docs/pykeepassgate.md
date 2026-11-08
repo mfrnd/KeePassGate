@@ -19,21 +19,18 @@ and this does not cover is a gap; a method here with no route behind it is a lie
 
 ## Install
 
-**The client is not on PyPI yet.** The name is held there by
-[a placeholder](https://pypi.org/project/pykeepassgate/), 0.0.1, which is not this client, so
-`uv add pykeepassgate` and `pip install pykeepassgate` install something else until the first
-release is published. Until then it is installed from a checkout of this repository, whose
-`pyproject.toml` is the client's:
-
 ```shell
-git clone https://github.com/mfrnd/KeePassGate
-uv add ./KeePassGate              # as a dependency of the project this is run in
-uv tool install ./KeePassGate     # or the command line on its own
+uv add pykeepassgate              # as a dependency of the project this is run in
+uv tool install pykeepassgate     # or the command line on its own
 ```
 
-`pip install ./KeePassGate` takes the same path. One dependency, `cryptography`, because the gate
-hands over a PKCS#12 and Python's `ssl` reads PEM. Everything else, the command line included, is
-the standard library.
+`pip install pykeepassgate` takes the same path. The client is published on
+[PyPI](https://pypi.org/project/pykeepassgate/), and the release to install is a release the plugin
+it talks to is not behind: a client works with a plugin of its own major version whose major and
+minor it does not lead, whatever the patch on either side, so a `0.1` client works with a `0.1` or
+a `0.2` plugin and not with a `0.0`, as [Check the gate](#check-the-gate) describes. One dependency,
+`cryptography`, because the gate hands over a PKCS#12 and Python's `ssl` reads PEM. Everything
+else, the command line included, is the standard library.
 
 ## Pair
 
