@@ -284,7 +284,13 @@ namespace KeePassGate.Ui
                 Name = GateTab.StatusResultLabelName,
                 AutoSize = true,
                 MaximumSize = new Size(LogicalToDeviceUnits(390), 0),
-                Margin = new Padding(0, 0, 0, LogicalToDeviceUnits(Spacing.Gap))
+                Margin = new Padding(0, 0, 0, LogicalToDeviceUnits(Spacing.Gap)),
+
+                // Nothing to say means no room taken. An empty label still reserves a line, and
+                // this one is written only when OK is refused, since an accepted OK closes the
+                // window: shown, it was a blank band between the table and the advice on almost
+                // every visit.
+                Visible = false
             };
 
             layout.Controls.Add(_result);
@@ -500,6 +506,7 @@ namespace KeePassGate.Ui
         private string Said(string what)
         {
             _result.Text = what;
+            _result.Visible = !string.IsNullOrEmpty(what);
             return what;
         }
 

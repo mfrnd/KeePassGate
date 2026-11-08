@@ -442,6 +442,31 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void The_line_OK_writes_takes_no_room_until_it_has_something_to_say()
+        {
+            // An empty label still reserves a line, and this one is written only when OK is
+            // refused: kept on screen, it was a blank band between the table and the advice.
+            using (var window = new GateStatusForm(
+                Listening(45678), null, port => "the configuration is read only", 45678))
+            {
+                window.CreateControl();
+                var facts = ControlTree.FindByName<Control>(window, GateTab.StatusFactsName);
+                var advice = ControlTree.FindByName<Control>(window, GateTab.StatusAdviceName);
+
+                Assert.That(advice.Top - facts.Bottom, Is.LessThan(window.Font.Height),
+                    "the empty line still took room between the table and the advice");
+
+                window.ChosenPort = 52000;
+                window.Keep();
+                window.PerformLayout();
+                advice.Parent.PerformLayout();
+
+                Assert.That(advice.Top - facts.Bottom, Is.GreaterThanOrEqualTo(window.Font.Height),
+                    "the refusal has a line of its own");
+            }
+        }
+
+        [Test]
         public void It_ends_in_OK_and_Cancel_where_every_other_dialog_puts_them()
         {
             // Apply and Close said between them that the setting was already live and that leaving
