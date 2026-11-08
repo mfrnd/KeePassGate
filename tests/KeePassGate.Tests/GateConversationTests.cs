@@ -29,7 +29,7 @@ namespace KeePassGate.Tests
         [Test]
         public void A_request_reaches_the_handler_and_its_answer_is_written()
         {
-            var stream = new ConversationStream("GET /gate/status HTTP/1.1\r\n\r\n");
+            var stream = new ConversationStream("GET /gate/status HTTP/1.1\r\nHost: gate\r\n\r\n");
             var handler = new SpyHandler(context => context.Respond(200, "{\"ok\":true}"));
 
             GateConversation.Serve(stream, Paired(), handler, _options, _log);
@@ -43,7 +43,7 @@ namespace KeePassGate.Tests
         [Test]
         public void The_response_says_the_connection_is_over()
         {
-            var stream = new ConversationStream("GET / HTTP/1.1\r\n\r\n");
+            var stream = new ConversationStream("GET / HTTP/1.1\r\nHost: gate\r\n\r\n");
 
             GateConversation.Serve(stream, Paired(), new SpyHandler(c => c.Respond(200, "{}")), _options, _log);
 
@@ -58,7 +58,7 @@ namespace KeePassGate.Tests
             // RFC 9110 section 9.3.2: a head is its get with the content left off, and only the
             // content. The tag is the field a client sends a head for, so a writer that dropped the
             // handler's fields on a head would answer every one of them with nothing to compare.
-            var stream = new ConversationStream("HEAD /entries/x HTTP/1.1\r\n\r\n");
+            var stream = new ConversationStream("HEAD /entries/x HTTP/1.1\r\nHost: gate\r\n\r\n");
             var named = new WebHeaderCollection();
             named.Add("ETag", "\"0123456789abcdef0123456789abcdef\"");
 
@@ -77,7 +77,7 @@ namespace KeePassGate.Tests
         [Test]
         public void A_field_the_answer_named_is_written_after_the_ones_every_answer_carries()
         {
-            var stream = new ConversationStream("OPTIONS /gate/status HTTP/1.1\r\n\r\n");
+            var stream = new ConversationStream("OPTIONS /gate/status HTTP/1.1\r\nHost: gate\r\n\r\n");
             var named = new WebHeaderCollection();
             named.Add("Allow", "GET");
 
@@ -99,7 +99,7 @@ namespace KeePassGate.Tests
             // A second `Content-Length` is a second opinion about where the body ends, which is
             // how a request is smuggled past whatever reads this next. `WebHeaderCollection`
             // refuses a value carrying CR or LF and does not refuse this, so the writer does.
-            var stream = new ConversationStream("GET /gate/status HTTP/1.1\r\n\r\n");
+            var stream = new ConversationStream("GET /gate/status HTTP/1.1\r\nHost: gate\r\n\r\n");
             var named = new WebHeaderCollection();
             named.Add("Content-Length", "9999");
             named.Add("Connection", "keep-alive");
@@ -119,7 +119,7 @@ namespace KeePassGate.Tests
         [Test]
         public void The_body_reaches_the_handler()
         {
-            var stream = new ConversationStream("POST /thing HTTP/1.1\r\nContent-Length: 7\r\n\r\n{\"a\":1}");
+            var stream = new ConversationStream("POST /thing HTTP/1.1\r\nHost: gate\r\nContent-Length: 7\r\n\r\n{\"a\":1}");
             var handler = new SpyHandler(context => context.Respond(200, context.Body));
 
             GateConversation.Serve(stream, Paired(), handler, _options, _log);
@@ -130,7 +130,7 @@ namespace KeePassGate.Tests
         [Test]
         public void The_identity_reaches_the_handler()
         {
-            var stream = new ConversationStream("GET / HTTP/1.1\r\n\r\n");
+            var stream = new ConversationStream("GET / HTTP/1.1\r\nHost: gate\r\n\r\n");
             var identity = Paired();
             var handler = new SpyHandler(context => context.Respond(200, "{}"));
 
@@ -142,7 +142,7 @@ namespace KeePassGate.Tests
         [Test]
         public void A_refused_request_never_reaches_the_handler()
         {
-            var stream = new ConversationStream("POST /thing HTTP/1.1\r\nTransfer-Encoding: chunked\r\n\r\n");
+            var stream = new ConversationStream("POST /thing HTTP/1.1\r\nHost: gate\r\nTransfer-Encoding: chunked\r\n\r\n");
             var handler = new SpyHandler(context => context.Respond(200, "{}"));
 
             GateConversation.Serve(stream, Paired(), handler, _options, _log);
@@ -159,7 +159,7 @@ namespace KeePassGate.Tests
             // Both refusals are a 400, so the sentence is the whole of what a caller is told. One
             // that names the length is a caller checking a socket and a `Content-Length` that are
             // both in order, and never looking at the bytes.
-            var request = "POST /thing HTTP/1.1\r\nContent-Length: 2\r\n\r\n";
+            var request = "POST /thing HTTP/1.1\r\nHost: gate\r\nContent-Length: 2\r\n\r\n";
             var all = new byte[Encoding.ASCII.GetByteCount(request) + 2];
             Buffer.BlockCopy(Encoding.ASCII.GetBytes(request), 0, all, 0, all.Length - 2);
             all[all.Length - 2] = 0xC3;
@@ -183,7 +183,7 @@ namespace KeePassGate.Tests
             // read before it refused. It took one and dropped it, which left every refused HEAD
             // answered as though it were a GET.
             var stream = new ConversationStream(
-                "HEAD /gate/status HTTP/1.1\r\nX-Thing: one\r\nX-Thing: two\r\n\r\n");
+                "HEAD /gate/status HTTP/1.1\r\nHost: gate\r\nX-Thing: one\r\nX-Thing: two\r\n\r\n");
 
             GateConversation.Serve(
                 stream, Paired(), new SpyHandler(c => c.Respond(200, "{}")), _options, _log);
@@ -215,7 +215,7 @@ namespace KeePassGate.Tests
             // the request line is parsed, and the method is read off what arrived for them: the
             // request line is in the buffer either way.
             var tooLong = new ConversationStream(
-                "HEAD /gate/status HTTP/1.1\r\nX-Thing: " + new string('a', _options.MaxHeadBytes) + "\r\n\r\n");
+                "HEAD /gate/status HTTP/1.1\r\nHost: gate\r\nX-Thing: " + new string('a', _options.MaxHeadBytes) + "\r\n\r\n");
             GateConversation.Serve(
                 tooLong, Paired(), new SpyHandler(c => c.Respond(200, "{}")), _options, _log);
 
@@ -223,7 +223,7 @@ namespace KeePassGate.Tests
             Assert.That(tooLong.Response, Does.Not.Contain("Content-Length"));
             Assert.That(tooLong.Body, Is.Empty);
 
-            var bytes = new List<byte>(System.Text.Encoding.ASCII.GetBytes("HEAD /gate/status HTTP/1.1\r\nX-Thing: "));
+            var bytes = new List<byte>(System.Text.Encoding.ASCII.GetBytes("HEAD /gate/status HTTP/1.1\r\nHost: gate\r\nX-Thing: "));
             bytes.Add(0xE9);
             bytes.AddRange(System.Text.Encoding.ASCII.GetBytes("\r\n\r\n"));
             var notAscii = new ConversationStream(bytes.ToArray());
@@ -248,7 +248,7 @@ namespace KeePassGate.Tests
             // The lock answers at an exit of its own, and the rule about content reaches that one
             // for the same reason it reaches the others.
             var stream = new ConversationStream(
-                "HEAD /gate/status HTTP/1.1\r\nX-Thing: one\r\nX-Thing: two\r\n\r\n");
+                "HEAD /gate/status HTTP/1.1\r\nHost: gate\r\nX-Thing: one\r\nX-Thing: two\r\n\r\n");
 
             GateConversation.Locked(stream, _options, _log);
 
@@ -265,7 +265,7 @@ namespace KeePassGate.Tests
             // names is the one `HttpReadResult.Read` copied off that request. A `Read` that
             // carried anything else puts a body and a length back on this answer while the
             // refusal above goes on passing, which is the only way the two could come apart.
-            var stream = new ConversationStream("HEAD /gate/status HTTP/1.1\r\n\r\n");
+            var stream = new ConversationStream("HEAD /gate/status HTTP/1.1\r\nHost: gate\r\n\r\n");
 
             GateConversation.Locked(stream, _options, _log);
 
@@ -288,7 +288,7 @@ namespace KeePassGate.Tests
         public void A_handler_that_throws_becomes_a_500_and_the_reason_is_logged()
         {
             // An unhandled exception in this process takes the password manager with it.
-            var stream = new ConversationStream("GET /thing HTTP/1.1\r\n\r\n");
+            var stream = new ConversationStream("GET /thing HTTP/1.1\r\nHost: gate\r\n\r\n");
             var handler = new SpyHandler(context => { throw new InvalidOperationException("handler exploded"); });
 
             Assert.DoesNotThrow(() => GateConversation.Serve(stream, Paired(), handler, _options, _log));
@@ -308,7 +308,7 @@ namespace KeePassGate.Tests
             // A path names a field or an attachment by what it is called, and a name is exactly
             // what the log is kept free of.
             var stream = new ConversationStream(
-                "GET /entries/00000000000000000000000000000001/fields/Recovery%20codes HTTP/1.1\r\n\r\n");
+                "GET /entries/00000000000000000000000000000001/fields/Recovery%20codes HTTP/1.1\r\nHost: gate\r\n\r\n");
             var handler = new SpyHandler(context => { throw new InvalidOperationException("handler exploded"); });
 
             GateConversation.Serve(stream, Paired(), handler, _options, _log);
@@ -330,7 +330,7 @@ namespace KeePassGate.Tests
             // implemented has to mean answered as an ordinary request, not answered with a 101 by
             // some later library that thinks it is being helpful.
             var stream = new ConversationStream(
-                "GET /gate/status HTTP/1.1\r\nConnection: Upgrade\r\nUpgrade: websocket\r\n" +
+                "GET /gate/status HTTP/1.1\r\nHost: gate\r\nConnection: Upgrade\r\nUpgrade: websocket\r\n" +
                 "Sec-WebSocket-Version: 13\r\nSec-WebSocket-Key: AAAAAAAAAAAAAAAAAAAAAA==\r\n\r\n");
 
             GateConversation.Serve(stream, Paired(), new SpyHandler(c => c.Respond(200, "{}")), _options, _log);
@@ -344,7 +344,7 @@ namespace KeePassGate.Tests
         [Test]
         public void A_handler_that_answers_nothing_is_a_500_rather_than_an_empty_200()
         {
-            var stream = new ConversationStream("GET /thing HTTP/1.1\r\n\r\n");
+            var stream = new ConversationStream("GET /thing HTTP/1.1\r\nHost: gate\r\n\r\n");
 
             GateConversation.Serve(stream, Paired(), new SpyHandler(context => { }), _options, _log);
 
@@ -360,7 +360,7 @@ namespace KeePassGate.Tests
             // a connection failure it cannot tell from a gate that is not running.
             _options.MaxBodyBytes = 64;
             var stream = new ConversationStream(
-                "POST /thing HTTP/1.1\r\nContent-Length: 200\r\n\r\n" + new string('x', 200));
+                "POST /thing HTTP/1.1\r\nHost: gate\r\nContent-Length: 200\r\n\r\n" + new string('x', 200));
 
             GateConversation.Serve(stream, Paired(), new SpyHandler(c => c.Respond(200, "{}")), _options, _log);
 
@@ -375,7 +375,7 @@ namespace KeePassGate.Tests
             // would leave both sides waiting for the other.
             _options.MaxBodyBytes = 64;
             var stream = new ConversationStream(
-                "POST /thing HTTP/1.1\r\nExpect: 100-continue\r\nContent-Length: 200\r\n\r\n" +
+                "POST /thing HTTP/1.1\r\nHost: gate\r\nExpect: 100-continue\r\nContent-Length: 200\r\n\r\n" +
                 new string('x', 200));
 
             GateConversation.Serve(stream, Paired(), new SpyHandler(c => c.Respond(200, "{}")), _options, _log);
@@ -387,7 +387,7 @@ namespace KeePassGate.Tests
         [Test]
         public void A_body_that_stops_early_is_refused()
         {
-            var stream = new ConversationStream("POST /thing HTTP/1.1\r\nContent-Length: 100\r\n\r\nshort");
+            var stream = new ConversationStream("POST /thing HTTP/1.1\r\nHost: gate\r\nContent-Length: 100\r\n\r\nshort");
 
             GateConversation.Serve(stream, Paired(), new SpyHandler(c => c.Respond(200, "{}")), _options, _log);
 

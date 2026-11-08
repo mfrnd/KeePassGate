@@ -548,7 +548,8 @@ namespace KeePassGate.Tests
             using (var certificate = _first.IssueAdmittedClient())
             {
                 var reply = GateClient.Send(
-                    _listener.Port, _first.NewName(), certificate, "POST /thing HTTP/1.1\r\nTransfer-Encoding: chunked\r\n\r\n");
+                    _listener.Port, _first.NewName(), certificate,
+                    "POST /thing HTTP/1.1\r\nHost: gate\r\nTransfer-Encoding: chunked\r\n\r\n");
 
                 Assert.That(reply.Status, Is.EqualTo(501), reply.Failure);
             }

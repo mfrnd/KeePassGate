@@ -401,7 +401,7 @@ namespace KeePassGate.Tests
             foreach (var moving in routers)
             {
                 var incidents = new GateIncidents(_log);
-                var stream = new ConversationStream("GET /entries/7b1c HTTP/1.1\r\n\r\n");
+                var stream = new ConversationStream("GET /entries/7b1c HTTP/1.1\r\nHost: gate\r\n\r\n");
 
                 GateConversation.Serve(
                     stream, Paired("reader"), moving, new GateOptions(), _log, null, incidents);

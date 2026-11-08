@@ -302,6 +302,7 @@ is the one to answer first, because the fit was never in doubt.
 | A header block over 8 KB | during the parse |
 | What the grammar does not allow: a control character in a header value, a header folded onto the next line, a character RFC 3986 says to escape arriving bare, a query name sent twice | during the parse, 400 |
 | A header sent twice, `Content-Length` among them, since keeping one of the two is a guess | during the parse, 400 |
+| A request with no `Host`, which RFC 9112 section 3.2 requires of HTTP/1.1, although routing reads the TLS name instead | once the headers are read, 400 |
 | A path with a segment that is `.` or `..`, escaped or not | during the parse, 400 |
 | WebSocket upgrade | never implemented |
 | Keep-alive | responses always close |

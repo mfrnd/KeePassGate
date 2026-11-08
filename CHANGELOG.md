@@ -11,6 +11,10 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **A request without a `Host` header is refused with `400`**, as RFC 9112 requires of HTTP/1.1.
+  It was served, so a request every other server refuses worked against this gate alone. The
+  gate still routes by the name the TLS was made under and reads nothing in the header, and
+  PyKeePassGate has always sent the header.
 - **Only HTTP/1.1 is served**, and every other version is answered `505`, as the routing
   document already stated. HTTP/1.0 was read and served, and a 1.0 request carrying
   `Expect: 100-continue` was sent an interim `100 Continue`, where RFC 9110 has a server ignore

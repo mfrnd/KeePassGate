@@ -192,6 +192,16 @@ namespace KeePassGate.Transport
                 headers[name] = value;
             }
 
+            // RFC 9112 section 3.2 requires a `400` for an HTTP/1.1 request without exactly one
+            // `Host`, and a second is refused above, as any repeated header is. Nothing reads the
+            // value: the gate routes by the name the connection's TLS was made under, so asking for
+            // the field is the grammar's rule rather than something routing needs.
+            // https://www.rfc-editor.org/rfc/rfc9112#section-3.2
+            if (!headers.ContainsKey("Host"))
+            {
+                return HttpReadResult.Refused(BadRequest, "a request needs a host header", method, announced);
+            }
+
             long length = 0;
             string lengthHeader;
             if (headers.TryGetValue("Content-Length", out lengthHeader))

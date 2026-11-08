@@ -65,7 +65,7 @@ namespace KeePassGate.Tests
         {
             var handler = new SpyHandler(context => context.Respond(200, Bodies.Of(("seen", context.Body))));
             var stream = new ConversationStream(
-                "POST /gate/status HTTP/1.1\r\nExpect: 100-continue\r\nContent-Length: 4\r\n\r\nbody");
+                "POST /gate/status HTTP/1.1\r\nHost: gate\r\nExpect: 100-continue\r\nContent-Length: 4\r\n\r\nbody");
 
             GateConversation.Serve(stream, Paired(), handler, _options, _log);
 
@@ -90,7 +90,7 @@ namespace KeePassGate.Tests
             // The ordering that makes this worth having. `ReadHead` has already refused the length,
             // so the client learns that from a 413 instead of after uploading a megabyte.
             var stream = new ConversationStream(
-                "POST /gate/status HTTP/1.1\r\nExpect: 100-continue\r\nContent-Length: 5000\r\n\r\n");
+                "POST /gate/status HTTP/1.1\r\nHost: gate\r\nExpect: 100-continue\r\nContent-Length: 5000\r\n\r\n");
 
             GateConversation.Serve(stream, Paired(), new SpyHandler(c => c.Respond(200, "{}")), _options, _log);
 
@@ -103,7 +103,7 @@ namespace KeePassGate.Tests
         public void A_transfer_encoding_is_still_refused_before_any_continue()
         {
             var stream = new ConversationStream(
-                "POST /gate/status HTTP/1.1\r\nExpect: 100-continue\r\nTransfer-Encoding: chunked\r\n\r\n");
+                "POST /gate/status HTTP/1.1\r\nHost: gate\r\nExpect: 100-continue\r\nTransfer-Encoding: chunked\r\n\r\n");
 
             GateConversation.Serve(stream, Paired(), new SpyHandler(c => c.Respond(200, "{}")), _options, _log);
 
@@ -160,7 +160,7 @@ namespace KeePassGate.Tests
         {
             var handler = new SpyHandler(context => context.Respond(200, "{}"));
             var stream = new ConversationStream(
-                "POST /gate/status HTTP/1.1\r\nExpect: something-else\r\nContent-Length: 2\r\n\r\n{}");
+                "POST /gate/status HTTP/1.1\r\nHost: gate\r\nExpect: something-else\r\nContent-Length: 2\r\n\r\n{}");
 
             GateConversation.Serve(stream, Paired(), handler, _options, _log);
 
@@ -181,7 +181,7 @@ namespace KeePassGate.Tests
         {
             // Odd but legal, and refusing it would be inventing a rule.
             var stream = new ConversationStream(
-                "GET /gate/status HTTP/1.1\r\nExpect: 100-continue\r\n\r\n");
+                "GET /gate/status HTTP/1.1\r\nHost: gate\r\nExpect: 100-continue\r\n\r\n");
 
             GateConversation.Serve(stream, Paired(), new SpyHandler(c => c.Respond(200, "{}")), _options, _log);
 
@@ -192,7 +192,7 @@ namespace KeePassGate.Tests
         private ConversationStream Serve(string method, string headers, string body)
         {
             var bytes = Encoding.UTF8.GetBytes(body ?? string.Empty);
-            var request = method + " /gate/status HTTP/1.1\r\n" + headers +
+            var request = method + " /gate/status HTTP/1.1\r\nHost: gate\r\n" + headers +
                           "Content-Length: " + bytes.Length + "\r\n\r\n" + body;
 
             var stream = new ConversationStream(request);
