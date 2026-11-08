@@ -249,6 +249,33 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void Deleting_records_left_without_an_authority_says_they_admit_nobody()
+        {
+            // Delete is offered with no authority when records outlived it, and the question
+            // written for a live authority told the operator that deleting stops the database
+            // being served and that its clients would pair again, beside a page calling the
+            // records inert.
+            var prompt = new FakePrompt(false);
+            using (var elsewhere = TestAuthority.New())
+            using (var client = elsewhere.IssueClient("agent-left", "ops"))
+            {
+                new AdmissionStore(_database.PluginCustomData, null)
+                    .Write(AdmissionRecord.For(client, DateTimeOffset.UtcNow, new[] { "ops" }));
+            }
+
+            using (var panel = NewPanel(prompt))
+            {
+                Assume.That(Button(panel, GateTab.DeleteButtonName).Enabled, Is.True);
+
+                panel.DeleteAuthority();
+
+                Assert.That(prompt.LastQuestion, Does.Contain("admit nobody"));
+                Assert.That(prompt.LastQuestion, Does.Not.Contain("stops this database being served"));
+                Assert.That(prompt.LastQuestion, Does.Not.Contain("pair again"));
+            }
+        }
+
+        [Test]
         public void A_client_that_renewed_is_one_client_in_what_recreating_costs()
         {
             // Two records with one client key until it gives the older certificate up, and it was

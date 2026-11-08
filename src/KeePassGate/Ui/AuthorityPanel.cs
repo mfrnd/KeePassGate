@@ -492,16 +492,33 @@ namespace KeePassGate.Ui
         }
 
         /// <summary>Deletes it, asking first. Nothing happens if the answer is no.</summary>
+        /// <remarks>
+        /// **Asked in the words of what there is to delete.** Delete is offered with no authority
+        /// at all when admission records outlived it, and the question written for a live
+        /// authority then told the operator that deleting stops the database being served and
+        /// that its clients would pair again, beside a page calling those records inert.
+        /// </remarks>
         public void DeleteAuthority()
         {
             Act(() =>
             {
-                if (!_prompt.Confirm(
-                        "Delete the authority",
-                        "Deleting the authority stops this database being served at all." +
-                        Environment.NewLine + Environment.NewLine +
-                        Cost(CountRecords()) + Environment.NewLine + Environment.NewLine +
-                        "Delete it?"))
+                bool held;
+                using (var reading = _service.Read())
+                {
+                    held = reading.Presence != AuthorityPresence.None;
+                }
+
+                var question = held
+                    ? "Deleting the authority stops this database being served at all." +
+                      Environment.NewLine + Environment.NewLine +
+                      Cost(CountRecords()) + Environment.NewLine + Environment.NewLine +
+                      "Delete it?"
+                    : "Deleting takes away the admission records left without an authority. They " +
+                      "admit nobody, and nothing is served now, so nothing else changes." +
+                      Environment.NewLine + Environment.NewLine +
+                      "Delete them?";
+
+                if (!_prompt.Confirm("Delete the authority", question))
                 {
                     return null;
                 }
