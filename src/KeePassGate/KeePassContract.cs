@@ -75,9 +75,11 @@ namespace KeePassGate
         /// <remarks>
         /// The same hazard as the group dialog and easier to miss, because the write-back is
         /// conditional: it compares the count it copied against the count it finds, so a pairing
-        /// landing while this is open is destroyed even though the operator touched nothing. That
-        /// its one button is both the accept and the cancel button, with `DialogResult.Cancel`,
-        /// means there is no way for an operator to decline it either.
+        /// landing while this is open is destroyed even though the operator touched nothing. Its one
+        /// button is both the accept and the cancel button, with `DialogResult.Cancel`, so the
+        /// button, Enter and Escape all write the copy back; only the title bar's close box and
+        /// Alt+F4 close it without, which nothing on screen tells the operator, and which drops
+        /// the history setting as well. So the writer refuses for as long as it is open.
         /// </remarks>
         public const string MaintenanceFormTypeName = "KeePass.Forms.DatabaseOperationsForm";
 

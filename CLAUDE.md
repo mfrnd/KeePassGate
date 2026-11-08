@@ -861,8 +861,9 @@ those are two different failures.
 the group dialog. Its write-back is conditional on the key count differing rather than on anything
 the operator did, so a pairing landing while it is open is destroyed with the Plugin Data tab never
 opened. And its one button is both the accept and the cancel button, with `DialogResult.Cancel`, so
-there is no way to decline it. `GroupDialogs` watches for it and `DatabaseWriter` refuses while it
-is open.
+the button, Enter and Escape all write the copy back, and only the close box and Alt+F4 do not,
+which nothing on screen tells the operator. `GroupDialogs` watches for it and `DatabaseWriter`
+refuses while it is open.
 
 **A dialog that is adding something is about a group it does not hold**, which a watch keyed on the
 node a dialog holds cannot see. Add Entry and the TAN wizard put what they made into their group
