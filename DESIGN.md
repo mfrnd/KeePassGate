@@ -45,12 +45,14 @@ what a tunnel provides.
         v
   +---------------------------------------------------------------+
   |  Authorization        record  INTERSECT  ACL, both in the kdbx |
-  |  Audit                every decision, by entry UUID            |
+  |  Audit                every decision, naming nodes by UUID,    |
+  |                       and every admission                      |
   +---------------------------------------------------------------+
         |
         v
   +---------------------------------------------------------------+
-  |  KeePass              PwDatabase, on the UI thread             |
+  |  KeePass              PwDatabase: read with KeePass's thread   |
+  |                       held still, written on that thread       |
   +---------------------------------------------------------------+
 ```
 
@@ -67,12 +69,13 @@ public interface IGateContext
     string Path { get; }                // absolute path, query already split off
     IReadOnlyDictionary<string, string> Query { get; }
     string GetHeader(string name);      // case insensitive, null when absent
-    string Body { get; }                // read once, bounded, never null for a bodied method
+    string Body { get; }                // read once, bounded, never null
 
     ClientIdentity Client { get; }      // who, and the ceiling they carry
     IDictionary<string, object> Items { get; }   // per request, for pipeline stages
 
     void Respond(int status, string json);
+    void Respond(int status, string json, WebHeaderCollection headers);   // a 405's Allow
     bool Answered { get; }
 }
 ```
@@ -90,16 +93,23 @@ Three properties earn it its place:
   `/pair/*` accepts one, refused in a single place before dispatch rather than per handler, so a new
   route is denied by default rather than by remembering.
 
-`ClientIdentity` is equally small:
+`ClientIdentity` is small too, and every member answers one question:
 
 ```csharp
 public sealed class ClientIdentity
 {
-    public bool IsPaired { get; }         // false only on the pairing path
-    public string Subject { get; }        // certificate CN, for the audit log
+    public bool IsPaired { get; }         // false for anybody the database does not admit
+    public bool IsLocked { get; }         // the database is locked, so nothing was established
+    public string Subject { get; }        // the certificate's subject, answered by /gate/whoami
     public string AdmissionKey { get; }   // SHA-256 over the certificate DER, lowercase hex
+    public string ClientKey { get; }      // the client its record names, which a renewal keeps
     public string DatabaseId { get; }     // which open database the SNI resolved to
-    public IReadOnlyList<string> Profiles { get; }   // from the ADMISSION RECORD, not the SAN
+    public IReadOnlyList<string> Profiles { get; }   // from the ADMISSION RECORD, not the SAN,
+                                                     // less every name the database dropped
+    public IReadOnlyList<string> Removed { get; }    // the names it dropped, for the audit
+    public string Refusal { get; }        // why a certificate this authority issued admits nobody
+    public DateTimeOffset? Expires { get; }          // when that certificate stops being admitted
+    public string UnavailableError { get; }          // the word a 503 answers with, or null
 }
 ```
 
