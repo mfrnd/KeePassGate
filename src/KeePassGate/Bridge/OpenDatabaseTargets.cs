@@ -968,8 +968,10 @@ namespace KeePassGate.Bridge
                 // `InvalidOperationException` among it: that is what issuance raises for an
                 // authority whose own dates have passed, and `AuthorityStore.Read` ignores expiry,
                 // so one reaches here. Escaping left the target half built and made the resolver
-                // answer nothing for every open database, not only the expired one.
-                _log.Error("a responder certificate could not be minted, so a lock will answer nothing", error);
+                // answer nothing for every open database, not only the expired one. What a missing
+                // responder costs is the caller's to log: a lock answers with the responder it holds
+                // while that is current, and a first serve leaves the mint to the lock.
+                _log.Error("a responder certificate could not be minted", error);
                 return null;
             }
         }
