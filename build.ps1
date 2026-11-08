@@ -769,6 +769,27 @@ function Invoke-Live {
     }
 
     Assert-Executed $trx 'end to end'
+    Assert-Unloaded $trx 'end to end'
+}
+
+# **A test domain that does not unload is a run that left a thread running in it**, and the only
+# sign is a message. NUnit's engine gives up on the domain after fifteen seconds and reports
+# `NUnitEngineUnloadException` as a warning, and the run passes, its exit code and its counts
+# untouched. The end to end tier ended that way on every run until `LiveRun` ended the one thread
+# UI automation leaves, which `CLAUDE.md` describes, so the warning is read out of the result
+# file, where the test platform keeps it, and refused. Measured with a test whose thread waits in
+# a `finally`: the run exits zero, and the file holds the warning under `RunInfos`.
+function Assert-Unloaded {
+    param([string] $Trx, [string] $Tier)
+
+    $run = ([xml] (Get-Content -LiteralPath $Trx -Raw)).DocumentElement
+    $left = @($run.SelectNodes(
+        "*[local-name()='ResultSummary']/*[local-name()='RunInfos']/*[local-name()='RunInfo']") |
+        Where-Object { $_.InnerText -match 'NUnitEngineUnloadException|unloading application domain' })
+    if ($left.Count -gt 0) {
+        throw ("The $Tier tests' domain did not unload, so something left a thread running in it: " +
+            ($left[0].InnerText.Trim() -split '\r?\n')[0])
+    }
 }
 
 # Retakes the pictures in `docs/images` by driving a throwaway KeePass through the whole operator

@@ -682,7 +682,9 @@ Run them from
   with "Exception encountered unloading application domain". `ClientSideProviderQueue` ends the
   thread once the last fixture in the `Live` namespace has finished, through the queue's own way
   in, and `ClientSideProviderQueueTests` pins the framework's private names it reaches for, in the
-  host tier. An empty set of client-side providers does not prevent it, and was measured not to;
+  host tier. The run passes either way, exit code and counts alike, so `build.ps1` reads the
+  engine's warning out of `live.trx` and refuses the run that carries it, whatever thread was left.
+  An empty set of client-side providers does not prevent it, and was measured not to;
   `RunConfiguration.DisableAppDomain` does, and costs `GrantTabFitsTests` its themed child domain
   for the whole assembly or the end to end runs the test host's binding redirects for them alone.
   `spikes/automation-unload` holds the probe and the numbers.
