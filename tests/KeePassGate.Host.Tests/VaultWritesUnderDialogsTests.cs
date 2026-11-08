@@ -117,6 +117,56 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void A_dialog_on_the_node_is_answered_before_a_condition_the_node_fails()
+        {
+            // RFC 9110 section 13.2.1 orders it, and a client told `412` reads again, finds the
+            // same tag, since the dialog has changed nothing yet, and goes round again, where
+            // `503 busy` tells it to wait. The fake vault copies this order, so this is what holds
+            // the real one to it.
+            var stale = new VaultTagging(VaultPrecondition.Read("\"0123456789abcdef0123456789abcdef\""), true);
+            var group = Created(_vault.CreateGroup(_vault.RootAlias, "Outer", null));
+            var entry = Created(_vault.CreateEntry(group, Named("Invented")));
+
+            Assert.That(_vault.CreateField(entry, "Ticket", "4b21", false, VaultTagging.None).Ok, Is.True);
+            Assert.That(_vault.CreateAttachment(entry, "note.txt", new byte[] { 1, 2, 3 }, VaultTagging.None).Ok, Is.True);
+
+            using (var form = EntryDialogFor(Entry(entry)))
+            {
+                GlobalWindowManager.AddWindow(form);
+                try
+                {
+                    Refused(_vault.UpdateEntry(entry, Named("Renamed"), stale), "UpdateEntry");
+                    Refused(_vault.CreateField(entry, "Second", "9c30", false, stale), "CreateField");
+                    Refused(_vault.UpdateField(entry, "Ticket", "0000", stale), "UpdateField");
+                    Refused(_vault.DeleteField(entry, "Ticket", stale), "DeleteField");
+                    Refused(_vault.CreateAttachment(entry, "other.txt", new byte[] { 4 }, stale), "CreateAttachment");
+                    Refused(_vault.UpdateAttachment(entry, "note.txt", new byte[] { 5 }, stale), "UpdateAttachment");
+                    Refused(_vault.DeleteAttachment(entry, "note.txt", stale), "DeleteAttachment");
+                    Refused(_vault.DeleteEntry(entry, stale), "DeleteEntry");
+                }
+                finally
+                {
+                    GlobalWindowManager.RemoveWindow(form);
+                }
+            }
+
+            var empty = Created(_vault.CreateGroup(_vault.RootAlias, "Empty", null));
+            using (var form = GroupDialogFor(Group(empty)))
+            {
+                GlobalWindowManager.AddWindow(form);
+                try
+                {
+                    Refused(_vault.UpdateGroup(empty, "Renamed", null, stale), "UpdateGroup");
+                    Refused(_vault.DeleteGroup(empty, stale), "DeleteGroup");
+                }
+                finally
+                {
+                    GlobalWindowManager.RemoveWindow(form);
+                }
+            }
+        }
+
+        [Test]
         public void An_entry_dialog_refuses_nothing_about_a_different_entry()
         {
             // Per node rather than wholesale. A dialog open somewhere in the database is the

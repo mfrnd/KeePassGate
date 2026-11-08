@@ -125,6 +125,25 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void The_dialog_is_answered_before_a_condition_the_node_fails()
+        {
+            // For the reason `VaultWritesUnderDialogsTests` gives for a dialog on the node itself.
+            var stale = new VaultTagging(VaultPrecondition.Read("\"0123456789abcdef0123456789abcdef\""), true);
+            var group = Created(_vault.CreateGroup(_vault.RootAlias, "Fictitious", null));
+            var entry = Created(_vault.CreateEntry(group, Named("an invented service")));
+            var empty = Created(_vault.CreateGroup(_vault.RootAlias, "Empty", null));
+
+            using (Opened())
+            {
+                foreach (var refused in new[] { _vault.DeleteEntry(entry, stale), _vault.DeleteGroup(empty, stale) })
+                {
+                    Assert.That(refused.IsBusy, Is.True, refused.Reason);
+                    Assert.That(refused.Reason, Does.Contain("database settings dialog"));
+                }
+            }
+        }
+
+        [Test]
         public void A_bin_that_was_already_there_when_the_dialog_opened_is_not_refused()
         {
             // What the dialog copied, the dialog puts back, so only the branch that makes the first
