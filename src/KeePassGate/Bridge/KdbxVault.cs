@@ -470,7 +470,7 @@ namespace KeePassGate.Bridge
 
                 group.Touch(true, false);
 
-                return new VaultChange(VaultWrite.Done(After(tagging, group)), () =>
+                return VaultChange.Made(() => VaultWrite.Done(After(tagging, group)), () =>
                 {
                     group.Name = wasName;
                     group.Notes = wasNotes;
@@ -736,7 +736,7 @@ namespace KeePassGate.Bridge
 
                 entry.Touch(true, false);
 
-                return new VaultChange(VaultWrite.Done(After(tagging, entry)), () =>
+                return VaultChange.Made(() => VaultWrite.Done(After(tagging, entry)), () =>
                 {
                     foreach (var was in before)
                     {
@@ -833,7 +833,7 @@ namespace KeePassGate.Bridge
                 entry.Strings.Set(name, new ProtectedString(isProtected, value ?? string.Empty));
                 entry.Touch(true, false);
 
-                return new VaultChange(VaultWrite.Created(name, After(tagging, entry)), () =>
+                return VaultChange.Made(() => VaultWrite.Created(name, After(tagging, entry)), () =>
                 {
                     entry.Strings.Remove(name);
                     restoreHistory();
@@ -891,7 +891,7 @@ namespace KeePassGate.Bridge
                 entry.Strings.Set(name, replacement);
                 entry.Touch(true, false);
 
-                return new VaultChange(VaultWrite.Done(After(tagging, entry)), () =>
+                return VaultChange.Made(() => VaultWrite.Done(After(tagging, entry)), () =>
                 {
                     entry.Strings.Set(name, existing);
                     restoreHistory();
@@ -946,7 +946,7 @@ namespace KeePassGate.Bridge
 
                 // The entry's tag, since the entry is still there, and a client that removes one
                 // field and then changes another needs it to say which entry it is changing.
-                return new VaultChange(VaultWrite.Done(After(tagging, entry)), () =>
+                return VaultChange.Made(() => VaultWrite.Done(After(tagging, entry)), () =>
                 {
                     entry.Strings.Set(name, was);
                     restoreHistory();
@@ -994,7 +994,7 @@ namespace KeePassGate.Bridge
                 entry.Binaries.Set(name, new ProtectedBinary(true, content ?? Array.Empty<byte>()));
                 entry.Touch(true, false);
 
-                return new VaultChange(VaultWrite.Created(name, After(tagging, entry)), () =>
+                return VaultChange.Made(() => VaultWrite.Created(name, After(tagging, entry)), () =>
                 {
                     entry.Binaries.Remove(name);
                     restoreHistory();
@@ -1045,7 +1045,7 @@ namespace KeePassGate.Bridge
                 entry.Binaries.Set(name, replacement);
                 entry.Touch(true, false);
 
-                return new VaultChange(VaultWrite.Done(After(tagging, entry)), () =>
+                return VaultChange.Made(() => VaultWrite.Done(After(tagging, entry)), () =>
                 {
                     entry.Binaries.Set(name, was);
                     restoreHistory();
@@ -1085,7 +1085,7 @@ namespace KeePassGate.Bridge
                 entry.Touch(true, false);
 
                 // The entry's tag, as a field's removal answers it.
-                return new VaultChange(VaultWrite.Done(After(tagging, entry)), () =>
+                return VaultChange.Made(() => VaultWrite.Done(After(tagging, entry)), () =>
                 {
                     entry.Binaries.Set(name, was);
                     restoreHistory();

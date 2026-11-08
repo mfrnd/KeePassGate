@@ -148,6 +148,11 @@ none, since it releases both.
   operator moving the entry at that moment let a rule without `protected` write a protected value,
   or strip a protected field it could put back unprotected. Such a write is answered `404` now, as
   a read is, or `503 locked` when the database locked.
+- **A change whose answer cannot carry its tag is taken back out before the failure goes on.**
+  A write answering with the tag it left took that tag after changing the node and before
+  anything could undo the change, so a decryption that failed while the tag was taken left the
+  change and its history revision in memory behind a `500`, unsaved and unmarked, for the next
+  save to write.
 - **A protected field is kept from a strip whenever any profile could put an unprotected value
   back.** The guard asked whether some profile could create there and whether some profile could
   create a protected value there, so a program holding one profile that could put an unprotected
