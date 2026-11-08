@@ -555,11 +555,11 @@ to the two places that write.
   miss all fail to match without any rule of their own. There is nothing that parses `kpg://profile/<name>`,
   because §212 leaves nothing to parse one for.
 - **Reject rather than repair, at the two places that write.** Issuance refuses a profile name that
-  is not one to sixty-four characters of letters, digits, dash and underscore, and refuses the
-  ACL's own `default` whatever case it is written in, so a claim carrying a percent escape, an
-  empty name or a smuggled newline is one this authority will not mint. Reading an admission record
-  drops a profile that could not have been issued as a claim, §223, so a record edited by hand
-  grants nothing strange either.
+  is not one to sixty-four characters of ASCII letters, digits, hyphens and underscores, and
+  refuses the ACL's own `default` whatever case it is written in, so a claim carrying a percent
+  escape, an empty name or a smuggled newline is one this authority will not mint. Reading an
+  admission record drops a profile that could not have been issued as a claim, §223, so a record
+  edited by hand grants nothing strange either.
 
 ### The measurement behind those rules §211
 
