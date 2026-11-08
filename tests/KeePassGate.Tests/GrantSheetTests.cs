@@ -476,5 +476,26 @@ namespace KeePassGate.Tests
 
             Assert.That(sheet.Rows.Single().Named, Is.False);
         }
+
+        [Test]
+        public void A_list_read_again_is_what_the_sheet_offers_and_marks_by()
+        {
+            // S194: the list was read once, as the dialog opened, and a pairing approved over the
+            // dialog can name a profile meanwhile: the new name stayed off the pick list, and a
+            // rule for a name put back was still marked as granting nothing.
+            var sheet = new GrantSheet(Rules.Granting(("ops", "R")), null, new[] { "reader" }, null);
+            Assume.That(sheet.Rows.Single().Named, Is.False);
+
+            Assert.That(sheet.ReloadNames(new[] { "reader", "ops", "editor" }), Is.True);
+            Assert.That(sheet.Rows.Single().Named, Is.True, "a rule for a name put back is in force");
+            Assert.That(sheet.Available, Is.EqualTo(new[] { "editor", "reader" }), "a name added is offered");
+
+            Assert.That(sheet.ReloadNames(new[] { "editor", "ops", "reader" }), Is.False,
+                "the same names in another order are no change");
+
+            Assert.That(sheet.ReloadNames(new[] { "reader" }), Is.True);
+            Assert.That(sheet.Rows.Single().Named, Is.False, "and a name taken off is marked again");
+            Assert.That(sheet.Available, Is.EqualTo(new[] { "reader" }));
+        }
     }
 }

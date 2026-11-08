@@ -776,6 +776,82 @@ namespace KeePassGate.Tests
             }
         }
 
+        [Test]
+        public void A_profile_named_while_the_dialog_is_open_is_on_the_tab_once_it_reads_again()
+        {
+            // S194: reading again took the node's rules and not the database's profiles, so a name
+            // a pairing added while the dialog was open stayed off the pick list, and a rule for a
+            // name put back stayed struck through as granting nothing while the gate honored it.
+            var names = new List<string> { "reader" };
+
+            using (var panel = Listing(names, null))
+            {
+                Assume.That(panel.ProfileChoices, Is.EqualTo(new[] { "reader" }));
+
+                names.Add("ops");
+                names.Add("editor");
+                panel.Resync();
+
+                var grid = ControlTree.FindByName<DataGridView>(panel, GrantTab.GridControlName);
+                Assert.That(panel.ProfileChoices, Is.EqualTo(new[] { "editor", "reader" }));
+                Assert.That(Row(grid, "ops").Cells[GrantTab.MaskColumn].Style.Font, Is.Null,
+                    "a rule for a name put back is drawn as a rule in force");
+            }
+        }
+
+        [Test]
+        public void A_record_landing_reads_the_profiles_again()
+        {
+            // The approval that names the profile is answered over the dialog this tab is on, so
+            // the tab is never brought forward again to read: it hears the record land instead.
+            var names = new List<string> { "reader" };
+            var notice = new AdmissionNotice();
+
+            using (var panel = Listing(names, notice))
+            {
+                names.Add("editor");
+                notice.Raise();
+
+                Assert.That(panel.ProfileChoices, Is.EqualTo(new[] { "editor", "reader" }));
+            }
+        }
+
+        [Test]
+        public void A_tab_that_has_been_disposed_is_not_told_about_the_next_record()
+        {
+            // The notice is the plugin's and outlives every dialog, as on the database settings.
+            var read = 0;
+            var notice = new AdmissionNotice();
+            var store = new FakeGrantStore(null);
+
+            using (new GrantPanel(
+                new GrantSheet(null, null, new[] { "reader" }, null), store, GrantTab.GroupScope, null,
+                () =>
+                {
+                    read++;
+                    return new[] { "reader" };
+                },
+                notice))
+            {
+            }
+
+            notice.Raise();
+            Assert.That(read, Is.Zero, "a disposed tab read the database again");
+        }
+
+        /// <summary>A tab with a rule for `ops`, offering the names as it finds them.</summary>
+        private static GrantPanel Listing(List<string> names, IAdmissionNotice notice)
+        {
+            var store = new FakeGrantStore(Rules.Granting(("ops", "R")));
+            return new GrantPanel(
+                new GrantSheet(store.Read(), null, names.ToArray(), null),
+                store,
+                GrantTab.GroupScope,
+                null,
+                () => names.ToArray(),
+                notice);
+        }
+
         private static GrantPanel Panel(IGrantStore store, IAclNode above)
         {
             return new GrantPanel(

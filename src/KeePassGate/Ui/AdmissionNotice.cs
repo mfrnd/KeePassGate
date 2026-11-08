@@ -15,6 +15,10 @@ namespace KeePassGate.Ui
     /// page watched the pairing succeed and the list not change. Switching away and back was the
     /// whole of the remedy, which is a thing nobody should have to know.
     ///
+    /// **The grant editor on a group or an entry dialog listens as well**, because the write that
+    /// lands a record can name a profile the database did not, and the editor's pick list is the
+    /// database's list of profiles: the approval is answered over the very dialog the editor is on.
+    ///
     /// **Said rather than polled.** A timer would have to run whenever that page is showing, ask
     /// the database on every tick for a list that changes a few times a year, and still answer
     /// late by up to its own interval. What the writer knows exactly is the moment a record is on

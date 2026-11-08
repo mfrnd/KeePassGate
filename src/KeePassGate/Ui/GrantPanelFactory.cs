@@ -33,10 +33,16 @@ namespace KeePassGate.Ui
         public static readonly NodeTab None = new NodeTab(null, null, GrantTab.NoNodeScope);
 
         public NodeTab(GrantSheet sheet, IGrantStore store, string scope)
+            : this(sheet, store, scope, null)
+        {
+        }
+
+        public NodeTab(GrantSheet sheet, IGrantStore store, string scope, Func<IEnumerable<string>> profiles)
         {
             Sheet = sheet;
             Store = store;
             Scope = scope;
+            Profiles = profiles;
         }
 
         /// <summary>The sheet for this dialog, or null when it is not one the editor mounts on.</summary>
@@ -47,6 +53,11 @@ namespace KeePassGate.Ui
 
         /// <summary>What the tab's first line holds for this dialog.</summary>
         public string Scope { get; }
+
+        /// <summary>
+        /// Reads the database's list of profiles as it stands, or null where it is not read again.
+        /// </summary>
+        public Func<IEnumerable<string>> Profiles { get; }
     }
 
     /// <summary>
@@ -61,8 +72,19 @@ namespace KeePassGate.Ui
     {
         private readonly INodeDialogSource _nodes;
         private readonly IGateLog _log;
+        private readonly IAdmissionNotice _admissions;
 
         public GrantPanelFactory(INodeDialogSource nodes, IGateLog log)
+            : this(nodes, log, null)
+        {
+        }
+
+        /// <summary>The same, with every tab told when a record lands.</summary>
+        /// <param name="admissions">
+        /// Raised when a record lands, which is when a pairing may have named a profile the
+        /// database did not, or null for tabs told nothing.
+        /// </param>
+        public GrantPanelFactory(INodeDialogSource nodes, IGateLog log, IAdmissionNotice admissions)
         {
             if (nodes == null)
             {
@@ -71,6 +93,7 @@ namespace KeePassGate.Ui
 
             _nodes = nodes;
             _log = log ?? NullGateLog.Instance;
+            _admissions = admissions;
         }
 
         public Control CreatePanel(Form dialog)
@@ -85,7 +108,7 @@ namespace KeePassGate.Ui
                 sheet = new GrantSheet(null, null, new List<string>(), GrantTab.NothingToChange);
             }
 
-            return new GrantPanel(sheet, tab.Store, tab.Scope, _log);
+            return new GrantPanel(sheet, tab.Store, tab.Scope, _log, tab.Profiles, _admissions);
         }
     }
 }

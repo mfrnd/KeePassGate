@@ -43,6 +43,14 @@ namespace KeePassGate.Ui
         private readonly IGrantStore _store;
         private readonly IGateLog _log;
 
+        /// <summary>
+        /// The database's list of profiles as it stands, or null where it is not read again.
+        /// </summary>
+        private readonly Func<IEnumerable<string>> _profiles;
+
+        /// <summary>Told when a record lands, or null where nothing is listened to.</summary>
+        private readonly IAdmissionNotice _admissions;
+
         private readonly Label _scope;
         private readonly Label _warning;
         private readonly DataGridView _grid;
@@ -76,6 +84,34 @@ namespace KeePassGate.Ui
         private Picker _open;
 
         public GrantPanel(GrantSheet sheet, IGrantStore store, string scope, IGateLog log)
+            : this(sheet, store, scope, log, null, null)
+        {
+        }
+
+        /// <summary>
+        /// The same, reading the database's profiles again whenever it reads the rules again, and
+        /// doing both when a record lands.
+        /// </summary>
+        /// <remarks>
+        /// A pairing approved while a group or an entry dialog is open names a profile the list
+        /// did not, `GrantSheet.ReloadNames` gives the cost, and the approval is answered over this
+        /// very dialog. Read only when the tab came forward, the new name stayed off the pick list
+        /// for as long as the operator stayed on the tab they had come back to.
+        /// </remarks>
+        /// <param name="profiles">
+        /// The database's list of profiles as it stands, or null for a tab whose list is not read
+        /// again.
+        /// </param>
+        /// <param name="admissions">
+        /// Told when a record lands, or null for a tab told nothing.
+        /// </param>
+        public GrantPanel(
+            GrantSheet sheet,
+            IGrantStore store,
+            string scope,
+            IGateLog log,
+            Func<IEnumerable<string>> profiles,
+            IAdmissionNotice admissions)
         {
             if (sheet == null)
             {
@@ -85,6 +121,8 @@ namespace KeePassGate.Ui
             _sheet = sheet;
             _store = store;
             _log = log ?? NullGateLog.Instance;
+            _profiles = profiles;
+            _admissions = admissions;
 
             Name = GrantTab.PanelControlName;
 
@@ -177,6 +215,40 @@ namespace KeePassGate.Ui
             });
 
             Populate();
+
+            // Last, once there is a whole panel to tell, for the reason the KPG tab on the database
+            // settings gives: the notice outlives the dialog, and a constructor that failed after
+            // subscribing would leave a panel nobody disposes listening to it.
+            if (_admissions != null)
+            {
+                _admissions.Landed += OnAdmitted;
+            }
+        }
+
+        /// <summary>
+        /// A record landed, and with it perhaps a profile the database did not name before.
+        /// </summary>
+        /// <remarks>
+        /// Raised on the user interface thread, inside the write it follows, so this reads again
+        /// directly. Disposal is the only thing asked about, as on the database settings' tab.
+        /// </remarks>
+        private void OnAdmitted(object sender, EventArgs e)
+        {
+            if (IsDisposed || Disposing)
+            {
+                return;
+            }
+
+            try
+            {
+                Resync();
+            }
+            catch (Exception error) when (Expected.OfUserInterface(error))
+            {
+                // A table that could not redraw is a table brought forward again. The record is
+                // written and the client is being answered.
+                _log.Warn("the rules could not be read again after a record landed: " + error.Message);
+            }
         }
 
         /// <summary>
@@ -315,20 +387,40 @@ namespace KeePassGate.Ui
         }
 
         /// <summary>
-        /// Reads the store again, and redraws the table when something other than this tab has
-        /// changed what it holds.
+        /// Reads the store and the database's profiles again, and redraws the table when something
+        /// other than this tab has changed either.
         /// </summary>
         /// <remarks>
         /// Asked whenever the tab is brought forward, because what can change the dialog's copy
         /// behind this tab's back is on the same dialog: KeePass's Plugin Data tab, whose Delete
-        /// takes the `KPG` key out. `GrantSheet.Reload` says what a stale table cost. Public for the
-        /// reason `SetGrant` is.
+        /// takes the `KPG` key out. `GrantSheet.Reload` gives what a stale table cost. And asked
+        /// when a record lands, since the profiles have a second writer: `GrantSheet.ReloadNames`
+        /// gives that cost. Public for the reason `SetGrant` is.
         /// </remarks>
         public void Resync()
         {
-            if (_store == null || Picking)
+            if (Picking)
             {
                 return;
+            }
+
+            // Both, whichever changed: the profiles on a tab whose rules could not be read again
+            // still mark the rules it shows.
+            var rules = ReloadRules();
+            var names = _profiles != null && _sheet.ReloadNames(_profiles());
+
+            if (rules || names)
+            {
+                Populate();
+            }
+        }
+
+        /// <summary>Reads the store again, answering whether what it holds had changed.</summary>
+        private bool ReloadRules()
+        {
+            if (_store == null)
+            {
+                return false;
             }
 
             string stored;
@@ -339,13 +431,10 @@ namespace KeePassGate.Ui
             catch (Exception error) when (Expected.OfUserInterface(error) || Expected.OfReflection(error))
             {
                 _log.Warn("the rules on this dialog could not be read again: " + error.Message);
-                return;
+                return false;
             }
 
-            if (_sheet.Reload(stored))
-            {
-                Populate();
-            }
+            return _sheet.Reload(stored);
         }
 
         /// <summary>
@@ -622,6 +711,13 @@ namespace KeePassGate.Ui
         {
             if (disposing)
             {
+                // First, for the reason the KPG tab on the database settings lets go first: the
+                // notice outlives every dialog this tab is on.
+                if (_admissions != null)
+                {
+                    _admissions.Landed -= OnAdmitted;
+                }
+
                 _tips.Dispose();
                 _monospace.Dispose();
                 _refusedMask.Dispose();

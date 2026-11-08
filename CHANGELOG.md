@@ -11,6 +11,11 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **The access editor offers a profile named while its dialog is open.** A pairing approved over a
+  group or an entry dialog can name a profile the database did not, and the editor read the
+  database's profiles once, as the dialog opened: the new name was missing from its pick list, and a
+  rule for a name put back stayed struck through as granting nothing. It reads them again when its
+  tab comes forward and when a record lands.
 - **A screen reader names every X on the KPG tab and the access editor by what pressing it does.**
   The columns of Xs on the clients, the profiles and the rules are headed by a painted bin, over a
   heading left empty, and a table names a cell by its heading and its row, so each X was read out as

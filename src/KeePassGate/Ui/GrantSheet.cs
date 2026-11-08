@@ -112,7 +112,7 @@ namespace KeePassGate.Ui
         private readonly List<string> _offered = new List<string>();
 
         /// <summary>The database's list exactly as given, or null when none was.</summary>
-        private readonly HashSet<string> _named;
+        private HashSet<string> _named;
         private readonly Dictionary<string, List<AclVerb>> _rules =
             new Dictionary<string, List<AclVerb>>(StringComparer.Ordinal);
 
@@ -158,20 +158,48 @@ namespace KeePassGate.Ui
             _above = above == null ? AclInheritance.None : AclResolver.Above(above);
             ReadOnlyReason = readOnlyReason;
 
-            if (offered != null)
+            TakeNames(offered);
+            Load();
+        }
+
+        /// <summary>
+        /// Takes the database's list of profiles as it stands now, which may have changed since
+        /// this sheet was made.
+        /// </summary>
+        /// <returns>True when it had changed, and the pick list and rows now follow it.</returns>
+        /// <remarks>
+        /// **The list has a second writer while a group or an entry dialog is open**: an approval
+        /// names a profile the list did not, in the same write as its record, and nothing keeps a
+        /// pairing out while a node dialog is open. A sheet holding the list it read as the dialog
+        /// opened left the new name off the pick list, and drew a rule for a name the approval had
+        /// just put back as granting nothing while the gate honored it. Null asks nothing about
+        /// the list, as it does when the sheet is made.
+        /// </remarks>
+        public bool ReloadNames(IEnumerable<string> offered)
+        {
+            var named = offered == null ? null : new HashSet<string>(offered, StringComparer.Ordinal);
+            if (named == null ? _named == null : _named != null && _named.SetEquals(named))
             {
-                _named = new HashSet<string>(offered, StringComparer.Ordinal);
-
-                foreach (var profile in offered.Where(
-                    profile => AuthorityIssuer.IsUsableProfileName(profile) && !_offered.Contains(profile)))
-                {
-                    _offered.Add(profile);
-                }
-
-                _offered.Sort(StringComparer.Ordinal);
+                return false;
             }
 
-            Load();
+            TakeNames(named);
+            return true;
+        }
+
+        /// <summary>The names to offer and to mark rows by, from the database's list.</summary>
+        private void TakeNames(IEnumerable<string> offered)
+        {
+            _offered.Clear();
+            _named = offered == null ? null : new HashSet<string>(offered, StringComparer.Ordinal);
+
+            if (_named == null)
+            {
+                return;
+            }
+
+            _offered.AddRange(_named.Where(AuthorityIssuer.IsUsableProfileName));
+            _offered.Sort(StringComparer.Ordinal);
         }
 
         /// <summary>

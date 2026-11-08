@@ -558,14 +558,15 @@ namespace KeePassGate
 
                 // The grant editor watches for the other two dialogs, with its own decorator,
                 // because a group dialog and the database settings carry different tabs and one
-                // decorator holding both would have to be told which each time.
+                // decorator holding both would have to be told which each time. Told when a record
+                // lands as the KPG tab is, since a pairing can name a profile its pick list offers.
                 _grants = new GateHost(
                     _windows,
                     new AnyFormMatcher(
                         new TypeNameFormMatcher(KeePassContract.GroupFormTypeName),
                         new TypeNameFormMatcher(KeePassContract.EntryFormTypeName)),
                     new TabPageInjector(
-                        new GrantPanelFactory(new NodeDialogs(_log), _log),
+                        new GrantPanelFactory(new NodeDialogs(_log), _log, _admissions),
                         _log,
                         KeePassContract.NodeFormTabControlName,
                         GrantTab.Text,

@@ -490,6 +490,31 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void A_profile_the_database_names_while_a_group_dialog_is_open_is_offered_on_it()
+        {
+            // S194, on the real dialog: an approval answered over it names a profile in the
+            // database's own list, and the tab read that list once, as it was built. Read again
+            // with the rules, from the database the dialog belongs to, it offers the name.
+            Name("reader");
+            var group = GroupUnderRoot("Fictitious");
+
+            using (var dialog = new GroupForm())
+            {
+                dialog.InitEx(group, false, null, _database.Database);
+
+                using (var panel = (GrantPanel)new GrantPanelFactory(new NodeDialogs(null), null).CreatePanel(dialog))
+                {
+                    Assume.That(panel.ProfileChoices, Is.EqualTo(new[] { "reader" }));
+
+                    Name("reader", "fictitious");
+                    panel.Resync();
+
+                    Assert.That(panel.ProfileChoices, Is.EqualTo(new[] { "fictitious", "reader" }));
+                }
+            }
+        }
+
+        [Test]
         public void An_entry_dialog_is_read_as_the_entry_it_is_about()
         {
             var entry = EntryIn(GroupUnderRoot("Fictitious"));

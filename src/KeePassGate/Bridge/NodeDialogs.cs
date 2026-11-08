@@ -38,7 +38,10 @@ namespace KeePassGate.Bridge
                 ProfilesOf(node.Database),
                 node.ReadOnlyReason);
 
-            return new NodeTab(sheet, node.Store(), node.Scope);
+            // The list read again whenever the tab reads its rules again, from the database the
+            // dialog belongs to: a pairing can name a profile while the dialog is open.
+            var database = node.Database;
+            return new NodeTab(sheet, node.Store(), node.Scope, () => ProfilesOf(database));
         }
 
         /// <summary>
