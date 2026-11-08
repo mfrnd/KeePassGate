@@ -20,8 +20,9 @@ Open **File**, **Database Settings**, pick the **KPG** tab, then the **Profiles*
 | **Clients** | how many admitted clients hold it |
 | **X** | removes it |
 
-Type a name and press **Add**. A name is letters, digits, dash and underscore, up to 64 of
-them. It grants nothing until a rule says so.
+Type a name and press **Add**. A name is ASCII letters, digits, hyphens and underscores, up to 64
+of them, so the letters are A to Z without accents, and it is not `default` in any mix of capitals,
+which the stored rules keep for a meaning of their own. It grants nothing until a rule names it.
 
 The other way one arrives is pairing: a program asks for profiles by name, and any this database does
 not name now and no client holds is marked "(new)" on the approval dialog. Approving adds it, and
@@ -110,9 +111,9 @@ The eight characters are always in the same order, and a dot means "not this one
 
 | | | |
 | --- | --- | --- |
-| `C` | create | make a new group or entry here |
-| `R` | read | read what an entry holds |
-| `U` | update | change what an entry holds |
+| `C` | create | make a new group or entry here, or add a field or an attachment to an entry |
+| `R` | read | read a group's notes, or what an entry holds |
+| `U` | update | rename a group or change its notes, or change what an entry holds |
 | `S` | strip | take fields and attachments off an entry, though not the five every entry has, which are emptied instead |
 | `D` | delete | **removals are allowed here**: see below, because this one is asked twice |
 | `L` | list | see that something exists, and whether an entry has expired, without reading it |
