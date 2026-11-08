@@ -71,30 +71,41 @@ builds and checks everything and publishes nothing.
 
 1. **A pull request that makes the version**: `Version` in `Directory.Build.props`, which the
    build writes into the routing document as well, and the version's heading in `CHANGELOG.md`,
-   with the date in place of unreleased, as `## 0.1.0, 2026-10-26`, or
+   with the date in place of unreleased, as `## 0.1.0, 2026-10-25`, or
    `## 0.1.1, the plugin, 2026-11-02` for a patch. The gate checks it like any other, and the
    ruleset on `master` waits for it.
 
    **The same pull request names every dependency the version ships that moved**, since Dependabot
-   updates them and cannot write the changelog. What moved is what this prints, against the
+   updates them and cannot write the changelog. A `PackageReference` of the plugin ships, unless it
+   is `PrivateAssets="all"`, and so does every package such a reference brings in, which no diff of
+   the project shows: `SharpYaml` arrives with `Microsoft.OpenApi.Readers`. So the plugin's half is
+   what restore resolves, read in a checkout of the previous release's tag and in a checkout of
+   `origin/master`:
+
+   ```powershell
+   dotnet list src/KeePassGate package --include-transitive
+   ```
+
+   The client's half is a minimum in its `dependencies`, which is what this prints, against the
    previous release's tag:
 
    ```powershell
-   git diff v0.1.0..origin/master -- src/KeePassGate/KeePassGate.csproj pyproject.toml
+   git diff v0.1.0..origin/master -- pyproject.toml
    ```
 
-   A `PackageReference` of the plugin ships, unless it is `PrivateAssets="all"`, and so does a
-   minimum in the client's `dependencies`. Nothing else does: `uv.lock`, the development tools and
-   the test projects' packages reach no one who installs either half. Each that moved is an item
-   of its own under **Dependencies**, even when it is the only one, in alphabetical order, with
-   packages that only ever move together sharing one. It names the version it moved from and the
-   one it moved to, because an advisory names a range and only the first tells whether the version
-   being replaced was in it:
+   Nothing else ships: `uv.lock`, the development tools and the test projects' packages reach nobody
+   who installs either half, and neither do the reference assemblies the build compiles against,
+   `Microsoft.NETFramework.ReferenceAssemblies` and what it brings. Each that moved is an item of
+   its own under **Dependencies**, even when it is the only dependency that moved, in alphabetical
+   order, with packages that only ever move together sharing an item. It names the version it moved
+   from and the version it moved to, because an advisory names a range and only the first tells
+   whether the version being replaced was in it:
 
    ```markdown
    - **Dependencies**:
      - Microsoft.OpenApi and Microsoft.OpenApi.Readers from 1.6.30 to 1.6.31
      - Newtonsoft.Json from 13.0.3 to 13.0.4
+     - SharpYaml from 2.1.1 to 2.1.5
    ```
 
 2. **Merge it, wait for the gate on `master` to pass on the merge, then tag the merge and push
