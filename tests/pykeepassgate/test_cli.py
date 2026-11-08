@@ -31,6 +31,16 @@ def test_a_command_is_required(capsys: pytest.CaptureFixture[str]) -> None:
     assert raised.value.code == 2
 
 
+def test_the_command_line_names_its_own_version(capsys: pytest.CaptureFixture[str]) -> None:
+    # Its half of the comparison a client and a plugin are paired by, beside the gate's that
+    # `status` prints.
+    with pytest.raises(SystemExit) as raised:
+        cli.main(["--version"])
+
+    assert raised.value.code == 0
+    assert capsys.readouterr().out == f"pykeepassgate {__version__}\n"
+
+
 def test_pairing_without_a_port_dials_the_one_the_gate_listens_on_by_default() -> None:
     arguments = cli._parser().parse_args(["pair", "--name", "agent-invented"])
 

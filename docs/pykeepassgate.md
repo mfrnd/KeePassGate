@@ -220,6 +220,8 @@ refuses a `0.1` gate and a `0.1` client works with a `0.2` gate ([`../API.md`](.
 §411). The patch is never compared. A paired client asks once, before its first request, and
 pairing reads the version the gate's hello carries, before the operator is asked anything.
 Either raises `IncompatibleGate` naming both versions, and the command line exits `1` with it.
+`pykeepassgate --version` names the client's own version, the other half of the comparison, where
+`status` names the gate's.
 
 `GateClient.open()` reads the credentials pairing stored, or the last renewal. Pass `profile=` where more than one
 identity is kept on the machine. **Every setting is passed by name**: after the identity, which is

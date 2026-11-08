@@ -11,6 +11,9 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **`pykeepassgate --version` names the client's version**, the half of the comparison a client
+  and a plugin are paired by that the command line could not show, beside the gate's that
+  `status` prints.
 - **A standard string held under a name with a null in it is refused with `AmbiguousName`**, as
   a string under a name beyond ASCII is, by the read model and by `refs.resolve`. .NET Framework's
   collation gives the null no weight, so KeePass reads such a name as `Password`, and the client

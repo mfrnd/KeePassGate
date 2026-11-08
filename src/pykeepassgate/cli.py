@@ -42,7 +42,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Literal, TypedDict
 
-from . import api, pairing, refs, transport
+from . import api, compatibility, pairing, refs, transport
 from .credentials import IDENTITY_FILE, write_owner_only
 from .errors import GateError, ProtocolError, StorageError
 from .model import TITLE, URL
@@ -120,6 +120,11 @@ def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="pykeepassgate",
         description="The reference client for KeePassGate.",
+    )
+    # A client and a plugin are a pair by their major and minor versions, and `status` names the
+    # gate's, so the command line names its own half of the comparison too.
+    parser.add_argument(
+        "--version", action="version", version=f"pykeepassgate {compatibility.CLIENT_VERSION}"
     )
 
     commands = parser.add_subparsers(dest="command", required=True)
