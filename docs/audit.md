@@ -94,8 +94,10 @@ what the group or entry holds, and it also answers every `If-Match` from a progr
 no tag to, because its rules do not read everything a tag covers, and an `If-Match` that does not
 read as a tag at all: neither can ever be met, whether anything changed or not. A change's `412` is
 in the log, and a read's is written nowhere. A program refused `412` on its writes over and over is
-writing over somebody, guessing, or naming a tag it was never handed, and the log is where that
-shows.
+writing over somebody, guessing, or naming a tag it was never handed, and each warning names which:
+`the node no longer holds what If-Match named` for the first two, and for a condition nothing could
+meet, that the program is handed no tags, that `If-Match` does not read as a list of tags, or that
+it names no strong tag.
 
 **A protected value withheld is a second decision, and gets a line of its own.** When the rules
 allow a request whose answer would carry a value the database protects, and no rule of the
