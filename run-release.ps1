@@ -14,8 +14,8 @@
     `KeePass Plugin`, puts every dependency beside it rather than beside `KeePass.exe`, and starts
     KeePass. Whether the thing works is what `build.ps1 -Task All` answers.
 
-    **It starts the KeePass this repository pins**, fetched and checked against its pinned hash and
-    its author's signature rather than whichever one is on the `PATH`. It writes a configuration
+    **It starts the KeePass this repository pins**, fetched and checked against its pinned hash,
+    rather than whichever KeePass is on the `PATH`. It writes a configuration
     beside that executable if there is none, which is what keeps this session out of the settings
     of the KeePass somebody keeps their real database in.
 

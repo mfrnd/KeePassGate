@@ -38,9 +38,12 @@
     A gap is not evidence of anything: a number is never reused after the section holding it is
     deleted, so gaps accumulate and are supposed to. What makes a low number wrong is that it is
     new, and the ceiling it has to clear is the highest number the document has **ever** carried,
-    not the highest it carries now. Where there is no repository, no earlier commit, or no earlier
-    copy of the document, nothing is said, because those are states where nothing can be known
-    rather than states where something is wrong.
+    not the highest it carries now. New means absent from the copy of the document in the commit
+    it is compared with, below, so a deleted section's number put on another section is refused
+    like any other, and a section restored under a heading it once had keeps its number. Where
+    there is no repository, no earlier commit, or no earlier copy of the document, nothing is
+    reported, because those are states where nothing can be known rather than states where
+    something is wrong.
 
     The section sign is built from its code point rather than written down, because this file is
     UTF-8 without a mark and Windows PowerShell reads such a file as the system code page. A
@@ -208,6 +211,7 @@ if ($repository) {
         $addition = '^\+' + $site.Substring(1) + ".* $sign(\d{3})$"
 
         $history = $null
+        $held = $null
         $spelling = [Console]::OutputEncoding
         Push-Location $Root
         try {
@@ -223,6 +227,13 @@ if ($repository) {
                 $history = $null
             }
 
+            # The document as the baseline holds it, since a number is new when the baseline
+            # does not define it, whether or not some earlier commit ever did.
+            $held = & git show "${baseline}:$document" 2>$null
+            if ($LASTEXITCODE -ne 0) {
+                $held = $null
+            }
+
             # As above: a shallow clone has no `HEAD^`, and that is answered here rather than
             # reported as this script's exit code.
             $global:LASTEXITCODE = 0
@@ -233,10 +244,11 @@ if ($repository) {
             Pop-Location
         }
 
-        if ($null -eq $history) {
+        if ($null -eq $history -or $null -eq $held) {
             continue
         }
 
+        # Every heading each number was ever added under, and the ceiling over all of them.
         $spent = @{}
         $ceiling = $blocks[$document]
         foreach ($line in $history) {
@@ -246,7 +258,11 @@ if ($repository) {
             }
 
             $value = [int] $anchor.Groups[1].Value
-            $spent[$value] = $true
+            if (-not $spent.ContainsKey($value)) {
+                $spent[$value] = @{}
+            }
+
+            $spent[$value][$line.Substring(1)] = $true
             if ($value -gt $ceiling) {
                 $ceiling = $value
             }
@@ -259,6 +275,22 @@ if ($repository) {
             continue
         }
 
+        $standing = @{}
+        foreach ($line in $held) {
+            if ($line -notmatch $site) {
+                continue
+            }
+
+            $anchor = [regex]::Match($line, $definition)
+            if ($anchor.Success) {
+                $standing[[int] $anchor.Groups[1].Value] = $true
+            }
+        }
+
+        # **New is what the baseline does not define**, so a number whose section was deleted is
+        # new when it comes back, and is refused unless it comes back under a heading it was once
+        # added with: that is the section restored, a revert among the ways, rather than the
+        # number reused. A number never used at all, below the ceiling, is refused as before.
         $number = 0
         foreach ($line in Get-Content -Path $path -Encoding UTF8) {
             $number++
@@ -272,11 +304,16 @@ if ($repository) {
             }
 
             $value = [int] $anchor.Groups[1].Value
-            if ($spent.ContainsKey($value) -or $value -gt $ceiling) {
+            if ($standing.ContainsKey($value) -or $value -gt $ceiling) {
                 continue
             }
 
-            $problems += "${document}:${number}: section $value is new, and $ceiling is the highest this document has ever used. A number is taken above that and never reused, so the number here is $($ceiling + 1)."
+            if (-not $spent.ContainsKey($value)) {
+                $problems += "${document}:${number}: section $value is new, and $ceiling is the highest this document has ever used. A number is taken above that and never reused, so the number here is $($ceiling + 1)."
+            }
+            elseif (-not $spent[$value].ContainsKey($line)) {
+                $problems += "${document}:${number}: section $value was deleted and is back under another heading. A number is never reused, so a section restored keeps a heading it had, and a new section takes $($ceiling + 1)."
+            }
         }
     }
 }

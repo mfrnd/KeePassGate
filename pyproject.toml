@@ -40,6 +40,15 @@ build-backend = "hatchling.build"
 path = "Directory.Build.props"
 pattern = "<Version>(?P<version>[^<]+)</Version>"
 
+# **And uv is told to watch it.** uv builds the project again only when a key below changes, and
+# left to itself it watches this file and whether `src` exists, which is its own list less the
+# `setup.py` and `setup.cfg` this project has neither of. Without `Directory.Build.props` here an
+# environment made before the number moved keeps the old version in its metadata, which is where
+# the client reads its own, and the version test fails locally after a correct bump, and nowhere
+# else. Measured: with it, moving the version reinstalls the client on the next `uv sync`.
+[tool.uv]
+cache-keys = [{ file = "pyproject.toml" }, { dir = "src" }, { file = "Directory.Build.props" }]
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/pykeepassgate"]
 
@@ -126,12 +135,12 @@ select = [
 # rule out: one runs only when it is selected by its full code.
 #
 # **What it does not keep out is preview behavior.** `preview` also changes how some stable rules
-# check, and under the ruff `uv.lock` pins, 0.16.3, 37 of the rules selected here say they check
-# more with it: the bandit rules on insecure calls flag a reference as well as a call, F401 and F811
-# look further, RUF001 to RUF003 know more ambiguous characters. None of it finds anything in this
-# code, which passes with `--no-preview` as well. But preview behavior is what a ruff release may
-# change with no rule added or selected, so a finding that arrives with an upgrade may come from
-# here, and `--no-preview` is how to tell.
+# check, and many of the rules selected here document checking more with it, how many moving with
+# each ruff `uv.lock` takes: the bandit rules on insecure calls flag a reference as well as a call,
+# F401 and F811 look further, RUF001 to RUF003 know more ambiguous characters. None of it finds
+# anything in this code, which passes with `--no-preview` as well. But preview behavior is what a
+# ruff release may change with no rule added or selected, so a finding that arrives with an upgrade
+# may come from here, and `--no-preview` is how to tell.
 preview = true
 explicit-preview-rules = true
 

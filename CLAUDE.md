@@ -682,7 +682,9 @@ Run them from
   with "Exception encountered unloading application domain". `ClientSideProviderQueue` ends the
   thread once the last fixture in the `Live` namespace has finished, through the queue's own way
   in, and `ClientSideProviderQueueTests` pins the framework's private names it reaches for, in the
-  host tier. An empty set of client-side providers does not prevent it, and was measured not to;
+  host tier. The run passes either way, exit code and counts alike, so `build.ps1` reads the
+  engine's warning out of `live.trx` and refuses the run that carries it, whatever thread was left.
+  An empty set of client-side providers does not prevent it, and was measured not to;
   `RunConfiguration.DisableAppDomain` does, and costs `GrantTabFitsTests` its themed child domain
   for the whole assembly or the end to end runs the test host's binding redirects for them alone.
   `spikes/automation-unload` holds the probe and the numbers.
@@ -919,7 +921,10 @@ what it leaves to `build.ps1`.
 The projects are SDK-style, target `net48` and build with the **.NET SDK's `dotnet` CLI**, which is
 what makes `dotnet test` available. **`global.json` holds the SDK to 9 or later**, the first to
 compile C# 13, and rolls forward to the newest installed, so a machine with only an older SDK
-refuses to build rather than failing on the language. `msbuild` is not on `PATH`, so if it is
+refuses to build rather than failing on the language. **Never to a preview**, which the SDK's
+resolver takes by default outside Visual Studio: a preview's compiler and analyzers, under
+`TreatWarningsAsErrors`, are the newer SDK that can pass or fail a build on a machine where CI
+judges it otherwise. `msbuild` is not on `PATH`, so if it is
 ever needed directly, locate it:
 
 ```powershell
@@ -929,16 +934,28 @@ $msbuild = & $vswhere -latest -requires Microsoft.Component.MSBuild -find "MSBui
 
 **KeePass is provided, not found.** `keepass.version` at the root pins the release, `keepass.sha256`
 pins the archive it must arrive as, and `tools/KeePass.ps1` fetches it into `.keepass\<version>\`,
-which is gitignored. `Directory.Build.props` reads the same file, so an editor build compiles
-against the same one. Override with `-KeePassDir` or `-p:KeePassDevDir=` for a machine that keeps
-its own somewhere else.
+which is gitignored, and keeps the archive beside it. `Directory.Build.props` reads the same file,
+so an editor build compiles against the same KeePass. Override with `-KeePassDir` or
+`-p:KeePassDevDir=` for a machine that keeps its own somewhere else.
 
 Three things about it that are decisions rather than details. The directory is **named after the
-version**, so changing the pin cannot silently reuse the old one. The archive is verified twice,
-once against the pinned hash and once by checking that `KeePass.exe` carries a valid Authenticode
-signature from KeePass's author, which is the check that does not depend on where the bytes came
-from. And a version with no line in `keepass.sha256` is **refused**, with the hash that arrived
-printed so it can be pinned deliberately.
+version**, so changing the pin cannot silently reuse the old directory. **The pinned hash is the
+whole of the verification**, and nothing is extracted from an archive that does not match it: CI
+caches the archive rather than the directory and extracts it afresh on every run once its hash has
+matched, in under a second, so nothing a cache brings back is believed as it came, while a
+directory already on somebody's own machine is taken as it is, being code running as them. And a
+version with no line in `keepass.sha256` is **refused** whether its directory is there or not,
+with the hash that arrived printed and the archive kept, so that whoever moves `keepass.version`
+checks by hand that its `KeePass.exe` carries a valid Authenticode signature of KeePass's author
+before writing that hash down.
+
+**This reverses a second check, of that signature, on every build**, which was described as the
+check that does not depend on where the bytes came from. It checked less than that: the signer by
+a substring of the certificate's subject, which any certificate carrying KeePass's author's name
+inside a longer name passed, and the version by a prefix, so that 2.61.1 took 2.61.10; and on a
+restored cache it judged `KeePass.exe` alone, with every other file beside it believed unchecked.
+Asked again of bytes whose hash matched the pin, a signature settles nothing the hash had not, so
+it is asked once, by a person, when the hash is written down.
 
 A KeePass launched from there writes its own `KeePass.config.xml` next to the exe, which is why
 testing there cannot damage the real configuration.
@@ -968,17 +985,24 @@ passed on it. `RELEASING.md` lists it among the settings a release needs.
 
 **Pins move in pull requests of their own, proposed rather than noticed.** `.github/dependabot.yml`
 opens one grouped pull request a week for each kind: the actions' commits, `uv.lock`, the prose
-tools and the plugin's libraries, never a library's next major version and never a floor in
-`pyproject.toml`, and each a week after its release. Only the prose tools and a minor or patch
-version of the actions merge themselves, through `dependabot-auto-merge.yml`, since a green gate
-shows that an update breaks nothing and not that it is what it claims to be; the libraries and the
-lock wait for a person. **Every head is judged on its own**, since auto-merge stays on through a
-push by anybody with write access, Dependabot included: each run switches it off first, and only
-a head that qualifies switches it back on. A security update, which GitHub opens as soon as an
-advisory is out under two settings `RELEASING.md` lists, waits for a person as well. KeePass is
+tools, the plugin's libraries and the commit the pre-commit hooks are pinned to, never a library's
+next major version and never a floor in `pyproject.toml`, and each a week after its release. Only
+the prose tools and a minor or patch version of the actions merge themselves, through
+`dependabot-auto-merge.yml`, since a green gate shows that an update breaks nothing and not that it
+is what it claims to be; the libraries, the lock and the hooks wait for a person, and so does an
+action only the release's publishing jobs run, since a rehearsal is the first run it gets and a
+person runs that. **Every head is judged on its own**, since auto-merge stays on through a push by
+anybody with write access, Dependabot included: each run switches it off first, and only a head
+that qualifies switches it back on. **And with a GitHub App's token**, since GitHub merges as
+whoever switched auto-merge on and a push made with the workflow's own token starts no workflow,
+so a merge switched on with it would reach `master` with no gate and no CodeQL run there; without
+the app's two secrets, which `RELEASING.md` lists, nothing merges itself. A security update, which
+GitHub opens as soon as an advisory is out under two settings `RELEASING.md` lists, waits for a
+person as well. KeePass is
 pinned where no such service reads, so `keepass-watch.yml` opens an issue when it releases a newer
 version, and moving that pin stays a person's job, since `tools/KeePass.ps1` refuses a version
-until its hash is written down.
+until its hash is written down, and the person writing it checks the new archive's signature by
+hand first.
 
 **CodeQL reads what the gate does not.** `codeql.yml` analyzes the C#, the Python and the workflows
 on every pull request, every push to `master` and once a week, with what

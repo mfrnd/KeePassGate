@@ -258,7 +258,7 @@ function Invoke-Compile {
 # is not a check.
 function Invoke-Lint {
     if (-not (Get-Command npm -ErrorAction SilentlyContinue)) {
-        throw 'npm was not found. The prose checks are markdownlint and cspell, both from npm. Install Node, then run npm ci.'
+        throw 'npm was not found. The prose checks are markdownlint and cspell, both from npm. Install Node, then run this again, which installs them.'
     }
 
     # Whether the tools are there, rather than whether a directory is. An interrupted install, a
@@ -276,6 +276,10 @@ function Invoke-Lint {
     # lockfile's hash is written down beside what `npm ci` installed, and a different one, or none,
     # installs again. It lives inside `node_modules`, which `npm ci` deletes before installing, so
     # it can never outlive the install it describes.
+    #
+    # **Without the packages' own scripts.** An update to these tools merges itself, and a script
+    # a package runs as it installs is code that runs on this machine before any check calls it,
+    # which the tools need none of: no package the lockfile holds has an install script.
     $lock = Join-Path $root 'package-lock.json'
     $record = Join-Path $root 'node_modules\.installed-from'
     $wanted = (Get-FileHash -LiteralPath $lock -Algorithm SHA256).Hash
@@ -286,7 +290,7 @@ function Invoke-Lint {
 
     if ($missing.Count -gt 0 -or $installed -ne $wanted) {
         Invoke-Step 'installing the prose tools' {
-            npm ci --no-audit --no-fund
+            npm ci --ignore-scripts --no-audit --no-fund
         }
 
         Set-Content -LiteralPath $record -Value $wanted
@@ -477,21 +481,47 @@ function Invoke-Host {
 # checked when nothing ran: the outcome `gate.yml` already calls worse than a red one, guarded
 # there for an empty task list and not for this. So every tier writes a result file and is judged
 # on the count in it, which is read from the file because the console text is localized.
+#
+# **What did not run is counted from the total, and named.** The result file counts a test NUnit
+# ignored, found inconclusive, held explicit or let a failed assumption stop as neither not
+# executed nor inconclusive, and the console's summary leaves it out of its skipped count too,
+# so a test that stopped measuring passes with nothing but a line among thousands to show for it.
+# Each is listed here with its reason instead. Listed rather than refused, since some are meant:
+# a measurement held explicit, and a test that asks the machine for what it may not have.
 function Assert-Executed {
-    param([string] $Trx, [string] $Tier)
+    param([string] $Trx, [string] $Tier, [string] $Meaning = 'A tier that ignored itself has not passed.')
 
     if (-not (Test-Path $Trx)) {
         throw "The $Tier tests produced no result file, so nothing can say what ran."
     }
 
-    $counters = ([xml] (Get-Content -LiteralPath $Trx -Raw)).TestRun.ResultSummary.Counters
+    $run = ([xml] (Get-Content -LiteralPath $Trx -Raw)).DocumentElement
+    $counters = $run.ResultSummary.Counters
     $executed = [int] $counters.executed
+    $skipped = [int] $counters.total - $executed
     if ($executed -lt 1) {
-        throw ("The $Tier tests ran nothing: $([int] $counters.total) found, " +
-            "$([int] $counters.notExecuted) skipped. A tier that ignored itself has not passed.")
+        throw "The $Tier tests ran nothing: $([int] $counters.total) found, $skipped skipped. $Meaning"
     }
 
     Write-Host "  $executed $Tier test(s) ran." -ForegroundColor DarkGray
+    if ($skipped -lt 1) {
+        return
+    }
+
+    # By local name, as `Write-LiveEvidence` reads the file, for the reason it gives.
+    $shown = 20
+    $results = @($run.SelectNodes(
+        "*[local-name()='Results']/*[local-name()='UnitTestResult'][@outcome!='Passed' and @outcome!='Failed']"))
+    Write-Host "  $skipped did not run:" -ForegroundColor Yellow
+    foreach ($result in ($results | Select-Object -First $shown)) {
+        $reason = $result.SelectSingleNode("*[local-name()='Output']/*[local-name()='ErrorInfo']/*[local-name()='Message']")
+        $why = if ($null -ne $reason -and $reason.InnerText) { ': ' + ($reason.InnerText.Trim() -split "\r?\n")[0] } else { '' }
+        Write-Host "    $($result.GetAttribute('testName'))$why" -ForegroundColor Yellow
+    }
+
+    if ($results.Count -gt $shown) {
+        Write-Host "    ... and $($results.Count - $shown) more, named in $Trx." -ForegroundColor Yellow
+    }
 }
 
 # **Both tiers, because neither answers on its own.** A line the host tests reach and the unit
@@ -739,6 +769,27 @@ function Invoke-Live {
     }
 
     Assert-Executed $trx 'end to end'
+    Assert-Unloaded $trx 'end to end'
+}
+
+# **A test domain that does not unload is a run that left a thread running in it**, and the only
+# sign is a message. NUnit's engine gives up on the domain after fifteen seconds and reports
+# `NUnitEngineUnloadException` as a warning, and the run passes, its exit code and its counts
+# untouched. The end to end tier ended that way on every run until `LiveRun` ended the one thread
+# UI automation leaves, which `CLAUDE.md` describes, so the warning is read out of the result
+# file, where the test platform keeps it, and refused. Measured with a test whose thread waits in
+# a `finally`: the run exits zero, and the file holds the warning under `RunInfos`.
+function Assert-Unloaded {
+    param([string] $Trx, [string] $Tier)
+
+    $run = ([xml] (Get-Content -LiteralPath $Trx -Raw)).DocumentElement
+    $left = @($run.SelectNodes(
+        "*[local-name()='ResultSummary']/*[local-name()='RunInfos']/*[local-name()='RunInfo']") |
+        Where-Object { $_.InnerText -match 'NUnitEngineUnloadException|unloading application domain' })
+    if ($left.Count -gt 0) {
+        throw ("The $Tier tests' domain did not unload, so something left a thread running in it: " +
+            ($left[0].InnerText.Trim() -split '\r?\n')[0])
+    }
 }
 
 # Retakes the pictures in `docs/images` by driving a throwaway KeePass through the whole operator
@@ -771,22 +822,13 @@ function Invoke-Screenshots {
         Remove-Item Env:\KPG_SCREENSHOT_DIR -ErrorAction SilentlyContinue
     }
 
-    # The same guard `Invoke-Live` carries, and it is worth more here. A fixture that ignores
-    # itself exits zero either way, but this task ends by naming a directory in green: an operator
-    # who asked for the pictures to be retaken would read that, commit what is on disk, and publish
-    # the old ones as though they were of the code they had just changed. `LiveSession.Begin`
-    # ignores the whole fixture when the provided KeePass does not match what the tests were built
-    # against, which `-KeePassDir` can produce without anything looking wrong.
-    if (-not (Test-Path $trx)) {
-        throw 'The screenshot run produced no result file, so nothing can say what was retaken.'
-    }
-
-    $counters = ([xml] (Get-Content -LiteralPath $trx -Raw)).TestRun.ResultSummary.Counters
-    $executed = [int] $counters.executed
-    if ($executed -lt 1) {
-        throw ("The screenshot fixture ignored itself: $([int] $counters.total) found, " +
-            "$([int] $counters.notExecuted) skipped. No picture was retaken.")
-    }
+    # The guard every tier has, and it is worth more here. A fixture that ignores itself exits zero
+    # either way, but this task ends by naming a directory in green: an operator who asked for the
+    # pictures to be retaken would read that, commit what is on disk, and publish the old pictures
+    # as though they were of the code they had just changed. `LiveSession.Begin` ignores the whole
+    # fixture when the provided KeePass does not match what the tests were built against, which
+    # `-KeePassDir` can produce without anything looking wrong.
+    Assert-Executed $trx 'screenshot' 'No picture was retaken.'
 
     Write-Host "Images are in $images" -ForegroundColor Green
 }
@@ -825,14 +867,18 @@ function Invoke-Deploy {
     # name on the machine: the one somebody keeps their real database in, and a throwaway copy an
     # end to end run left behind. Neither holds a file in the directory being written, so refusing
     # on either is refusing for a reason that is not true, and the reason given names a file those
-    # processes do not have open.
+    # processes do not have open. Compared against the directory with a separator after it, since
+    # `Resolve-KeePass` answers without a separator, and a sibling whose name only begins with this
+    # directory's, `.keepass\2.61.1` beside `.keepass\2.61` or `KeePass2` beside `KeePass`, is
+    # another KeePass.
+    $inside = $keePass.TrimEnd('\', '/') + '\'
     $running = @()
     foreach ($process in @(Get-Process -Name 'KeePass' -ErrorAction SilentlyContinue)) {
         # A process this account cannot open has no readable path, and is not one of ours.
         $path = $null
         try { $path = $process.Path } catch { }
 
-        if ($path -and $path.StartsWith($keePass, [System.StringComparison]::OrdinalIgnoreCase)) {
+        if ($path -and $path.StartsWith($inside, [System.StringComparison]::OrdinalIgnoreCase)) {
             $running += $process
         }
     }
@@ -1149,22 +1195,18 @@ function Assert-Package {
 # the way `sha256sum -c` reads it so that the zip extracted where it lies can be checked file by
 # file.
 #
-# **Not a gate.** It judges nothing a check does not already judge, and every run of the gate
-# rebuilding and zipping the plugin would only make it slower.
+# **Not a gate, and what it judges is judged nowhere else**: every assembly beside the plugin named
+# in the notices, no file naming the directory it was built in, every document the symbols name
+# under `/_/`, and the zip and its sums read back. `release.yml` runs it as its check on a pull
+# request that touches what a release is built from, which no ruleset requires, and again at a
+# release, so a miss holds up a merge only for whoever reads that check, and a tag in any case.
+# Every run of the gate rebuilding and zipping the plugin would slow every run down for a question
+# few pull requests raise.
 function Invoke-Package {
     $keePass = Resolve-KeePass
     $output = Join-Path $root 'src\KeePassGate\bin\Release\net48'
     $dist = Join-Path $root 'dist'
     $staging = Join-Path $root '.tmp\package'
-
-    # All three emptied first. The output for the reason `Invoke-Deploy` empties it, since what is
-    # collected below is a directory rather than a list; `dist` because a `SHA256SUMS` beside a zip
-    # it does not describe is worse than none.
-    foreach ($path in $output, $dist, $staging) {
-        if (Test-Path $path) {
-            Remove-Item $path -Recurse -Force
-        }
-    }
 
     # **Built the way a build machine builds**, which is what `ContinuousIntegrationBuild` says.
     # Without it the compiler writes the full path of the symbols into the plugin, which is wherever
@@ -1222,11 +1264,38 @@ function Invoke-Package {
         throw "Package builds a commit, and $root has $($changes.Count) change(s) nobody committed, $($changes[0].Substring(3)) first among them. Commit them or set them aside, then package."
     }
 
+    # **And the line endings a Windows checkout writes.** git writes a text file's line endings as
+    # the clone is configured, and the plugin and its symbols are compiled from those bytes, as the
+    # license and the notices the zip carries are copied from them: measured, a clone checked out
+    # with LF builds a `KeePassGate.dll` and a `KeePassGate.pdb` other than a CRLF clone's, with
+    # every other input the same. A Windows clone as git leaves it writes CRLF, the hosted runner's
+    # among them, so a clone that writes LF, under `core.autocrlf=input` or `core.eol=lf`, is refused
+    # rather than packaged into a zip no other clone reproduces.
+    $ErrorActionPreference = 'Continue'
+    try {
+        $endings = @(& git -C $root ls-files --eol -- src/KeePassGate LICENSE THIRD-PARTY-NOTICES.md 2>$null)
+    }
+    finally {
+        $ErrorActionPreference = $before
+    }
+
+    if ($LASTEXITCODE -ne 0) {
+        throw "git could not report which line endings $root writes, and the plugin is compiled from them."
+    }
+
+    $otherwise = @($endings | Where-Object { $_ -match '^\S+\s+w/(lf|mixed)\s' })
+    if ($otherwise.Count -gt 0) {
+        throw "Package builds what a Windows checkout holds, with CRLF line endings, and $root has $($otherwise.Count) file(s) the package is made from checked out otherwise, $(($otherwise[0] -split "`t", 2)[1]) first among them. Package from a clone with git's own line endings."
+    }
+
     # **The commit's own time, for every entry in the zip.** The plugin and its symbols are built
     # deterministically, so every file in the zip is the same from the same commit and toolchain,
-    # and a zip entry would otherwise carry the moment the build wrote its file: the zip's own line
-    # in `SHA256SUMS` would then match only the zip from the same run. With the commit's time it
-    # is the same from every run on the same runtime, whose deflate is the one other input.
+    # with the line endings held above and the same `origin`, whose address the symbols' Source Link
+    # record names, and the plugin names the symbols by a digest of them: measured, two clones of
+    # one commit in different directories package the same bytes once their `origin` agrees. A zip
+    # entry would otherwise carry the moment the build wrote its file, and the zip's own line in
+    # `SHA256SUMS` would then match only the zip from the same run. With the commit's time it is
+    # the same from every run on the same runtime, whose deflate is the one other input.
     $ErrorActionPreference = 'Continue'
     try {
         $committed = & git -C $root log -1 --format=%ct 2>$null
@@ -1240,6 +1309,18 @@ function Invoke-Package {
     }
 
     $stamp = [DateTimeOffset]::FromUnixTimeSeconds([long] ([string] $committed).Trim())
+
+    # All three emptied before the build, and only once git has answered, as `Invoke-Deploy` asks
+    # its own cheap question before anything is deleted: a refusal above, which an uncommitted edit
+    # earns, then leaves the last package and the Release build where they were. All three are
+    # ignored, so emptying them first would change none of git's answers. The output for the
+    # reason `Invoke-Deploy` empties it, since what is collected below is a directory rather than a
+    # list; `dist` because a `SHA256SUMS` beside a zip it does not describe is worse than none.
+    foreach ($path in $output, $dist, $staging) {
+        if (Test-Path $path) {
+            Remove-Item $path -Recurse -Force
+        }
+    }
 
     $global:LASTEXITCODE = 0
     Invoke-Step 'build (Release, to package)' {

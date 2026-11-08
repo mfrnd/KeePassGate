@@ -1,15 +1,17 @@
 # Keeps every pinned dependency current, in a pull request the gate checks like any other.
 #
 # **Everything here is pinned on purpose**: the actions by commit, the client's tools and the uv
-# and hatchling it is built with by `uv.lock`, the prose tools by `package-lock.json`, and the
-# plugin's libraries by an exact version in its project. A pin is what keeps a run reproducible,
-# and it is also what keeps a fix from arriving: nothing moves a pin unless somebody does. This is
-# that somebody, once a week, so a security fix in a pinned action or library reaches a pull
-# request rather than waiting to be noticed.
+# and hatchling it is built with by `uv.lock`, the prose tools by `package-lock.json`, the
+# plugin's libraries by an exact version in its project, and the hooks `.pre-commit-config.yaml`
+# fetches by commit. A pin is what keeps a run reproducible, and it is also what keeps a fix from
+# arriving: nothing moves a pin unless somebody does. This is that somebody, once a week, so a
+# security fix in a pinned action or library reaches a pull request rather than waiting to be
+# noticed.
 #
 # **One pull request per kind a week**, each kind grouped, because a dozen pull requests a week
-# would be read less carefully than four. A security update is never grouped or delayed: GitHub
-# opens it on its own as soon as the advisory is out, under two settings `RELEASING.md` lists.
+# would be read less carefully than a pull request for each kind. A security update is never
+# grouped or delayed: GitHub opens it on its own as soon as the advisory is out, under two
+# settings `RELEASING.md` lists.
 #
 # **A version is proposed once it is a week old**, the cooldown below. A compromised release is
 # usually found and pulled within days, and a week costs nothing a security update needs, since
@@ -17,11 +19,17 @@
 #
 # **Only the prose tools and the actions merge themselves**, through `dependabot-auto-merge.yml`,
 # because a green gate shows that an update breaks nothing and not that it is what it claims to
-# be. The prose tools only read this repository's Markdown. An action does more: one merged this
+# be. A prose tools update merging itself is code nobody read, markdownlint, cspell and whatever
+# they bring, which then runs as those tools in CI and on the machine of whoever runs the gate
+# next, with that account's access. `build.ps1` installs them without their install scripts, so
+# that code runs when a check calls it and not before, and what merging it accepts is the week's
+# wait as the whole of its review. An action reaches the release as well: an action merged this
 # way runs in the next release with that job's access, which is why only a minor or a patch
 # version merges itself, a week after its release, and why every action stays pinned by commit.
-# The plugin's libraries ship inside the release zip, and the lock holds what the client installs
-# and what builds the package PyPI is handed, so those wait for a person.
+# An action only the release's publishing jobs run waits for a person even then, since nothing
+# runs it before a tag does until somebody rehearses the release. The plugin's libraries ship
+# inside the release zip, and the lock holds what the client installs and what builds the package
+# PyPI is handed, so those wait for a person.
 #
 # **KeePass is not here.** It is downloaded and pinned by `keepass.version` and `keepass.sha256`,
 # which no ecosystem below reads, so `keepass-watch.yml` watches for a new release of it instead.
@@ -85,3 +93,15 @@ updates:
     groups:
       libraries:
         patterns: ['*']
+
+  # The hooks a clone runs at each commit once somebody installs them. Each is pinned by commit
+  # with a `# frozen:` comment naming its release, which is the release Dependabot moves the
+  # commit to, comment and all. Outside any group, so it waits for a person, since it is code that
+  # runs on whoever's machine installed it.
+  - package-ecosystem: pre-commit
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 7

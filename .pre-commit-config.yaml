@@ -1,9 +1,14 @@
 # The checks that are cheap enough to run on what is being committed rather than on everything.
 #
-# It is not a second set of rules. Every hook here runs the tool the gate runs, against the config
-# the gate reads, so a commit that passes this passes `build.ps1` for the same reasons. What it
-# buys is distance: a finding at the commit costs a sentence, and the same finding at the gate
-# costs a rebuild.
+# **Two kinds of hook.** The local ones, the style, the types, the spelling and the markdown, are
+# not a second set of rules: each runs the tool the gate runs, against the config the gate reads,
+# so a commit they pass passes `build.ps1` for the same reasons, and what they buy is distance: a
+# finding at the commit costs a sentence, and the same finding at the gate costs a rebuild. The
+# others are guards the gate does not have, against a merge left half done, a last line with no
+# line ending, trailing whitespace, YAML or TOML that does not parse, a large file, a private key
+# and a database. The gate holds whitespace and line endings only in the Python and the Markdown,
+# each by its own tool, and none of the rest at all, so a commit can be refused here for something
+# the gate passes.
 #
 # **What is deliberately not here.** The C# build and the test suites. They take minutes, and a
 # pre-commit hook people are tempted to skip is worse than one that never existed. `build.ps1` is
@@ -16,8 +21,11 @@
 # It lives with the Python client because `pre-commit` is a Python tool and `uv` is what this
 # repository uses to run those.
 repos:
+  # By commit, with its release in the comment Dependabot reads and moves with it, for the reason
+  # `gate.yml` pins its actions that way: a tag is whatever its maintainers move it to next, and
+  # this is code that runs at every commit on whoever's machine installed it.
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
+    rev: cef0300fd0fc4d2a87a85fa2093c6b283ea36f4b  # frozen: v5.0.0
     hooks:
       # The five that catch a mistake nobody would make on purpose.
       - id: check-merge-conflict
@@ -32,10 +40,12 @@ repos:
         args: ["--maxkb=512"]
       - id: detect-private-key
         # `test_credentials.py` asserts that the identity it wrote holds a private key, and
-        # the way it says so is the header this hook looks for. A test vector that names a
-        # thing is not the thing, which is the same reason `pyproject.toml` carries
-        # per-file ignores for the tests.
-        exclude: '^tests/pykeepassgate/test_credentials\.py$'
+        # the way it asks is the header this hook looks for. `credentials.py` tells a key held
+        # in the clear from an encrypted key by the same headers, and `test_key_password.py`
+        # asserts which of the two a file was written as. A vector or a test that names a
+        # thing is not the thing, which is the same reason `pyproject.toml` carries per-file
+        # ignores for the tests.
+        exclude: '^(src/pykeepassgate/credentials|tests/pykeepassgate/test_(credentials|key_password))\.py$'
 
   - repo: local
     hooks:
@@ -78,9 +88,12 @@ repos:
         # no reason to know. `.gitignore` and `LICENSE` are among the files it would check.
         files: '\.(md|cs|ps1|py|ya?ml|json|toml|csproj|props)$'
 
+      # `--no-globs`, because markdownlint-cli2 otherwise adds the configuration's own globs to
+      # the files named, lints every markdown file in the tree, untracked drafts among them, and
+      # refuses a commit over a file it does not hold.
       - id: markdownlint
         name: markdown
-        entry: npx --no-install markdownlint-cli2
+        entry: npx --no-install markdownlint-cli2 --no-globs
         language: system
         files: '\.md$'
 

@@ -171,11 +171,12 @@ uv run pre-commit install   # once per clone: the fast checks, run at every comm
 
 **The build uses a pinned KeePass**, not whichever one is installed. `keepass.version` names the
 release, and `tools/KeePass.ps1` downloads it into `.keepass\`, verified against a pinned SHA-256
-and the Authenticode signature of KeePass's author. [`TESTING.md`](TESTING.md) explains what each
-test tier covers, [`CONVENTIONS.md`](CONVENTIONS.md) has the rules every branch follows, and
-[`CLAUDE.md`](CLAUDE.md) lists the settled decisions and the measurements behind them; read it
-before proposing a change. The recording above and the screenshots in [`docs/`](docs/README.md)
-are build outputs as well: `.\build.ps1 -Task Screenshots` retakes all of them.
+of an archive whose Authenticode signature was checked by hand when it was pinned.
+[`TESTING.md`](TESTING.md) explains what each test tier covers, [`CONVENTIONS.md`](CONVENTIONS.md)
+has the rules every branch follows, and [`CLAUDE.md`](CLAUDE.md) lists the settled decisions and
+the measurements behind them; read it before proposing a change. The recording above and the
+screenshots in [`docs/`](docs/README.md) are build outputs as well: `.\build.ps1 -Task Screenshots`
+retakes all of them.
 
 **Some measurements live on branches of their own** that were never merged into `master`:
 `spikes/tls-and-certificates` covers TLS and X.509 on .NET Framework, `spikes/build-environment`

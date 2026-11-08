@@ -34,9 +34,13 @@
 # **The actions are pinned by commit**, with the release each commit is beside it, for the reason
 # `gate.yml` gives, and `dependabot.yml` proposes each new one.
 #
-# **Each job may do what it needs and nothing more.** Every job reads the repository and writes
-# security events: an analysis that fails uploads that it failed, and the last job uploads the rest.
-# The last job also writes to pull requests, which is what a review thread and a comment are.
+# **Each job holds what it needs, which is more than it uses.** Every job reads the repository and
+# writes security events: an analysis that fails uploads that it failed, and the last job uploads
+# the rest and dismisses what the code suppresses. The last job also writes to pull requests, which
+# is what a review thread and a comment are. Writing security events also reopens and dismisses any
+# alert and deletes analyses, and both jobs run code the repository holds, the C# build with
+# whatever the NuGet packages bring and the last job's tools with what `uv.lock` installs, so no
+# checkout here leaves the token in git's configuration for that code to find.
 
 name: codeql
 
@@ -78,13 +82,17 @@ jobs:
             build-mode: none
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
+      # Its archive, which is hashed against the pin before anything is extracted from it, as
+      # `gate.yml` explains.
       - name: the pinned KeePass
         if: matrix.language == 'csharp'
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: .keepass
-          key: keepass-${{ hashFiles('keepass.sha256') }}
+          path: .keepass/KeePass-*.zip
+          key: keepass-${{ hashFiles('keepass.version', 'keepass.sha256') }}
 
       - uses: github/codeql-action/init@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
         with:
@@ -140,6 +148,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       # The uv `uv.lock` holds, which has to be named, as `gate.yml` explains.
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3

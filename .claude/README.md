@@ -9,12 +9,19 @@ After every `Write` or `Edit`, `hooks/check-file.ps1` runs the repository's own 
 the one file that changed, and refuses it if they fail.
 
 It is deliberately not a second opinion. The rules live in `.markdownlint-cli2.yaml` and
-`cspell.yaml`, the same two files `build.ps1 -Task Lint` reads, so a file that passes the hook
-passes the gate. What the hook buys is the distance between the two: a misspelling found at the edit
-costs a sentence, and the same misspelling found at the gate costs a rebuild and a rerun.
+`cspell.yaml`, the same two files `build.ps1 -Task Lint` reads, and it spells only the files
+`cspell.yaml` includes, so a file that passes the hook passes the gate, and a file the gate never
+reads is not read here either. What the hook buys is the distance between the two: a misspelling
+found at the edit costs a sentence, and the same misspelling found at the gate costs a rebuild and
+a rerun.
 
 It stays quiet when `node_modules` is missing, because a fresh clone should be editable before it is
-installable. `build.ps1` is what refuses to let an unchecked file reach a commit.
+installable. The gate is what refuses to let an unchecked file reach `master`, since a merge waits
+for it.
+
+It is started by its path under the project's root, `${CLAUDE_PROJECT_DIR}`, because a path
+relative to wherever the session stands names nothing once the session has changed directory, and
+every edit after that would go unchecked.
 
 ## What is deliberately not hooked
 

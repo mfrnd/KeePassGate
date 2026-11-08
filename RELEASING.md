@@ -53,16 +53,27 @@ fails at the step that needs it until it is done.
    names a version pinned here, with no cooldown, which GitHub opens only with both settings on.
    A release does not fail without them either. An advisory against a library the zip ships or an
    action the release runs then raises nothing, and its fix waits for the weekly update.
+8. **GitHub**, a GitHub App for Dependabot's merges, installed on this repository alone with the
+   repository permissions Contents, Pull requests and Workflows, each read and write, and its ID
+   and a private key of it under Settings then Secrets and variables then Dependabot, as
+   `AUTOMERGE_APP_ID` and `AUTOMERGE_APP_PRIVATE_KEY`. `dependabot-auto-merge.yml` switches
+   auto-merge on with its token, because GitHub merges as whoever switched it on, and a merge
+   switched on with the workflow's own token reaches `master` with no gate and no CodeQL run on
+   it. Without both, no update merges itself and each waits for a person; a release does not fail.
 
 ## A rehearsal
 
 **Run `release` by hand from the Actions page, on `master`.** It builds and checks everything a
 release would, makes the GitHub release as a draft under a tag nobody pushed, which a draft does
 not create, reads its files back and deletes it, and publishes the client to TestPyPI under a
-development version of its own, `0.1.0.dev` and the run's number, since a number taken there
-cannot be taken again either. What a
-release still does for the first time is the address it publishes to and nothing else, so rehearse
-after any change to the workflow and before the first release.
+development version of its own, `0.1.0.dev` and the run's number with its attempt in the last two
+digits, `0.1.0.dev1201` for run 12, since a number taken there cannot be taken again either. **A
+rehearsal that failed is re-run whole**, with Re-run all jobs: re-running the failed jobs alone
+keeps the version the first attempt decided, which TestPyPI may hold already. What a release
+still does for the first time is the address it publishes to and nothing else, so rehearse after
+any change to the workflow and before the first release. That holds for a change Dependabot
+makes as well, which is why `dependabot-auto-merge.yml` leaves to a person an update to an action
+only the publishing jobs run: nothing runs it before a tag does but the rehearsal after merging it.
 
 A pull request that touches what a release is built from runs the same workflow as a check, which
 builds and checks everything and publishes nothing.

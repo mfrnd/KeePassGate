@@ -176,9 +176,24 @@ jobs:
             if (-not $found -or -not $previous) {
               throw "v$version is a patch, and no tag before it shows what it patches."
             }
+            # A half's files are what it is built from and what its package holds. The plugin's are
+            # its own directory, the SDK `global.json` picks, the KeePass it compiles against, the
+            # notices and the license its zip carries, and the build settings in
+            # `Directory.Build.props`, less the `<Version>` line every release moves. The client's
+            # are its own directory, `pyproject.toml`, and the license its source distribution
+            # carries. `build.ps1` is neither, though `Package` is in it: most of what changes
+            # there is how things are checked, so a patch whose only change to the plugin is there
+            # is refused below, and goes out as a minor version instead.
             $changed = @(& git diff --name-only "$previous" HEAD)
-            $plugin = [bool] @($changed | Where-Object { $_ -like 'src/KeePassGate/*' }).Count
-            $client = [bool] @($changed | Where-Object { $_ -like 'src/pykeepassgate/*' -or $_ -eq 'pyproject.toml' }).Count
+            $settings = @(& git diff --unified=0 "$previous" HEAD -- Directory.Build.props | Where-Object {
+              $_ -match '^[-+]' -and $_ -notmatch '^(\+\+\+|---) ' -and $_ -notmatch '^[-+]\s*<Version>[^<]*</Version>\s*$'
+            })
+            $plugin = $settings.Count -gt 0 -or [bool] @($changed | Where-Object {
+              $_ -like 'src/KeePassGate/*' -or $_ -in 'global.json', 'keepass.version', 'THIRD-PARTY-NOTICES.md', 'LICENSE'
+            }).Count
+            $client = [bool] @($changed | Where-Object {
+              $_ -like 'src/pykeepassgate/*' -or $_ -in 'pyproject.toml', 'LICENSE'
+            }).Count
             Write-Host "Changed since ${previous}: $($changed.Count) file(s); the plugin $(if ($plugin) { 'ships' } else { 'does not' }), the client $(if ($client) { 'ships' } else { 'does not' })."
             if (-not $plugin -and -not $client) {
               throw "v$version is a patch that changed neither half since $previous, so it has nothing to release."
@@ -190,12 +205,18 @@ jobs:
           }
 
           # A rehearsal publishes to TestPyPI under a development version of its own, since a
-          # number taken there cannot be taken again either, and the run number never repeats.
-          $python = if ($mode -eq 'rehearsal') { "$version.dev$env:GITHUB_RUN_NUMBER" } else { $version }
+          # number taken there cannot be taken again either. The run's number with its attempt,
+          # since re-running a run keeps its number: the attempt in the last two digits, which hold
+          # more than the fifty re-runs GitHub allows. Re-running the failed jobs alone reuses this
+          # job's answer, so a rehearsal whose upload failed is re-run whole, as `RELEASING.md` has
+          # it.
+          $dev = [int] $env:GITHUB_RUN_NUMBER * 100 + [int] $env:GITHUB_RUN_ATTEMPT
+          $python = if ($mode -eq 'rehearsal') { "$version.dev$dev" } else { $version }
 
           Write-Host "mode $mode, version $version, plugin $plugin, client $client as $python"
-          # Without a byte order mark, which Windows PowerShell's own UTF-8 writes first, and which
-          # would then be part of the first name.
+          # As UTF-8 without a byte order mark, which is tidier rather than needed: Windows
+          # PowerShell's own UTF-8 writes a mark first, and the runner strips it, as the output
+          # `gate.yml` writes that way shows.
           $lines = "mode=$mode", "version=$version", "python=$python",
             "plugin=$($plugin.ToString().ToLowerInvariant())", "client=$($client.ToString().ToLowerInvariant())"
           [System.IO.File]::AppendAllText($env:GITHUB_OUTPUT, (($lines -join "`n") + "`n"), (New-Object System.Text.UTF8Encoding $false))
@@ -213,11 +234,13 @@ jobs:
         with:
           fetch-depth: 0
 
+      # Its archive, which is hashed against the pin before anything is extracted from it, as
+      # `gate.yml` explains.
       - name: the pinned KeePass
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: .keepass
-          key: keepass-${{ hashFiles('keepass.sha256') }}
+          path: .keepass/KeePass-*.zip
+          key: keepass-${{ hashFiles('keepass.version', 'keepass.sha256') }}
 
       # `Package` reads the zip and its sums back before it reports them; what is asked here is
       # only that the zip is the version this run decided, beside its sums and nothing else.
@@ -244,13 +267,19 @@ jobs:
   # it again. A release reads its files back too: an upload that reported success and attached
   # something else is found here, before PyPI.
   #
+  # **After both halves have built**, the client as well as the plugin, each either built or
+  # skipped because it does not ship. A release under the tag is public and the tag never moves,
+  # so a client whose build failed would otherwise leave an `x.y.0` of the plugin out with no
+  # client on PyPI, and a client-only patch announced with nothing published.
+  #
   # The status function is GitHub's, and keeps GitHub's spelling. cspell:ignore cancelled
   github:
     name: the release on GitHub
-    needs: [decide, plugin]
+    needs: [decide, plugin, client]
     if: >-
       !cancelled() && needs.decide.result == 'success' && needs.decide.outputs.mode != 'check' &&
-      (needs.plugin.result == 'success' || needs.plugin.result == 'skipped')
+      (needs.plugin.result == 'success' || needs.plugin.result == 'skipped') &&
+      (needs.client.result == 'success' || needs.client.result == 'skipped')
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -261,6 +290,9 @@ jobs:
       VERSION: ${{ needs.decide.outputs.version }}
       PLUGIN: ${{ needs.decide.outputs.plugin }}
     steps:
+      # Keeping the token in git's configuration, unlike `codeql.yml`'s checkouts, since
+      # `git ls-remote` below reads the tags of origin with it. Every step here holds it in
+      # `GH_TOKEN` already, and none runs code the repository holds.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - if: needs.decide.outputs.plugin == 'true'
@@ -292,16 +324,22 @@ jobs:
             gh release create "$tag" --verify-tag --title "KeePassGate $VERSION" --notes-file notes.md \
               "${latest[@]}" "${files[@]}"
           else
-            tag="v$VERSION-rehearsal.$GITHUB_RUN_NUMBER"
+            # Named for the attempt as well as the run, as the client's version is. The draft is
+            # deleted however the step ends, by its tag, so a step that stops anywhere after
+            # making it, the lookup below among them, leaves none behind; and only a draft is.
+            tag="v$VERSION-rehearsal.$GITHUB_RUN_NUMBER.$GITHUB_RUN_ATTEMPT"
+            discard() {
+              gh api "repos/$GITHUB_REPOSITORY/releases" --paginate \
+                --jq ".[] | select(.draft and .tag_name == \"$tag\") | .id" |
+                while read -r draft; do gh api -X DELETE "repos/$GITHUB_REPOSITORY/releases/$draft"; done
+            }
+            trap discard EXIT
             gh release create "$tag" --draft --target "$GITHUB_SHA" --title "KeePassGate $VERSION, rehearsed" \
               --notes-file notes.md "${files[@]}"
           fi
 
           id=$(gh api "repos/$GITHUB_REPOSITORY/releases" --paginate --jq ".[] | select(.tag_name == \"$tag\") | .id")
           test -n "$id"
-          if [ "$MODE" != release ]; then
-            trap 'gh api -X DELETE "repos/$GITHUB_REPOSITORY/releases/$id"' EXIT
-          fi
 
           mkdir back
           gh api "repos/$GITHUB_REPOSITORY/releases/$id/assets" --jq '.[] | "\(.id) \(.name)"' |

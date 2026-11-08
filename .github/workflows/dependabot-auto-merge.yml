@@ -8,6 +8,13 @@
 # for a person, as does any pull request Dependabot opens outside a group, a security update
 # among them.
 #
+# **And no action that only the release's publishing jobs run.** Those are the jobs of
+# `release.yml` holding a write permission, which its check on a pull request skips, so an update
+# to an action none of its other jobs runs would merge having never run, and run first at a tag,
+# with PyPI the step that fails. `RELEASING.md` asks for a rehearsal after any change to that
+# workflow, and a rehearsal is run by hand, so such an update waits for a person. Which actions
+# those are is read from the workflow rather than written here, as its paths are below.
+#
 # **Every head is judged on its own.** Auto-merge stays on through a push by anybody with write
 # access, Dependabot included, and merges whatever head the pull request has by the time the
 # ruleset is satisfied. So a pull request Dependabot rewrites after auto-merge went on would merge
@@ -16,10 +23,19 @@
 # that could fail, and only a head that passes everything below switches it back on, bound to that
 # head. A run still waiting on an older head's release check is canceled by the next.
 #
+# **Switched on with a GitHub App's token, never with this job's own.** GitHub merges as whoever
+# switched auto-merge on, and a push made with a workflow's own token starts no workflow, so a
+# merge switched on with it would reach `master` with no gate and no CodeQL run there. The app's
+# token is minted from the Dependabot secrets `AUTOMERGE_APP_ID` and `AUTOMERGE_APP_PRIVATE_KEY`
+# once everything else has passed, and this job's own token only ever switches auto-merge off.
+# **Without both secrets nothing is switched on**: the job's summary gives the reason, and the
+# pull request waits for a person. `RELEASING.md` lists the app among the settings.
+#
 # **The merge still waits for everything a merge waits for.** Auto-merge holds until the ruleset
-# on `master` is satisfied, which is `gate passed`. The release workflow's check is not required,
-# since it runs only on the pull requests that touch what a release is built from, so when this
-# one does, this job waits for that run to pass before switching auto-merge on.
+# on `master` is satisfied, `gate passed` and `code scanning passed` among it. The release
+# workflow's check is not required, since it runs only on the pull requests that touch what a
+# release is built from, so when this pull request does, this job waits for that run to pass
+# before switching auto-merge on.
 
 name: dependabot-auto-merge
 
@@ -45,7 +61,8 @@ jobs:
     steps:
       # First, so that a run stopping anywhere below leaves auto-merge off, and without
       # tolerating a failure, which would leave on whatever an earlier head switched on. With
-      # auto-merge already off this changes nothing and succeeds.
+      # auto-merge already off this changes nothing and succeeds. The job's own token is enough
+      # for this, whoever switched auto-merge on.
       - name: auto-merge off until this head earns it
         env:
           GH_TOKEN: ${{ github.token }}
@@ -62,8 +79,16 @@ jobs:
           (steps.meta.outputs.dependency-group == 'actions' &&
            (steps.meta.outputs.update-type == 'version-update:semver-minor' ||
             steps.meta.outputs.update-type == 'version-update:semver-patch'))
+        with:
+          persist-credentials: false
 
-      - name: auto-merge
+      # Everything but the merge itself, which is left until after the wait for the release
+      # check, since the app's token lasts an hour and that wait can take most of it. A head that
+      # may merge itself is answered `merge=true`. A head left to a person ends here in success
+      # with the reason in the summary, and a head this cannot judge fails, which leaves it to a
+      # person too.
+      - id: judge
+        name: whether this head may merge itself
         if: >-
           steps.meta.outputs.dependency-group == 'prose-tools' ||
           (steps.meta.outputs.dependency-group == 'actions' &&
@@ -71,13 +96,61 @@ jobs:
             steps.meta.outputs.update-type == 'version-update:semver-patch'))
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
           NUMBER: ${{ github.event.pull_request.number }}
-          TITLE: ${{ github.event.pull_request.title }}
           SHA: ${{ github.event.pull_request.head.sha }}
+          GROUP: ${{ steps.meta.outputs.dependency-group }}
+          NAMES: ${{ steps.meta.outputs.dependency-names }}
+          # Whether both secrets are there, and not what they hold, which no step but the step
+          # minting the token is given.
+          APP: ${{ secrets.AUTOMERGE_APP_ID != '' && secrets.AUTOMERGE_APP_PRIVATE_KEY != '' }}
         run: |
-          # The paths the release workflow checks, read from it rather than written twice.
+          leave() {
+            echo "Auto-merge stays off, and a person merges this: $1" | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 0
+          }
+
+          if [ "$APP" != true ]; then
+            leave "the Dependabot secrets AUTOMERGE_APP_ID and AUTOMERGE_APP_PRIVATE_KEY are not both set, and a merge switched on with this job's own token would reach master with no gate and no CodeQL run there."
+          fi
+
+          # The actions only a job holding a write permission runs, by the repository each is
+          # in, which is how fetch-metadata names an action. Refused when either kind of job is
+          # missing, since a workflow without both is not the workflow this reads.
+          if [ "$GROUP" = actions ]; then
+            names=$(printf '%s\n' "$NAMES" | tr ',' '\n' | sed 's/^ *//; s/ *$//' | grep -v '^$' || true)
+            if [ -z "$names" ]; then
+              leave "fetch-metadata names no action this moves, so whether only the release's publishing jobs run it is not known."
+            fi
+
+            publishing=$(yq -o=json '.jobs' .github/workflows/release.yml | jq -r '
+              def writes: (.permissions // {}) | if type == "object" then any(.[]; . == "write") else . != "read-all" end;
+              def actions: [.steps[]? | .uses // empty | sub("@.*"; "") | split("/") | .[0:2] | join("/")];
+              [.[] | select(writes) | actions[]] as $publishing
+              | [.[] | select(writes | not) | actions[]] as $checking
+              | if ($publishing | length) == 0 or ($checking | length) == 0
+                then error("release.yml has no job holding a write permission, or no job without a write permission")
+                else ($publishing - $checking) | unique | .[]
+                end')
+            held=$(printf '%s\n' "$names" | grep -xF -f <(printf '%s\n' "$publishing") || true)
+            if [ -n "$held" ]; then
+              leave "it moves $(printf '%s' "$held" | paste -sd, - | sed 's/,/, /g'), which release.yml runs only in the jobs that publish, so a rehearsal has to run it first."
+            fi
+          fi
+
+          # The paths the release workflow checks, read from it rather than written twice, and
+          # compared with the changed files as written. GitHub reads each as a pattern, so a path
+          # with a wildcard in it would match here nothing it matches there, and a missing list
+          # would match nothing at all: both are refused rather than read as touching nothing.
+          # The keyword is jq's: cspell:ignore elif
           changed=$(gh pr diff "$NUMBER" --name-only)
-          watched=$(yq '.on.pull_request.paths[]' .github/workflows/release.yml)
+          watched=$(yq -o=json '.on.pull_request.paths' .github/workflows/release.yml | jq -r '
+            if type != "array" or length == 0
+            then error("release.yml checks no paths on a pull request, so what touches a release cannot be told")
+            elif any(.[]; type != "string" or test("[\\[\\]*?+!]"))
+            then error("release.yml checks a path pattern, which this compares as written and would never match")
+            else .[]
+            end')
           if printf '%s\n' "$changed" | grep -qxF -f <(printf '%s\n' "$watched"); then
             run=''
             for attempt in $(seq 1 30); do
@@ -93,4 +166,29 @@ jobs:
             gh run watch "$run" --exit-status --interval 30
           fi
 
-          gh pr merge "$NUMBER" --auto --merge --subject "$TITLE (#$NUMBER)" --match-head-commit "$SHA"
+          echo 'merge=true' >> "$GITHUB_OUTPUT"
+
+      # Narrowed to what switching auto-merge on and the merge it makes need: the merge writes to
+      # the repository, and to its workflows when the update is to an action, which GitHub
+      # refuses to a token without that permission. `client-id` takes the app's numeric ID as well,
+      # since GitHub takes either as the name of the app in the request the action signs, and
+      # `app-id` is the same input under a name the action has retired.
+      - id: app
+        if: steps.judge.outputs.merge == 'true'
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ secrets.AUTOMERGE_APP_ID }}
+          private-key: ${{ secrets.AUTOMERGE_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+          permission-workflows: write
+
+      - name: auto-merge
+        if: steps.judge.outputs.merge == 'true'
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+          GH_REPO: ${{ github.repository }}
+          NUMBER: ${{ github.event.pull_request.number }}
+          TITLE: ${{ github.event.pull_request.title }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+        run: gh pr merge "$NUMBER" --auto --merge --subject "$TITLE (#$NUMBER)" --match-head-commit "$SHA"

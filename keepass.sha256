@@ -3,5 +3,7 @@
 # to an earlier pin then needs no network and no trust decision.
 #
 # A new line is added by pinning a version in `keepass.version`, running `.\build.ps1 -Task KeePass`
-# once to be told what arrived, and putting that here if it is what was meant.
+# once to be told what arrived, checking by hand that the `KeePass.exe` in the archive it kept
+# carries a valid Authenticode signature of KeePass's author, and putting that here if it is what
+# was meant. A line here is the whole of what any build checks of KeePass from then on.
 3952354DB9B117E906F7CD4F9F5591065B95186472370DA47F46F3E246FEA864  KeePass-2.61.1.zip

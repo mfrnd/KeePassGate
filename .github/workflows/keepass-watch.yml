@@ -4,7 +4,9 @@
 # `keepass.sha256`, and no dependency service reads either, so nothing else would notice a new
 # release. Moving the pin is deliberately a person's job: `tools/KeePass.ps1` refuses a version
 # with no line in `keepass.sha256` and prints the hash that arrived, so it can be pinned after
-# looking, and every tier then runs against it before anything ships built on it.
+# looking, and every tier then runs against it before anything ships built on it. The looking
+# includes the one check of the archive's signature anybody makes, since the hash is all a build
+# checks from then on.
 #
 # **The version KeePass itself publishes**, from the file its own update check reads. Its first
 # line is a signature, and the version is the line naming `KeePass`. An issue already open for the
@@ -36,6 +38,8 @@ jobs:
       GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: compare
         run: |
@@ -65,8 +69,8 @@ jobs:
           To move the pin:
 
           1. Write $latest into \`keepass.version\`.
-          2. Run \`.\\build.ps1 -Task KeePass\`. \`tools/KeePass.ps1\` refuses the version, since \`keepass.sha256\` has no line for it, and prints the hash of the archive that arrived.
-          3. Check that hash against the one KeePass publishes, then add the line to \`keepass.sha256\`.
+          2. Run \`.\\build.ps1 -Task KeePass\`. \`tools/KeePass.ps1\` refuses the version, since \`keepass.sha256\` has no line for it, prints the hash of the archive that arrived and keeps the archive.
+          3. Check that hash against the hash KeePass publishes, and that the \`KeePass.exe\` inside the archive carries a valid Authenticode signature of KeePass's author, as the refusal shows how; nothing checks the signature after this. Then add the line to \`keepass.sha256\`.
           4. Run the gate and the end to end tier against it, and open a pull request.
 
           Opened by \`.github/workflows/keepass-watch.yml\`."
