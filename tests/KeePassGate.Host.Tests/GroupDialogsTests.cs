@@ -107,6 +107,26 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void A_watch_started_on_a_source_already_disposed_reports_that_it_is_not_watching()
+        {
+            // The source refuses a subscription once it is disposed, so that a watch started on it
+            // reports that it failed rather than claiming to watch while nothing can reach it:
+            // every dialog would then read as closed, and every write under one would go ahead.
+            var windows = new GlobalWindowManagerWindows();
+            windows.Dispose();
+
+            using (var watch = new GroupDialogs(windows, NullGateLog.Instance))
+            {
+                Assert.That(watch.Start(), Is.False);
+                Assert.That(watch.Blocking(_database.RootGroup), Is.Not.Null);
+                Assert.That(watch.Blocking(EntryUnderRoot()), Is.Not.Null);
+                Assert.That(watch.BlockingRecords(_database.Database), Is.Not.Null);
+                Assert.That(watch.BlockingRecycleBin(_database.Database), Is.Not.Null);
+                Assert.That(watch.Working(), Is.Not.Null);
+            }
+        }
+
+        [Test]
         public void A_dialog_whose_opening_could_not_be_noted_holds_every_write_back_until_it_closes()
         {
             // Left out of every table, it read as nothing open: a Database Maintenance dialog nobody
