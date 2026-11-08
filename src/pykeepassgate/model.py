@@ -768,11 +768,15 @@ def _mask(value: object) -> bool:
 @dataclass(frozen=True)
 # codeql[py/equals-hash-mismatch] `@dataclass` makes its `__eq__`, over the grants `__hash__` reads
 class Access:
-    """What this client may do at one group or entry, one mask for each profile it holds.
+    """What the rules grant this client at one group or entry, one mask for each profile it holds.
 
-    A mask is the rule as the KPG tab shows one, `CRUSDLAP` with a dot for each verb or switch the
-    profile is not granted there, and eight dots for a profile granted nothing there. The profiles
-    are the ones the rules are asked about for this client, which `Identity.profiles` lists.
+    A mask is in the notation the KPG tab shows a rule in, `CRUSDLAP` with a dot for each verb or
+    switch the profile is not granted there, and eight dots for a profile granted nothing there.
+    It is what the rules grant at the node rather than the rule as the tab shows it, or which
+    operations would succeed there: a switch beside only `S` or `D` is left out, since removing
+    takes what a switch qualifies without asking it, and `D` is the node's own rule, which
+    `allows` explains. The profiles are those the rules are asked about for this client, which
+    `Identity.profiles` lists.
 
     **One mask per profile, because a switch belongs to its rule.** One profile's `R` and another's
     `P` do not add up to reading a protected value, so a question about a verb and a switch is a

@@ -778,9 +778,11 @@ pykeepassgate access --group root
 pykeepassgate access --entry <uuid>
 ```
 
-`access` asks the gate what this client may do at one group or entry, and prints a rule for each
-profile it holds, as the **KPG** tab shows one: `CRUSDLAP`, with a dot for each verb or switch that
-profile is not granted there, and eight dots for one granted nothing there. A node where no profile
+`access` asks the gate what the rules grant this client at one group or entry, and prints a mask
+for each profile it holds, in the notation the **KPG** tab shows a rule in: `CRUSDLAP`, with a dot
+for each verb or switch that profile is not granted there, and eight dots for a profile granted
+nothing there. A mask is what the rules grant at the node rather than which operations would
+succeed there, as the paragraph after the example has it. A node where no profile
 may do anything is refused with the `404` an absent one gets, so this tells a program about what it
 can reach and nothing about what it cannot, and the audit records the question like any other.
 

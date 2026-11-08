@@ -652,13 +652,17 @@ class GateClient:
         self._written("DELETE", f"/groups/{_segment(uuid)}", None, if_match)
 
     def group_access(self, uuid: str = ROOT) -> Access:
-        """What this client may do at a group, one mask for each profile it holds.
+        """What the rules grant this client at a group, one mask for each profile it holds.
 
         The route declares `x-kpg-verb: any`, so the gate puts every verb and switch to the rules
-        here for each profile, as each operation's own question would be put, and answers `404`
-        unless some profile is granted some verb, as it answers a group that is not there. So a
-        client learns what it may do at a node it can reach, and nothing about one it cannot.
-        `Access.allows` asks the questions a caller has.
+        for each profile, about the group alone, and answers `404` unless some profile is granted
+        some verb there, as it answers a group that is not there. So a client learns what the rules
+        grant it at a node it can reach, and nothing about a node it cannot. **A mask is what the
+        rules grant at the node rather than which operations would succeed**: a switch beside only
+        `S` or `D` is left out, since removing takes what a switch qualifies without asking it,
+        removing the group itself asks the group above it for `D` as well, and `S` is reported on
+        a group though no operation strips a group. `Access.allows` asks the questions a caller
+        has.
         """
         return Access.of(self.get(f"/groups/{_segment(uuid)}/access"))
 

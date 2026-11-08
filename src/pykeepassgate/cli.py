@@ -270,10 +270,12 @@ def _parser() -> argparse.ArgumentParser:
         "access",
         help="ask the gate what this client may do at a group or an entry",
         description=(
-            "Prints one rule for each profile this client holds, as the KPG tab shows a rule: "
-            "CRUSDLAP, with a dot for each verb or switch the profile is not granted there. A "
-            "switch reaches only the verbs on its own line. A node this client may do nothing at "
-            "is refused as one that is not there."
+            "Prints what the rules grant each profile this client holds there, in the notation "
+            "the KPG tab shows a rule in: CRUSDLAP, with a dot for each verb or switch the "
+            "profile is not granted there. A switch reaches only the verbs on its own line, and "
+            "a switch beside S or D alone is left out, since removing asks none. D is the node's "
+            "own rule: removing the node asks the group above it for D as well. A node this "
+            "client may do nothing at is refused as a node that is not there."
         ),
     )
     node = access.add_mutually_exclusive_group(required=True)
