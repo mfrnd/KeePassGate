@@ -32,6 +32,7 @@ from pykeepassgate.errors import (
 )
 from pykeepassgate.pairing import Pairing
 from pykeepassgate.testing import FakeGate, Issued
+from test_pairing import INVITATION
 
 
 @pytest.fixture
@@ -340,6 +341,22 @@ def test_a_certificate_expired_only_by_a_clock_ahead_of_the_gate_s_is_still_offe
     assert stored.expired, "identity still says so"
     assert GateClient(stored, connection_timeout=10.0).status().ok
     assert gate.names != [], "the gate was asked"
+
+
+def test_a_host_nothing_could_dial_is_refused_where_it_is_given(
+    tmp_path: Path, bundle: dict[str, Any]
+) -> None:
+    # Before anything is dialed, by the name it was given under, as every other setting is.
+    stored = credentials_module.save(tmp_path / "kept", 45678, bundle)
+
+    with pytest.raises(ValueError, match="host"):
+        GateClient(stored, host="a" * 64 + ".invalid")
+    with pytest.raises(ValueError, match="host"):
+        Pairing(45678, INVITATION, host="")
+    with pytest.raises(ValueError, match="host"):
+        api.pair("x", "agent", directory=tmp_path / "paired", host="\udcff")
+
+    assert not (tmp_path / "paired").exists(), "refused before anything was prepared"
 
 
 def test_the_leeway_is_the_five_minutes_the_documents_promise() -> None:

@@ -709,6 +709,18 @@ def test_a_lifetime_no_certificate_can_have_is_an_argument_error(
     assert "days" in capsys.readouterr().err
 
 
+@pytest.mark.parametrize("host", ["", "a" * 64 + ".invalid", "a..b"])
+def test_a_host_nothing_could_dial_is_an_argument_error(
+    host: str, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # Exit 2 and a sentence, where the dial left `main` as a `UnicodeError` traceback.
+    with pytest.raises(SystemExit) as raised:
+        cli.main(["status", "--host", host, "--directory", str(tmp_path)])
+
+    assert raised.value.code == 2
+    assert "host" in capsys.readouterr().err
+
+
 def test_pairing_passes_the_shared_directory_choice_to_the_library(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

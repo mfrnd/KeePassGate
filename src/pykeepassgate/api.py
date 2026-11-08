@@ -70,6 +70,7 @@ from .transport import (
     connection_limit,
     create_connection,
     dial_limit,
+    host_limit,
     key_password_limit,
     key_secret,
     port_number,
@@ -213,6 +214,7 @@ def pair(
     connection_limit(connection_timeout)
     response_limit(max_response_bytes)
     dial_limit(dial)
+    host_limit(host, dial)
     if lifetime is not None:
         lifetime_text(lifetime)
     where = directory or default_directory(profile)

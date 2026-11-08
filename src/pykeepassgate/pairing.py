@@ -136,8 +136,8 @@ class Pairing:
         # paste as the command line is not refused what the command line accepts.
         self._token = token_text.decode(invitation.strip())
         self._connection_timeout = transport.connection_limit(connection_timeout)
-        self._host = host
         self._dial = transport.dial_limit(dial)
+        self._host = transport.host_limit(host, dial)
         self._retry_busy_timeout = transport.retry_limit("retry_busy_timeout", retry_busy_timeout)
         self._retry_locked_timeout = transport.retry_limit(
             "retry_locked_timeout", retry_locked_timeout

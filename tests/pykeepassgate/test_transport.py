@@ -927,6 +927,26 @@ class TestASettingThatCannotWork:
         with pytest.raises(ValueError, match="retry_undecided_timeout"):
             transport.Retry(undecided=seconds)
 
+    @pytest.mark.parametrize(
+        "host",
+        ["", "a" * 64 + ".invalid", "a..b", "\udcff", 5, None],
+        ids=["empty", "a long label", "an empty label", "a lone surrogate", "a number", "none"],
+    )
+    def test_a_host_nothing_could_dial(self, host: Any) -> None:
+        # The idna codec refused each from inside `socket` as `UnicodeError`, and a host that was
+        # no text as `TypeError`, out of the first call and naming nothing.
+        with pytest.raises(ValueError, match="host"):
+            transport.host_limit(host)
+
+    def test_a_host_a_dial_of_its_own_reads_is_left_to_it(self) -> None:
+        # The host is the dial's to read, so it can name what that dial understands.
+        def relay(host: str, port: int, timeout: float) -> socket.socket:  # pragma: no cover
+            raise AssertionError("nothing is dialed to check a host")
+
+        assert transport.host_limit("a" * 64 + ".relay", relay) == "a" * 64 + ".relay"
+        with pytest.raises(ValueError, match="host"):
+            transport.host_limit("", relay)
+
     @pytest.mark.parametrize("cap", [1.5, math.nan, True])
     def test_a_cap_that_is_not_a_whole_number_of_bytes(self, cap: Any) -> None:
         # A NaN cap compares false with every length, so it capped nothing at all.
@@ -943,6 +963,8 @@ class TestASettingThatCannotWork:
         assert transport.retry_limit("retry_locked_timeout", 3600.0) == 3600.0
         assert transport.retry_limit("retry_undecided_timeout", 86400.0) == 86400.0
         assert transport.response_limit(1) == 1
+        for host in (transport.LOOPBACK, "::1", "fe80::1%12", "localhost", "例え.jp", "b" * 63):
+            assert transport.host_limit(host) == host
 
     def test_nothing_is_dialed_on_a_setting_that_cannot_work(
         self, gate: FakeGate, authority: Authority, client_certificate: Issued

@@ -703,6 +703,7 @@ def _dialed(parser: argparse.ArgumentParser) -> None:
     """
     parser.add_argument(
         "--host",
+        type=_host,
         default=api.LOOPBACK,
         help=(
             "where to dial, if the gate is not reachable on loopback. It binds to loopback, so "
@@ -767,6 +768,18 @@ def _dialed(parser: argparse.ArgumentParser) -> None:
             "answer over it fails whole rather than arriving cut short."
         ),
     )
+
+
+def _host(text: str) -> str:
+    """Where to dial, refused here as an argument rather than as a traceback out of the dial.
+
+    A label over 63 characters or a label holding a lone surrogate, which argv from a name that was
+    not UTF-8 brings on POSIX, left the dial as `UnicodeError`, which is no `GateError`.
+    """
+    try:
+        return transport.host_limit(text)
+    except ValueError as error:
+        raise argparse.ArgumentTypeError(str(error)) from None
 
 
 def _byte_count(text: str) -> int:

@@ -324,6 +324,32 @@ def dial_limit(dial: Dial) -> Dial:
     return dial
 
 
+def host_limit(host: str, dial: Dial = create_connection) -> str:
+    """Refuse a host nothing could dial, where it is given, and hand back a host that could be.
+
+    Text and not nothing, whichever `dial` reads it. **For the `dial` a client has unless given
+    another, a name `socket` can resolve as well**: it encodes a name as IDNA before it asks for
+    an address, which refuses a label over 63 characters, an empty label and a lone surrogate
+    with `UnicodeError`, a `ValueError` that is no `GateError` and named nothing, out of the first
+    call rather than where the host was given. Whether a name that encodes is a name that resolves
+    is the network's answer, a `TransportError` when it is not. A `dial` of the caller's own reads
+    the host however it likes, so nothing more is asked of a host given to it.
+    """
+    if not isinstance(host, str) or not host:
+        given = (
+            "an empty host" if isinstance(host, str) else f"an object of type {type(host).__name__}"
+        )
+        raise ValueError(f"host is the name or the address to dial, as text, not {given}")
+
+    if dial is create_connection:
+        try:
+            host.encode("idna")
+        except UnicodeError as error:
+            raise ValueError(f"host {host!r} is no name this client can dial: {error}") from None
+
+    return host
+
+
 class Budget:
     """What one kind of `503` is worth waiting out, and what is left of it.
 
@@ -787,6 +813,7 @@ def connect(
     port_number(port)
     connection_limit(connection_timeout)
     dial_limit(dial)
+    host_limit(host, dial)
     pinned_context(context)
 
     try:

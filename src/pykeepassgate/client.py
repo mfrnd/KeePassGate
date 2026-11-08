@@ -146,8 +146,9 @@ class GateClient:
         **A setting that could not work is refused here**, with a `ValueError` naming it, before
         anything is dialed, and the command line refuses the same ones: a cap that is not a
         positive whole number of bytes, a socket timeout that is not a finite number of seconds
-        above zero, a budget that is neither `None` nor a finite number of seconds from zero, and
-        a port in the credentials that TCP does not have.
+        above zero, a budget that is neither `None` nor a finite number of seconds from zero, a
+        port in the credentials that TCP does not have, and a host that is not text, or for the
+        `dial` a client has unless given another, a name `socket` could not encode to resolve.
 
         `key_password` opens a key that pairing or a renewal stored under one: the password, as text
         or bytes, or a callable returning it, which is asked only if the key turns out to be
@@ -181,8 +182,8 @@ class GateClient:
         transport.port_number(credentials.port)
         self._credentials = credentials
         self._connection_timeout = transport.connection_limit(connection_timeout)
-        self._host = host
         self._dial = transport.dial_limit(dial)
+        self._host = transport.host_limit(host, dial)
         self._retry_busy_timeout = transport.retry_limit("retry_busy_timeout", retry_busy_timeout)
         self._retry_locked_timeout = transport.retry_limit(
             "retry_locked_timeout", retry_locked_timeout

@@ -11,6 +11,11 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **PyKeePassGate refuses a host nothing could dial where it is given**, with a `ValueError`
+  naming `host`, and `--host` as an argument, exit 2: a host that is not text, or empty, and for
+  the `dial` a client has unless given another, a name `socket` could not encode to resolve, such
+  as a label over 63 characters or a lone surrogate. Each left the first call as `UnicodeError` or
+  `TypeError`, naming nothing, and the command line printed a traceback.
 - **Every exception PyKeePassGate raises survives being pickled as what it was**, which a process
   pool does with an exception raised in a worker. A copy of `RenewalTooEarly` or
   `IncompatibleGate` could not be made at all, and `Withheld` came back as a sentence built around
