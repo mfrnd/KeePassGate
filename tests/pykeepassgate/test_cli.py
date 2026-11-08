@@ -809,6 +809,55 @@ def test_a_certificate_the_gate_already_refuses_counts_as_revoked(
     assert not where.exists()
 
 
+@pytest.mark.parametrize(
+    ("status", "said"),
+    [(200, "revoked CN=agent-invented"), (401, "the gate already refuses CN=agent-invented")],
+    ids=["revoked", "already refused"],
+)
+@pytest.mark.parametrize("output", ["plain", "json"])
+def test_a_revocation_whose_files_will_not_go_is_still_reported_as_one(
+    tmp_path: Path,
+    gate: FakeGate,
+    bundle: dict[str, Any],
+    client_certificate: Issued,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    status: int,
+    said: str,
+    output: str,
+) -> None:
+    # Such as a file held open on Windows. The certificate is given up either way, so what was
+    # given up is printed, with the key the audit names it by, and the files left are named.
+    gate.handler = lambda path, body, client: (
+        status, json.dumps({"ok": True} if status == 200 else {"error": "unpaired"})
+    )
+    where = tmp_path / "kept"
+    credentials_module.save(where, gate.port, bundle)
+
+    def held(directory: Path) -> None:
+        raise StorageError(f"{directory / 'gate.key'} could not be removed: in use")
+
+    monkeypatch.setattr(api, "forget", held)
+
+    code = cli.main(["revoke", "--directory", str(where), "-o", output])
+
+    out, error = capsys.readouterr()
+    assert code == 1
+    key = admission_key(client_certificate)
+    if output == "json":
+        shown = json.loads(out)
+        assert shown["admissionKey"] == key
+        assert shown["alreadyRefused"] is (status == 401)
+        assert "removed" not in shown, "nothing was removed, so nothing is named as removed"
+    else:
+        lines = out.splitlines()
+        assert lines[0].startswith(said)
+        assert lines[1:] == [f"admission key: {key}"]
+    assert "could not all be removed" in error
+    assert "in use" in error
+    assert str(where) in error
+
+
 def test_pairing_asks_for_the_lifetime_it_was_given(monkeypatch: pytest.MonkeyPatch) -> None:
     # Days on the command line, a `timedelta` in the library, and nothing at all when nothing was
     # said, which the dialog answers by offering a year.

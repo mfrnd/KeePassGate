@@ -255,6 +255,10 @@ one the operator revoked on the Clients page, one an earlier `not verified` left
 that has expired, which is not dialed at all. `revoke` then removes the files as well, says the
 gate already refused it, and exits 0.
 
+A file that will not go once the certificate is given up, such as a file held open on Windows,
+leaves the revocation standing: `revoke` prints what it gave up and the admission key all the
+same, and names on standard error the directory to remove by hand, with exit code 1.
+
 From a program, `revoke_certificate` asks the gate and leaves the files alone, and `forget` removes
 them:
 
@@ -848,7 +852,8 @@ entry never expires. Members are named as the gate names them, so
 `2`, whichever format was asked for, so a pipe into `jq` reads nothing rather than half an answer.
 A command that found something and failed all the same prints what it found as well, and the
 sentence and exit code 1 beside it: `renew` that kept the certificate before, whose document
-names it, and `status` answered `ok: false`, which prints `not serving` in place of `serving`.
+names it, `revoke` whose files would not all go, whose document names no `removed`, and `status`
+answered `ok: false`, which prints `not serving` in place of `serving`.
 Ctrl+C, the way out of the wait `pair` and `renew` spend on the operator, ends a command with the
 line `interrupted` and exit code 130, as a shell has it, and a reader that stops reading, as
 `head -1` does, ends it with exit code 1 and nothing more on standard error.

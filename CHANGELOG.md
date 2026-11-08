@@ -11,6 +11,9 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **`revoke` whose files will not all go still reports the revocation**: what it gave up and the
+  admission key, with the directory to remove named on standard error and exit code 1. It printed
+  only the file's `StorageError`, so a revocation that landed read as refused.
 - **A key password is asked for at the terminal whatever standard input is**, so a value or an
   invitation piped into a command sits beside a key password typed at the terminal, where every
   pipe was refused as no terminal. Input from the null device is still no terminal, and a process

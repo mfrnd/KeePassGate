@@ -24,8 +24,8 @@ switch, so that another format is one more choice. Both say the same things unde
 a value the rule withholds is named as withheld and never printed as empty, and what the gate did
 not say is left out rather than printed as nothing. Only what a command found is formatted; a
 failure is a sentence on standard error and an exit code either way, and is printed beside what
-was found only where something was: `renew` that kept the certificate before, and `status`
-answered that the gate is not serving.
+was found only where something was: `renew` that kept the certificate before, `revoke` whose
+files would not all go, and `status` answered that the gate is not serving.
 
 **Every standard stream is UTF-8**, whatever the code page, as Python 3.15 makes them by default:
 a listing written to a file or a pipe on Windows was encoded as cp1252 and died part way through
@@ -1588,26 +1588,43 @@ def _revoke(arguments: argparse.Namespace) -> int:
     try:
         client.revoke_certificate()
     except api.NotAdmitted:
-        api.forget(where)
         already = True
         said = f"the gate already refuses {named}, so there was nothing left to revoke"
     else:
-        api.forget(where)
         already = False
         said = f"revoked {named}"
 
-    _emit(
-        arguments,
-        {
-            "subject": client.credentials.subject,
-            "database": client.credentials.database,
-            "admissionKey": key,
-            "alreadyRefused": already,
-            "removed": str(where),
-        },
-        [said, f"admission key: {key}", f"removed what was stored in {where}"],
+    # The certificate is given up whatever happens to the files, so a file that will not go is
+    # reported after the revocation rather than instead of it, as `renew` reports what it kept. A
+    # person or a script would otherwise read a revocation that landed as refused.
+    left: StorageError | None = None
+    try:
+        api.forget(where)
+    except StorageError as refused:
+        left = refused
+
+    document: dict[str, object] = {
+        "subject": client.credentials.subject,
+        "database": client.credentials.database,
+        "admissionKey": key,
+        "alreadyRefused": already,
+    }
+    lines = [said, f"admission key: {key}"]
+    if left is None:
+        document["removed"] = str(where)
+        lines.append(f"removed what was stored in {where}")
+
+    _emit(arguments, document, lines)
+    if left is None:
+        return 0
+
+    print(
+        f"the certificate is given up, and what was stored for it could not all be removed from "
+        f"{where}: {left}. Nothing can use it now, since the gate refuses the certificate: remove "
+        "that directory",
+        file=sys.stderr,
     )
-    return 0
+    return FAILED
 
 
 def _identity(arguments: argparse.Namespace) -> int:
