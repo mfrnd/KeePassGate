@@ -11,6 +11,10 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **The plugin refuses to load a routing document offering a body under a second media type**
+  beside `application/json`. The router answers `415` to every other type whatever the document
+  declares, so such a document offered a body the router turned away, under a schema nothing
+  checked. The document the plugin ships offers none.
 - **The plugin refuses to load a routing document declaring a cookie parameter.** Nothing reads a
   cookie, so a cookie declared required, or with a pattern, loaded and was kept by nobody. The
   document the plugin ships declares none.

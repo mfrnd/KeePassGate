@@ -666,6 +666,23 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_body_offered_under_a_second_media_type_is_refused_as_well()
+        {
+            // The router answers 415 to every type but `application/json`, whatever an operation
+            // declares, so the document was offering a body the router turned away, and that
+            // body's schema never reached the check either.
+            var raised = Assert.Throws<InvalidOperationException>(() => SpecDocument.Parse(Document(
+                "\"/a\":{\"post\":{\"operationId\":\"writeA\",\"x-kpg-verb\":\"none\",\"requestBody\":{\"required\":true," +
+                "\"content\":{\"application/json\":{\"schema\":{\"type\":\"object\",\"additionalProperties\":false," +
+                "\"properties\":{\"a\":{\"type\":\"string\"}}}}," +
+                "\"text/plain\":{\"schema\":{\"type\":\"string\"}}}}," +
+                "\"responses\":{\"200\":{\"description\":\"o\"},\"415\":{\"description\":\"m\"}}}}")));
+
+            Assert.That(raised.Message, Does.Contain("text/plain"));
+            Assert.That(raised.Message, Does.Contain("writeA"));
+        }
+
+        [Test]
         public void A_document_with_no_operations_is_not_a_routing_table()
         {
             var raised = Assert.Throws<InvalidOperationException>(

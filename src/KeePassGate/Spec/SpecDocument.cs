@@ -440,6 +440,19 @@ namespace KeePassGate.Spec
                                 operation.OperationId + " declares a body that is not " + MediaType + ".");
                         }
 
+                        if (operation.RequestBody.Content.Count != 1)
+                        {
+                            // The router answers any other type with a refusal it decides from
+                            // `MediaType` rather than from what an operation declares, so a second
+                            // type here is a body the document offers and the router turns away,
+                            // under a schema nothing would ever have checked.
+                            var other = operation.RequestBody.Content.Keys
+                                .First(type => !string.Equals(type, MediaType, StringComparison.Ordinal));
+                            throw new InvalidOperationException(
+                                operation.OperationId + " declares a body under " + other + " beside " + MediaType +
+                                ", which the router answers " + UnsupportedMediaTypeStatus + ".");
+                        }
+
                         var unsupported = BodyCheck.Supports(content.Schema);
                         if (unsupported != null)
                         {

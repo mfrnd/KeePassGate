@@ -2433,8 +2433,9 @@ components:
     UnsupportedMediaType:
       description: |
         The body was sent under a media type this API does not speak. `application/json` is the
-        only one it declares anywhere, and a request claiming no type at all is taken as claiming
-        that one, because a caller that claimed nothing has not claimed something else. Every
+        only media type it declares anywhere, and a body declared under another beside it stops the
+        plugin loading. A request claiming no type at all is taken as claiming `application/json`,
+        because a caller that claimed nothing has not claimed something else. Every
         operation carrying a body declares this, and one that does not stops the plugin loading. A
         body sent to an operation that declares none is refused before its type is looked at, as a
         target this document does not declare.
