@@ -2,6 +2,7 @@ using System;
 using System.Globalization;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Linq;
 using System.Windows.Forms;
 using KeePass.Forms;
 using KeePassGate.Testing;
@@ -128,6 +129,23 @@ namespace KeePassGate.Host.Tests
                     Assert.That(panel.Padding.Left, Is.EqualTo((int)Math.Round(Spacing.Gap * scale.Width)),
                         "the grant tab kept an unscaled inset at " +
                         scaling.ToString("0.00", CultureInfo.InvariantCulture) + " text");
+
+                    // The masks have a font of their own, a point over the panel's, and the column
+                    // is as wide as they are: at the size the panel was built at, it was measured
+                    // narrower than any operator sees it (S417).
+                    var grid = ControlTree.FindByName<DataGridView>(panel, GrantTab.GridControlName);
+                    var masks = new List<Font> { grid.Columns[GrantTab.MaskColumn].DefaultCellStyle.Font };
+                    masks.AddRange(grid.Rows.Cast<DataGridViewRow>()
+                        .Select(row => row.Cells[GrantTab.MaskColumn])
+                        .Where(cell => cell.HasStyle && cell.Style.Font != null)
+                        .Select(cell => cell.Style.Font));
+
+                    foreach (var mask in masks)
+                    {
+                        Assert.That(mask.SizeInPoints, Is.EqualTo(font.SizeInPoints + 1f).Within(0.01f),
+                            "a mask " + StateOf(stored) + " kept the unscaled font at " +
+                            scaling.ToString("0.00", CultureInfo.InvariantCulture) + " text");
+                    }
 
                     foreach (Control child in Everything(panel))
                     {

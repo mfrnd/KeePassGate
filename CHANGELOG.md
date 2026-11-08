@@ -11,6 +11,10 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **The KPG tab's facts and the access editor's masks take the font of the dialog they are on.**
+  Both were drawn in fonts made once, at the size the tab was built at, so on a dialog whose font
+  is not the system's the bold values were smaller than the names beside them, and the masks
+  smaller than the profiles.
 - **The authority chooser and the clients page name UTC in the headings of their moment columns**,
   Created, Admitted and Last request on the chooser and Admitted and Until on the clients page, as
   the renewal dialog now names it beside its two moments. Every moment on screen is printed in UTC,

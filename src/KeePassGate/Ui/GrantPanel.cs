@@ -49,7 +49,9 @@ namespace KeePassGate.Ui
         private readonly CheckBox _sealed;
         private readonly Button _discard;
         private readonly ToolTip _tips;
-        private readonly Font _monospace;
+
+        /// <summary>The masks' own font, built again whenever the panel's changes.</summary>
+        private Font _monospace;
 
         /// <summary>
         /// The same font with a line through it, for a mask that no longer arrives.
@@ -59,7 +61,7 @@ namespace KeePassGate.Ui
         /// the same eight characters in the same places as every other mask in the column, with
         /// one thing added.
         /// </remarks>
-        private readonly Font _refusedMask;
+        private Font _refusedMask;
 
         private bool _populating;
 
@@ -91,7 +93,7 @@ namespace KeePassGate.Ui
             // nothing then and scaled the panel a second time on any later change of font.
             Padding = new Padding(Spacing.Gap);
 
-            _monospace = new Font(FontFamily.GenericMonospace, Font.Size + 1f, FontStyle.Regular);
+            _monospace = MaskFont(Font);
             _refusedMask = new Font(_monospace, FontStyle.Strikeout);
             _tips = new ToolTip { AutoPopDelay = 32000, InitialDelay = 300, ReshowDelay = 100 };
 
@@ -626,6 +628,57 @@ namespace KeePassGate.Ui
             }
 
             base.Dispose(disposing);
+        }
+
+        /// <summary>
+        /// Gives the masks a monospaced font a point larger than the panel's new font, and the
+        /// masks that no longer arrive the same font struck through.
+        /// </summary>
+        /// <remarks>
+        /// Both are the panel's own, and a font set on a column or a cell is not a font it
+        /// inherits: built once, at the size the panel had in its constructor, they stayed there
+        /// while the headings and the profiles followed the panel's font. A panel is given a larger
+        /// font by a dialog whose font is not the system's, as the page is attached, and by the
+        /// scaled fit test, which measured a column as wide as its cells with the masks at the
+        /// unscaled size nobody sees. Nothing happens before the table exists, because the
+        /// constructor sets properties that lay the panel out.
+        /// </remarks>
+        protected override void OnFontChanged(EventArgs e)
+        {
+            WindowHandlers.Run("the rules could not take their new font", () =>
+            {
+                base.OnFontChanged(e);
+
+                if (_grid == null)
+                {
+                    return;
+                }
+
+                var monospace = _monospace;
+                var refused = _refusedMask;
+                _monospace = MaskFont(Font);
+                _refusedMask = new Font(_monospace, FontStyle.Strikeout);
+                _grid.Columns[MaskColumn].DefaultCellStyle.Font = _monospace;
+
+                // The masks already struck through as well, which carry the font on their own cell.
+                // Asked of the cell before its style, since reading a cell's style gives it a style.
+                foreach (var struck in _grid.Rows.Cast<DataGridViewRow>()
+                             .Select(row => row.Cells[MaskColumn])
+                             .Where(mask => mask.HasStyle && ReferenceEquals(mask.Style.Font, refused))
+                             .ToList())
+                {
+                    struck.Style.Font = _refusedMask;
+                }
+
+                monospace.Dispose();
+                refused.Dispose();
+            });
+        }
+
+        /// <summary>The font a mask is drawn in, beside text in <paramref name="beside"/>.</summary>
+        private static Font MaskFont(Font beside)
+        {
+            return new Font(FontFamily.GenericMonospace, beside.Size + 1f, FontStyle.Regular);
         }
 
         /// <summary>

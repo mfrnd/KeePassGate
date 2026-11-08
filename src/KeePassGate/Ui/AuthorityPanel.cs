@@ -75,7 +75,9 @@ namespace KeePassGate.Ui
 
         private readonly IAdmissionNotice _admissions;
         private readonly AuthorityService _service;
-        private readonly Font _valueFont;
+
+        /// <summary>The bold font of the facts' values, built again with the panel's.</summary>
+        private Font _valueFont;
 
         /// <summary>The invitation box's own font, built again whenever the panel's changes.</summary>
         private Font _tokenFont;
@@ -239,13 +241,9 @@ namespace KeePassGate.Ui
             // that outgrows the tab fails a test rather than appearing on somebody's screen.
             AutoScroll = false;
 
-            // The prototype is disposed, because `SystemFonts.DefaultFont` hands back a new font
-            // every time it is read and `new Font(prototype, style)` copies rather than adopts.
-            // Without the `using`, every settings dialog opened leaves one behind.
-            using (var prototype = SystemFonts.DefaultFont)
-            {
-                _valueFont = new Font(prototype, FontStyle.Bold);
-            }
+            // From the panel's own font, which is the system's until a dialog hands it another, and
+            // which is not this panel's to dispose: `new Font(prototype, style)` copies.
+            _valueFont = new Font(Font, FontStyle.Bold);
 
             _tabs = new TabControl
             {
@@ -1225,15 +1223,17 @@ namespace KeePassGate.Ui
         }
 
         /// <summary>
-        /// Gives the invitation box a monospaced font at the panel's new size.
+        /// Gives the invitation box a monospaced font at the panel's new size, and the facts'
+        /// values a bold font at that size.
         /// </summary>
         /// <remarks>
-        /// The box's font is its own, and a font set on a control is not one it inherits: built
-        /// once, it stayed at the size the panel had in its constructor while everything around it
-        /// followed the panel's font. A panel is given a larger font by a dialog whose font is not
-        /// the system's, as the page is attached, and by the scaled fit test, which measured the
-        /// row holding the box with the box at the unscaled size nobody sees. Nothing happens
-        /// before the box exists, because the constructor sets properties that lay the panel out.
+        /// Both fonts are the panel's own, and a font set on a control is not a font it inherits:
+        /// built once, each stayed at the size the panel had in its constructor while everything
+        /// around it followed the panel's font. A panel is given a larger font by a dialog whose
+        /// font is not the system's, as the page is attached, and by the scaled fit test, which
+        /// measured the row holding the box with the box at the unscaled size nobody sees, and the
+        /// facts with bold values smaller than the names beside them. Nothing happens before the
+        /// box exists, because the constructor sets properties that lay the panel out.
         /// </remarks>
         protected override void OnFontChanged(EventArgs e)
         {
@@ -1254,6 +1254,18 @@ namespace KeePassGate.Ui
                 {
                     before.Dispose();
                 }
+
+                // The values already drawn as well as those drawn next, since a reading draws the
+                // table again and a change of font draws nothing.
+                var was = _valueFont;
+                _valueFont = new Font(Font, FontStyle.Bold);
+                foreach (var value in _facts.Controls.Cast<Control>()
+                             .Where(control => ReferenceEquals(control.Font, was)).ToList())
+                {
+                    value.Font = _valueFont;
+                }
+
+                was.Dispose();
             });
         }
 
@@ -1579,12 +1591,11 @@ namespace KeePassGate.Ui
 
         private Label NewFactLabel(Fact fact, bool value)
         {
-            return new TextLabel
+            var label = new TextLabel
             {
                 Name = fact.ControlName(value),
                 Text = value ? fact.Value : fact.Name,
                 AutoSize = true,
-                Font = value ? _valueFont : Font,
 
                 // Enough of a gap between the columns to read as two, and none above or below: the
                 // rows are one line each, and leading between them costs height the tab does not
@@ -1596,6 +1607,15 @@ namespace KeePassGate.Ui
                 // was one of those.
                 Margin = value ? new Padding(0) : new Padding(0, 0, Padding.Left, 0)
             };
+
+            // The name keeps the font it inherits, which follows the panel's. Set to the panel's
+            // font as it was, it stayed at that size through any later change.
+            if (value)
+            {
+                label.Font = _valueFont;
+            }
+
+            return label;
         }
 
         /// <summary>

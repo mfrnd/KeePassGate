@@ -1513,6 +1513,45 @@ namespace KeePassGate.Tests
             }
         }
 
+        [Test]
+        public void The_facts_follow_the_panel_to_a_larger_font()
+        {
+            // S417: the bold font of the values was made once, from the system's, so a dialog whose
+            // font is not the system's drew the values smaller than the names beside them, and the
+            // scaled fit test measured the table with them at a size nobody sees. The names had
+            // been given the panel's font as it was, which stopped them following it as well.
+            using (var panel = NewPanel(true))
+            using (var larger = new System.Drawing.Font(panel.Font.FontFamily, 12f))
+            {
+                panel.CreateAuthority();
+                panel.DrawFacts(AuthorityDescription.LongestFacts());
+
+                panel.Font = larger;
+                AssertFactsIn(panel, larger, "the facts drawn before the change");
+
+                panel.DrawFacts(AuthorityDescription.LongestFacts());
+                AssertFactsIn(panel, larger, "the facts drawn after it");
+            }
+        }
+
+        private static void AssertFactsIn(Control panel, System.Drawing.Font font, string which)
+        {
+            var table = ControlTree.FindByName<TableLayoutPanel>(panel, GateTab.FactsTableName);
+            Assert.That(table.RowCount, Is.GreaterThan(0), "there are no facts to ask");
+
+            for (var row = 0; row < table.RowCount; row++)
+            {
+                var name = table.GetControlFromPosition(0, row);
+                var value = table.GetControlFromPosition(1, row);
+
+                Assert.That(name.Font.SizeInPoints, Is.EqualTo(font.SizeInPoints).Within(0.01f),
+                    which + ": the name " + name.Text + " kept its size");
+                Assert.That(value.Font.SizeInPoints, Is.EqualTo(font.SizeInPoints).Within(0.01f),
+                    which + ": the value of " + name.Text + " kept its size");
+                Assert.That(value.Font.Bold, Is.True, which + ": the value of " + name.Text + " is no longer bold");
+            }
+        }
+
         /// <summary>
         /// What the facts table says beside a name. The count lives there rather than in the
         /// sentences below it, so this is where a test asks about it.

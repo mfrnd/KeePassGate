@@ -201,6 +201,16 @@ namespace KeePassGate.Host.Tests
                             state.Description + ": the invitation box kept the unscaled font at " +
                             scaling.ToString("0.00", CultureInfo.InvariantCulture) + " scaling");
 
+                        // And so do the facts' values, bold in a font of their own, which kept
+                        // the system's size and were measured smaller than their names (S417).
+                        var facts = ControlTree.FindByName<TableLayoutPanel>(panel, GateTab.FactsTableName);
+                        foreach (Control fact in facts.Controls)
+                        {
+                            Assert.That(fact.Font.SizeInPoints, Is.EqualTo(scaled.Font.SizeInPoints).Within(0.01f),
+                                state.Description + ": the fact " + fact.Name + " kept the unscaled font at " +
+                                scaling.ToString("0.00", CultureInfo.InvariantCulture) + " scaling");
+                        }
+
                         foreach (var column in Columns(panel))
                         {
                             Show(column);

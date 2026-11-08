@@ -327,6 +327,32 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void The_masks_follow_the_panel_to_a_larger_font()
+        {
+            // S417: both mask fonts were made once, a point over the size the panel had in its
+            // constructor, so a dialog whose font is not the system's drew the masks smaller than
+            // the profiles beside them, and the scaled fit test measured a column as wide as its
+            // cells with the cells at a size nobody sees.
+            var above = TestNode.Root("root").Granting("reader", AclVerb.Read, AclVerb.List);
+
+            using (var panel = Panel(new FakeGrantStore(Rules.Sealing()), above))
+            using (var larger = new Font(panel.Font.FontFamily, 12f))
+            {
+                panel.Font = larger;
+
+                var grid = ControlTree.FindByName<DataGridView>(panel, GrantTab.GridControlName);
+                var plain = grid.Columns[GrantTab.MaskColumn].DefaultCellStyle.Font;
+                var refused = Row(grid, "reader").Cells[GrantTab.MaskColumn].Style.Font;
+
+                Assert.That(plain.SizeInPoints, Is.EqualTo(larger.SizeInPoints + 1f).Within(0.01f),
+                    "the masks kept the size the panel was built at");
+                Assert.That(refused.SizeInPoints, Is.EqualTo(plain.SizeInPoints).Within(0.01f),
+                    "a mask that no longer arrives kept the size the panel was built at");
+                Assert.That(refused.Strikeout, Is.True, "and is still struck through");
+            }
+        }
+
+        [Test]
         public void A_grant_rules_here_that_will_not_read_refuse_points_at_discarding_them()
         {
             // Refused as under a seal, but a rule cannot be chosen here until the unreadable one
