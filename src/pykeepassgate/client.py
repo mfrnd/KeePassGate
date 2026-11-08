@@ -301,6 +301,8 @@ class GateClient:
         `credentials` says it without connecting. This is what holds now: `profiles` are the ones
         the rules are asked about, which leave out any name the database no longer holds, and
         `removed_profiles` are those, which grant nothing until the operator names them again.
+        `profiles_unreadable` is a database whose list of profiles will not read, which removes
+        every profile the record holds until the operator repairs it.
         """
         return Identity.of(self.get(IDENTITY_PATH))
 

@@ -1399,18 +1399,23 @@ def _whoami(arguments: argparse.Namespace) -> int:
     }
     # Escaped as every name the gate answers with is, though the plugin allows no character in a
     # subject or a profile that would need it: what is printed is what was answered.
-    _emit(
-        arguments,
-        document,
-        [
-            f"subject:          {_printable(found.subject)}",
-            f"client key:       {_printable(found.client_key)}",
-            f"admission key:    {_printable(found.admission_key)}",
-            f"expires:          {_moment(found.expires)}",
-            f"profiles:         {_listed(found.profiles)}",
-            f"removed profiles: {_listed(found.removed_profiles)}",
-        ],
-    )
+    lines = [
+        f"subject:          {_printable(found.subject)}",
+        f"client key:       {_printable(found.client_key)}",
+        f"admission key:    {_printable(found.admission_key)}",
+        f"expires:          {_moment(found.expires)}",
+        f"profiles:         {_listed(found.profiles)}",
+        f"removed profiles: {_listed(found.removed_profiles)}",
+    ]
+    # Only when it is so: it is why a person reading this finds every profile removed, and a line
+    # for a list that reads would be a line nobody acts on.
+    if found.profiles_unreadable:
+        lines.append(
+            "profile list:     will not read, so every profile is removed until the operator "
+            "repairs it"
+        )
+
+    _emit(arguments, document, lines)
     return 0
 
 

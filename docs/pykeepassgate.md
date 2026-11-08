@@ -192,8 +192,9 @@ prints the stored one. `profiles` are the ones the rules are asked about now, an
 profiles` are the ones its record holds that the database no longer names, which grant nothing
 until the operator names them again, or until a damaged list reads again, which
 [Naming profiles](access-control.md#naming-profiles) is about; `profiles_unreadable` is true while
-it does not. What `identity` prints is what the operator approved when this identity was issued,
-at pairing or at its last renewal, so the two differ once a profile has been removed since then.
+it does not, and `whoami` prints a `profile list` line then. What `identity` prints is what the
+operator approved when this identity was issued, at pairing or at its last renewal, so the two
+differ once a profile has been removed since then.
 
 ```python
 from pykeepassgate import GateClient
@@ -1097,7 +1098,10 @@ def entry(path: str, body: str, client: bytes | None) -> tuple[int, str]:
 `gate.requests` and `gate.names` record what arrived, and `retry_after`, `declare`, `truncate` and
 `linger` make the answers a gate in trouble gives. `held(until)` is the answer the plugin gives a
 pairing or a renewal whose approval it holds until a moment, `503 busy` with `heldUntil`, for a
-handler to return while a test watches `pair` or `renew` ask again. **Its answers carry the head the plugin's do**:
+handler to return while a test watches `pair` or `renew` ask again. `identified(...)` is its
+answer to `whoami`, from the subject, the admission key, the expiry and the profiles, with
+`profiles_unreadable=True` for a database whose list of profiles will not read.
+**Its answers carry the head the plugin's do**:
 the reason phrase, `Content-Type: application/json; charset=utf-8`, `Cache-Control: no-store`,
 `X-Content-Type-Options: nosniff`, and on a `503` `Retry-After: 2`, which `retry_after` changes,
 or takes away when it is `None`, and `KPG-Unavailable` naming the body's word, and an `ETag`

@@ -11,6 +11,10 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **`pykeepassgate whoami` prints a `profile list` line when the database's list of profiles
+  will not read**, which is why every profile on the record is among the removed profiles until
+  the operator repairs it, and the stand-in gate's `identified(...)` answers the identity route
+  as the plugin does, `profiles_unreadable=True` among it.
 - **PyKeePassGate refuses a host nothing could dial where it is given**, with a `ValueError`
   naming `host`, and `--host` as an argument, exit 2: a host that is not text, or empty, and for
   the `dial` a client has unless given another, a name `socket` could not encode to resolve, such

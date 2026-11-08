@@ -22,7 +22,7 @@ from pykeepassgate import credentials as credentials_module
 from pykeepassgate.client import ROOT, GateClient
 from pykeepassgate.errors import ProtocolError, Withheld
 from pykeepassgate.model import Access, Attachment, Entry, Field, Fields, Group, Identity
-from pykeepassgate.testing import FakeGate
+from pykeepassgate.testing import FakeGate, identified
 from test_reference import operations, routing_table
 
 UUID = "7b1c" * 8
@@ -75,6 +75,28 @@ def test_the_gate_says_who_this_client_is_as_it_was_admitted(
     assert set(IDENTITY) == set(declared["required"]) == set(declared["properties"]), (
         "every member the gate answers is one this client reads"
     )
+
+
+def test_a_list_of_profiles_that_will_not_read_is_read_as_the_gate_answers_it(
+    gate: FakeGate, paired: GateClient
+) -> None:
+    # Every profile on the record removed by no choice of the operator's, which the stand-in
+    # answers as the plugin does.
+    gate.handler = lambda path, sent, client: identified(
+        "CN=agent-invented",
+        "5f" * 32,
+        datetime(2027, 2, 3, 4, 5, 6, tzinfo=UTC),
+        ["reader"],
+        ["retired"],
+        client_key="3a" * 32,
+        profiles_unreadable=True,
+    )
+
+    found = paired.identity()
+
+    assert found.profiles_unreadable
+    assert (found.profiles, found.removed_profiles) == ((), ("reader", "retired"))
+    assert found.client_key == "3a" * 32
 
 
 def test_the_gate_says_what_each_profile_may_do_at_a_node(

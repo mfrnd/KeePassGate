@@ -9,6 +9,7 @@ import json
 import os
 import stat
 from collections.abc import Callable
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -16,7 +17,7 @@ import pytest
 
 from pykeepassgate import api, cli, transport
 from pykeepassgate import credentials as credentials_module
-from pykeepassgate.testing import FakeGate
+from pykeepassgate.testing import FakeGate, identified
 from test_credentials import linked
 
 UUID = "7b1c" * 8
@@ -96,6 +97,31 @@ def test_whoami_names_a_profile_the_database_no_longer_holds(
     printed = capsys.readouterr().out.splitlines()
     assert "profiles:         none" in printed
     assert "removed profiles: reader" in printed
+    assert not any(line.startswith("profile list:") for line in printed), "printed only when so"
+
+
+def test_whoami_names_a_list_of_profiles_that_will_not_read(
+    gate: FakeGate, kept: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # Every profile is removed then by no choice of the operator's, which is the one thing a
+    # person reading why nothing is granted needs to know, and it lasts until the list is mended.
+    gate.handler = lambda path, sent, client: identified(
+        "CN=agent-invented",
+        "5f" * 32,
+        datetime(2027, 2, 3, 4, 5, 6, tzinfo=UTC),
+        ["reader"],
+        profiles_unreadable=True,
+    )
+
+    assert cli.main(["whoami", "--directory", str(kept)]) == 0
+
+    printed = capsys.readouterr().out.splitlines()
+    assert "profiles:         none" in printed
+    assert "removed profiles: reader" in printed
+    assert printed[-1] == (
+        "profile list:     will not read, so every profile is removed until the operator "
+        "repairs it"
+    )
 
 
 @pytest.mark.parametrize(
