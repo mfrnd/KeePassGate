@@ -1844,8 +1844,14 @@ components:
         [subject, clientKey, admissionKey, expires, profiles, removedProfiles, profilesUnreadable]
       additionalProperties: false
       description: |
-        Every line of the audit names both keys under these two names, so a program can find its
-        own lines by either.
+        The audit names a client under these same two names, so a program can find its own lines
+        there, though not every line carries both. A line about a request this certificate made
+        while admitted names both, and so does a renewal's line and a revocation's. A line about a
+        certificate this database issued and the gate refused, because it was revoked, has expired
+        or is not a client certificate, names its `admissionKey` alone, since no record stands
+        behind it to carry a `clientKey`. A pairing's line names only the certificate it issued,
+        as its `clientKey`, and neither key when it issued none, and the operator's revocation
+        leaves the `clientKey` out when the record was already gone.
       properties:
         subject:
           type: string
@@ -1861,8 +1867,9 @@ components:
           type: string
           description: |
             SHA-256 over the certificate on this connection, in lower case hex, which a renewal
-            changes. The Clients page revokes a certificate by it, and every line of the audit
-            names one by it.
+            changes. The Clients page revokes a certificate by it, and every line of the audit but
+            a pairing's, whose program holds no certificate yet, names by it the certificate the
+            line is about.
         expires:
           type: string
           description: When the certificate stops being admitted, RFC 3339 in UTC to the second.

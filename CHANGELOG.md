@@ -11,6 +11,10 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **The routing document no longer claims every audit line names both of a client's keys.** A
+  refused certificate's line names its `admissionKey` alone and a pairing's line its `clientKey`
+  alone, as `docs/audit.md` already stated, so a program revoked and still trying finds those
+  lines by its admission key.
 - **The routing document no longer promises a save behind every `200 ok`**: an update asking for
   nothing the node does not already hold changes and saves nothing and is answered the same. It
   states too that an `auto` expiry set since KeePass last opened the file is written once more,
