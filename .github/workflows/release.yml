@@ -246,13 +246,19 @@ jobs:
   # it again. A release reads its files back too: an upload that reported success and attached
   # something else is found here, before PyPI.
   #
+  # **After both halves have built**, the client as well as the plugin, each either built or
+  # skipped because it does not ship. A release under the tag is public and the tag never moves,
+  # so a client whose build failed would otherwise leave an `x.y.0` of the plugin out with no
+  # client on PyPI, and a client-only patch announced with nothing published.
+  #
   # The status function is GitHub's, and keeps GitHub's spelling. cspell:ignore cancelled
   github:
     name: the release on GitHub
-    needs: [decide, plugin]
+    needs: [decide, plugin, client]
     if: >-
       !cancelled() && needs.decide.result == 'success' && needs.decide.outputs.mode != 'check' &&
-      (needs.plugin.result == 'success' || needs.plugin.result == 'skipped')
+      (needs.plugin.result == 'success' || needs.plugin.result == 'skipped') &&
+      (needs.client.result == 'success' || needs.client.result == 'skipped')
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
