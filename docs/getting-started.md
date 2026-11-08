@@ -18,7 +18,7 @@ load, because it asks Windows itself for KeePass's thread as it starts.
 Copying only `KeePassGate.dll` is the mistake worth naming. KeePass loads a plugin with
 `Assembly.LoadFrom`, which looks for what that plugin needs in the plugin's own directory rather
 than beside `KeePass.exe`. Without one of the DLLs `KeePassGate.dll` refers to directly, KeePass
-refuses the plugin, in a box saying that the plugin cannot be loaded and naming the DLL it did not
+refuses the plugin, in a box stating that the plugin cannot be loaded and naming the DLL it did not
 find, at every start until the DLL is there. Without `SharpYaml.dll`, which only one of those needs,
 the plugin gets far enough to refuse to start, and the same box names it. And KeePass checks what a
 plugin needs once for each build of `KeePassGate.dll`, and remembers that the check passed, so a
@@ -91,7 +91,7 @@ with no database open at all:
 | | |
 | --- | --- |
 | **Listening** | the address a client connects to, or that nothing is listening. |
-| **Incidents** | only appears if something went wrong in a way nobody predicted, directly under the address. [The plugin's log](#the-plugins-log) says what. |
+| **Incidents** | only appears if something went wrong in a way nobody predicted, directly under the address. [The plugin's log](#the-plugins-log) states what. |
 | **Listen on** | the addresses the gate binds. There is one, `127.0.0.1`, and it cannot be turned off: nothing off this machine can reach the gate, and the rest of the plugin's security is written on that basis. |
 | **Listen on port** | the port the next start of KeePass binds: the one chosen here, or while none has been, the one it is listening on. It is the only thing on this window that can be changed. What OK does with it is below. |
 
@@ -102,13 +102,13 @@ the gate binds its port once, while KeePass is loading, and never moves it after
 that is connected cannot have the socket taken out from under it by somebody looking at a settings
 window. Cancel leaves the port where it was.
 
-Until then the window says, under the table, which port the gate moves to, and the box holds it.
-**Typing back the port the gate is listening on takes the change back**: OK then says the gate
+Until then the window states, under the table, which port the gate moves to, and the box holds it.
+**Typing back the port the gate is listening on takes the change back**: OK then states the gate
 stays where it is, and no client has anything to change.
 
 OK writes the port into KeePass's configuration file there and then, the way KeePass's own Options
 dialog does, so it is kept however KeePass is ended. A KeePass set not to save its configuration
-cannot keep a port for the next start at all, and the window says so rather than pretending to.
+cannot keep a port for the next start at all, and the window states so rather than pretending to.
 
 One thing follows from changing it. **Every client already paired is configured with the old
 port.** Nothing the database holds names a port, so the certificate and the record are unaffected,
@@ -117,18 +117,18 @@ change it afterwards. So each of its clients pairs again against the new port, a
 held before can then be revoked on the [clients page](clients.md).
 
 **If something else on the machine is already holding the port**, nothing listens for the whole of
-that run of KeePass. The plugin says so when it starts and this window repeats it, with the reason.
-Everything else still works: settings, authorities and profiles can all be changed, and they are
-waiting for the next start along with the port. But no client can connect until KeePass is started
-again.
+that run of KeePass. The plugin states so when it starts and this window repeats it, with the
+reason. Everything else still works: settings, authorities and profiles can all be changed, and they
+are waiting for the next start along with the port. But no client can connect until KeePass is
+started again.
 
 **A port can come from the environment instead**, as `KEEPASSGATE_PORT`, which is read when KeePass
 starts and only when no port has been chosen on this window. It has to name a port from 1024 to
-65535. Set to anything else, nothing listens for that run either: KeePass says so in a box when it
-starts, naming the variable and what it held, and this window says why nothing is listening. Fix the
-variable or remove it, or choose a port on this window, which the next start takes over the variable,
-then start KeePass again. The box offers 51776 then, and **OK** writes the port it holds even when it
-was not moved, since the next start would take none.
+65535. Set to anything else, nothing listens for that run either: KeePass states so in a box when it
+starts, naming the variable and what it held, and this window states why nothing is listening. Fix
+the variable or remove it, or choose a port on this window, which the next start takes over the
+variable, then start KeePass again. The box offers 51776 then, and **OK** writes the port it holds
+even when it was not moved, since the next start would take none.
 
 **With neither, the gate listens on 51776.** The picture above was taken with it on 45678, which is
 the port every example on these pages uses as well: read it as whatever **Listening** shows.
@@ -138,20 +138,20 @@ every database open in it, which is why this is here rather than on a database's
 
 **Two copies of one database open at once are the exception**, a backup opened beside the original
 for instance. They hold the same authority and answer to the same name, so the gate cannot tell
-which one a client means and serves neither of them until one is closed. Nothing on screen says
+which one a client means and serves neither of them until one is closed. Nothing on screen states
 so: a client is told that its handshake failed, and [the plugin's log](#the-plugins-log) names the
 reason.
 
 If the item is not in the menu at all, the plugin did not load, for one of four reasons: the DLL is
 in the wrong place, KeePass is older than 2.61.1, a DLL it needs is missing, or the plugin refused
-to start. Where KeePass put up a box saying that the plugin cannot be loaded, the box names what it
+to start. Where KeePass put up a box stating that the plugin cannot be loaded, the box names what it
 could not find or why the plugin refused to start, and [the plugin's own log](#the-plugins-log)
 has more. A refusal with no box is in that log alone. **Tools**, **Plugins** is KeePass's own list
 and will not show it either.
 
 ## The plugin's log
 
-The plugin says more in its log than a window has room for: why the gate is not listening, what an
+The plugin states more in its log than a window has room for: why the gate is not listening, what an
 incident was, why the plugin refused to start, which audit file it settled on, and why a change a
 program asked for was refused. It is a file, by default under the Windows account KeePass runs as,
 beside [the audit file](audit.md):
@@ -178,7 +178,7 @@ after that.
 Open the database to be served, then **File**, **Database Settings**. The plugin adds a tab
 called **KPG**, with the plugin's icon on it, after the tabs KeePass brings. The tabs are short
 because that strip is shared: KeePass puts five of its own on some of these dialogs and other
-plugins may add more. The item under **Tools** says the name in full.
+plugins may add more. The item under **Tools** states the name in full.
 
 ![The KPG tab on a database with no authority](images/authority-before-creating.png)
 
@@ -200,7 +200,7 @@ The table is the whole state of it:
 | | |
 | --- | --- |
 | **Fingerprint** | which authority this is. Written down somewhere, it is how a replaced authority is noticed: the one in the database is not the one that was made. |
-| **Admission records** | how many records of programs let in the database holds and has not taken back out: one for each program, and two for one that has [renewed](clients.md#expiry) until it gives the old certificate up or the operator revokes it. One whose certificate has expired is counted until the plugin's next change to the database takes it away, and one whose record cannot be read until it is removed: the [clients page](clients.md) lists every one and says which admit nobody. |
+| **Admission records** | how many records of programs let in the database holds and has not taken back out: one for each program, and two for one that has [renewed](clients.md#expiry) until it gives the old certificate up or the operator revokes it. One whose certificate has expired is counted until the plugin's next change to the database takes it away, and one whose record cannot be read until it is removed: the [clients page](clients.md) lists every one and states which admit nobody. |
 
 No date is in it. The authority and the certificate KeePass answers with are made together and good
 for a hundred years, so there is nothing to count down to: see [`clients.md`](clients.md#expiry).
@@ -211,13 +211,13 @@ third of its certificate's life, which is thirty days at most, and anything unre
 **Once it is saved, the file is KDBX 4.1.** What the plugin keeps in the database carries the time
 each value was written, and that is a 4.1 field. KeePass 2.48 or later keeps those times. KeePassXC,
 and KeePass before 2.48, open the file all the same, but saving or merging in them can undo what the
-plugin keeps: [Revoking](clients.md#revoking) says what it costs and what to check afterwards.
+plugin keeps: [Revoking](clients.md#revoking) states what it costs and what to check afterwards.
 
 ## OK, then save
 
 **Nothing on this tab is changed until OK is pressed, and OK does not save.**
 
-That is what the notice on the page says, and it is worth reading once carefully. There are two
+That is what the notice on the page states, and it is worth reading once carefully. There are two
 steps, and skipping either one loses the work:
 
 1. **OK** on the settings dialog puts the changes into the database KeePass is holding. Cancel
@@ -235,13 +235,13 @@ admission away.
 **The authority cannot be created and a client paired in the same visit to this dialog.** A program
 pairing talks to the gate, and the gate answers out of the database KeePass is holding, which has
 not been told about anything still waiting for OK. So press OK, open the dialog again, and then
-invite. The clients page says so itself while there is an authority change waiting.
+invite. The clients page states so itself while there is an authority change waiting.
 
 Two things save the database without anybody pressing Save, and neither is on this dialog. Pairing
-saves it before handing a certificate over, and [`pairing.md`](pairing.md) says why. And every change
-a program makes through the gate is saved as it is made, along with anything else in that database
-that had not been saved yet, an edit made in KeePass included:
-[`architecture.md`](architecture.md#how-one-request-is-decided) says what else follows from that.
+saves it before handing a certificate over, and [`pairing.md`](pairing.md) states why. And every
+change a program makes through the gate is saved as it is made, along with anything else in that
+database that had not been saved yet, an edit made in KeePass included:
+[`architecture.md`](architecture.md#how-one-request-is-decided) states what else follows from that.
 
 ## Recreating and deleting
 
@@ -252,11 +252,11 @@ to remove one program: for that, see [`clients.md`](clients.md).
 **Delete authority** stops this database being served at all, and the Certificate Authority page
 then shows every authority this database has held as retired.
 
-Both ask first, and both say how many clients are about to be cut off, because that is the
+Both ask first, and both state how many clients are about to be cut off, because that is the
 number nobody can work out unaided. Both retire the old authority rather than only removing it, so
 a copy of the file from before, synchronized in later, cannot put it back into service.
 
-An authority made by a development build older than this layout is not read at all: the page says
+An authority made by a development build older than this layout is not read at all: the page states
 the database has no authority yet. Create a new authority, and pair every program again.
 
 ## When a database holds more than one authority
@@ -282,7 +282,7 @@ as **not this authority** until they are removed. The database is marked changed
 save it to keep the choice. It takes a click, or Space on the button: no letter presses it and
 Enter does nothing on this window, wherever the focus is.
 
-**Cancel** serves nothing. The Certificate Authority page then says the database holds more than
+**Cancel** serves nothing. The Certificate Authority page then states the database holds more than
 one authority, and **Choose authority** there asks again; a choice made from there waits for OK
 like everything else on that tab. KeePass locking closes the window as **Cancel** does, and
 unlocking asks again.
@@ -310,13 +310,13 @@ or the mouse, and nothing a program does through the gate moves that. It is the 
 cannot postpone, so it is the one to set when the database has to lock once nobody is at the desk,
 whatever the programs reaching it are doing. A lock that falls due during a save is applied when the
 save is over, and one that falls due while KeePass is waiting for an answer to a question of its own
-waits for the answer: [`architecture.md`](architecture.md) says when that happens. A program's
+waits for the answer: [`architecture.md`](architecture.md) states when that happens. A program's
 question is not one of those: a lock that falls due while a pairing or renewal dialog is up closes
 the dialog as unanswered, and the program is told the database is locked. A locked database
 answers every request that it is locked, until somebody unlocks it.
 
 **Locking when Windows locks, when the user switches or when the computer is suspended** are under
-the same tab, and all three are off until you turn them on. KeePass ignores such a lock while it
+the same tab, and all three are off until they are turned on. KeePass ignores such a lock while it
 is saving, and a program's write is a save, so the plugin catches a lock that arrives during its
 own save and has KeePass lock as soon as the program that wrote has been answered, a few seconds
 later at most. Windows has locked the screen by then, so this happens behind it.

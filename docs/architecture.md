@@ -101,8 +101,8 @@ sequenceDiagram
     H-->>C: the answer
 ```
 
-**Both halves have to allow it.** The record says which profiles a certificate may use, and only
-the ones the database still names count; the rules say what those profiles reach. Neither is
+**Both halves have to allow it.** The record states which profiles a certificate may use, and only
+the ones the database still names count; the rules state what those profiles reach. Neither is
 enough on its own, and the record is read from the open database every time, which is what makes
 revoking one immediate.
 
@@ -118,7 +118,7 @@ screen.
 **Every decision is written to the audit file**, allowed or refused, and so is every pairing and
 renewal the operator answers and every client revoked, outside the database so that a program with
 access to the database cannot edit the record of what it did.
-[`audit.md`](audit.md) says where that file is and what a line in it holds.
+[`audit.md`](audit.md) states where that file is and what a line in it holds.
 
 **A change is saved as it is made, and the whole database is saved with it.** Every route that
 changes something ends in KeePass's own save of the database it changed, the same save as pressing
@@ -163,7 +163,7 @@ save is over, and one that falls due while KeePass has a question of its own on 
 the answer, as below. The plugin's pairing and renewal dialogs are not such a question: a lock goes
 through under one and closes it as unanswered, and the program is told the database is locked.
 Reading moves neither timeout.
-[`getting-started.md`](getting-started.md#locking-while-a-program-writes) says which to set.
+[`getting-started.md`](getting-started.md#locking-while-a-program-writes) states which to set.
 
 ## The states of a database
 
@@ -180,7 +180,7 @@ A locked KeePass still answers, using a second host certificate held only in mem
 database is opened and made again as it is locked, and good for ninety days from then, so a client
 gets a refusal it can read rather than a connection failure it cannot interpret. At lock the plugin
 lets go of the key of the host certificate the gate serves the open database with, and
-[`../CA.md`](../CA.md) §208 says how much of that is erasure. The key that reads the database is
+[`../CA.md`](../CA.md) §208 states how much of that is erasure. The key that reads the database is
 KeePass's own, and the plugin never holds it. A database locked while Undecided answers nothing,
 since a responder would have to be made under one of its authorities, and neither does a database
 locked with no current responder to answer with: until it is unlocked, a connection to it is

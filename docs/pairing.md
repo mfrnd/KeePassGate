@@ -11,7 +11,7 @@ cannot try again with the same invitation.
 **After creating or recreating the authority, press OK first and open this dialog again.**
 Nothing on this tab is in the database until the dialog is accepted, and a program pairing is
 answered by the database KeePass is holding rather than by the page on screen. The clients
-page says so while there is anything waiting, and the button that hands out a code is dead until
+page states so while there is anything waiting, and the button that hands out a code is dead until
 there is not.
 
 **It is dead while a profile change is waiting too**, for the same kind of reason and with the same
@@ -23,7 +23,7 @@ Open **File**, **Database Settings**, the **KPG** tab, and the **Clients** page.
 
 ![The clients page with an invitation outstanding](images/clients-invitation.png)
 
-The gray bar in this picture covers the line above the box. What it says is new every time an
+The gray bar in this picture covers the line above the box. What it states is new every time an
 invitation is handed out, so a picture of it would be a picture of one particular afternoon; on
 screen it reads normally.
 
@@ -36,23 +36,23 @@ That stops the code being written down somewhere nobody looks; it is not protect
 running on this computer, which can read the clipboard whatever is on it. A copy made by hand
 carries no such mark.
 
-The line above the box says how long the code has left and gives the invitation an identifier. That
-identifier, and not the code, is what the approval dialog shows when somebody redeems it, because a
-single use credential is not worth putting on a second screen. It is there so that the dialog is
-something checkable: if the identifier on it is not the one on this page, the code being
+The line above the box states how long the code has left and gives the invitation an identifier.
+That identifier, and not the code, is what the approval dialog shows when somebody redeems it,
+because a single use credential is not worth putting on a second screen. It is there so that the
+dialog is something checkable: if the identifier on it is not the one on this page, the code being
 redeemed is not the code handed out.
 
-Three things about that code surprise people, so the page says all three every time:
+Three things about that code surprise people, so the page states all three every time:
 
 - **There is one code at a time.** Pressing the button again replaces it, and the code it replaced
-  stops working at once. That is why, while a code is out, the button says **Renew invite**.
+  stops working at once. That is why, while a code is out, the button states **Renew invite**.
 - **The first client to use it spends it.** A code given to two people admits whichever one gets
   there first, and the other one is not waiting, it is refused.
 - **It is in this KeePass's memory and nowhere else.** It is never written to the database, so it
   does not travel with the file and does not survive KeePass closing. A code sent yesterday is
   gone.
 
-That line also says how long the code has left. It runs out on its own in minutes.
+That line also states how long the code has left. It runs out on its own in minutes.
 
 **Close the dialog with OK to keep the code.** It works from the moment it is shown, so the program
 can pair while the dialog is still open, but **Cancel**, or closing the dialog any other way, takes
@@ -96,23 +96,23 @@ not have.** What is left checked is what goes into the record, and what goes int
 the whole of what the program may ever use. Asking for a profile does not grant it: approving does.
 
 A program can ask for up to 32 profiles, and the list shows ten at a time. Past ten it scrolls, and
-a line under it says how many it holds, because **Approve grants every one still checked, seen or
+a line under it states how many it holds, because **Approve grants every one still checked, seen or
 not**. Scroll to the end before approving: a program that wanted something past the tenth row would
 put it there.
 
 **A profile marked "(new)" is one this database does not name now and no other client holds**, and
 approving it adds it, so that approval does two things rather than one. It is marked because a name
 never seen before and a name used every day would otherwise look identical, and the difference is
-usually a spelling. It is usually a name never used before, which grants nothing until a rule says
+usually a spelling. It is usually a name never used before, which grants nothing until a rule states
 so; but a name removed once, whose clients have all been revoked or have run out since, is marked
-the same way, and any rule still naming it applies to the new program at once. The dialog says so,
+the same way, and any rule still naming it applies to the new program at once. The dialog states so,
 and the Profiles page and the rules are where to look first.
 
 **A profile marked "(removed)" is one this database used to name**, took off its list, and other
 clients still hold. Approving it puts the name back on the list, and that brings more back than
 this one program: every client still holding it regains it, and every rule still naming it applies
-again. The dialog says so and names those clients, before anything is pressed: past three removed
-profiles or three clients it says how many and names the first three, and the Profiles page names
+again. The dialog states so and names those clients, before anything is pressed: past three removed
+profiles or three clients it states how many and names the first three, and the Profiles page names
 them all. Each client is named once, however many of its certificates hold the name, and two that
 chose the same name are named apart by the start of their client keys, "agent (3f2a9c1e)", as
 [adding a profile back](access-control.md) names them. A client whose certificate has expired is not
@@ -128,7 +128,7 @@ marked "(asked)", offered beside the others when it is none of them. A program t
 nothing is offered a year. **Pick the shortest that will do**: a certificate that has run out is
 refused without anybody having to remember to take it away, and a program that is still wanted asks
 to renew before then, which is a dialog like this one with no invitation to hand out first, as
-[`clients.md`](clients.md#expiry) says.
+[`clients.md`](clients.md#expiry) states.
 
 The dialog closes itself after a couple of minutes and issues nothing when it does. An unanswered
 request is not a refusal in one respect: the invitation is not spent, so the program can try again.
@@ -137,23 +137,23 @@ A refusal does spend it.
 **Closing the dialog is refusing.** The close box, Alt with F4, the window menu and the taskbar all
 mean no, and all spend the invitation, because dismissing a question about handing out a credential
 is an answer rather than an absence. Leaving the dialog alone until it closes itself is the way to
-say nothing.
+state nothing.
 
 ## What approving does, in order
 
 1. The certificate is issued by this database's authority.
 2. The invitation is spent, so nothing else can use it.
 3. Any profile marked "(new)" or "(removed)" is added to the ones this database names, unless it
-   already names as many as it can hold, 32: then none is, and the dialog says so before anything
+   already names as many as it can hold, 32: then none is, and the dialog states so before anything
    is pressed.
 4. The admission record is written into the database **and the database is saved**.
 5. Only then is the certificate handed to the program.
 
-The dialog says so before anything is pressed, because this and the renewal dialog,
+The dialog states so before anything is pressed, because this and the renewal dialog,
 [`clients.md`](clients.md#expiry), are the two screens in the plugin whose button writes the file.
 
 The save comes before the certificate, and the order is why: a program holding a certificate for a
-record that was never written would be a program that is refused forever and cannot say why.
+record that was never written would be a program that is refused forever and cannot state why.
 
 **Every answer is written to [the audit file](audit.md)**, by the invitation the request arrived on:
 approved, with the key of the certificate it admitted, once the record is saved; refused; or
