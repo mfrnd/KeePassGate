@@ -1971,8 +1971,11 @@ components:
         # Stored as written, as every value is. KeePass's Open URL action compiles the entry's URL
         # first, which resolves a field reference such as `{REF:P@I:...}` against the whole open
         # database, knowing nothing about these rules, and replaces `%NAME%` with an environment
-        # variable, and it starts a `cmd://` URL as a command line. What that means for an operator
-        # granting a write verb is in docs/access-control.md.
+        # variable, and it starts a `cmd://` URL as a command line. The entry view makes a link of a
+        # web address in the notes, the title, the user name or a custom field as well, and a click
+        # opens it the same way, `%NAME%` replaced and nothing asked, though a brace ends such a
+        # link, so a reference never travels that way. What that means for an operator granting a
+        # write verb is in docs/access-control.md.
         URL:
           type: string
           maxLength: 8192
