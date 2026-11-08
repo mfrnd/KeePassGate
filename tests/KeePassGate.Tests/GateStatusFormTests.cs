@@ -222,7 +222,8 @@ namespace KeePassGate.Tests
                 Assert.That(said, Does.Contain("52000"));
                 Assert.That(said, Does.Contain("next time KeePass starts"),
                     "nothing rebinds while the operator watches, so the window has to say when it will");
-                Assert.That(said, Does.Contain("paired"), "somebody has to tell the clients");
+                Assert.That(said, Does.Contain("pair again against the new one"),
+                    "a client keeps the port it paired against, so it has to pair again");
             }
         }
 
@@ -320,7 +321,7 @@ namespace KeePassGate.Tests
                 Assert.That(written, Is.EqualTo(new[] { 51776 }));
                 Assert.That(window.Changed, Is.True);
                 Assert.That(said, Does.Contain("stays on 127.0.0.1:51776"));
-                Assert.That(said, Does.Not.Contain("told the new one"),
+                Assert.That(said, Does.Not.Contain("pair again"),
                     "the clients are on this port already, and have nothing to be told");
             }
         }
@@ -329,8 +330,8 @@ namespace KeePassGate.Tests
         public void Only_a_port_that_actually_moved_is_worth_telling_the_operator_about()
         {
             // `Changed` is what decides whether anything is said once the window has gone, and the
-            // sentence it carries is not a receipt: it says the port waits for the next start, and
-            // that every client paired against the old one has to be told the new one. Saying that
+            // sentence it carries is not a receipt: it states that the port waits for the next
+            // start, and that every client paired against the old port has to pair again. Saying that
             // about a port nobody moved would train somebody to dismiss it.
             using (var window = new GateStatusForm(Listening(51776), null, Takes, 52000))
             {

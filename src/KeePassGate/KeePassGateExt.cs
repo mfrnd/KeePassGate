@@ -298,8 +298,9 @@ namespace KeePassGate
                     // `DialogResult.OK` has already set it by the time its `Click` runs, so the
                     // sentence the handler writes onto the window is painted onto a form the modal
                     // loop is closing: nobody has ever read it. It matters because it is not a
-                    // receipt. It says the port waits for the next start, and that every client
-                    // paired against the old one has to be told the new one.
+                    // receipt. It states that the port waits for the next start, and that every
+                    // client paired against the old port pairs again against the new one, since the
+                    // reference client keeps the port it paired against and takes no other.
                     if (window.Changed)
                     {
                         said = window.Result;

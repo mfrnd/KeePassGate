@@ -474,8 +474,10 @@ namespace KeePassGate.Ui
         /// <summary>What OK says once the port has been written down.</summary>
         /// <remarks>
         /// Typing the port the gate is listening on is how a port waiting for the next start is
-        /// taken back, and it says so, rather than telling the operator to reconfigure clients
-        /// that are already on the right port.
+        /// taken back, and the answer names it as that, rather than telling the operator to pair
+        /// again clients that are already on the right port. Elsewhere a client paired against the
+        /// old port pairs again, because PyKeePassGate keeps the port it paired against with the
+        /// identity and offers no way to give it another, as `docs/getting-started.md` sets out.
         /// </remarks>
         private string Kept(int wanted)
         {
@@ -486,7 +488,7 @@ namespace KeePassGate.Ui
             }
 
             return "Saved. The gate takes 127.0.0.1:" + wanted + " the next time KeePass starts, "
-                + "and clients paired against the old port have to be told the new one.";
+                + "and clients paired against the old port have to pair again against the new one.";
         }
 
         private string Said(string what)

@@ -11,6 +11,9 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **The message after a port change tells the operator that clients pair again**, rather than that
+  they have to be told the new port. PyKeePassGate keeps the port it paired against and offers no
+  way to change it, as the getting started page already stated.
 - **A port typed outside 1024 to 65535 on the Tools window is refused rather than moved into the
   range.** The box held itself to the range, so 80 was saved as 1024 and 70000 as 65535 without a
   word, and the refusal written for the number could never be shown.
