@@ -479,8 +479,10 @@ namespace KeePassGate.Ui
             }
             catch (Exception error) when (Expected.OfCustomData(error))
             {
+                // Cut, because the message is somebody else's and lands on a page that does not
+                // scroll, under the page's own sentence, which is measured whole.
                 _log.Error("the profiles could not be written", error);
-                return "That could not be written: " + error.Message;
+                return "That could not be written: " + Clipped.Message(error.Message);
             }
         }
     }

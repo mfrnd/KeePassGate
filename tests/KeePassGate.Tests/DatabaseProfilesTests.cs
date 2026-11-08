@@ -204,6 +204,19 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_write_that_fails_with_a_long_message_is_answered_with_the_message_cut()
+        {
+            // The page does not scroll, and the other two pages cut a foreign message the same way.
+            var database = new FakeGateDatabase();
+            database.Store.ThrowOnWrite = new InvalidOperationException(new string('m', 5000));
+
+            var refused = new DatabaseProfiles(database, null).Add("ops");
+
+            Assert.That(refused, Does.StartWith("That could not be written: "));
+            Assert.That(refused.Length, Is.LessThan(300));
+        }
+
+        [Test]
         public void A_stored_list_that_will_not_read_is_left_as_it_is_until_a_new_list_is_started()
         {
             // Read as naming nothing, the page took an Add or a Remove and wrote the result over
