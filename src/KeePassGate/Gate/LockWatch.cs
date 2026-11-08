@@ -228,28 +228,27 @@ namespace KeePassGate.Gate
             _incidents = incidents ?? new GateIncidents(_log);
         }
 
-        public bool Start()
+        /// <summary>Subscribes to the database events, once however often it is asked.</summary>
+        /// <remarks>
+        /// Nothing to report and nothing caught, because subscribing cannot fail: the events
+        /// KeePass's main window raises reach this through `MainWindowDatabases`, whose events
+        /// are field-like, and adding a handler to such an event throws nothing. A catch here, and
+        /// a result answering whether it ran, described a failure that cannot happen to a caller
+        /// that never asked.
+        /// </remarks>
+        public void Start()
         {
             lock (_stateLock)
             {
                 if (_started)
                 {
-                    return true;
+                    return;
                 }
 
-                try
-                {
-                    _databases.Opened += OnOpened;
-                    _databases.Closing += OnClosing;
-                    _databases.Closed += OnClosed;
-                    _started = true;
-                    return true;
-                }
-                catch (Exception error) when (Expected.OfUserInterface(error))
-                {
-                    _log.Error("the lock transitions could not be watched", error);
-                    return false;
-                }
+                _databases.Opened += OnOpened;
+                _databases.Closing += OnClosing;
+                _databases.Closed += OnClosed;
+                _started = true;
             }
         }
 
@@ -265,16 +264,11 @@ namespace KeePassGate.Gate
                 _started = false;
             }
 
-            try
-            {
-                _databases.Opened -= OnOpened;
-                _databases.Closing -= OnClosing;
-                _databases.Closed -= OnClosed;
-            }
-            catch (Exception error) when (Expected.OfUserInterface(error))
-            {
-                _log.Error("the lock watch could not be released", error);
-            }
+            // Nothing caught, for the reason `Start` catches nothing: removing a handler from a
+            // field-like event throws nothing either.
+            _databases.Opened -= OnOpened;
+            _databases.Closing -= OnClosing;
+            _databases.Closed -= OnClosed;
         }
 
         /// <summary>

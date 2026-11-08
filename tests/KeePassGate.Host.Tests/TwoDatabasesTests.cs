@@ -69,7 +69,7 @@ namespace KeePassGate.Host.Tests
 
             _events = new Events();
             _watch = new LockWatch(_events, _targets, _listener, _log);
-            Assert.That(_watch.Start(), Is.True);
+            _watch.Start();
         }
 
         [TearDown]
