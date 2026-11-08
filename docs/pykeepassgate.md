@@ -852,7 +852,7 @@ except api.RouteRefused:
 | `GateUnavailable` | The base of the three above, so catching it catches every `503`, and raised on its own for a `503` whose word this client does not know, or that names none. A `503` to a `head` names its word as well, in `KPG-Unavailable`, since its answer carries no body, so it is `GateBusy`, `DatabaseLocked` or `AuthorityUndecided` and waited out as a `get` is. `.error` is the word, and `.retry_after` the delay the gate asked for. No budget waits it out, because nothing on this side knows what ends it. |
 | `NotAdmitted` | The gate does not admit this certificate: it was never admitted, it was revoked, or it has expired. One that has expired by this machine's clock, by more than the five minutes a clock running ahead of the gate's is allowed, is named as expired, with the moment, before anything is dialed, rather than left for the gate to refuse as it refuses a stranger. To go on reaching the gate, pair again: a renewal needs a certificate that has not expired. To give the identity up, `revoke` removes what is stored for it, and `forget` from a program. |
 | `PreconditionFailed` | A request made with `if_match` that the gate did not serve, so nothing was read or changed: `412`. Most often the node no longer holds what the tag says: another client, the operator in KeePass, a merge or a plugin changed it after the tag was taken, and what mends it is reading the node again, which hands back its tag as it is now, and deciding again whether the change still makes sense. The same `412` answers an `if_match` the gate cannot read as one, and any `if_match` from a client the gate hands no tag to, whose rule does not read everything a tag covers; what mends those is sending none. Not retried, since asking again asks the same question of the same node. It is a `RouteRefused` with `.status` `412`, so a caller catching that already catches this. |
-| `RouteRefused` | The gate refused it. `.status` tells which: `404` is absent or not reachable and nothing can be done, while `400` and `409` are about the request itself, and `413` is something too large to carry, an attachment bigger than this gate hands out, an entry whose strings come to more than it hands out or keeps, or a body bigger than it takes, which `.error` tells in a sentence. `500` is none of those: the gate failed, and the operator's KeePass is where to look. After `500 not saved` or `500 internal error` nothing was left written that sending it again would duplicate; after `500 not verified` the change may be on the disk, so look first. `500 not recorded` is told only to `pair` and `renew`: the operator approved, the record did not reach the disk and was taken back out, and nothing was handed over, so asking again puts the dialog in front of the operator again; a renewing client's certificate still works, and a pairing's invitation is spent. |
+| `RouteRefused` | The gate refused it. `.status` tells which: `404` is absent or not reachable and nothing can be done, while `400` and `409` are about the request itself, and `413` is something too large to carry, an attachment bigger than this gate hands out, an entry whose strings come to more than it hands out or keeps, or a body bigger than it takes, which `.error` tells in a sentence. `500` is none of those: the gate failed, and the operator's KeePass is where to look. After `500 not saved` or `500 internal error` nothing was left written that sending it again would duplicate; after `500 not verified` the change may be on the disk, so look first, and until the operator saves the database in KeePass every write to it is `GateBusy`, as [Wait out a refusal](#wait-out-a-refusal-instead-of-reporting-it) explains. `500 not recorded` is told only to `pair` and `renew`: the operator approved, the record did not reach the disk and was taken back out, and nothing was handed over, so asking again puts the dialog in front of the operator again; a renewing client's certificate still works, and a pairing's invitation is spent. |
 | `Withheld` | A protected value this client may not read, from every way of reading one: the database protects it, and the rule that lets this client read or list the entry does not grant `P`. The message names the field; the operator can add `P` to that rule. The rest of the answer stands, and `entry.withheld` or `field.withheld` says the same without a `try`: `{name: entry.fields[name] for name in entry.fields if name not in entry.withheld}` reads every value this client may read. |
 | `Unresolved` | From `refs.resolve` alone: a value it will not give as KeePass would, and the message tells why. A reference searching by anything but a whole identifier, a reference to an entry this client cannot read, a placeholder KeePass replaces and the resolver does not, or references going round in a circle or deeper than KeePass follows. Use the value as stored, refer by identifier, or ask the operator to let this client read the entry referred to. |
 | `AmbiguousName` | A name only KeePass's own comparison can match, which this client will not guess at: an entry's `title`, `username`, `password`, `url` or `notes`, or a placeholder or a reference standing for such a string, when the entry holds the string under no name spelled exactly so beside a name beyond ASCII, and from `refs.resolve` a placeholder that names a field only in another case beyond ASCII. The message names the string or the placeholder. Rename the field in KeePass to the name spelled exactly, in ASCII. |
@@ -937,13 +937,18 @@ tag is wanted for a later `if_match` is made with its own method, on the client'
 is not affected, since the gate puts the tag it leaves in the body.
 
 **The three budgets are separate because the three refusals end differently.** A busy KeePass is
-in the middle of something of its own and will finish: saving, importing, a dialog open on what the
-write would change. A locked one is waiting for a person to come back to their desk, and the lock
-can have arrived on its own from an idle timeout, a minimize, a Windows lock or a suspend. An
-undecided one is waiting for a person to keep one of several authorities, which is rare, and can
-end with this client's authority not kept, after which nothing it waits for will come. An agent
-willing to wait thirty seconds for the first may want to wait an hour for the second, and not at
-all for the third.
+in the middle of something, mostly something of its own that will finish, saving or importing, and
+sometimes something only the operator ends: a dialog open on what the write would change, or a
+database file changed on disk, which KeePass asks about at the next save. **That last busy is what
+a `500 not verified` leaves behind**, since such a write leaves the file disagreeing with what
+KeePass wrote, so until the operator saves the database in KeePass and answers what it asks, every
+write to that database is `GateBusy`, from whichever client, a write that would otherwise have been
+a `404` or a `409` included, and no busy budget outlasts that. A locked KeePass is waiting for a
+person to come back to their desk, and the lock can have arrived on its own from an idle timeout, a
+minimize, a Windows lock or a suspend. An undecided database is waiting for a person to keep one of
+several authorities, which is rare, and can end with this client's authority not kept, after which
+nothing it waits for will come. An agent willing to wait thirty seconds for the first may want to
+wait an hour for the second, and not at all for the third.
 
 **Nothing else is retried.** A `404`, a `409`, a `400`, a `500` or a `TransportError` is raised the
 moment it arrives: waiting cannot fix any of them, and after two of them a write may have landed,
@@ -964,7 +969,8 @@ on, and one that goes on answering, however slowly, is not: a program that needs
 whole call puts one around the call. **A refusal is not always quick either**: a pairing's or a
 renewal's `503 busy` comes after the gate waited up to two minutes for the screen, and a write's
 after up to twenty seconds for its turn, so a busy budget of ten seconds can hold a pairing for
-five attempts of up to two minutes each; the budget counts only the pauses between them.
+six attempts of up to two minutes each, the first and five more; the budget counts only the
+pauses between them, two seconds each.
 
 **A setting that cannot work is refused where it is given**, with a `ValueError` naming it, before
 anything is dialed or stored: a budget that is neither `None` nor a finite number of seconds from
