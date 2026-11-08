@@ -1110,8 +1110,9 @@ current certificate.
 
 **It does not open a `.kdbx`.** There is no file and no master password on this side, by design. Where
 a `pykeepass` object was expected, the `spikes/pykeepass-compatibility` branch measures exactly
-how far the two can be reconciled: 23 of its 56 public members are servable over the routes the gate
-already has, and the object itself is not one of them.
+how far the two can be reconciled: 65 of the 122 public members of `PyKeePass`, `Entry`, `Group`
+and `Attachment` are servable over the routes the gate already has, 24 of the 56 on `PyKeePass`
+itself, and the object itself is not one of them.
 
 **It has no `save`.** The gate writes when told to, and there is no local copy to flush. A
 method that looked like `pykeepass`'s and did something else would be worse than no method.
