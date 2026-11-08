@@ -191,8 +191,8 @@ namespace KeePassGate.Transport
             lines.Append("Connection: close\r\n");
             if (status == 503)
             {
-                // Here rather than at the four places that answer `503`, so that a refusal added
-                // later cannot be the one that forgets it. What each of them means is the body's
+                // Here rather than at each place that answers `503`, so that a refusal added later
+                // cannot be the one that forgets it. What each of them means is the body's
                 // job; <see cref="RetryAfterSeconds"/> says why they all wait the same.
                 lines.Append("Retry-After: ")
                     .Append(RetryAfterSeconds.ToString(CultureInfo.InvariantCulture))
