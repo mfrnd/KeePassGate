@@ -996,16 +996,20 @@ pykeepassgate pair --name agent-invented --retry-locked-timeout 300
 ```python
 client = GateClient.open(retry_busy_timeout=30)
 
-# Or for one call, which overrides what the client was built with: `send`, `get` and `head` take
-# the three budgets, and every other method waits with the client's own, `renew` and
-# `refs.resolve` included.
+# Or for one call, which overrides what the client was built with: `send`, `get` and `head`
+# take the three budgets and `connection_timeout`, and so does every method that reads or
+# writes one group or entry with its tag, its fields and attachments included. Every other
+# method waits with the client's own, `renew` and `refs.resolve` included.
 client.send("POST", "/groups/root/entries", {"Title": "Nightly"}, retry_busy_timeout=120)
+client.update_entry(uuid, password=rotated, if_match=tag, retry_locked_timeout=300)
+client.attachment(uuid, "backup.tar", connection_timeout=60)
 ```
 
 **`send` and `get` hand back the body alone.** A read's tag travels in a header beside the body,
 so a group, an entry, a field or an attachment read through them carries no `etag`: a read whose
-tag is wanted for a later `if_match` is made with its own method, on the client's budgets. A write
-is not affected, since the gate puts the tag it leaves in the body.
+tag is wanted for a later `if_match` is made with its own method, which takes the three budgets
+and `connection_timeout` as `send` does, so no call needs a second client for a budget of its
+own. A write is not affected, since the gate puts the tag it leaves in the body.
 
 **The three budgets are separate because the three refusals end differently.** A busy KeePass is
 in the middle of something, mostly something of its own that will finish, saving or importing, and
@@ -1039,11 +1043,13 @@ could not know whether the first one had already been approved.
 separate thing, and it bounds each wait on the socket rather than a whole attempt: the dial, the
 handshake and each read of the answer, each on its own. So a gate that stops answering is given up
 on, and one that goes on answering, however slowly, is not: a program that needs a bound on a
-whole call puts one around the call. **A refusal is not always quick either**: a pairing's or a
-renewal's `503 busy` comes after the gate waited up to two minutes for the screen, and a write's
-after up to twenty seconds for its turn, so a busy budget of ten seconds can hold a pairing for
-six attempts of up to two minutes each, the first and five more; the budget counts only the
-pauses between them, two seconds each.
+whole call puts one around the call. Given for one call, it bounds that call's waits, and the
+status route a client asks before its first request waits the client's own, since it waits on
+nothing. **A refusal is not always quick either**: a pairing's or a renewal's `503 busy` comes
+after the gate waited up to two minutes for the screen, and a write's after up to twenty seconds
+for its turn, so a busy budget of ten seconds can hold a pairing for six attempts of up to two
+minutes each, the first and five more; the budget counts only the pauses between them, two
+seconds each.
 
 **A setting that cannot work is refused where it is given**, with a `ValueError` naming it, before
 anything is dialed or stored: a budget that is neither `None` nor a finite number of seconds from

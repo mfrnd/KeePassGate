@@ -11,6 +11,12 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **Every method that reads or writes one group or entry with its tag takes the three retry
+  budgets and a `connection_timeout`**, keyword-only and for that call alone: the reads of a
+  group, an entry, a field or an attachment and the listings of fields and attachments, `head`,
+  and every update, removal, strip and field or attachment write. `send` and `get` take a
+  `connection_timeout` for one call too. A program wanting its own budget for one of them needed
+  a second client, or `send`, which hands back no read's tag.
 - **`refs.resolve_entry` resolves every string of an entry together**, each entry they name read
   once and the entry itself not again, and names each string `protected` that a protected value
   went into. `show --resolve` uses it, so a password a URL borrows by reference is marked

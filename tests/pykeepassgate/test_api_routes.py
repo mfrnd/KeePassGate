@@ -13,7 +13,7 @@ import json
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, TypedDict
 from urllib.parse import quote
 
 import pytest
@@ -706,8 +706,19 @@ def test_a_moment_the_gate_did_not_write_is_absent_rather_than_wrong(
 AWKWARD = "an invented/node"
 AWKWARD_NAME = "an invented/name"
 
+
+class _Standard(TypedDict):
+    """The five standard strings as keyword arguments, typed so that nothing else is passed."""
+
+    title: str
+    username: str
+    password: str
+    url: str
+    notes: str
+
+
 #: The five standard strings, every one given, so the body shows every key the client can write.
-STANDARD = {
+STANDARD: _Standard = {
     "title": "an invented service",
     "username": "agent-fictitious",
     "password": "not-a-real-password",
