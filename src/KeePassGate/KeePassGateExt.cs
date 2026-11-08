@@ -602,18 +602,25 @@ namespace KeePassGate
             // tolerates having nothing to do and being run twice, because `Dispose` calls it as
             // well and nothing orders the two, and each one runs whatever the one before it threw,
             // for the reason `Attempt` gives.
+            Attempt("failed to give KeePass's icons back", GateIcon.Return);
+
             Attempt("failed to stop", () =>
             {
-                GateIcon.Return();
                 CaptureGuard.Wanted = () => false;
                 WindowHandlers.Incidents = null;
+            });
 
+            Attempt("failed to take the grant editor off the group and entry dialogs", () =>
+            {
                 if (_grants != null)
                 {
                     _grants.Stop();
                     _grants = null;
                 }
+            });
 
+            Attempt("failed to take the KPG tab off the database settings", () =>
+            {
                 if (_host != null)
                 {
                     _host.Stop();
@@ -646,10 +653,10 @@ namespace KeePassGate
                     _locks.Dispose();
                     _locks = null;
                 }
-
-                // An exit takes every held approval with it, as a lock does.
-                _approvals.Clear();
             });
+
+            // An exit takes every held approval with it, as a lock does.
+            Attempt("failed to let go of the held approvals", _approvals.Clear);
 
             Attempt("failed to tell what is still owed", () =>
             {
