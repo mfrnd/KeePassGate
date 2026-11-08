@@ -167,7 +167,10 @@ namespace KeePassGate
 
         private void Handle(GateWindowEventArgs e, bool opening)
         {
-            // Nothing below may throw: this is a KeePass event handler on the UI thread.
+            // Nothing below may throw: this is a KeePass event handler. Usually on the UI thread,
+            // and not always: KeePass's progress window announces itself from a thread of its own
+            // while plugins load, so nothing touches the form until the matcher has found it to be
+            // one of the dialogs a tab goes on, which KeePass shows on its UI thread.
             try
             {
                 if (e == null)
@@ -207,8 +210,8 @@ namespace KeePassGate
             // codeql[cs/catch-of-all-exceptions] a handler of KeePass's own events, a kind of catch-all DESIGN.md §141 lists
             catch (Exception error)
             {
-                // One of the catch-alls: KeePass raises its window events on its own thread, from
-                // inside a dialog that is loading or closing, with nothing around them. An
+                // One of the catch-alls: KeePass raises its window events with nothing around them,
+                // on whichever thread shows the dialog that is loading or closing. An
                 // exception that escapes stops that dialog's own code part way and then reaches
                 // WinForms, which puts its own error dialog over KeePass, offering to quit.
                 _incidents.Record(

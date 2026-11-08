@@ -733,7 +733,9 @@ namespace KeePassGate.Bridge
 
         private void OnWindowAdded(object sender, GateWindowEventArgs e)
         {
-            // On the UI thread, inside KeePass. Nothing here may throw.
+            // Inside KeePass, and nothing here may throw. Usually on the UI thread, and not always:
+            // KeePass's progress window announces itself from a thread of its own while plugins
+            // load, so nothing before the type checks below may touch the form.
             var form = e == null ? null : e.Form;
             try
             {
@@ -873,9 +875,9 @@ namespace KeePassGate.Bridge
             // codeql[cs/catch-of-all-exceptions] a handler of KeePass's own events, a kind of catch-all DESIGN.md §141 lists
             catch (Exception error)
             {
-                // A kind of catch-all `DESIGN.md` §141 lists, and this is why: it runs on KeePass's
-                // own thread, from KeePass's own event, raised with nothing around it from inside
-                // the dialog that is loading. An exception that escapes here stops that dialog part
+                // A kind of catch-all `DESIGN.md` §141 lists, and this is why: it runs on the
+                // thread KeePass raised its own event on, with nothing around it, from inside the
+                // dialog that is loading. An exception that escapes here stops that dialog part
                 // way and then reaches WinForms' own error dialog, which offers to quit KeePass.
                 // What it caught is reported as an incident rather than as a log line.
                 lock (_lock)
