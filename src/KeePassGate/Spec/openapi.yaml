@@ -345,7 +345,7 @@ paths:
           description: |
             The gate failed, and the body names how. `not saved` is a revocation that was made and
             never reached the disk, and has been taken back out: the certificate is still admitted,
-            and asking again is safe. `not verified` is one that was saved to a file KeePass then
+            and asking again is safe. `not verified` is a revocation saved to a file KeePass then
             read back as something else: it is kept in the database in memory, which stays marked
             as changed, so the certificate is already refused and asking again is answered
             `401`, and whether the file keeps it is the operator's to settle. `internal error` is

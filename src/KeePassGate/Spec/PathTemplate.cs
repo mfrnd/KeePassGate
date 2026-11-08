@@ -45,7 +45,9 @@ namespace KeePassGate.Spec
             Text = text;
         }
 
-        /// <summary>The template as the document writes it, which is what a log or a test names.</summary>
+        /// <summary>
+        /// The template as the document writes it, which is what a log or a test names.
+        /// </summary>
         public string Text { get; private set; }
 
         /// <summary>The names this template captures, in order.</summary>
