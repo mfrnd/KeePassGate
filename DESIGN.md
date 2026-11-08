@@ -1284,8 +1284,8 @@ that was admitted.** An approval whose record never landed, whose invitation was
 whose certificate could not be issued admitted nobody, was answered as a failure and said so in the
 plugin's log, and gets no line; nor does a request nobody could be asked about. Recreating or
 deleting the authority, which takes every record away, and the operator's changes to rules and
-profiles are not recorded: they wait for a design of audit levels. Never a profile, here as
-anywhere in the file.
+profiles are not recorded: they wait for a design of audit levels. Never a profile: the one place
+the file names profiles is a refusal that a removed profile would have permitted, below.
 
 **Every line names the client as well as the certificate**, under the two names `/gate/whoami`
 answers with, so one word means one thing wherever it is read. `admissionKey` is the certificate on
@@ -1381,7 +1381,7 @@ its own admission key, which is what they name.
 **A client's lines about its own admission count against the same allowance.** A renewal an answer
 given before refuses is answered at once and as often as a client asks, so its lines, and the line
 for a client revoking itself, are paced with that client's decisions rather than on an allowance of
-their own, which would let one client spend two. A pairing's line names no client and waits on a
+their own, which would let one client spend two. A pairing's line is not counted: it waits on a
 person, who is its pace, and the operator's revocation is written on KeePass's own thread, which
 must never be held. So are an approved renewal's line and a client's own revocation's, by the
 writer, so those two are written without waiting and the client's turn for each is taken once the

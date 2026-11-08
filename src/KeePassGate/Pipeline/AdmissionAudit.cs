@@ -22,9 +22,11 @@ namespace KeePassGate.Pipeline
     /// client either. A renewal names the certificate that asked and, approved, the one issued in
     /// its place. A revocation names the certificate it takes away. Every line but a pairing's
     /// names the client by the client key on the record of the certificate it is about, which a
-    /// renewal copies, so it is the same before and after. **Never a profile**, as nowhere in the file:
-    /// which profiles a client holds is in its record, and a second copy of that is the thing
-    /// worth stealing.
+    /// renewal copies, so it is the same before and after. **Never a profile**: none of these
+    /// lines names what a client asked for, was approved for or kept, because which profiles a
+    /// client holds is in its record, and a second copy of that is the thing worth stealing. The
+    /// one place the file names profiles is a refusal of the rules that a removed profile would
+    /// have permitted, `AccessCheck.Decide`, and a removed name grants nothing.
     ///
     /// **An approval is written once its record is in the database**, so `approved` always names
     /// a key that was admitted. One that admitted nobody, because the record did not land, the
@@ -41,9 +43,9 @@ namespace KeePassGate.Pipeline
     /// written on the client's own connection and waits there. An approved renewal and a
     /// self-revocation are written by the writer, on KeePass's own thread, which must not wait, so
     /// those two are written without waiting and the client's turn for each is taken by
-    /// <see cref="TakeTurn"/> once the write returns, on its own connection. A pairing's line
-    /// names no client and waits on a person, who is its pace. The operator's revocation is
-    /// written on KeePass's own thread too.
+    /// <see cref="TakeTurn"/> once the write returns, on its own connection. A pairing's line is
+    /// not counted, approved or not, because it waits on a person, who is its pace. The
+    /// operator's revocation is written on KeePass's own thread too.
     /// </remarks>
     public sealed class AdmissionAudit
     {
@@ -252,8 +254,8 @@ namespace KeePassGate.Pipeline
         /// </remarks>
         private void Pairing(string databaseId, string invitationId, string decision, string reason, string issued)
         {
-            // Not paced: there is no client yet to count it against, and the dialog it answers is
-            // the pace, one at a time and none faster than somebody can answer or a timeout runs.
+            // Not paced, even where it names the client it admitted: the dialog it answers is the
+            // pace, one at a time and none faster than somebody can answer or a timeout runs.
             _audit.Record(AuditEntry.Admission(
                 _clock(),
                 databaseId,

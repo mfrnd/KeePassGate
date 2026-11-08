@@ -260,8 +260,8 @@ namespace KeePassGate.Tests
         [Test]
         public void A_pairing_and_the_operator_s_revocation_never_wait()
         {
-            // A pairing names no client and waits on a person, who is its pace; the operator's
-            // revocation is written on KeePass's own thread, which must not be held.
+            // A pairing waits on a person, who is its pace, whether or not it names a client; the
+            // operator's revocation is written on KeePass's own thread, which must not be held.
             var client = Client("reader");
             var entry = TestNode.Root("root").Granting("reader", AclVerb.Read).Child("an entry");
 
