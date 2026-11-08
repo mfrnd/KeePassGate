@@ -262,17 +262,21 @@ designing around them.
   oversight: KeePass's own plugins dialog lists every plugin with its version, which is where
   somebody checking one looks and where the answer is right for all of them at once. The menu item
   is given a mnemonic of its own: `K`, since KeePass spends g, l, t, d, a, r, p and o on that
-  menu's own items.
+  menu's own items. It is handed over through `Plugin.GetMenuItem` rather than added to the Tools
+  menu by hand, because that is the seam KeePass offers, and KeePass takes the item away itself when
+  the plugin is unloaded.
 
 - **The screenshots in `docs/` are a build output.** `build.ps1 -Task Screenshots` drives a
   throwaway KeePass through the whole operator flow and screenshots each step where it happens,
-  writing into `docs/images`. It is in the `Live` category so ordinary runs exclude it, and in a
-  `Screenshots` category so the end to end run excludes it too, because it writes into the working
-  tree. The output directory arrives in an environment variable, so a fixture nobody asked to run
-  rewrites nothing. **What is captured is the whole window**, frame, banner and buttons, because a
-  tab strip cut out of a dialog is a picture of a page with no edges: a reader cannot see what it
-  sits in, where the room runs out or which button ends it. What makes that publishable is the
-  session, not the crop: the database settings dialog carries the open database's path in its
+  writing into `docs/images`, so a change to a tab is a change to its pictures in the same pass: a
+  screenshot taken by hand is right on the day it is taken and wrong from the next change on, with
+  nothing to show which day that was. It is in the `Live` category so ordinary runs exclude it, and
+  in a `Screenshots` category so the end to end run excludes it too, because it writes into the
+  working tree. The output directory arrives in an environment variable, so a fixture nobody asked
+  to run rewrites nothing. **What is captured is the whole window**, frame, banner and buttons,
+  because a tab strip cut out of a dialog is a picture of a page with no edges: a reader cannot see
+  what it sits in, where the room runs out or which button ends it. What makes that publishable is
+  the session, not the crop: the database settings dialog carries the open database's path in its
   banner, so `LiveSession` builds the session where that path names nobody. `build.ps1 -Task Lint`
   refuses a picture no page refers to and a reference to a picture that is not there; that a picture
   is named in `DocumentationImages` is checked by the fixture that takes it, which is in the
@@ -442,7 +446,9 @@ designing around them.
   library, which is not a model of the rules, and `pykeepassgate.refs`, which follows field
   references as KeePass does under the caller's own rules, in a module of its own so that the
   client stays one method per route. A route the gate serves and this does not cover is a
-  gap, and a method here with no route behind it is a lie. Its `pyproject.toml` is at the
+  gap, and a method here with no route behind it is a lie. The command line is held to the routing
+  table the same way: `test_cli_routes.py` fails a route other than a `head` that has no command,
+  as `test_reference.py` fails a route with no call in the library. Its `pyproject.toml` is at the
   repository root because there is one Python project.
 - **The client's protocol code is pinned against the plugin's own output.**
   `tests/pykeepassgate/test_protocol.py` holds vectors produced by `PairingToken`, `SniName` and
@@ -892,6 +898,12 @@ file.
 .\run-release.ps1          # deploy, then start that KeePass, Release
 ```
 
+**The two launchers exist because the step done by hand between a build and a look is the step
+that goes wrong.** They start the KeePass this repository pins and verifies rather than whichever
+is on the `PATH`, which is how a plugin comes to be judged against a version nobody chose, and
+they end by naming the Tools menu item that shows the plugin loaded, since a plugin deployed and
+not loaded looks exactly like a plugin loaded and doing nothing.
+
 **`build.ps1 -ListGates` is what CI asks for.** It answers one line per check and the runner CI
 gives it, and the workflow builds one job per line, so a task added to the script, or a runner
 added for one, is checked without anybody editing `.github/workflows/gate.yml`. Every check runs on
@@ -1145,6 +1157,10 @@ DESIGN.md §139. An unreadable list is an empty one, so every client stays admit
 nothing.
 
 ### The grant editor
+
+**The editor is what makes a grant possible at all.** KeePass's own group and entry dialogs list a
+node's custom data and offer no way to write it, so without the editor no rule could be made and
+the model would be inert.
 
 The tab is captioned `KPG` with the plugin's icon, and not "Access control", because another plugin
 may well put an access control page on the same dialogs and two pages with one name governing

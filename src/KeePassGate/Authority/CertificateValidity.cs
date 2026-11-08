@@ -26,8 +26,8 @@ namespace KeePassGate.Authority
 
             // **`notBefore` is honored exactly, and the allowance lives in the certificate.**
             // `AuthorityIssuer.Backdate` already sets `notBefore` five minutes before issuance, so
-            // a second five minutes here made the tolerance ten where `CA.md` §213, `DESIGN.md`
-            // §132 and `ClientCredentials` all say exactly five. It applied to every certificate
+            // a second five minutes here made the tolerance ten where `CA.md` §213 and
+            // `ClientCredentials` both state exactly five. It applied to every certificate
             // that can reach this, because the anchor pin means only this authority's own do.
             //
             // The backdate is the half worth keeping: it is written into the certificate, so the

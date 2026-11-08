@@ -108,6 +108,11 @@ KeePass's own window, and an entry keeps only as many revisions as Database Sett
 client that changes it more often than that has pushed out every revision from before it started, as
 `docs/access-control.md` warns the operator.
 
+**Tags are not here yet, and nothing refuses them.** An entry's tags and a group's are neither
+served nor accepted, and nothing in the rules stands against serving them, or filtering a listing on
+them, since each is a field of a node the rules already answer for, §401. Of what a program reading
+entries finds missing, they matter most, and they wait for a change of their own.
+
 ## Optimistic concurrency §410
 
 **The lost update.** A program reads an entry, works on it, and writes back what it read beside its

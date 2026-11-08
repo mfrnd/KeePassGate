@@ -409,7 +409,9 @@ stateDiagram-v2
 ```
 
 Pairing while locked is refused the same way: issuing needs the authority private key and the
-admission write, and neither exists in this state.
+admission write, and neither exists in this state. Nor can a client certificate be validated with
+no authority held, so every caller of a locked database is a stranger by construction rather than
+by a check somebody has to remember.
 
 **A lock closes every connection but the ones below, and an unlock only that database's**, the
 operator's ruling of 2026-11-01. Closing at lock is obvious: a socket thread must not be reading a
