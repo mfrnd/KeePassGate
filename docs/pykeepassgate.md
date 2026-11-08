@@ -220,8 +220,9 @@ Either raises `IncompatibleGate` naming both versions, and the command line exit
 `GateClient.open()` reads the credentials pairing stored, or the last renewal. Pass `profile=` where more than one
 identity is kept on the machine. **Every setting is passed by name**: after the identity, which is
 the credentials for `GateClient`, the directory and the profile for `GateClient.open`, the port and
-the invitation for `Pairing`, and those and the name for `api.pair`, everything is keyword only, so
-a setting added later never changes what an argument already written means.
+the invitation for `Pairing`, and the invitation and the name for `api.pair`, whose port is a
+setting like the rest, everything is keyword only, so a setting added later never changes what an
+argument already written means.
 
 ## Give up an identity
 
