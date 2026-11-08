@@ -50,6 +50,18 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void Every_X_is_named_to_a_screen_reader_by_what_pressing_it_does()
+        {
+            // S422: the heading was left empty for the bin painted over it, so each X was read
+            // out as its row and an X, and nothing told a listener that it removes a rule.
+            using (var panel = Panel(new FakeGrantStore(Rules.Granting(("reader", "R"))), null))
+            {
+                var grid = ControlTree.FindByName<DataGridView>(panel, GrantTab.GridControlName);
+                ButtonColumns.AssertNamedBy(panel, grid, GrantTab.ForgetColumnName, GrantTab.ForgetColumnHeader);
+            }
+        }
+
+        [Test]
         public void A_rule_is_drawn_as_its_mask()
         {
             var store = new FakeGrantStore(Rules.Granting(("reader", "RL")));

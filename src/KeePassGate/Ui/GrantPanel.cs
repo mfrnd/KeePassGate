@@ -1358,9 +1358,10 @@ namespace KeePassGate.Ui
             {
                 Name = GrantTab.ForgetColumnName,
 
-                // Nothing written. The heading is a bin, painted in `OnCellPainting`, and a column
-                // sized to its content would otherwise be as wide as whatever word stood here.
-                HeaderText = string.Empty,
+                // The name of every X under it, and never drawn. The heading is a bin, painted in
+                // `OnCellPainting`, and the column is sized to its cells alone, since a column
+                // sized to its heading as well would be as wide as these words.
+                HeaderText = GrantTab.ForgetColumnHeader,
                 Text = ForgetMark,
 
                 // Off, so that a cell can say nothing. With it on, every button in the column
@@ -1368,13 +1369,16 @@ namespace KeePassGate.Ui
                 // nothing to remove offers to remove it anyway.
                 UseColumnTextForButtonValue = false,
 
-                // One character or none, so the heading and the mark are all there is to fit.
-                AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells,
+                // One character or none, so the mark is all there is to fit.
+                AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCellsExceptHeader,
                 MinimumWidth = GateIcon.Room,
                 ToolTipText = Tooltips.Wrapped(
                     "Removes the rule this node stores, which puts back whatever is "
                     + "inherited. A rule that is purely inherited has nothing here to remove."),
             };
+
+            // One line, so that words nobody sees do not make the heading row taller.
+            forget.HeaderCell.Style.WrapMode = DataGridViewTriState.False;
 
             grid.Columns.Add(profile);
             grid.Columns.Add(mask);
@@ -1432,18 +1436,20 @@ namespace KeePassGate.Ui
             // The heading is a bin rather than a word. What the column is for is one idea, and a
             // picture carries it in the width the column already has; a word would be a word the
             // column then has to be wide enough for, on a table whose other two are the ones with
-            // something to say.
+            // something to say. The words it holds are its name to a screen reader, and are never
+            // drawn, bin or no bin.
             if (e.RowIndex < 0)
             {
+                e.Paint(e.ClipBounds, DataGridViewPaintParts.All & ~DataGridViewPaintParts.ContentForeground);
+                e.Handled = true;
+
                 var bin = GateIcon.Bin;
                 if (bin != null)
                 {
-                    e.Paint(e.ClipBounds, DataGridViewPaintParts.All & ~DataGridViewPaintParts.ContentForeground);
                     e.Graphics.DrawImageUnscaled(
                         bin,
                         e.CellBounds.Left + ((e.CellBounds.Width - bin.Width) / 2),
                         e.CellBounds.Top + ((e.CellBounds.Height - bin.Height) / 2));
-                    e.Handled = true;
                 }
 
                 return;

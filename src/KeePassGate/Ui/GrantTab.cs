@@ -177,6 +177,12 @@ namespace KeePassGate.Ui
 
         public const string ForgetColumnName = "KpgGrantForgetColumn";
 
+        /// <summary>
+        /// The last column's heading, which a screen reader names every X in it by, and which is
+        /// never drawn: `ClientList.RevokeHeading` gives the reason.
+        /// </summary>
+        public const string ForgetColumnHeader = "Remove rule";
+
         public const string SealCheckBoxName = "KpgGrantSealCheckBox";
 
         public const string SealCheckBoxText = "Refuse any profile not named here";

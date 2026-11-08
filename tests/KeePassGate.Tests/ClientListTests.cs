@@ -40,6 +40,17 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void Every_X_is_named_to_a_screen_reader_by_what_pressing_it_does()
+        {
+            // S422: the heading was left empty for the bin painted over it, so each X was read
+            // out as its row and an X, and nothing told a listener that it revokes.
+            using (var list = ListOf(Allows, Record("agent-fictitious", "ops")))
+            {
+                ButtonColumns.AssertNamedBy(list, Grid(list), ClientList.RevokeColumnName, ClientList.RevokeHeading);
+            }
+        }
+
+        [Test]
         public void Revoking_one_of_a_renewed_clients_two_rows_says_which_certificate_went()
         {
             // A renewal leaves the client two rows with one client key until it gives the older

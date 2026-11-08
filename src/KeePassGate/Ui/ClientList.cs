@@ -138,6 +138,17 @@ namespace KeePassGate.Ui
         public const string RevokeMark = "X";
 
         /// <summary>
+        /// The last column's heading, which a screen reader names every X in the column by, and
+        /// which is never drawn.
+        /// </summary>
+        /// <remarks>
+        /// A table names a cell to UI automation by its column's heading and its row, and an X is
+        /// no name, so with a heading left empty for the bin painted over it each button was read
+        /// out as a row number with an X in it, and nothing about what pressing it does.
+        /// </remarks>
+        public const string RevokeHeading = "Revoke";
+
+        /// <summary>
         /// Said after a profile a client holds that the database no longer names.
         /// </summary>
         /// <remarks>
@@ -837,10 +848,13 @@ namespace KeePassGate.Ui
             var revoke = new DataGridViewButtonColumn
             {
                 Name = RevokeColumnName,
-                HeaderText = string.Empty,
+
+                // The name of every X under it, and nothing else: the heading is a bin painted
+                // over the words, and the column is as wide as the Xs, so the words cost no room.
+                HeaderText = RevokeHeading,
                 Text = RevokeMark,
                 UseColumnTextForButtonValue = true,
-                AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells,
+                AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCellsExceptHeader,
                 MinimumWidth = GateIcon.Room,
                 ToolTipText = Tooltips.Wrapped(
                     "Takes this certificate's admission away when OK is pressed. It is then "
@@ -849,6 +863,8 @@ namespace KeePassGate.Ui
                     + "renewed, and keeps the other.")
             };
 
+            // One line, so that words nobody sees do not make the heading row taller.
+            revoke.HeaderCell.Style.WrapMode = DataGridViewTriState.False;
             grid.Columns.Add(revoke);
 
             grid.Columns[ProfilesColumn].DefaultCellStyle.WrapMode = DataGridViewTriState.True;
@@ -866,8 +882,10 @@ namespace KeePassGate.Ui
         /// removed profiles a client holds.
         /// </summary>
         /// <remarks>
-        /// The heading only. The buttons under it keep their mark: what a button does is said by
-        /// the column it is in, and a picture in every row is a picture repeated once per row.
+        /// The heading only. The buttons under it keep their mark: what a button does is named by
+        /// the column it is in, to the eye by the bin and to a screen reader by the heading's
+        /// words, and a picture in every row is a picture repeated once per row. The words are
+        /// never drawn, bin or no bin, since the column is as wide as an X and not as the words.
         /// </remarks>
         private void OnCellPainting(object sender, DataGridViewCellPaintingEventArgs e)
         {
@@ -882,18 +900,17 @@ namespace KeePassGate.Ui
                 return;
             }
 
-            var bin = GateIcon.Bin;
-            if (bin == null)
-            {
-                return;
-            }
-
             e.Paint(e.ClipBounds, DataGridViewPaintParts.All & ~DataGridViewPaintParts.ContentForeground);
-            e.Graphics.DrawImageUnscaled(
-                bin,
-                e.CellBounds.Left + ((e.CellBounds.Width - bin.Width) / 2),
-                e.CellBounds.Top + ((e.CellBounds.Height - bin.Height) / 2));
             e.Handled = true;
+
+            var bin = GateIcon.Bin;
+            if (bin != null)
+            {
+                e.Graphics.DrawImageUnscaled(
+                    bin,
+                    e.CellBounds.Left + ((e.CellBounds.Width - bin.Width) / 2),
+                    e.CellBounds.Top + ((e.CellBounds.Height - bin.Height) / 2));
+            }
         }
 
         private static DataGridViewTextBoxColumn Filling(string header, int weight)

@@ -11,6 +11,11 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **A screen reader names every X on the KPG tab and the access editor by what pressing it does.**
+  The columns of Xs on the clients, the profiles and the rules are headed by a painted bin, over a
+  heading left empty, and a table names a cell by its heading and its row, so each X was read out as
+  a row number and an X. The headings now hold Revoke, Remove profile and Remove rule, which are
+  never drawn and take no room.
 - **On a Windows without Consolas the invitation code goes under the Invite button rather than past
   the page.** The code falls back to Courier New there, and at 100 percent a whole code no longer
   fits beside the button once it reads Renew invite, so the row ran 12 pixels past the tab. The box

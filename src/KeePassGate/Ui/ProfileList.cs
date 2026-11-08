@@ -75,6 +75,12 @@ namespace KeePassGate.Ui
 
         public const string RemoveMark = "X";
 
+        /// <summary>
+        /// That column's heading, which a screen reader names every X in it by, and which is never
+        /// drawn: `ClientList.RevokeHeading` gives the reason.
+        /// </summary>
+        public const string RemoveHeading = "Remove profile";
+
         /// <summary>What the page says when the database names no profiles at all.</summary>
         public const string NobodyText =
             "No profile is named yet. Add one here, or approve a new one when a client asks to pair.";
@@ -595,18 +601,24 @@ namespace KeePassGate.Ui
                 ReadOnly = true
             });
 
-            grid.Columns.Add(new DataGridViewButtonColumn
+            var remove = new DataGridViewButtonColumn
             {
                 Name = RemoveColumnName,
-                HeaderText = string.Empty,
+
+                // The name of every X under it, and nothing else, as the clients list's is.
+                HeaderText = RemoveHeading,
                 Text = RemoveMark,
                 UseColumnTextForButtonValue = true,
-                AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells,
+                AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCellsExceptHeader,
                 MinimumWidth = GateIcon.Room,
                 ToolTipText = Tooltips.Wrapped(
                     "Removes this profile, so it grants nothing. The rules naming it stay, and "
                     + "come back into force if it is added again.")
-            });
+            };
+
+            // One line, so that words nobody sees do not make the heading row taller.
+            remove.HeaderCell.Style.WrapMode = DataGridViewTriState.False;
+            grid.Columns.Add(remove);
 
             grid.CellClick += (sender, e) =>
                 WindowHandlers.Run("a press on the profiles could not be carried out", () => OnCellClick(sender, e));
@@ -660,8 +672,10 @@ namespace KeePassGate.Ui
         /// Draws a bin over the heading of the column that takes something away.
         /// </summary>
         /// <remarks>
-        /// The heading only. The buttons under it keep their mark: what a button does is said by
-        /// the column it is in, and a picture in every row is a picture repeated once per row.
+        /// The heading only. The buttons under it keep their mark: what a button does is named by
+        /// the column it is in, to the eye by the bin and to a screen reader by the heading's
+        /// words, and a picture in every row is a picture repeated once per row. The words are
+        /// never drawn, bin or no bin, since the column is as wide as an X and not as the words.
         /// </remarks>
         private void OnCellPainting(object sender, DataGridViewCellPaintingEventArgs e)
         {
@@ -670,18 +684,17 @@ namespace KeePassGate.Ui
                 return;
             }
 
-            var bin = GateIcon.Bin;
-            if (bin == null)
-            {
-                return;
-            }
-
             e.Paint(e.ClipBounds, DataGridViewPaintParts.All & ~DataGridViewPaintParts.ContentForeground);
-            e.Graphics.DrawImageUnscaled(
-                bin,
-                e.CellBounds.Left + ((e.CellBounds.Width - bin.Width) / 2),
-                e.CellBounds.Top + ((e.CellBounds.Height - bin.Height) / 2));
             e.Handled = true;
+
+            var bin = GateIcon.Bin;
+            if (bin != null)
+            {
+                e.Graphics.DrawImageUnscaled(
+                    bin,
+                    e.CellBounds.Left + ((e.CellBounds.Width - bin.Width) / 2),
+                    e.CellBounds.Top + ((e.CellBounds.Height - bin.Height) / 2));
+            }
         }
 
         private void OnCellClick(object sender, DataGridViewCellEventArgs e)

@@ -145,6 +145,20 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void Every_X_is_named_to_a_screen_reader_by_what_pressing_it_does()
+        {
+            // S422: the heading was left empty for the bin painted over it, so each X was read
+            // out as its row and an X, and nothing told a listener that it removes a profile.
+            using (var page = new ProfileList(new FakeProfiles(), null))
+            {
+                Assume.That(page.Add("ops"), Does.Contain("ops"));
+
+                var grid = ControlTree.FindByName<DataGridView>(page, ProfileList.ListName);
+                ButtonColumns.AssertNamedBy(page, grid, ProfileList.RemoveColumnName, ProfileList.RemoveHeading);
+            }
+        }
+
+        [Test]
         public void A_name_the_database_refuses_is_reported_and_nothing_is_shown()
         {
             var database = new FakeProfiles { Refusal = "A group dialog is open." };
