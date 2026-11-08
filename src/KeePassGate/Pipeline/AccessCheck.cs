@@ -193,8 +193,9 @@ namespace KeePassGate.Pipeline
         {
             // Before the line, so the wait is paid by the request that would have written it. By
             // the client key, so a renewal keeps the allowance spent; a refused certificate has no
-            // client and is counted by its own admission key, as `DecisionPace` says.
-            _pace.Take(client == null ? null : client.ClientKey ?? client.AdmissionKey);
+            // client and shares one allowance with every refused certificate of its database, for
+            // the reason `DecisionPace` gives.
+            _pace.Take(Allowance(client));
 
             _audit.Record(new AuditEntry(
                 _clock(),
@@ -208,6 +209,25 @@ namespace KeePassGate.Pipeline
                 reason,
                 removedProfiles,
                 Identifier(requested)));
+        }
+
+        /// <summary>
+        /// The allowance a line about this caller is counted against, or null for a caller no
+        /// line can be counted for.
+        /// </summary>
+        private static string Allowance(ClientIdentity client)
+        {
+            if (client == null)
+            {
+                return null;
+            }
+
+            if (client.ClientKey != null)
+            {
+                return client.ClientKey;
+            }
+
+            return client.Refusal != null ? DecisionPace.RefusedAllowance(client.DatabaseId) : null;
         }
 
         /// <summary>

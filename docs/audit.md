@@ -192,8 +192,9 @@ so a program sending requests as fast as it can would otherwise push everything 
 both files in a couple of minutes, including the lines recording what it did first. Each client is
 recorded up to a thousand times at once and ten times a second after that, counted by its client
 key so that renewing does not start it again, and a request past that is answered more slowly
-rather than refused or left out. A certificate the gate refuses has no client key and is counted by
-its own admission key. A file holds about twenty thousand lines, so a single client flooding the
+rather than refused or left out. A certificate the gate refuses has no client key, and every
+certificate refused for a database is counted together, so certificates a program renewed out of
+give it nothing more. A file holds about twenty thousand lines, so a single client flooding the
 gate needs about half an hour to push a line out of both files: a line written just before the file
 is set aside goes once the next file fills, and only a line at the start of a file lasts about an
 hour. Every line the client writes on the way names it, and where what a client did first matters,

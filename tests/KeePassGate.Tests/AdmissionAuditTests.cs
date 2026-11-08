@@ -187,17 +187,11 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void A_refused_certificate_with_no_client_key_is_still_paced_by_its_own_key()
+        public void A_refused_certificate_with_no_client_key_is_still_paced()
         {
             // No record stands behind it, so it has no client key, and a revoked client hammering
             // the gate must not go without a pace for that.
-            ClientIdentity refused;
-            using (var authority = TestAuthority.New())
-            using (var certificate = authority.IssueClient("agent-fictitious"))
-            {
-                refused = ClientIdentity.Refused(Database, certificate, "this certificate has no admission record");
-            }
-
+            var refused = Refused();
             Assume.That(refused.ClientKey, Is.Null);
 
             for (var i = 0; i < DecisionPace.Burst + 1; i++)
@@ -206,6 +200,46 @@ namespace KeePassGate.Tests
             }
 
             Assert.That(_waits, Has.Count.EqualTo(1));
+        }
+
+        [Test]
+        public void Every_certificate_the_gate_refuses_shares_one_allowance()
+        {
+            // A client keeps the certificates it renewed out of, and each is refused once it is
+            // given up or expires. Counted by each certificate's own admission key, every
+            // certificate it kept brought a burst and a rate of its own.
+            var first = Refused();
+            var second = Refused();
+            Assume.That(second.AdmissionKey, Is.Not.EqualTo(first.AdmissionKey), "two certificates");
+
+            for (var i = 0; i < DecisionPace.Burst; i++)
+            {
+                _check.Refuse(first, "readEntry");
+            }
+
+            Assume.That(_waits, Is.Empty, "the burst itself is never held back");
+
+            _check.Refuse(second, "readEntry");
+
+            Assert.That(_waits, Has.Count.EqualTo(1), "the second certificate waits on what the first spent");
+        }
+
+        [Test]
+        public void A_refused_certificate_spends_nothing_of_an_admitted_client_s_allowance()
+        {
+            var entry = TestNode.Root("root").Granting("reader", AclVerb.Read).Child("an entry");
+            var client = Client("reader");
+            var refused = Refused();
+
+            for (var i = 0; i < DecisionPace.Burst + 1; i++)
+            {
+                _check.Refuse(refused, "readEntry");
+            }
+
+            _waits.Clear();
+            _check.Decide(client, "readEntry", AclVerb.Read, AclReach.Fields, entry);
+
+            Assert.That(_waits, Is.Empty);
         }
 
         [Test]
@@ -315,6 +349,16 @@ namespace KeePassGate.Tests
             using (var certificate = authority.IssueClient("agent-fictitious"))
             {
                 return ClientIdentity.Paired(Database, certificate, profiles);
+            }
+        }
+
+        /// <summary>A certificate this database issued, of its own, refused for want of a record.</summary>
+        private static ClientIdentity Refused()
+        {
+            using (var authority = TestAuthority.New())
+            using (var certificate = authority.IssueClient("agent-fictitious"))
+            {
+                return ClientIdentity.Refused(Database, certificate, "this certificate has no admission record");
             }
         }
 

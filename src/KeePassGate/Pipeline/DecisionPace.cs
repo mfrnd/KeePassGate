@@ -40,12 +40,19 @@ namespace KeePassGate.Pipeline
     /// copies, so a renewal does not hand a client a fresh allowance: counted per admission key,
     /// as it was, a client could renew and start again at a whole burst, and so roll the file
     /// faster than the pace says one client can. The key comes from what the router already holds,
-    /// `ClientIdentity.ClientKey`, and costs no read. A certificate the gate refuses has no client
-    /// key, since no record stands behind it, so its lines are counted by its admission key, which
-    /// is what they name; one that was a client's first certificate shares that client's
-    /// allowance, which is right, since it is the same client. A decision with no key at all is
-    /// not paced. The only lines written without one are pairings, whose pace is the operator
-    /// answering the dialog, and anything else without one is a defect.
+    /// `ClientIdentity.ClientKey`, and costs no read.
+    ///
+    /// **A certificate the gate refuses has no client key**, since no record stands behind it,
+    /// so every refused certificate of a database is counted against one allowance they share,
+    /// <see cref="RefusedAllowance"/>. Counted by its own admission key, as it first was, each
+    /// certificate a client renewed out of brought a burst and a rate of its own once it was
+    /// revoked or had expired, and a client that kept them could write as many times the pace as
+    /// it had certificates. Shared, the certificates the gate refuses write no faster together
+    /// than one client does, and no client's own allowance is spent by them.
+    ///
+    /// A decision with no key at all is not paced. The only lines written without a key are
+    /// pairings, whose pace is the operator answering the dialog, and anything else without a key
+    /// is a defect.
     /// </remarks>
     public sealed class DecisionPace
     {
@@ -83,10 +90,23 @@ namespace KeePassGate.Pipeline
             _wait = wait ?? throw new ArgumentNullException(nameof(wait));
         }
 
+        /// <summary>
+        /// The allowance every certificate a database's authority issued and the gate refuses is
+        /// counted against, by that database.
+        /// </summary>
+        /// <remarks>
+        /// Spelled so that it can never be a client key, which is 64 hexadecimal characters.
+        /// </remarks>
+        public static string RefusedAllowance(string databaseId)
+        {
+            return "refused:" + (databaseId ?? string.Empty);
+        }
+
         /// <summary>Returns when this client's next decision may be written down.</summary>
         /// <param name="clientKey">
-        /// The client's key, or a refused certificate's own admission key, which has no client;
-        /// null for a line no client can be counted for, which is not paced.
+        /// The client's key, or for a refused certificate, which has no client, the
+        /// <see cref="RefusedAllowance"/> of its database; null for a line no client can be
+        /// counted for, which is not paced.
         /// </param>
         public void Take(string clientKey)
         {

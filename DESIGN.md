@@ -1377,8 +1377,11 @@ certificate and so a new admission key, and an allowance kept by admission key s
 whole burst after every renewal, so a client could spend the burst once per certificate. The client
 key is the same on every record of one client, `CA.md` §223, and the router holds it already, on
 the identity the credential check built from the record, so counting by it costs no read. A
-certificate the gate refuses has no record behind it and so no client key; its lines are counted by
-its own admission key, which is what they name.
+certificate the gate refuses has no record behind it and so no client key, and every such
+certificate of a database is counted against one allowance they share. Counted by its own admission
+key, as it first was, each certificate a client renewed out of brought a whole burst of its own
+once it was revoked or had expired, so a client that kept them wrote as many times the pace as it
+had certificates.
 
 **A client's lines about its own admission count against the same allowance.** A renewal an answer
 given before refuses is answered at once and as often as a client asks, so its lines, and the line

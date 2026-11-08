@@ -447,6 +447,10 @@ none, since it releases both.
   so a client whose dialog the close took away, or whose request was still waiting for the screen,
   is told `503 locked`. Its connection was ended with the database's others, and the client saw it
   close without an answer. Every other connection to that database is still ended.
+- **Every certificate the gate refuses for a database shares one allowance in the audit**, rather
+  than each counting against its own. A client keeps the certificates it renewed out of, and each
+  brought a whole burst and rate of its own once it was revoked or had expired, so a client that
+  kept them could write as many times the pace as it had certificates.
 
 ## 0.1.0, 2026-10-25
 
