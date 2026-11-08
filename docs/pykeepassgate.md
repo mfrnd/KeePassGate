@@ -207,9 +207,16 @@ me = client.identity()
 print(me.client_key, me.admission_key, me.profiles, me.removed_profiles)
 ```
 
-`version` is the plugin's release, which this client shares, and `revision` is the commit the
-plugin was built from, or empty for a build that carries none. Two machines running the same
-version can be running different builds of it, and the revision says which.
+`version` is the plugin's release, which is the version of the API's contract, and `revision` is
+the commit the plugin was built from, or empty for a build that carries none. Two machines
+running the same version can be running different builds of it, and the revision names which.
+
+**The client asks for the status before anything else**, and refuses a gate it does not work
+with: a gate of another major version, or a gate whose major and minor it leads, so a `0.2` client
+refuses a `0.1` gate and a `0.1` client works with a `0.2` gate ([`../API.md`](../API.md)
+§411). The patch is never compared. A paired client asks once, before its first request, and
+pairing reads the version the gate's hello carries, before the operator is asked anything.
+Either raises `IncompatibleGate` naming both versions, and the command line exits `1` with it.
 
 `GateClient.open()` reads the credentials pairing stored, or the last renewal. Pass `profile=` where more than one
 identity is kept on the machine. **Every setting is passed by name**: after the identity, which is
@@ -850,6 +857,7 @@ except api.RouteRefused:
 | `RenewalRefusedForever` | The operator refused every renewal of this certificate. Ask again once the operator has allowed renewal again on the KPG tab's clients page, or pair again, with an invitation from the operator, before the one this client holds expires. |
 | `RenewalUnanswered` | Nobody answered the renewal dialog, and nothing changed. Ask again when somebody is at the screen. |
 | `RenewalError` | The base of the five above, for a caller that only wants to know whether the operator let the renewal happen. Never raised on its own: whatever else stops a renewal is the exception any route would raise for it. |
+| `IncompatibleGate` | This client does not work with the gate's version: another major version, or a minor version this client is ahead of ([`../API.md`](../API.md) §411). Raised before anything else is sent, from the pairing hello and before a paired client's first request, naming both versions, which are `.client` and `.gate` as well. Update whichever half is behind: asking again gets the same answer. |
 | `MalformedToken` | The text handed over is not an invitation, so nothing was sent. Check what was pasted. |
 | `ProtocolError` | Something on the wire is not what the protocol allows: an answer this client cannot read, or a request it will not send, such as an `if_match` that could not be one header line, which is refused before anything is dialed. Do not retry an answer it cannot read: the two halves disagree about the wire, which `tests/pykeepassgate/test_protocol.py` exists to stop. An answer longer than `max_response_bytes` is refused this way too, and the message says so: raise the setting rather than retry. |
 | `NotPaired` | Nothing is stored for a paired client where this looked: nothing has paired under that profile, its identity was given up, or the directory named is not the one the pairing used. Pair, or name the profile or the directory it used. A `StorageError`, so catching that catches this as well. |
@@ -1003,6 +1011,14 @@ with FakeGate(host, authority.pem) as gate:
     client = api.GateClient(credentials)
     ...     # whatever the program does, which here meets `GateBusy`
 ```
+
+**One route the stand-in answers itself**: `GET /gate/status`, which the client asks before its
+first request to compare the gate's version with its own. It answers with `gate.version`, this
+client's own version unless a test sets another, so a script need not answer for it, and a test
+of what a program does with a gate the client refuses sets a version the client does not work
+with, which meets `IncompatibleGate`. With `gate.version = None` the route goes to the handler
+like any other, for a test that scripts what the status route answers. What the stand-in answers
+itself is not in `gate.requests`.
 
 A handler is called with the path, the body as text, and the client certificate as DER, or `None`
 when none was offered, and answers with the status and the body. `gate.method()`, asked from inside

@@ -18,8 +18,11 @@ uv add pykeepassgate              # as a dependency of the project this is run i
 uv tool install pykeepassgate     # or the command line on its own
 ```
 
-`pip install pykeepassgate` takes the same path. A client works with a plugin of the same major
-and minor version, as `0.1`, whatever the patch on either side. One dependency, `cryptography`, because the gate
+`pip install pykeepassgate` takes the same path. A client works with a plugin of its own major
+version whose major and minor it does not lead, whatever the patch on either side, so `0.1` works
+with `0.1` and `0.2` and not `0.0`, and it refuses any other before it sends anything else, as
+[`API.md`](https://github.com/mfrnd/KeePassGate/blob/master/API.md) §411 has it. One dependency,
+`cryptography`, because the gate
 hands over a PKCS#12 and Python's `ssl` reads PEM. Everything else, the command line included, is
 the standard library.
 
@@ -165,6 +168,7 @@ catches whatever this client raises of its own and nothing the standard library 
 | `Withheld` | A protected value this client may not read, from every way of reading one: the rule that lets it read or list the entry does not grant `P`, which the operator can add. Never `None` or an empty string in its place; `entry.withheld` and `field.withheld` name what is kept back without a `try`, so `{name: entry.fields[name] for name in entry.fields if name not in entry.withheld}` reads every value this client may read. |
 | `Unresolved` | From `pykeepassgate.refs.resolve` alone: a value it will not give as KeePass would, such as a reference that searches by title or names an entry this client cannot read, or a placeholder KeePass replaces and it does not. The message names which. |
 | `AmbiguousName` | A name only KeePass's own comparison can match: an entry's standard strings, `password` among them, when the entry holds the string under no name spelled exactly so beside a name beyond ASCII that KeePass may read as it, and a placeholder naming a field only in another case beyond ASCII. Never an empty string in its place. |
+| `IncompatibleGate` | This client does not work with the gate's version: another major version, or a minor version this client is ahead of. Raised before anything else is sent, naming both versions, which are `.client` and `.gate` as well. Update whichever half is behind. |
 | `MalformedToken` | The text handed over is not an invitation, so nothing was sent. Check what was pasted. |
 | `ProtocolError` | Something on the wire is not what the protocol allows: an answer this client cannot read, or a request it will not send. Do not retry an answer it cannot read: the two halves disagree about the wire, which `tests/pykeepassgate/test_protocol.py` exists to stop. An answer longer than `max_response_bytes` is refused this way too, and the message says so: raise the setting rather than retry. |
 | `NotPaired` | Nothing is stored for a paired client where this looked: nothing has paired under that profile, its identity was given up, or the directory named is not the one the pairing used. Pair, or name the profile or the directory it used. A `StorageError`, so catching that catches this as well. |

@@ -16,6 +16,13 @@ value holding a control character, each answered `400` with the plugin's reason 
 is asked anything. And a handler that raises is answered `500 internal error`, as the plugin
 answers a defect of its own, with what it raised kept in `FakeGate.failures`.
 
+**And one route it answers on its own, unless told not to**: `GET /gate/status`, which a paired
+client asks before its first request to compare the gate's version with its own. It answers with
+`FakeGate.version`, this client's own unless a test sets another, so a program's script need not
+answer for it, and a test of what the program does with a gate it is refused sets an older version.
+Set to `None`, the route goes to the handler like any other. Answered before the handler is asked,
+it is no more in `FakeGate.requests` than the two refusals are.
+
 **One refusal it makes on its own, and differently from the plugin.** A client certificate that is
 offered is verified in the handshake, chain and dates, since `ssl` cannot ask for one without: an
 expired, not yet valid or foreign one ends the handshake with an alert, which the client raises as
@@ -38,6 +45,7 @@ from __future__ import annotations
 
 import contextlib
 import datetime as dt
+import hashlib
 import json
 import socket
 import ssl
@@ -53,6 +61,9 @@ from cryptography import x509
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.x509.oid import NameOID
+
+from .client import STATUS_PATH
+from .compatibility import CLIENT_VERSION
 
 #: What the plugin's authority uses, so that anything measured here is measured against the same
 #: shape: ECDSA on P-256, signed with SHA-256, which is also why the channel binding is SHA-256.
@@ -232,6 +243,17 @@ class FakeGate:
         #: one that goes quiet mid-request ends its thread rather than parking it.
         self.quiet = 10.0
 
+        #: The version `GET /gate/status` is answered with, without asking the handler: this
+        #: client's own, which it works with, unless a test sets another. `None` hands the route
+        #: to the handler like any other, for a test that scripts what the status route answers.
+        self.version: str | None = CLIENT_VERSION
+
+        # Named as the plugin names it: the first sixteen characters of SHA-256 over the
+        # authority's DER, in lowercase hex.
+        anchor = x509.load_pem_x509_certificate(authority.read_bytes())
+        digest = hashlib.sha256(anchor.public_bytes(serialization.Encoding.DER)).hexdigest()
+        self._database = digest[:16]
+
         self._authority = authority
         self._context = self._serving(host_certificate)
         self._listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -386,6 +408,11 @@ class FakeGate:
     ) -> None:
         self.names.append(name)
 
+    def _status(self, version: str) -> str:
+        """What the plugin's status route answers, from a build with this version and no commit."""
+        document = {"ok": True, "database": self._database, "version": version, "revision": ""}
+        return json.dumps(document, separators=(",", ":"))
+
     def _answer(self, raw: socket.socket) -> None:
         try:
             with self._context.wrap_socket(raw, server_side=True) as wrapped:
@@ -397,6 +424,11 @@ class FakeGate:
                 if isinstance(headers, str):
                     # Refused as the plugin refuses the head, before any route sees it.
                     wrapped.sendall(_response(400, json.dumps({"error": headers})))
+                    return
+
+                version = self.version
+                if version is not None and method == "GET" and path == STATUS_PATH:
+                    wrapped.sendall(_response(200, self._status(version)))
                     return
 
                 self.requests.append((method, path))

@@ -87,6 +87,20 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void The_answer_carries_the_version_a_client_compares_with_its_own()
+        {
+            // API.md §411, so that a client refuses before the operator is asked: a pairing
+            // connection reaches the two pairing routes and nothing else, so the status route a
+            // paired client asks is not a route a pairing client can.
+            var context = Hello(ClientProof());
+
+            Assert.That(context.Status, Is.EqualTo(200), context.Json);
+            var version = JsonBody.Read(context.Json).Text("version");
+            Assert.That(version, Is.EqualTo(GateVersion.Current),
+                "the version the status route reports");
+        }
+
+        [Test]
         public void A_client_that_cannot_prove_it_is_refused_and_nothing_is_spent()
         {
             var context = Hello(new byte[32]);

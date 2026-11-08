@@ -24,8 +24,8 @@ from pathlib import Path
 from typing import Any, Literal
 from urllib.parse import quote
 
+from . import compatibility, sni, transport
 from . import credentials as credentials_module
-from . import sni, transport
 from .errors import (
     GateError,
     GateUnavailable,
@@ -81,9 +81,11 @@ def _segment(text: str) -> str:
 class Status:
     """What the gate says about itself and the database this client reached.
 
-    `version` is the plugin's release, which this client and the routing document share, and
-    `revision` the commit the plugin was built from, in full, or empty for a build that carries
-    none: every build between two releases carries the same version, and this tells them apart.
+    `version` is the plugin's release, which is the version of the API's contract: this client
+    works with it when the two have the same major version and this client's major and minor do
+    not lead it, `API.md` §411. `revision` is the commit the plugin was built from, in full, or
+    empty for a build that carries none: every build between two releases carries the same
+    version, and this tells them apart.
     """
 
     ok: bool
@@ -188,6 +190,10 @@ class GateClient:
         self._max_response_bytes = transport.response_limit(max_response_bytes)
         self._key_password = transport.key_password_limit(key_password)
         self._opened: bytes | None = None
+
+        # Whether the gate's version has been compared with this client's yet, which `_exchange`
+        # does before the first request it sends, by way of `status`.
+        self._compatible = False
         self._context = transport.paired_context(
             credentials.authority, credentials.identity, self._unlock
         )
@@ -257,10 +263,18 @@ class GateClient:
         A client can use it to answer three questions at once: whether the gate is listening,
         whether this certificate is still admitted, and whether the database is unlocked.
 
+        **And it is how this client knows it works with the gate**, which every other request
+        waits for: a gate whose version it does not work with, `API.md` §411, raises
+        `IncompatibleGate` here, naming both versions, and so does every request after it.
+
         Every member is read as the document declares it, as every other answer's are: `bool`
         would read the text "false" as true, and `str` a `null` as the word "None".
         """
-        body = self.get(STATUS_PATH)
+        return self._status(self._exchange("GET", STATUS_PATH, None, _refuse, comparing=False))
+
+    def _status(self, reply: transport.Response) -> Status:
+        """What the status route answered, once this client works with the version in it."""
+        body = _object(reply)
         ok, database = body.get("ok"), body.get("database")
         version, revision = body.get("version"), body.get("revision")
         if not isinstance(ok, bool) or not (
@@ -268,6 +282,8 @@ class GateClient:
         ):
             raise ProtocolError("the gate answered its status in a form this client cannot read")
 
+        compatibility.refuse_incompatible(version)
+        self._compatible = True
         return Status(ok=ok, database=database, version=version, revision=revision)
 
     def identity(self) -> Identity:
@@ -532,7 +548,7 @@ class GateClient:
     def _give_up(self, old: credentials_module.Credentials) -> GateError | None:
         """Revoke the certificate a renewal replaced, presenting it, and say why not if not."""
         try:
-            GateClient(
+            giving_up = GateClient(
                 old,
                 connection_timeout=self._connection_timeout,
                 host=self._host,
@@ -542,7 +558,10 @@ class GateClient:
                 retry_undecided_timeout=self._retry_undecided_timeout,
                 max_response_bytes=self._max_response_bytes,
                 key_password=self._opened,
-            ).revoke_certificate()
+            )
+            # The gate this client compared already, which the renewal has just been answered by.
+            giving_up._compatible = self._compatible
+            giving_up.revoke_certificate()
         except NotAdmitted:
             # Already refused, by a `401` or because it has expired, which is what giving it up
             # was for.
@@ -1033,6 +1052,7 @@ class GateClient:
         retry_undecided_timeout: transport.Given = transport.KEEP,
         connection_timeout: float | None = None,
         held: float | None = None,
+        comparing: bool = True,
     ) -> transport.Response:
         """What `_request` does, answering with the whole reply, its tag among it.
 
@@ -1040,6 +1060,13 @@ class GateClient:
         nothing, so the node is where it was when the condition was written, unless somebody
         else changed it meanwhile, which is exactly what the condition is there to catch. One that
         could not be a header line is refused first, before anything is dialed, as a budget is.
+
+        **The first request this client sends is preceded by the status route**, unless it is
+        that route asked by `status`, which is the comparison itself: a gate this client does not
+        work with is refused, with `IncompatibleGate`, before anything else is sent to it. Under
+        the budgets of the request it precedes, since a caller willing to wait out a lock for a
+        write is willing to wait it out for what the write needs first, and once per client, since
+        the gate a client reaches is the gate its credentials name.
         """
         transport.check_condition(if_match)
         retry = transport.Retry(
@@ -1051,6 +1078,22 @@ class GateClient:
 
         payload = "" if body is None else json.dumps(body, separators=(",", ":"))
 
+        if comparing and not self._compatible:
+            self._status(self._attempts("GET", STATUS_PATH, "", _refuse, retry, None, None))
+
+        return self._attempts(method, path, payload, refuse, retry, connection_timeout, if_match)
+
+    def _attempts(
+        self,
+        method: str,
+        path: str,
+        payload: str,
+        refuse: Callable[[transport.Response], None],
+        retry: transport.Retry,
+        connection_timeout: float | None,
+        if_match: str | None,
+    ) -> transport.Response:
+        """One request, sent again for as long as `retry` allows, and the reply that ended it."""
         while True:
             try:
                 reply = self._once(method, path, payload, connection_timeout, if_match)

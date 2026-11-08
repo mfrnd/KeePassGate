@@ -43,6 +43,23 @@ class ProtocolError(GateError):
     """
 
 
+class IncompatibleGate(GateError):
+    """This client does not work with the gate's version, so nothing more is asked of the gate.
+
+    A client works with a gate of its own major version whose major and minor it does not lead:
+    patches are released on each side on their own, so they are not compared, and a gate ahead of
+    its client is a working pair. `API.md` holds that as part of the API's contract. This client
+    asks before anything else is sent, in the pairing hello and before a paired client's first
+    request, and raises this with both versions, which the message names as well.
+    """
+
+    def __init__(self, message: str, client: str, gate: str) -> None:
+        """Keep this client's version and the version the gate reported, exactly as reported."""
+        super().__init__(message)
+        self.client = client
+        self.gate = gate
+
+
 class StorageError(GateError):
     """What is stored for a paired client could not be written, read or protected.
 

@@ -90,21 +90,21 @@ written in one place and everything else takes it from there, the routing docume
 which the build writes it into, so there is no second place for a version to be moved in and not
 the first.
 
-**At 0.x, a minor version for anything that breaks either half, and a patch for a fix that breaks
-nothing.** Breaking is a program or an operator that worked before having to change: a route, a
-status or a body on the wire, what a certificate or an admission record carries, what the client
-raises or returns, or what the operator has to do. A change that adds without breaking anything is a
-minor version as well, because the halves move together and a client using the addition needs the
-gate that serves it.
+**Which number a change moves is a rule of the API's contract, and [`API.md`](API.md) §411 holds
+it**, together with which client works with which gate. It is a design rule rather than a
+convention a release checks, so it is not repeated here. What the contract does not cover is the
+operator, and a change the operator has to act on is a minor version as well: a patch is a fix
+that nobody has to do anything about.
 
 **A minor version releases both halves, and a patch releases only the half it fixes.** An `x.y.0`
-publishes the plugin, with the routing document inside it, and PyKeePassGate together, and the
-same major and minor version is the promise that a client and a gate work together. A patch moves
+publishes the plugin, with the routing document inside it, and PyKeePassGate together. A patch moves
 the one number, since it is written once, and publishes only the half whose files it changed: the
 plugin for anything under `src/KeePassGate`, the client for anything under `src/pykeepassgate` or
 `pyproject.toml`. A patch that changed neither has nothing to release. So a patch number may exist
-on one side only, and the client at `0.1.2` beside the plugin at `0.1.1` is a pair, because both
-are `0.1`. A full split, with a protocol version the gate serves, waits for 1.0 or a second client.
+on one side only, and the client at `0.1.2` beside the plugin at `0.1.1` is a pair, because
+patches are not compared. A full split, with a protocol version the gate serves apart from the
+release, waits for a second client: until then the release's version is the protocol's, and the
+next change that breaks an existing client is 1.0 whatever else it brings, as §411 has it.
 [`RELEASING.md`](RELEASING.md) is how a version is published.
 
 **From the first release on, every change goes into [`CHANGELOG.md`](CHANGELOG.md)**, under the

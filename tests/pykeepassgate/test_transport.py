@@ -136,7 +136,7 @@ class TestConnecting:
         with transport.connect(
             gate.port, context, "abc.def.kpg", connection_timeout=10.0
         ) as connection:
-            connection.send("GET", "/gate/status")
+            connection.send("GET", "/gate/whoami")
 
         assert gate.names == ["abc.def.kpg"]
 
@@ -199,7 +199,7 @@ class TestDialing:
             connection_timeout=7.0,
             dial=dial,
         ) as connection:
-            assert connection.send("GET", "/gate/status").status == 200
+            assert connection.send("GET", "/gate/whoami").status == 200
 
         assert asked == [("gate.invalid", gate.port, 7.0)]
 
@@ -307,7 +307,7 @@ class TestPinning:
         with transport.connect(
             gate.port, context, "abc.def.kpg", connection_timeout=10.0
         ) as connection:
-            assert connection.send("GET", "/gate/status").status == 200
+            assert connection.send("GET", "/gate/whoami").status == 200
 
     def test_a_certificate_from_a_foreign_authority_fails_the_handshake(
         self, gate: FakeGate, tmp_path: Path, client_certificate: Issued
@@ -337,7 +337,7 @@ class TestPinning:
         with transport.connect(
             gate.port, context, "nothing.like.it.kpg", connection_timeout=10.0
         ) as open_:
-            assert open_.send("GET", "/gate/status").status == 200
+            assert open_.send("GET", "/gate/whoami").status == 200
 
     def test_a_client_certificate_of_the_same_authority_is_not_a_host(
         self, gate: FakeGate, authority: Authority, client_certificate: Issued
@@ -413,7 +413,7 @@ class TestPinning:
             with transport.connect(
                 gate.port, context, "abc.def.kpg", connection_timeout=10.0
             ) as connection:
-                assert connection.send("GET", "/gate/status").status == 200
+                assert connection.send("GET", "/gate/whoami").status == 200
 
         end = host.certificate.not_valid_after_utc
         assert end.year - dt.datetime.now(dt.UTC).year in (99, 100)
@@ -518,7 +518,7 @@ class TestTheAnswerIsFramedRatherThanEnded:
         with transport.connect(
             gate.port, context, "abc.def.kpg", connection_timeout=10.0
         ) as connection, pytest.raises(TransportError, match="short of its own content length"):
-            connection.send("GET", "/gate/status")
+            connection.send("GET", "/gate/whoami")
 
     def test_an_answer_that_declares_no_length_is_taken_as_it_stands(
         self, gate: FakeGate, authority: Authority, client_certificate: Issued
@@ -533,7 +533,7 @@ class TestTheAnswerIsFramedRatherThanEnded:
         with transport.connect(
             gate.port, context, "abc.def.kpg", connection_timeout=10.0
         ) as connection:
-            assert connection.send("GET", "/gate/status").body == '{"ok": true}'
+            assert connection.send("GET", "/gate/whoami").body == '{"ok": true}'
 
     def test_a_length_that_is_not_a_number_is_refused(
         self, gate: FakeGate, authority: Authority, client_certificate: Issued
@@ -545,7 +545,7 @@ class TestTheAnswerIsFramedRatherThanEnded:
         with transport.connect(
             gate.port, context, "abc.def.kpg", connection_timeout=10.0
         ) as connection, pytest.raises(ProtocolError, match="not a content length"):
-            connection.send("GET", "/gate/status")
+            connection.send("GET", "/gate/whoami")
 
     def test_a_peer_that_frames_and_does_not_close_is_answered_at_once(
         self, gate: FakeGate, authority: Authority, client_certificate: Issued
@@ -560,7 +560,7 @@ class TestTheAnswerIsFramedRatherThanEnded:
         with transport.connect(
             gate.port, context, "abc.def.kpg", connection_timeout=10.0
         ) as connection:
-            assert connection.send("GET", "/gate/status").body == '{"ok": true}'
+            assert connection.send("GET", "/gate/whoami").body == '{"ok": true}'
 
         assert time.monotonic() - started < 3.0, "it did not wait for a close it did not need"
 
@@ -574,7 +574,7 @@ class TestTheAnswerIsFramedRatherThanEnded:
         with transport.connect(
             gate.port, context, "abc.def.kpg", connection_timeout=10.0, max_response_bytes=1024
         ) as connection, pytest.raises(ProtocolError, match="over 1024 bytes"):
-            connection.send("GET", "/gate/status")
+            connection.send("GET", "/gate/whoami")
 
     def test_an_answer_under_the_cap_it_was_given_is_read(
         self, gate: FakeGate, authority: Authority, client_certificate: Issued
@@ -586,7 +586,7 @@ class TestTheAnswerIsFramedRatherThanEnded:
         with transport.connect(
             gate.port, context, "abc.def.kpg", connection_timeout=10.0, max_response_bytes=8192
         ) as connection:
-            assert connection.send("GET", "/gate/status").body == body
+            assert connection.send("GET", "/gate/whoami").body == body
 
     @pytest.mark.parametrize("cap", [0, -1])
     def test_a_cap_nothing_fits_under_is_refused_before_dialing(
@@ -656,7 +656,7 @@ class TestWhenToComeBack:
         with transport.connect(
             gate.port, context, "abc.def.kpg", connection_timeout=10.0
         ) as connection, pytest.raises(DatabaseLocked) as refused:
-            connection.send("GET", "/gate/status")
+            connection.send("GET", "/gate/whoami")
 
         assert refused.value.retry_after is None
 

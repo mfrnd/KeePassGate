@@ -55,9 +55,10 @@ def test_what_the_documentation_shows_is_enough_to_point_a_client_at_it(tmp_path
         client = api.GateClient(credentials, connection_timeout=10.0)
 
         with pytest.raises(GateBusy):
-            client.status()
+            client.groups()
 
-    assert gate.requests == [("GET", "/gate/status")]
+    # Not the status route, which the client asks first and the stand-in answers itself.
+    assert gate.requests == [("GET", "/groups")]
 
 
 def test_a_held_approval_is_answered_as_the_plugin_answers_it() -> None:
@@ -82,7 +83,7 @@ def test_a_gate_nobody_scripted_answers_that_it_has_no_such_route(
     stored = api.save(tmp_path / "kept", gate.port, dict(bundle))
 
     with pytest.raises(RouteRefused) as refused:
-        api.GateClient(stored, connection_timeout=10.0).status()
+        api.GateClient(stored, connection_timeout=10.0).groups()
 
     assert (refused.value.status, refused.value.error) == (404, "no such route")
 
@@ -109,7 +110,7 @@ def test_a_connection_that_named_nothing_is_said_to_have_named_nothing(gate: Fak
 def answered(
     gate: FakeGate,
     authority: Authority,
-    request: bytes = b"GET /gate/status HTTP/1.1\r\nHost: abc.def.kpg\r\n\r\n",
+    request: bytes = b"GET /gate/whoami HTTP/1.1\r\nHost: abc.def.kpg\r\n\r\n",
 ) -> bytes:
     """The whole answer to one request, as the bytes the stand-in wrote, head and all.
 
@@ -181,7 +182,7 @@ def test_a_503_names_its_word_in_a_field_as_the_plugin_does(
     # The answer to a HEAD has no body, so the field is where a client reads which refusal it
     # was; a GET carries it too, as the plugin's does.
     gate.handler = lambda path, body, client: (status, answer)
-    request = f"{method} /gate/status HTTP/1.1\r\nHost: abc.def.kpg\r\n\r\n".encode("ascii")
+    request = f"{method} /gate/whoami HTTP/1.1\r\nHost: abc.def.kpg\r\n\r\n".encode("ascii")
 
     head = answered(gate, authority, request).split(b"\r\n\r\n")[0].decode("ascii").split("\r\n")
 
@@ -248,7 +249,7 @@ def test_a_head_the_plugin_refuses_is_refused_here_too(
     gate.handler = answer_asked
 
     answer = answered(
-        gate, authority, b"GET /gate/status HTTP/1.1\r\nHost: abc.def.kpg\r\n" + header + b"\r\n"
+        gate, authority, b"GET /gate/whoami HTTP/1.1\r\nHost: abc.def.kpg\r\n" + header + b"\r\n"
     )
     head, _, body = answer.partition(b"\r\n\r\n")
 
