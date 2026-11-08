@@ -11,6 +11,11 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **The plugin refuses to load a routing document allowing a larger body than its reader takes**:
+  an array in a request body declaring no `maxItems`, or more than 32, and a body declaring more
+  than 32 members. The reader refuses either before the document's schema is asked, so such a
+  document loaded and offered bodies that were answered `400 malformed`. The document the plugin
+  ships allows none.
 - **The plugin refuses to load a routing document offering a body under a second media type**
   beside `application/json`. The router answers `415` to every other type whatever the document
   declares, so such a document offered a body the router turned away, under a schema nothing

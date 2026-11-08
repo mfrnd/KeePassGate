@@ -20,7 +20,10 @@ namespace KeePassGate.Spec
     /// What it understands is exactly what `JsonBody` can read and what this wire carries: one flat
     /// object whose values are strings or arrays of strings, `required`, `additionalProperties:
     /// false`, lengths, a pattern a string is held to, and a cap on how many items an array may
-    /// hold. No schema library does this
+    /// hold, which every array declares. **No more than `JsonBody` reads, either**: an array may
+    /// hold no more than `JsonBody.MaxItems` and a body no more than `JsonBody.MaxMembers`
+    /// members, because the reader refuses a larger body before this is asked, and a document
+    /// allowing more would offer bodies nothing accepts. No schema library does this
     /// job. The cheapest brings two assemblies and a license an MIT plugin cannot take; the cheapest
     /// one it can take brings fourteen into the process that holds somebody's password database,
     /// against three for reading the document, and would validate constructs this document is not
@@ -78,6 +81,14 @@ namespace KeePassGate.Spec
             if (schema.Properties == null || schema.Properties.Count == 0)
             {
                 return "a request body declares its properties";
+            }
+
+            if (schema.Properties.Count > JsonBody.MaxMembers)
+            {
+                // The reader refuses a body of more members than that before this is asked, so a
+                // document declaring more would offer bodies nothing accepts.
+                return "a request body declares at most " + JsonBody.MaxMembers +
+                       " properties, which is as many members as the reader takes";
             }
 
             foreach (var property in schema.Properties)
@@ -287,8 +298,23 @@ namespace KeePassGate.Spec
                     return "an array on this wire holds strings";
                 }
 
-                return Unimplemented(member, "items", "maxItems")
-                       ?? Unimplemented(member.Items, "minLength", "maxLength");
+                var unimplemented = Unimplemented(member, "items", "maxItems")
+                                    ?? Unimplemented(member.Items, "minLength", "maxLength");
+                if (unimplemented != null)
+                {
+                    return unimplemented;
+                }
+
+                // A bound of its own, and no higher than the reader's, which refuses a longer list
+                // before this is asked: an array allowing more, or declaring no bound, offered
+                // lists the reader answered as malformed past that length.
+                if (!member.MaxItems.HasValue || member.MaxItems.Value > JsonBody.MaxItems)
+                {
+                    return "an array declares maxItems of at most " + JsonBody.MaxItems +
+                           ", which is as many items as the reader takes";
+                }
+
+                return null;
             }
 
             return "this wire carries strings and arrays of strings, and this declares " + Describe(member.Type);

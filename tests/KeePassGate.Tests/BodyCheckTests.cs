@@ -292,7 +292,7 @@ namespace KeePassGate.Tests
             var text = new OpenApiSchema { Type = "string" };
             Writes[keyword](text);
 
-            var list = new OpenApiSchema { Type = "array", Items = new OpenApiSchema { Type = "string" } };
+            var list = new OpenApiSchema { Type = "array", Items = new OpenApiSchema { Type = "string" }, MaxItems = 1 };
             if (keyword != "Items")
             {
                 Writes[keyword](list);
@@ -326,7 +326,7 @@ namespace KeePassGate.Tests
                 Writes[keyword](item);
             }
 
-            var onItems = BodyCheck.Supports(Body(new OpenApiSchema { Type = "array", Items = item }));
+            var onItems = BodyCheck.Supports(Body(new OpenApiSchema { Type = "array", Items = item, MaxItems = 1 }));
             if (keyword == "MinLength" || keyword == "MaxLength" || keyword == "Items")
             {
                 Assert.That(onItems, Is.Null, "an item says how long it is");
@@ -335,6 +335,40 @@ namespace KeePassGate.Tests
             {
                 Assert.That(onItems, Is.Not.Null, "nothing enforces " + keyword + " on an item");
             }
+        }
+
+        [Test]
+        public void An_array_declares_a_bound_no_higher_than_the_reader_takes()
+        {
+            // The reader refuses a list longer than its own cap before the schema is asked, so an
+            // array allowing more, or declaring no bound at all, loaded and offered lists the
+            // reader answered `malformed` past the cap.
+            OpenApiSchema List(int? most) =>
+                new OpenApiSchema { Type = "array", Items = new OpenApiSchema { Type = "string" }, MaxItems = most };
+
+            Assert.That(BodyCheck.Supports(Body(List(JsonBody.MaxItems))), Is.Null);
+            Assert.That(BodyCheck.Supports(Body(List(JsonBody.MaxItems + 1))), Does.Contain("maxItems"));
+            Assert.That(BodyCheck.Supports(Body(List(null))), Does.Contain("maxItems"));
+        }
+
+        [Test]
+        public void A_body_declares_no_more_members_than_the_reader_takes()
+        {
+            // The same cap for the object itself: a body sending every member of a schema declaring
+            // more than the reader takes was refused before the schema was asked about it.
+            OpenApiSchema Members(int count)
+            {
+                var schema = new OpenApiSchema { Type = "object", AdditionalPropertiesAllowed = false };
+                for (var at = 0; at < count; at++)
+                {
+                    schema.Properties["m" + at] = new OpenApiSchema { Type = "string" };
+                }
+
+                return schema;
+            }
+
+            Assert.That(BodyCheck.Supports(Members(JsonBody.MaxMembers)), Is.Null);
+            Assert.That(BodyCheck.Supports(Members(JsonBody.MaxMembers + 1)), Does.Contain("properties"));
         }
 
         [Test]
