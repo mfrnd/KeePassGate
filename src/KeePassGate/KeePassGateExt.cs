@@ -458,6 +458,18 @@ namespace KeePassGate
 
             try
             {
+                // The log first, before anything that can throw, so that whatever does is written
+                // down by `Report` in the catch below rather than meeting a plugin with nowhere to
+                // write it.
+                //
+                // KeePass calls this on its own thread, which is the one that may not wait for a
+                // file: a line the log or the audit is given there goes to a writer of its own.
+                var keePass = System.Threading.Thread.CurrentThread;
+                Func<bool> onKeePass = () => System.Threading.Thread.CurrentThread == keePass;
+
+                _log = new TraceGateLog(onKeePass);
+                _incidents = new GateIncidents(_log);
+
                 // KeePass's own icons, lent to the tabs for as long as this plugin is loaded. The
                 // columns that remove things head themselves with its waste bin, and without a
                 // KeePass to borrow from they simply have no icon.
@@ -471,14 +483,6 @@ namespace KeePassGate
                 // that only for windows it registers, which this plugin's do not: `CaptureGuard`
                 // applies the same to them, asking KeePass's setting as each is made.
                 CaptureGuard.Wanted = () => KeePass.Program.Config.Security.PreventScreenCapture;
-
-                // KeePass calls this on its own thread, which is the one that may not wait for a
-                // file: a line the log or the audit is given there goes to a writer of its own.
-                var keePass = System.Threading.Thread.CurrentThread;
-                Func<bool> onKeePass = () => System.Threading.Thread.CurrentThread == keePass;
-
-                _log = new TraceGateLog(onKeePass);
-                _incidents = new GateIncidents(_log);
 
                 // Before any window of the plugin's own is made, so that every handler on one
                 // records what it did not name rather than letting it reach WinForms' own dialog.

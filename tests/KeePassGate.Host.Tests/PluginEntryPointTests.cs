@@ -263,6 +263,20 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void A_start_that_fails_at_its_first_step_is_written_to_the_log()
+        {
+            // The main window is the first thing the start reads, before it borrows KeePass's
+            // icons. The log has to exist by then, or the reason the plugin did not load is in
+            // KeePass's warning and nowhere of the plugin's own.
+            var thrown = new InvalidOperationException("the main window was refused " + Guid.NewGuid().ToString("N"));
+
+            Assert.Throws<InvalidOperationException>(() => _plugin.Initialize(new FakePluginHost(0, thrown)));
+
+            Assert.That(File.ReadAllText(Paths.Join(_logDirectory, TraceGateLog.DefaultFileName)),
+                Does.Contain(thrown.Message));
+        }
+
+        [Test]
         public void A_menu_item_that_cannot_be_made_is_left_out_rather_than_stopping_KeePass_loading()
         {
             // KeePass asks for the item from inside its main window's load, with nothing around the
