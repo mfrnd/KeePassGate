@@ -1306,10 +1306,13 @@ paths:
                     a name holding any Unicode format character, general category Cf, is
                     `400 malformed`. The format characters are the bidirectional controls and
                     every character drawn as nothing at all, such as the zero-width spaces and
-                    joiners, the soft hyphen and the byte order mark. A name the entry carries, or
-                    a name the database cannot tell from a name it carries, is `409`. Looking like
-                    another name in any other way, by a letter of another script or a space at
-                    its end, is not refused.
+                    joiners, the soft hyphen and the byte order mark. A name its routes could not
+                    carry is `400 malformed` as well: percent-encoded, each byte of its UTF-8
+                    beyond ASCII takes three characters of the path, and a route naming it may
+                    not run past the 2048 characters of a target the transport reads. A name the
+                    entry carries, or a name the database cannot tell from a name it carries, is
+                    `409`. Looking like another name in any other way, by a letter of another
+                    script or a space at its end, is not refused.
                 value:
                   type: string
                   maxLength: 65536
@@ -1584,10 +1587,13 @@ paths:
                     a name holding any Unicode format character, general category Cf, is
                     `400 malformed`. The format characters are the bidirectional controls and
                     every character drawn as nothing at all, such as the zero-width spaces and
-                    joiners, the soft hyphen and the byte order mark. A name the entry carries, or
-                    a name the database cannot tell from a name it carries, is `409`. Looking like
-                    another name in any other way, by a letter of another script or a space at
-                    its end, is not refused.
+                    joiners, the soft hyphen and the byte order mark. A name its routes could not
+                    carry is `400 malformed` as well: percent-encoded, each byte of its UTF-8
+                    beyond ASCII takes three characters of the path, and a route naming it may
+                    not run past the 2048 characters of a target the transport reads. A name the
+                    entry carries, or a name the database cannot tell from a name it carries, is
+                    `409`. Looking like another name in any other way, by a letter of another
+                    script or a space at its end, is not refused.
                 content:
                   type: string
                   maxLength: 699052

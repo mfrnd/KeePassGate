@@ -2184,6 +2184,62 @@ namespace KeePassGate.Tests
             Assert.That(_vault.Field(_entry, "Password"), Is.EqualTo("not-a-real-password"));
         }
 
+        [TestCase("fields", "\u4E2D", TestName = "A field name of Chinese characters is made only while its routes can name it")]
+        [TestCase("attachments", "\u4E2D", TestName = "An attachment name of Chinese characters is made only while its routes can name it")]
+        [TestCase("fields", "\u0436", TestName = "A field name of Cyrillic letters is made only while its routes can name it")]
+        [TestCase("attachments", "\uD83D\uDE00", TestName = "An attachment name beyond the first plane is made only while its routes can name it")]
+        public void A_name_is_made_only_while_the_route_naming_it_fits_the_target_ceiling(string kind, string letter)
+        {
+            // Percent-encoded, a character beyond ASCII takes six to twelve characters of the
+            // path, and the transport refuses a target over its ceiling before any route is
+            // chosen. So a name inside the 512 the body allows was made with `201`, and every
+            // route naming it was answered `414`.
+            _vault.Granting(_group, AllButProtected);
+            var under = "/entries/" + _entry + "/" + kind + "/";
+            var encoded = Uri.EscapeDataString(letter).Length;
+            var fits = (HttpRequestReader.MaxTargetCharacters - under.Length) / encoded;
+            var content = Convert.ToBase64String(new byte[] { 1, 2, 3 });
+
+            foreach (var count in new[] { fits, fits + 1 })
+            {
+                var name = string.Concat(Enumerable.Repeat(letter, count));
+                var body = kind == "fields"
+                    ? Bodies.Of(("name", name), ("value", "invented"))
+                    : Bodies.Of(("name", name), ("content", content));
+                var route = under + Uri.EscapeDataString(name);
+                Assume.That(route.Length <= HttpRequestReader.MaxTargetCharacters, Is.EqualTo(count == fits), route.Length.ToString(CultureInfo.InvariantCulture));
+
+                var made = Send("POST", "/entries/" + _entry + "/" + kind, body);
+
+                if (count == fits)
+                {
+                    Assert.That(made.Status, Is.EqualTo(VaultHandlers.Created), made.Json);
+                    Assert.That(Get(route).Status, Is.EqualTo(200), "and its own route names it");
+                }
+                else
+                {
+                    Assert.That(made.Status, Is.EqualTo(400), made.Json);
+                    Assert.That(made.Json, Does.Contain("malformed"));
+                }
+            }
+        }
+
+        [Test]
+        public void The_routes_a_name_is_measured_against_are_the_routes_the_document_declares()
+        {
+            // The ceiling is asked of what comes before the name in the route naming it, so the
+            // handler's count has to be the document's.
+            var named = SpecDocument.Embedded().Operations
+                .Select(operation => operation.Path.Text)
+                .Where(path => path.EndsWith("/{name}", StringComparison.Ordinal))
+                .Distinct()
+                .ToList();
+
+            Assert.That(named, Is.EquivalentTo(new[] { "/entries/{uuid}/fields/{name}", "/entries/{uuid}/attachments/{name}" }));
+            Assert.That(VaultHandlers.FieldRouteCharacters, Is.EqualTo("/entries/{uuid}/fields/".Replace("{uuid}", new string('0', 32)).Length));
+            Assert.That(VaultHandlers.AttachmentRouteCharacters, Is.EqualTo("/entries/{uuid}/attachments/".Replace("{uuid}", new string('0', 32)).Length));
+        }
+
         [Test]
         public void Right_to_left_text_is_still_a_value_like_any_other()
         {

@@ -535,7 +535,7 @@ namespace KeePassGate.Pipeline
                 return;
             }
 
-            if (Unnameable(context, name))
+            if (Unnameable(context, name, FieldRouteCharacters))
             {
                 return;
             }
@@ -812,7 +812,7 @@ namespace KeePassGate.Pipeline
             }
 
             var name = body.Text("name");
-            if (Unnameable(context, name))
+            if (Unnameable(context, name, AttachmentRouteCharacters))
             {
                 return;
             }
@@ -1119,16 +1119,60 @@ namespace KeePassGate.Pipeline
         /// `201`, and find its own value there in clear once the file was reopened.
         ///
         /// **And a name holding a format character**, for the reasons <see cref="Formats"/> gives.
+        ///
+        /// **And a name too long to travel in a path.** A name goes into the routes naming it
+        /// percent-encoded, three characters for each byte of its UTF-8 beyond ASCII, so nine for
+        /// a Chinese character and twelve for a character beyond the first plane, and the
+        /// transport refuses a target over
+        /// <see cref="HttpRequestReader.MaxTargetCharacters"/> before a route is chosen. So a name
+        /// of a few hundred such characters, inside the 512 the body allows, was made with `201`
+        /// and every route naming it was answered `414`. Measured against the route the name
+        /// would be named in, <see cref="FieldRouteCharacters"/> or
+        /// <see cref="AttachmentRouteCharacters"/> before it.
         /// </remarks>
-        private static bool Unnameable(IGateContext context, string name)
+        /// <param name="before">The characters of the route naming it that come before the name.</param>
+        private static bool Unnameable(IGateContext context, string name, int before)
         {
-            if (PathTemplate.IsCapture(name) && !Formats(name))
+            if (PathTemplate.IsCapture(name) && !Formats(name)
+                && before + InPath(name) <= HttpRequestReader.MaxTargetCharacters)
             {
                 return false;
             }
 
             context.Respond(400, HttpResponse.ErrorBody(BodyCheck.Refusal));
             return true;
+        }
+
+        /// <summary>
+        /// The characters before the name in the routes naming a field: `/entries/`, the entry's
+        /// identifier and `/fields/`.
+        /// </summary>
+        internal static readonly int FieldRouteCharacters = "/entries/".Length + 32 + "/fields/".Length;
+
+        /// <summary>The same, for the routes naming an attachment.</summary>
+        internal static readonly int AttachmentRouteCharacters = "/entries/".Length + 32 + "/attachments/".Length;
+
+        /// <summary>
+        /// How many characters a name takes in a path, percent-encoded as the reference client
+        /// writes it: every byte of its UTF-8 but an unreserved character as three.
+        /// </summary>
+        /// <remarks>
+        /// The unreserved characters of RFC 3986 section 2.3 are the ASCII letters and digits and
+        /// `-`, `.`, `_` and `~`. A client leaving more of a name unencoded takes fewer, so a
+        /// name measured here travels however it is written.
+        /// </remarks>
+        private static int InPath(string name)
+        {
+            var length = 0;
+            foreach (var octet in System.Text.Encoding.UTF8.GetBytes(name))
+            {
+                var c = (char)octet;
+                length += octet < 0x80 && (Ascii.IsLetterOrDigit(c) || c == '-' || c == '.' || c == '_' || c == '~')
+                    ? 1
+                    : 3;
+            }
+
+            return length;
         }
 
         /// <summary>

@@ -474,6 +474,10 @@ none, since it releases both.
   bidirectional controls already refused. A name holding such a character is drawn as the name
   without it, so a program holding `C` could add a second, unprotected `Password` beside the real
   `Password`.
+- **A new field or attachment name too long for its routes is `400 malformed`.** Percent-encoded,
+  a name of a few hundred characters beyond ASCII, inside the 512 the body allows, took the route
+  naming it past the 2048 characters of a target the transport reads, so it was made with `201`
+  and could never be read, changed or stripped by name, every request for it answered `414`.
 
 ## 0.1.0, 2026-10-25
 
