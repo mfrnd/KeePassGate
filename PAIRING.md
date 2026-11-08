@@ -583,6 +583,12 @@ approval the operator gave across the lock or the close, which arrives after it,
 go of every database's until the operator's ruling of 2026-11-01, which told a pairing approved for
 a database still open that its database was locked.
 
+**Two exchanges on one invitation can find the same approval held**, since a client may start again
+from a hello while its first request is still waiting, and the write that lands first uses it up.
+The other is answered `409 no invitation` once the invitation is gone, and `503 busy` while it is
+not, which puts the request to the operator again, and the log tells either apart from an approval
+whose time ran out.
+
 **Every `503` is raised before the invitation is spent, and that is what makes it honest.** The
 dialog check and the wait for the screen both happen before the burn, so a caller that starts again
 from a hello is retrying something that can still work. Once the invitation is burned there is no retryable

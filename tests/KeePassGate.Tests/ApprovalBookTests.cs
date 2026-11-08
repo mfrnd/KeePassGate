@@ -52,6 +52,7 @@ namespace KeePassGate.Tests
             _now = held.Until;
             Assert.That(_book.Find("key", "db"), Is.Null);
             Assert.That(held.Cleared, Is.False, "running out is not being let go");
+            Assert.That(held.Taken, Is.False, "nor being taken");
         }
 
         [Test]
@@ -62,6 +63,8 @@ namespace KeePassGate.Tests
             Assert.That(_book.Take(held), Is.True);
             Assert.That(_book.Take(held), Is.False);
             Assert.That(_book.Holds(held), Is.False);
+            Assert.That(held.Taken, Is.True, "so a request that finds it gone can tell why");
+            Assert.That(held.Cleared, Is.False);
         }
 
         [Test]
@@ -113,6 +116,7 @@ namespace KeePassGate.Tests
 
             Assert.That(_book.Holds(first), Is.False);
             Assert.That(_book.Find("key", "db"), Is.SameAs(second));
+            Assert.That(first.Taken, Is.True, "the same request approved again took its place");
         }
 
         [Test]

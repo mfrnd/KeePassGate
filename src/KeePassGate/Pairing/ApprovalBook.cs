@@ -74,6 +74,12 @@ namespace KeePassGate.Pairing
         public bool Cleared { get; internal set; }
 
         /// <summary>
+        /// Whether another request asking for the same thing took it: a write took it out to be
+        /// written, or the same request approved again took its place.
+        /// </summary>
+        public bool Taken { get; internal set; }
+
+        /// <summary>
         /// Why the database no longer holds what this was approved against, or null when it still
         /// does. Asked under the writer's lock, on KeePass's thread, as part of the write.
         /// </summary>
@@ -325,6 +331,12 @@ namespace KeePassGate.Pairing
                     return held;
                 }
 
+                HeldApproval replaced;
+                if (_held.TryGetValue(key, out replaced))
+                {
+                    replaced.Taken = true;
+                }
+
                 _held[key] = held;
             }
 
@@ -385,6 +397,7 @@ namespace KeePassGate.Pairing
                     return false;
                 }
 
+                held.Taken = true;
                 _held.Remove(held.Key);
                 return true;
             }

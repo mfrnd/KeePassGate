@@ -917,6 +917,66 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_held_approval_another_request_wrote_first_is_told_the_invitation_is_gone()
+        {
+            // D006. Two exchanges on one invitation can both find the same held approval, and
+            // the write that lands first takes it and spends the invitation. The other was logged
+            // as held until its time ran out and told `503 busy`, inviting a retry on an
+            // invitation that was already gone.
+            var approval = Approving();
+            _target.AdmitAnswers = AdmissionWrite.Busy("KeePass is saving");
+            Hello(ClientProof());
+            Assume.That(Request("agent-fictitious", Array.Empty<string>(), approval).Status, Is.EqualTo(503));
+
+            var held = _held.Find(
+                ApprovalBook.Pairing(_invitation.Id, "agent-fictitious", Array.Empty<string>(), null), _target.DatabaseId);
+            Assume.That(held, Is.Not.Null);
+            _target.AdmitAnswers = null;
+            _target.BeforeWrite = () =>
+            {
+                // The other exchange's write, landing first.
+                _held.Take(held);
+                _book.Burn(_invitation.Id);
+            };
+
+            Hello(ClientProof());
+            var context = Request("agent-fictitious", Array.Empty<string>(), approval);
+
+            Assert.That(context.Status, Is.EqualTo(409), context.Json);
+            Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody("no invitation")));
+            Assert.That(_log.Warnings.Any(w => w.Message.Contains("another request")), Is.True);
+            Assert.That(_log.Warnings.Any(w => w.Message.Contains("its time ran out")), Is.False);
+            Assert.That(approval.Asked, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void A_held_approval_another_request_used_up_without_spending_anything_asks_again()
+        {
+            // The other exchange took the approval and wrote nothing, as a write refused because a
+            // profile left the list does: the invitation is still good, so the answer is the
+            // `503 busy` that puts the request to the operator again.
+            var approval = Approving();
+            _target.AdmitAnswers = AdmissionWrite.Busy("KeePass is saving");
+            Hello(ClientProof());
+            Assume.That(Request("agent-fictitious", Array.Empty<string>(), approval).Status, Is.EqualTo(503));
+
+            var held = _held.Find(
+                ApprovalBook.Pairing(_invitation.Id, "agent-fictitious", Array.Empty<string>(), null), _target.DatabaseId);
+            Assume.That(held, Is.Not.Null);
+            _target.AdmitAnswers = null;
+            _target.BeforeWrite = () => _held.Take(held);
+
+            Hello(ClientProof());
+            var context = Request("agent-fictitious", Array.Empty<string>(), approval);
+
+            Assert.That(context.Status, Is.EqualTo(503), context.Json);
+            Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody("busy")));
+            Assert.That(_book.Outstanding(), Has.Count.EqualTo(1));
+            Assert.That(_log.Warnings.Any(w => w.Message.Contains("another request")), Is.True);
+            Assert.That(_log.Warnings.Any(w => w.Message.Contains("its time ran out")), Is.False);
+        }
+
+        [Test]
         public void A_close_of_another_database_between_the_question_and_the_answer_keeps_the_answer()
         {
             // The operator's ruling R1: a close lets go of its own database's approvals and of no

@@ -314,6 +314,10 @@ none, since it releases both.
   lock or the close had let go of what was there, so the client was told `503 busy` with
   `heldUntil`, and the same pairing or renewal asked again once the database was open again was
   written without the dialog.
+- **A pairing whose held approval another exchange on the same invitation wrote first is told
+  `409 no invitation`**, and the log states that another request took the approval. It was logged
+  as held until its time ran out and answered `503 busy`, inviting a retry on an invitation that
+  was already spent.
 
 ## 0.1.0, 2026-10-25
 
