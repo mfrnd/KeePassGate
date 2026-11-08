@@ -112,6 +112,23 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void An_HTTP_1_0_request_is_refused_rather_than_told_to_continue()
+        {
+            // RFC 9110 section 10.1.1 has a server ignore an expectation in an HTTP/1.0 request,
+            // and a client of that version knows no interim answer, so it would read `100 Continue`
+            // as the final answer. Only HTTP/1.1 is served, so nothing of another version is asked.
+            var handler = new SpyHandler(c => c.Respond(200, "{}"));
+            var stream = new ConversationStream(
+                "POST /gate/status HTTP/1.0\r\nExpect: 100-continue\r\nContent-Length: 2\r\n\r\n{}");
+
+            GateConversation.Serve(stream, Paired(), handler, _options, _log);
+
+            Assert.That(stream.Status, Is.EqualTo(505));
+            Assert.That(stream.Response, Does.Not.Contain("100 Continue"));
+            Assert.That(handler.Calls, Is.Zero);
+        }
+
+        [Test]
         public void An_expectation_this_server_does_not_meet_is_refused_rather_than_ignored()
         {
             // Fail closed. Ignoring one means carrying on while the client believes something that

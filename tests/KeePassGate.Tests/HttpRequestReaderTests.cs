@@ -204,6 +204,8 @@ namespace KeePassGate.Tests
         }
 
         [TestCase("GET /thing HTTP/2.0\r\n\r\n", 505)]
+        [TestCase("GET /thing HTTP/1.0\r\n\r\n", 505)]
+        [TestCase("GET /thing http/1.1\r\n\r\n", 505)]
         [TestCase("GET http://example.com/thing HTTP/1.1\r\n\r\n", 400)]
         [TestCase("GET  HTTP/1.1\r\n\r\n", 400)]
         [TestCase("GET /thing\r\n\r\n", 400)]
@@ -376,6 +378,18 @@ namespace KeePassGate.Tests
 
             Assert.That(result.Status, Is.EqualTo(413));
             Assert.That(result.Announced, Is.Zero);
+        }
+
+        [Test]
+        public void An_HTTP_1_0_request_that_asked_first_is_refused_with_its_body_still_announced()
+        {
+            // Only HTTP/1.1 is served, and RFC 9110 section 10.1.1 has a server ignore an
+            // expectation in an HTTP/1.0 request, so such a client sends its body without being
+            // invited: the 505 is read only if that body is taken off the wire.
+            var result = Read("POST /thing HTTP/1.0\r\nExpect: 100-continue\r\nContent-Length: 5\r\n\r\n");
+
+            Assert.That(result.Status, Is.EqualTo(505), result.Reason);
+            Assert.That(result.Announced, Is.EqualTo(5));
         }
 
         [TestCase("BOGUS-VERSION /thing HTTP/9.9\r\nContent-Length: 5\r\n\r\n", 505)]

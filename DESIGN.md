@@ -295,6 +295,7 @@ is the one to answer first, because the fit was never in doubt.
 | Refused | Where |
 | --- | --- |
 | An unresolvable SNI | the gate, before any TLS work |
+| Any HTTP version but 1.1, HTTP/1.0 included | the request line, 505 |
 | Any request with `Transfer-Encoding` | header parse, before the body is read |
 | Bodies over 1 MB | by `Content-Length`, before reading |
 | An `Expect` that is not `100-continue` | before the body, 417 |
