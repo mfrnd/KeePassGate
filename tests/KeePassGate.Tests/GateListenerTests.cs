@@ -327,6 +327,50 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_run_of_names_nothing_answers_to_writes_one_line_and_each_reason_its_own()
+        {
+            // A name no open database answers to costs a peer one packet and proves nothing, so a
+            // line for each let a single loop of them fill the plugin's log at its bound and push
+            // out the file kept before it in under two minutes. The first of a run is written and
+            // the rest are counted into the next, as for refusals above the ceiling, and a run of
+            // one reason hides none of the others.
+            var forged = ClientHelloBuilder.WithName(SniName.For(new byte[32]));
+            for (var i = 0; i < 4; i++)
+            {
+                GateClient.SendRaw(_listener.Port, forged);
+            }
+
+            GateClient.SendRaw(_listener.Port, new ClientHelloBuilder().Build());
+
+            Assert.That(Waited(() => Drops(GateOutcome.NoName) == 1), Is.True,
+                "a nameless hello after a run of unanswered names was not written");
+            Assert.That(Drops(GateOutcome.NoMatch), Is.EqualTo(1),
+                "four connections naming nothing wrote a line each, so a peer that proves nothing writes the log");
+        }
+
+        [Test]
+        public void A_paced_line_is_written_once_an_interval_and_counts_what_it_did_not_write()
+        {
+            var line = new GateListener.PacedLine(TimeSpan.FromMinutes(1));
+            int since;
+
+            Assert.That(line.Due(TimeSpan.FromSeconds(10), out since), Is.True, "the first is written at once");
+            Assert.That(since, Is.Zero);
+            Assert.That(line.Due(TimeSpan.FromSeconds(20), out since), Is.False);
+            Assert.That(line.Due(TimeSpan.FromSeconds(69), out since), Is.False);
+            Assert.That(line.Due(TimeSpan.FromSeconds(70), out since), Is.True, "and the next a whole interval later");
+            Assert.That(since, Is.EqualTo(2), "carrying the two that were not written");
+            Assert.That(line.Due(TimeSpan.FromSeconds(71), out since), Is.False);
+        }
+
+        /// <summary>How many lines of this fixture's log tell of a drop for this reason.</summary>
+        private int Drops(GateOutcome outcome)
+        {
+            var start = "dropped a connection: " + outcome.ToString().ToLowerInvariant();
+            return _log.Entries.Count(entry => entry.Message.StartsWith(start, StringComparison.Ordinal));
+        }
+
+        [Test]
         public void A_name_that_is_not_ours_at_all_is_dropped_without_a_word()
         {
             using (var certificate = _first.IssueAdmittedClient())

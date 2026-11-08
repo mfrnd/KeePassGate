@@ -11,6 +11,12 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **A run of connections naming nothing an open database answers to writes one log line a
+  minute**, the first at once and the rest counted into the next, as refusals above the connection
+  ceiling already were. Each wrote a line, and such a connection needs no key, certificate or
+  invitation, so one loop of them pushed the plugin's log and the file kept before it out of
+  existence in about two minutes. Each reason, no name, no match or two databases at once, is
+  paced on its own.
 - **A client that sends anything after its request still reads the answer.** A second request
   pipelined behind the first, a line break written on its own or a TLS half close was left
   unread, so the connection closed with a reset, which threw away an answer the client had not

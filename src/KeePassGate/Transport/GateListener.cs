@@ -51,8 +51,11 @@ namespace KeePassGate.Transport
         private readonly IGateLog _log;
         private readonly object _stateLock = new object();
 
-        /// <summary>How often a run of refusals above the ceiling is reported. See `Refused`.</summary>
-        private static readonly TimeSpan RefusalInterval = TimeSpan.FromMinutes(1);
+        /// <summary>
+        /// How often a run of refusals above the ceiling, or of drops before TLS, is reported. See
+        /// `Refused` and `Dropped`.
+        /// </summary>
+        private static readonly TimeSpan PaceInterval = TimeSpan.FromMinutes(1);
 
         /// <summary>
         /// Monotonic, because the wall clock can go backwards and would take the warning with it.
@@ -90,9 +93,21 @@ namespace KeePassGate.Transport
         private Thread _accepting;
         private volatile bool _running;
         private int _conversations;
-        private TimeSpan _saidRefusedAt;
-        private bool _saidRefused;
-        private int _refusedSince;
+
+        /// <summary>The line for a connection refused above the ceiling: see `Refused`.</summary>
+        private readonly PacedLine _refusals = new PacedLine(PaceInterval);
+
+        /// <summary>
+        /// The line for each reason a connection is dropped before TLS, a pace of its own for each
+        /// so that a run of one reason hides none of the others: see `Dropped`.
+        /// </summary>
+        private readonly Dictionary<GateOutcome, PacedLine> _drops =
+            new Dictionary<GateOutcome, PacedLine>
+            {
+                { GateOutcome.NoName, new PacedLine(PaceInterval) },
+                { GateOutcome.NoMatch, new PacedLine(PaceInterval) },
+                { GateOutcome.Ambiguous, new PacedLine(PaceInterval) },
+            };
 
         /// <summary>
         /// Every connection being served right now, so that all of them can be closed at once.
@@ -624,27 +639,101 @@ namespace KeePassGate.Transport
         ///
         /// The first refusal of a run is said at once, because that is the one worth reading, and
         /// the rest are counted and reported with the next line that goes out. A run that stops is
-        /// missing its tail, which is what the first line being immediate costs. No lock, because
-        /// `Take` is reached from the accept thread and from nowhere else.
+        /// missing its tail, which is what the first line being immediate costs: see
+        /// <see cref="PacedLine"/>.
         /// </remarks>
         private void Refused()
         {
-            var now = _clock.Elapsed;
-            if (_saidRefused && now - _saidRefusedAt < RefusalInterval)
+            int since;
+            if (!_refusals.Due(_clock.Elapsed, out since))
             {
-                _refusedSince++;
                 return;
             }
 
             _log.Warn(
                 "refused a connection: " + _options.MaxConnections + " are already being served" +
-                (_refusedSince > 0
-                    ? ", and " + _refusedSince + " more since the last of these"
-                    : string.Empty));
+                Since(since));
+        }
 
-            _saidRefused = true;
-            _saidRefusedAt = now;
-            _refusedSince = 0;
+        /// <summary>
+        /// Writes that a connection was dropped before TLS for a name that resolved to nothing, at
+        /// most once an interval for each reason.
+        /// </summary>
+        /// <remarks>
+        /// **For the reason <see cref="Refused"/> is paced.** A ClientHello naming nothing, or a
+        /// name no open database answers to, needs no gate key, no certificate and no invitation,
+        /// only a connect and one packet, and a line each let one loop of them fill the plugin's
+        /// log at its bound in under a minute and push out the file kept before it in about two,
+        /// errors and incidents with it. A connection that is not TLS at all writes nothing, as it
+        /// always did.
+        ///
+        /// A pace for each reason rather than a single pace for all of them, so that a run of
+        /// names nobody answers to does not hide the first name that two open databases answer
+        /// to, which is the operator's to act on.
+        /// </remarks>
+        private void Dropped(GateOutcome outcome)
+        {
+            var since = 0;
+            PacedLine line;
+            if (_drops.TryGetValue(outcome, out line) && !line.Due(_clock.Elapsed, out since))
+            {
+                return;
+            }
+
+            _log.Info("dropped a connection: " + outcome.ToString().ToLowerInvariant() + Since(since));
+        }
+
+        /// <summary>The count a paced line carries of the occasions it did not write.</summary>
+        private static string Since(int since)
+        {
+            return since > 0 ? ", and " + since + " more since the last of these" : string.Empty;
+        }
+
+        /// <summary>
+        /// A line written at most once an interval, with the occasions in between counted into the
+        /// next line written.
+        /// </summary>
+        /// <remarks>
+        /// Under a lock of its own, because the drops before TLS are written from every
+        /// connection's thread at once. The clock is handed in rather than read here, so that a
+        /// test can choose what time it is.
+        /// </remarks>
+        internal sealed class PacedLine
+        {
+            private readonly object _lock = new object();
+            private readonly TimeSpan _interval;
+            private bool _written;
+            private TimeSpan _writtenAt;
+            private int _since;
+
+            public PacedLine(TimeSpan interval)
+            {
+                _interval = interval;
+            }
+
+            /// <summary>
+            /// Whether the line is written now, <paramref name="now"/> on a clock that never goes
+            /// back, with how many occasions went unwritten since the last line that was. False
+            /// counts this occasion among them.
+            /// </summary>
+            public bool Due(TimeSpan now, out int since)
+            {
+                lock (_lock)
+                {
+                    if (_written && now - _writtenAt < _interval)
+                    {
+                        _since++;
+                        since = 0;
+                        return false;
+                    }
+
+                    since = _since;
+                    _written = true;
+                    _writtenAt = now;
+                    _since = 0;
+                    return true;
+                }
+            }
         }
 
         /// <summary>
@@ -774,9 +863,7 @@ namespace KeePassGate.Transport
 
                                 if (!resolution.IsResolved)
                                 {
-                                    _log.Info(
-                                        "dropped a connection: " +
-                                        resolution.Outcome.ToString().ToLowerInvariant());
+                                    Dropped(resolution.Outcome);
                                     return;
                                 }
 
