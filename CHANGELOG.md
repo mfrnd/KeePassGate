@@ -11,6 +11,10 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **The routing document answers a field or attachment named in a path as the gate does**: a name
+  the database cannot keep apart from a name the entry carries is `404` there, where the document
+  promised `409`, which only a name in a body gets. A name that decodes into a climb, such as
+  `a/../b`, is named among those a path cannot address, and is answered as an undeclared path.
 - **The routing document's `Malformed` no longer promises a body naming which refusal it was**:
   every case is answered `malformed`. It no longer lists a surrogate without its pair, which never
   reaches it, and a field's value states that whitespace and nothing else is refused, where it

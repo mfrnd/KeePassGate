@@ -1916,8 +1916,10 @@ components:
         The five strings every entry has, by KeePass's own names, so that nothing has to map one
         vocabulary onto another and no custom field can collide with a translated one. Every member
         is optional: a create fills in the rest as empty, and an update writes only what is named.
-        Each name is matched against the entry's own as `FieldName` says, for the whole body before
-        any of it is written, and against the body's other names as well.
+        Each name is matched against the entry's own byte for byte, as `FieldName` explains, and
+        against the body's other names as well, for the whole body before any of it is written: a
+        name the database could not keep apart from a name the entry carries, or from another name
+        in the body, is `409`.
 
         `expires` is not a string the entry holds, and is spelled as a read answers it, in lower
         case, rather than after either of the two things KeePass keeps for it, `Expires` and
@@ -2705,12 +2707,15 @@ components:
         `Password`, `URL`, `Notes`, or whatever a custom one is called. Percent encoded, and a
         separator inside it has to be escaped. **A name that decodes to `.`, `..` or a control
         character cannot be addressed by a path**: the transport refuses such a target with `400`
-        before a route is chosen, as the description at the top says. The entry's own read
+        before a route is chosen, as the description at the top explains. Nor can a name that
+        decodes into a climb, such as `a%2F..%2Fb` for `a/../b`, which the transport lets through
+        and no route matches, so it is answered as an undeclared path is. The entry's own read
         carries every string it holds, such a name included.
 
-        A name is matched against the entry's own names byte for byte: one that is not among them
-        is a name the entry does not carry, which is `404`, and one the database could not keep
-        apart from a name it does carry is `409`.
+        A name is matched against the entry's own names byte for byte, and a name not among them is
+        a name the entry does not carry, which is `404`, even where the database could not keep it
+        apart from a name the entry does carry. That is `409` only for a name a body brings, as
+        `createField`, `createAttachment` and `EntryFields` state.
       schema:
         type: string
         minLength: 1
@@ -2723,8 +2728,9 @@ components:
       description: |
         An attachment's name, percent encoded. **A name that decodes to `.`, `..` or a control
         character cannot be addressed by a path**: the transport refuses such a target with `400`
-        before a route is chosen, as the description at the top says. The entry's listing still
-        names it. A name is matched as a field's is, which `FieldName` says.
+        before a route is chosen, as the description at the top explains, and a name that decodes
+        into a climb matches no route, as `FieldName` explains. The entry's listing still names it.
+        A name is matched as a field's is, which `FieldName` sets out.
       schema:
         type: string
         minLength: 1
