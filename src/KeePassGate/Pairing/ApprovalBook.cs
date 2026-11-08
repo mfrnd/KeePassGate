@@ -179,10 +179,11 @@ namespace KeePassGate.Pairing
     /// the wire to be part of it.
     ///
     /// **Single use**: the write that lands takes the entry, under the writer's lock, before it
-    /// changes anything. **Bounded by the pairing budget** the request arrived in, and **cleared by
-    /// a lock, a close of its database and KeePass exiting**, so an approval never outlives the
-    /// session of the database it was given in, and an approval still settling when KeePass locks
-    /// is never written after the unlock for a client whose connection the unlock closed.
+    /// changes anything. **Bounded by the pairing budget** the request arrived in, as the system
+    /// clock reads it, `PAIRING.md` §306, and **cleared by a lock, a close of its database and
+    /// KeePass exiting**, so an approval never outlives the session of the database it was given
+    /// in, and an approval still settling when KeePass locks is never written after the unlock for
+    /// a client whose connection the unlock closed.
     ///
     /// **An answer given across a clear is cleared with it**, which is what <see cref="Mark"/> is
     /// for. The handler takes a mark before the operator is asked and hands it to

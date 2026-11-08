@@ -305,6 +305,13 @@ The whole lifetime is in memory, under the plugin's own lock, so a burn cannot b
 race cannot double spend. A timeout does not burn the token, so an absent operator does not cost the
 invitee their invitation. A refusal does.
 
+**Every lifetime in pairing is kept by the system clock**: an invitation's ten minutes, a hello's
+challenge, and an approval held for a busy KeePass, §311, each end at a moment read from that clock,
+the moment the tab shows and the client is told as `expires` or `heldUntil`. So a clock set back
+while one is outstanding lengthens it by as much, and a clock set forward ends it early. Nothing it
+lengthens is written without the operator: an invitation still goes through the dialog, and a held
+approval is for exactly the request approved and goes with a lock, a close or an exit.
+
 **Closing the dialog is a refusal, not a timeout**, whether by the close box, by Alt with F4, from
 the window menu or from the taskbar. An operator who dismisses the question has answered it, and the
 answer a dismissal means is no: the invitation is spent and the program has to be invited again. Only
