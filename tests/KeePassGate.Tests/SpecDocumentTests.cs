@@ -753,6 +753,19 @@ namespace KeePassGate.Tests
             Assert.Throws<InvalidOperationException>(() => SpecDocument.Parse("not a document"));
         }
 
+        [TestCase("", TestName = "an empty document")]
+        [TestCase("openapi: [3]", TestName = "one the reader answers with no document at all")]
+        [TestCase("{", TestName = "one that will not parse")]
+        public void A_document_the_reader_reports_rather_than_throws_on_is_refused(string text)
+        {
+            // Reported as diagnostics rather than thrown, and for the second the reader hands back
+            // no document at all, which `FINDINGS.md` records under the document as the routing
+            // table.
+            var raised = Assert.Throws<InvalidOperationException>(() => SpecDocument.Parse(text));
+
+            Assert.That(raised.Message, Does.Contain("does not parse"));
+        }
+
         [Test]
         public void A_document_that_is_not_openapi_three_is_refused()
         {

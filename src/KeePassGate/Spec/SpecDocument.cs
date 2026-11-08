@@ -259,7 +259,9 @@ namespace KeePassGate.Spec
                 throw new InvalidOperationException("The routing table does not parse: " + error.Message, error);
             }
 
-            if (diagnostic.Errors.Count > 0 || document.Paths == null)
+            // The document itself is null for some of what the reader reports, so it is asked
+            // about on its own rather than left to the order of the tests after it.
+            if (document == null || diagnostic.Errors.Count > 0 || document.Paths == null)
             {
                 throw new InvalidOperationException(
                     "The routing table does not parse: " +

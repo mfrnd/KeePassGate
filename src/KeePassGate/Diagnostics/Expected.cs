@@ -197,9 +197,9 @@ namespace KeePassGate.Diagnostics
         /// </summary>
         /// <remarks>
         /// Measured rather than assumed, and two of the three cost time. The reader **reports some
-        /// problems and throws others**: malformed JSON comes back as an entry in
-        /// `diagnostic.Errors`, and in that case `Paths` can be null, while a document with no
-        /// recognizable version throws instead. And the exception it throws,
+        /// problems and throws others**: malformed JSON and an empty document come back as an entry
+        /// in `diagnostic.Errors`, and then `Paths` can be null, or the document itself, while a
+        /// document with no recognizable version throws instead. And the exception it throws,
         /// `OpenApiUnsupportedSpecVersionException`, **derives straight from `Exception`** rather
         /// than from the library's own `OpenApiException`, so there is no one base to catch and
         /// both have to be named.
@@ -210,9 +210,10 @@ namespace KeePassGate.Diagnostics
         /// </remarks>
         public static bool OfDocument(Exception error)
         {
-            // `InvalidOperationException` among them because the reader raises one from a
-            // LINQ `First()` when the document is empty, which is a document this refuses
-            // rather than a defect here.
+            // `InvalidOperationException` among them as a margin rather than for anything the
+            // shipped reader was measured to raise: an empty document is reported rather than
+            // thrown, and an exception of that type out of the reader would be a document this
+            // refuses rather than a defect here.
             return error is OpenApiException
                    || error is OpenApiUnsupportedSpecVersionException
                    || error is FormatException
