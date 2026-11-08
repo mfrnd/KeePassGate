@@ -1431,7 +1431,8 @@ namespace KeePassGate.Bridge
                 }
                 else
                 {
-                    _log.Warn("a client asked to revoke its own certificate and it was not done: " + written.Reason);
+                    _log.Warn("a client asked to revoke its own certificate and it was not done: " +
+                              CertificateDigest.Shorten(admissionKey) + ": " + written.Reason);
                 }
 
                 return written;
