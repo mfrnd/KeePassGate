@@ -407,6 +407,58 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        [Apartment(System.Threading.ApartmentState.STA)]
+        public void A_pairing_whose_dialog_its_database_s_close_took_away_is_unanswered_and_writes_nothing()
+        {
+            // The operator's ruling of 2026-11-08: the dialog goes with its database, as with a
+            // lock, so nothing can be approved over a database that is gone. It is answered as a
+            // dialog a lock closed is, unanswered, and the log names the close.
+            var prompt = new KeePassGate.Ui.PairingApprovalPrompt(KeePassGate.Ui.CurrentThread.Instance, _log);
+            prompt.Dialog = (request, timeout) =>
+            {
+                using (var dialog = new KeePassGate.Ui.PairingApprovalForm(request, timeout))
+                {
+                    dialog.StartPosition = System.Windows.Forms.FormStartPosition.Manual;
+                    dialog.Location = new System.Drawing.Point(-4000, -4000);
+                    dialog.ShowInTaskbar = false;
+
+                    using (var timer = new System.Windows.Forms.Timer { Interval = 100 })
+                    {
+                        var ticks = 0;
+                        timer.Tick += delegate
+                        {
+                            if (++ticks == 1)
+                            {
+                                prompt.Closed(new[] { _target.DatabaseId });
+                                return;
+                            }
+
+                            // Whatever the close left standing is refused, so that this ends.
+                            timer.Stop();
+                            dialog.Refuse();
+                        };
+
+                        timer.Start();
+                        prompt.Show(dialog, request.DatabaseId);
+                    }
+
+                    return dialog.Answer();
+                }
+            };
+            Hello(ClientProof());
+
+            var context = Request("agent-fictitious", Array.Empty<string>(), prompt);
+
+            Assert.That(context.Status, Is.EqualTo(503), context.Json);
+            Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody(LockedTarget.Error)));
+            Assert.That(_target.Admitted, Is.Null, "nothing is written");
+            Assert.That(_book.Outstanding(), Has.Count.EqualTo(1), "nor is the invitation spent");
+            Assert.That(_held.Count, Is.Zero);
+            Assert.That(_audit.Entries.Single().Decision, Is.EqualTo(AuditEntry.Unanswered));
+            Assert.That(_log.Warnings.Any(w => w.Message.Contains(PairingApproval.ClosedReason)), Is.True);
+        }
+
+        [Test]
         public void A_request_a_lock_kept_off_the_screen_is_not_written_down_as_unanswered()
         {
             // S081. It waited for the screen while KeePass locked and was never shown, so nobody

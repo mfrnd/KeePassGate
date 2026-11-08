@@ -514,9 +514,10 @@ namespace KeePassGate.Pairing
 
                 case PairingDecision.Locked:
                     // Unanswered, as a timeout is, so nothing is spent; told as every connection to
-                    // a locked database is told, since that is what this connection now is. A request
-                    // the lock kept off the screen was put to nobody, and the audit records nothing
-                    // of it, as of a request with no screen to ask.
+                    // a locked database is told, since that is what this connection now is. A dialog
+                    // its database's close took away is answered the same, its reason naming the
+                    // close. A request the lock kept off the screen was put to nobody, and the
+                    // audit records nothing of it, as of a request with no screen to ask.
                     _log.Warn("pairing on invitation " + invitation.Id + " was " + decision.Reason);
                     if (decision.Shown)
                     {
@@ -568,8 +569,9 @@ namespace KeePassGate.Pairing
             // Asked again, because the answer before the dialog is as old as the dialog. Database
             // Maintenance opened while the operator was reading, or KeePass saving, is found here
             // while it can still be a `503` that spends nothing. A lock while the dialog stands
-            // closes the dialog instead, `PAIRING.md` §308, and a lock after it takes the held
-            // approval away, which ends this wait as the lock it is.
+            // closes the dialog instead, `PAIRING.md` §308, as a close of its database does, and a
+            // lock or a close after it takes the held approval away, which ends this wait as the
+            // lock it is.
             var blocked = Settled(target, _options.ApprovalSettle, Blocked, () => _held.Holds(held));
             if (!_held.Holds(held))
             {

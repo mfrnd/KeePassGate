@@ -61,9 +61,10 @@ namespace KeePassGate.Gate
         void Locked();
 
         /// <summary>
-        /// A database was closed for real: an approval waiting to be written for any of these
-        /// authorities is let go, on KeePass's thread. Null when the database could not be named,
-        /// which lets every approval go.
+        /// A database was closed for real: a pairing or renewal dialog standing for any of these
+        /// authorities closes as unanswered, as at a lock, and an approval waiting to be written for
+        /// any of them is let go, on KeePass's thread. Null when the database could not be named,
+        /// which closes whatever dialog stands and lets every approval go.
         /// </summary>
         void Closed(IReadOnlyCollection<string> databaseIds);
     }
@@ -377,11 +378,11 @@ namespace KeePassGate.Gate
                 {
                     try
                     {
-                        // An approval waiting to be written goes with its database, as at a lock:
-                        // an approval held across a close would be written into whatever is opened
-                        // under that authority next. Only its database's, R1, since every other
-                        // database is still open, and every approval when forgetting it failed and
-                        // nothing can tell which database went.
+                        // The question on the screen and an approval waiting to be written go with
+                        // their database, as at a lock: an approval held across a close would be
+                        // written into whatever is opened under that authority next. Only its
+                        // database's, R1, since every other database is still open, and every
+                        // database's when forgetting it failed and nothing can tell which went.
                         if (_screen != null)
                         {
                             _screen.Closed(closed);

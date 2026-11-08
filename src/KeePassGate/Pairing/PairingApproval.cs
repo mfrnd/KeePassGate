@@ -295,6 +295,15 @@ namespace KeePassGate.Pairing
         }
 
         /// <summary>
+        /// A dialog closed as unanswered because the database it is about closed: answered as a
+        /// lock's is, since the database is no longer there to write to, and named for the close.
+        /// </summary>
+        public static PairingApproval Closed()
+        {
+            return new PairingApproval(PairingDecision.Locked, null, null, ClosedReason);
+        }
+
+        /// <summary>
         /// A request that waited for the screen while KeePass locked, and was never shown: locked,
         /// as a dialog the lock closed is, and asked of nobody.
         /// </summary>
@@ -305,6 +314,9 @@ namespace KeePassGate.Pairing
 
         /// <summary>What the log reads of a question a lock took away.</summary>
         internal const string LockedReason = "closed unanswered when KeePass locked";
+
+        /// <summary>What the log reads of a question its database's close took away.</summary>
+        internal const string ClosedReason = "closed unanswered when its database closed";
 
         /// <summary>What the log reads of a question a lock kept off the screen.</summary>
         internal const string LockedWhileWaitingReason =

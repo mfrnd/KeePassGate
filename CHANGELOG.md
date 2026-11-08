@@ -309,11 +309,10 @@ none, since it releases both.
   though it had been listed. Each is now answered `503 busy` with the approval used up and the
   operator asked again, and so is a renewal whose profile was taken off the list while the dialog
   stood, which used to renew without that profile.
-- **An approval the operator gives as KeePass locks, or on a dialog left standing over a database
-  closed for real, is let go and answered `503 locked`.** It reached the plugin's memory after the
-  lock or the close had let go of what was there, so the client was told `503 busy` with
-  `heldUntil`, and the same pairing or renewal asked again once the database was open again was
-  written without the dialog.
+- **An approval the operator gives just as KeePass locks or its database closes is let go and
+  answered `503 locked`.** It reached the plugin's memory after the lock or the close had let go of
+  what was there, so the client was told `503 busy` with `heldUntil`, and the same pairing or
+  renewal asked again once the database was open again was written without the dialog.
 - **A pairing whose held approval another exchange on the same invitation wrote first is told
   `409 no invitation`**, and the log states that another request took the approval. It was logged
   as held until its time ran out and answered `503 busy`, inviting a retry on an invitation that
@@ -333,6 +332,10 @@ none, since it releases both.
 - **A lock that closes an approval dialog logs it once**, however many databases are open. KeePass
   locks each of them in turn while the dialog stands, and each logged again that the request in
   front of the operator was closed unanswered.
+- **Closing a database closes the pairing or renewal dialog standing for it**, as unanswered, as a
+  lock does, and the log states that its database closed. The dialog stayed up over the closed
+  database, offering an Approve that could do nothing. Closing another database still leaves it
+  where it is.
 
 ## 0.1.0, 2026-10-25
 

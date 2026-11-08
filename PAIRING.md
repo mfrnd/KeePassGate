@@ -154,7 +154,9 @@ disk for a certificate the client never received and cannot ask for again. That 
 up, or its deadline running out. A lock is the other thing that closes connections, and it spares
 this one: it closes the dialog as unanswered instead, nothing is issued or spent, and the client is
 told `503 locked`, §308. A close or an unlock closes only its own database's connections, so a
-close or an unlock of another database leaves this connection alone.
+close or an unlock of another database leaves this connection alone. A close of its own database
+closes the dialog as unanswered too, and this connection with it, so nothing is issued or spent
+there either.
 
 **One pairing is put to the operator at a time.** Two connections can reach phase 4 together, and
 each asks the user interface thread to show a dialog. The second would open inside the first one's
@@ -440,11 +442,22 @@ spent: an invitation is still good after the unlock, and a renewing client's old
 works. **A lock lets go of every approval held for a retry**, §303, and a close of a database lets
 go of that database's, so an approval still waiting for a busy KeePass when the lock comes is
 answered `503 locked` at once and never written into the database the unlock opens again. **So is
-an answer the lock or the close overtook**: an approval the operator gave as KeePass locked, which
-had not reached the plugin's memory when the lock let go of what was there, or an approval given on
-a dialog left standing over a database closed for real, which nothing takes down. The plugin notes
-where it stood before the operator was asked, and an approval arriving after a lock, or after a
-close of its own database, is let go as it arrives and answered `503 locked`.
+an answer the lock or the close overtook**: an approval the operator gave as KeePass locked or the
+database closed, which had not reached the plugin's memory when the lock or the close let go of what
+was there. The plugin notes where it stood before the operator was asked, and an approval arriving
+after a lock, or after a close of its own database, is let go as it arrives and answered
+`503 locked`.
+
+**A database closed for real closes its own pairing or renewal dialog as unanswered**, as a lock
+does, which is the operator's ruling of 2026-11-08, and the answer names the close rather than a
+lock. That replaced leaving the dialog standing over the closed database, which nothing took down,
+on the argument that its answer would find the database gone: an Approve there could do nothing,
+and only the plugin letting go of the approval as it arrived kept it out of the database opened
+again under the same authority. A close of another database leaves the dialog where it is, and a
+close that names no database, which lets every approval go, closes it too. The request is written
+down as unanswered, since the operator was shown it, and is answered `503 locked`, though a close
+ends its own database's connections, the dialog's among them, which a lock spares: what reaches
+the client is the connection ending.
 
 **An unlock that lifts no lock closes nothing**, which is a refinement the end to end tier forced
 rather than a weakening. KeePass announces a database being opened and a database being unlocked

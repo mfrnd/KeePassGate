@@ -187,10 +187,11 @@ namespace KeePassGate.Pairing
     /// **An answer given across a clear is cleared with it**, which is what <see cref="Mark"/> is
     /// for. The handler takes a mark before the operator is asked and hands it to
     /// <see cref="Hold"/>, and an approval whose database was locked or closed in between is let
-    /// go as it arrives rather than held. Otherwise an answer the operator gave on a dialog left
-    /// standing over a closed database, or an answer a lock overtook between the dialog and the
-    /// hold, went into the book the clear had already emptied, and the same request asked again
-    /// once the database was open again was written without the dialog.
+    /// go as it arrives rather than held. Otherwise an answer a lock or a close overtook between
+    /// the dialog and the hold went into the book the clear had already emptied, and the same
+    /// request asked again once the database was open again was written without the dialog. An
+    /// answer given on a dialog left standing over a closed database went the same way, until the
+    /// operator's ruling of 2026-11-08 had a close take the dialog with it, as a lock does.
     ///
     /// **Every approval passes through here**, the ones written at once included, because the
     /// same three things decide whether any of them may still be written: the entry is still

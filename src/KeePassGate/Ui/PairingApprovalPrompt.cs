@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Threading;
 using KeePassGate.Diagnostics;
 using KeePassGate.Gate;
@@ -31,7 +32,8 @@ namespace KeePassGate.Ui
     /// **A lock takes the question away.** KeePass locks under these dialogs, which hold no lock
     /// off, and a dialog left standing over a locked database offered an Approve that could do
     /// nothing. `PAIRING.md` §308: the lock closes the open dialog as unanswered, a request still
-    /// waiting for the screen is never shown, and both are answered `503 locked`.
+    /// waiting for the screen is never shown, and both are answered `503 locked`. **So does a
+    /// close of the database the dialog is about**, which is answered as the lock is.
     public sealed class PairingApprovalPrompt : IPairingApproval, IRenewalApproval, IApprovalScreen
     {
         /// <summary>How much longer than the dialog this waits before giving up on it.</summary>
@@ -61,10 +63,13 @@ namespace KeePassGate.Ui
         private readonly IWriterState _writes;
 
         /// <summary>
-        /// The dialog on the screen until it closes or a lock withdraws it, touched only on
-        /// KeePass's thread.
+        /// The dialog on the screen until it closes, or a lock or a close of its database withdraws
+        /// it, touched only on KeePass's thread.
         /// </summary>
         private ApprovalDialog _showing;
+
+        /// <summary>The database the dialog on the screen is about, beside it.</summary>
+        private string _showingFor;
 
         public PairingApprovalPrompt(IUiThread ui, IGateLog log)
             : this(ui, null, log)
@@ -173,17 +178,42 @@ namespace KeePassGate.Ui
             }
 
             _showing = null;
+            _showingFor = null;
             _log.Warn("KeePass locked while a request was in front of the operator, so it was closed unanswered");
-            showing.Withdraw();
+            showing.Withdraw(databaseClosed: false);
         }
 
         /// <summary>
-        /// A database closed for real. Nothing here: a dialog about it finds the database gone
-        /// when its answer is acted on, since the approval book lets go of what it held for it and
-        /// of an approval given on that dialog once the close is over.
+        /// A database closed for real: the dialog on the screen, if it is about that database,
+        /// closes as unanswered, as it does at a lock.
         /// </summary>
+        /// <remarks>
+        /// The operator's ruling of 2026-11-08, "close it with the database". **This replaced
+        /// leaving the dialog up**, on the argument that its answer would find the database gone
+        /// when it was acted on: an Approve then offered nothing it could do, as an Approve over a
+        /// locked database once did, and only the approval book letting go of the answer kept it
+        /// from being written into the database opened again under the same authority. The book
+        /// still does that for an answer given just before a close, which reaches it after.
+        ///
+        /// A close of another database leaves the dialog alone, R1, and a close that names no
+        /// database closes it, since the approval book lets every approval go for such a close. A
+        /// request still waiting for the screen needs nothing here: it finds its database no longer
+        /// served and is never shown.
+        /// </remarks>
         public void Closed(IReadOnlyCollection<string> databaseIds)
         {
+            var showing = _showing;
+            if (showing == null
+                || (databaseIds != null && !databaseIds.Contains(_showingFor, StringComparer.Ordinal)))
+            {
+                return;
+            }
+
+            _showing = null;
+            _showingFor = null;
+            _log.Warn("a database closed while a request about it was in front of the operator, so it was " +
+                      "closed unanswered");
+            showing.Withdraw(databaseClosed: true);
         }
 
         /// <summary>
@@ -339,12 +369,14 @@ namespace KeePassGate.Ui
         }
 
         /// <summary>
-        /// Shows a dialog modally, as the one a lock closes while it stands. Internal so that a
-        /// test can show one placed where nobody sees it.
+        /// Shows a dialog modally, as the dialog a lock or a close of its database closes while it
+        /// stands. Internal so that a test can show a dialog placed where nobody sees it.
         /// </summary>
-        internal void Show(ApprovalDialog dialog)
+        /// <param name="databaseId">The database the request on the dialog is about.</param>
+        internal void Show(ApprovalDialog dialog, string databaseId)
         {
             _showing = dialog;
+            _showingFor = databaseId;
             try
             {
                 dialog.ShowDialog();
@@ -352,6 +384,7 @@ namespace KeePassGate.Ui
             finally
             {
                 _showing = null;
+                _showingFor = null;
             }
         }
 
@@ -359,7 +392,7 @@ namespace KeePassGate.Ui
         {
             using (var dialog = new PairingApprovalForm(request, timeout))
             {
-                Show(dialog);
+                Show(dialog, request.DatabaseId);
                 var answer = dialog.Answer();
                 _log.Info("pairing request for " + request.Name + Outcome(answer.Decision, answer.Reason));
                 return answer;
@@ -370,7 +403,7 @@ namespace KeePassGate.Ui
         {
             using (var dialog = new RenewalApprovalForm(request, timeout, _log))
             {
-                Show(dialog);
+                Show(dialog, request.DatabaseId);
                 var answer = dialog.Answer();
                 _log.Info("renewal request for " + request.Name + Outcome(answer.Decision, answer.Reason));
                 return answer;

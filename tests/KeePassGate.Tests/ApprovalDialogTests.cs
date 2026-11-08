@@ -268,10 +268,11 @@ namespace KeePassGate.Tests
         {
             using (var dialog = Shown())
             {
-                dialog.Withdraw();
+                dialog.Withdraw(databaseClosed: false);
                 OffScreenForm.Pump();
 
                 Assert.That(Decision(dialog), Is.EqualTo(PairingDecision.Locked));
+                Assert.That(Reason(dialog), Is.EqualTo(PairingApproval.LockedReason));
                 Assert.That(dialog.Visible, Is.False);
             }
         }
@@ -282,9 +283,37 @@ namespace KeePassGate.Tests
             using (var dialog = Shown())
             {
                 Approve(dialog).PerformClick();
-                dialog.Withdraw();
+                dialog.Withdraw(databaseClosed: false);
 
                 Assert.That(Decision(dialog), Is.EqualTo(PairingDecision.Approved));
+            }
+        }
+
+        [Test]
+        public void A_close_of_its_database_closes_it_as_unanswered_and_names_the_close()
+        {
+            // The operator's ruling of 2026-11-08: a close takes the dialog with the database, as
+            // a lock does, and its answer reads as the close it was.
+            using (var dialog = Shown())
+            {
+                dialog.Withdraw(databaseClosed: true);
+                OffScreenForm.Pump();
+
+                Assert.That(Decision(dialog), Is.EqualTo(PairingDecision.Locked));
+                Assert.That(Reason(dialog), Is.EqualTo(PairingApproval.ClosedReason));
+                Assert.That(dialog.Visible, Is.False);
+            }
+        }
+
+        [Test]
+        public void A_close_after_a_lock_leaves_the_lock_s_answer()
+        {
+            using (var dialog = Shown())
+            {
+                dialog.Withdraw(databaseClosed: false);
+                dialog.Withdraw(databaseClosed: true);
+
+                Assert.That(Reason(dialog), Is.EqualTo(PairingApproval.LockedReason), "the first answer wins");
             }
         }
 
@@ -326,6 +355,13 @@ namespace KeePassGate.Tests
         {
             var pairing = dialog as PairingApprovalForm;
             return pairing != null ? pairing.Answer().Decision : ((RenewalApprovalForm)dialog).Answer().Decision;
+        }
+
+        /// <summary>What the log is to read of the dialog's answer.</summary>
+        private static string Reason(ApprovalDialog dialog)
+        {
+            var pairing = dialog as PairingApprovalForm;
+            return pairing != null ? pairing.Answer().Reason : ((RenewalApprovalForm)dialog).Answer().Reason;
         }
 
         /// <summary>The dialog shown where nobody sees it.</summary>

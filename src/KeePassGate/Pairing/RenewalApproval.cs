@@ -163,6 +163,12 @@ namespace KeePassGate.Pairing
             return new RenewalApproval(PairingDecision.Locked, null, null, null, PairingApproval.LockedReason);
         }
 
+        /// <summary>A dialog its database's close closed as unanswered, as a pairing's is.</summary>
+        public static RenewalApproval Closed()
+        {
+            return new RenewalApproval(PairingDecision.Locked, null, null, null, PairingApproval.ClosedReason);
+        }
+
         /// <summary>A renewal a lock kept off the screen, as a pairing's is.</summary>
         public static RenewalApproval LockedWhileWaiting()
         {
