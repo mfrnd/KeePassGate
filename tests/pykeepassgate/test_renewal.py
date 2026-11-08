@@ -598,6 +598,23 @@ def test_a_renewal_refused_for_now_is_read_as_every_route_reads_a_503(
     assert not where.with_name("default.renewing").exists()
 
 
+def test_a_busy_renewal_is_described_by_what_the_gate_asks_about(
+    paired: GateClient, renewing: Gate
+) -> None:
+    # The renewal's causes are the pairing's, the screen and the list of profiles among them, and
+    # an ordinary route's "asking again" would send a program round its whole budget for a list
+    # that does not read until the operator repairs it.
+    renewing.renewal = (503, json.dumps({"error": "busy"}))
+
+    with pytest.raises(GateBusy) as refused:
+        paired.renew()
+
+    said = str(refused.value)
+    assert "another pairing or renewal is in front of them" in said
+    assert "list of profiles will not read, which lasts until the operator repairs it" in said
+    assert "certificate this client holds still works" in said
+
+
 def test_a_renewal_waits_out_two_authorities_on_the_budget_given_for_them(
     tmp_path: Path, gate: FakeGate, bundle: dict[str, Any], renewing: Gate,
     monkeypatch: pytest.MonkeyPatch,

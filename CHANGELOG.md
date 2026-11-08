@@ -11,6 +11,17 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **A pairing or a renewal refused `503 busy` names the database's list of profiles among the
+  causes**, the cause that does not end until the operator repairs the list. The client gave only
+  causes that end by themselves, and a renewal was told what any route is, that asking again
+  shortly is safe, so a program waited out its whole budget for a list that would not read. An
+  ordinary route's busy message names the busy that waits for the operator's save as well.
+- **PyKeePassGate reads `profilesUnreadable` on the identity route**, as
+  `Identity.profiles_unreadable`, and `whoami` prints a `profile list` line when the database's
+  list of profiles will not read, in which case every profile on the record is among the removed
+  profiles until the operator repairs it. The stand-in gate's `identified(...)` answers the route
+  as the plugin does, either way. An identity without the member is an answer the client cannot
+  read, `ProtocolError`.
 - **`pykeepassgate whoami` prints a `profile list` line when the database's list of profiles
   will not read**, which is why every profile on the record is among the removed profiles until
   the operator repairs it, and the stand-in gate's `identified(...)` answers the identity route

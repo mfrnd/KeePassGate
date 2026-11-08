@@ -435,6 +435,9 @@ def test_a_busy_gate_is_described_by_what_it_asks_about(
     assert "another pairing or renewal" in said
     assert "group dialog" not in said
     assert "invitation is still good" in said
+    # The one cause the gate asks about that does not end on its own, which a list of causes that
+    # all end would send a program round its whole budget for.
+    assert "list of profiles will not read, which lasts until the operator repairs it" in said
 
 
 @pytest.mark.parametrize(

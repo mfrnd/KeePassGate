@@ -1348,7 +1348,33 @@ def _refuse_renewal(reply: transport.Response) -> None:
             "at the screen"
         )
 
+    if reply.status == 503:
+        # A renewal's own causes, which an ordinary route's message does not name: the gate asks
+        # the screen and the list of profiles as it does for a pairing, since a renewal writes a
+        # record of the names on it, and the list is the one of them that does not end by itself.
+        raise transport.unavailable(
+            reply,
+            locked="the database is locked, so a renewal has nothing to issue from",
+            busy=(
+                "the gate cannot put this renewal to the operator right now: KeePass is part way "
+                "through something of its own, Database Maintenance is open, saving the database "
+                "would stop to ask the operator something, another pairing or renewal is in front "
+                "of them, or there is no screen to ask on, each of which ends by itself, or the "
+                "database's list of profiles will not read, which lasts until the operator "
+                "repairs it. Nothing changed, and the certificate this client holds still works"
+            ),
+            undecided=_UNDECIDED,
+        )
+
     _refuse(reply)
+
+
+#: What a `503 undecided` means wherever a paired client meets it, a renewal among them.
+_UNDECIDED = (
+    "the database holds more than one certificate authority and the operator has not yet kept "
+    "any of them, which KeePass asks about on its own screen. If the authority kept is not this "
+    "client's, this client reaches nothing afterwards and pairs again"
+)
 
 
 def _moment(value: object) -> datetime:
@@ -1379,15 +1405,12 @@ def _refuse(reply: transport.Response) -> None:
             locked="the database is locked, so every route answers this until it is not",
             busy=(
                 "the gate cannot serve this right now: KeePass is busy, with a dialog open on "
-                "what this would change or with something of its own. Nothing was done, so "
-                "asking again shortly is safe"
+                "what this would change, with something of its own, or with a save that would "
+                "stop to ask the operator something, such as a database file changed on disk, "
+                "which lasts until the operator saves the database in KeePass. Nothing was done, "
+                "so asking again is safe"
             ),
-            undecided=(
-                "the database holds more than one certificate authority and the operator has "
-                "not yet kept any of them, which KeePass asks about on its own screen. If the "
-                "authority kept is not this client's, this client reaches nothing afterwards and "
-                "pairs again"
-            ),
+            undecided=_UNDECIDED,
         )
 
     error = reply.error()
