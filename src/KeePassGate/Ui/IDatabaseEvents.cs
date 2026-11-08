@@ -45,7 +45,7 @@ namespace KeePassGate.Ui
     /// </summary>
     /// <remarks>
     /// The seam that lets lock and unlock be tested without a password manager, and the same shape
-    /// as <see cref="IWindowEventSource"/>. All three events arrive on the user interface thread.
+    /// as <see cref="IWindowEventSource"/>. All four events arrive on the user interface thread.
     /// </remarks>
     public interface IDatabaseEvents
     {

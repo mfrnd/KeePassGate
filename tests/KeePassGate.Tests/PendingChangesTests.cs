@@ -703,6 +703,9 @@ namespace KeePassGate.Tests
         [Test]
         public void A_database_is_not_marked_for_a_dialog_somebody_only_looked_at()
         {
+            // The decorator alone. On the real dialog's OK, KeePass's own handler marks the
+            // database whatever the tab applied; what this pins is that the tab adds no mark of
+            // its own, which is what a Cancel relies on.
             var inner = new FakeGateDatabase { Nodes = new TestRuledNodes() };
             var pending = new PendingDatabase(inner, null);
 

@@ -23,11 +23,11 @@ namespace KeePassGate.Ui
     /// They are changed on different occasions and read on different occasions, and one page
     /// carrying all of them meant every line competing for the same 449 by 314.
     ///
-    /// Two things are said on screen rather than assumed, under both pages because both are true
-    /// of both. That nothing here reaches the database until this dialog is accepted, because a tab
-    /// inside a dialog with OK and Cancel on it has to mean the same thing they do. And what
-    /// recreating costs, in the number of clients that lose their admission, because that is the
-    /// number the operator cannot work out for themselves.
+    /// Two things are put on screen rather than assumed. Under all three pages, that nothing here
+    /// reaches the database until this dialog is accepted, because a tab inside a dialog with OK
+    /// and Cancel on it has to mean the same thing they do. And in the question asked before
+    /// Recreate or Delete, what either costs, in the number of clients that lose their admission,
+    /// because that is the number the operator cannot work out for themselves.
     ///
     /// **Nothing it can foresee is thrown**, because it runs on the UI thread of a password manager,
     /// where an exception leaving a click handler is recorded as a defect by `WindowHandlers` and

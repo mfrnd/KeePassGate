@@ -141,8 +141,11 @@ namespace KeePassGate.Host.Tests
         [Test]
         public void A_dialog_nobody_changed_anything_on_is_not_marked_at_all()
         {
-            // Opening a settings dialog, looking at the tab and pressing OK has to leave a database
-            // with nothing to save, or the tab teaches its operator to save for no reason.
+            // Opening a settings dialog, looking at the tab and pressing OK leaves the tab's part of
+            // the database with nothing to save. The dialog is closed here as KeePass's own OK
+            // would close it, without the handler in KeePass's main window that marks the database
+            // changed after every accepted settings dialog: what this pins is that the tab adds
+            // no mark of its own.
             _injector.Attach(_form);
             _database.Database.Modified = false;
 

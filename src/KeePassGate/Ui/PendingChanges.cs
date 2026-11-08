@@ -269,10 +269,14 @@ namespace KeePassGate.Ui
 
         /// <summary>
         /// Ignored rather than deferred. What marks the database is a change actually reaching it,
-        /// which
-        /// is <see cref="Apply"/>, because a database marked for a change that was then canceled
-        /// is a database asking to be saved for nothing.
+        /// which is <see cref="Apply"/>, because a database marked for a change that was then
+        /// canceled is a database asking to be saved for nothing.
         /// </summary>
+        /// <remarks>
+        /// **What this buys is a Cancel that leaves nothing to save.** On OK, KeePass's own
+        /// handler for the settings dialog marks the database changed whatever the tab did, after
+        /// the tab has applied what it held, so an OK that changed nothing still asks for a save.
+        /// </remarks>
         public void MarkModified()
         {
             // Deliberately nothing. What reaches the database is decided by what `Apply`
@@ -343,9 +347,10 @@ namespace KeePassGate.Ui
             }
 
             // On what was written, not on what was asked for. A create and a delete on the same
-            // tab cancel out, leaving a mark requested and nothing to save: KeePass then demanded
-            // a save for a file whose bytes had not changed, which is what this class exists to
-            // stop happening.
+            // tab cancel out, and nothing is marked for them here. KeePass marks the database on
+            // the settings dialog's OK in any case, `MarkModified` gives the reason that is not
+            // undone here, so what `changed` decides beyond this is the factory's log line about
+            // what landed and the prune of standing answers above.
             if (changed)
             {
                 _database.MarkModified();
@@ -406,10 +411,11 @@ namespace KeePassGate.Ui
         /// The order the writes were asked for, which is the order they are replayed in.
         /// </summary>
         /// <remarks>
-        /// A `Dictionary` has no order, and replaying one gave whatever it happened to hold:
-        /// measured, that inverted the sequence the authority is written in, where the key that
-        /// makes it usable goes last so a half-written one never reads as complete. The caller
-        /// chose an order; this keeps it.
+        /// A `Dictionary` has no order, and replaying one gave whatever it happened to hold. The
+        /// caller chose an order, and this keeps it, so OK lands a change in the order the code that
+        /// made it writes a live database in, which is the order that code's own reasoning about
+        /// each step holds for: a recreate, for one, writes its replacement before it retires the
+        /// authority it replaces.
         /// </remarks>
         private readonly List<string> _order = new List<string>();
         private readonly List<string> _removed = new List<string>();
