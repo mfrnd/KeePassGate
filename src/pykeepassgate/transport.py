@@ -29,6 +29,7 @@ import json
 import math
 import socket
 import ssl
+import string
 import time
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
@@ -910,6 +911,14 @@ def _pin_to_tls13(context: ssl.SSLContext) -> ssl.SSLContext:
     return context
 
 
+#: What RFC 3986's `pchar` allows as it stands: the unreserved characters, the sub-delimiters, `:`
+#: and `@`, which is what `PercentEncoding.StandsForItself` takes on the gate's side.
+_PATH_CHARACTERS = frozenset(string.ascii_letters + string.digits + "-._~!$&'()*+,;=:@")
+
+#: The digits an escape is written in, either case.
+_HEX = frozenset(string.hexdigits)
+
+
 def _check(method: str, path: str) -> None:
     """Refuse anything that could not be a request line, before it reaches the wire.
 
@@ -922,6 +931,14 @@ def _check(method: str, path: str) -> None:
 
     `send` is the documented way to reach a route this client has no method for, so its arguments
     are caller data, and the threat model says a caller can be prompt-injected.
+
+    **A path is held to RFC 3986's grammar**, an absolute path and a query after the first `?`,
+    which is what RFC 9112 makes a request target, and which the gate's `PercentEncoding`
+    takes a character by: `pchar`, which is the unreserved characters, the sub-delimiters, `:`,
+    `@` and an escape of two hex digits, with `/` between segments and `/` and `?` in the query
+    as well. A control, `"`, `#`, `<`, `{`, a space and the rest were sent, and came back as the
+    gate's `400`. What the grammar allows and the gate refuses as well, an escape standing for a
+    control or a segment of `..`, is the gate's to answer.
     """
     if not method.isascii() or not method.isalpha():
         raise ProtocolError(f"that is not a method: {method!r}")
@@ -929,8 +946,25 @@ def _check(method: str, path: str) -> None:
     if not path.startswith("/") or not path.isascii():
         raise ProtocolError(f"that is not a path this client will send: {path!r}")
 
-    if any(character in path for character in " \r\n\t\x00"):
-        raise ProtocolError(f"that path holds something a request line cannot: {path!r}")
+    absolute, _, query = path.partition("?")
+    for part, also in ((absolute, "/"), (query, "/?")):
+        position = 0
+        while position < len(part):
+            character = part[position]
+            if character == "%":
+                escape = part[position + 1 : position + 3]
+                if len(escape) != 2 or any(digit not in _HEX for digit in escape):
+                    raise ProtocolError(
+                        f"that path holds a % that does not begin an escape: {path!r}"
+                    )
+
+                position += 3
+                continue
+
+            if character not in _PATH_CHARACTERS and character not in also:
+                raise ProtocolError(f"that path holds something a request line cannot: {path!r}")
+
+            position += 1
 
 
 def check_condition(if_match: str | None) -> None:

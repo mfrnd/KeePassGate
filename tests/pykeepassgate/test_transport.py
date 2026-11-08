@@ -583,6 +583,36 @@ class TestWhatThisClientWillNotSend:
         ) as connection, pytest.raises(ProtocolError, match="not a path"):
             connection.send("GET", beyond)
 
+    @pytest.mark.parametrize(
+        "path",
+        ["/a\x01b", "/a\x7fb", '/a"b', "/a#b", "/a<b", "/a{b", "/a|b", "/a\\b", "/a b", "/a?b c"],
+        ids=[
+            "a control", "DEL", "a quote", "a hash", "an angle", "a brace", "a bar", "a backslash",
+            "a space", "a space in the query",
+        ],
+    )
+    def test_a_path_holding_what_rfc_3986_does_not_allow_is_refused(self, path: str) -> None:
+        # Each was sent and came back as the gate's `400`, which spent a connection to be told.
+        with pytest.raises(ProtocolError, match="request line cannot"):
+            transport._check("GET", path)
+
+    @pytest.mark.parametrize("path", ["/a%zz", "/a%4", "/a%"])
+    def test_a_percent_that_begins_no_escape_is_refused(self, path: str) -> None:
+        with pytest.raises(ProtocolError, match="does not begin an escape"):
+            transport._check("GET", path)
+
+    @pytest.mark.parametrize(
+        "path",
+        [
+            "/groups/root/entries?includeExpired=false",
+            "/entries/0a1b/attachments/a%2Fb%C3%A9",
+            "/x/y:z@w!$&'()*+,;=-._~",
+            "/x?y=a/b?c",
+        ],
+    )
+    def test_a_path_the_grammar_allows_is_sent(self, path: str) -> None:
+        transport._check("GET", path)
+
     def test_a_method_that_is_not_one_is_refused(
         self, gate: FakeGate, authority: Authority, client_certificate: Issued, answers: Answers
     ) -> None:

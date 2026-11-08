@@ -11,6 +11,11 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **PyKeePassGate holds a path it sends to RFC 3986's grammar**, an absolute path and a query of
+  the characters the gate takes as they stand and escapes of two hex digits, and refuses anything
+  else with `ProtocolError` before dialing. Only a space, a line break, a tab and a null were
+  refused, so a control, a quote, a hash, a brace or a stray `%` given to `send` or `get` spent a
+  connection and came back as the gate's `400`.
 - **PyKeePassGate refuses a body that is not UTF-8, or that is nested past the decoder's stack, as
   a body it cannot read**, with `ProtocolError`. A body that was not UTF-8 was decoded leniently,
   so a value came back holding U+FFFD where its bytes were, as though it were the value stored,
