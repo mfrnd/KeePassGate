@@ -173,6 +173,10 @@ none, since it releases both.
 - **The key a node's tag is made with is overwritten when its database stops being served**, as
   the rest of the host's material is. It is derived from the host's private key, and it was let go
   without being overwritten, along with the array it was derived into.
+- **A group holding the recycle bin and nothing else is refused for the bin.** Every listing leaves
+  the bin out, so such a group read as empty to the program refused `409` and was logged as a group
+  still holding something. The log names the bin now, and the routing document states that a group
+  holding the bin cannot be removed.
 - **A protected field is kept from a strip whenever any profile could put an unprotected value
   back.** The guard asked whether some profile could create there and whether some profile could
   create a protected value there, so a program holding one profile that could put an unprotected

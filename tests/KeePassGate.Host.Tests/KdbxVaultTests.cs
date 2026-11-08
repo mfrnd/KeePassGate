@@ -501,6 +501,27 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void A_group_holding_only_the_recycle_bin_is_refused_for_the_bin()
+        {
+            // The operator can make any group the bin, and a group above it then reads as empty to
+            // every listing, so the refusal is the only place its reason can be named.
+            var group = Created(_vault.CreateGroup(_vault.RootAlias, "Fictitious", null));
+            var bin = new PwGroup(true, true, "Invented bin", PwIcon.TrashBin);
+            _database.Database.RootGroup.FindGroup(new PwUuid(MemUtil.HexStringToByteArray(group)), true)
+                .AddGroup(bin, true);
+            _database.Database.RecycleBinEnabled = true;
+            _database.Database.RecycleBinUuid = bin.Uuid;
+
+            Assert.That(_vault.Subgroups(group), Is.Empty, "no listing shows the bin");
+
+            var refused = _vault.DeleteGroup(group, VaultTagging.None);
+
+            Assert.That(refused.IsConflict, Is.True);
+            Assert.That(refused.Reason, Does.Contain("recycle bin"));
+            Assert.That(_vault.Group(group), Is.Not.Null);
+        }
+
+        [Test]
         public void The_root_group_cannot_be_removed()
         {
             Assert.That(_vault.DeleteGroup(_vault.RootAlias, VaultTagging.None).IsConflict, Is.True);

@@ -499,8 +499,12 @@ namespace KeePassGate.Bridge
                 if (group.Groups.UCount > 0 || group.Entries.UCount > 0)
                 {
                     // A recursive delete would destroy entries that were never individually decided
-                    // or recorded, on the strength of one grant on a parent.
-                    return VaultWrite.Conflict("the group still holds something");
+                    // or recorded, on the strength of one grant on a parent. A group whose one child
+                    // is the recycle bin is refused for its own reason, since every listing leaves
+                    // the bin out and the group reads as empty to the client refused.
+                    return HoldsOnlyTheBin(group)
+                        ? VaultWrite.Conflict("the group holds the recycle bin, which a removal would take with it")
+                        : VaultWrite.Conflict("the group still holds something");
                 }
 
                 var blocked = Blocking(group) ?? BlockingRemoval(group) ?? RecycleBinBlocked();
@@ -1924,6 +1928,16 @@ namespace KeePassGate.Bridge
             }
 
             return false;
+        }
+
+        /// <summary>Whether the recycle bin is the one thing in this group.</summary>
+        private bool HoldsOnlyTheBin(PwGroup group)
+        {
+            var bin = Bin(_database.RootGroup);
+            return bin != null
+                   && group.Entries.UCount == 0
+                   && group.Groups.UCount == 1
+                   && ReferenceEquals(group.Groups.GetAt(0), bin);
         }
 
         /// <summary>Whether this entry sits in the recycle bin.</summary>

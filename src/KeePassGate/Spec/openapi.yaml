@@ -804,7 +804,9 @@ paths:
         an entry: to the recycle bin, or written down as deleted where there is none. The root
         group cannot be removed, and asking
         answers the same `404` as any node the rules do not reach rather than a conflict: a removal
-        is asked of the group a node is leaving, and the root is leaving nothing.
+        is asked of the group a node is leaving, and the root is leaving nothing. A group holding the
+        recycle bin cannot be removed either, although no listing shows the bin in it, since
+        removing the group would take the bin with it.
       x-kpg-verb: delete
       parameters:
         - $ref: "#/components/parameters/GroupUuid"
