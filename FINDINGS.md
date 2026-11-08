@@ -327,8 +327,8 @@ it was sent. Measured by calling that method on KeePass 2.61.1 once per code poi
 what came back, which is also what `JsonBody.IsUsable` is now written against: the two agree on
 every one of the 65,536 inside a string. Alone, four differ, since `IsUsable` also refuses a string
 that is whitespace alone, which `SafeXmlString` keeps, so a lone tab, line feed, carriage return or
-space is refused for the reader's reason rather than KeePass's. That agreement was measured once,
-and no test compares the two.
+space is refused for the reader's reason rather than KeePass's. `JsonBodyAgainstKeePassTests`
+holds the two to both halves of that against the pinned KeePass.
 
 **A lone surrogate reaches a body reader only as `U+FFFD`.** Json.NET substitutes the replacement
 character for an escaped half while it is reading, so `{"a":"one\uD800two"}` comes out of

@@ -299,8 +299,10 @@ namespace KeePassGate.Transport
         /// without its pair. So a body carrying one of those was accepted, answered `200` or `201`
         /// with the value reported as stored, and came back short from the file: the client
         /// believed it had written a password it had not. Measured against KeePass 2.61.1 over
-        /// every code point in the basic multilingual plane, and this rule and that method agree
-        /// on all 65,536 of them.
+        /// every code point in the basic multilingual plane, each inside a string, and this rule
+        /// and that method agree on all 65,536 of them, which `JsonBodyAgainstKeePassTests` holds
+        /// them to against the pinned KeePass. Alone, a tab, a line feed, a carriage return and a
+        /// space are refused here and kept there, by the rule on whitespace alone below.
         ///
         /// **A carriage return is let through, and comes back changed**, which that measurement
         /// could not see because it asked only what the writer keeps. The reader is the other
@@ -338,7 +340,7 @@ namespace KeePassGate.Transport
         /// a character in the first place, and the replacement is what every other reader would
         /// have made of it.
         /// </remarks>
-        private static bool IsUsable(string text)
+        internal static bool IsUsable(string text)
         {
             if (text == null || text.Length > MaxStringLength)
             {
