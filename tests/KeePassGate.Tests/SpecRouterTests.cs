@@ -126,6 +126,24 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_router_that_renews_nothing_tells_an_admitted_client_nothing_about_its_body()
+        {
+            // The renewal route had only `NotServed` behind it and no guard, so the router checked
+            // the body first: a malformed body was `400` and only a well formed body learned that
+            // the route is not served, which the pairing routes' guard exists to prevent.
+            foreach (var body in new[] { "not json", "{\"lifetime\":\"forever\"}", "{}" })
+            {
+                var context = Request(
+                    "POST", GateOperations.PathOf(GateOperations.RenewCertificate), Paired("db"), body);
+
+                _router.Handle(context);
+
+                Assert.That(context.Status, Is.EqualTo(404), body);
+                Assert.That(context.Json, Does.Contain("no such route"), body);
+            }
+        }
+
+        [Test]
         public void A_path_under_pair_that_the_document_does_not_declare_is_not_a_pairing_path()
         {
             // `/pair/` is not a prefix that means anything any more. An undeclared path is

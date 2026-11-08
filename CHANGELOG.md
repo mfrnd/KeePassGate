@@ -11,6 +11,10 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **A router built without renewal refuses the renewal route before looking at the body**, as a
+  router built without pairing refuses the pairing routes. A malformed body was answered `400` and
+  only a well formed body was told the route is not served. The plugin always serves renewal, so
+  only a router assembled outside it, as the tests assemble theirs, answered this way.
 - **A body sent to a path none of whose operations takes a body is refused as an undeclared
   target whatever the method**, as a query name nothing on the path declares already was. Sent
   with a method the path does not serve, it was answered `405` naming the methods the path does
