@@ -268,9 +268,14 @@ class Pairing:
 
         body = _json(asking)
 
+        # At least `transport.PAIRING_CONNECTION_TIMEOUT`, whatever `connection_timeout` holds, as
+        # a renewal waits: this request waits on the operator, and a client that hung up sooner
+        # would lose an approval the gate goes on to write with the invitation spent, leaving a
+        # record for a key nobody holds. A longer timeout is kept, and the hello keeps the
+        # timeout given.
         with transport.connect(
             self._port, context, server_name, host=self._host,
-            connection_timeout=self._connection_timeout,
+            connection_timeout=max(self._connection_timeout, transport.PAIRING_CONNECTION_TIMEOUT),
             max_response_bytes=self._max_response_bytes,
             dial=self._dial,
         ) as connection:

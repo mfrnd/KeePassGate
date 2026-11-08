@@ -522,6 +522,27 @@ def test_a_pairing_waits_longer_than_the_gate_may_take(gate: FakeGate) -> None:
     )
 
 
+def test_a_shorter_timeout_does_not_hang_up_on_the_operator(
+    gate: FakeGate, pairing_gate: Gate, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # `pair --connection-timeout 30`, from somebody who wanted a dead port to fail fast, hung up
+    # on an operator who took forty seconds, after the invitation was spent and the record
+    # written. The hello keeps the timeout given, and the request waits as a renewal's does.
+    timeouts: list[float] = []
+    connect = transport.connect
+
+    def recorded(*arguments: Any, **named: Any) -> Any:
+        timeouts.append(named["connection_timeout"])
+        return connect(*arguments, **named)
+
+    monkeypatch.setattr(transport, "connect", recorded)
+    pairing = Pairing(gate.port, INVITATION, connection_timeout=10.0)
+
+    pairing.request(pairing.hello(), "agent-invented", ["reader"])
+
+    assert timeouts == [10.0, transport.PAIRING_CONNECTION_TIMEOUT]
+
+
 @pytest.mark.parametrize(
     ("name", "profiles"),
     [

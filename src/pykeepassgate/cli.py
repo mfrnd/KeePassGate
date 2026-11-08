@@ -720,7 +720,8 @@ def _dialed(parser: argparse.ArgumentParser) -> None:
         default=None,
         help=(
             "seconds any one wait on the socket may last, the dial, the handshake or a read, if "
-            "not the default for what is being done"
+            "not the default for what is being done. The request of pair and of renew waits on "
+            "the operator for six minutes or this, whichever is longer"
         ),
     )
 

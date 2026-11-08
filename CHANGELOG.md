@@ -11,6 +11,10 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **A pairing waits at least six minutes for the operator's answer, whatever
+  `connection_timeout` is**, as a renewal already did. `pair --connection-timeout 30` hung up on
+  an operator who took longer, after the invitation was spent and the record written, leaving a
+  record for a key nobody holds. The hello still keeps the timeout given.
 - **A renewal opens a kept identity with the password it was given, and calls a kept identity it
   could not present what it is.** An identity at `<dir>.retired` under a password, beside an
   identity whose key needs none, was opened with no password at all, and every renewal was refused with
