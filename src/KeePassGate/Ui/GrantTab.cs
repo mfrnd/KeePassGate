@@ -138,7 +138,27 @@ namespace KeePassGate.Ui
             + "profile again on the " + GateName.OnATab + " tab of the database settings puts it "
             + "back in force.";
 
+        /// <summary>
+        /// The same, on a rule from a group above that this node refuses as well, by its seal or by
+        /// rules of its own that will not read.
+        /// </summary>
+        /// <remarks>
+        /// Adding the name back does not put such a rule in force here: the row turns into a rule
+        /// the seal refuses, still struck through. Both reasons are given, because hearing only
+        /// the first sent the operator to add the name back and find the access still refused.
+        /// </remarks>
+        public const string ProfileNotNamedAndRefused =
+            "This database no longer names this profile, so this rule grants nothing, and this node "
+            + "refuses it here even once the profile is added again on the " + GateName.OnATab
+            + " tab of the database settings.";
+
         public const string MaskColumnName = "KpgGrantMaskColumn";
+
+        /// <summary>What that column's heading tells the operator, where a rule can be chosen.</summary>
+        public const string MaskColumnHelp = "Click to choose what a profile may do here.";
+
+        /// <summary>The same, on a tab where nothing can be changed.</summary>
+        public const string MaskColumnReadOnlyHelp = "What a profile may do here.";
 
         /// <summary>
         /// What that column is called on screen. The heading says what the column is for; the

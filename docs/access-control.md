@@ -298,7 +298,9 @@ clicking away from them does not, so looking at a refused rule never lets it thr
 
 **A line through the mask also marks a profile this database no longer names**, on a rule of this
 node's own or one from above. It grants nothing until the profile is added back on the **Profiles**
-page, and its tooltip says so.
+page, and its tooltip states as much. A rule from above on a node whose seal refuses it, or whose
+own rules will not read, stays refused there once the name is back, and its tooltip states that too.
+Hovering over the profile shows its whole name, which a long name's column cuts.
 
 ## Nearest wins
 
@@ -342,8 +344,9 @@ gives the reason:
 
 - **Several entries edited together.** What KeePass's dialog holds for them is no single entry's
   rules, so open one entry at a time to read or change its rules.
-- **An earlier version of an entry**, opened from its **History** tab. The rules shown are the ones
-  that version had, not the ones in force, and KeePass keeps nothing changed on that dialog.
+- **An earlier version of an entry**, opened from its **History** tab. The entry's own rules shown
+  are the ones that version had, not the ones in force, while the rules from the groups above are
+  what those groups grant now, and KeePass keeps nothing changed on that dialog.
 - **A KeePass this plugin cannot reach into**: a KeePass that keeps a dialog's settings somewhere
   the plugin does not find them, or that does not tell it which database, group or entry the dialog
   is about. The rules can be read and not changed, and

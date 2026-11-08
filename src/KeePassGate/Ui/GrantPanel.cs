@@ -1241,7 +1241,7 @@ namespace KeePassGate.Ui
                 // seven characters, nine. The cell is a place the picker opens from, and the picker
                 // is where a rule is made.
                 ReadOnly = true,
-                ToolTipText = Tooltips.Wrapped("Click to choose what a profile may do here."),
+                ToolTipText = Tooltips.Wrapped(GrantTab.MaskColumnHelp),
             };
 
             mask.DefaultCellStyle.Font = _monospace;
@@ -1480,8 +1480,12 @@ namespace KeePassGate.Ui
 
             // A rule stored for no profile at all is inert too, and not because a name went: no
             // name can be added to put it back in force, so it says what it is instead.
+            // On a rule from above that this node refuses as well, adding the name back would not
+            // put it in force here, so both reasons are given.
             added.Cells[MaskColumn].ToolTipText = Tooltips.Wrapped(
-                string.IsNullOrEmpty(row.Profile) ? GrantTab.RuleWithoutProfile : GrantTab.ProfileNotNamed);
+                string.IsNullOrEmpty(row.Profile)
+                    ? GrantTab.RuleWithoutProfile
+                    : !row.Local && !row.Reaches ? GrantTab.ProfileNotNamedAndRefused : GrantTab.ProfileNotNamed);
             return true;
         }
 
@@ -1538,9 +1542,14 @@ namespace KeePassGate.Ui
                     _grid.Rows[index].Cells[ProfileColumn].Tag = row.Profile;
                     var added = _grid.Rows[index];
 
-                    // Which profile a row is for is settled once it is on the table, so the cell
-                    // says how to change it rather than pretending it can be edited.
-                    added.Cells[ProfileColumn].ToolTipText = Tooltips.Wrapped(GrantTab.ProfileIsSettled);
+                    // The profile's whole name first, since a long name is cut in its column and a
+                    // cell with a tip of its own never shows its cut value whole: two names sharing
+                    // a long start drew as the same row. Then, on a rule of this node's own, that
+                    // which profile it is for is settled; an inherited row offers no removal, so it
+                    // is not told how to remove and recreate one.
+                    added.Cells[ProfileColumn].ToolTipText = Tooltips.Wrapped(row.Local && _sheet.CanEdit
+                        ? row.Profile + Environment.NewLine + GrantTab.ProfileIsSettled
+                        : row.Profile);
 
                     if (row.Local)
                     {
@@ -1581,9 +1590,10 @@ namespace KeePassGate.Ui
                     {
                         // Replace rather than narrow, because a rule chosen here replaces this one in
                         // full for this node and everything under it, whether it grants less or
-                        // more.
-                        added.Cells[MaskColumn].ToolTipText = Tooltips.Wrapped(
-                            "Inherited from a group above. Choose a rule here to replace it.");
+                        // more. Not offered where nothing can be chosen.
+                        added.Cells[MaskColumn].ToolTipText = Tooltips.Wrapped(_sheet.CanEdit
+                            ? "Inherited from a group above. Choose a rule here to replace it."
+                            : "Inherited from a group above.");
                         continue;
                     }
 
@@ -1599,12 +1609,15 @@ namespace KeePassGate.Ui
                     // is to replace a rule that arrives here, and on this row nothing arrives to be
                     // replaced: `deny` refuses what this node does not name, so naming the profile
                     // is what lets it through again. Under rules here that will not read, nothing
-                    // can be chosen until they are discarded, so that is what it says instead.
+                    // can be chosen until they are discarded, so that is what it offers instead,
+                    // and on a tab where nothing can be changed it offers neither.
+                    var editable = string.IsNullOrEmpty(_sheet.ReadOnlyReason);
                     added.Cells[MaskColumn].ToolTipText = Tooltips.Wrapped(_sheet.Unreadable
                         ? "The rules here cannot be read, so what a group above grants this one "
-                          + "no longer arrives. Discard them to let it through."
+                          + "no longer arrives." + (editable ? " Discard them to let it through." : string.Empty)
                         : "This node refuses every profile it does not name, so what a group above "
-                          + "grants this one no longer arrives. Choose a rule here to let it through.");
+                          + "grants this one no longer arrives."
+                          + (editable ? " Choose a rule here to let it through." : string.Empty));
                 }
 
                 ScrollTo(top);
@@ -1619,7 +1632,16 @@ namespace KeePassGate.Ui
                 // everywhere else, the sheet refusing, and neither picker opens on a sheet that
                 // cannot change.
                 _grid.AllowUserToAddRows = _sheet.CanEdit;
-                _discard.Visible = _sheet.Unreadable;
+
+                // Only where discarding can do something: on a tab that is read only for another
+                // reason, a history revision among them, the sheet refuses the discard, and a
+                // button that did nothing when pressed stayed up under rows telling the operator
+                // to press it.
+                _discard.Visible = _sheet.Unreadable && string.IsNullOrEmpty(_sheet.ReadOnlyReason);
+
+                // The heading's instruction only where a rule can be chosen.
+                _grid.Columns[MaskColumn].ToolTipText = Tooltips.Wrapped(
+                    _sheet.CanEdit ? GrantTab.MaskColumnHelp : GrantTab.MaskColumnReadOnlyHelp);
 
                 // After the flag it reads, not before it. Discarding restores editing, and on
                 // that redraw the flag still said otherwise, so the line came back undimmed and

@@ -11,6 +11,12 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **The access editor's tooltips tell the operator what the row can do.** A profile cut in its
+  column is shown whole on hover; an inherited row is no longer told to remove and recreate a rule
+  it does not hold; a tab that cannot be changed, a history revision among them, no longer offers a
+  choice or a Discard that does nothing; a removed profile's rule from above on a sealed node no
+  longer promises that adding the name back puts it in force; and a revision's rules from above are
+  named as what the groups grant now.
 - **A write or a pairing still in progress as KeePass exits is logged as meeting a window that has
   gone**, rather than as KeePass not answering in time, and a pairing or renewal then is no longer
   audited as a dialog nobody answered when no dialog was shown.

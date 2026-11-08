@@ -362,6 +362,66 @@ namespace KeePassGate.Tests
             }
         }
 
+        [Test]
+        public void A_profile_s_whole_name_is_in_its_tooltip_and_only_a_rule_of_its_own_is_told_how_to_change_it()
+        {
+            // A long name is cut in its column, and a cell with a tip of its own never shows its cut
+            // value whole, so two names sharing a long start drew as the same row. And an inherited
+            // row has no X, so it was told to remove and recreate a rule it does not hold.
+            var above = TestNode.Root("root").Granting("editor", AclVerb.Read);
+
+            using (var panel = Panel(new FakeGrantStore(Rules.Granting(("reader", "R"))), above))
+            {
+                var grid = ControlTree.FindByName<DataGridView>(panel, GrantTab.GridControlName);
+
+                Assert.That(Row(grid, "reader").Cells[0].ToolTipText, Does.Contain("reader").And.Contain("only removed and recreated"));
+                Assert.That(Row(grid, "editor").Cells[0].ToolTipText, Does.Contain("editor"));
+                Assert.That(Row(grid, "editor").Cells[0].ToolTipText, Does.Not.Contain("removed and recreated"));
+            }
+        }
+
+        [Test]
+        public void An_unnamed_profile_on_a_sealed_node_is_not_promised_back_in_force_by_its_name_alone()
+        {
+            // The seal refuses the inherited rule whether or not the name is on the list, so
+            // adding the name back turned the row into a rule the seal refuses, still struck.
+            var above = TestNode.Root("root").Granting("retired", AclVerb.Read);
+
+            using (var panel = new GrantPanel(
+                new GrantSheet(Rules.Sealing(), above, new[] { "reader" }, null),
+                new FakeGrantStore(Rules.Sealing()), GrantTab.GroupScope, null))
+            {
+                var grid = ControlTree.FindByName<DataGridView>(panel, GrantTab.GridControlName);
+
+                Assert.That(Row(grid, "retired").Cells[1].ToolTipText, Does.Contain("refuses it here").And.Not.Contain("back in force"));
+            }
+        }
+
+        [Test]
+        public void A_tab_that_cannot_change_offers_no_choice_and_no_discard()
+        {
+            // A history revision whose rules will not read: the sheet refuses the discard, and the
+            // button stayed up doing nothing under rows telling the operator to press it, beside a
+            // heading and rows telling them to choose a rule that no picker would open for.
+            var above = TestNode.Root("root").Granting("reader", AclVerb.Read).Granting("editor", AclVerb.Read);
+
+            using (var panel = new GrantPanel(
+                new GrantSheet("{\"reader\":[\"purge\"]}", above, new[] { "reader", "editor" }, "This is an earlier version of the entry."),
+                null, GrantTab.EntryScope, null))
+            {
+                var grid = ControlTree.FindByName<DataGridView>(panel, GrantTab.GridControlName);
+                var discard = ControlTree.FindByName<Button>(panel, GrantTab.DiscardButtonName);
+
+                Assert.That(discard.Visible, Is.False);
+                foreach (DataGridViewRow row in grid.Rows)
+                {
+                    Assert.That(row.Cells[1].ToolTipText, Does.Not.Contain("Discard").And.Not.Contain("Choose a rule"));
+                }
+
+                Assert.That(grid.Columns[1].ToolTipText, Does.Not.Contain("Click to choose"));
+            }
+        }
+
         private static DataGridViewRow Row(DataGridView grid, string profile)
         {
             foreach (DataGridViewRow row in grid.Rows)

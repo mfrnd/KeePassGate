@@ -421,9 +421,9 @@ namespace KeePassGate.Ui
             // Not `CanEdit`, which its siblings ask and which is false whenever `Unreadable` is
             // true. Asking it here would turn off the one button that clears that. The
             // question is the other half of `CanEdit`: a tab with no store behind it must not
-            // appear to destroy anything. Nothing can reach that state today, because a reason
-            // to be read only is also a reason nothing was read to be unreadable, but that is
-            // three files agreeing and a method that clears rules should not need them to.
+            // appear to destroy anything. That state is reached: a node dialog with no store
+            // behind it reads the node's own rules, so a history revision whose rules will not
+            // read is read only and unreadable at once, and the panel shows no Discard there.
             if (!string.IsNullOrEmpty(ReadOnlyReason) || !Unreadable)
             {
                 return;
