@@ -1849,7 +1849,6 @@ components:
             are told apart by the status and read by a person. None of them carries anything the
             caller sent back to it.
 
-
     Identity:
       type: object
       required:
@@ -2302,8 +2301,8 @@ components:
         chosen between, which is copies that each made an authority of their own meeting in a
         synchronize. It is answered before a route is chosen too, with each authority's own host
         certificate, so a client of any of them reaches it, pairing included, and it lasts until the
-        operator keeps one of them, which KeePass asks for on its own screen. The clients of the authorities not kept are
-        refused from then on and pair again.
+        operator keeps one of them, which KeePass asks for on its own screen. The clients of the
+        authorities not kept are refused from then on and pair again.
 
         `busy` is five things, and a read meets the first as readily as a write meets the others.
         KeePass's own thread could not be held still for the read: every read waits its turn on that
@@ -2553,10 +2552,6 @@ components:
           schema:
             $ref: "#/components/schemas/Error"
 
-    # A taken name is told rather than hidden because a create that did not land has to say so, or
-    # a client that only adds believes it stored what it did not, and neither other answer is
-    # open: a `404` would call an entry it may add to absent, and writing over the name is what
-    # `update` is for.
     PreconditionFailed:
       description: |
         The node is there and no longer holds what `If-Match` said, so nothing was read or changed:
@@ -2573,6 +2568,10 @@ components:
           schema:
             $ref: "#/components/schemas/Error"
 
+    # A taken name is told rather than hidden because a create that did not land has to tell the
+    # client so, or a client that only adds believes it stored what it did not, and neither other
+    # answer is open: a `404` would call an entry it may add to absent, and writing over the name
+    # is what `update` is for.
     Conflict:
       description: |
         The database already says otherwise: a name that is taken, a name the database cannot
@@ -2609,7 +2608,6 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/Made"
-
 
   headers:
     RetryAfter:

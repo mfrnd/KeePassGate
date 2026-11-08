@@ -157,9 +157,9 @@ namespace KeePassGate.Spec
 
                 if (!_captures[i])
                 {
-                    // Compared after decoding, so an escaped separator is part of one
-                    // segment rather than a route, and `/g%61te/status` is `/gate/status`. A literal in the document is what a caller meant, not
-                    // how it spelled it.
+                    // Compared after decoding, so an escaped separator is part of one segment
+                    // rather than a route, and `/g%61te/status` is `/gate/status`. A literal in
+                    // the document is what a caller meant, not how it spelled it.
                     if (!string.Equals(part, _segments[i], StringComparison.Ordinal))
                     {
                         return false;
