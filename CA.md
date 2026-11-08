@@ -285,6 +285,14 @@ This reverses recreation emptying the records rather than removing them, which i
 replacement went under the same key and an emptied record was the only mark a merge with an older
 copy would carry.
 
+**A merge with a copy from before brings those revocations back, and they stay.** A revocation names
+a certificate and not its authority, and the record beside it is empty, so nothing the plugin reads
+ties it to the authority that was retired, and no prune takes it early: it goes with the first
+revocation after its certificate has expired, as any revocation does, which is at most a year after
+it was issued, or with the next recreation or deletion, or by hand under Database Maintenance. It
+has no row on the clients page. It refuses nothing the retirement does not refuse already and admits
+nobody, so what it costs is a key in the file.
+
 **All of this is a claim about KeePass 2.48 or later with the plugin in it.** Other programs can open
 the database, and saving or merging in one can quietly bring back a revoked client, a retired
 authority or a removed profile, because their merges replace or drop keys: KeePassXC 2.7.12, the
