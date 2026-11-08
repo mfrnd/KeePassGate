@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Security.AccessControl;
 using System.Text;
+using System.Threading;
 using KeePassGate.Diagnostics;
 using IoPath = System.IO.Path;
 
@@ -43,6 +44,9 @@ namespace KeePassGate.Audit
     /// **Where it is writing is said as it opens**, and so is having nowhere to write. See the
     /// constructor. `docs/audit.md` is the same answer for whoever runs this rather than reads it.
     ///
+    /// **KeePass's own thread hands its lines to a writer of the audit's own** rather than waiting
+    /// on the file, and every line keeps its place: see <see cref="Record"/>.
+    ///
     /// **It asks for the right to append and no other**, so it goes on working on a file an
     /// administrator has made append only, where it can no longer set the file aside. See
     /// <see cref="Append"/>. That is an arrangement it works under rather than a protection it
@@ -71,6 +75,13 @@ namespace KeePassGate.Audit
         private readonly string _path;
         private readonly IGateLog _log;
         private readonly GateIncidents _incidents;
+        private readonly Func<bool> _mayNotWait;
+
+        // The lines a thread that may not wait has recorded, and whether a writer is running to
+        // take them, both under a lock of their own.
+        private readonly object _queueLock = new object();
+        private readonly Queue<AuditEntry> _queued = new Queue<AuditEntry>();
+        private bool _writing;
 
         private bool _reported;
         private bool _rollReported;
@@ -78,10 +89,11 @@ namespace KeePassGate.Audit
         private int _unrecorded;
 
         /// <summary>
-        /// The audit at this path, with a line that could not be shaped counted in the log alone.
+        /// The audit at this path, with a line that could not be shaped counted in the log alone,
+        /// and every line written on the thread that records it.
         /// </summary>
         public JsonLinesAudit(string path, IGateLog log)
-            : this(path, log, null)
+            : this(path, log, null, null)
         {
         }
 
@@ -105,11 +117,16 @@ namespace KeePassGate.Audit
         /// Where a line that could not be shaped is counted, or null for a count of this audit's
         /// own, which reaches the log and no window.
         /// </param>
-        public JsonLinesAudit(string path, IGateLog log, GateIncidents incidents)
+        /// <param name="mayNotWait">
+        /// Whether the thread recording a line may not wait for the file, which is true of
+        /// KeePass's own thread, or null when every thread may.
+        /// </param>
+        public JsonLinesAudit(string path, IGateLog log, GateIncidents incidents, Func<bool> mayNotWait)
         {
             _path = string.IsNullOrEmpty(path) ? null : path;
             _log = log ?? NullGateLog.Instance;
             _incidents = incidents ?? new GateIncidents(_log);
+            _mayNotWait = mayNotWait ?? (() => false);
 
             if (_path == null)
             {
@@ -167,6 +184,24 @@ namespace KeePassGate.Audit
             return PluginFiles.Resolve(AuditFileVariable, DefaultFileName);
         }
 
+        /// <summary>
+        /// Writes one line down, after every line queued before it, or queues it for the audit's
+        /// own writer when the calling thread may not wait for the file.
+        /// </summary>
+        /// <remarks>
+        /// **KeePass's own thread never waits on the file.** It records a line when a pairing, a
+        /// renewal or a client's revocation of itself lands, inside the writer's turn, and when the
+        /// settings dialog's OK puts the operator's revocation into the database. Written there, a
+        /// slow or unreachable audit path held KeePass's window for that file's I/O and for every
+        /// connection's line queued on the lock ahead of it. So such a line is queued before
+        /// anything else is done with it, which nothing after it can undo, and a thread of the
+        /// audit's own writes it. A process that ends in that moment, before the writer reaches
+        /// it, loses it, which `docs/audit.md` states.
+        ///
+        /// **Every line keeps its place.** A line written here first writes every line queued
+        /// before it, under the same lock the audit's own writer takes, so a pairing's line is
+        /// never written after the first request of the client it admitted.
+        /// </remarks>
         public void Record(AuditEntry entry)
         {
             if (entry == null || _path == null)
@@ -174,6 +209,99 @@ namespace KeePassGate.Audit
                 return;
             }
 
+            if (_mayNotWait())
+            {
+                Queue(entry);
+                return;
+            }
+
+            lock (_fileLock)
+            {
+                WriteQueued();
+                Write(entry);
+            }
+        }
+
+        /// <summary>
+        /// Puts a line in the queue, and starts the audit's own writer unless it is already
+        /// running.
+        /// </summary>
+        /// <remarks>
+        /// Under a lock of its own and never the file's, so a thread that may not wait waits for
+        /// nothing but a queue. **The writer is a root**, in the sense `GateIncidents` means: its
+        /// thread has nothing above it, and an exception escaping it ends the process. It is safe
+        /// the way the accept thread is, `DESIGN.md` §141: what it calls is total or filtered, the
+        /// shaping catching everything for the reason it gives, every file call filtered by
+        /// `Expected.OfStorage`, and the log and the incidents total. Anything added to
+        /// <see cref="Write"/> has to keep that true.
+        /// </remarks>
+        private void Queue(AuditEntry entry)
+        {
+            lock (_queueLock)
+            {
+                _queued.Enqueue(entry);
+                if (_writing)
+                {
+                    return;
+                }
+
+                _writing = true;
+            }
+
+            new Thread(WriteInTurn) { IsBackground = true, Name = "KeePassGate audit" }.Start();
+        }
+
+        /// <summary>The audit's own writer: every queued line, until the queue stays empty.</summary>
+        private void WriteInTurn()
+        {
+            while (true)
+            {
+                lock (_fileLock)
+                {
+                    WriteQueued();
+                }
+
+                lock (_queueLock)
+                {
+                    // Asked under the queue's lock, where a line queued after the last one written
+                    // either finds this still running or starts another writer.
+                    if (_queued.Count == 0)
+                    {
+                        _writing = false;
+                        return;
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Writes every line queued so far, in the order queued. Called under the file's lock, so
+        /// that taking a line from the queue and writing it are one step to every other writer.
+        /// </summary>
+        private void WriteQueued()
+        {
+            while (true)
+            {
+                AuditEntry next;
+                lock (_queueLock)
+                {
+                    if (_queued.Count == 0)
+                    {
+                        return;
+                    }
+
+                    next = _queued.Dequeue();
+                }
+
+                Write(next);
+            }
+        }
+
+        /// <summary>
+        /// Shapes one line and appends it, under the file's lock, which the caller may already hold.
+        /// </summary>
+        private void Write(AuditEntry entry)
+        {
             lock (_fileLock)
             {
                 string line;

@@ -185,6 +185,13 @@ of itself that reached the database is written down even when a defect in KeePas
 plugin ends the request afterwards. The program is then told `500`, and a pairing or a renewal
 ended that way hands over no certificate, so the program asks again.
 
+**KeePass never waits for this file.** These lines, and the operator's revocation at **OK**, are
+written while KeePass's own window is busy with the change, so each is handed to a writer of the
+plugin's own at once rather than written there, and a file on slow or unreachable storage costs
+KeePass nothing. The lines still reach the file in the order they happened. Beyond what can stop
+any line being written, below, such a line is lost only if KeePass ends between the change and the
+writer reaching it.
+
 **Not everything that changes who is admitted is here yet.** Recreating or deleting the authority
 takes every record away and is not written down, and neither is a change to the rules or to the
 profiles. Those wait for a design of audit levels.

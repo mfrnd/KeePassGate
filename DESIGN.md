@@ -1226,7 +1226,9 @@ The kinds:
 **Roots kept safe another way.** The accept thread and a connection's deadline timer have nothing
 above them, like the connection thread, and rather than catching everything, every call they make
 is total or filtered. `GateListener.Drop` explains what keeps that true, and what a change to the
-accept loop has to do if it cannot.
+accept loop has to do if it cannot. The audit's own writer, which writes the lines KeePass's thread
+records, is a root of the same kind: shaping a line catches everything, as a reporter, and every
+file call it makes is filtered, as `JsonLinesAudit.Queue` explains.
 
 **Places that catch everything without being a kind**, since each throws what it caught again where
 a place of a kind sees it, or must add no exception of its own:
@@ -1309,6 +1311,14 @@ the operation that asked writes none of its own. Written by the operation once t
 a defect in the Clients page's listener went past every filter to the connection thread's
 catch-all, and the line about a change already on the disk was never written. Catching that defect
 instead would have made a place that catches everything of no kind §141 lists.
+
+**And KeePass's thread never waits on the file for it.** That write runs on KeePass's thread, and so
+does the operator's revocation the settings dialog's OK applies, so each line recorded there is
+queued before anything else is done with it and written by a thread of the audit's own: written in
+place, an audit on slow or unreachable storage held KeePass's window for that file's I/O and for the
+line of every connection waiting on its lock. A line recorded anywhere else first writes every line
+queued before it, so the file keeps them in order, and a process that ends before the audit's writer
+reaches a line loses it.
 
 Three things are settled about it. It defaults to this user's own application data rather than
 beside the `.kdbx`, because a database is often on a share or in a cloud folder and a record of

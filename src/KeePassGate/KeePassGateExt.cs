@@ -506,7 +506,14 @@ namespace KeePassGate
                 // The audit is opened before anything can be decided, and it is the plugin's own
                 // file rather than the database's: a record of what an agent reached, kept inside
                 // the thing it reached, is a record whoever compromised the database can edit.
-                _audit = new JsonLinesAudit(JsonLinesAudit.DefaultPath(), _log, _incidents);
+                // KeePass calls this on its own thread, which is the one that may not wait for the
+                // file: a line recorded there goes to the audit's own writer.
+                var keePass = System.Threading.Thread.CurrentThread;
+                _audit = new JsonLinesAudit(
+                    JsonLinesAudit.DefaultPath(),
+                    _log,
+                    _incidents,
+                    () => System.Threading.Thread.CurrentThread == keePass);
 
                 // One check for the gate's decisions and the record of what happens to admissions,
                 // the operator's revocations on the tab among them, so that the file has one clock

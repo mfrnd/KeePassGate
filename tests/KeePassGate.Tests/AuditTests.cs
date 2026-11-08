@@ -756,7 +756,7 @@ namespace KeePassGate.Tests
             var path = Paths.Join(_directory, "audit.jsonl");
             var log = new Fakes.RecordingGateLog();
             var incidents = new GateIncidents(log);
-            var audit = new JsonLinesAudit(path, log, incidents);
+            var audit = new JsonLinesAudit(path, log, incidents, null);
             var broken = new AuditEntry(
                 DateTimeOffset.UtcNow, "d1e2f3", "9f86d081", "9f86d081", "readEntry", "7b1c", "3a9f", false,
                 AccessCheckReason, new UnreadableList());
@@ -770,6 +770,149 @@ namespace KeePassGate.Tests
 
             audit.Record(Entry("readEntry", true));
             Assert.That(File.ReadAllLines(path).Length, Is.EqualTo(1), "the next line is written as usual");
+        }
+
+        [Test]
+        public void A_line_KeePass_s_thread_records_does_not_wait_for_the_file()
+        {
+            // KeePass's own thread records a line when a pairing, a renewal or a client's
+            // revocation of itself lands, and at the settings dialog's OK. Written there, it waited
+            // for the file's lock behind every connection's line, and a slow path held KeePass's
+            // window for all of them. Here a connection holds that lock, reporting a write that
+            // failed to a log that does not come back, and KeePass's thread comes back anyway.
+            Directory.CreateDirectory(_directory);
+            var path = Paths.Join(_directory, "audit.jsonl");
+            var log = new HeldLog();
+            System.Threading.Thread keePass = null;
+            var audit = new JsonLinesAudit(path, log, null, () => System.Threading.Thread.CurrentThread == keePass);
+            var connection = new System.Threading.Thread(() => audit.Record(Entry("readEntry", false)));
+            bool returned;
+
+            try
+            {
+                // The file is let go before the connection is, so the audit's writer finds it free.
+                using (new FileStream(path, FileMode.Create, FileAccess.ReadWrite, FileShare.None))
+                {
+                    connection.Start();
+                    Assume.That(log.Reporting.Wait(TimeSpan.FromSeconds(10)), Is.True, "a connection holds the file's lock");
+
+                    keePass = new System.Threading.Thread(() => audit.Record(Entry("deleteEntry", true)));
+                    keePass.Start();
+                    returned = keePass.Join(TimeSpan.FromSeconds(10));
+                }
+            }
+            finally
+            {
+                log.Release.Set();
+                connection.Join();
+            }
+
+            Assert.That(returned, Is.True, "KeePass's thread came back while the file's lock was held");
+
+            // Written by the audit's own writer once the lock was free, and before a line recorded
+            // after it, which writes what was queued ahead of it first.
+            audit.Record(Entry("listEntries", true));
+            var lines = File.ReadAllLines(path);
+
+            Assert.That(lines.Length, Is.EqualTo(2), string.Join(Environment.NewLine, lines));
+            Assert.That(lines[0], Does.Contain("deleteEntry"));
+            Assert.That(lines[1], Does.Contain("listEntries"));
+            Assert.That(audit.Lost, Is.EqualTo(1), "the connection's line, which the held file refused");
+        }
+
+        [Test]
+        public void A_line_KeePass_s_thread_queued_is_written_before_a_line_recorded_after_it()
+        {
+            // A pairing's line is queued as the record lands and the client's first request comes
+            // after it, so the file has to hold them in that order whichever writer gets there.
+            var path = Paths.Join(_directory, "audit.jsonl");
+            System.Threading.Thread keePass = null;
+            var audit = new JsonLinesAudit(path, null, null, () => System.Threading.Thread.CurrentThread == keePass);
+
+            keePass = new System.Threading.Thread(() => audit.Record(Entry("pairRequest", true)));
+            keePass.Start();
+            keePass.Join();
+            audit.Record(Entry("readEntry", true));
+
+            var lines = File.ReadAllLines(path);
+            Assert.That(lines.Length, Is.EqualTo(2));
+            Assert.That(lines[0], Does.Contain("pairRequest"));
+            Assert.That(lines[1], Does.Contain("readEntry"));
+        }
+
+        [Test]
+        public void A_line_KeePass_s_thread_queued_is_written_with_nothing_recorded_after_it()
+        {
+            var path = Paths.Join(_directory, "audit.jsonl");
+            System.Threading.Thread keePass = null;
+            var audit = new JsonLinesAudit(path, null, null, () => System.Threading.Thread.CurrentThread == keePass);
+
+            keePass = new System.Threading.Thread(() => audit.Record(Entry("revokeCertificate", true)));
+            keePass.Start();
+            keePass.Join();
+
+            Assert.That(
+                System.Threading.SpinWait.SpinUntil(() => Shared(path).Contains("revokeCertificate"), TimeSpan.FromSeconds(10)),
+                Is.True,
+                "the audit's own writer wrote it");
+        }
+
+        /// <summary>
+        /// What the file holds, read the way a reader beside the audit has to read it: sharing
+        /// writing, so that the audit's own writer is not refused the file while this reads.
+        /// </summary>
+        private static string Shared(string path)
+        {
+            try
+            {
+                using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
+                using (var reader = new StreamReader(stream, Encoding.UTF8))
+                {
+                    return reader.ReadToEnd();
+                }
+            }
+            catch (FileNotFoundException)
+            {
+                return string.Empty;
+            }
+            catch (DirectoryNotFoundException)
+            {
+                return string.Empty;
+            }
+        }
+
+        /// <summary>
+        /// A log whose first error is not answered until the test lets it go, so that whoever
+        /// reported it is held where it reported it.
+        /// </summary>
+        private sealed class HeldLog : IGateLog
+        {
+            private int _errors;
+
+            public System.Threading.ManualResetEventSlim Reporting { get; } = new System.Threading.ManualResetEventSlim(false);
+
+            public System.Threading.ManualResetEventSlim Release { get; } = new System.Threading.ManualResetEventSlim(false);
+
+            public void Info(string message)
+            {
+            }
+
+            public void Warn(string message)
+            {
+            }
+
+            public void Error(string message, Exception error)
+            {
+                if (System.Threading.Interlocked.Increment(ref _errors) == 1)
+                {
+                    Reporting.Set();
+                    Release.Wait(TimeSpan.FromSeconds(30));
+                }
+            }
+
+            public void Unexpected(string message, Exception error)
+            {
+            }
         }
 
         /// <summary>A refusal a removed profile caused, which is the line a list is written on.</summary>

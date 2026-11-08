@@ -220,6 +220,11 @@ none, since it releases both.
   a defect is settled as the database leaves it before the request fails: a change the file
   received is written down, and a change it never received is taken back out, which also keeps an
   ordinary change answered `500` from being made twice by its retry.
+- **KeePass's window never waits on the audit file.** The lines for a pairing, a renewal or a
+  program's revocation of itself that lands, and for the operator's revocation at **OK**, are
+  handed to a writer of the plugin's own and reach the file in order with every other line. An
+  audit on slow or unreachable storage held KeePass's window for its own write and for every
+  connection's line ahead of it.
 - **A list of profiles in another shape is refused by pairing and renewal**, as a list that does
   not parse is. A `Profiles` spelled with a capital, a `profiles` that is a string, a member beside
   it or a name the list cannot hold read as fewer names than the list holds, or none, so a renewal

@@ -177,9 +177,13 @@ designing around them.
   debugger attached stops there. Letting WinForms' own dialog ask the operator instead was tried
   and taken back, for the cost §141 sets out.
   **A line that has to outlive a defect is written before it rather than caught around it**: the
-  audit line for a pairing, a renewal or a client's own revocation that landed is written by
+  audit line for a pairing, a renewal or a client's own revocation that landed is queued by
   `DatabaseWriter` on its own landed path, before any listener runs and before KeePass's window is
-  redrawn, so no listener's defect can lose it and the operation writes none of its own. A defect
+  redrawn, so no listener's defect can lose it and the operation writes none of its own. **Queued
+  for a writer of the audit's own**, as every line KeePass's thread records is, the operator's
+  revocation at the settings dialog's OK among them, so that KeePass's thread never waits on the
+  file; every line keeps its place, and a process that ends before that writer reaches a line
+  loses it. A defect
   in the save itself, which runs every other plugin's handlers, is settled by a `finally` as the
   database leaves it, and still reaches the connection thread: a change the file received is
   written down, and a change it never received is taken back out.
