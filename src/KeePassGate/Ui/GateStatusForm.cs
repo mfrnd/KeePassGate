@@ -360,6 +360,12 @@ namespace KeePassGate.Ui
 
             buttons.Controls.Add(cancel);
             buttons.Controls.Add(ok);
+
+            // The tab order is the drawn order, which the order they were added in is not: a
+            // right to left row numbers its controls as they arrive, so Tab from the port box
+            // reached Cancel before OK, against every KeePass dialog.
+            ok.TabIndex = 0;
+            cancel.TabIndex = 1;
             layout.Controls.Add(buttons);
 
             Controls.Add(layout);

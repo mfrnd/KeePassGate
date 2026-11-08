@@ -464,6 +464,10 @@ namespace KeePassGate.Tests
                 // Cancel on the outside, OK beside it, which is the order Windows uses and the
                 // order the hand is already going to.
                 Assert.That(cancel.Left, Is.GreaterThan(ok.Left));
+
+                // And Tab reaches them in that order, as on every KeePass dialog.
+                Assert.That(ok.Parent, Is.SameAs(cancel.Parent));
+                Assert.That(ok.TabIndex, Is.LessThan(cancel.TabIndex), "Tab reached Cancel before OK");
             }
         }
 
