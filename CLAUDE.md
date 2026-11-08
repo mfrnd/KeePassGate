@@ -199,13 +199,14 @@ designing around them.
   memory, minted at unlock and again at the lock it answers and good for ninety days, so a locked
   KeePass can answer `503 locked` rather than failing at the transport. It was seven days and minted
   at unlock until a long lock outlived it. The normal host key is let go at lock, and `CA.md` §208
-  is exact about how much of that is erasure: the gate key and the stored PKCS#12 are overwritten,
-  while the keys, the one the TLS server signs with and the authority's, are BouncyCastle values
-  over an immutable integer that offer nothing to overwrite, so the last reference goes and nothing
-  more. The responder is marked by a
-  `kpg://host/responder` URI in its subject alternative name, **not** a private OID: the UUID arc
-  `2.25` encodes on .NET Framework and does not survive being read back, and `1.3.6.1.4.1` would be
-  squatting on somebody else's enterprise number.
+  is exact about how much of that is erasure: the plugin's own byte arrays, the stored PKCS#12 among
+  them, are overwritten, a copy of the gate key is kept for the responder, and the keys, the host's
+  that the TLS server signs with and the authority's, are BouncyCastle values over an immutable
+  integer that offer nothing to overwrite, so the last reference goes and nothing more, as it does
+  for the stored text the cache compares. The responder is marked by a `kpg://host/responder` URI in
+  its subject alternative name, **not** a private OID: the UUID arc `2.25` encodes on .NET Framework
+  and does not survive being read back, and `1.3.6.1.4.1` would be squatting on somebody else's
+  enterprise number.
 - **We own the transport.** Accept loop, ClientHello peek, TLS termination, request parser, body
   read, response write. Selecting a host certificate by SNI makes this unavoidable, because
   .NET Framework exposes no server-side SNI hook. Which TLS stack terminates it is the bullet

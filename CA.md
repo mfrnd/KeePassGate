@@ -462,19 +462,24 @@ plugin memory. While locked it is the only identity available and it can do noth
 
 - **The normal host key is let go at lock**, or two certificates buy nothing: memory disclosure
   while locked would otherwise yield the full host identity. What letting go means is worth being
-  exact about, because the phrase promises more than the platform gives. Two of the parts really are
-  erased: the gate key and the stored PKCS#12 the host certificate and its key travel in are
-  overwritten, and the certificate handles are released. So is every other array the plugin decodes
-  a stored PKCS#12 into or writes one from, the authority's as well as the host's, as soon as it has
-  been read or written, so a read leaves no copy of either behind. The keys are neither of those,
-  the host's, which the TLS server signs with, and the authority's, which issues. Each is a
-  BouncyCastle `AsymmetricKeyParameter` over an immutable `BigInteger`, which offers nothing to
-  overwrite, so what happens to it is that the last reference goes and the collector reuses the
-  memory when it gets to it. Read as erasure that would be a claim this design cannot keep. It is
-  the bound §220 concedes anyway: a dump taken at the wrong moment finds it, and what the drop takes
-  away is the key being reachable for as long as the database stays locked. The same bound covers
-  what no plugin can overwrite: the base64 KeePass keeps in the database's custom data, an immutable
-  string, and whatever Bouncy Castle parsed the bytes into.
+  exact about, because the phrase promises more than the platform gives. What is overwritten is the
+  plugin's own byte arrays, the stored PKCS#12 the host certificate and its key travel in and the
+  authority material's copy of the gate key among them, and the certificate handles are released. So
+  is every other array the plugin decodes a stored PKCS#12 into or writes one from, the authority's
+  as well as the host's, as soon as it has been read or written, so a read leaves no copy of either
+  behind. The keys are neither of those, the host's, which the TLS server signs with, and the
+  authority's, which issues. Each is a BouncyCastle `AsymmetricKeyParameter` over an immutable
+  `BigInteger`, which offers nothing to overwrite, so what happens to it is that the last reference
+  goes and the collector reuses the memory when it gets to it. Read as erasure that would be a claim
+  this design cannot keep. It is the bound §220 concedes anyway: a dump taken at the wrong moment
+  finds it, and what the drop takes away is the key being reachable for as long as the database
+  stays locked. The same bound covers what no plugin can overwrite: the base64 KeePass keeps in the
+  database's custom data, an immutable string; the plugin's own copy of that text, every stored
+  authority document in one string, which the cache compares against and which holds the authority's
+  key, the host's and the gate key; and whatever Bouncy Castle parsed the bytes into. The key a
+  node's tag is made with, derived from the host's PKCS#12, is let go with the cache in the same way
+  rather than cleared. The gate key itself is not let go at all: a copy of it is kept for the
+  responder, as the bullet below has it.
 - **The responder must be distinguishable by what it carries**, not by convention, so a client can
   refuse to send real requests over it. It is a `kpg://host/responder` URI in the subject
   alternative name rather than an extension of its own: the UUID arc `2.25` does not survive
@@ -506,8 +511,12 @@ plugin memory. While locked it is the only identity available and it can do noth
   dates. Ninety days is still a bound, so a lock that outlasts it presents a responder that has
   expired and meets the bare failure again, which is the price of there being a bound at all.
 
-A KeePass that has never been unlocked since starting has no responder, so that case really is a
-bare connection failure.
+A lock with no responder to answer it really is a bare connection failure. A KeePass that has never
+been unlocked since starting has minted none yet. A database holding several authorities, none of
+them kept, mints none, since minting a responder would be choosing between them, §204. And a lock at
+which a fresh responder could not be minted, while the responder held had expired, has none to
+answer with. A lock that outlasts the ninety days above answers with a responder the client refuses,
+which the client meets the same way.
 
 ---
 

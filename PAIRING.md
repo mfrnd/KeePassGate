@@ -372,8 +372,8 @@ challenge the server chose makes the request fresh to the server.
 
 ## 8. When the database is locked §308
 
-Locking closes the database, and with it the authority, the admission records and the gate key.
-A **second host certificate**, minted at unlock and again at the lock it answers, held only in
+Locking closes the database, and with it the authority, the admission records and the normal host
+key. A **second host certificate**, minted at unlock and again at the lock it answers, held only in
 plugin memory, is what lets a locked KeePass answer `503 locked` instead of failing at the
 transport. Minted twice because its life has to cover the lock rather than the session before it,
 and the lock is the last moment the authority that signs it is still there: `CA.md` §208 has the
@@ -721,9 +721,13 @@ that the same day, since a name is the client's own choice and two programs may 
   and the clipboard the tab's copy button puts it on. Conceded everywhere in this design.
 - **A compromised second channel.** Whoever holds the token may ask. That is what the operator's
   approval is for, and it is the only thing standing there.
-- **A KeePass that has never been unlocked since starting.** No responder certificate has been
-  minted yet, so the failure really is a bare connection error. Every later lock is answered
-  with `503 locked`.
+- **A lock with no responder to answer it.** A KeePass that has never been unlocked since starting
+  has minted no responder certificate yet, so the failure really is a bare connection error. Every
+  later lock is answered with `503 locked`, unless there is no responder then either: a database
+  holding several authorities, none of them kept, mints none, since minting a responder would be
+  choosing between them, and a lock at which a fresh responder could not be minted, while the
+  responder held had expired, has none to answer with. A lock that outlasts the responder's ninety
+  days answers with a certificate the client refuses, `CA.md` §208.
 - **Two copies of one database open at once.** They share an authority and a `SniKey` and are
   genuinely indistinguishable, so the plugin refuses to serve and logs how many answered.
 - **A spent exchange.** The name a client connects under travels in the clear and can be replayed,
