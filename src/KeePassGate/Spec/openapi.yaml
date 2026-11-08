@@ -580,7 +580,11 @@ paths:
                     minLength: 1
                     maxLength: 64
                   description: |
-                    A ceiling asked for, not a grant. The operator may take any of them away.
+                    A ceiling asked for, not a grant. The operator may take any of them away. Each
+                    is a profile name as a claim carries it: ASCII letters and digits, `-` and `_`,
+                    and never `default` in any case, and a name holding anything else is
+                    `400 profile`. This states no more than a length because `BodyCheck`
+                    implements no `pattern` an array's items could carry.
                 lifetime:
                   type: string
                   pattern: "^P([1-9]|[1-9][0-9]|[12][0-9][0-9]|3[0-5][0-9]|36[0-5])D$"

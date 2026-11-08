@@ -11,6 +11,9 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **The routing document states which characters a profile asked for at pairing may hold**:
+  ASCII letters and digits, `-` and `_`, and never `default`. It gave only the length, so a client
+  built from it learned the rule by being answered `400 profile`.
 - **The routing document answers a field or attachment named in a path as the gate does**: a name
   the database cannot keep apart from a name the entry carries is `404` there, where the document
   promised `409`, which only a name in a body gets. A name that decodes into a climb, such as
