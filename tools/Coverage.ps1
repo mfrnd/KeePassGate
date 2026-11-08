@@ -81,11 +81,15 @@ if ($reached.Count -eq 0) {
 }
 
 $covered = @($reached.Values | Where-Object { $_ }).Count
-$percent = [math]::Round(100.0 * $covered / $reached.Count, 1)
+
+# **Compared unrounded, and shown rounded down**, both in decimal so that no binary fraction moves
+# either by a tenth. Rounded to the nearest tenth before the comparison, 79.95 would be 80 and pass
+# a floor of 80 it is below; rounded down, what is shown never passes a floor the number does not.
+$percent = [decimal] $covered * 100 / [decimal] $reached.Count
 
 # Compared as a number and printed as an invariant string, so the floor is never a text comparison
 # and the number never arrives with whatever separator this machine prefers.
-$shown = $percent.ToString([System.Globalization.CultureInfo]::InvariantCulture)
+$shown = ([math]::Floor($percent * 10) / 10).ToString([System.Globalization.CultureInfo]::InvariantCulture)
 
 Write-Host ("  {0} of {1} lines, {2}%, from {3} report(s)." -f
     $covered, $reached.Count, $shown, $files.Count)
