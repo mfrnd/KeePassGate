@@ -921,7 +921,10 @@ what it leaves to `build.ps1`.
 The projects are SDK-style, target `net48` and build with the **.NET SDK's `dotnet` CLI**, which is
 what makes `dotnet test` available. **`global.json` holds the SDK to 9 or later**, the first to
 compile C# 13, and rolls forward to the newest installed, so a machine with only an older SDK
-refuses to build rather than failing on the language. `msbuild` is not on `PATH`, so if it is
+refuses to build rather than failing on the language. **Never to a preview**, which the SDK's
+resolver takes by default outside Visual Studio: a preview's compiler and analyzers, under
+`TreatWarningsAsErrors`, are the newer SDK that can pass or fail a build on a machine where CI
+judges it otherwise. `msbuild` is not on `PATH`, so if it is
 ever needed directly, locate it:
 
 ```powershell
