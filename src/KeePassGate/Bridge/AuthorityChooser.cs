@@ -222,7 +222,6 @@ namespace KeePassGate.Bridge
                 var chosen = Choose(database);
                 if (chosen == null)
                 {
-                    _log.Info("the operator kept no authority, so the database is still not served");
                     return null;
                 }
 
@@ -338,6 +337,12 @@ namespace KeePassGate.Bridge
         }
 
         /// <summary>The digest the operator kept, or null.</summary>
+        /// <remarks>
+        /// Null as well when nobody was asked, because the database was decided since it was
+        /// noticed, so the line about the operator keeping nothing is written here, where the two
+        /// are told apart: written for both, it reported a database being served as one still
+        /// not served, by an operator who had never been asked.
+        /// </remarks>
         private string Choose(PwDatabase database)
         {
             var store = new CustomDataStore(database);
@@ -355,7 +360,13 @@ namespace KeePassGate.Bridge
                     reading, new AdmissionStore(store, _log).All(), LastSeen, _log);
             }
 
-            return AskWhichToKeep(choice, new OpenDatabase(database).Name);
+            var chosen = AskWhichToKeep(choice, new OpenDatabase(database).Name);
+            if (chosen == null)
+            {
+                _log.Info("the operator kept no authority, so the database is still not served");
+            }
+
+            return chosen;
         }
 
         /// <summary>

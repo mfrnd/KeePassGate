@@ -106,6 +106,34 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void A_database_decided_before_it_was_asked_about_asks_nobody_and_logs_no_choice()
+        {
+            // The tab, or another save, can decide it between the notice and the question.
+            var log = new LinesLog();
+            var chooser = new AuthorityChooser(
+                new NoEvents(), _targets, _writer, _owner, null, null, _prompt, null, log);
+            chooser.AskWhichToKeep = (choice, name) =>
+            {
+                _asked++;
+                return null;
+            };
+
+            using (chooser)
+            {
+                Assume.That(
+                    new AuthorityService(new CustomDataStore(_database.Database), NullGateLog.Instance)
+                        .Keep(_candidates[0]).Succeeded,
+                    Is.True);
+
+                Assert.That(chooser.Ask(_database.Database), Is.Null);
+            }
+
+            Assert.That(_asked, Is.Zero, "nobody was asked");
+            Assert.That(log.Lines, Has.None.Contains("kept no authority"),
+                "and the log does not credit the operator with a choice nobody put to them");
+        }
+
+        [Test]
         public void Cancel_serves_nothing_and_is_not_asked_again_for_the_same_authorities()
         {
             _chooser.AskAll();
@@ -453,6 +481,32 @@ namespace KeePassGate.Host.Tests
             {
                 add { }
                 remove { }
+            }
+        }
+
+        /// <summary>Every line logged, in order.</summary>
+        private sealed class LinesLog : IGateLog
+        {
+            public List<string> Lines { get; } = new List<string>();
+
+            public void Info(string message)
+            {
+                Lines.Add(message);
+            }
+
+            public void Warn(string message)
+            {
+                Lines.Add(message);
+            }
+
+            public void Error(string message, Exception error)
+            {
+                Lines.Add(message);
+            }
+
+            public void Unexpected(string message, Exception error)
+            {
+                Lines.Add(message);
             }
         }
 
