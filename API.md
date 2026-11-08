@@ -28,10 +28,10 @@ because that is what somebody has to be allowed to add to.
 
 ## Bodies are flat §409
 
-Flat objects of strings, because `JsonBody` reads nothing else and a request body is bytes from a
-caller that has proved nothing yet. That is why fields are addressed rather than patched: a map of
-name to value is nesting, and one field per request is the better REST anyway, since a partial
-failure cannot leave half an entry written.
+Flat objects of strings and arrays of strings, because `JsonBody` reads nothing else and a request
+body is bytes from a caller that has proved nothing yet. That is why fields are addressed rather
+than patched: a map of name to value is nesting, and one field per request is the better REST
+anyway, since a partial failure cannot leave half an entry written.
 
 Responses are not bound by the reader: a list of entries is an array of objects, and a read carries a
 `fields` object. `JsonWriter` writes them, as widely as the reader is narrow.
@@ -84,13 +84,16 @@ without `protected` would change what `update` means across the API, so the oper
 2026-11-01 leaves that to a step of its own, and `docs/access-control.md` warns the operator
 beside the warning about URLs.
 
-**The database's name, description and default username**, and which group is its recycle bin,
-are neither served nor accepted. The name and the description are what the operator wrote in
-KeePass for themselves, and either can name a person or describe what the database is for, while
+**The database's name, description and default username**, and which group is its recycle bin, are
+neither served nor accepted. The name and the description are what the operator wrote in KeePass for
+themselves, and either can name a person or describe what the database is for, while
 `GET /gate/status` names the database by the first characters of its authority's digest, which is
 what tells a client which database answered without telling it what the operator calls it. Serving
-the name would undo that and help no client: one paired with several databases already tells them
-apart by the client profile each pairing is stored under, a name it chose itself. The default
+the name would undo that and help no client: a client paired with several databases already tells
+them apart by the client profile each pairing is stored under, a name it chose itself. That covers
+the database's own name and nothing else: **the root group's name is served like any group's**,
+under the rules, and KeePass names a new database's root group after its file, so a client allowed
+to list or read at the root learns that name unless the operator has renamed the group. The default
 username is what KeePass's own Add Entry dialog fills in, so if it is ever wanted it is a question
 about what `createEntry` fills in rather than a value to read. And the recycle bin is out of reach,
 so naming it is all a route would do.
@@ -98,8 +101,12 @@ so naming it is all a route would do.
 **Destroying what a removal keeps.** The recycle bin is out of reach, so an entry already in it is
 answered `404`, and no operation clears an entry's history: each keeps an overwritten or removed
 value recoverable, and making it unrecoverable is the operator's, in KeePass, as emptying the bin
-is. A client that may delete an entry sends it to the bin, and one that may update it leaves a
-revision behind, so neither can take away what the operator would restore.
+is. A client that may delete an entry sends it to the bin, and a client that may update it leaves a
+revision behind, so neither takes away what the operator would restore, within two limits the
+operator sets in KeePass: a database that keeps no bin deletes for good, from the gate as from
+KeePass's own window, and an entry keeps only as many revisions as Database Settings allows, so a
+client that changes it more often than that has pushed out every revision from before it started, as
+`docs/access-control.md` warns the operator.
 
 ## Optimistic concurrency §410
 

@@ -149,9 +149,10 @@ YAML reader and then not using it would have cost the readability for nothing.
 > IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 > CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-It reads request bodies, and it is one assembly with no dependencies of its own. The policy over
-what it parses is not its: `JsonBody` decides what this wire may carry, which is one flat object
-of strings and arrays of strings. The `spikes/json-reading` branch has what the alternatives cost.
+It reads request bodies and writes every piece of JSON the plugin makes, answers, audit lines and
+rules alike, and it is one assembly with no dependencies of its own. The policy over what it parses
+is not its: `JsonBody` decides what this wire may carry, which is one flat object of strings and
+arrays of strings. The `spikes/json-reading` branch has what the alternatives cost.
 
 ## The proofs are not here, and neither are their licenses
 

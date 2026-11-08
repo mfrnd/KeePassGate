@@ -178,8 +178,9 @@ none, since it releases both.
   release of Bouncy Castle is one assembly to .NET, so a copy another plugin loaded first was the
   one this plugin ran on, whatever it lacked.
 - **The plugin is compiled at C# 13**, and the build needs the .NET SDK 9 or later. Nothing it does
-  changes: the compiled plugin differs only in caching a delegate made from a static method rather
-  than making one at every use, and in an attribute the compiler adds.
+  changes: the compiled plugin differs only in caching every delegate it makes from a static method,
+  in a holder class the compiler nests inside each class making them, rather than making the
+  delegate at every use, and in an attribute the compiler adds to the module.
 - **The plugin's code answers every finding of CodeQL's `security-and-quality` queries**, each fixed
   or suppressed with its reason where it is made, and nothing the plugin does changes. Its six calls
   into Windows go through one class, and the path of a file it writes is joined by a helper that
@@ -346,8 +347,7 @@ The first version, so there is nothing earlier to describe a change from: everyt
   client's own rules; `pykeepassgate.testing` is a stand-in gate for the tests of a program
   built on it; the command line has a command for every route, each printing lines for a person
   or, with `-o json`, one document for a program; and a write can be made against what was read,
-  with the tag a read hands back. Until the first release is published it is installed from a
-  checkout.
+  with the tag a read hands back. It is published on PyPI as `pykeepassgate`.
 - **A package for the release**: `build.ps1 -Task Package` zips the plugin and everything it loads,
   with its license and notices, beside a `SHA256SUMS`.
 

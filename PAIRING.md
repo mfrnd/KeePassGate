@@ -123,10 +123,13 @@ sequenceDiagram
 ```
 
 **A pairing connection is measured against a budget of its own, and so is a renewal's, §312.** Every
-other connection has a fixed span from accept to the end of its request, which is what stops a peer
-holding a thread by feeding it a byte at a time, and no deadline at all after that: what is left
-there is a write and a save that no number bounds, so a deadline could only ever close the socket
-while a write that is still going to land is landing.
+other connection is given two spans to deliver its request in, which is what stops a peer holding a
+thread by feeding it a byte at a time: from accept until its name resolves, as long as one read may
+take or the ordinary budget if that is shorter, since all it owes there is a ClientHello; then the
+whole ordinary budget, `GateOptions.Budget`, counted from the name resolving to the end of its
+request. After that it has no deadline at all: what is left there is a write and a save that no
+number bounds, so a deadline could only ever close the socket while a write that is still going to
+land is landing.
 
 Phase 4 blows through it on purpose, and by more than one wait. The operator is given two minutes to
 read the dialog; a second pairing waits that long again just to get in front of them, since only one
@@ -228,15 +231,19 @@ and stopped being necessary when the transport became managed code.
 ## 4. How the client verifies the server §304
 
 Hostname verification is gone, deliberately: the SNI is rebuilt every connection, so it can never
-appear in the host certificate's SAN. A correct deployment therefore always reports both
-`RemoteCertificateNameMismatch` and `RemoteCertificateChainErrors`, the second because the authority
-is deliberately absent from every machine trust store. The client ignores `SslPolicyErrors` entirely
-and reaches its own verdict.
+appear in the host certificate's SAN, and the authority is deliberately absent from every machine
+trust store. So the client trusts nothing but the authority. The reference client turns host name
+checking off and loads the authority it was handed at pairing as the only anchor, so a host
+certificate that does not chain to it fails the handshake, and OpenSSL's own check for a TLS server
+holds the certificate to `serverAuth` and to its dates. While pairing it has no anchor yet, verifies
+nothing in the handshake, and lets the server's proof decide. A client built on `SslStream` meets
+the same facts as `RemoteCertificateNameMismatch` and `RemoteCertificateChainErrors` on every
+correct connection, so it has to ignore `SslPolicyErrors` and reach its own verdict, `CA.md` §214.
 
 ```mermaid
 flowchart TD
     A["Client connects"] --> B{"does it already hold<br/>the authority certificate?"}
-    B -- "yes: paired, or handed<br/>the trust bundle out of band" --> C["Pin the anchor. Build the chain,<br/>require exactly two elements, byte compare<br/>the root against the pinned DER."]
+    B -- "yes: paired, or handed<br/>the trust bundle out of band" --> C["Pin the anchor. The authority is the only<br/>certificate trusted, so the host certificate<br/>has to chain to it and to nothing else."]
     C --> D["Require the serverAuth EKU,<br/>because this same authority also signs clients."]
     D --> E["Check the validity dates."]
     E --> G["Verified, by the anchor."]
@@ -304,7 +311,7 @@ rather than being closed.
 **The settings dialog an invitation was made on takes it back unless that dialog is accepted.**
 The code is good the moment it is shown, so a program can pair before OK, but Cancel, or closing the
 dialog any other way, withdraws it if nobody has used it yet. That is the dialog's OK and Cancel
-meaning what they say for the one thing on the tab that the database does not hold. A code already
+meaning what they promise for the one thing on the tab that takes effect before OK. A code already
 spent stays spent, since the record it led to is the database's and a revocation takes that back.
 
 ---
@@ -368,8 +375,8 @@ challenge the server chose makes the request fresh to the server.
 
 ## 8. When the database is locked §308
 
-Locking closes the database, and with it the authority, the admission records and the gate key.
-A **second host certificate**, minted at unlock and again at the lock it answers, held only in
+Locking closes the database, and with it the authority, the admission records and the normal host
+key. A **second host certificate**, minted at unlock and again at the lock it answers, held only in
 plugin memory, is what lets a locked KeePass answer `503 locked` instead of failing at the
 transport. Minted twice because its life has to cover the lock rather than the session before it,
 and the lock is the last moment the authority that signs it is still there: `CA.md` §208 has the
@@ -717,9 +724,13 @@ that the same day, since a name is the client's own choice and two programs may 
   and the clipboard the tab's copy button puts it on. Conceded everywhere in this design.
 - **A compromised second channel.** Whoever holds the token may ask. That is what the operator's
   approval is for, and it is the only thing standing there.
-- **A KeePass that has never been unlocked since starting.** No responder certificate has been
-  minted yet, so the failure really is a bare connection error. Every later lock is answered
-  with `503 locked`.
+- **A lock with no responder to answer it.** A KeePass that has never been unlocked since starting
+  has minted no responder certificate yet, so the failure really is a bare connection error. Every
+  later lock is answered with `503 locked`, unless there is no responder then either: a database
+  holding several authorities, none of them kept, mints none, since minting a responder would be
+  choosing between them, and a lock at which a fresh responder could not be minted, while the
+  responder held had expired, has none to answer with. A lock that outlasts the responder's ninety
+  days answers with a certificate the client refuses, `CA.md` §208.
 - **Two copies of one database open at once.** They share an authority and a `SniKey` and are
   genuinely indistinguishable, so the plugin refuses to serve and logs how many answered.
 - **A spent exchange.** The name a client connects under travels in the clear and can be replayed,

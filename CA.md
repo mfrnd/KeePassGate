@@ -113,8 +113,8 @@ revocation paragraph below is about.
 | --- | --- | --- |
 | `KPG.Authority.<sha256>` | one authority, filed under the digest of its certificate: the authority, the host certificate and the gate key, all three in one document | once, at creation and on recreation, and never rewritten |
 | `KPG.RetiredAuthority.<sha256>` | the constant `retired`, for an authority recreated, deleted or not kept | once, and never changed or removed |
-| `KPG.Client.<sha256>` | one admission record per certificate admitted, naming the client it belongs to by its client key, §223 | at every pairing and every renewal, and written empty when the certificate is revoked; removed once its certificate has expired, and an emptied one with its revocation |
-| `KPG.Revoked.<sha256>` | the revoked certificate's `notAfter` | once, when the client is revoked, and never changed; removed once that moment has passed |
+| `KPG.Client.<sha256>` | one admission record per certificate admitted, naming the client it belongs to by its client key, §223 | at every pairing and every renewal, and written empty when the certificate is revoked; removed once its certificate has expired, and an emptied one with its revocation, unless that revocation is empty |
+| `KPG.Revoked.<sha256>` | the revoked certificate's `notAfter`, or nothing for a record that would not read and so gave no date | once, when the client is revoked, and never changed; removed once that moment has passed, and an empty one never |
 | `KPG.RenewalRefused.<sha256>` | the operator's standing answer to renewing one certificate: `forever`, or the moment renewals are asked about again | when the operator refuses a renewal forever or until a date, and again when a later answer replaces it, which the dialog takes only once an until-date has passed, or a merge brings in; removed once no record admits that certificate, or when the operator allows renewal on the clients page and accepts the dialog |
 | `KPG.Profiles` | the set of profile names this database knows | when the Profiles page is accepted, and at a pairing that approves a name it does not hold, in the same write as the record |
 
@@ -204,22 +204,21 @@ moment its certificate ended and the moment the clock read. A clock that is wron
 refuse a client that setting the clock right admits again; a key taken out of the file is not
 put back by anything, so the log is where a client lost to a wrong clock is found.
 
-**A standing answer to a renewal is changed rather than only added**, unlike a revocation, because
-a later answer about the same certificate replaces an earlier one. That makes it a key a merge can
+**A standing answer to a renewal is changed rather than only added**, unlike a revocation, because a
+later answer about the same certificate replaces an earlier one. That makes it a key a merge can
 decide either way: Synchronize and the methods like it take the newer by modification time, which a
 slow clock or a copy saved without the times turns around, and Overwrite existing takes the other
-copy's whatever its time. The direction is safe, since a renewal is still a person approving one
-and no standing answer admits anybody, but the price is not always a dialog: a forever that wins
+copy's whatever its time. The direction is safe, since a renewal still waits on a person approving
+it, and no standing answer admits anybody, but the price is not always a dialog: a forever that wins
 over a newer until a date answers every renewal `409 forever`, and the client's name is red on the
-clients page until the operator lifts it there. One that will not read is answered as forever, and
-said in the log. It goes on the writes the other prunes ride on, once no record admits the
-certificate: revoked, expired, or gone; and when the operator presses **Allow renewal** on that
+clients page until the operator lifts it there. A standing answer that will not read counts as
+forever, and the log names it. It goes on the writes the other prunes ride on, once no record admits
+the certificate: revoked, expired, or gone; and when the operator presses **Allow renewal** on that
 client's row and accepts the settings dialog, which removes the key. A removal is the one thing a
-KeePass merge never carries, so a copy of the file from before the lift brings the answer back,
-red on the page again, and the operator lifts it again. **A refusal in this session
-has no key at all**: the plugin holds it in memory, per certificate, until KeePass exits, because
-an answer about one session written into the file would outlast that session in every copy of it,
-`PAIRING.md` §312.
+KeePass merge never carries, so a copy of the file from before the lift brings the answer back, red
+on the page again, and the operator lifts it again. **A refusal in this session has no key at all**:
+the plugin holds it in memory, per certificate, until KeePass exits, because an answer about one
+session written into the file would outlast that session in every copy of it, `PAIRING.md` §312.
 
 **Each authority is one key, and that is the same argument the other way.** A merge that took its
 parts separately could take the certificate from one replica and the private key from another, and
@@ -241,13 +240,14 @@ no authority, and is given a new authority and paired again.
 
 **Which authority a database has is decided by the retirements, never by counting documents.** The
 authorities are the documents with no retirement beside them, so a retired document that a merge
-brings back serves nothing, and the plugin's next write takes it away again. **More than one
-authority with no retirement serves nothing**: that is copies that each created or recreated an
-authority, meeting in a synchronize, and choosing between them is the operator's decision rather
-than this plugin's. A key that names no proper digest, a bare `KPG.Authority.` among them, is a
-document too, filed under a digest not its own: beside another authority it is one more candidate,
-which can be retired and never kept, and it holds up that database alone, since **what one database
-holds stops no other being served**.
+brings back serves nothing, and is taken away again the next time the plugin keeps, recreates or
+deletes an authority or admits a client, at a pairing or a renewal; a revocation leaves it. **More
+than one authority with no retirement serves nothing**: that is copies that each created or
+recreated an authority, meeting in a synchronize, and choosing between them is the operator's
+decision rather than this plugin's. A key that names no proper digest, a bare `KPG.Authority.` among
+them, is a document too, filed under a digest not its own: beside another authority it is one more
+candidate, which can be retired and never kept, and it holds up that database alone, since **what
+one database holds stops no other being served**.
 
 **So the plugin asks, and answers `503 undecided` until somebody has.** A connection to such a
 database is answered before a request is read, with each authority's own host certificate and no
@@ -376,8 +376,9 @@ OK**. A value written to the live group therefore survives Cancel and is destroy
 
 Measured rather than remembered, in `SnapshotHazardTests`: the snapshot field is still there in
 KeePass 2.61.1, a group's custom data can be replaced wholesale from inside KeePass but not from a
-plugin, a write made while the dialog is open is destroyed by OK and survives Cancel, and an
-authority created before the dialog opened comes back unharmed because the dialog copied it.
+plugin, a write made while the dialog is open is destroyed by OK, and an authority created before
+the dialog opened comes back unharmed because the dialog copied it. That Cancel leaves the write
+alone is read off the dialog rather than measured: only its OK puts the copy back.
 
 **The dialog this plugin puts its tab on carries no such snapshot**, which the same tests assert
 against the real type. So the buttons on the KPG tab are safe from their own dialog, and the hazard
@@ -460,19 +461,24 @@ plugin memory. While locked it is the only identity available and it can do noth
 
 - **The normal host key is let go at lock**, or two certificates buy nothing: memory disclosure
   while locked would otherwise yield the full host identity. What letting go means is worth being
-  exact about, because the phrase promises more than the platform gives. Two of the parts really are
-  erased: the gate key and the stored PKCS#12 the host certificate and its key travel in are
-  overwritten, and the certificate handles are released. So is every other array the plugin decodes
-  a stored PKCS#12 into or writes one from, the authority's as well as the host's, as soon as it has
-  been read or written, so a read leaves no copy of either behind. The keys are neither of those,
-  the host's, which the TLS server signs with, and the authority's, which issues. Each is a
-  BouncyCastle `AsymmetricKeyParameter` over an immutable `BigInteger`, which offers nothing to
-  overwrite, so what happens to it is that the last reference goes and the collector reuses the
-  memory when it gets to it. Read as erasure that would be a claim this design cannot keep. It is
-  the bound §220 concedes anyway: a dump taken at the wrong moment finds it, and what the drop takes
-  away is the key being reachable for as long as the database stays locked. The same bound covers
-  what no plugin can overwrite: the base64 KeePass keeps in the database's custom data, an immutable
-  string, and whatever Bouncy Castle parsed the bytes into.
+  exact about, because the phrase promises more than the platform gives. What is overwritten is the
+  plugin's own byte arrays, the stored PKCS#12 the host certificate and its key travel in and the
+  authority material's copy of the gate key among them, and the certificate handles are released. So
+  is every other array the plugin decodes a stored PKCS#12 into or writes one from, the authority's
+  as well as the host's, as soon as it has been read or written, so a read leaves no copy of either
+  behind. The keys are neither of those, the host's, which the TLS server signs with, and the
+  authority's, which issues. Each is a BouncyCastle `AsymmetricKeyParameter` over an immutable
+  `BigInteger`, which offers nothing to overwrite, so what happens to it is that the last reference
+  goes and the collector reuses the memory when it gets to it. Read as erasure that would be a claim
+  this design cannot keep. It is the bound §220 concedes anyway: a dump taken at the wrong moment
+  finds it, and what the drop takes away is the key being reachable for as long as the database
+  stays locked. The same bound covers what no plugin can overwrite: the base64 KeePass keeps in the
+  database's custom data, an immutable string; the plugin's own copy of that text, every stored
+  authority document in one string, which the cache compares against and which holds the authority's
+  key, the host's and the gate key; and whatever Bouncy Castle parsed the bytes into. The key a
+  node's tag is made with, derived from the host's PKCS#12, is let go with the cache in the same way
+  rather than cleared. The gate key itself is not let go at all: a copy of it is kept for the
+  responder, as the bullet below has it.
 - **The responder must be distinguishable by what it carries**, not by convention, so a client can
   refuse to send real requests over it. It is a `kpg://host/responder` URI in the subject
   alternative name rather than an extension of its own: the UUID arc `2.25` does not survive
@@ -504,8 +510,12 @@ plugin memory. While locked it is the only identity available and it can do noth
   dates. Ninety days is still a bound, so a lock that outlasts it presents a responder that has
   expired and meets the bare failure again, which is the price of there being a bound at all.
 
-A KeePass that has never been unlocked since starting has no responder, so that case really is a
-bare connection failure.
+A lock with no responder to answer it really is a bare connection failure. A KeePass that has never
+been unlocked since starting has minted none yet. A database holding several authorities, none of
+them kept, mints none, since minting a responder would be choosing between them, §204. And a lock at
+which a fresh responder could not be minted, while the responder held had expired, has none to
+answer with. A lock that outlasts the ninety days above answers with a responder the client refuses,
+which the client meets the same way.
 
 ---
 
@@ -610,8 +620,12 @@ Order matters, and every failure is a refusal.
    completes the handshake anyway. Enforcement is the route table's job.
 4. **The anchor is pinned** against the resolved database's authority, and a certificate that
    fails it is taken as no certificate. See below.
-5. **The EKU is checked explicitly**: `clientAuth` for a client, `serverAuth` for a host.
-6. **Validity dates**, with five minutes of skew allowed on `notBefore` only.
+5. **The EKU is checked explicitly**: `clientAuth` for a client, here, and `serverAuth` for a host,
+   by the client, `PAIRING.md` §304.
+6. **Validity dates**, compared exactly. The allowance for a clock behind the one that issued is in
+   the certificate rather than in this check: everything the authority issues starts five minutes
+   before the moment it was issued, so a client checking the host's dates is given the same five
+   minutes, and only on `notBefore`.
 7. **The admission record is looked up** by SHA-256 over the certificate DER. Absent means refused.
 8. **The profiles come from that record.**
 
@@ -683,10 +697,11 @@ is a public certificate, and every client that can reach this code was handed a 
 pairing. What is load bearing is that the anchor's own key and bytes are what is checked, which
 is the line the platform would not write.
 
-`SslPolicyErrors.None` is the **wrong** test. The authority is deliberately in no machine store, so
-a correct deployment always reports `RemoteCertificateChainErrors`, and since the SNI rotates it
-always reports `RemoteCertificateNameMismatch` too. The callback ignores `SslPolicyErrors` entirely
-and reaches its own verdict.
+`SslPolicyErrors.None` is the **wrong** test, for a client built on `SslStream`. The authority is
+deliberately in no machine store, so a correct deployment always reports
+`RemoteCertificateChainErrors`, and since the SNI rotates it always reports
+`RemoteCertificateNameMismatch` too. Such a client's callback ignores `SslPolicyErrors` entirely and
+reaches its own verdict; the reference client is not one, and `PAIRING.md` §304 has how it checks.
 
 ### Why hostname verification is abandoned §215
 

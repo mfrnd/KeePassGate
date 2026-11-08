@@ -147,16 +147,17 @@ designing around them.
   another read as damage. And **what has to survive a merge is a key that is only ever added**,
   because a KeePass merge never removes a key and never reads a value. A revocation is
   `KPG.Revoked.<key>` beside the emptied record, never changed and pruned once the certificate has
-  expired; an authority is one key per authority, `KPG.Authority.<fp>`, written once, and one
-  recreated or deleted gets `KPG.RetiredAuthority.<fp>` beside it, so which authority is served is decided
-  by the retirements and never by counting documents. More than one authority with no retirement
-  serves nothing: every connection is answered `503 undecided`, and KeePass asks the operator which
-  to keep in a dialog over its main window, never raised from a connection. **This reverses two
-  rules**: a revocation used to be written empty rather than removed and the only authority lived
-  under one key, both resting on a merge carrying the newer value, which a dropped time, a slow
-  clock or an import defeats. A record that comes back beside its revocation is deleted by the
-  plugin's next write of its own, and recreating or deleting the authority removes every record
-  and every revocation with it. See CA.md §204.
+  expired, or kept for good beside a record that would not read and so gave no date; an authority is
+  one key per authority, `KPG.Authority.<fp>`, written once, and an authority recreated or deleted
+  gets `KPG.RetiredAuthority.<fp>` beside it, so which authority is served is decided by the
+  retirements and never by counting documents. More than one authority with no retirement serves
+  nothing: every connection is answered `503 undecided`, and KeePass asks the operator which to keep
+  in a dialog over its main window, never raised from a connection. **This reverses two rules**: a
+  revocation used to be written empty rather than removed and the only authority lived under one
+  key, both resting on a merge carrying the newer value, which a dropped time, a slow clock or an
+  import defeats. A record that comes back beside its revocation is deleted by the plugin's next
+  write of its own, and recreating or deleting the authority removes every record and every
+  revocation with it. See CA.md §204.
 - **The authority takes the file to KDBX 4.1**, because a per-key modification time is a 4.1
   field. A database saved with an authority in it is a 4.1 file before anything has paired with
   it, and a record keeps it there. That is a format and not a gate: KeePass 2.47
@@ -182,8 +183,8 @@ designing around them.
   lock, a close of its database and an exit, and compared under the writer's lock at the write
   with the authority, the profile list and the renewed record it was approved against. The client
   is told `heldUntil` in its `503 busy`. And the settings dialog a token was made on withdraws it
-  unless that dialog is accepted, so Cancel means Cancel for the one thing on the tab the database
-  does not hold.
+  unless that dialog is accepted, so Cancel means Cancel for the one thing on the tab that takes
+  effect before OK.
 - **The approval dialogs are not registered with `GlobalWindowManager`**, and that is the reverse of
   every dialog KeePass shows. A registered dialog holds KeePass's inactivity lock off and drops a
   Windows lock, a session switch or a suspend asked for while it stands, and a dialog a client can
@@ -198,13 +199,14 @@ designing around them.
   memory, minted at unlock and again at the lock it answers and good for ninety days, so a locked
   KeePass can answer `503 locked` rather than failing at the transport. It was seven days and minted
   at unlock until a long lock outlived it. The normal host key is let go at lock, and `CA.md` §208
-  is exact about how much of that is erasure: the gate key and the stored PKCS#12 are overwritten,
-  while the keys, the one the TLS server signs with and the authority's, are BouncyCastle values
-  over an immutable integer that offer nothing to overwrite, so the last reference goes and nothing
-  more. The responder is marked by a
-  `kpg://host/responder` URI in its subject alternative name, **not** a private OID: the UUID arc
-  `2.25` encodes on .NET Framework and does not survive being read back, and `1.3.6.1.4.1` would be
-  squatting on somebody else's enterprise number.
+  is exact about how much of that is erasure: the plugin's own byte arrays, the stored PKCS#12 among
+  them, are overwritten, a copy of the gate key is kept for the responder, and the keys, the host's
+  that the TLS server signs with and the authority's, are BouncyCastle values over an immutable
+  integer that offer nothing to overwrite, so the last reference goes and nothing more, as it does
+  for the stored text the cache compares. The responder is marked by a `kpg://host/responder` URI in
+  its subject alternative name, **not** a private OID: the UUID arc `2.25` encodes on .NET Framework
+  and does not survive being read back, and `1.3.6.1.4.1` would be squatting on somebody else's
+  enterprise number.
 - **We own the transport.** Accept loop, ClientHello peek, TLS termination, request parser, body
   read, response write. Selecting a host certificate by SNI makes this unavoidable, because
   .NET Framework exposes no server-side SNI hook. Which TLS stack terminates it is the bullet
@@ -314,25 +316,29 @@ designing around them.
   tab strip cut out of a dialog is a picture of a page with no edges: a reader cannot see what it
   sits in, where the room runs out or which button ends it. What makes that publishable is the
   session, not the crop: the database settings dialog carries the open database's path in its
-  banner, so `LiveSession` builds the session where that path names nobody.
-  `build.ps1 -Task Lint` refuses a picture no page refers to and a reference to a picture that is
-  not there; that a picture is named in `DocumentationImages` is checked by the fixture that takes
-  it, which is in the `Screenshots` category and so runs only when the pictures are retaken.
-  **One picture moves, and it is a build output too**: `lifecycle.gif`, taken last in the same run.
-  It is a click journey somebody can follow, from the database the fixture filled, entries in two
-  folders and nothing else: every dialog opened from the menu bar, the authority created, an
-  invitation copied and pasted at the client's prompt, the pairing approved, a rule on the top
-  group and a seal on one folder written on the group dialogs, then PyKeePassGate's real command
-  line reading what the rules allow and refused what they do not, revoked from the clients page
-  and refused again. Create authority is the one press drawn rather than made: the pictures after
-  it are of the written down authority, for the reason the stills have one. The frames are then
-  composed from a fixed timeline, not from the clock: the pictures it took, the rectangles of the
-  controls it pressed, and the text the client typed and printed, with the terminal drawn beside
-  the windows, typed a character at a time, a pointer and its clicks drawn where the real presses
-  landed, and the keys pressed drawn on caps. `AnimatedGif` writes them, each frame only the
-  rectangle that changed, so the same run makes the same file. What the client makes new every
-  run, its key, its certificate's expiry and the directory it stored them in, is shown in the
-  terminal as written down values, and the moments on its row of the clients page are covered.
+  banner, so `LiveSession` builds the session where that path names nobody. `build.ps1 -Task Lint`
+  refuses a picture no page refers to and a reference to a picture that is not there; that a picture
+  is named in `DocumentationImages` is checked by the fixture that takes it, which is in the
+  `Screenshots` category and so runs only when the pictures are retaken. **One picture moves, and it
+  is a build output too**: `lifecycle.gif`, taken last in the same run. It is a click journey
+  somebody can follow, from the database the fixture filled, entries in two folders and nothing
+  else: every dialog opened from the menu bar, the authority created, an invitation copied and
+  pasted at the client's prompt, the pairing approved, a rule on the top group and a seal on one
+  folder written on the group dialogs, then PyKeePassGate's real command line reading what the rules
+  allow and refused what they do not, revoked from the clients page and refused again. Not every
+  press it draws is made: a press inside a dialog is made with the pointer where the picture draws
+  it, while each menu is photographed open through UI automation and chosen by its keys, the paste
+  at the client's prompt is drawn while the code goes over standard input, and Create authority is
+  drawn because the pictures after it are of the written down authority, for the reason the stills
+  have one. The frames are then composed from a fixed timeline, not from the clock: the pictures it
+  took, the rectangles of the controls it pressed, and the text the client typed and printed, with
+  the terminal drawn beside the windows, typed a character at a time, a pointer and its clicks drawn
+  where the presses go, and the keys pressed drawn on caps. `AnimatedGif` writes them with nothing
+  random in it, so the same frames make the same file, and the same machine and account make the
+  same frames: the scaling, the font smoothing, the regional format and the fonts installed all
+  reach the pictures. What the client makes new every run, its key, its certificate's expiry and the
+  directory it stored them in, is shown in the terminal as written down values, and the moments on
+  its row of the clients page are covered.
 - **Nothing on a tab scrolls.** The content is held to 449 by 314 and has to fit it; horizontal
   scrolling is never acceptable. That is KeePass's own first page on the settings dialog, inside a
   padding of 3. The page this plugin adds has no padding and is laid out to the tab control's whole
@@ -377,11 +383,13 @@ designing around them.
   `spikes/json-reading`.
 - **The JSON grammar is `Newtonsoft.Json`'s and the policy is ours**, which is the split worth
   keeping. `JsonBody` decides what this wire may carry, which is one flat object of strings and
-  arrays of strings, with no NUL anywhere in it and no string a `.kdbx` would not give back:
-  nothing XML 1.0 cannot represent, and nothing that is whitespace alone. `JsonWriter` shapes what a
-  handler writes, and neither owns a parser. Three
-  alternatives were measured and refused, on assembly count and on license. The counts are on
-  `spikes/json-reading`, and re-proposing one means arguing with them.
+  arrays of strings, with no NUL anywhere in it and no string a `.kdbx` would not give back: nothing
+  XML 1.0 cannot represent, and nothing that is whitespace alone. A carriage return is the one
+  change it lets through: it is stored as sent, and reads back as a line feed once KeePass has
+  opened the file again, which is KeePass's own behavior. `JsonWriter` shapes what a handler writes,
+  and neither owns a parser. Three alternatives were measured and refused, on assembly count and on
+  license. The counts are on `spikes/json-reading`, and re-proposing an alternative means arguing
+  with them.
 
   **And nothing here escapes a JSON string.** A response, an audit line, an ACL document, a
   profile list, a pairing bundle: every value this plugin writes as one goes out through that
@@ -442,12 +450,12 @@ designing around them.
 
   **`protected` is a scope and not a verb**, like `attachments`, and it is the one scope a handler
   asks about rather than the router. An attachment is a route of its own, so the router asks before
-  dispatch; a protected value arrives inside the answer to a route that is allowed, so the question
-  is asked once between the handler and the response. It governs writing as well as reading, and
-  what counts as protected is `IVault.Protects`, which is KeePass's own `MemoryProtection` rather
-  than a list kept here. **Both sides ask it now**: a read used to trust the stored string's own
-  flag, so a standard field the database protects and the string did not was handed out as though
-  nothing protected it.
+  dispatch; a protected value arrives inside the answer to a route that is allowed, so each handler
+  that writes or takes a field value asks it, through one helper, `DESIGN.md` §137. It governs
+  writing as well as reading, and what counts as protected is `IVault.Protects`, which is KeePass's
+  own `MemoryProtection` rather than a list kept here. **Both sides ask it now**: a read used to
+  trust the stored string's own flag, so a standard field the database protects and the string did
+  not was handed out as though nothing protected it.
 
   **Nearest wins, per profile**, and profiles are combined with or. An empty array is a rule
   granting nothing from there down; a profile the document does not name is silence, answered by
@@ -506,14 +514,13 @@ designing around them.
 
   Measured on `spikes/pykeepass-compatibility`, taken from `master` and never merged, and remeasured
   on 2026-10-25 over the four classes a program holds, `PyKeePass`, `Entry`, `Group` and
-  `Attachment`: of their 122 public members, 65 are servable over the routes the gate already has,
-  4 are served under a name that means something else there, the deletes, which go to the recycle
-  bin where `pykeepass`'s are for good, 9 would need routes nothing forbids, among them an
-  entry's tags and history, and 44 cannot exist here, the database's name and description among
-  them. The
-  first measurement counted `PyKeePass` alone, the deletes as served and `trash_*` and `deref` as
-  missing, and its `RESULTS.md` records both, with the per member table and what would have to
-  change on each side.
+  `Attachment`: of their 122 public members, 65 are servable over the routes the gate already has, 4
+  are served under a name that means something else there, the deletes, which go to the recycle bin
+  where `pykeepass`'s are for good, and are for good as well in a database that keeps no bin, 9
+  would need routes nothing forbids, among them an entry's tags and history, and 44 cannot exist
+  here, the database's name and description among them. The first measurement counted `PyKeePass`
+  alone, the deletes as served and `trash_*` and `deref` as missing, and its `RESULTS.md` records
+  both, with the per member table and what would have to change on each side.
 
 ## Measured facts that cost time if rediscovered
 
@@ -620,9 +627,10 @@ Run them from
   `GateListenerTests.Connections_that_send_nothing_leave_the_thread_pool_free`.
 - **Under TLS 1.3 a refused handshake's alert can lose the race to the reset behind it.** The gate
   refuses and closes with the client's request unread, so the client's first read after the
-  handshake meets either the alert or the reset: a client half a second late to read lost the
-  alert five times in five. A test that asks why a handshake was refused reads the gate's log,
-  never what the client read, which is how the tests over `BouncyCastleGateClient` ask it.
+  handshake meets either the alert or the reset: a client half a second late to read lost the alert
+  five times in five. A test that asks why a handshake was refused reads the gate's log, never what
+  the client read, which is how `GateListenerTests` asks it of a handshake refused to
+  `BouncyCastleGateClient`.
 - **A locked document's close carries no path, and the document is what still knows it.** The lock
   ran `PwDatabase.Close` already, which resets the connection, so both `FileClosingPre` and
   `FileClosed` announce that document with an empty path. `PwDocument.LockedIoc` is where KeePass
@@ -1062,13 +1070,13 @@ the tools this branch carries.
   somebody's own keeps its own uv, because nothing sets `required-version`.
 
   **`ruff check` is the gate and `ruff format` is not**, which is a decision rather than an
-  omission: thirteen files have never been through the formatter and running it would rewrite them
-  all. What is enforced is what a formatter cannot decide for you, and `pycodestyle` is in the
+  omission: most of the Python files have never been through the formatter, and running it would
+  rewrite them. What is enforced is what a formatter cannot decide, and `pycodestyle` is in the
   selected rules, so a line too long or a space in the wrong place still fails. What is left to the
   author is where a line breaks, which is a judgment this project spends deliberately, including
-  inside the fenced examples in `docs/`, where the formatter would take the alignment out of a
-  block written to be read. Adopting it means reformatting everything in one commit that changes
-  nothing else, not letting it arrive a file at a time under other work.
+  inside the fenced examples in `docs/`, where the formatter would take the alignment out of a block
+  written to be read. Adopting it means reformatting everything in one commit that changes nothing
+  else, not letting it arrive a file at a time under other work.
 - **Docs stay with code.** A behavior or architecture change updates the design documents in the
   same pass, and reversals are recorded rather than edited away.
 - **A CodeQL finding is fixed, or suppressed where it is, with the reason.** The one spelling is a
@@ -1333,8 +1341,11 @@ rather than through the file.
 **One thing to know before touching the transport.** An `EphemeralKeySet` certificate signs happily
 and SChannel will not do TLS with it in either direction. That is why `Org.BouncyCastle.Tls`
 terminates the transport, so that every key the plugin loads can stay off the disk.
-`HostCertificateHandshakeTests` pins both halves, including the SChannel refusal, so a tidy-up that
-goes back to `SslStream` fails loudly rather than quietly writing keys to somebody's profile. That
+`HostCertificateHandshakeTests` pins both halves, including the SChannel refusal, over handshakes it
+makes for itself: it records why the transport is not `SslStream`, and does not watch the
+listener's. A tidy-up back to `SslStream` that kept the key ephemeral fails loudly, in
+`GateListenerTests`; a tidy-up that gave the key a file so that SChannel would serve with it would
+serve, and write the host key to somebody's profile at every connection, with nothing failing. That
 no key of the plugin's own is handed to Windows at all is a later decision with another reason: the
 issuer moved to Bouncy Castle because Mono has no ECDSA and no `CertificateRequest` a .NET Framework
 build can reach, `CA.md` §203 and its row in §221.

@@ -2,19 +2,19 @@
 
 **Let a script, an automation or an AI agent use part of a KeePass database without handing over
 the file or the master password.** Access is granted rule by rule, can be taken back at any time,
-and every request is logged.
+and every decision about it is recorded.
 
 KeePassGate is a plugin for KeePass 2.61.1 and later, on Windows. It serves a small HTTP API on the
 local machine over mutual TLS, and each program sees only what it has been approved for.
 
 ![From a database with entries to a program that reads one folder, is refused the other, and is shut out once revoked](docs/images/lifecycle.gif)
 
-*Recorded from a real KeePass by the project's test fixture. A database becomes its own
-certificate authority, a program pairs with it and is approved, rules open one folder and close
-another, the program reads a password and, once a rule allows it, sets a new one, and once
-revoked, the program is refused everything. The gray boxes hide values that change on every run,
-such as today's date and the invitation's identifier, so the recording comes out the same each
-time it is made.*
+*Recorded from a real KeePass by the project's test fixture. A database becomes its own certificate
+authority, a program pairs with it and is approved, rules open one folder and close another, the
+program reads a password and, once a rule allows it, sets a new one, and once revoked, the program
+is refused everything. The gray boxes hide values that change on every run, such as today's date and
+the invitation's identifier, so the recording comes out the same each time it is made on the same
+machine.*
 
 ## Why it exists
 
@@ -29,8 +29,8 @@ the database where it is and lets the agent in through a door the operator contr
   more than it should. Every request is checked against the rules before any code runs to answer
   it, and anything unclear is refused.
 - **Revoking takes a click and an OK.** From its next request on, the program's certificate no
-  longer works. Every pairing, renewal, revocation and access decision goes into an audit log kept
-  outside the database.
+  longer works. Every access decision, every pairing and renewal the operator answers and every
+  client revoked goes into an audit log kept outside the database.
 - **Keys stay inside the database.** Each database is its own certificate authority, stored in the
   encrypted file itself, and the plugin never writes a private key to the Windows user profile.
 
@@ -60,8 +60,8 @@ The plugin is published as a zip on [the releases page](https://github.com/mfrnd
 and the client as [`pykeepassgate`](https://pypi.org/project/pykeepassgate/) on PyPI, and
 [`docs/getting-started.md`](docs/getting-started.md) installs them into a KeePass already in use.
 The quickest way to look around without touching that KeePass is a clone of this repository, which
-takes Windows, the [.NET SDK](https://dotnet.microsoft.com/download) and, for the client,
-[uv](https://docs.astral.sh/uv/).
+takes Windows, the [.NET SDK](https://dotnet.microsoft.com/download) 9 or later and, for the
+client, [uv](https://docs.astral.sh/uv/).
 
 ```powershell
 git clone https://github.com/mfrnd/KeePassGate
@@ -73,9 +73,9 @@ This starts a portable KeePass inside the clone with its own configuration, so a
 already installed stays untouched. In that KeePass:
 
 1. Open or create a database.
-2. In the menu bar, choose **File** › **Database Settings**, switch to the **KPG** tab, press
+2. In the menu bar, choose **File**, **Database Settings**, switch to the **KPG** tab, press
    **Create authority** and close the dialog with **OK**.
-3. Open **File** › **Database Settings** again, go to the **KPG** tab's **Clients** page, press
+3. Open **File**, **Database Settings** again, go to the **KPG** tab's **Clients** page, press
    **Invite**, then **Copy the invitation**, and close the dialog with **OK**. **Cancel** would take
    the invitation back.
 4. In another terminal, pair, and paste the invitation when asked for it:
@@ -88,7 +88,7 @@ already installed stays untouched. In that KeePass:
 6. Check the connection with `uv run pykeepassgate status`.
 
 The plugin listens on port 51776, which `pair` assumes. If another port was chosen, KeePass shows
-it under **Tools** › **KeePassGate (KPG)**, and `pair` takes it as `--port`.
+it under **Tools**, **KeePassGate (KPG)**, and `pair` takes it as `--port`.
 [`docs/getting-started.md`](docs/getting-started.md) covers every step, including installing the
 plugin into an existing KeePass, and [`docs/pairing.md`](docs/pairing.md) explains what each
 screen does.
@@ -137,8 +137,9 @@ for entry in client.entries():
     print(entry.uuid, entry.title, entry.url)
 ```
 
-It is not on PyPI yet, so install it from a checkout with `uv add ./KeePassGate`.
-[`docs/pykeepassgate.md`](docs/pykeepassgate.md) covers everything from pairing to writing entries.
+It is on PyPI as `pykeepassgate`, so `uv add pykeepassgate` installs it, and `uv add ./KeePassGate`
+installs it from a checkout. [`docs/pykeepassgate.md`](docs/pykeepassgate.md) covers everything from
+pairing to writing entries.
 
 ## Documentation
 
@@ -163,7 +164,7 @@ it defines.
 .\build.ps1                 # prose, the client, the build, and every test that does not need KeePass
 .\build.ps1 -Task All       # all of that, plus the end to end tests that drive a real KeePass
 .\build.ps1 -Task Deploy    # copy the plugin into plugins\KeePassGate in the provided KeePass
-.\build.ps1 -Task Package   # build the plugin as Release and zip it with a SHA256SUMS into dist\
+.\build.ps1 -Task Package   # the plugin as Release, zipped with a SHA256SUMS into dist\, from a clean clone
 .\run-release.ps1           # deploy, then start that KeePass with the build that would ship
 uv run pre-commit install   # once per clone: the fast checks, run at every commit
 ```
