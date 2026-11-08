@@ -1204,9 +1204,16 @@ namespace KeePassGate.Tests
                 }
             };
 
-            Assert.That(prompt.Ask(Request(), Timeout).Decision, Is.EqualTo(PairingDecision.Locked));
-            Assert.That(prompt.Ask(Renewal(), Timeout).Decision, Is.EqualTo(PairingDecision.Locked));
+            var pairing = prompt.Ask(Request(), Timeout);
+            var renewal = prompt.Ask(Renewal(), Timeout);
+
+            Assert.That(pairing.Decision, Is.EqualTo(PairingDecision.Locked));
+            Assert.That(renewal.Decision, Is.EqualTo(PairingDecision.Locked));
             Assert.That(shown, Is.Zero);
+
+            // S081: and the answer holds that, so the audit writes down no dialog that never stood.
+            Assert.That(pairing.Shown || renewal.Shown, Is.False);
+            Assert.That(pairing.Reason, Does.Contain("never shown"));
         }
 
         [Test]
@@ -1243,6 +1250,7 @@ namespace KeePassGate.Tests
             var answer = prompt.Ask(Renewal(), Timeout);
 
             Assert.That(answer.Decision, Is.EqualTo(PairingDecision.Locked));
+            Assert.That(answer.Shown, Is.True, "a dialog the lock closed was put to the operator");
             Assert.That(_log.Warnings.Select(entry => entry.Message), Has.Some.Contains("closed unanswered"));
 
             prompt.Locked();

@@ -83,13 +83,15 @@ namespace KeePassGate.Pairing
             IReadOnlyList<string> profiles,
             TimeSpan? lifetime,
             RenewalRefusal standing,
-            string reason)
+            string reason,
+            bool shown = true)
         {
             Decision = decision;
             Profiles = profiles ?? Nothing;
             Lifetime = lifetime ?? Authority.Lifetime.Unasked;
             Standing = standing;
             Reason = reason ?? string.Empty;
+            Shown = shown;
         }
 
         public PairingDecision Decision { get; private set; }
@@ -107,6 +109,11 @@ namespace KeePassGate.Pairing
         public RenewalRefusal Standing { get; private set; }
 
         public string Reason { get; private set; }
+
+        /// <summary>
+        /// Whether the question reached the operator's screen, as a pairing's answer holds it.
+        /// </summary>
+        public bool Shown { get; private set; }
 
         /// <summary>The operator's yes, and the profiles the new certificate is to carry.</summary>
         /// <param name="lifetime">How long the new certificate lasts, or null for a year.</param>
@@ -147,12 +154,20 @@ namespace KeePassGate.Pairing
 
         public static RenewalApproval Unavailable(string reason)
         {
-            return new RenewalApproval(PairingDecision.Unavailable, null, null, null, reason);
+            return new RenewalApproval(PairingDecision.Unavailable, null, null, null, reason, false);
         }
 
+        /// <summary>A dialog the lock closed as unanswered.</summary>
         public static RenewalApproval Locked()
         {
             return new RenewalApproval(PairingDecision.Locked, null, null, null, PairingApproval.LockedReason);
+        }
+
+        /// <summary>A renewal a lock kept off the screen, as a pairing's is.</summary>
+        public static RenewalApproval LockedWhileWaiting()
+        {
+            return new RenewalApproval(
+                PairingDecision.Locked, null, null, null, PairingApproval.LockedWhileWaitingReason, false);
         }
     }
 

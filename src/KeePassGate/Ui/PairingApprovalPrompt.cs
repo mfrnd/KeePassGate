@@ -127,7 +127,7 @@ namespace KeePassGate.Ui
                 "pairing",
                 PairingApproval.Unavailable,
                 PairingApproval.TimedOut,
-                PairingApproval.Locked);
+                PairingApproval.LockedWhileWaiting);
         }
 
         public RenewalApproval Ask(RenewalRequest request, TimeSpan timeout)
@@ -144,7 +144,7 @@ namespace KeePassGate.Ui
                 "renewal",
                 RenewalApproval.Unavailable,
                 RenewalApproval.TimedOut,
-                RenewalApproval.Locked);
+                RenewalApproval.LockedWhileWaiting);
         }
 
         /// <summary>
@@ -182,6 +182,10 @@ namespace KeePassGate.Ui
         /// Waits for the screen, puts a dialog on it, and waits for the answer.
         /// </summary>
         /// <param name="what">What is being asked, for the log: a pairing or a renewal.</param>
+        /// <param name="lockedWhileWaiting">
+        /// The answer for a request whose database locked while it waited for the screen, which is
+        /// never shown. A dialog the lock closes answers for itself, as unanswered.
+        /// </param>
         private TAnswer OnScreen<TAnswer>(
             Func<TAnswer> dialog,
             string databaseId,
@@ -189,7 +193,7 @@ namespace KeePassGate.Ui
             string what,
             Func<string, TAnswer> unavailable,
             Func<TAnswer> timedOut,
-            Func<TAnswer> locked)
+            Func<TAnswer> lockedWhileWaiting)
             where TAnswer : class
         {
             // Waited for rather than queued behind indefinitely: a request that cannot get the
@@ -246,7 +250,7 @@ namespace KeePassGate.Ui
                                 if (!_serving(databaseId))
                                 {
                                     _log.Warn("the database a " + what + " was about locked while it waited for the screen");
-                                    answer = locked();
+                                    answer = lockedWhileWaiting();
                                     return;
                                 }
 

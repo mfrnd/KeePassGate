@@ -326,6 +326,10 @@ none, since it releases both.
   asked for again**, as [`PAIRING.md`](PAIRING.md) §311 states for a certificate that could not be
   issued. The approval was kept for the rest of the pairing budget with nothing telling the client
   so, and the same request asked again was issued without the dialog.
+- **A pairing or a renewal that a lock kept off the screen gets no `unanswered` line in the
+  audit**, since nobody was asked, and the log states that it was never shown. It was answered as
+  a dialog the lock closed, so the audit recorded the operator leaving a question unanswered that
+  never reached them, and the log a dialog closed that never stood.
 
 ## 0.1.0, 2026-10-25
 

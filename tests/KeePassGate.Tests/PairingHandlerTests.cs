@@ -407,6 +407,25 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_request_a_lock_kept_off_the_screen_is_not_written_down_as_unanswered()
+        {
+            // S081. It waited for the screen while KeePass locked and was never shown, so nobody
+            // was asked and the audit records nothing, as with no screen to ask. It was taken
+            // for a dialog the lock closed, written down as left unanswered, and logged as closed.
+            var prompt = new KeePassGate.Ui.PairingApprovalPrompt(new FakeUiThread(), databaseId => false, _log);
+            Hello(ClientProof());
+
+            var context = Request("agent-fictitious", Array.Empty<string>(), prompt);
+
+            Assert.That(context.Status, Is.EqualTo(503));
+            Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody(LockedTarget.Error)));
+            Assert.That(_book.Outstanding(), Has.Count.EqualTo(1));
+            Assert.That(_audit.Entries, Is.Empty, "nobody was asked");
+            Assert.That(_log.Warnings.Any(w => w.Message.Contains("closed unanswered")), Is.False,
+                "and no dialog was closed");
+        }
+
+        [Test]
         public void No_screen_to_ask_spends_nothing_either()
         {
             Hello(ClientProof());

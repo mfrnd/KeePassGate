@@ -514,9 +514,15 @@ namespace KeePassGate.Pairing
 
                 case PairingDecision.Locked:
                     // Unanswered, as a timeout is, so nothing is spent; told as every connection to
-                    // a locked database is told, since that is what this one now is.
+                    // a locked database is told, since that is what this connection now is. A request
+                    // the lock kept off the screen was put to nobody, and the audit records nothing
+                    // of it, as of a request with no screen to ask.
                     _log.Warn("pairing on invitation " + invitation.Id + " was " + decision.Reason);
-                    _audit.PairingUnanswered(target.DatabaseId, invitation.Id);
+                    if (decision.Shown)
+                    {
+                        _audit.PairingUnanswered(target.DatabaseId, invitation.Id);
+                    }
+
                     context.Respond(503, HttpResponse.ErrorBody(LockedTarget.Error));
                     return null;
 

@@ -1132,6 +1132,27 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_renewal_a_lock_kept_off_the_screen_is_not_written_down_as_unanswered()
+        {
+            // S081, as pairing has it: never shown, so nobody was asked.
+            var prompt = new KeePassGate.Ui.PairingApprovalPrompt(new FakeUiThread(), databaseId => false, _log);
+            var handler = new RenewalHandler(
+                prompt, _options, new AuthorityIssuer(), () => _now, _session, new AdmissionAudit(_audit), _log, _held);
+
+            using (var old = _authority.IssueAdmittedClient("reader"))
+            {
+                var context = Context(old, "{}");
+                Router(handler).Handle(context);
+
+                Assert.That(context.Status, Is.EqualTo(503));
+                Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody(LockedTarget.Error)));
+                Assert.That(_audit.Entries, Is.Empty, "nobody was asked");
+                Assert.That(_log.Warnings.Any(w => w.Message.Contains("closed unanswered")), Is.False,
+                    "and no dialog was closed");
+            }
+        }
+
+        [Test]
         public void An_approval_that_admitted_nobody_is_not_written_down()
         {
             _authority.AdmitAnswers = AdmissionWrite.Failed("the save did not land");

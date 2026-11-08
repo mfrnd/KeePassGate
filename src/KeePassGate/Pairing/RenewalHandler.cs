@@ -381,9 +381,14 @@ namespace KeePassGate.Pairing
 
                 case PairingDecision.Locked:
                     // Unanswered, as a timeout is, so nothing changes; told as every connection to
-                    // a locked database is told, since that is what this one now is.
+                    // a locked database is told, since that is what this connection now is. Written
+                    // down only when it was shown, as pairing's is.
                     _log.Warn("a renewal by " + CertificateDigest.Shorten(key) + " was " + decision.Reason);
-                    _audit.RenewalUnanswered(target.DatabaseId, key, record.ClientKey);
+                    if (decision.Shown)
+                    {
+                        _audit.RenewalUnanswered(target.DatabaseId, key, record.ClientKey);
+                    }
+
                     context.Respond(503, HttpResponse.ErrorBody(LockedTarget.Error));
                     return null;
 
