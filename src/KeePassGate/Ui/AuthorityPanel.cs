@@ -876,9 +876,11 @@ namespace KeePassGate.Ui
         /// </remarks>
         private string InviteNotice()
         {
+            // Against what the dialog is holding, as `_offered` was read: a change that leaves an
+            // authority is one to pair with once OK has landed it, and a delete is not.
             if (AuthorityIsWaiting)
             {
-                return GateTab.PendingAuthorityNotice;
+                return _offered == null ? GateTab.PendingDeleteNotice : GateTab.PendingAuthorityNotice;
             }
 
             return ProfilesAreWaiting ? GateTab.PendingProfilesNotice : string.Empty;

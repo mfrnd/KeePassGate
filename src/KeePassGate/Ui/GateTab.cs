@@ -259,6 +259,18 @@ namespace KeePassGate.Ui
             "The authority change is not applied yet. Press OK and reopen this dialog to pair.";
 
         /// <summary>
+        /// What it shows while a change that leaves no authority, a delete, is waiting for OK.
+        /// </summary>
+        /// <remarks>
+        /// The notice above tells the operator to press OK and reopen the dialog to pair, and after
+        /// a delete there is nothing to pair with once OK has been pressed: the line beside it
+        /// already states that the database has no authority. What is left to tell is that the
+        /// change has not been made yet.
+        /// </remarks>
+        public const string PendingDeleteNotice =
+            "Deleting the authority is not applied yet. It takes effect when OK is pressed.";
+
+        /// <summary>
         /// What it says while a profile edit is waiting for OK.
         /// </summary>
         /// <remarks>
@@ -286,7 +298,7 @@ namespace KeePassGate.Ui
         /// </remarks>
         public static readonly IReadOnlyList<string> InviteNotices = new[]
         {
-            PendingAuthorityNotice, PendingProfilesNotice
+            PendingAuthorityNotice, PendingDeleteNotice, PendingProfilesNotice
         };
 
         /// <summary>The dialog raised when somebody asks to pair.</summary>

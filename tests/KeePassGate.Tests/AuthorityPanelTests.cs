@@ -1538,6 +1538,25 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_delete_waiting_for_OK_is_not_followed_by_reopening_the_dialog_to_pair()
+        {
+            // The notice written for a create told the operator to press OK and reopen the dialog
+            // to pair, under a line stating that the database has no authority: after the delete
+            // there is nothing to pair with.
+            new AuthorityService(_database.Store, null).Create();
+            var pending = new PendingDatabase(_database, null);
+
+            using (var panel = new AuthorityPanel(pending, new FakePrompt(true), _log, new InvitationBook(_log)))
+            {
+                panel.DeleteAuthority();
+
+                Assert.That(panel.AuthorityIsWaiting, Is.True);
+                Assert.That(Label(panel, GateTab.InviteNoticeName).Text, Is.EqualTo(GateTab.PendingDeleteNotice));
+                Assert.That(GateTab.PendingDeleteNotice, Does.Not.Contain("pair"));
+            }
+        }
+
+        [Test]
         public void The_clients_page_says_when_the_gate_cannot_see_the_authority_yet()
         {
             // The one place the waiting arrangement costs something, and it is invisible from where
