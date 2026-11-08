@@ -58,7 +58,10 @@ LOOPBACK = "127.0.0.1"
 #: `max_response_bytes` does, so that no answer can make this client hold as much memory as it
 #: likes. An attachment is not what decides it: the gate hands out at most 512 KiB of one
 #: (`VaultHandlers.MaxAttachmentBytes`), under 700 KiB once it is base64 inside a JSON answer. What
-#: can outgrow it is a listing, since the plugin does not page (`API.md` §407), and one that does
+#: can outgrow it is a listing, since the plugin does not page (`API.md` §407), and the read of an
+#: entry whose strings were made to: they are held to 524288 characters
+#: (`VaultEntryDetail.MostCharacters`), which come to more than this only when most of them are
+#: characters JSON escapes, a protected field's name going out twice. An answer that outgrows it
 #: fails whole rather than being truncated. So a caller whose database is large enough gets a
 #: setting to raise rather than a number to patch.
 MAX_RESPONSE_BYTES = 4 * 1024 * 1024
