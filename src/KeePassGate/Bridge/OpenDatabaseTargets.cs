@@ -904,45 +904,64 @@ namespace KeePassGate.Bridge
         {
             var targets = new List<UndecidedTarget>();
 
-            using (reading)
+            // Each candidate holds a copy of its gate key until it is disposed, and nothing owns
+            // them before the cache does, so a throw on the way there gives back every one built,
+            // as `TargetFor` gives back its reading.
+            var kept = false;
+            try
             {
-                foreach (var candidate in reading.Candidates)
+                using (reading)
                 {
-                    if (!candidate.IsWhole)
+                    foreach (var candidate in reading.Candidates)
                     {
-                        continue;
+                        if (!candidate.IsWhole)
+                        {
+                            continue;
+                        }
+
+                        var host = candidate.Material.HostKey;
+
+                        // Into a local and zeroed afterwards, for the reason `Answering` gives.
+                        var gateKey = candidate.Material.SniKey;
+                        try
+                        {
+                            targets.Add(new UndecidedTarget(candidate.Fingerprint, gateKey, host));
+                        }
+                        finally
+                        {
+                            Array.Clear(gateKey, 0, gateKey.Length);
+                        }
                     }
 
-                    var host = candidate.Material.HostKey;
+                    var shorts = new List<string>();
+                    foreach (var candidate in reading.Candidates)
+                    {
+                        shorts.Add(AuthorityKeys.Shown(candidate.Fingerprint));
+                    }
 
-                    // Into a local and zeroed afterwards, for the reason `Answering` gives.
-                    var gateKey = candidate.Material.SniKey;
-                    try
-                    {
-                        targets.Add(new UndecidedTarget(candidate.Fingerprint, gateKey, host));
-                    }
-                    finally
-                    {
-                        Array.Clear(gateKey, 0, gateKey.Length);
-                    }
+                    _log.Warn("not serving a database that holds " + reading.Candidates.Count +
+                              " authorities until the operator keeps one: " + string.Join(", ", shorts));
                 }
 
-                var shorts = new List<string>();
-                foreach (var candidate in reading.Candidates)
-                {
-                    shorts.Add(AuthorityKeys.Shown(candidate.Fingerprint));
-                }
+                var path = PathOf(database);
+                Discard(path);
 
-                _log.Warn("not serving a database that holds " + reading.Candidates.Count +
-                          " authorities until the operator keeps one: " + string.Join(", ", shorts));
+                var entry = new CachedTarget(stored, path, null, null, targets);
+                _cache[database] = entry;
+                kept = true;
+                return entry;
             }
-
-            var path = PathOf(database);
-            Discard(path);
-
-            var entry = new CachedTarget(stored, path, null, null, targets);
-            _cache[database] = entry;
-            return entry;
+            finally
+            {
+                if (!kept)
+                {
+                    // codeql[cs/missed-using-statement] disposed only when it is not cached, which no `using` can do
+                    foreach (var target in targets)
+                    {
+                        target.Dispose();
+                    }
+                }
+            }
         }
 
         /// <summary>
