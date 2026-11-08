@@ -40,7 +40,7 @@ $quietly = $ErrorActionPreference
 Push-Location $Root
 try {
     $ErrorActionPreference = 'Continue'
-    $tracked = @(& git ls-files -- '*.md')
+    $tracked = @(& git -c core.quotePath=off ls-files --cached)
     $listed = ($LASTEXITCODE -eq 0)
 }
 finally {
@@ -48,12 +48,38 @@ finally {
     Pop-Location
 }
 
-if (-not $listed) { throw 'git could not list the markdown files.' }
+if (-not $listed) { throw 'git could not list the files of this repository.' }
 
-$documents = $tracked | ForEach-Object { Get-Item -LiteralPath (Join-Path $Root $_) }
+# **What a link may point at is what git tracks, spelled exactly as git spells it**, a file or a
+# directory holding a file. The documents are read on GitHub, where `docs/Getting-Started.md` is not
+# `docs/getting-started.md`, and this runs on Windows, whose file system takes either for the
+# other, so asking the file system would pass a link that is broken where it is read. And a file
+# nobody added is not on GitHub at all. A tracked file deleted in the working tree is gone, as the
+# rest of a change not yet committed is checked as it stands.
+$known = New-Object 'System.Collections.Generic.HashSet[string]' ([StringComparer]::Ordinal)
+foreach ($name in $tracked) {
+    if (-not (Test-Path -LiteralPath (Join-Path $Root $name) -PathType Leaf)) {
+        continue
+    }
+
+    $at = $name
+    [void] $known.Add($at)
+    while (($cut = $at.LastIndexOf('/')) -gt 0) {
+        $at = $at.Substring(0, $cut)
+        [void] $known.Add($at)
+    }
+}
+
+# Tracked and deleted in the working tree, which leaves nothing to read, as `RepositoryFiles.ps1`
+# has it, rather than an error that ends the check with nothing reported.
+$documents = @($tracked | Where-Object { $_ -like '*.md' } |
+    ForEach-Object { Join-Path $Root $_ } |
+    Where-Object { Test-Path -LiteralPath $_ -PathType Leaf } |
+    ForEach-Object { Get-Item -LiteralPath $_ })
+$top = [IO.Path]::GetFullPath($Root).TrimEnd('\', '/')
 
 $broken = @()
-$referenced = @{}
+$referenced = New-Object System.Collections.Hashtable ([StringComparer]::Ordinal)
 
 # `[text](target)` and `![text](target)`, which is every link this repository writes. Reference
 # style definitions are not used anywhere here, and a checker that pretended to understand them
@@ -112,10 +138,20 @@ foreach ($document in $documents) {
             continue
         }
 
-        $full = [IO.Path]::GetFullPath((Join-Path $document.DirectoryName $path))
+        # The path relative to the top, with forward slashes, as git names it. The top is matched
+        # without regard to case, being this machine's spelling of where the clone is, and
+        # everything below it exactly. A link out of the repository points at nothing GitHub has.
+        $full = [IO.Path]::GetFullPath((Join-Path $document.DirectoryName $path)).TrimEnd('\', '/')
+        $relative = $null
+        if ($full.Equals($top, [StringComparison]::OrdinalIgnoreCase)) {
+            $relative = ''
+        }
+        elseif ($full.StartsWith($top + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) {
+            $relative = $full.Substring($top.Length + 1).Replace('\', '/')
+        }
 
-        if (Test-Path -LiteralPath $full) {
-            $referenced[$full.ToLowerInvariant()] = $true
+        if ($null -ne $relative -and ($relative -eq '' -or $known.Contains($relative))) {
+            $referenced[$relative] = $true
         }
         else {
             $broken += "$where line ${number}: $target"
@@ -126,7 +162,7 @@ foreach ($document in $documents) {
 $images = Join-Path $Root 'docs\images'
 if (Test-Path $images) {
     foreach ($image in Get-ChildItem -Path $images -File) {
-        if (-not $referenced.ContainsKey($image.FullName.ToLowerInvariant())) {
+        if (-not $referenced.ContainsKey("docs/images/$($image.Name)")) {
             $broken += "docs\images\$($image.Name): no page refers to it"
         }
     }
