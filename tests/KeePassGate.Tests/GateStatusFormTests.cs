@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Windows.Forms;
 using KeePassGate.Diagnostics;
+using KeePassGate.Transport;
 using KeePassGate.Ui;
 using NUnit.Framework;
 
@@ -161,9 +162,14 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void With_nothing_chosen_the_box_starts_on_the_port_the_gate_is_using()
+        public void A_port_the_gate_could_not_take_is_the_port_the_box_starts_on()
         {
-            using (var window = new GateStatusForm(Listening(45678), null, Takes, 0))
+            // Nothing chosen, and `KEEPASSGATE_PORT` naming a port something else holds: the gate
+            // is on nothing, and the next start tries the same port again, which is what the
+            // plugin hands the window and what the box shows.
+            var down = new Gate(false, 0) { Refusal = "127.0.0.1:45678 could not be taken: in use" };
+
+            using (var window = new GateStatusForm(down, null, Takes, 45678))
             {
                 Assert.That(window.ChosenPort, Is.EqualTo(45678));
             }
@@ -205,7 +211,7 @@ namespace KeePassGate.Tests
             {
                 taken = port;
                 return null;
-            }, 0))
+            }, 45678))
             {
                 window.ChosenPort = 52000;
 
@@ -225,7 +231,7 @@ namespace KeePassGate.Tests
             // Pressing OK without touching the box is the commonest thing that happens to this
             // window, and a sentence about a restart there would be asking for one that buys
             // nothing.
-            using (var window = new GateStatusForm(Listening(45678), null, Takes, 0))
+            using (var window = new GateStatusForm(Listening(45678), null, Takes, 45678))
             {
                 var said = window.Keep();
 
@@ -238,7 +244,7 @@ namespace KeePassGate.Tests
         public void A_port_that_could_not_be_written_down_says_so_and_names_the_reason()
         {
             using (var window = new GateStatusForm(Listening(45678), null,
-                port => "the configuration is read only", 0))
+                port => "the configuration is read only", 45678))
             {
                 window.ChosenPort = 52000;
 
@@ -274,22 +280,24 @@ namespace KeePassGate.Tests
 
         [TestCase(false, 0)]
         [TestCase(true, 80)]
-        public void An_untouched_OK_over_a_port_the_box_cannot_show_says_nothing_changed(bool listening, int port)
+        public void An_OK_when_the_next_start_takes_no_port_writes_the_port_in_the_box(bool listening, int port)
         {
-            // A gate on nothing, or on a port below the range the box offers, opens the box on the
-            // default. OK there writes nothing, and it used to answer "Saved" with a port the next
-            // start would not take.
+            // Nothing chosen and `KEEPASSGATE_PORT` naming something that is not a port, so the
+            // next start takes nothing and the box opens on the default as a suggestion. OK on it,
+            // untouched, used to answer that nothing changed and write nothing, which left the
+            // default the one port this window could not choose over the variable.
             var written = new List<int>();
 
             using (var window = new GateStatusForm(
                 new Gate(listening, port), null, chosen => { written.Add(chosen); return null; }, 0))
             {
+                Assume.That(window.ChosenPort, Is.EqualTo(GateOptions.DefaultPort));
+
                 var said = window.Keep();
 
-                Assert.That(written, Is.Empty);
-                Assert.That(window.Applied, Is.True);
-                Assert.That(said, Does.Not.Contain("Saved"));
-                Assert.That(said, Is.EqualTo("Nothing was changed."));
+                Assert.That(written, Is.EqualTo(new[] { GateOptions.DefaultPort }));
+                Assert.That(window.Changed, Is.True);
+                Assert.That(said, Does.StartWith("Saved."));
             }
         }
 

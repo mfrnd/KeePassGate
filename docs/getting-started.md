@@ -125,7 +125,9 @@ again.
 starts and only when no port has been chosen on this window. It has to name a port from 1024 to
 65535. Set to anything else, nothing listens for that run either: KeePass says so in a box when it
 starts, naming the variable and what it held, and this window says why nothing is listening. Fix the
-variable or remove it, then start KeePass again.
+variable or remove it, or choose a port on this window, which the next start takes over the variable,
+then start KeePass again. The box offers 51776 then, and **OK** writes the port it holds even when it
+was not moved, since the next start would take none.
 
 **With neither, the gate listens on 51776.** The picture above was taken with it on 45678, which is
 the port every example on these pages uses as well: read it as whatever **Listening** shows.

@@ -50,6 +50,12 @@ namespace KeePassGate.Ui
         /// <summary>What the box was showing when the window opened.</summary>
         private readonly decimal _opened;
 
+        /// <summary>
+        /// Whether the next start takes no port at all, so that what the box shows is a suggestion
+        /// rather than the setting.
+        /// </summary>
+        private readonly bool _takesNothing;
+
         /// <summary>The socket the gate is on right now, or zero when it is on none.</summary>
         private readonly int _where;
         private readonly NumericUpDown _port;
@@ -73,8 +79,10 @@ namespace KeePassGate.Ui
         /// can reach: a port is what the gate binds the next time KeePass starts.
         /// </param>
         /// <param name="chosen">
-        /// What the operator has chosen before, or zero when they have chosen nothing and the gate
-        /// is on whatever it defaulted to.
+        /// The port the next start takes, which is `GateOptions.PortToTake`'s answer: the port the
+        /// operator chose before, or while there is none `KEEPASSGATE_PORT`, or the default. Zero
+        /// when the next start takes none, which is when the variable names something that is not a
+        /// port, and the gate is on nothing for that reason.
         /// </param>
         public GateStatusForm(
             IGateStatus gate, GateIncidents incidents, Func<int, string> apply, int chosen)
@@ -222,11 +230,13 @@ namespace KeePassGate.Ui
             facts.Controls.Add(addressName, 0, rows.Count);
             facts.Controls.Add(_addresses, 1, rows.Count);
 
-            // What the next start takes, so that pressing OK without touching it changes nothing:
-            // `_opened` is what an untouched OK is measured against. The socket the gate is on now
+            // What the next start takes, so that pressing OK without touching it changes nothing
+            // unless the next start takes no port at all: `_opened` is what an untouched OK is
+            // measured against. The socket the gate is on now
             // is the row above, and after a port is written down the two differ for the rest of
             // the session.
             _opened = Starting(gate, chosen);
+            _takesNothing = GatePort.Refuse(chosen) != null;
             _port = new NumericUpDown
             {
                 Name = GateTab.StatusPortBoxName,
@@ -412,11 +422,13 @@ namespace KeePassGate.Ui
 
             var wanted = (int)_port.Value;
 
-            if (wanted == _opened)
+            if (wanted == _opened && !_takesNothing)
             {
                 // Untouched, so there is nothing to write. The box opened on what the next start
                 // takes, so writing it again would change nothing and would still write KeePass's
-                // configuration for it.
+                // configuration for it. A box that opened on a suggestion, because the next start
+                // takes nothing, is written whether or not it moved: OK there is the only way to
+                // choose that port over the variable, and it used to answer that nothing changed.
                 Applied = true;
                 return Said(Untouched(wanted));
             }
@@ -478,8 +490,9 @@ namespace KeePassGate.Ui
         }
 
         /// <summary>
-        /// What the box starts on: what the next start takes, which is what was chosen, or the
-        /// port the gate is on when nothing was, or the default when neither says anything.
+        /// What the box starts on: what the next start takes. When that is no port at all, the box
+        /// offers the port the gate is on, or the default when it is on none it can show, and OK
+        /// writes it.
         /// </summary>
         /// <remarks>
         /// **The choice rather than the socket**, and it used to be the socket. The two differ for

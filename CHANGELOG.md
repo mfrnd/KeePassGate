@@ -11,6 +11,10 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **OK on the Tools window writes the port in its box while `KEEPASSGATE_PORT` names no port.** The
+  next start then takes nothing, and the box offers 51776, but OK on it untouched answered that
+  nothing had changed and wrote nothing, so the default was the one port the window could not
+  choose over the variable.
 - **A Windows logoff or shutdown is no longer held up by the message about standing answers never
   written.** KeePass unloads the plugin inside the session's end, and the message box waited there
   for an answer nobody was at the desk to give, until Windows gave up on KeePass. At a logoff or a
