@@ -152,8 +152,8 @@ namespace KeePassGate.Authority
         public const int MaxSubjectLength = 64;
 
         /// <summary>
-        /// A certificate is backdated slightly, so that a clock a few seconds behind ours does not
-        /// see something issued in its future.
+        /// A certificate is backdated five minutes, so that a clock up to that far behind ours does
+        /// not see something issued in its future.
         /// </summary>
         public static readonly TimeSpan Backdate = TimeSpan.FromMinutes(5);
 
