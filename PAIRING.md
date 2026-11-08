@@ -671,10 +671,11 @@ button. Pressing it refuses once, which keeps nothing, and so do Enter, Escape, 
 every other way of dismissing the dialog: a standing answer is given from the button's menu and from
 nothing else. The menu, opened by its arrow or by Alt and Down, offers refusing once, in this
 session, until a date, or forever, and until a date asks for a day from tomorrow to the day the
-certificate it holds now ends, so on that day itself the choice is grayed out and says why. The
-answer stands until the chosen day begins where the operator is, its first midnight on a day the
-clocks fall back, and that moment is the `notBefore` a client is sent, in UTC. While a standing
-answer stands, every renewal of that certificate is answered without the dialog:
+certificate it holds now ends, both days where the operator is, so on that day itself the choice is
+grayed out and states why. The answer stands until the chosen day begins where the operator is, its
+first midnight on a day the clocks fall back, and that moment is the `notBefore` a client is sent,
+in UTC. While a standing answer stands, every renewal of that certificate is answered without the
+dialog:
 
 - **In this session** is held in the plugin's memory, per certificate, as invitations are held, and
   goes when KeePass exits. Nothing of it is written to the database, since an answer about one

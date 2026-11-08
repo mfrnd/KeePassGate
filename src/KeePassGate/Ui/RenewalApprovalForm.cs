@@ -135,7 +135,7 @@ namespace KeePassGate.Ui
 
         /// <summary>
         /// The latest day a refusal until a date can name: the day the certificate the client holds
-        /// now ends, as the dialog prints it.
+        /// now ends, where the operator is.
         /// </summary>
         private readonly DateTime _lastDay;
 
@@ -286,10 +286,15 @@ namespace KeePassGate.Ui
             // From tomorrow to the day the certificate it holds now ends, because a day before that
             // asks nothing of anybody and this certificate cannot ask on a day after it. Tomorrow
             // is asked of the clock each time, since the dialog can be answered after midnight.
-            // The last day is the one the row above prints, in UTC as every moment on screen is,
-            // so the row and the calendar never name two different days.
+            //
+            // **Both ends where the operator is**, since the refusal begins at the start of the day
+            // chosen there. The last day used to be the date the row above prints in UTC, against
+            // a local tomorrow: far east of Greenwich the choice was grayed out a local day early,
+            // and far west it offered a day after the certificate's local end, whose refusal began
+            // after the certificate had stopped. The row names its zone, so a last day a date away
+            // from it near midnight is read as what it is.
             _today = today ?? (() => DateTime.Today);
-            _lastDay = request.Expires.UtcDateTime.Date;
+            _lastDay = TimeZoneInfo.ConvertTime(request.Expires, TimeZoneInfo.Local).Date;
 
             var footer = new TableLayoutPanel
             {

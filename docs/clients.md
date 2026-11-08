@@ -173,14 +173,15 @@ certificate of a year, ten for one of a month, a little over two for one of a we
 certificate is not reported as about to expire from the day it was issued.
 
 **A program that is about to expire asks to renew**, and KeePass raises a dialog like the pairing
-one, in front and without taking the keyboard, with no invitation to hand out first: it says which
-program is asking, when it was admitted, when the certificate it holds now ends, where the request
-came from, and the profiles it holds, all checked. Uncheck anything the new certificate should not
-carry; nothing can be added. The certificate it holds now keeps every profile until it is given up,
-so to take one away at once, revoke the older row once the renewal is approved. A profile this
-database no longer names is not offered, and a line under the list says it is not carried over. Pick
-how long the new certificate lasts, as on the pairing dialog. A program that asks again while its
-dialog is still up is told to wait, so the dialog never comes up twice for one certificate.
+one, in front and without taking the keyboard, with no invitation to hand out first: it names which
+program is asking, when it was admitted and when the certificate it holds now ends, both in UTC as
+the dialog marks them, where the request came from, and the profiles it holds, all checked. Uncheck
+anything the new certificate should not carry; nothing can be added. The certificate it holds now
+keeps every profile until it is given up, so to take one away at once, revoke the older row once the
+renewal is approved. A profile this database no longer names is not offered, and a line under the
+list says it is not carried over. Pick how long the new certificate lasts, as on the pairing dialog.
+A program that asks again while its dialog is still up is told to wait, so the dialog never comes up
+twice for one certificate.
 
 ![The renewal dialog with its Refuse menu open](images/renewal-approval.png)
 
@@ -193,11 +194,11 @@ click anywhere else puts it away, and a click on **Approve** that puts it away a
 - **Refuse in this session** answers every renewal of that certificate without asking until KeePass
   exits. It is kept in the plugin's memory and not in the database, so it goes when KeePass closes,
   and the next renewal after that raises the dialog again.
-- **Refuse until a date...** asks for a day, from tomorrow to the day the certificate ends, with a
-  week from today already chosen, and answers every renewal of that certificate without asking
-  until that day begins. **Cancel** there goes back to the renewal dialog with nothing decided. On
-  the certificate's last day there is no day left to name, so the choice is grayed out and says
-  the certificate ends today.
+- **Refuse until a date...** asks for a day, from tomorrow to the day the certificate ends, both
+  where the operator is rather than in UTC, with a week from today already chosen, and answers every
+  renewal of that certificate without asking until that day begins there. **Cancel** there goes
+  back to the renewal dialog with nothing decided. On the certificate's last day there is no day
+  left to name, so the choice is grayed out and states that the certificate ends today.
 - **Refuse forever** answers every renewal of it without asking at all, so the program has to pair
   again for a new certificate before this one runs out, unless the answer is taken back.
 

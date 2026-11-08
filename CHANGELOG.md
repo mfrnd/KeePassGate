@@ -11,6 +11,11 @@ none, since it releases both.
 
 ## 0.2.0, unreleased
 
+- **The renewal dialog marks its two moments as UTC, and its refuse-until range runs where the
+  operator is.** The moments read as local time with nothing marking them. The calendar ran from a
+  local tomorrow to the date of the certificate's end in UTC, so far east of Greenwich the choice
+  was grayed out a day early, and far west it offered a day whose refusal began after the
+  certificate had stopped.
 - **The message after a port change tells the operator that clients pair again**, rather than that
   they have to be told the new port. PyKeePassGate keeps the port it paired against and offers no
   way to change it, as the getting started page already stated.

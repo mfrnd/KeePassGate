@@ -42,8 +42,19 @@ namespace KeePassGate.Tests
 
             Assert.That(said["Database"], Is.EqualTo("Invented Vault"));
             Assert.That(said["Client"], Is.EqualTo("agent-fictitious"));
-            Assert.That(said["Its certificate expires"], Is.EqualTo("2026-11-12 12:00:00"));
+            Assert.That(said[GateTab.RenewalExpiresFactName], Is.EqualTo("2026-11-12 12:00:00"));
             Assert.That(said[GateTab.PeerFactName], Is.EqualTo("127.0.0.1:60001"));
+        }
+
+        [Test]
+        public void The_moments_it_prints_name_their_zone()
+        {
+            // Printed in UTC, as every moment on screen is, and a bare moment reads as local time:
+            // wrong by the operator's offset on the dialog where the date decides something.
+            var facts = RenewalApprovalForm.Facts(Request(new[] { "reader" }, 40));
+
+            Assert.That(facts.Single(fact => fact.Value == "2026-11-12 12:00:00").Name, Does.Contain("UTC"));
+            Assert.That(facts.Single(fact => fact.Value == "2026-04-01 09:00:00").Name, Does.Contain("UTC"));
         }
 
         [Test]
@@ -469,8 +480,8 @@ namespace KeePassGate.Tests
                 Assert.That(calendar.MinDate, Is.EqualTo(Today.AddDays(1)));
                 Assert.That(calendar.MaxDate, Is.EqualTo(new DateTime(2026, 11, 12)));
                 Assert.That(offered, Is.EqualTo(Today.AddDays(7)));
-                Assert.That(Moments.OnScreen(Request(new[] { "reader" }, 40).Expires), Does.StartWith("2026-11-12"),
-                    "the last day is the one the dialog prints");
+                Assert.That(TimeZoneInfo.ConvertTime(Request(new[] { "reader" }, 40).Expires, TimeZoneInfo.Local).Date,
+                    Is.EqualTo(new DateTime(2026, 11, 12)), "the last day is the day it ends where the operator is");
             }
         }
 
@@ -527,6 +538,50 @@ namespace KeePassGate.Tests
 
                 dialog.RefuseUntil(Today.AddDays(40));
                 Assert.That(dialog.Answer().Standing, Is.Not.Null, "the last day is inside");
+            }
+        }
+
+        [Test]
+        public void Far_east_of_greenwich_a_certificate_with_a_local_day_left_still_offers_it()
+        {
+            // 22:00 UTC on the third is eleven in the morning of the fourth at UTC+13. Measured
+            // against the date printed in UTC, the choice was grayed out on the third as ending
+            // today, while a refusal until the fourth still began before the certificate ended.
+            var ends = new DateTimeOffset(Today.AddDays(3).AddHours(22), TimeSpan.Zero);
+
+            using (LocalTimeZone.At(13))
+            using (var dialog = new RenewalApprovalForm(Request(new[] { "reader" }, ends), Timeout, null, () => Today.AddDays(3), null))
+            {
+                Assert.That(dialog.CanRefuseUntil, Is.True);
+
+                dialog.RefuseUntil(Today.AddDays(4));
+
+                Assert.That(dialog.Answer().Standing.NotBefore, Is.LessThan(ends));
+            }
+        }
+
+        [Test]
+        public void Far_west_of_greenwich_no_day_after_the_certificate_s_local_end_is_offered()
+        {
+            // 03:00 UTC on the fourth is five in the afternoon of the third at UTC-10. Measured
+            // against the date printed in UTC, the fourth was offered, and a refusal until it began
+            // seven hours after the certificate had stopped.
+            var ends = new DateTimeOffset(Today.AddDays(4).AddHours(3), TimeSpan.Zero);
+
+            using (LocalTimeZone.At(-10))
+            using (var dialog = new RenewalApprovalForm(Request(new[] { "reader" }, ends), Timeout, null, () => Today, null))
+            {
+                MonthCalendar calendar = null;
+                dialog.AskForADay = asking =>
+                {
+                    calendar = ControlTree.FindByName<MonthCalendar>(asking, GateTab.RefuseUntilCalendarName);
+                    return DialogResult.Cancel;
+                };
+
+                dialog.AskToRefuseUntil();
+
+                Assert.That(calendar.MaxDate, Is.EqualTo(Today.AddDays(3)));
+                Assert.That(() => dialog.RefuseUntil(Today.AddDays(4)), Throws.InstanceOf<ArgumentOutOfRangeException>());
             }
         }
 
@@ -815,12 +870,17 @@ namespace KeePassGate.Tests
 
         private static RenewalRequest Request(string[] held, int daysLeft)
         {
+            return Request(held, new DateTimeOffset(Today.AddDays(daysLeft).AddHours(12), TimeSpan.Zero));
+        }
+
+        private static RenewalRequest Request(string[] held, DateTimeOffset expires)
+        {
             return new RenewalRequest(
                 "aaaabbbbccccdddd",
                 "Invented Vault",
                 "agent-fictitious",
                 new DateTimeOffset(2026, 4, 1, 9, 0, 0, TimeSpan.Zero),
-                new DateTimeOffset(Today.AddDays(daysLeft).AddHours(12), TimeSpan.Zero),
+                expires,
                 held,
                 Array.Empty<string>(),
                 "127.0.0.1:60001",

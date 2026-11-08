@@ -347,10 +347,15 @@ namespace KeePassGate.Ui
             "This renewal request times out in {0} seconds, and nothing gets issued.";
 
         /// <summary>What the renewal dialog calls the moment the client's record was written.</summary>
-        public const string RenewalAdmittedFactName = "Admitted";
+        /// <remarks>
+        /// Each of the two moments names its zone, because every moment on screen is printed in
+        /// UTC and a bare moment reads as local time, wrong by the operator's own offset on the one
+        /// dialog where that date decides something.
+        /// </remarks>
+        public const string RenewalAdmittedFactName = "Admitted (UTC)";
 
         /// <summary>What it calls the end of the certificate the client holds now.</summary>
-        public const string RenewalExpiresFactName = "Its certificate expires";
+        public const string RenewalExpiresFactName = "Its certificate expires (UTC)";
 
         /// <summary>
         /// The menu the renewal dialog's Refuse button opens, listing what refusing can mean.
